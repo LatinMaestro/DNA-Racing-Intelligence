@@ -19,12 +19,29 @@
 - Ten exact-distance races is the minimum minimally analytical sample.
 - Do not calculate remaining lifetime races.
 
+## 2026-07-21 — Yellow and Blue star signals
+
+- Race Merge `gold_star` is the source field for the user-facing Yellow star.
+- Yellow star means the game assessed that core as having the strongest chance to finish in the top three in the entered field.
+- Blue star means the game assessed that core as having the strongest chance to win and finish first in the entered field.
+- Stars are pre-race and field-relative, not guaranteed outcomes or absolute core ratings.
+- Preserve raw source values and normalized nullable Yellow/Blue fields in the database.
+- Distinguish `false` from missing, partial or invalid star data.
+- A star over historically strong cores is positive supporting evidence.
+- Repeated failure to receive a star against historically weak cores is negative supporting evidence, but no-star evidence alone cannot stop Discovery, classify a core as poor or recommend burning.
+- Race time and speed remain primary; star evidence supports whole-core analysis, Discovery, tournament and Maiden suitability, breeding research and lifecycle advice.
+- Historical field quality must be calculated from information available before the event. Current-event outcomes and future races must not leak into the assessment.
+- Track both all-race and assignment-opportunity denominators where relevant.
+- Detect changes in star assignment and predictive performance over time because the hidden game algorithm may change.
+- Test whether parent and lineage star profiles add predictive breeding lift; do not assume star propensity is inherited.
+
 ## 2026-07-21 — Discovery
 
 - Discovery is lineage-informed, not random.
 - Historical evidence priority: own results, parents, grandparents, full siblings, half siblings, offspring, wider lineage, broad population patterns.
 - Permit controlled probes for unexpected elite outliers.
 - Stop weak paths early.
+- Early stars over strong fields may justify continuing a targeted probe before the 10-race sample is reached.
 
 ## 2026-07-21 — Maiden
 
@@ -34,6 +51,7 @@
 - Non-participation preserves ME.
 - Wait for the strongest projected Bike, Car or Horse Maiden rather than using the first available event.
 - A core may be entered primarily for one of several shared brackets.
+- Star evidence can support a limited-sample ME decision but cannot override materially weak time evidence.
 
 ## 2026-07-21 — Tournament entry
 
@@ -41,6 +59,7 @@
 - Vault occupancy is capped at 50% of gates but should not be targeted.
 - User manages live occupancy and prefers outside entries to reduce loss risk.
 - Auto-Entry recommendations identify candidates, initial repetitions and stop/continue rules.
+- Historical stars are supporting evidence; the configured leaderboard metric remains the primary tournament objective.
 
 ## 2026-07-21 — Breeding
 
@@ -63,6 +82,7 @@
 - Burn-credit value is not predicted by the lifecycle model.
 - Recommendations focus on overall vault quality.
 - The actual BGC returned after a burn may be manually recorded in Vault Performance.
+- Absence of stars is never sufficient by itself to recommend burning.
 
 ## 2026-07-21 — Vault Performance and accounting
 
