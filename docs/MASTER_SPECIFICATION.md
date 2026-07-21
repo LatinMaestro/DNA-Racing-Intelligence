@@ -4,7 +4,7 @@
 
 DNA Racing Intelligence is a private, single-user analytics and decision-support website for improving the owner’s DNA Racing vault.
 
-It must convert historical race results, core metadata, current vault holdings, current arena listings and user-entered tournament parameters into practical recommendations. The system is advisory. It does not connect to the game, enter races, purchase splices, sell cores or burn cores.
+It must convert historical race results, core metadata, current vault holdings, current arena listings, user-entered tournament parameters and recorded economic activity into practical recommendations and auditable reporting. The system is advisory. It does not connect to the game, enter races, purchase splices, sell cores, burn cores or initiate wallet transactions.
 
 The product objective is balanced across:
 
@@ -16,7 +16,7 @@ The product objective is balanced across:
 - coverage across modes, distances, elements, breeds and leaderboard groups; and
 - disciplined retention, sale and burn decisions.
 
-No single objective permanently overrides the others. Recommendations must show the trade-off where objectives conflict.
+No single objective permanently overrides the others. Recommendations must show the trade-off where objectives conflict. Economic reporting must not overstate incomplete source coverage as complete lifetime profit.
 
 ## 2. Users, access and privacy
 
@@ -24,10 +24,12 @@ No single objective permanently overrides the others. Recommendations must show 
 - Authentication is required.
 - No public pages, public profiles, public recommendations or public API.
 - Disable search indexing.
-- Keep source exports, processed data and models private.
+- Keep source exports, processed data, economic records and models private.
 - Do not commit real exports or database snapshots to GitHub.
 - Build and operate online through GitHub, Codex, Vercel and managed data services.
 - The user should not need to run the application locally.
+- Never request or store crypto private keys, seed phrases or signing credentials.
+- The application may record wallet/account labels and transaction references but must not initiate blockchain or game transactions.
 
 ## 3. Source datasets
 
@@ -36,8 +38,9 @@ The initial supplied exports include:
 - cumulative or sequential race-merge CSV exports;
 - core-details CSV export;
 - current-vault CSV export;
-- current-arena/splicing CSV export; and
-- season/tournament calendars and rule screenshots.
+- current-arena/splicing CSV export;
+- season/tournament calendars and rule screenshots; and
+- user-entered economic transactions, manual tournament payouts and reconciliation records.
 
 Initial exploration identified approximately 2.5 million race-entry rows, about 695,000 events, approximately 18,000 core records, a current vault of roughly 68 cores and hundreds of active arena listings. Treat these figures as initial observations, not hardcoded assumptions.
 
@@ -56,7 +59,8 @@ Show:
 - current arena opportunities;
 - breeding recommendations;
 - cores requiring lifecycle decisions;
-- data freshness and import warnings.
+- selected Vault Performance indicators; and
+- data freshness, reconciliation and import warnings.
 
 ### 4.2 Vault registration and ownership lock
 
@@ -91,8 +95,9 @@ Every known core profile should provide:
 - sample sizes and confidence;
 - tournament suitability;
 - discovery status;
-- breeding value; and
-- lifecycle recommendation.
+- breeding value;
+- lifecycle recommendation; and
+- economic activity and realised result where supportable.
 
 Ignore the obsolete race-class field.
 
@@ -339,6 +344,8 @@ Show:
 - predicted offspring class, element and F-number;
 - elite-upside, vault-fit and balanced scores.
 
+An arena listing is not evidence that the listed core was used or that its owner earned a fee.
+
 ### 4.13 Lifecycle and burn adviser
 
 Recommendations:
@@ -357,9 +364,10 @@ Rules:
 - All spliced classes may be burned.
 - Burning is permanent.
 - Burnt cores remain in historical family trees.
-- Do not calculate burn credit.
+- Do not predict burn-credit value.
 - Prioritise overall vault quality, not burn-credit return.
 - Protect unresolved ME, specialist, discovery, lineage and breeding value.
+- Allow the actual BGC credit received after a burn to be entered in Vault Performance.
 
 ### 4.14 Open Race tool
 
@@ -381,6 +389,48 @@ Output:
 - confidence;
 - avoid recommendation where appropriate.
 
+### 4.15 Vault Performance and accounting
+
+The website must include a private, auditable Vault Performance area. The complete requirements in `docs/VAULT_PERFORMANCE_ACCOUNTING.md` form part of this master specification.
+
+It must track:
+
+- normal open-race entry fees, payouts and net result;
+- tournament qualification entry fees, race payouts and net result;
+- automated tournament round and final payouts;
+- manually recorded tournament prizes paid directly by the game owner to a crypto wallet;
+- breeding fees earned from completed external use of owned cores;
+- DNA base and external arena fees paid;
+- BGC spent on arena fees;
+- core purchase costs, sale proceeds and cost basis where known;
+- permanent burns and actual BGC credits received;
+- deposits, withdrawals, transfers, opening balances and reconciliation adjustments; and
+- reporting by timeframe, tournament, core, mode, distance, category and asset/currency.
+
+Accounting controls:
+
+- keep unlike currencies/assets separate unless an explicit dated conversion is supplied;
+- treat BGC as a separate non-cash in-game credit by default;
+- do not infer breeding income from arena listings;
+- do not infer complete wallet balances from race activity alone;
+- exclude deposits, withdrawals and internal transfers from operating P/L;
+- do not value unsold cores in realised P/L by default;
+- do not fabricate core-sale profit where acquisition cost is missing;
+- derive race fees and payouts idempotently from validated source fields;
+- support manual entries, corrections, reversals, duplicate warnings and reconciliation;
+- show source coverage and complete/partial/estimated status;
+- never request or store wallet private keys, seed phrases or signing credentials.
+
+Required views include:
+
+- Vault Performance dashboard;
+- tournament campaign economics;
+- core economic profile;
+- separate BGC movement and balance where supportable;
+- manual transaction and payout entry;
+- classification/reconciliation queue;
+- detailed ledger and filters.
+
 ## 5. Data refresh workflow
 
 Support periodic uploads of:
@@ -389,7 +439,9 @@ Support periodic uploads of:
 - updated core-details exports;
 - current-vault exports;
 - current arena exports;
-- tournament calendars and manual rules.
+- tournament calendars and manual rules;
+- manual economic transactions and external tournament payouts; and
+- future authoritative economic exports where supported.
 
 The importer must:
 
@@ -397,13 +449,14 @@ The importer must:
 - validate schema;
 - store import metadata;
 - deduplicate cumulative history;
+- derive race economic entries without duplication;
 - preserve previous valid records;
 - warn on conflicts;
 - update aggregates;
 - allow safe rollback of an import batch;
 - never expose raw source files publicly.
 
-Arena data is highly time-sensitive and listings commonly last 5 or 10 days. Display freshness prominently and do not treat old arena listings as active.
+Arena data is highly time-sensitive and listings commonly last 5 or 10 days. Display freshness prominently and do not treat old arena listings as active or as completed breeding transactions.
 
 ## 6. Explainability
 
@@ -418,6 +471,16 @@ Every recommendation must provide:
 - alternatives considered;
 - reason not to select obvious alternatives where applicable.
 
+Every economic report must provide:
+
+- date and source coverage;
+- included assets/currencies;
+- classification and reconciliation status;
+- missing acquisition costs or opening balances;
+- conversion use;
+- unclassified transaction count; and
+- complete, partial or estimated status.
+
 ## 7. Non-goals for initial delivery
 
 - automatic game login or race entry;
@@ -427,7 +490,12 @@ Every recommendation must provide:
 - burn-credit prediction;
 - remaining lifetime-race calculation;
 - reliance on obsolete race class;
-- deterministic claims about hidden breed qualities.
+- deterministic claims about hidden breed qualities;
+- initiation of crypto or wallet transactions;
+- storage of private keys or seed phrases;
+- automatic cash valuation of BGC;
+- realised P/L that includes unsold-core estimates; and
+- claims of complete lifetime profit from incomplete source coverage.
 
 ## 8. Success measures
 
@@ -442,4 +510,8 @@ The product is successful when it can reliably:
 - recommend qualification candidates and race allocations;
 - distinguish fastest-time specialists from median-time specialists;
 - identify high-upside breeding pairs and vault-gap pairs separately;
-- provide auditable, backtested and uncertainty-aware recommendations.
+- derive race fees and payouts without double counting;
+- reconcile qualification, automated-stage and manual tournament payouts;
+- report open racing, tournament, breeding, core trading and BGC activity without combining incompatible assets;
+- disclose incomplete financial coverage and missing cost basis; and
+- provide auditable, backtested and uncertainty-aware recommendations and reporting.
