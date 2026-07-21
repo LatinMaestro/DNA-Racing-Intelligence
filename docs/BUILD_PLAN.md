@@ -19,6 +19,8 @@ Deliver:
 - Gold-star eligibility design using gate count greater than three;
 - event-level star assignment validation design;
 - durable star-profile and pre-race field-quality aggregate strategy;
+- two-stage Open Race design separating pre-entry selection from optional post-lock star observation;
+- reconciliation design for optional manual post-lock star observations against later authoritative imports;
 - import timestamp, latest accepted event timestamp and freshness-state design;
 - historical-snapshot UI rules that prohibit live-data wording;
 - architecture for a currency-aware auditable economic ledger;
@@ -26,7 +28,7 @@ Deliver:
 - private manual transaction and tournament-payout entry design; and
 - placeholder navigation for Vault Performance.
 
-Exit: documentation accepted, scaffold verified, star-signal, freshness and accounting architecture are documented and no private data is committed.
+Exit: documentation accepted, scaffold verified, star-signal, Open Race timing, freshness and accounting architecture are documented and no private data is committed.
 
 ## Phase 1 — Data foundation
 
@@ -43,6 +45,8 @@ Deliver:
 - distinction between false, missing, ineligible and invalid star data;
 - event-level assignment-count validation and anomaly warnings;
 - explicit warning for any source Gold assignment at three gates or fewer;
+- optional manual post-lock star-observation source type kept separate from imported race facts;
+- idempotent reconciliation keys for later imported authoritative events;
 - core, vault and arena imports;
 - lineage graph;
 - import summaries and rollback;
@@ -53,7 +57,7 @@ Deliver:
 - import-safe economic natural keys; and
 - manual transaction source/provenance foundations.
 
-Exit: synthetic and representative sanitized imports pass, repeated imports produce no duplicate race/star/economic records, 1–3 gate races are correctly Gold-ineligible, freshness metadata is accurate, anomalies are surfaced, economic entries do not double count and lineage rules test correctly.
+Exit: synthetic and representative sanitized imports pass, repeated imports produce no duplicate race/star/economic records, 1–3 gate races are correctly Gold-ineligible, optional manual observations reconcile without duplicate analytical evidence, freshness metadata is accurate, anomalies are surfaced, economic entries do not double count and lineage rules test correctly.
 
 ## Phase 2 — Vault and core intelligence
 
@@ -198,15 +202,31 @@ Exit: every active core has an explainable lifecycle status or an explicit insuf
 
 Deliver:
 
-- manual race and opponent entry;
-- optional manual identification of the currently displayed Gold-star and Blue-star cores;
-- eligibility filtering;
-- pairwise/field time comparison;
-- star-aware field context without assuming the website can fetch authenticated game data;
-- explicit manual/current-input labeling distinct from imported history;
-- recommended owned core and avoid signal.
+### Stage A — Pre-entry core selection
 
-Exit: synthetic opponent fields and optional manually entered current-star assignments produce deterministic tested outputs.
+- manual race and already-entered opponent entry;
+- mode, distance, gate count, format, eligibility and available-gate inputs;
+- no current-race Gold/Blue input because stars are not visible while the field is forming;
+- eligibility filtering;
+- pairwise and field time comparison;
+- imported historical Gold/Blue profiles as supporting prior evidence only;
+- explicit statement that current-race stars are not yet available;
+- recommended owned core, alternatives and avoid signal;
+- data-current-through and freshness disclosure.
+
+### Stage B — Field locked / optional observation
+
+- activation only after the user confirms all gates are filled and the race is set to run;
+- optional manual recording of the revealed Gold and Blue cores;
+- Gold not applicable at gate count three or fewer;
+- observation-only labeling;
+- comparison of revealed stars with the earlier website ranking;
+- no replacement-core recommendation and no implication that the committed entry can be changed;
+- temporary/manual source storage separate from authoritative race history;
+- later idempotent reconciliation with the Race Merge event;
+- mismatch review where manual and imported assignments differ.
+
+Exit: the selection stage works without current-race stars, the locked stage cannot recommend switching cores, synthetic observations reconcile without duplicate counts, and source labels distinguish manual current-race observations from imported history.
 
 ## Phase 9 — Validation and hardening
 
@@ -221,6 +241,8 @@ Deliver:
 - Gold gate-eligibility tests;
 - star-algorithm era/change detection;
 - explicit current-event and future-leakage tests;
+- Open Race pre-entry/post-lock boundary tests;
+- manual observation reconciliation and duplicate-prevention tests;
 - freshness and stale-data behavior tests;
 - no-live-wording checks for imported views;
 - performance optimisation for multi-million-row history;
@@ -239,6 +261,7 @@ Exit: all Definition of Done requirements pass and Production remains gated pend
 - Nullable normalized Gold/Blue fields plus raw source provenance.
 - Gold eligibility derived from gate count and tested at import/analytics boundaries.
 - Precomputed core star profiles and time-aware pre-race field-quality features.
+- Optional manual post-lock observations in a separate reconcilable table or source model.
 - Durable import/current-through timestamps and freshness-state derivation.
 - Exact decimal/numeric or integer minor-unit storage appropriate to each asset.
 - Object storage for private raw uploads if needed.
@@ -246,4 +269,4 @@ Exit: all Definition of Done requirements pass and Production remains gated pend
 - Background or queued import/aggregate jobs rather than request-time full-history analysis.
 - Vercel Preview deployments.
 
-Codex may propose a different low-cost architecture, but must document why it better satisfies privacy, scale, analytical no-leakage, snapshot freshness, accounting correctness, maintainability and online-only operation before changing this direction.
+Codex may propose a different low-cost architecture, but must document why it better satisfies privacy, scale, analytical no-leakage, Open Race timing integrity, snapshot freshness, accounting correctness, maintainability and online-only operation before changing this direction.
