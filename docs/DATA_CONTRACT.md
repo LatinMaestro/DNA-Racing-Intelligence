@@ -43,12 +43,111 @@ Normalize without losing source values:
 - transaction direction and category;
 - race time and speed units;
 - tournament, bracket and stage identifiers;
-- wallet/account labels; and
-- external transaction references where supplied.
+- wallet/account labels;
+- external transaction references where supplied;
+- Yellow-star and Blue-star flags; and
+- star-data completeness and validation status.
 
 Do not combine currencies without an explicit conversion source and effective date.
 
 Treat BGC as a separate asset type. Do not silently convert it into cash or crypto.
+
+## Race star source fields
+
+The Race Merge exports currently include:
+
+- `gold_star` — the source field for the user-facing **Yellow star**;
+- `blue_star` — the source field for the **Blue star**.
+
+Owner-confirmed meanings:
+
+- Yellow star: the core assessed by the game as having the strongest chance to finish in the top three in that entered field.
+- Blue star: the core assessed by the game as having the strongest chance to win and finish first in that entered field.
+
+Import requirements:
+
+- preserve `gold_star` and `blue_star` raw values in staging or provenance storage;
+- normalize `gold_star` to domain field `yellow_star`;
+- normalize both to nullable Booleans;
+- distinguish `false` from absent, blank, malformed or unavailable;
+- record a `star_data_status` such as `complete`, `partial`, `missing` or `invalid`;
+- never silently treat a missing column or value as `false`;
+- preserve source batch and row provenance;
+- validate event-level assignment counts for each star type;
+- retain and flag anomalies rather than silently rewriting them.
+
+Initial supplied data indicates that no event has more than one Yellow or one Blue assignment. Treat that as an import validation expectation and observed source characteristic, not an immutable game rule.
+
+The same core may receive both stars in one event and the model must support that state.
+
+## Proposed normalized race-entry star fields
+
+Each normalized race-entry record should support:
+
+- `yellow_star` nullable Boolean;
+- `blue_star` nullable Boolean;
+- `yellow_star_source_value` optional raw value;
+- `blue_star_source_value` optional raw value;
+- `star_data_status`;
+- star validation warning code where applicable;
+- import batch ID.
+
+A derived event-level view or table should expose:
+
+- event ID;
+- whether a Yellow star was assigned;
+- Yellow-star core ID where assigned;
+- whether a Blue star was assigned;
+- Blue-star core ID where assigned;
+- whether the same core received both;
+- event star validation status.
+
+## Star aggregate requirements
+
+Precomputed or efficiently queryable aggregates should support each core × mode × exact distance and broader profile levels:
+
+- total races with valid star data;
+- Yellow assignment-opportunity races;
+- Blue assignment-opportunity races;
+- Yellow count and rate;
+- Blue count and rate;
+- both count and rate;
+- Yellow-only count and rate;
+- Blue-only count and rate;
+- neither count and rate;
+- rolling recent rates;
+- rates by gate count and relevant historical format;
+- rates by pre-race field-quality band;
+- sample size, recency and confidence.
+
+Where the UI shows a rate, store or calculate enough information to identify whether the denominator is:
+
+1. all races with valid star data; or
+2. only races where that star type was assigned to someone in the field.
+
+Do not combine the two silently.
+
+## Pre-race field context
+
+Historical star strength must be assessed against the quality of the entered field using information available before the event start time.
+
+Derived field-quality features may use opponents’ prior:
+
+- mode-distance time distributions;
+- successful-time percentiles;
+- star profiles;
+- sample sizes;
+- recency-weighted form; and
+- lineage evidence available before the event.
+
+The following must not enter a historical event’s pre-race field-quality calculation:
+
+- the event’s eventual finishing positions;
+- the event’s times;
+- the event’s prizes or payouts;
+- any later race result.
+
+Persist a feature timestamp or cutoff reference sufficient to audit no-leakage behavior.
 
 ## Economic transaction requirements
 
@@ -116,9 +215,12 @@ Derived relationships:
 
 Validate family restrictions before a pairing recommendation.
 
+Star profiles may be joined to lineage research as historical features, but the data layer must not label them as inherited traits without validated analysis.
+
 ## Reconciliation and duplication
 
-- Re-importing cumulative Race Merge data must not duplicate race or economic records.
+- Re-importing cumulative Race Merge data must not duplicate race, star or economic records.
+- Star aggregates must derive from the deduplicated accepted race-entry set.
 - Warn about manual transactions with matching date, amount, asset and tournament/reference.
 - Permit mark-as-duplicate or excluded status without deleting provenance.
 - Support reversal entries for incorrect manual records.
