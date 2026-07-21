@@ -11,6 +11,8 @@ A phase or feature is complete only when all applicable items pass.
 - Does not expose private data publicly.
 - Gold/Blue star outputs show counts, eligibility, denominator, mode/distance context, field context and data coverage.
 - Race-derived views show `Data current through`, `Last imported` and freshness status and do not imply live data.
+- Open Race selection works without current-race star inputs.
+- Open Race post-lock star capture, where implemented, is clearly observation-only and cannot produce a replacement-core recommendation.
 - Vault Performance reports clearly separate currencies/assets and distinguish complete, partial and estimated results.
 
 ## Data
@@ -26,6 +28,8 @@ A phase or feature is complete only when all applicable items pass.
 - A source Gold assignment at three gates or fewer is retained and flagged as an anomaly.
 - Event-level multiple-assignment anomalies are surfaced rather than silently rewritten.
 - Star aggregates remain idempotent across cumulative imports.
+- Optional manual post-lock star observations remain separate from imported race facts until reconciled.
+- Reconciliation with a later authoritative event cannot duplicate star counts or analytical evidence.
 - Import timestamp, latest accepted event timestamp and aggregate refresh timestamp are retained.
 - Race-derived economic transactions remain idempotent across cumulative imports.
 - Manual transactions, corrections, reversals and exclusions retain audit history.
@@ -45,6 +49,8 @@ A phase or feature is complete only when all applicable items pass.
 - Star conversion diagnostics remain separate from pre-race predictive features.
 - Detected star-assignment era changes are documented or explicitly reported as not detected.
 - No-star evidence alone cannot stop Discovery, label a core as poor or recommend burn.
+- Current-race stars are not used in an Open Race pre-entry recommendation because they are unavailable at selection time.
+- Post-lock star observations are not misrepresented as pre-entry predictive inputs or completed outcomes.
 - Dataset freshness is incorporated into confidence and warnings without changing accepted historical facts.
 - Results are compared with simple baselines.
 - Unsupported causal, inherited-trait or deterministic claims are absent.
@@ -70,6 +76,7 @@ A phase or feature is complete only when all applicable items pass.
 - Gold means strongest assessed top-three chance and Blue means strongest assessed first-place chance in the entered field.
 - Gold is unavailable at three gates or fewer.
 - Stars are treated as field-relative pre-race signals, not guaranteed outcomes or absolute ratings.
+- Open Race stars are revealed only after all gates are filled and the race is set to run.
 - Maiden lifecycle and preserve-ME logic are tested.
 - Tournament configuration supports variable qualification rules.
 - 50% gate occupancy is enforced as a cap, not a target.
@@ -85,6 +92,7 @@ A phase or feature is complete only when all applicable items pass.
 - Large-history processing is not performed synchronously on routine page requests.
 - Star-profile and field-quality aggregates are precomputed or otherwise efficiently served.
 - Imported-data pages are tested for freshness and non-live wording.
+- Open Race stage transitions and observation reconciliation are tested.
 - Accessibility and responsive behaviour are checked.
 - Security-sensitive values are not logged.
 
