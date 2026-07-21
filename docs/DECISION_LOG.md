@@ -40,6 +40,19 @@
 - Detect changes in star assignment and predictive performance over time because the hidden game algorithm may change.
 - Test whether parent and lineage star profiles add predictive breeding lift; do not assume star propensity is inherited.
 
+## 2026-07-21 — Open Race star timing
+
+- Current-race Gold and Blue stars are not visible while cores are entering and the user is deciding which core to use.
+- Stars are revealed only after all race gates have been filled and the race is set to take place.
+- At star reveal, the user’s entry decision is already committed and the race is about to run.
+- The Open Race selection recommendation must not request or depend on current-race stars.
+- Historical imported Gold/Blue profiles may still support the pre-entry recommendation.
+- Optional manual star capture after field lock is observation-only and must not trigger a replacement-core recommendation.
+- A post-lock observation is not a race result or a pre-entry advantage.
+- Optional manual observations must remain separate from permanent historical aggregates until reconciled with the later Race Merge event.
+- Reconciliation must avoid duplicate star counts and surface mismatches.
+- Gold remains not applicable in locked 1-, 2- or 3-gate races.
+
 ## 2026-07-21 — Data freshness
 
 - A newer race export is expected approximately once every few days.
