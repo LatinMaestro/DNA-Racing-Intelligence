@@ -8,6 +8,7 @@ Before implementation beyond the scaffold, confirm:
 
 - private single-user access approach;
 - database and raw-upload storage choice;
+- private storage treatment for manual financial records;
 - expected free/paid service costs;
 - no requirement for local user development;
 - no real data committed to Git;
@@ -15,14 +16,14 @@ Before implementation beyond the scaffold, confirm:
 
 ## Gate B — First real-data import
 
-Before importing the owner’s full private exports into a hosted environment, provide:
+Before importing the owner’s full private exports or ledger records into a hosted environment, provide:
 
 - schema summary;
 - retention and deletion behaviour;
 - access controls;
 - estimated storage/processing costs;
 - rollback plan;
-- confirmation logs will not expose source rows.
+- confirmation logs will not expose source rows or private transaction details.
 
 ## Gate C — Analytical baseline
 
@@ -35,6 +36,23 @@ Before presenting recommendations as actionable, provide holdout results for:
 - simple-baseline comparison.
 
 Low-performing or unvalidated models must remain labelled experimental.
+
+## Gate C2 — Vault Performance integrity
+
+Before presenting Vault Performance totals as dependable, demonstrate:
+
+- idempotent race fee and payout imports;
+- correct separation of open racing, qualification, rounds, finals and manual awards;
+- decimal-safe calculations;
+- native-currency reporting without silent aggregation;
+- explicit conversion provenance where converted totals are used;
+- BGC separation from cash and crypto profit;
+- manual award allocation preserving source totals;
+- possible-duplicate reconciliation safeguards;
+- drill-down from summaries to source or manual records;
+- visible warnings for incomplete, unclassified, unreconciled, unconverted and missing-cost-basis records.
+
+Any total with incomplete source coverage must be labelled accordingly.
 
 ## Gate D — Maiden recommendations
 
@@ -65,6 +83,7 @@ Require explicit owner approval before:
 - attaching a custom domain;
 - uploading full private data to Production;
 - enabling recurring paid infrastructure;
+- adding any external account integration;
 - inviting another user;
 - exposing any public route or API.
 
@@ -77,6 +96,7 @@ Stop immediately for direction if work requires:
 - irreversible production data change;
 - weakening privacy;
 - scraping authenticated game content;
-- automatic game transactions;
+- automatic game actions;
 - changing confirmed game rules;
-- uncertainty that materially changes a recommendation.
+- assigning a default cash value to BGC;
+- or uncertainty that materially changes a recommendation or financial total.
