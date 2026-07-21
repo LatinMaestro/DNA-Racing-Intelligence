@@ -131,6 +131,81 @@ Store:
 - exceptions;
 - manual override.
 
+## Vault financial performance
+
+Vault financial analysis is transaction-based and must remain distinct from the racing-ability model.
+
+### Race-derived calculations
+
+For each owned-core race entry, derive where available:
+
+- entry fee;
+- race payout;
+- native currency/asset;
+- native-currency net result when fee and payout use the same asset;
+- open, qualification, automatic round or grand-final classification;
+- tournament/bracket linkage and classification confidence.
+
+Aggregate separately for:
+
+- ordinary open racing;
+- tournament qualification;
+- automatic tournament rounds;
+- grand-final races;
+- manually recorded tournament awards.
+
+Do not treat a profitable race history as proof that a core is intrinsically fast. Financial outcome and time-based racing quality are separate dimensions.
+
+### Manual transactions
+
+Include user-entered:
+
+- tournament awards paid directly to a crypto wallet;
+- arena breeding fees earned;
+- breeding costs;
+- core sale and acquisition transactions;
+- actual BGC received from burns;
+- BGC spent on arena fees;
+- adjustments.
+
+Manual award allocations across cores must sum exactly to the source transaction amount. Permit unallocated tournament/vault-level awards.
+
+### Currency and BGC treatment
+
+- Report native-currency totals first.
+- Never combine currencies without an explicit conversion rate, source and effective date.
+- Exclude unconverted transactions from reporting-currency totals and disclose the exclusion.
+- Treat BGC as a separate non-cash credit balance.
+- Do not include BGC burn receipts in cash/crypto P&L by default.
+- A mixed BGC and non-BGC payment is analysed as separate ledger components.
+
+### Core sale and burn results
+
+- Show gross sale proceeds in the original asset.
+- Calculate realised sale gain/loss only where a supported cost basis exists.
+- For burnt cores, show BGC recovered and optional disposed cost basis separately.
+- Do not fabricate gain/loss when acquisition or breeding cost is unknown.
+
+### Tournament performance
+
+Tournament reporting should distinguish:
+
+- qualification fees and race payouts;
+- automatic round/final race payouts;
+- manually paid overall awards;
+- combined tournament result by native asset;
+- cores and brackets contributing to the result.
+
+Where a manual award is sent after the event, attribute it to the tournament effective date/reporting period selected by the user while retaining the actual receipt date.
+
+### Reconciliation
+
+Use event/tournament, core, date, amount, currency and reference fields to identify possible duplicates between imported payouts and manual entries. Possible matches require user confirmation and must not be silently removed.
+
+Every dashboard total must be drillable to the supporting ledger records.
+
 ## Confidence
 
 Use transparent categories such as low, moderate and high based on sample size, recency, consistency, lineage agreement and out-of-sample validation. Confidence is not the same as predicted quality.
+
+Financial totals should use data-completeness and reconciliation warnings rather than statistical confidence labels where uncertainty arises from missing transactions, unknown classifications or unconverted currencies.
