@@ -60,5 +60,23 @@
 - Genesis cannot be burned.
 - Spliced cores can be burned permanently.
 - Historical lineage remains.
-- Burn credits are not modelled.
+- Burn-credit value is not predicted for lifecycle decisions.
+- Actual BGC received after a burn may be recorded in the performance ledger.
 - Recommendations focus on overall vault quality.
+
+## 2026-07-21 — Vault Performance and financial ledger
+
+- Add a private Vault Performance area for profit/loss and economic activity.
+- Use race exports to derive entry fees and payouts for owned cores over selected timeframes.
+- Separate normal open racing, tournament qualification, automatic rounds, grand-final race payouts and manually paid overall tournament awards.
+- Overall tournament payouts may be sent manually by the game owner directly to a crypto wallet; the user must be able to record these transactions.
+- Track arena breeding fees earned, breeding costs, core sales and optional acquisition/cost-basis records.
+- Burning returns BGC rather than cash. BGC can be used toward arena fees.
+- Maintain a separate BGC ledger for credits received from burns and credits spent on arena fees.
+- Do not include BGC receipts in cash/crypto profit by default.
+- Do not combine currencies/assets without an explicit conversion source and effective date.
+- Manual and export-derived records must retain separate provenance and possible duplicates must be reconciled safely.
+- An arena listing is not income; income requires an actual receipt/transaction record.
+- Do not treat arena asking prices or modelled core values as realised profit.
+- Every displayed financial total must drill down to source or manual ledger entries.
+- The feature is operational decision support, not tax or statutory accounting software.
