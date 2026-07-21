@@ -81,6 +81,8 @@ Pairing cost:
 - No nominated arena fee is paid for a core owned by the user.
 - Two owned cores therefore cost only the higher DNA base fee.
 - External recommendations must use the latest active arena export.
+- BGC credits received from burning spliced cores can be used to pay eligible arena fees.
+- Where a fee uses both BGC and another asset, the website must record the components separately.
 
 Historical no-overage material indicates a threshold of 3× DNA base fee, with overage above that threshold shared between DNA and the owner. Do not hardcode an overage split percentage unless later confirmed or required by current data.
 
@@ -173,13 +175,16 @@ Cores may be strong across adjacent distances or multiple bands.
 - Ten races per core × mode × exact distance is the minimum for a minimally analytical sample.
 - Fewer races may justify an early hypothesis or early stop, but not a confident analytical conclusion.
 
-## Burn
+## Burn and BGC
 
 - Genesis cores cannot be burned.
 - Morphed, Freak and X-Class cores can be burned.
 - Burning is permanent.
 - Historical family-tree records remain.
-- Burn credits vary and are not required in the website.
+- Burning returns BGC game credits rather than actual cash.
+- BGC value varies, including with paid racing activity, element and breed.
+- Do not predict BGC return when deciding whether a core is worthy of burning.
+- Record the actual BGC received after a burn in the Vault Performance ledger.
 - Burn decisions focus on improving vault quality, not maximizing credit return.
 
 ## Recent Horse Maiden example
