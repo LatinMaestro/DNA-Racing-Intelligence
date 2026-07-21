@@ -1,6 +1,6 @@
 # Initial Codex Prompt
 
-Copy the prompt below into Codex after this documentation PR is merged.
+Copy the prompt below into Codex after the documentation PR is merged.
 
 ---
 
@@ -18,12 +18,13 @@ Before changing anything, read every repository control document in full:
 - `docs/GAME_RULES.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
 - `docs/BUILD_PLAN.md`
 - `docs/REVIEW_GATES.md`
 - `docs/DEFINITION_OF_DONE.md`
 - `docs/DECISION_LOG.md`
 
-Treat those documents as the approved source of truth. Do not omit or simplify confirmed game mechanics. Do not substitute your own assumptions where the documents are explicit.
+Treat those documents as the approved source of truth. `docs/VAULT_PERFORMANCE_ACCOUNTING.md` is an additive approved specification and must not be omitted merely because the earlier master specification predates it. Do not omit or simplify confirmed game mechanics. Do not substitute your own assumptions where the documents are explicit.
 
 ## Operating direction
 
@@ -59,18 +60,24 @@ Begin with **Phase 0 — Governance and architecture**. Do not jump directly int
    - background import and aggregate processing;
    - Vercel Preview deployments;
    - estimated free-tier limits and likely future costs;
-   - how multi-million-row race history will avoid request-time full scans.
-3. Add architecture and privacy documentation, including a threat model and data-flow diagram in Markdown/Mermaid.
+   - how multi-million-row race history will avoid request-time full scans;
+   - a currency-aware auditable economic ledger;
+   - exact decimal or integer-minor-unit storage for currencies, tokens and BGC;
+   - manual economic transaction and tournament-payout entry;
+   - race-derived entry-fee and payout transactions;
+   - duplicate/reconciliation controls; and
+   - separation of cash/crypto P/L, BGC movement, transfers and optional future valuations.
+3. Add architecture and privacy documentation, including a threat model and data-flow diagram in Markdown/Mermaid. The threat model must explicitly exclude storage of crypto private keys, seed phrases or signing credentials.
 4. Scaffold the application with:
    - TypeScript strict mode;
    - linting, formatting, typecheck and test scripts;
    - an accessible responsive shell;
    - private-by-default route structure;
-   - placeholder pages matching the approved modules;
+   - placeholder pages matching the approved modules, including Vault Performance;
    - CI workflows;
    - `.gitignore` protections for CSVs, database files, secrets and generated private analytics;
    - synthetic fixtures only.
-5. Establish test foundations for confirmed game rules, but do not implement fake analytical recommendations merely to populate the UI.
+5. Establish test foundations for confirmed game rules and economic-ledger invariants, but do not implement fake analytical recommendations or fake profit figures merely to populate the UI.
 6. Prepare deployment configuration for Preview only. Do not require the user to run the project locally and do not activate Production.
 7. Update repository documentation with all architecture decisions and unresolved account actions.
 8. Run all available validation in the remote development environment.
@@ -79,6 +86,7 @@ Begin with **Phase 0 — Governance and architecture**. Do not jump directly int
    - architecture selected and why;
    - validation results;
    - privacy protections;
+   - economic-ledger approach;
    - expected costs;
    - review-gate status;
    - exact user actions, if any, required next.
@@ -110,7 +118,7 @@ At the end of every phase:
 The following are especially important and must not be lost during implementation:
 
 - The product is private and single-user.
-- Real CSVs and private derived data must never be committed to Git.
+- Real CSVs, economic records and private derived data must never be committed to Git.
 - Bike, car and horse are modelled separately.
 - Ignore the obsolete race-class column.
 - Race time and speed by mode and exact distance are primary performance evidence.
@@ -130,11 +138,19 @@ The following are especially important and must not be lost during implementatio
 - Breeding is probabilistic. Investigate predictive associations but never claim a guaranteed secret formula.
 - Keep elite-upside, vault-gap and balanced breeding rankings separate.
 - Never hide a high-upside pairing merely because the vault already has similar coverage.
-- Genesis cores cannot be burned. Burn credits are out of scope.
+- Genesis cores cannot be burned. Do not predict burn-credit value.
+- The user may manually record the actual BGC received from a burn.
+- BGC is a separate non-cash in-game credit and must not be silently included in cash/crypto profit.
+- Arena listings do not prove completed breeding income.
+- Support manually recorded game-owner tournament payouts sent directly to crypto wallets.
+- Keep unlike assets/currencies separate unless an explicit dated conversion is supplied.
+- Exclude deposits, withdrawals and internal transfers from operating P/L.
+- Do not claim complete lifetime profit where source history or core cost basis is incomplete.
+- Never request or store crypto private keys, seed phrases or signing credentials.
 
 ## Quality standard
 
-The website must produce explainable, auditable recommendations rather than opaque scores. Every recommendation must expose evidence, sample size, confidence, uncertainty and strategic rationale.
+The website must produce explainable, auditable recommendations and financial reporting rather than opaque scores or unverifiable totals. Every recommendation must expose evidence, sample size, confidence, uncertainty and strategic rationale. Every performance report must expose source coverage, currency/asset scope, classification status and incomplete-data warnings.
 
 Chronological holdout validation is mandatory before recommendations are represented as dependable. Prevent leakage rigorously.
 
