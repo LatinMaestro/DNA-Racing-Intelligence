@@ -2,7 +2,7 @@
 
 Private, single-user decision-support and analytics platform for improving the repository owner’s DNA Racing vault.
 
-The product will analyse historical race times, Yellow/Blue pre-race star signals, lineage, current vault holdings, active arena listings, user-configured tournament qualification rules and recorded economic activity to support:
+The product will analyse periodically imported historical race times, Gold/Blue pre-race star signals, lineage, current-vault snapshots, latest arena snapshots, user-configured tournament qualification rules and recorded economic activity to support:
 
 - tournament and Auto-Entry selection;
 - Maiden Eligible strategy;
@@ -13,6 +13,8 @@ The product will analyse historical race times, Yellow/Blue pre-race star signal
 - open-race comparison; and
 - race, retain, breed, sell or burn decisions.
 
+The application is not connected to live DNA Racing data. Race exports are expected to be refreshed approximately every few days, and all imported-data views must display their current-through date and freshness.
+
 ## Repository status
 
 The repository is currently in the specification and governance stage. Application implementation begins with Phase 0 after the documentation foundation is reviewed and merged.
@@ -22,7 +24,7 @@ The repository is currently in the specification and governance stage. Applicati
 - [`AGENTS.md`](AGENTS.md) — autonomous agent operating instructions
 - [`docs/MASTER_SPECIFICATION.md`](docs/MASTER_SPECIFICATION.md) — complete product requirements
 - [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics
-- [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Yellow/Blue database, field-relative analytics and no-leakage requirements
+- [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Gold/Blue database, Gold gate eligibility, field-relative analytics, freshness and no-leakage requirements
 - [`docs/ANALYTICS_METHOD.md`](docs/ANALYTICS_METHOD.md) — statistical and recommendation methodology
 - [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — imports, provenance and privacy controls
 - [`docs/VAULT_PERFORMANCE_ACCOUNTING.md`](docs/VAULT_PERFORMANCE_ACCOUNTING.md) — vault P/L, BGC, manual payouts and economic-ledger requirements
