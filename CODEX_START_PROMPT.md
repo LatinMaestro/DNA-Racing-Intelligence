@@ -17,6 +17,7 @@ Before changing anything, read every repository control document in full:
 - `docs/MASTER_SPECIFICATION.md`
 - `docs/GAME_RULES.md`
 - `docs/STAR_SIGNAL_SPECIFICATION.md`
+- `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
@@ -25,7 +26,7 @@ Before changing anything, read every repository control document in full:
 - `docs/DEFINITION_OF_DONE.md`
 - `docs/DECISION_LOG.md`
 
-Treat those documents as the approved source of truth. `docs/STAR_SIGNAL_SPECIFICATION.md` and `docs/VAULT_PERFORMANCE_ACCOUNTING.md` are additive approved specifications and must not be omitted merely because the earlier master specification predates them. Do not omit or simplify confirmed game mechanics. Do not substitute your own assumptions where the documents are explicit.
+Treat those documents as the approved source of truth. `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/OPEN_RACE_WORKFLOW.md` and `docs/VAULT_PERFORMANCE_ACCOUNTING.md` are additive approved specifications and must not be omitted merely because the earlier master specification predates them. Do not omit or simplify confirmed game mechanics. Do not substitute your own assumptions where the documents are explicit.
 
 ## Operating direction
 
@@ -66,6 +67,7 @@ Begin with **Phase 0 — Governance and architecture**. Do not jump directly int
    - `gold_star_eligible` derived from gate count greater than three;
    - event-level star assignment validation and efficient core star-profile aggregates;
    - chronological pre-race field-quality features that prevent outcome leakage;
+   - optional post-lock/manual star observations kept separate from imported history until reconciliation;
    - import timestamp, latest accepted event timestamp and dataset freshness status;
    - explicit historical-snapshot UI treatment rather than live-data wording;
    - a currency-aware auditable economic ledger;
@@ -85,7 +87,7 @@ Begin with **Phase 0 — Governance and architecture**. Do not jump directly int
    - CI workflows;
    - `.gitignore` protections for CSVs, database files, secrets and generated private analytics;
    - synthetic fixtures only.
-5. Establish test foundations for confirmed game rules, Gold/Blue field invariants, Gold gate eligibility, freshness behavior and economic-ledger invariants. Do not implement fake analytical recommendations or fake profit figures merely to populate the UI.
+5. Establish test foundations for confirmed game rules, Gold/Blue field invariants, Gold gate eligibility, Open Race star-timing boundaries, freshness behavior and economic-ledger invariants. Do not implement fake analytical recommendations or fake profit figures merely to populate the UI.
 6. Prepare deployment configuration for Preview only. Do not require the user to run the project locally and do not activate Production.
 7. Update repository documentation with all architecture decisions and unresolved account actions.
 8. Run all available validation in the remote development environment.
@@ -95,6 +97,7 @@ Begin with **Phase 0 — Governance and architecture**. Do not jump directly int
    - validation results;
    - privacy protections;
    - Gold/Blue storage, Gold eligibility and no-leakage approach;
+   - Open Race pre-entry versus post-lock observation approach;
    - data snapshot/freshness approach;
    - economic-ledger approach;
    - expected costs;
@@ -146,6 +149,10 @@ The following are especially important and must not be lost during implementatio
 - Distinguish false from missing star data, record Gold eligibility and identify the rate denominator.
 - Historical field quality for a star must use pre-event information only; no current-event result or future leakage.
 - Test whether the hidden star algorithm changes over time.
+- In the Open Race tool, current-race stars are unavailable while the field is forming and must not be requested or used to choose a core.
+- The game reveals current Gold/Blue stars only after all gates are filled and the race is set to run, when the entry is already committed.
+- Optional post-lock star capture is observation-only. Do not recommend switching cores after lock.
+- Keep manual post-lock observations separate from permanent imported history until reconciled idempotently with a later Race Merge import.
 - Race data is imported approximately every few days and is not live.
 - Display `Data current through`, `Last imported`, data age and freshness status.
 - Never present imported opponents, races, stars, arena listings or tournament state as live.
@@ -172,7 +179,7 @@ The following are especially important and must not be lost during implementatio
 
 ## Quality standard
 
-The website must produce explainable, auditable recommendations and financial reporting rather than opaque scores or unverifiable totals. Every recommendation must expose evidence, sample size, confidence, uncertainty and strategic rationale. Star-derived conclusions must expose counts, denominator, Gold eligibility, field context, time agreement, data coverage and freshness. Every performance report must expose source coverage, currency/asset scope, classification status and incomplete-data warnings.
+The website must produce explainable, auditable recommendations and financial reporting rather than opaque scores or unverifiable totals. Every recommendation must expose evidence, sample size, confidence, uncertainty and strategic rationale. Star-derived conclusions must expose counts, denominator, Gold eligibility, field context, time agreement, data coverage and freshness. Open Race outputs must distinguish pre-entry recommendations from post-lock observations. Every performance report must expose source coverage, currency/asset scope, classification status and incomplete-data warnings.
 
 Chronological holdout validation is mandatory before recommendations are represented as dependable. Prevent leakage rigorously.
 
