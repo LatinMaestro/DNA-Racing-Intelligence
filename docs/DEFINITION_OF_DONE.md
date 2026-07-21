@@ -9,6 +9,7 @@ A phase or feature is complete only when all applicable items pass.
 - Produces explainable output with evidence and confidence.
 - Does not rely on the obsolete race-class field.
 - Does not expose private data publicly.
+- Yellow/Blue star outputs show counts, denominator, mode/distance context, field context and data coverage.
 - Vault Performance reports clearly separate currencies/assets and distinguish complete, partial and estimated results.
 
 ## Data
@@ -18,6 +19,11 @@ A phase or feature is complete only when all applicable items pass.
 - Provenance is retained.
 - Rollback or safe recovery is documented and tested.
 - Real user data is absent from Git history and test fixtures.
+- Raw `gold_star` and `blue_star` values are preserved where supplied.
+- `gold_star` maps to nullable normalized `yellow_star` without losing source provenance.
+- False, missing, partial and invalid star data remain distinguishable.
+- Event-level multiple-assignment anomalies are surfaced rather than silently rewritten.
+- Star aggregates remain idempotent across cumulative imports.
 - Race-derived economic transactions remain idempotent across cumulative imports.
 - Manual transactions, corrections, reversals and exclusions retain audit history.
 - Exact monetary/token/BGC values are stored without binary floating-point error.
@@ -29,8 +35,14 @@ A phase or feature is complete only when all applicable items pass.
 - Bike, car and horse remain separated.
 - Sample size and uncertainty are displayed.
 - Chronological holdout testing prevents leakage.
+- Historical star field quality uses only information available before the event.
+- Current-event outcomes and later races cannot leak into star-strength features.
+- Yellow/Blue predictive lift is compared with time-only and simple baselines.
+- Star conversion diagnostics remain separate from pre-race predictive features.
+- Detected star-assignment era changes are documented or explicitly reported as not detected.
+- No-star evidence alone cannot stop Discovery, label a core as poor or recommend burn.
 - Results are compared with simple baselines.
-- Unsupported causal or deterministic claims are absent.
+- Unsupported causal, inherited-trait or deterministic claims are absent.
 
 ## Accounting and economic reporting
 
@@ -50,6 +62,8 @@ A phase or feature is complete only when all applicable items pass.
 ## Rules
 
 - Confirmed game rules have automated tests.
+- Yellow means strongest assessed top-three chance and Blue means strongest assessed first-place chance in the entered field.
+- Stars are treated as field-relative pre-race signals, not guaranteed outcomes or absolute ratings.
 - Maiden lifecycle and preserve-ME logic are tested.
 - Tournament configuration supports variable qualification rules.
 - 50% gate occupancy is enforced as a cap, not a target.
@@ -63,6 +77,7 @@ A phase or feature is complete only when all applicable items pass.
 - Relevant end-to-end paths pass.
 - Database migrations are reviewed and reversible where practical.
 - Large-history processing is not performed synchronously on routine page requests.
+- Star-profile and field-quality aggregates are precomputed or otherwise efficiently served.
 - Accessibility and responsive behaviour are checked.
 - Security-sensitive values are not logged.
 
