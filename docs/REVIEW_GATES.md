@@ -11,20 +11,26 @@ Before implementation beyond the scaffold, confirm:
 - expected free/paid service costs;
 - no requirement for local user development;
 - no real data committed to Git;
-- Production remains disabled or inaccessible.
+- Production remains disabled or inaccessible;
+- currency/asset and BGC ledger storage approach;
+- manual transaction audit/reversal design; and
+- no storage of crypto private keys, seed phrases or signing credentials.
 
 ## Gate B — First real-data import
 
-Before importing the owner’s full private exports into a hosted environment, provide:
+Before importing the owner’s full private exports or economic records into a hosted environment, provide:
 
 - schema summary;
 - retention and deletion behaviour;
 - access controls;
 - estimated storage/processing costs;
 - rollback plan;
-- confirmation logs will not expose source rows.
+- confirmation logs will not expose source rows, wallet references or economic records;
+- validated interpretation of race entry-fee and payout fields;
+- economic deduplication keys; and
+- manual payout reconciliation approach.
 
-## Gate C — Analytical baseline
+## Gate C — Analytical and accounting baseline
 
 Before presenting recommendations as actionable, provide holdout results for:
 
@@ -34,7 +40,18 @@ Before presenting recommendations as actionable, provide holdout results for:
 - confidence calibration;
 - simple-baseline comparison.
 
-Low-performing or unvalidated models must remain labelled experimental.
+Before presenting Vault Performance totals as dependable, demonstrate:
+
+- cumulative import idempotency;
+- separate currency/asset totals;
+- separate BGC treatment;
+- exclusion of transfers from operating P/L;
+- tournament stage classification and correction;
+- manual external payout duplicate protection;
+- missing-cost-basis behaviour; and
+- completeness/partial-result warnings.
+
+Low-performing or unvalidated models must remain labelled experimental. Incomplete or unreconciled economic reports must remain labelled partial.
 
 ## Gate D — Maiden recommendations
 
@@ -77,6 +94,8 @@ Stop immediately for direction if work requires:
 - irreversible production data change;
 - weakening privacy;
 - scraping authenticated game content;
-- automatic game transactions;
+- automatic game or wallet transactions;
+- storing private keys, seed phrases or signing credentials;
 - changing confirmed game rules;
-- uncertainty that materially changes a recommendation.
+- silently assigning a cash value to BGC or unsold cores; or
+- uncertainty that materially changes a recommendation or financial total.

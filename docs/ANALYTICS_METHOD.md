@@ -9,6 +9,8 @@
 - Exact distance is primary; adjacent-distance and distance-band evidence are supporting features.
 - Ignore obsolete race class.
 - Show sample size, uncertainty, recency and confidence with every recommendation.
+- Keep unlike currencies/assets separate unless a dated explicit conversion is supplied.
+- Distinguish source-derived facts, inferred classifications and manual entries.
 
 ## Core performance features
 
@@ -131,6 +133,113 @@ Store:
 - exceptions;
 - manual override.
 
+## Vault economic analytics
+
+### Source hierarchy
+
+For economic reporting use:
+
+1. accepted source-derived race fees and payouts;
+2. future authoritative transaction exports;
+3. user-entered manual transactions and corrections;
+4. inferred tournament/stage classifications, labelled with confidence.
+
+An arena listing is not evidence of completed breeding income.
+
+### Transaction derivation
+
+For each accepted owned-core race entry, derive at most one entry-fee expense and one payout-income transaction for each supported asset. Use a stable source key so cumulative imports cannot duplicate them.
+
+Validate source fee semantics before production import. If it is uncertain whether a field is per-core, per-race or prize-pool information, quarantine the derived amount until confirmed rather than overstating P/L.
+
+### Racing segmentation
+
+Classify race activity into:
+
+- normal open racing;
+- tournament qualification;
+- automated tournament rounds;
+- tournament finals;
+- unknown/unclassified.
+
+Classification confidence should reflect the evidence available from event tags, date windows, configured tournament rules, mode, distance, gate count and stage labels.
+
+### Tournament campaign aggregation
+
+For each configured tournament aggregate, by asset/currency:
+
+- qualification entry fees;
+- qualification race payouts;
+- automated round/final race payouts;
+- manual external tournament prizes;
+- manually recorded tournament-specific expenses; and
+- resulting net campaign cashflow.
+
+Preserve bracket, element/breed/F-number leaderboard and stage attribution where known. Allow vault-level prizes to remain unallocated rather than inventing a per-core split.
+
+### Manual payout analysis
+
+Manual game-owner payouts may be recorded with amount, asset, tournament, date, optional wallet label, core allocation and external reference. Detect possible duplication against race-derived prizes using amount, asset, date window, tournament and reference.
+
+### Multi-currency treatment
+
+Report each asset/currency independently by default.
+
+Optional conversion requires:
+
+- a rate;
+- effective date/time;
+- rate source;
+- original amount; and
+- clear estimated/actual status.
+
+Never include BGC in cash/crypto P/L unless the user supplies an explicit valuation and requests a separately labelled converted view.
+
+### BGC analytics
+
+Calculate:
+
+- opening BGC balance, where manually entered;
+- BGC earned, including actual recorded burn credits;
+- BGC spent, including arena fees paid with BGC;
+- net BGC movement; and
+- derived balance only where coverage is sufficient.
+
+Do not predict burn-credit value from lifecycle attributes.
+
+### Core trading and cost basis
+
+Calculate realised core-sale result only when acquisition cost and selling fees are known. Otherwise display proceeds and a missing-cost-basis warning.
+
+Where actual breeding costs are linked to a resulting offspring, they may form part of that offspring’s cost basis. Do not infer a market value for unsold cores from current arena listings.
+
+### Completeness status
+
+Every economic report should be classified as complete, partial or estimated based on:
+
+- source date coverage;
+- unclassified race activity;
+- missing manual external payouts;
+- missing acquisition costs;
+- missing opening balances;
+- duplicate/reconciliation issues; and
+- conversion use.
+
+### Economic calculations
+
+Use clearly named metrics:
+
+- Open Racing Net = open payouts minus open entry fees;
+- Qualification Net = qualification payouts minus qualification entry fees;
+- Tournament Campaign Net = qualification payouts plus round/final payouts plus manual prizes minus qualification fees and recorded campaign expenses;
+- Breeding Net Cashflow = breeding fees earned minus DNA and external arena fees paid;
+- Core Trading Result = sale proceeds minus known acquisition cost and selling fees;
+- Total Recorded Vault Cashflow = recorded operating income minus recorded operating expenses, excluding deposits, withdrawals and internal transfers.
+
+Calculate each metric per asset/currency unless an explicit conversion view is requested.
+
 ## Confidence
 
 Use transparent categories such as low, moderate and high based on sample size, recency, consistency, lineage agreement and out-of-sample validation. Confidence is not the same as predicted quality.
+
+For economic reports, confidence/completeness must reflect source coverage and reconciliation status rather than statistical model certainty.

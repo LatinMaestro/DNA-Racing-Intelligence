@@ -9,6 +9,7 @@ A phase or feature is complete only when all applicable items pass.
 - Produces explainable output with evidence and confidence.
 - Does not rely on the obsolete race-class field.
 - Does not expose private data publicly.
+- Vault Performance reports clearly separate currencies/assets and distinguish complete, partial and estimated results.
 
 ## Data
 
@@ -17,6 +18,9 @@ A phase or feature is complete only when all applicable items pass.
 - Provenance is retained.
 - Rollback or safe recovery is documented and tested.
 - Real user data is absent from Git history and test fixtures.
+- Race-derived economic transactions remain idempotent across cumulative imports.
+- Manual transactions, corrections, reversals and exclusions retain audit history.
+- Exact monetary/token/BGC values are stored without binary floating-point error.
 
 ## Analytics
 
@@ -27,6 +31,21 @@ A phase or feature is complete only when all applicable items pass.
 - Chronological holdout testing prevents leakage.
 - Results are compared with simple baselines.
 - Unsupported causal or deterministic claims are absent.
+
+## Accounting and economic reporting
+
+- Entry fees and payouts use validated source semantics.
+- Open racing, qualification, automated rounds and finals can be separated or left explicitly unclassified.
+- Manual external tournament payouts can be linked and reconciled without double counting.
+- Unlike currencies/assets are not silently combined.
+- BGC is separate from cash/crypto P/L by default.
+- Deposits, withdrawals and internal transfers are excluded from operating P/L.
+- Arena listings are not treated as completed breeding income.
+- Core sale profit is unavailable when cost basis is missing rather than fabricated.
+- Unsold-core valuations are excluded from realised P/L by default.
+- Reports show coverage, unclassified records, missing cost basis, conversion use and reconciliation issues.
+- Duplicate detection and reversal paths are tested.
+- No crypto private keys, seed phrases or signing credentials are requested or stored.
 
 ## Rules
 
