@@ -20,7 +20,7 @@ The product must improve decisions without presenting uncertain inferences as kn
 
 When sources conflict, use this order:
 
-1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
+1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/OPEN_RACE_WORKFLOW.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
 2. Current uploaded exports and observable historical data.
 3. Official DNA Racing documentation or screenshots recorded in the repository.
 4. Modelled or inferred rules, which must be labelled with confidence.
@@ -34,6 +34,7 @@ Before changing code or data models, read:
 - `docs/MASTER_SPECIFICATION.md`
 - `docs/GAME_RULES.md`
 - `docs/STAR_SIGNAL_SPECIFICATION.md`
+- `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
@@ -155,6 +156,16 @@ Before changing code or data models, read:
 - Do not calculate remaining lifetime race allowance; the exports do not reliably identify all non-counting tournament races.
 - Use early Gold/Blue stars, Gold eligibility, field strength and the quality of the core receiving the star instead as supporting Discovery evidence.
 
+### Open Race
+
+- The Open Race tool is primarily a **pre-entry core-selection tool** using manually entered race parameters, opponent IDs and imported historical evidence.
+- Current-race Gold and Blue stars are not visible while the field is being assembled and must not be requested or used to choose the core.
+- The game reveals stars only after all gates are filled and the race is set to run, when the user’s entry decision is already committed.
+- After field lock, optional manual Gold/Blue capture is observation-only. Do not issue a replacement-core recommendation or imply the user can switch entries.
+- Historical star profiles may be used during selection as prior evidence.
+- Any optional post-lock observation must remain separate from permanent historical aggregates until reconciled idempotently with a later Race Merge import.
+- For races with three gates or fewer, show Gold as not applicable.
+
 ### Breeding
 
 - Provide separate rankings for:
@@ -187,6 +198,7 @@ Before changing code or data models, read:
 - Record import provenance and validation warnings.
 - Store Gold and Blue stars as nullable race-entry attributes, store Gold eligibility and validate event-level assignment anomalies.
 - Store import timestamp, latest accepted event timestamp and freshness status inputs.
+- Keep optional manual pre-run star observations separate from imported race facts until reconciled.
 - Add tests for every confirmed game rule and important analytical or accounting transformation.
 - Avoid per-request processing of multi-million-row raw datasets; precompute aggregates or use an appropriate analytical pipeline.
 
