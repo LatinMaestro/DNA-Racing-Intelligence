@@ -4,23 +4,23 @@
 
 Build and maintain **DNA Racing Intelligence**, a private single-user decision-support platform for the repository owner’s DNA Racing vault.
 
-The platform must turn uploaded historical race, core, vault and arena exports plus user-entered tournament rules into defensible recommendations for:
+The platform must turn uploaded historical race, core, vault and arena exports plus user-entered tournament rules and economic transactions into defensible recommendations and reporting for:
 
 - tournament qualification;
 - Maiden Eligible strategy;
 - mode and distance discovery;
-- vault performance analysis;
+- vault performance and profit/loss analysis;
 - breeding and arena partner selection;
 - open-race selection; and
 - retain, breed, sell or burn decisions.
 
-The product must improve decisions without presenting uncertain inferences as known game mechanics.
+The product must improve decisions without presenting uncertain inferences as known game mechanics or incomplete cashflow as complete lifetime profit.
 
 ## Source of truth order
 
 When sources conflict, use this order:
 
-1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md` and `docs/DECISION_LOG.md`.
+1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
 2. Current uploaded exports and observable historical data.
 3. Official DNA Racing documentation or screenshots recorded in the repository.
 4. Modelled or inferred rules, which must be labelled with confidence.
@@ -35,6 +35,7 @@ Before changing code or data models, read:
 - `docs/GAME_RULES.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
 - `docs/BUILD_PLAN.md`
 - `docs/REVIEW_GATES.md`
 - `docs/DEFINITION_OF_DONE.md`
@@ -55,11 +56,13 @@ Before changing code or data models, read:
 - Private, single-user product.
 - No public rankings, public API or social features.
 - Search-engine indexing disabled.
-- Raw exports, processed data and recommendations are confidential.
+- Raw exports, processed data, economic records and recommendations are confidential.
 - Do not commit private CSV exports, database dumps, credentials or generated personal vault data to Git.
 - Use synthetic fixtures for tests.
 - Do not scrape authenticated game pages or bypass access controls.
 - Tournament and open-race parameters are manually entered until an approved supported integration exists.
+- Never request or store crypto private keys, seed phrases or signing credentials.
+- The website records and analyses transactions but does not initiate wallet, blockchain or game transactions.
 
 ## Analytical integrity
 
@@ -75,6 +78,21 @@ Before changing code or data models, read:
 - Report sample sizes, uncertainty, recency and confidence.
 - Use chronological holdout backtesting. Do not leak future results into training features.
 - Never claim the secret breeding formula has been discovered unless independently validated to an exceptional standard. Report associations and predictive lift instead.
+
+## Economic and accounting integrity
+
+- Keep every asset/currency separate unless an explicit dated conversion rate is supplied.
+- Treat BGC as a separate non-cash in-game credit by default, not as cash or crypto profit.
+- Track BGC earned, spent and net movement independently.
+- Do not infer completed breeding income from an arena listing.
+- Do not infer complete wallet balances from race activity alone.
+- Exclude deposits, withdrawals and internal transfers from operating P/L.
+- Keep realised operating cashflow separate from any future estimated value of unsold cores.
+- Use exact decimal or integer minor-unit storage; never binary floating point for money or token amounts.
+- Preserve source provenance and manual correction history.
+- Prevent cumulative race imports and manual payouts from double counting.
+- Manual game-owner tournament payouts must be supported and clearly linked to tournaments without forcing artificial per-core allocation.
+- Reports must state coverage, missing cost basis, unclassified activity and whether results are complete, partial or estimated.
 
 ## Recommendation principles
 
@@ -117,20 +135,21 @@ Before changing code or data models, read:
 ### Burn decisions
 
 - Genesis cores cannot be burned.
-- Do not estimate burn credits.
+- Do not predict burn-credit value.
 - Protect unresolved ME, discovery, racing, lineage and breeding value before recommending burn.
+- Allow the user to record the actual BGC credit received after a burn for accounting purposes.
 
 ## Engineering requirements
 
 - Use TypeScript strict mode.
 - Keep analytics deterministic and testable.
-- Separate ingestion, domain rules, statistical features, recommendation logic and UI.
+- Separate ingestion, domain rules, statistical features, recommendation logic, economic ledger logic and UI.
 - Version game rules and inferred payout rules by effective date.
 - Make imports idempotent and auditable.
 - Use database transactions for imports.
 - Preserve original source values where practical and store normalized equivalents separately.
 - Record import provenance and validation warnings.
-- Add tests for every confirmed game rule and important analytical transformation.
+- Add tests for every confirmed game rule and important analytical or accounting transformation.
 - Avoid per-request processing of multi-million-row raw datasets; precompute aggregates or use an appropriate analytical pipeline.
 
 ## Change-control rules
@@ -143,8 +162,9 @@ Stop and request direction before:
 - adding secrets or account integrations the user has not approved;
 - changing an owner-confirmed game rule;
 - deleting imported source data;
-- auto-entering races or making game transactions;
-- presenting an inferred rule as official; or
+- auto-entering races or making game or wallet transactions;
+- presenting an inferred rule as official;
+- silently valuing BGC or unsold cores as cash; or
 - materially changing the approved architecture.
 
 When blocked, document the exact blocker, safe options and recommended next action.
