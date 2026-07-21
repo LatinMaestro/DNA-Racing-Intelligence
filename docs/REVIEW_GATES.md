@@ -12,6 +12,9 @@ Before implementation beyond the scaffold, confirm:
 - no requirement for local user development;
 - no real data committed to Git;
 - Production remains disabled or inaccessible;
+- raw and normalized Yellow/Blue star storage approach;
+- event-level star validation and aggregate strategy;
+- pre-race field-quality no-leakage design;
 - currency/asset and BGC ledger storage approach;
 - manual transaction audit/reversal design; and
 - no storage of crypto private keys, seed phrases or signing credentials.
@@ -26,6 +29,9 @@ Before importing the owner’s full private exports or economic records into a h
 - estimated storage/processing costs;
 - rollback plan;
 - confirmation logs will not expose source rows, wallet references or economic records;
+- validated `gold_star` to Yellow-star and `blue_star` field handling;
+- proof that false, missing and invalid star values remain distinguishable;
+- event-level star anomaly handling;
 - validated interpretation of race entry-fee and payout fields;
 - economic deduplication keys; and
 - manual payout reconciliation approach.
@@ -38,7 +44,12 @@ Before presenting recommendations as actionable, provide holdout results for:
 - discovery ranking;
 - tournament qualification ranking;
 - confidence calibration;
-- simple-baseline comparison.
+- simple-baseline comparison;
+- Yellow/Blue conversion and incremental predictive lift;
+- strong-field star and weak-field no-star analysis;
+- explicit proof that current-event outcomes and future races do not enter historical star field-quality features;
+- time-period or algorithm-era stability analysis; and
+- evidence that no-star data alone cannot cause a stop, poor-core or burn recommendation.
 
 Before presenting Vault Performance totals as dependable, demonstrate:
 
@@ -61,7 +72,9 @@ Before enabling final “Enter this Maiden” recommendations, demonstrate:
 - cross-mode opportunity-cost logic;
 - preserve-ME behaviour;
 - bracket-specific recommendations;
-- commitment warning.
+- commitment warning;
+- appropriate supporting use of strong-field star evidence; and
+- protection against recommending a Maiden from star evidence alone where race times are materially weak.
 
 ## Gate E — Breeding recommendations
 
@@ -71,6 +84,8 @@ Before presenting breeding recommendations as more than exploratory, demonstrate
 - family restriction correctness;
 - class, element, F-number and fee calculations;
 - chronological parent-offspring validation;
+- comparison of time-only models with models containing parent/lineage star features;
+- no claim that star propensity is inherited unless independently validated;
 - separation of elite-upside and vault-fit scores;
 - honest uncertainty reporting.
 
