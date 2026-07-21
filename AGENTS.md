@@ -20,7 +20,7 @@ The product must improve decisions without presenting uncertain inferences as kn
 
 When sources conflict, use this order:
 
-1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
+1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
 2. Current uploaded exports and observable historical data.
 3. Official DNA Racing documentation or screenshots recorded in the repository.
 4. Modelled or inferred rules, which must be labelled with confidence.
@@ -33,6 +33,7 @@ Before changing code or data models, read:
 
 - `docs/MASTER_SPECIFICATION.md`
 - `docs/GAME_RULES.md`
+- `docs/STAR_SIGNAL_SPECIFICATION.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
@@ -79,6 +80,19 @@ Before changing code or data models, read:
 - Use chronological holdout backtesting. Do not leak future results into training features.
 - Never claim the secret breeding formula has been discovered unless independently validated to an exceptional standard. Report associations and predictive lift instead.
 
+### Yellow and Blue star signals
+
+- Preserve the source `gold_star` and `blue_star` race-entry values. Normalize `gold_star` to the user-facing term **Yellow star** while retaining source provenance.
+- Yellow means the game assessed that core as having the strongest chance to finish in the top three in that entered field.
+- Blue means the game assessed that core as having the strongest chance to win and finish first in that entered field.
+- Stars are pre-race, field-relative signals and are not guarantees or absolute ratings.
+- Receiving a star over historically strong cores is positive supporting evidence. Repeatedly receiving no star against weak cores is negative supporting evidence.
+- A missing star or no-star result must never become an automatic stop, burn or poor-core decision by itself.
+- Direct race time and speed remain primary. Star evidence supports Discovery, whole-core analysis, Maiden and tournament suitability, breeding research and lifecycle decisions.
+- Calculate historical field quality using only information available before the event. Never use the event outcome or later races to assess how impressive that event’s star assignment was.
+- Distinguish `false` from missing or invalid source values, track whether each star type was assigned in the event, and state all denominators.
+- Test for changes in star-assignment frequency and predictive value over time rather than assuming the hidden game algorithm is stable.
+
 ## Economic and accounting integrity
 
 - Keep every asset/currency separate unless an explicit dated conversion rate is supplied.
@@ -104,6 +118,7 @@ Before changing code or data models, read:
 - A vault may occupy no more than 50% of race gates, but this is a cap, not a target.
 - Do not advise filling 50% merely because it is allowed.
 - Recommend candidate cores, intended leaderboard, initial race allocation and stop/continue rules; the user manages live gate occupancy.
+- Use historical star evidence as supporting rationale where validated, but continue to rank against the configured qualification metric.
 
 ### Maiden Eligible
 
@@ -112,6 +127,7 @@ Before changing code or data models, read:
 - A non-participating ME core retains ME.
 - Compare bike, car and horse potential and preserve ME for the strongest credible mode-specific Maiden.
 - A core may target only one of several shared Maiden leaderboards and still be recommended.
+- Historical stars over strong fields may strengthen a limited-sample ME case, but must not override materially weak time evidence.
 
 ### Discovery
 
@@ -120,6 +136,7 @@ Before changing code or data models, read:
 - Permit small controlled probes for unexpected elite outlier performance.
 - Stop weak hypotheses early where justified.
 - Do not calculate remaining lifetime race allowance; the exports do not reliably identify all non-counting tournament races.
+- Use early Yellow/Blue stars, the strength of the field and the quality of the core receiving the star instead as supporting Discovery evidence.
 
 ### Breeding
 
@@ -131,6 +148,7 @@ Before changing code or data models, read:
 - Use active arena listings for external cores.
 - Assume all active owned cores are breeding-available unless manually marked otherwise.
 - Respect family restrictions, sex, breed cycles, lifetime splice caps, class matrix, F-number addition and lower-element inheritance.
+- Test whether parent and lineage star profiles add chronological predictive lift beyond time-only breeding baselines; do not assume inheritance.
 
 ### Burn decisions
 
@@ -138,17 +156,19 @@ Before changing code or data models, read:
 - Do not predict burn-credit value.
 - Protect unresolved ME, discovery, racing, lineage and breeding value before recommending burn.
 - Allow the user to record the actual BGC credit received after a burn for accounting purposes.
+- No-star evidence alone is never sufficient to recommend a burn.
 
 ## Engineering requirements
 
 - Use TypeScript strict mode.
 - Keep analytics deterministic and testable.
 - Separate ingestion, domain rules, statistical features, recommendation logic, economic ledger logic and UI.
-- Version game rules and inferred payout rules by effective date.
+- Version game rules, inferred payout rules and detected star-algorithm eras by effective date.
 - Make imports idempotent and auditable.
 - Use database transactions for imports.
 - Preserve original source values where practical and store normalized equivalents separately.
 - Record import provenance and validation warnings.
+- Store Yellow and Blue stars as nullable race-entry attributes and validate event-level assignment anomalies.
 - Add tests for every confirmed game rule and important analytical or accounting transformation.
 - Avoid per-request processing of multi-million-row raw datasets; precompute aggregates or use an appropriate analytical pipeline.
 
