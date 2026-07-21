@@ -9,7 +9,8 @@ A phase or feature is complete only when all applicable items pass.
 - Produces explainable output with evidence and confidence.
 - Does not rely on the obsolete race-class field.
 - Does not expose private data publicly.
-- Yellow/Blue star outputs show counts, denominator, mode/distance context, field context and data coverage.
+- Gold/Blue star outputs show counts, eligibility, denominator, mode/distance context, field context and data coverage.
+- Race-derived views show `Data current through`, `Last imported` and freshness status and do not imply live data.
 - Vault Performance reports clearly separate currencies/assets and distinguish complete, partial and estimated results.
 
 ## Data
@@ -19,11 +20,13 @@ A phase or feature is complete only when all applicable items pass.
 - Provenance is retained.
 - Rollback or safe recovery is documented and tested.
 - Real user data is absent from Git history and test fixtures.
-- Raw `gold_star` and `blue_star` values are preserved where supplied.
-- `gold_star` maps to nullable normalized `yellow_star` without losing source provenance.
-- False, missing, partial and invalid star data remain distinguishable.
+- Raw and normalized `gold_star` and `blue_star` values are preserved where supplied.
+- False, missing, partial, invalid and Gold-ineligible states remain distinguishable.
+- `gold_star_eligible` is false for gate counts of one, two and three.
+- A source Gold assignment at three gates or fewer is retained and flagged as an anomaly.
 - Event-level multiple-assignment anomalies are surfaced rather than silently rewritten.
 - Star aggregates remain idempotent across cumulative imports.
+- Import timestamp, latest accepted event timestamp and aggregate refresh timestamp are retained.
 - Race-derived economic transactions remain idempotent across cumulative imports.
 - Manual transactions, corrections, reversals and exclusions retain audit history.
 - Exact monetary/token/BGC values are stored without binary floating-point error.
@@ -37,10 +40,12 @@ A phase or feature is complete only when all applicable items pass.
 - Chronological holdout testing prevents leakage.
 - Historical star field quality uses only information available before the event.
 - Current-event outcomes and later races cannot leak into star-strength features.
-- Yellow/Blue predictive lift is compared with time-only and simple baselines.
+- One-, two- and three-gate races never count as negative Gold evidence.
+- Gold/Blue predictive lift is compared with time-only and simple baselines.
 - Star conversion diagnostics remain separate from pre-race predictive features.
 - Detected star-assignment era changes are documented or explicitly reported as not detected.
 - No-star evidence alone cannot stop Discovery, label a core as poor or recommend burn.
+- Dataset freshness is incorporated into confidence and warnings without changing accepted historical facts.
 - Results are compared with simple baselines.
 - Unsupported causal, inherited-trait or deterministic claims are absent.
 
@@ -55,14 +60,15 @@ A phase or feature is complete only when all applicable items pass.
 - Arena listings are not treated as completed breeding income.
 - Core sale profit is unavailable when cost basis is missing rather than fabricated.
 - Unsold-core valuations are excluded from realised P/L by default.
-- Reports show coverage, unclassified records, missing cost basis, conversion use and reconciliation issues.
+- Reports show coverage, current-through date, unclassified records, missing cost basis, conversion use and reconciliation issues.
 - Duplicate detection and reversal paths are tested.
 - No crypto private keys, seed phrases or signing credentials are requested or stored.
 
 ## Rules
 
 - Confirmed game rules have automated tests.
-- Yellow means strongest assessed top-three chance and Blue means strongest assessed first-place chance in the entered field.
+- Gold means strongest assessed top-three chance and Blue means strongest assessed first-place chance in the entered field.
+- Gold is unavailable at three gates or fewer.
 - Stars are treated as field-relative pre-race signals, not guaranteed outcomes or absolute ratings.
 - Maiden lifecycle and preserve-ME logic are tested.
 - Tournament configuration supports variable qualification rules.
@@ -78,6 +84,7 @@ A phase or feature is complete only when all applicable items pass.
 - Database migrations are reviewed and reversible where practical.
 - Large-history processing is not performed synchronously on routine page requests.
 - Star-profile and field-quality aggregates are precomputed or otherwise efficiently served.
+- Imported-data pages are tested for freshness and non-live wording.
 - Accessibility and responsive behaviour are checked.
 - Security-sensitive values are not logged.
 
