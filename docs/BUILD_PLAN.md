@@ -14,7 +14,8 @@ Deliver:
 - application scaffold;
 - CI, lint, typecheck and tests;
 - private-by-default deployment configuration;
-- synthetic test fixtures.
+- synthetic test fixtures;
+- placeholder navigation for every approved module, including Vault Performance.
 
 Exit: documentation accepted, scaffold verified and no private data committed.
 
@@ -30,9 +31,12 @@ Deliver:
 - core, vault and arena imports;
 - lineage graph;
 - import summaries and rollback;
-- aggregate refresh jobs.
+- aggregate refresh jobs;
+- financial-ledger foundations supporting race-derived and manual provenance;
+- decimal-safe asset/currency storage;
+- tournament/stage classification foundations.
 
-Exit: synthetic and representative sanitized imports pass, repeated imports produce no duplicates, lineage rules test correctly.
+Exit: synthetic and representative sanitized imports pass, repeated imports produce no duplicates, lineage rules test correctly, and financial source records can be linked without double counting.
 
 ## Phase 2 — Vault and core intelligence
 
@@ -48,6 +52,35 @@ Deliver:
 - evidence confidence.
 
 Exit: all active owned cores resolve to profiles or clear data warnings.
+
+## Phase 2B — Vault Performance and financial ledger
+
+Deliver:
+
+- private transaction ledger;
+- race-derived entry-fee and payout records for owned cores;
+- open-racing, tournament-qualification, automatic-round and grand-final classification;
+- manual tournament award entry for payouts sent directly to crypto wallets;
+- arena-fee income entry;
+- breeding-cost entry with DNA fee, external arena fee and BGC components;
+- core sale and acquisition entry;
+- BGC burn-credit and arena-spend ledger;
+- manual adjustments and reconciliation states;
+- possible-duplicate detection between exports and manual records;
+- native-currency P/L and activity summaries;
+- optional reporting-currency conversion with source/effective date;
+- per-core and per-tournament financial drill-down;
+- data completeness and unclassified-activity warnings.
+
+Rules:
+
+- BGC remains separate from cash/crypto profit by default;
+- do not combine unlike currencies without explicit conversion;
+- do not recognise an arena listing as income;
+- do not fabricate cost basis or missing payouts;
+- all totals must drill down to source or manual entries.
+
+Exit: synthetic race fees/payouts reconcile idempotently; manual tournament awards can be recorded without duplication; BGC remains separate; mixed-currency totals are safe; and every summary is auditable.
 
 ## Phase 3 — Discovery
 
@@ -74,9 +107,10 @@ Deliver:
 - Auto-Entry allocation suggestions;
 - adaptive stop/continue guidance;
 - 50%-gate cap warning without targeting the cap;
-- qualification dashboard.
+- qualification dashboard;
+- linkage between configured tournament windows and Vault Performance classifications.
 
-Exit: recent Horse Maiden example can be represented without code changes.
+Exit: recent Horse Maiden example can be represented without code changes, and qualification financial activity can be mapped to the configured event.
 
 ## Phase 5 — Maiden strategy
 
@@ -104,7 +138,8 @@ Deliver:
 - active arena scanner;
 - parent-offspring research pipeline;
 - elite-upside, vault-gap and balanced rankings;
-- probabilistic exceptional-offspring analysis.
+- probabilistic exceptional-offspring analysis;
+- optional creation of linked breeding-cost ledger entries without performing a game transaction.
 
 Exit: saturated vault categories do not suppress high-upside pairing recommendations.
 
@@ -115,7 +150,8 @@ Deliver:
 - race/discover/Maiden/breed/hold/sell/burn recommendations;
 - Genesis burn exclusion;
 - unresolved-evidence protections;
-- duplicate-role and vault-depth analysis.
+- duplicate-role and vault-depth analysis;
+- links to recorded sale or BGC burn outcomes without using BGC value as the lifecycle objective.
 
 Exit: every active core has an explainable lifecycle status or an explicit insufficient-evidence state.
 
@@ -140,6 +176,7 @@ Deliver:
 - performance optimisation for multi-million-row history;
 - security review;
 - import recovery tests;
+- financial-ledger reconciliation and precision tests;
 - private production-readiness checklist.
 
 Exit: all Definition of Done requirements pass and Production remains gated pending owner approval.
@@ -147,10 +184,10 @@ Exit: all Definition of Done requirements pass and Production remains gated pend
 ## Suggested architecture to validate in Phase 0
 
 - Next.js App Router, TypeScript strict mode, Tailwind and accessible component primitives.
-- PostgreSQL/Neon for application state and durable aggregates.
+- PostgreSQL/Neon for application state, financial ledger and durable aggregates.
 - Object storage for private raw uploads if needed.
 - Python plus DuckDB/Polars for batch analytics where this materially improves large-file processing.
 - Background or queued import/aggregate jobs rather than request-time full-history analysis.
 - Vercel Preview deployments.
 
-Codex may propose a different low-cost architecture, but must document why it better satisfies privacy, scale, maintainability and online-only operation before changing this direction.
+Codex may propose a different low-cost architecture, but must document why it better satisfies privacy, scale, financial integrity, maintainability and online-only operation before changing this direction.
