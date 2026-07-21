@@ -12,6 +12,12 @@ Before implementation beyond the scaffold, confirm:
 - no requirement for local user development;
 - no real data committed to Git;
 - Production remains disabled or inaccessible;
+- raw and normalized Gold/Blue star storage approach;
+- Gold eligibility derived from gate count greater than three;
+- event-level star validation and aggregate strategy;
+- pre-race field-quality no-leakage design;
+- import timestamp, latest accepted event timestamp and freshness-state design;
+- historical-snapshot UI treatment with no live-data wording;
 - currency/asset and BGC ledger storage approach;
 - manual transaction audit/reversal design; and
 - no storage of crypto private keys, seed phrases or signing credentials.
@@ -26,6 +32,11 @@ Before importing the owner’s full private exports or economic records into a h
 - estimated storage/processing costs;
 - rollback plan;
 - confirmation logs will not expose source rows, wallet references or economic records;
+- validated `gold_star`, `blue_star` and `gold_star_eligible` handling;
+- proof that false, missing, invalid and Gold-ineligible states remain distinguishable;
+- proof that 1–3 gate races are excluded from negative Gold denominators;
+- event-level star anomaly handling;
+- import/current-through timestamp and stale-data behavior;
 - validated interpretation of race entry-fee and payout fields;
 - economic deduplication keys; and
 - manual payout reconciliation approach.
@@ -38,7 +49,14 @@ Before presenting recommendations as actionable, provide holdout results for:
 - discovery ranking;
 - tournament qualification ranking;
 - confidence calibration;
-- simple-baseline comparison.
+- simple-baseline comparison;
+- Gold top-three and Blue win conversion;
+- Gold/Blue incremental predictive lift;
+- strong-field star and weak-field eligible no-star analysis;
+- explicit proof that current-event outcomes and future races do not enter historical star field-quality features;
+- time-period or algorithm-era stability analysis;
+- evidence that no-star or Gold-ineligible data alone cannot cause a stop, poor-core or burn recommendation;
+- correct disclosure of the imported data cutoff and freshness.
 
 Before presenting Vault Performance totals as dependable, demonstrate:
 
@@ -51,7 +69,7 @@ Before presenting Vault Performance totals as dependable, demonstrate:
 - missing-cost-basis behaviour; and
 - completeness/partial-result warnings.
 
-Low-performing or unvalidated models must remain labelled experimental. Incomplete or unreconciled economic reports must remain labelled partial.
+Low-performing or unvalidated models must remain labelled experimental. Incomplete or unreconciled economic reports must remain labelled partial. Stale imported data must remain visibly labelled stale.
 
 ## Gate D — Maiden recommendations
 
@@ -61,7 +79,10 @@ Before enabling final “Enter this Maiden” recommendations, demonstrate:
 - cross-mode opportunity-cost logic;
 - preserve-ME behaviour;
 - bracket-specific recommendations;
-- commitment warning.
+- commitment warning;
+- appropriate supporting use of strong-field star evidence;
+- protection against recommending a Maiden from star evidence alone where race times are materially weak; and
+- visible race-data cutoff/freshness.
 
 ## Gate E — Breeding recommendations
 
@@ -71,6 +92,9 @@ Before presenting breeding recommendations as more than exploratory, demonstrate
 - family restriction correctness;
 - class, element, F-number and fee calculations;
 - chronological parent-offspring validation;
+- comparison of time-only models with models containing parent/lineage star features;
+- no claim that star propensity is inherited unless independently validated;
+- current arena import freshness and expiry handling;
 - separation of elite-upside and vault-fit scores;
 - honest uncertainty reporting.
 

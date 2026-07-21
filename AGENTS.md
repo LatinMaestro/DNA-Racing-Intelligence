@@ -14,13 +14,13 @@ The platform must turn uploaded historical race, core, vault and arena exports p
 - open-race selection; and
 - retain, breed, sell or burn decisions.
 
-The product must improve decisions without presenting uncertain inferences as known game mechanics or incomplete cashflow as complete lifetime profit.
+The product must improve decisions without presenting uncertain inferences as known game mechanics, periodic imports as live data or incomplete cashflow as complete lifetime profit.
 
 ## Source of truth order
 
 When sources conflict, use this order:
 
-1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
+1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/OPEN_RACE_WORKFLOW.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
 2. Current uploaded exports and observable historical data.
 3. Official DNA Racing documentation or screenshots recorded in the repository.
 4. Modelled or inferred rules, which must be labelled with confidence.
@@ -33,6 +33,8 @@ Before changing code or data models, read:
 
 - `docs/MASTER_SPECIFICATION.md`
 - `docs/GAME_RULES.md`
+- `docs/STAR_SIGNAL_SPECIFICATION.md`
+- `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
@@ -61,6 +63,8 @@ Before changing code or data models, read:
 - Use synthetic fixtures for tests.
 - Do not scrape authenticated game pages or bypass access controls.
 - Tournament and open-race parameters are manually entered until an approved supported integration exists.
+- Race, vault, core and arena data are periodically imported snapshots, not live game data.
+- Never describe imported opponents, listings, stars or recommendations as live unless a future approved live integration exists.
 - Never request or store crypto private keys, seed phrases or signing credentials.
 - The website records and analyses transactions but does not initiate wallet, blockchain or game transactions.
 
@@ -78,6 +82,33 @@ Before changing code or data models, read:
 - Report sample sizes, uncertainty, recency and confidence.
 - Use chronological holdout backtesting. Do not leak future results into training features.
 - Never claim the secret breeding formula has been discovered unless independently validated to an exceptional standard. Report associations and predictive lift instead.
+
+### Gold and Blue star signals
+
+- Preserve the source `gold_star` and `blue_star` race-entry values using the same user-facing terms: **Gold star** and **Blue star**.
+- Gold means the game assessed that core as having the strongest chance to finish in the top three in that entered field.
+- Blue means the game assessed that core as having the strongest chance to win and finish first in that entered field.
+- Gold stars are not assigned in races with three gates or fewer.
+- Derive `gold_star_eligible = gate_count > 3` unless a later owner-confirmed rule changes it.
+- Never count a 1-, 2- or 3-gate race as negative Gold-star evidence or include it in a Gold assignment-opportunity denominator.
+- A source Gold star in a race with three gates or fewer must be preserved and flagged as an anomaly.
+- Stars are pre-race, field-relative signals and are not guarantees or absolute ratings.
+- Receiving a star over historically strong cores is positive supporting evidence. Repeatedly receiving no available star against weak cores is negative supporting evidence.
+- A missing star, a Gold-ineligible race or a no-star result must never become an automatic stop, burn or poor-core decision by itself.
+- Direct race time and speed remain primary. Star evidence supports Discovery, whole-core analysis, Maiden and tournament suitability, breeding research and lifecycle decisions.
+- Calculate historical field quality using only information available before the event. Never use the event outcome or later races to assess how impressive that event’s star assignment was.
+- Distinguish `false` from missing or invalid source values, track eligibility and whether each star type was assigned in the event, and state all denominators.
+- Test for changes in star-assignment frequency and predictive value over time rather than assuming the hidden game algorithm is stable.
+
+### Data freshness
+
+- Race exports are expected approximately every few days, not continuously.
+- Store both import time and latest accepted event time.
+- Display `Data current through` and `Last imported` separately.
+- Display data age and a configurable freshness state.
+- Treat imported data as a historical snapshot.
+- Do not infer that races after the latest imported event did not occur.
+- Recompute affected aggregates idempotently after each accepted cumulative import.
 
 ## Economic and accounting integrity
 
@@ -104,6 +135,8 @@ Before changing code or data models, read:
 - A vault may occupy no more than 50% of race gates, but this is a cap, not a target.
 - Do not advise filling 50% merely because it is allowed.
 - Recommend candidate cores, intended leaderboard, initial race allocation and stop/continue rules; the user manages live gate occupancy.
+- Use historical star evidence as supporting rationale where validated, but continue to rank against the configured qualification metric.
+- Make clear that recommendations reflect the latest imported data, not the current live qualification field.
 
 ### Maiden Eligible
 
@@ -112,6 +145,7 @@ Before changing code or data models, read:
 - A non-participating ME core retains ME.
 - Compare bike, car and horse potential and preserve ME for the strongest credible mode-specific Maiden.
 - A core may target only one of several shared Maiden leaderboards and still be recommended.
+- Historical stars over strong fields may strengthen a limited-sample ME case, but must not override materially weak time evidence.
 
 ### Discovery
 
@@ -120,6 +154,17 @@ Before changing code or data models, read:
 - Permit small controlled probes for unexpected elite outlier performance.
 - Stop weak hypotheses early where justified.
 - Do not calculate remaining lifetime race allowance; the exports do not reliably identify all non-counting tournament races.
+- Use early Gold/Blue stars, Gold eligibility, field strength and the quality of the core receiving the star instead as supporting Discovery evidence.
+
+### Open Race
+
+- The Open Race tool is primarily a **pre-entry core-selection tool** using manually entered race parameters, opponent IDs and imported historical evidence.
+- Current-race Gold and Blue stars are not visible while the field is being assembled and must not be requested or used to choose the core.
+- The game reveals stars only after all gates are filled and the race is set to run, when the user’s entry decision is already committed.
+- After field lock, optional manual Gold/Blue capture is observation-only. Do not issue a replacement-core recommendation or imply the user can switch entries.
+- Historical star profiles may be used during selection as prior evidence.
+- Any optional post-lock observation must remain separate from permanent historical aggregates until reconciled idempotently with a later Race Merge import.
+- For races with three gates or fewer, show Gold as not applicable.
 
 ### Breeding
 
@@ -128,9 +173,10 @@ Before changing code or data models, read:
   2. best vault-gap improvement; and
   3. best balanced pairing.
 - Existing vault saturation may reduce diversification value but must not suppress a pairing with exceptional estimated offspring potential.
-- Use active arena listings for external cores.
+- Use active arena listings from the latest import for external cores and display listing freshness.
 - Assume all active owned cores are breeding-available unless manually marked otherwise.
 - Respect family restrictions, sex, breed cycles, lifetime splice caps, class matrix, F-number addition and lower-element inheritance.
+- Test whether parent and lineage star profiles add chronological predictive lift beyond time-only breeding baselines; do not assume inheritance.
 
 ### Burn decisions
 
@@ -138,17 +184,21 @@ Before changing code or data models, read:
 - Do not predict burn-credit value.
 - Protect unresolved ME, discovery, racing, lineage and breeding value before recommending burn.
 - Allow the user to record the actual BGC credit received after a burn for accounting purposes.
+- No-star evidence alone is never sufficient to recommend a burn.
 
 ## Engineering requirements
 
 - Use TypeScript strict mode.
 - Keep analytics deterministic and testable.
 - Separate ingestion, domain rules, statistical features, recommendation logic, economic ledger logic and UI.
-- Version game rules and inferred payout rules by effective date.
+- Version game rules, inferred payout rules and detected star-algorithm eras by effective date.
 - Make imports idempotent and auditable.
 - Use database transactions for imports.
 - Preserve original source values where practical and store normalized equivalents separately.
 - Record import provenance and validation warnings.
+- Store Gold and Blue stars as nullable race-entry attributes, store Gold eligibility and validate event-level assignment anomalies.
+- Store import timestamp, latest accepted event timestamp and freshness status inputs.
+- Keep optional manual pre-run star observations separate from imported race facts until reconciled.
 - Add tests for every confirmed game rule and important analytical or accounting transformation.
 - Avoid per-request processing of multi-million-row raw datasets; precompute aggregates or use an appropriate analytical pipeline.
 

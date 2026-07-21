@@ -14,7 +14,7 @@
 
 - Detect file type from headers and explicit user selection.
 - Validate required columns before persistence.
-- Preserve an import batch record: filename, checksum, type, upload time, row counts, accepted/rejected counts, warnings and schema version.
+- Preserve an import batch record: filename, checksum, type, upload time, source date where available, latest accepted event time, row counts, accepted/rejected counts, warnings and schema version.
 - Deduplicate race entries using stable source identifiers, with `event_id + token/core_id` as the initial expected natural key where available.
 - Derive race economic transactions idempotently from the accepted race-entry natural key plus transaction type.
 - Imports must be idempotent.
@@ -33,6 +33,7 @@ Normalize without losing source values:
 - names and casing;
 - mode;
 - distance;
+- gate count;
 - breed/class;
 - element;
 - F-number;
@@ -43,12 +44,147 @@ Normalize without losing source values:
 - transaction direction and category;
 - race time and speed units;
 - tournament, bracket and stage identifiers;
-- wallet/account labels; and
-- external transaction references where supplied.
+- wallet/account labels;
+- external transaction references where supplied;
+- Gold-star and Blue-star flags;
+- Gold-star eligibility; and
+- star-data completeness and validation status.
 
 Do not combine currencies without an explicit conversion source and effective date.
 
 Treat BGC as a separate asset type. Do not silently convert it into cash or crypto.
+
+## Race star source fields
+
+The Race Merge exports include:
+
+- `gold_star` — the Gold star;
+- `blue_star` — the Blue star.
+
+Owner-confirmed meanings:
+
+- Gold star: the core assessed by the game as having the strongest chance to finish in the top three in that entered field.
+- Blue star: the core assessed by the game as having the strongest chance to win and finish first in that entered field.
+
+Owner-confirmed Gold eligibility rule:
+
+- Gold stars are not assigned in races with three gates or fewer.
+- Derive `gold_star_eligible = gate_count > 3` unless a later owner-confirmed rule changes it.
+- A false Gold value in a 1-, 2- or 3-gate race is structurally ineligible, not negative evidence.
+
+Import requirements:
+
+- preserve `gold_star` and `blue_star` raw values in staging or provenance storage;
+- normalize both to nullable Booleans using the same Gold and Blue terminology;
+- derive or persist `gold_star_eligible`;
+- distinguish `false` from absent, blank, malformed or unavailable;
+- record a `star_data_status` such as `complete`, `partial`, `missing` or `invalid`;
+- never silently treat a missing column or value as `false`;
+- preserve source batch and row provenance;
+- validate event-level assignment counts for each star type;
+- flag a source Gold assignment in a race with three gates or fewer as an anomaly;
+- retain and flag anomalies rather than silently rewriting them.
+
+Initial supplied data indicates that no event has more than one Gold or one Blue assignment. Treat that as an import validation expectation and observed source characteristic, not an immutable game rule beyond the confirmed Gold gate restriction.
+
+The same core may receive both stars in one event and the model must support that state.
+
+## Proposed normalized race-entry star fields
+
+Each normalized race-entry record should support:
+
+- `gold_star` nullable Boolean;
+- `blue_star` nullable Boolean;
+- `gold_star_eligible` Boolean;
+- `gold_star_source_value` optional raw value;
+- `blue_star_source_value` optional raw value;
+- `star_data_status`;
+- star validation warning code where applicable;
+- import batch ID.
+
+A derived event-level view or table should expose:
+
+- event ID;
+- gate count;
+- Gold-star eligibility;
+- whether a Gold star was assigned;
+- Gold-star core ID where assigned;
+- whether a Blue star was assigned;
+- Blue-star core ID where assigned;
+- whether the same core received both;
+- event star validation status.
+
+## Star aggregate requirements
+
+Precomputed or efficiently queryable aggregates should support each core × mode × exact distance and broader profile levels:
+
+- total races with valid star data;
+- Gold-eligible races;
+- Gold assignment-opportunity races;
+- Blue assignment-opportunity races;
+- Gold count and rate;
+- Blue count and rate;
+- both count and rate;
+- Gold-only count and rate;
+- Blue-only count and rate;
+- neither count and rate where the relevant signals were genuinely available;
+- rolling recent rates;
+- rates by gate count and relevant historical format;
+- rates by pre-race field-quality band;
+- sample size, recency and confidence.
+
+Where the UI shows a rate, store or calculate enough information to identify whether the denominator is:
+
+1. all races with valid star data;
+2. Gold-eligible races with more than three gates; or
+3. only races where that star type was assigned to someone in the field.
+
+Do not combine the denominators silently. Never include a 1–3 gate race as a negative Gold opportunity.
+
+## Pre-race field context
+
+Historical star strength must be assessed against the quality of the entered field using information available before the event start time.
+
+Derived field-quality features may use opponents’ prior:
+
+- mode-distance time distributions;
+- successful-time percentiles;
+- star profiles;
+- sample sizes;
+- recency-weighted form; and
+- lineage evidence available before the event.
+
+The following must not enter a historical event’s pre-race field-quality calculation:
+
+- the event’s eventual finishing positions;
+- the event’s times;
+- the event’s prizes or payouts;
+- any later race result.
+
+Persist a feature timestamp or cutoff reference sufficient to audit no-leakage behavior.
+
+## Data freshness and snapshot status
+
+Race data will normally be refreshed by a newer export every few days. It is not live data.
+
+Persist for each accepted import and current dataset state:
+
+- uploaded/imported timestamp;
+- source filename and checksum;
+- minimum and maximum accepted event timestamps;
+- latest accepted event timestamp across the active dataset;
+- source row count and accepted row count;
+- derived data-age value or inputs;
+- aggregate refresh completion time.
+
+The application must expose:
+
+- `Data current through` based on the latest accepted event time;
+- `Last imported` based on import time;
+- a freshness state such as current, ageing or stale;
+- an explicit historical-snapshot label.
+
+Do not describe periodic race, vault, core or arena data as live. Do not infer that events after the latest accepted timestamp did not occur.
 
 ## Economic transaction requirements
 
@@ -92,6 +228,7 @@ Manual tournament payouts sent directly to a crypto wallet must be supported as 
 - Allow manual additions, removals and ME overrides.
 - Burnt cores are absent from active vault data but remain in historical core and lineage records.
 - Do not infer current ownership solely from race history.
+- Display when the current-vault snapshot was last imported.
 
 ## Arena freshness
 
@@ -100,6 +237,7 @@ Manual tournament payouts sent directly to a crypto wallet must be supported as 
 - Mark recommendations stale when the arena export is no longer current.
 - Never silently recommend an expired listing.
 - Never treat listing presence or expiry as evidence that a fee was earned.
+- Never label imported arena listings as live.
 
 ## Lineage graph
 
@@ -116,9 +254,13 @@ Derived relationships:
 
 Validate family restrictions before a pairing recommendation.
 
+Star profiles may be joined to lineage research as historical features, but the data layer must not label them as inherited traits without validated analysis.
+
 ## Reconciliation and duplication
 
-- Re-importing cumulative Race Merge data must not duplicate race or economic records.
+- Re-importing cumulative Race Merge data must not duplicate race, star or economic records.
+- Star aggregates must derive from the deduplicated accepted race-entry set.
+- A newer import must update dataset freshness and recalculate affected aggregates safely.
 - Warn about manual transactions with matching date, amount, asset and tournament/reference.
 - Permit mark-as-duplicate or excluded status without deleting provenance.
 - Support reversal entries for incorrect manual records.
