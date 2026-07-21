@@ -15,6 +15,8 @@ The product will analyse periodically imported historical race times, Gold/Blue 
 
 The application is not connected to live DNA Racing data. Race exports are expected to be refreshed approximately every few days, and all imported-data views must display their current-through date and freshness.
 
+For an Open Race, current-race Gold and Blue stars are unavailable while the field is forming. They appear only after all gates are filled and the race is set to run, so they cannot be used to choose or switch the entered core.
+
 ## Repository status
 
 The repository is currently in the specification and governance stage. Application implementation begins with Phase 0 after the documentation foundation is reviewed and merged.
@@ -25,6 +27,7 @@ The repository is currently in the specification and governance stage. Applicati
 - [`docs/MASTER_SPECIFICATION.md`](docs/MASTER_SPECIFICATION.md) — complete product requirements
 - [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics
 - [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Gold/Blue database, Gold gate eligibility, field-relative analytics, freshness and no-leakage requirements
+- [`docs/OPEN_RACE_WORKFLOW.md`](docs/OPEN_RACE_WORKFLOW.md) — pre-entry selection, post-lock star observation and import-reconciliation requirements
 - [`docs/ANALYTICS_METHOD.md`](docs/ANALYTICS_METHOD.md) — statistical and recommendation methodology
 - [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — imports, provenance and privacy controls
 - [`docs/VAULT_PERFORMANCE_ACCOUNTING.md`](docs/VAULT_PERFORMANCE_ACCOUNTING.md) — vault P/L, BGC, manual payouts and economic-ledger requirements
