@@ -4,17 +4,17 @@
 
 Build and maintain **DNA Racing Intelligence**, a private single-user decision-support platform for the repository owner’s DNA Racing vault.
 
-The platform must turn uploaded historical race, core, vault and arena exports plus user-entered tournament rules into defensible recommendations for:
+The platform must turn uploaded historical race, core, vault and arena exports plus user-entered tournament and financial records into defensible recommendations and reporting for:
 
 - tournament qualification;
 - Maiden Eligible strategy;
 - mode and distance discovery;
-- vault performance analysis;
+- vault racing and financial performance;
 - breeding and arena partner selection;
 - open-race selection; and
 - retain, breed, sell or burn decisions.
 
-The product must improve decisions without presenting uncertain inferences as known game mechanics.
+The product must improve decisions without presenting uncertain inferences as known game mechanics or combining unlike financial assets misleadingly.
 
 ## Source of truth order
 
@@ -35,6 +35,7 @@ Before changing code or data models, read:
 - `docs/GAME_RULES.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/VAULT_PERFORMANCE_LEDGER.md`
 - `docs/BUILD_PLAN.md`
 - `docs/REVIEW_GATES.md`
 - `docs/DEFINITION_OF_DONE.md`
@@ -55,11 +56,12 @@ Before changing code or data models, read:
 - Private, single-user product.
 - No public rankings, public API or social features.
 - Search-engine indexing disabled.
-- Raw exports, processed data and recommendations are confidential.
-- Do not commit private CSV exports, database dumps, credentials or generated personal vault data to Git.
+- Raw exports, processed data, recommendations and financial ledger records are confidential.
+- Do not commit private CSV exports, database dumps, credentials, wallet details or generated personal vault data to Git.
 - Use synthetic fixtures for tests.
 - Do not scrape authenticated game pages or bypass access controls.
 - Tournament and open-race parameters are manually entered until an approved supported integration exists.
+- The Vault Performance module is operational decision support, not tax or statutory accounting software.
 
 ## Analytical integrity
 
@@ -75,6 +77,20 @@ Before changing code or data models, read:
 - Report sample sizes, uncertainty, recency and confidence.
 - Use chronological holdout backtesting. Do not leak future results into training features.
 - Never claim the secret breeding formula has been discovered unless independently validated to an exceptional standard. Report associations and predictive lift instead.
+
+## Financial ledger integrity
+
+- Keep race-derived ledger records and manually entered records distinguishable and auditable.
+- Track open racing, tournament qualification, automatic rounds, grand finals and manual tournament awards separately.
+- Permit manual overall tournament payouts sent directly to a crypto wallet and link them to the relevant tournament, bracket and core allocation where known.
+- Do not combine DEZ, fiat, crypto, BGC or other assets without an explicit conversion rate, source and effective date.
+- Treat BGC as non-cash game credit. Never include BGC burn receipts in cash/crypto profit by default.
+- Track BGC earned from burns and BGC spent on eligible arena fees through a separate balance ledger.
+- An arena listing is not income. Recognise arena-fee income only from a supported transaction/import or manual record.
+- Do not treat modelled core values or arena asking prices as realised profit.
+- Surface possible duplicate manual/export payouts for reconciliation; never silently delete one.
+- Preserve transaction provenance and correction history. Prefer reversals/adjustments to destructive edits.
+- Do not fabricate missing entry fees, payouts, cost basis, currency conversions or burn values.
 
 ## Recommendation principles
 
@@ -117,20 +133,23 @@ Before changing code or data models, read:
 ### Burn decisions
 
 - Genesis cores cannot be burned.
-- Do not estimate burn credits.
+- Do not predict burn-credit value for lifecycle recommendations.
+- The financial ledger may record the actual BGC received after a burn.
 - Protect unresolved ME, discovery, racing, lineage and breeding value before recommending burn.
 
 ## Engineering requirements
 
 - Use TypeScript strict mode.
 - Keep analytics deterministic and testable.
-- Separate ingestion, domain rules, statistical features, recommendation logic and UI.
+- Separate ingestion, domain rules, statistical features, recommendation logic, financial ledger and UI.
 - Version game rules and inferred payout rules by effective date.
 - Make imports idempotent and auditable.
 - Use database transactions for imports.
 - Preserve original source values where practical and store normalized equivalents separately.
 - Record import provenance and validation warnings.
-- Add tests for every confirmed game rule and important analytical transformation.
+- Use exact decimal-safe storage for monetary/token quantities; never use binary floating point for ledger totals.
+- Make ledger totals drillable to source race rows or manual entries.
+- Add tests for every confirmed game rule, important analytical transformation and financial classification/calculation.
 - Avoid per-request processing of multi-million-row raw datasets; precompute aggregates or use an appropriate analytical pipeline.
 
 ## Change-control rules
@@ -142,9 +161,10 @@ Stop and request direction before:
 - adding a paid dependency or service above a trivial cost;
 - adding secrets or account integrations the user has not approved;
 - changing an owner-confirmed game rule;
-- deleting imported source data;
+- deleting imported source data or financial ledger history;
 - auto-entering races or making game transactions;
-- presenting an inferred rule as official; or
+- presenting an inferred rule as official;
+- assigning a default cash value to BGC; or
 - materially changing the approved architecture.
 
 When blocked, document the exact blocker, safe options and recommended next action.
