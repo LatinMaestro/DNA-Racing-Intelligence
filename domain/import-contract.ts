@@ -32,7 +32,7 @@ export type ImportManifestInput = Readonly<{
   importCompletedAt: string | null;
   minimumAcceptedEventAt: string | null;
   maximumAcceptedEventAt: string | null;
-  latestAcceptedEventAt: string | null;
+  datasetCurrentThroughAfterImport: string | null;
   counts: ImportCounts;
   schemaVersion: string;
   status: ImportBatchStatus;
@@ -152,9 +152,9 @@ export function validateImportManifest(
     input.maximumAcceptedEventAt,
     "maximumAcceptedEventAt",
   );
-  const latestAcceptedEventAt = optionalInstant(
-    input.latestAcceptedEventAt,
-    "latestAcceptedEventAt",
+  const datasetCurrentThroughAfterImport = optionalInstant(
+    input.datasetCurrentThroughAfterImport,
+    "datasetCurrentThroughAfterImport",
   );
 
   if (
@@ -164,36 +164,41 @@ export function validateImportManifest(
     throw new RangeError("importCompletedAt must not precede uploadedAt.");
   }
 
-  const acceptedTimestamps = [
-    minimumAcceptedEventAt,
-    maximumAcceptedEventAt,
-    latestAcceptedEventAt,
-  ];
-  const populatedTimestampCount = acceptedTimestamps.filter(
-    (value) => value !== null,
-  ).length;
+  const hasMinimumAcceptedEvent = minimumAcceptedEventAt !== null;
+  const hasMaximumAcceptedEvent = maximumAcceptedEventAt !== null;
 
-  if (
-    (acceptedRows === 0 && populatedTimestampCount !== 0) ||
-    (acceptedRows > 0 && populatedTimestampCount !== acceptedTimestamps.length)
-  ) {
+  if (hasMinimumAcceptedEvent !== hasMaximumAcceptedEvent) {
     throw new RangeError(
-      "Accepted-event timestamps must be all present for accepted rows and all absent otherwise.",
+      "Batch minimum and maximum accepted-event timestamps must be both present or both absent.",
     );
   }
 
   if (
-    minimumAcceptedEventAt !== null &&
-    maximumAcceptedEventAt !== null &&
-    latestAcceptedEventAt !== null
+    input.sourceType === "race_merge" &&
+    acceptedRows > 0 &&
+    !hasMinimumAcceptedEvent
   ) {
+    throw new RangeError(
+      "Accepted Race Merge rows require batch event-time coverage.",
+    );
+  }
+
+  if (minimumAcceptedEventAt !== null && maximumAcceptedEventAt !== null) {
     const minimum = new Date(minimumAcceptedEventAt).getTime();
     const maximum = new Date(maximumAcceptedEventAt).getTime();
-    const latest = new Date(latestAcceptedEventAt).getTime();
 
-    if (minimum > maximum || latest < minimum || latest > maximum) {
+    if (minimum > maximum) {
       throw new RangeError(
-        "Accepted-event timestamps must satisfy minimum <= latest <= maximum.",
+        "Batch event-time coverage must satisfy minimum <= maximum.",
+      );
+    }
+
+    if (
+      datasetCurrentThroughAfterImport !== null &&
+      new Date(datasetCurrentThroughAfterImport).getTime() < maximum
+    ) {
+      throw new RangeError(
+        "Dataset current-through time must not precede the accepted batch maximum.",
       );
     }
   }
@@ -207,7 +212,7 @@ export function validateImportManifest(
     importCompletedAt,
     minimumAcceptedEventAt,
     maximumAcceptedEventAt,
-    latestAcceptedEventAt,
+    datasetCurrentThroughAfterImport,
     schemaVersion: nonEmpty(input.schemaVersion, "schemaVersion"),
     counts: { sourceRows, acceptedRows, rejectedRows, warningRows },
   };
