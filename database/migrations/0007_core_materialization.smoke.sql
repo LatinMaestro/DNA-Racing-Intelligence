@@ -16,21 +16,21 @@ VALUES
     '70000000-0000-4000-8000-000000000001',
     'core_details', 'synthetic-core-details-v1.csv', repeat('1', 64),
     'utf_8', 'core-details/v1', 'validating',
-    '2026-07-23T07:00:00Z', 3, 0, 0, 0
+    '2026-07-23T07:00:00Z', 3, 0, 3, 0
   ),
   (
     '70000000-0000-4000-8000-000000000102',
     '70000000-0000-4000-8000-000000000001',
     'core_details', 'synthetic-core-details-invalid.csv', repeat('2', 64),
     'utf_8', 'core-details/v1', 'validating',
-    '2026-07-23T07:10:00Z', 1, 0, 0, 0
+    '2026-07-23T07:10:00Z', 1, 0, 1, 0
   ),
   (
     '70000000-0000-4000-8000-000000000103',
     '70000000-0000-4000-8000-000000000001',
     'core_details', 'synthetic-core-details-v2.csv', repeat('3', 64),
     'utf_8', 'core-details/v1', 'validating',
-    '2026-07-23T07:20:00Z', 4, 0, 0, 0
+    '2026-07-23T07:20:00Z', 4, 0, 4, 0
   );
 
 INSERT INTO dna.dataset_staged_record (
