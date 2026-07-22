@@ -89,6 +89,7 @@ export type AdaptedCurrentVaultRow = Readonly<{
   sex: CoreSex;
   maidenEligible: boolean | null;
   maidenSourceValue: string;
+  maidenDataStatus: "valid" | "missing" | "invalid";
   identityResolutionStatus: "review_required";
 }>;
 
@@ -185,6 +186,14 @@ function timestamp(
   let epochMilliseconds: number | null = null;
   if (/^\d{10}$/.test(value)) epochMilliseconds = Number(value) * 1_000;
   if (/^\d{13}$/.test(value)) epochMilliseconds = Number(value);
+  const timezoneQualifiedIso =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      value,
+    );
+  if (epochMilliseconds === null && !timezoneQualifiedIso) {
+    issues.push(rowIssue("INVALID_TIMESTAMP", "error", column));
+    return null;
+  }
   const parsed =
     epochMilliseconds === null ? new Date(value) : new Date(epochMilliseconds);
   if (Number.isNaN(parsed.getTime())) {
@@ -296,10 +305,15 @@ function exactNonNegativeDecimal(
   values: CanonicalValues,
   column: string,
   issues: SourceRowIssue[],
+  allowZero = true,
 ): string | null {
   const value = nonEmpty(values, column, issues);
   if (value === null) return null;
   if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
+    issues.push(rowIssue("INVALID_DECIMAL", "error", column));
+    return null;
+  }
+  if (!allowZero && /^0(?:\.0+)?$/.test(value)) {
     issues.push(rowIssue("INVALID_DECIMAL", "error", column));
     return null;
   }
@@ -332,6 +346,7 @@ function raceRow(
     values,
     "elapsed_time",
     issues,
+    false,
   );
   const gold = nullableBoolean(values, "gold_star", issues);
   const blue = nullableBoolean(values, "blue_star", issues);
@@ -457,6 +472,11 @@ function vaultRow(
     sex: normalizedSex,
     maidenEligible: maiden.value,
     maidenSourceValue: maiden.raw,
+    maidenDataStatus: maiden.invalid
+      ? "invalid"
+      : maiden.value === null
+        ? "missing"
+        : "valid",
     identityResolutionStatus: "review_required",
   };
 }
