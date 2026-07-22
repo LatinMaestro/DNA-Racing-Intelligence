@@ -47,6 +47,7 @@ Phase 0 architecture, privacy controls and the private application scaffold are 
 - [`docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md`](docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md) — durable event validation and count-based star profiles
 - [`docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md`](docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md) — idempotent post-lock observation reconciliation
 - [`docs/PHASE_1_LINEAGE_GRAPH.md`](docs/PHASE_1_LINEAGE_GRAPH.md) — owner-scoped lineage graph and exact confirmed family restrictions
+- [`docs/PHASE_1_CORE_MATERIALIZATION.md`](docs/PHASE_1_CORE_MATERIALIZATION.md) — atomic Core Details and parent-edge persistence with rollback
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy

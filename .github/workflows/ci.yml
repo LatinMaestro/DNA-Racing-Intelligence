@@ -78,6 +78,41 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.up.sql
       - name: Run lineage graph smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.smoke.sql
+      - name: Apply Core Details materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.up.sql
+      - name: Run Core Details materialization smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.smoke.sql
+      - name: Reverse Core Details materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.down.sql
+      - name: Verify Core Details materialization removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'accept_staged_core_dataset',
+          'evaluate_family_pair_graph',
+          'refresh_core_lineage_unfiltered',
+          'rollback_active_dataset_pre_core'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'normalized_core_staged_fact',
+          'core_parent_import_provenance',
+          'active_core_details'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND table_name = 'core_parent'
+          AND column_name = 'active_in_core_details'
+          ) THEN RAISE EXCEPTION 'Core Details materialization objects still exist';
+          END IF; END \$\$;"
       - name: Reverse lineage graph migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.down.sql
       - name: Verify lineage graph removal
