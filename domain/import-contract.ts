@@ -10,11 +10,7 @@ export const importSourceTypes = [
 export type ImportSourceType = (typeof importSourceTypes)[number];
 
 export type ImportBatchStatus =
-  | "uploaded"
-  | "validating"
-  | "quarantined"
-  | "accepted"
-  | "rolled_back";
+  "uploaded" | "validating" | "quarantined" | "accepted" | "rolled_back";
 
 export type ImportCounts = Readonly<{
   sourceRows: number;
@@ -105,7 +101,9 @@ export function canonicalSourceColumn(
 export function normalizeSha256(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (!SHA_256_PATTERN.test(normalized)) {
-    throw new TypeError("checksumSha256 must contain exactly 64 hexadecimal characters.");
+    throw new TypeError(
+      "checksumSha256 must contain exactly 64 hexadecimal characters.",
+    );
   }
   return normalized;
 }
@@ -218,10 +216,7 @@ export function validateImportManifest(
   };
 }
 
-export function raceEntryNaturalKey(
-  eventId: string,
-  coreId: string,
-): string {
+export function raceEntryNaturalKey(eventId: string, coreId: string): string {
   return stableKey("race_entry", [eventId, coreId]);
 }
 
@@ -263,8 +258,11 @@ export function manualObservationReconciliationKey(
     throw new RangeError("gateCount must be a positive safe integer.");
   }
 
-  const enteredCoreIds = [...new Set(input.enteredCoreIds.map((id) => nonEmpty(id, "entered core ID")))]
-    .sort((left, right) => left.localeCompare(right));
+  const enteredCoreIds = [
+    ...new Set(
+      input.enteredCoreIds.map((id) => nonEmpty(id, "entered core ID")),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
 
   if (enteredCoreIds.length === 0) {
     throw new RangeError("At least one entered core ID is required.");
