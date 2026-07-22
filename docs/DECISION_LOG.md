@@ -175,3 +175,15 @@
 - Permit unknown extra columns only as provenance-preserving warnings; they do not silently become normalized facts.
 - Restrict routine import summaries and logs to schema, encoding, counts and stable issue codes. Raw headers, filenames and values remain private staging data.
 - Schema readiness is not dataset acceptance. Row validation, transactional activation and rollback remain separate controls.
+
+## 2026-07-23 — Phase 1 synthetic source adapters
+
+- Map Race Merge `rcb` to exact `distance` and use precise `rstart_time` as event time while retaining `event_datetime` as separate source provenance.
+- Normalize the four supplied file families through conservative typed adapters; required identity, timestamp, mode, distance and structural failures quarantine the row.
+- Preserve raw Gold and Blue values, nullable normalized values and complete/partial/missing/invalid status. Retain ineligible source Gold assignments with a warning and derive eligibility only from `gate_count > 3`.
+- Treat the Bike-labelled file as cross-mode Core Details and normalize class, element, F-number and sex casing without losing source provenance.
+- Keep name-only Current Vault identities in review and treat both Vault and Arena as historical snapshots.
+- Preserve Arena prices as exact source decimals and structurally prevent a listing row from creating an economic transaction.
+- Keep Race Merge fee, payout, prize and asset fields unvalidated; no economic transaction may be derived until source semantics satisfy Gate B.
+- Routine adapter summaries expose counts and stable issue codes only. Raw headers and values remain private staging data.
+- Transactional dataset activation, cumulative deduplication, conflict handling and rollback remain the next Phase 1 slice.
