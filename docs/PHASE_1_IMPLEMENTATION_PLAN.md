@@ -38,6 +38,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - owner/source-locked PostgreSQL activation, provenance and failure rollback;
    - PostgreSQL 16 exact replay, conflict, stale, snapshot, RLS and rollback verification;
    - normalized Race Merge staging and atomic event/entry materialization;
+   - normalized Core Details and parent-edge materialization with cumulative rollback;
    - source-semantic preservation without guessed elapsed-time or economic conversion;
    - materialized fact deactivation and restoration during cumulative rollback.
 
@@ -48,7 +49,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
      — provider-independent contract and PostgreSQL aggregate materialization complete;
    - manual-observation reconciliation without duplicate evidence — complete;
    - race fee/payout quarantine until source semantics are validated;
-   - lineage graph and family-restriction validation.
+   - lineage graph and family-restriction validation — complete.
 
 6. **Private import UI and recovery**
    - owner-only upload and batch status;
