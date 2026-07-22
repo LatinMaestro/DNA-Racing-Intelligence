@@ -153,7 +153,6 @@
 - The agent must continue through the phased build plan, prefer narrow testable pull requests and verify merged `main` before starting the next dependent slice.
 - Client action is required only for account access, secrets, private-data upload, paid services, irreversible Production changes, material architecture or privacy departures, confirmed-rule changes or ambiguity that would materially alter a recommendation or financial total.
 
-
 ## 2026-07-22 — Phase 1 data-foundation schema
 
 - Use reversible direct PostgreSQL migrations for the initial data foundation without applying them to a persistent hosted database.
