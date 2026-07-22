@@ -165,7 +165,8 @@ CREATE TABLE dna.core (
   UNIQUE (owner_id, id),
   UNIQUE (owner_id, source_core_id),
   FOREIGN KEY (owner_id, source_import_batch_id)
-    REFERENCES dna.import_batch(owner_id, id) ON DELETE SET NULL
+    REFERENCES dna.import_batch(owner_id, id)
+    ON DELETE SET NULL (source_import_batch_id)
 );
 
 CREATE TABLE dna.core_import_provenance (
@@ -231,7 +232,8 @@ CREATE TABLE dna.identity_review (
   FOREIGN KEY (owner_id, import_batch_id)
     REFERENCES dna.import_batch(owner_id, id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, proposed_core_id)
-    REFERENCES dna.core(owner_id, id) ON DELETE SET NULL,
+    REFERENCES dna.core(owner_id, id)
+    ON DELETE SET NULL (proposed_core_id),
   CHECK (
     match_status NOT IN ('confirmed', 'rejected') OR
     resolved_at IS NOT NULL
@@ -292,7 +294,8 @@ CREATE TABLE dna.race_entry (
   FOREIGN KEY (owner_id, race_event_id, gate_count)
     REFERENCES dna.race_event(owner_id, id, gate_count) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, core_id)
-    REFERENCES dna.core(owner_id, id) ON DELETE SET NULL,
+    REFERENCES dna.core(owner_id, id)
+    ON DELETE SET NULL (core_id),
   FOREIGN KEY (owner_id, source_import_batch_id)
     REFERENCES dna.import_batch(owner_id, id) ON DELETE RESTRICT
 );
@@ -348,6 +351,10 @@ CREATE TABLE dna.event_star_validation (
   CHECK (
     (blue_assignment_count = 0 AND blue_source_core_id IS NULL) OR
     (blue_assignment_count > 0 AND blue_source_core_id IS NOT NULL)
+  ),
+  CHECK (
+    same_core_received_both =
+    COALESCE(gold_source_core_id = blue_source_core_id, false)
   )
 );
 
@@ -383,7 +390,8 @@ CREATE TABLE dna.manual_star_observation (
   UNIQUE (owner_id, id),
   UNIQUE (owner_id, reconciliation_key),
   FOREIGN KEY (owner_id, reconciled_race_event_id)
-    REFERENCES dna.race_event(owner_id, id) ON DELETE SET NULL,
+    REFERENCES dna.race_event(owner_id, id)
+    ON DELETE SET NULL (reconciled_race_event_id),
   CHECK (
     (key_authority = 'authoritative_event_id') =
     (authoritative_source_event_id IS NOT NULL)
@@ -463,7 +471,8 @@ CREATE TABLE dna.vault_snapshot_core (
   FOREIGN KEY (owner_id, vault_snapshot_id)
     REFERENCES dna.vault_snapshot(owner_id, id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, core_id)
-    REFERENCES dna.core(owner_id, id) ON DELETE SET NULL
+    REFERENCES dna.core(owner_id, id)
+    ON DELETE SET NULL (core_id)
 );
 
 CREATE TABLE dna.arena_snapshot (
@@ -501,7 +510,8 @@ CREATE TABLE dna.arena_listing (
   FOREIGN KEY (owner_id, arena_snapshot_id)
     REFERENCES dna.arena_snapshot(owner_id, id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, core_id)
-    REFERENCES dna.core(owner_id, id) ON DELETE SET NULL,
+    REFERENCES dna.core(owner_id, id)
+    ON DELETE SET NULL (core_id),
   FOREIGN KEY (owner_id, nominated_fee_asset_id)
     REFERENCES dna.asset_currency(owner_id, id) ON DELETE RESTRICT,
   CHECK (
@@ -628,7 +638,8 @@ CREATE TABLE dna.transaction_allocation (
   FOREIGN KEY (owner_id, economic_transaction_id)
     REFERENCES dna.economic_transaction(owner_id, id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, core_id)
-    REFERENCES dna.core(owner_id, id) ON DELETE SET NULL,
+    REFERENCES dna.core(owner_id, id)
+    ON DELETE SET NULL (core_id),
   CHECK (
     allocation_method <> 'single_core' OR core_id IS NOT NULL
   )
