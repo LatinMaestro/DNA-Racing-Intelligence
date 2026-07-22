@@ -40,6 +40,7 @@ Phase 0 architecture, privacy controls and the private application scaffold are 
 - [`docs/PHASE_0_HANDOFF.md`](docs/PHASE_0_HANDOFF.md) — Phase 0 validation, limitations and Gate A status
 - [`docs/PHASE_1_IMPLEMENTATION_PLAN.md`](docs/PHASE_1_IMPLEMENTATION_PLAN.md) — focused data-foundation delivery slices and Gate B boundary
 - [`docs/PHASE_1_DATA_MODEL.md`](docs/PHASE_1_DATA_MODEL.md) — owner-scoped PostgreSQL schema, migration and verification contract
+- [`docs/PHASE_1_SCHEMA_DETECTION.md`](docs/PHASE_1_SCHEMA_DETECTION.md) — versioned header detection, encoding and fail-closed quarantine contract
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
