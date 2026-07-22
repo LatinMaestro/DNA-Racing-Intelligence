@@ -145,7 +145,6 @@
 - Expected Phase 0 cost is US$0. Any paid service, recurring infrastructure or Production activation remains review-gated.
 - Gate A is accepted on the verified Phase 0 evidence. Phase 1 may proceed while full private-data hosting remains separately gated at Gate B.
 
-
 ## 2026-07-22 — Autonomous delivery authority
 
 - The repository owner grants standing authority for the implementation agent to self-review, push, mark ready and merge focused pull requests when they match the repository source of truth, all applicable validation and CI pass on the exact head, the complete diff is reviewed and no client-only stop condition applies.
