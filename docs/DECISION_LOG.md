@@ -130,3 +130,17 @@
 - Do not include estimated unsold-core value in realised P/L by default.
 - Every performance report must state coverage, unclassified activity, data cutoff and whether it is complete, partial or estimated.
 - Never request or store wallet private keys, seed phrases or signing credentials.
+
+## 2026-07-22 — Phase 0 architecture proposal
+
+- Use Next.js App Router with strict TypeScript and an accessible responsive private dashboard shell.
+- Use Clerk authentication plus a server-side authorised-user ID allowlist for the single owner; missing configuration must fail closed.
+- Use Neon PostgreSQL for application state, manifests, durable aggregates, reconciliation and the exact-value economic ledger.
+- Use private Cloudflare R2 Standard storage for raw uploads and partitioned analytical data; never expose a public bucket or commit source data.
+- Use an ephemeral hosted Python worker with Polars/DuckDB for import and aggregate processing; routine requests read precomputed aggregates rather than scan full race history.
+- Treat the historical Bike-labelled details export and its \`bikeid\` field as legacy source aliases for cross-mode Core Details and normalized \`core_id\`.
+- Detect and record legacy encodings and Boolean casing variation rather than assuming all exports are canonical UTF-8.
+- Treat source IDs as authoritative. Name-only vault/core matches are proposed for review when ambiguous or unmatched.
+- Keep Production disabled through both build-time and runtime controls. Preview access is disabled until explicitly enabled behind deployment protection.
+- Expected Phase 0 cost is US$0. Any paid service, recurring infrastructure or Production activation remains review-gated.
+- Phase 0 is a Gate A proposal. Do not implement beyond the accepted scaffold until the architecture and privacy choices are accepted or amended.
