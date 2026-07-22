@@ -42,6 +42,7 @@ Phase 0 architecture, privacy controls and the private application scaffold are 
 - [`docs/PHASE_1_DATA_MODEL.md`](docs/PHASE_1_DATA_MODEL.md) — owner-scoped PostgreSQL schema, migration and verification contract
 - [`docs/PHASE_1_SCHEMA_DETECTION.md`](docs/PHASE_1_SCHEMA_DETECTION.md) — versioned header detection, encoding and fail-closed quarantine contract
 - [`docs/PHASE_1_SOURCE_ADAPTERS.md`](docs/PHASE_1_SOURCE_ADAPTERS.md) — conservative typed row adapters and private provenance boundary
+- [`docs/PHASE_1_STAR_INTEGRITY.md`](docs/PHASE_1_STAR_INTEGRITY.md) — event validation and deterministic star-profile refresh contract
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
