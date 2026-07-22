@@ -254,3 +254,16 @@
 - Preserve lineage anomalies separately from the graph, exclude cyclic self-reachability and make refresh serialized, deterministic and replay-safe per owner.
 - Protect reachability and validation issues with forced owner RLS and revoke PUBLIC table/function access.
 - Verify parent, grandparent, full-sibling, half-sibling, distant-descendant, incomplete and cyclic cases in both TypeScript and reversible synthetic PostgreSQL 16 CI. Neon, private Core Details uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 normalized Core Details materialization
+
+- Require one owner-scoped normalized Core Details fact for every ready staged row before transactional activation.
+- Treat the legacy Bike-labelled export as cross-mode Core Details and use `bikeid` only as the normalized source-core-ID alias.
+- Use source parent IDs as authoritative. Preserve parent names as private provenance only; never resolve or create a lineage identity from a name.
+- Quarantine self-parent, duplicate-parent, inconsistent core identity and active parent-role conflicts before changing the accepted dataset.
+- Materialize cores and parent edges with deterministic owner-scoped IDs, immutable batch provenance and exact-replay idempotence.
+- Retain unresolved source parent IDs as nullable placeholder identities so missing lineage remains reviewable instead of guessed.
+- Expose only selected Core Details through the active view. Historical or rolled-back cores return a review-required family result and cannot silently re-enter breeding eligibility.
+- Rollback deselects contributed core/edge provenance, restores the prior cumulative version and source pointers, retains historical evidence and refreshes only the selected lineage graph.
+- Keep new tables under forced owner RLS and revoke PUBLIC table, view and function access. Verify activation, quarantine, replay, rollback, lineage, inactive-core protection and full reversal in synthetic PostgreSQL 16 CI.
+- Neon, private Core Details uploads and Production remain unchanged and gated.
