@@ -11,7 +11,7 @@ describe("Phase 1 source schema staging", () => {
   it("detects the Race Merge schema from headers", () => {
     const staged = stageSourceHeader({
       headerBytes: utf8(
-        "event_id,event_datetime,rmode,token_id,rgate_count,gold_star,blue_star,pos,time\n",
+        "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time\n",
       ),
     });
 
