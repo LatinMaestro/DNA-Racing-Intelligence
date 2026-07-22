@@ -191,7 +191,8 @@
 ## 2026-07-23 — Phase 1 PostgreSQL dataset acceptance
 
 - Stage only owner-scoped stable natural keys, SHA-256 fingerprints, source row numbers, readiness and issue codes at the dataset-acceptance boundary; raw CSV values remain outside this ledger.
-- Serialize acceptance by owner and source before calculating the next version, and activate exactly one immutable version only after all transaction writes succeed.\n- Store cumulative Race Merge/Core Details identities as immutable version deltas rather than copying the multi-million-row active set on every import; resolve the active set through non-rolled-back deltas.
+- Serialize acceptance by owner and source before calculating the next version, and activate exactly one immutable version only after all transaction writes succeed.
+- Store cumulative Race Merge/Core Details identities as immutable version deltas rather than copying the multi-million-row active set on every import; resolve the active set through non-rolled-back deltas.
 - Treat Race Merge and Core Details as cumulative sources whose omitted accepted records carry forward; fingerprint disagreement is quarantined without overwriting the accepted fact.
 - Treat Current Vault and Current Arena as replacement historical snapshots whose earlier versions remain rollback-capable.
 - Reject a data-current-through regression without changing the active version, and keep import completion, data current-through and aggregate completion separate.
@@ -210,3 +211,14 @@
 - Treat complete eligible events with no Gold assignment separately from negative Gold opportunities. Keep incomplete, invalid, multi-assignment and duplicate-event evidence visible but excluded from the affected denominator.
 - Make refresh deterministic across input ordering and replay, and fail closed on a repeated event ID so cumulative imports cannot double-count evidence.
 - Keep PostgreSQL materialization pending until normalized Race Merge facts are transactionally persisted. Manual post-lock observations remain excluded until authoritative reconciliation succeeds.
+
+## 2026-07-23 — Phase 1 normalized Race Merge materialization
+
+- Require one private typed normalized Race Merge fact for every ready acceptance row and keep it owner-scoped with forced row-level security and no `PUBLIC` access.
+- Accept and materialize normalized events, entries and source provenance within one owner/source-locked transaction; an unhandled failure rolls back activation and facts together.
+- Quarantine every ready row for an event when event time, mode, exact distance or gate count conflict within a batch or with a previously accepted event. Never silently overwrite the accepted event identity.
+- Use deterministic owner/event and owner/event/core identities with exact-replay idempotence, immutable batch provenance and optional links to authoritative Core Details IDs.
+- Continue deriving Gold eligibility only from `gate_count > 3` while preserving ineligible source Gold assignments and warnings.
+- Preserve exact elapsed-time and economic source values for audit, but leave normalized milliseconds, speed and race-derived economic transactions unavailable until their source semantics are validated.
+- Rollback deselects the rolled-back batch's provenance and deactivates only materialized facts without another selected, non-rolled-back contribution.
+- Verify migration apply, normalized-fact completeness, conflict quarantine, replay, provenance, rollback, owner isolation, privilege revocation and full reversal using synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.

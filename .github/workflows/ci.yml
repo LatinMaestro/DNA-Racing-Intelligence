@@ -62,6 +62,35 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.up.sql
       - name: Run dataset-acceptance smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.smoke.sql
+      - name: Apply normalized Race Merge materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.up.sql
+      - name: Run normalized Race Merge materialization smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.smoke.sql
+      - name: Reverse normalized Race Merge materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.down.sql
+      - name: Verify normalized Race Merge materialization removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname = 'normalized_race_staged_fact'
+          ) OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND table_name IN ('race_event', 'race_entry')
+          AND column_name = 'active_in_dataset'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'accept_staged_race_dataset',
+          'rollback_active_dataset_ledger'
+          )
+          ) THEN RAISE EXCEPTION 'race materialization objects still exist';
+          END IF; END \$\$;"
       - name: Reverse dataset-acceptance migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.down.sql
       - name: Verify dataset-acceptance removal
