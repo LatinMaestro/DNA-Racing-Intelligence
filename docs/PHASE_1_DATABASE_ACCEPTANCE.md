@@ -27,7 +27,10 @@ readiness and issue codes. Raw CSV values remain outside this acceptance layer.
   Core Details sources without overwriting the accepted fact;
 - treats Current Vault and Current Arena as replacement historical snapshots;
 - rejects a current-through regression without changing the active version;
-- copies omitted cumulative records into the new immutable version;
+- stores only newly accepted Race Merge/Core Details identities as immutable
+  version deltas, avoiding a full multi-million-row copy per import;
+- resolves the cumulative active set through non-rolled-back deltas, so omitted
+  accepted history remains active without storage multiplication;
 - records one contribution per accepted natural key and batch;
 - records accepted, rejected and warning counts on the manifest;
 - activates exactly one version only after all database writes succeed; and
