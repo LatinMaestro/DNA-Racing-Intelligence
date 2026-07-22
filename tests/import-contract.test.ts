@@ -31,7 +31,7 @@ describe("Phase 1 import contracts", () => {
       importCompletedAt: "2026-07-22T10:02:00Z",
       minimumAcceptedEventAt: "2026-07-19T00:00:00Z",
       maximumAcceptedEventAt: "2026-07-21T23:00:00Z",
-      latestAcceptedEventAt: "2026-07-21T23:00:00Z",
+      datasetCurrentThroughAfterImport: "2026-07-21T23:00:00Z",
       counts: {
         sourceRows: 10,
         acceptedRows: 9,
@@ -42,8 +42,36 @@ describe("Phase 1 import contracts", () => {
       status: "accepted",
     });
 
-    expect(manifest.latestAcceptedEventAt).toBe("2026-07-21T23:00:00.000Z");
+    expect(manifest.datasetCurrentThroughAfterImport).toBe(
+      "2026-07-21T23:00:00.000Z",
+    );
     expect(manifest.importCompletedAt).toBe("2026-07-22T10:02:00.000Z");
+  });
+
+  it("allows non-race imports without event timestamps", () => {
+    expect(
+      validateImportManifest({
+        batchId: "synthetic-core-batch",
+        sourceType: "core_details",
+        sourceFilename: "synthetic-core-details.csv",
+        checksumSha256: checksum,
+        uploadedAt: "2026-07-22T10:00:00Z",
+        importCompletedAt: "2026-07-22T10:01:00Z",
+        minimumAcceptedEventAt: null,
+        maximumAcceptedEventAt: null,
+        datasetCurrentThroughAfterImport: "2026-07-21T23:00:00Z",
+        counts: {
+          sourceRows: 2,
+          acceptedRows: 2,
+          rejectedRows: 0,
+          warningRows: 0,
+        },
+        schemaVersion: "core-details/v1",
+        status: "accepted",
+      }),
+    ).toMatchObject({
+      datasetCurrentThroughAfterImport: "2026-07-21T23:00:00.000Z",
+    });
   });
 
   it("rejects inconsistent row counts and incomplete accepted-event coverage", () => {
@@ -57,7 +85,7 @@ describe("Phase 1 import contracts", () => {
         importCompletedAt: null,
         minimumAcceptedEventAt: null,
         maximumAcceptedEventAt: null,
-        latestAcceptedEventAt: null,
+        datasetCurrentThroughAfterImport: null,
         counts: {
           sourceRows: 10,
           acceptedRows: 10,
