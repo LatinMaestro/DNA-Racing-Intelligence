@@ -244,3 +244,13 @@
 - Use deterministic reconciliation identities and replace only unreviewed automatic suggestions on replay; reviewed rows are not overwritten and manual observations cannot duplicate star counts.
 - Keep Gold unavailable at three gates or fewer and surface an ineligible manual Gold observation as a mismatch.
 - Verify authoritative matching, candidate review, mismatch, not-yet-imported state, ineligible Gold, replay, aggregate non-mutation, privilege revocation and full reversal in synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 lineage graph and family validation
+
+- Materialize owner-scoped transitive lineage reachability from resolved Core Details parent IDs, using parent, grandparent and distant generation bands without exposing names.
+- Enforce only the confirmed family restrictions: a pair is ineligible for a parent, grandparent or full-sibling relationship.
+- Keep half siblings, cousins, relationships beyond grandparent and other relationships eligible; do not widen the prohibited set without a later confirmed rule change.
+- Treat same-core input as review-required rather than inventing a family rule. Treat incomplete class/parentage and cycles as review-required, and never silently infer missing parents.
+- Preserve lineage anomalies separately from the graph, exclude cyclic self-reachability and make refresh serialized, deterministic and replay-safe per owner.
+- Protect reachability and validation issues with forced owner RLS and revoke PUBLIC table/function access.
+- Verify parent, grandparent, full-sibling, half-sibling, distant-descendant, incomplete and cyclic cases in both TypeScript and reversible synthetic PostgreSQL 16 CI. Neon, private Core Details uploads and Production remain unchanged and gated.
