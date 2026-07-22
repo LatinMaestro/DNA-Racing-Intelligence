@@ -290,3 +290,12 @@
 - Reject impossible batch coverage, duplicate batch IDs and multiple active versions before rendering or acting on state.
 - Keep private upload disabled until approved Preview-only Clerk, Neon and private object-storage configuration is available. The repository UI must state this boundary and Production remains fail-closed.
 - Verify empty state, quarantined-attempt separation, freshness, recovery queues, validation failures, redaction, accessibility-oriented semantic markup, strict TypeScript and the full build using synthetic data only.
+
+## 2026-07-23 — Phase 1 Gate B remains client-gated
+
+- Do not accept Gate B or upload full private exports until authoritative Race Merge fee, payout, prize and asset semantics are confirmed; these values materially change financial totals and must not be inferred.
+- Do not assume Neon Free capacity is sufficient for the detailed normalized-history model. The current free allowance is 0.5 GB per project, while the private capacity profile indicates a paid Preview database or a material R2 analytical-storage amendment may be required.
+- Require the owner to choose and approve either a capped usage-based Neon Preview budget or a documented architecture amendment before detailed private history is hosted.
+- Keep the first private upload, provider account creation/access and secret configuration as explicit client actions after the semantic and storage choices are resolved.
+- Preserve completed repository evidence: owner RLS, revoked PUBLIC access, reversible migrations, idempotent source imports, star eligibility/anomaly rules, separate manual observations, exact asset accounting foundations, historical snapshot freshness and privacy-safe summaries.
+- Production, custom domains, public routes and recurring paid infrastructure remain separately blocked at Gate F.

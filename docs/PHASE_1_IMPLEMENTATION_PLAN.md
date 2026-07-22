@@ -60,11 +60,13 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - rollback and reconciliation queue projection — complete;
    - authenticated mutations and persistent Preview verification — pending.
 
-7. **Phase 1 verification and Gate B evidence**
-   - repeated-import, rollback, anomaly, freshness, observation and economic-key tests;
-   - migration, security, build and accessibility checks;
-   - sanitized representative import evidence;
-   - exact client actions for Preview-only Clerk, Neon, R2 and Vercel configuration;
+7. **Phase 1 verification and Gate B evidence — client action required**
+   - repeated-import, rollback, anomaly, freshness, observation and economic-key tests — complete;
+   - migration, security, build and accessibility checks — complete;
+   - synthetic representative import evidence — complete;
+   - source fee/payout semantics — awaiting authoritative owner confirmation;
+   - Preview storage path and maximum spend — awaiting owner approval;
+   - exact client actions for Preview-only Clerk, Neon, R2 and Vercel — documented;
    - no full private-data upload until Gate B is satisfied.
 
 ## Invariants carried forward
