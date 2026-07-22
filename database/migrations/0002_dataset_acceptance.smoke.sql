@@ -334,19 +334,38 @@ BEGIN
     SELECT count(*)
     FROM dna.dataset_version_record
     WHERE dataset_version_id = '10000000-0000-4000-8000-000000000202'
-  ) <> 3 THEN
-    RAISE EXCEPTION 'Cumulative version did not retain prior records';
+  ) <> 1 THEN
+    RAISE EXCEPTION 'Cumulative version stored more than its new-record delta';
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
-    FROM dna.dataset_version_record
+    FROM dna.dataset_version_record version_record
+    JOIN dna.dataset_version version_row
+      ON version_row.owner_id = version_record.owner_id
+      AND version_row.id = version_record.dataset_version_id
     WHERE
-      dataset_version_id = '10000000-0000-4000-8000-000000000202'
-      AND natural_key = 'synthetic-race-entry-1'
-      AND fingerprint_sha256 = repeat('1', 64)
+      version_record.source_type = 'race_merge'
+      AND version_row.version_number <= 2
+      AND version_row.rolled_back_at IS NULL
+      AND version_record.natural_key = 'synthetic-race-entry-1'
+      AND version_record.fingerprint_sha256 = repeat('1', 64)
   ) THEN
     RAISE EXCEPTION 'Conflict overwrote an accepted cumulative fact';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM dna.dataset_version_record version_record
+    JOIN dna.dataset_version version_row
+      ON version_row.owner_id = version_record.owner_id
+      AND version_row.id = version_record.dataset_version_id
+    WHERE
+      version_record.source_type = 'race_merge'
+      AND version_row.version_number <= 2
+      AND version_row.rolled_back_at IS NULL
+  ) <> 3 THEN
+    RAISE EXCEPTION 'Cumulative deltas do not resolve to the full active set';
   END IF;
 
   IF NOT EXISTS (
@@ -490,6 +509,20 @@ BEGIN
     WHERE import_batch_id = '10000000-0000-4000-8000-000000000102'
   ) <> 1 THEN
     RAISE EXCEPTION 'Rollback deleted accepted contribution provenance';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM dna.dataset_version_record version_record
+    JOIN dna.dataset_version version_row
+      ON version_row.owner_id = version_record.owner_id
+      AND version_row.id = version_record.dataset_version_id
+    WHERE
+      version_record.source_type = 'race_merge'
+      AND version_row.rolled_back_at IS NULL
+      AND version_row.version_number <= 1
+  ) <> 2 THEN
+    RAISE EXCEPTION 'Rollback did not restore the prior cumulative active set';
   END IF;
 END
 $rollback_assertions$;
