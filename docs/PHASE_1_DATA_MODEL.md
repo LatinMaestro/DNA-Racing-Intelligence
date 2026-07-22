@@ -1,7 +1,7 @@
 # Phase 1 Data Foundation Schema
 
 Date: 22 July 2026  
-Status: proposed in a focused Phase 1 pull request  
+Status: verified for Phase 1  
 Deployment scope: repository and ephemeral CI PostgreSQL only
 
 ## Purpose
