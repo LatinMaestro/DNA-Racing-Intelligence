@@ -251,12 +251,17 @@ BEGIN
         ELSE array_append(staged.issue_codes, 'FINGERPRINT_CONFLICT')
       END
     FROM dna.dataset_version_record accepted
+    JOIN dna.dataset_version accepted_version
+      ON accepted_version.owner_id = accepted.owner_id
+      AND accepted_version.id = accepted.dataset_version_id
     WHERE
       staged.owner_id = v_owner_id
       AND staged.import_batch_id = p_import_batch_id
       AND staged.status = 'ready'
       AND accepted.owner_id = v_owner_id
-      AND accepted.dataset_version_id = v_active.id
+      AND accepted.source_type = v_batch.source_type
+      AND accepted_version.version_number <= v_active.version_number
+      AND accepted_version.rolled_back_at IS NULL
       AND accepted.natural_key = staged.natural_key
       AND accepted.fingerprint_sha256 <> staged.fingerprint_sha256;
   END IF;
@@ -372,10 +377,7 @@ BEGIN
     true
   );
 
-  IF (
-    v_active.id IS NOT NULL
-    AND v_batch.source_type IN ('race_merge', 'core_details')
-  ) THEN
+  IF v_batch.source_type IN ('race_merge', 'core_details') THEN
     INSERT INTO dna.dataset_version_record (
       owner_id,
       dataset_version_id,
@@ -384,47 +386,66 @@ BEGIN
       fingerprint_sha256,
       first_accepted_batch_id
     )
-    SELECT
-      owner_id,
+    SELECT DISTINCT ON (staged.natural_key)
+      v_owner_id,
       p_dataset_version_id,
+      v_batch.source_type,
+      staged.natural_key,
+      staged.fingerprint_sha256,
+      p_import_batch_id
+    FROM dna.dataset_staged_record staged
+    WHERE
+      staged.owner_id = v_owner_id
+      AND staged.import_batch_id = p_import_batch_id
+      AND staged.status = 'ready'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM dna.dataset_version_record existing
+        JOIN dna.dataset_version existing_version
+          ON existing_version.owner_id = existing.owner_id
+          AND existing_version.id = existing.dataset_version_id
+        WHERE
+          existing.owner_id = v_owner_id
+          AND existing.source_type = v_batch.source_type
+          AND existing.natural_key = staged.natural_key
+          AND existing_version.rolled_back_at IS NULL
+          AND (
+            v_active.id IS NULL OR
+            existing_version.version_number <= v_active.version_number
+          )
+      )
+    ORDER BY staged.natural_key, staged.source_row_number;
+  ELSE
+    INSERT INTO dna.dataset_version_record (
+      owner_id,
+      dataset_version_id,
       source_type,
       natural_key,
       fingerprint_sha256,
       first_accepted_batch_id
-    FROM dna.dataset_version_record
-    WHERE owner_id = v_owner_id AND dataset_version_id = v_active.id;
+    )
+    SELECT DISTINCT ON (staged.natural_key)
+      v_owner_id,
+      p_dataset_version_id,
+      v_batch.source_type,
+      staged.natural_key,
+      staged.fingerprint_sha256,
+      CASE
+        WHEN previous.fingerprint_sha256 = staged.fingerprint_sha256
+          THEN previous.first_accepted_batch_id
+        ELSE p_import_batch_id
+      END
+    FROM dna.dataset_staged_record staged
+    LEFT JOIN dna.dataset_version_record previous
+      ON previous.owner_id = v_owner_id
+      AND previous.dataset_version_id = v_active.id
+      AND previous.natural_key = staged.natural_key
+    WHERE
+      staged.owner_id = v_owner_id
+      AND staged.import_batch_id = p_import_batch_id
+      AND staged.status = 'ready'
+    ORDER BY staged.natural_key, staged.source_row_number;
   END IF;
-
-  INSERT INTO dna.dataset_version_record (
-    owner_id,
-    dataset_version_id,
-    source_type,
-    natural_key,
-    fingerprint_sha256,
-    first_accepted_batch_id
-  )
-  SELECT DISTINCT ON (staged.natural_key)
-    v_owner_id,
-    p_dataset_version_id,
-    v_batch.source_type,
-    staged.natural_key,
-    staged.fingerprint_sha256,
-    CASE
-      WHEN previous.fingerprint_sha256 = staged.fingerprint_sha256
-        THEN previous.first_accepted_batch_id
-      ELSE p_import_batch_id
-    END
-  FROM dna.dataset_staged_record staged
-  LEFT JOIN dna.dataset_version_record previous
-    ON previous.owner_id = v_owner_id
-    AND previous.dataset_version_id = v_active.id
-    AND previous.natural_key = staged.natural_key
-  WHERE
-    staged.owner_id = v_owner_id
-    AND staged.import_batch_id = p_import_batch_id
-    AND staged.status = 'ready'
-  ORDER BY staged.natural_key, staged.source_row_number
-  ON CONFLICT (owner_id, dataset_version_id, natural_key) DO NOTHING;
 
   INSERT INTO dna.dataset_record_contribution (
     owner_id,
