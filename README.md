@@ -45,6 +45,7 @@ Phase 0 architecture, privacy controls and the private application scaffold are 
 - [`docs/PHASE_1_STAR_INTEGRITY.md`](docs/PHASE_1_STAR_INTEGRITY.md) — event validation and deterministic star-profile refresh contract
 - [`docs/PHASE_1_RACE_MATERIALIZATION.md`](docs/PHASE_1_RACE_MATERIALIZATION.md) — transaction-safe normalized Race Merge persistence and rollback
 - [`docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md`](docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md) — durable event validation and count-based star profiles
+- [`docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md`](docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md) — idempotent post-lock observation reconciliation
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
