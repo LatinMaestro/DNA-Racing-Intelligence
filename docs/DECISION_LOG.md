@@ -280,3 +280,13 @@
 - Replace only the current snapshot pointer, preserve all historical snapshots, make replay idempotent and restore the prior snapshot on reasoned rollback.
 - Keep typed staging and snapshot entries under forced owner RLS, revoke PUBLIC access and verify apply, replacement, identity review, exact prices, no false economics, rollback and full reversal in synthetic PostgreSQL 16 CI.
 - Neon, private uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 import status and recovery workspace
+
+- Replace the Imports placeholder with an owner-only historical-source workspace that keeps latest attempt, active accepted data, data current-through, import completion and aggregate refresh distinct.
+- A newer quarantined attempt must not replace the active dataset or its freshness. Missing imports remain not-imported and unknown rather than implying live or complete data.
+- Project recovery actions only from active accepted batches: reasoned rollback when a prior version exists, identity review, post-lock observation reconciliation and pending aggregate refresh.
+- Keep routine summaries count/code-only. Exclude filenames, raw headers, core names, row values and batch identifiers from redacted logs and summaries.
+- Reject impossible batch coverage, duplicate batch IDs and multiple active versions before rendering or acting on state.
+- Keep private upload disabled until approved Preview-only Clerk, Neon and private object-storage configuration is available. The repository UI must state this boundary and Production remains fail-closed.
+- Verify empty state, quarantined-attempt separation, freshness, recovery queues, validation failures, redaction, accessibility-oriented semantic markup, strict TypeScript and the full build using synthetic data only.
