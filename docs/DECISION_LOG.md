@@ -131,7 +131,7 @@
 - Every performance report must state coverage, unclassified activity, data cutoff and whether it is complete, partial or estimated.
 - Never request or store wallet private keys, seed phrases or signing credentials.
 
-## 2026-07-22 — Phase 0 architecture proposal
+## 2026-07-22 — Phase 0 architecture accepted
 
 - Use Next.js App Router with strict TypeScript and an accessible responsive private dashboard shell.
 - Use Clerk authentication plus a server-side authorised-user ID allowlist for the single owner; missing configuration must fail closed.
@@ -143,4 +143,12 @@
 - Treat source IDs as authoritative. Name-only vault/core matches are proposed for review when ambiguous or unmatched.
 - Keep Production disabled through both build-time and runtime controls. Preview access is disabled until explicitly enabled behind deployment protection.
 - Expected Phase 0 cost is US$0. Any paid service, recurring infrastructure or Production activation remains review-gated.
-- Phase 0 is a Gate A proposal. Do not implement beyond the accepted scaffold until the architecture and privacy choices are accepted or amended.
+- Gate A is accepted on the verified Phase 0 evidence. Phase 1 may proceed while full private-data hosting remains separately gated at Gate B.
+
+## 2026-07-22 — Autonomous delivery authority
+
+- The repository owner grants standing authority for the implementation agent to self-review, push, mark ready and merge focused pull requests when they match the repository source of truth, all applicable validation and CI pass on the exact head, the complete diff is reviewed and no client-only stop condition applies.
+- Gates A–E remain mandatory evidence and quality gates. The agent may document and self-accept them when the required evidence is complete instead of waiting for a redundant routine owner review.
+- Gate F remains client-only. Production activation, a custom domain, public routes, full private-data upload to Production and recurring paid infrastructure still require explicit owner approval.
+- The agent must continue through the phased build plan, prefer narrow testable pull requests and verify merged `main` before starting the next dependent slice.
+- Client action is required only for account access, secrets, private-data upload, paid services, irreversible Production changes, material architecture or privacy departures, confirmed-rule changes or ambiguity that would materially alter a recommendation or financial total.

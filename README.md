@@ -19,7 +19,7 @@ For an Open Race, current-race Gold and Blue stars are unavailable while the fie
 
 ## Repository status
 
-Phase 0 architecture, privacy controls and the private application scaffold are proposed in a draft pull request. Production remains disabled. Implementation beyond the scaffold is blocked at Gate A until the architecture and privacy decisions are accepted.
+Phase 0 architecture, privacy controls and the private application scaffold are merged and Gate A is accepted. Phase 1 data-foundation delivery is in progress under the owner's standing autonomous authority. Production remains disabled and requires separate explicit Gate F approval.
 
 ## Source-of-truth documents
 

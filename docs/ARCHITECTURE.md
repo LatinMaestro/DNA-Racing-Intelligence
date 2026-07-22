@@ -1,6 +1,6 @@
 # Phase 0 Architecture Decision Record
 
-Status: **Proposed for Gate A review**  
+Status: **Accepted at Gate A**  
 Date: 22 July 2026  
 Scope: private single-user Preview architecture only; Production remains disabled.
 
@@ -223,7 +223,7 @@ Expected Phase 0 cost is **US$0**. The initial operational target is also US$0 w
 
 ## 15. Gate A decision
 
-Implementation must not proceed beyond the Phase 0 scaffold until the owner accepts or amends:
+Gate A is accepted for:
 
 - Clerk plus owner-ID allowlisting;
 - Neon aggregate/application storage;
@@ -232,3 +232,5 @@ Implementation must not proceed beyond the Phase 0 scaffold until the owner acce
 - Preview-only fail-closed delivery;
 - star, Open Race, freshness, no-leakage and ledger representations; and
 - the cost envelope.
+
+This acceptance authorises Phase 1 repository and synthetic-data work. Provider account configuration, secrets, paid activation and full private-data upload remain subject to their separate client-action and Gate B requirements.
