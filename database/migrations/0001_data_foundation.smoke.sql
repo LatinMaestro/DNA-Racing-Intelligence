@@ -321,4 +321,55 @@ BEGIN
 END
 $assertions$;
 
+DELETE FROM dna.core
+WHERE id = '00000000-0000-4000-8000-000000000040';
+
+DO $deletion_assertions$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM dna.race_entry
+    WHERE
+      id = '00000000-0000-4000-8000-000000000060'
+      AND owner_id = '00000000-0000-4000-8000-000000000001'
+      AND core_id IS NULL
+      AND source_core_id = 'synthetic-core-1'
+  ) THEN
+    RAISE EXCEPTION 'Core deletion did not preserve owner-scoped race provenance';
+  END IF;
+END
+$deletion_assertions$;
+
+INSERT INTO dna.app_owner (id, clerk_user_id)
+VALUES (
+  '00000000-0000-4000-8000-000000000002',
+  'synthetic_other_owner'
+);
+
+CREATE ROLE dna_ci_app NOLOGIN;
+GRANT USAGE ON SCHEMA dna TO dna_ci_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA dna TO dna_ci_app;
+GRANT EXECUTE ON FUNCTION dna.current_owner_id() TO dna_ci_app;
+
+SET LOCAL ROLE dna_ci_app;
+SET LOCAL app.owner_id = '00000000-0000-4000-8000-000000000001';
+
+DO $rls_assertions$
+BEGIN
+  IF (SELECT count(*) FROM dna.app_owner) <> 1 THEN
+    RAISE EXCEPTION 'Owner row-level security exposed another owner';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM dna.app_owner
+    WHERE id = '00000000-0000-4000-8000-000000000002'
+  ) THEN
+    RAISE EXCEPTION 'Owner row-level security failed closed-read isolation';
+  END IF;
+END
+$rls_assertions$;
+
+RESET ROLE;
+
 ROLLBACK;
