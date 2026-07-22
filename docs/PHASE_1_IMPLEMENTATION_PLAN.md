@@ -30,7 +30,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - quarantine of malformed or ambiguous input;
    - count-only/redacted logs.
 
-4. **Synthetic source adapters and transactional acceptance**
+4. **Synthetic source adapters and transactional acceptance — in progress (adapters complete)**
    - Race Merge, Core Details, Current Vault and Current Arena adapters;
    - cumulative deduplication and conflict warnings;
    - dataset-version activation and rollback;
