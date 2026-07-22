@@ -1,0 +1,9 @@
+.next
+coverage
+node_modules
+package-lock.json
+
+# Preserve approved legacy source-of-truth formatting.
+docs/GAME_RULES.md
+docs/MASTER_SPECIFICATION.md
+docs/VAULT_PERFORMANCE_ACCOUNTING.md

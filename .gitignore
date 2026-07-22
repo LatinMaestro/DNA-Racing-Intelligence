@@ -1,0 +1,33 @@
+# Dependencies and framework output
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Private source data and generated analytics
+*.csv
+*.csv.gz
+*.parquet
+*.arrow
+*.duckdb
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+private-data/
+raw-uploads/
+analytics-output/
+generated/private/
+
+# Logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db

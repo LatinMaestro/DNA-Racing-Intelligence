@@ -19,7 +19,7 @@ For an Open Race, current-race Gold and Blue stars are unavailable while the fie
 
 ## Repository status
 
-The repository is currently in the specification and governance stage. Application implementation begins with Phase 0 after the documentation foundation is reviewed and merged.
+Phase 0 architecture, privacy controls and the private application scaffold are proposed in a draft pull request. Production remains disabled. Implementation beyond the scaffold is blocked at Gate A until the architecture and privacy decisions are accepted.
 
 ## Source-of-truth documents
 
@@ -35,6 +35,9 @@ The repository is currently in the specification and governance stage. Applicati
 - [`docs/REVIEW_GATES.md`](docs/REVIEW_GATES.md) — points requiring owner approval
 - [`docs/DEFINITION_OF_DONE.md`](docs/DEFINITION_OF_DONE.md) — completion and quality standard
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — confirmed decisions and corrections
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Phase 0 system, data, no-leakage and cost decisions
+- [`docs/PRIVACY_AND_THREAT_MODEL.md`](docs/PRIVACY_AND_THREAT_MODEL.md) — private data flow, threats, controls and retention proposal
+- [`docs/PHASE_0_HANDOFF.md`](docs/PHASE_0_HANDOFF.md) — Phase 0 validation, limitations and Gate A status
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
