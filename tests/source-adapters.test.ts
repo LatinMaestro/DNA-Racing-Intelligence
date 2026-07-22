@@ -169,8 +169,31 @@ describe("Phase 1 synthetic source adapters", () => {
       sourceType: "current_vault",
       sourceCoreId: null,
       maidenEligible: true,
+      maidenDataStatus: "valid",
       identityResolutionStatus: "review_required",
     });
+  });
+
+  it("rejects ambiguous timestamps and zero elapsed times", () => {
+    const staged = schema(
+      "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time",
+    );
+    const ambiguous = adaptSourceRow(staged, [
+      "event-ambiguous-time",
+      "07/22/2026 12:00",
+      "bike",
+      "1000",
+      "core-6",
+      "8",
+      "false",
+      "false",
+      "1",
+      "0",
+    ]);
+    expect(ambiguous.status).toBe("quarantined");
+    expect(ambiguous.issues.map(({ code }) => code)).toEqual(
+      expect.arrayContaining(["INVALID_TIMESTAMP", "INVALID_DECIMAL"]),
+    );
   });
 
   it("keeps Arena prices exact and cannot create breeding income", () => {
