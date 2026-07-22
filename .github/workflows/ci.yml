@@ -74,6 +74,30 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.up.sql
       - name: Run star-observation reconciliation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.smoke.sql
+      - name: Apply lineage graph migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.up.sql
+      - name: Run lineage graph smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.smoke.sql
+      - name: Reverse lineage graph migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0006_lineage_graph.down.sql
+      - name: Verify lineage graph removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN ('refresh_core_lineage', 'evaluate_family_pair')
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'core_lineage_reachability',
+          'core_lineage_validation_issue'
+          )
+          ) THEN RAISE EXCEPTION 'lineage graph objects still exist';
+          END IF; END \$\$;"
       - name: Reverse star-observation reconciliation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.down.sql
       - name: Verify star-observation reconciliation removal
