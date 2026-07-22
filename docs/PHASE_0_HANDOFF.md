@@ -53,6 +53,7 @@ Remote validation completed successfully:
 - `npm run typecheck` — passed in strict mode;
 - `npm test` — 6 files and 22 tests passed;
 - `npm run build` — passed; all 13 product routes plus `robots.txt` generated;
+- `npm audit --omit=dev` — zero known vulnerabilities after compatible PostCSS and Sharp security overrides;
 - simulated Vercel Production build — rejected as required with the Gate F message;
 - Preview with `ENABLE_PHASE0_REVIEW=false` — returned HTTP 404; and
 - explicitly enabled Preview — returned HTTP 200 and the Phase 0 dashboard shell.
