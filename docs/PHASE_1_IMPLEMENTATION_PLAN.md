@@ -38,10 +38,11 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - owner/source-locked PostgreSQL activation, provenance and failure rollback;
    - PostgreSQL 16 exact replay, conflict, stale, snapshot, RLS and rollback verification.
 
-5. **Derived integrity pipelines**
-   - event-level Gold/Blue assignment validation;
-   - 1–3 gate Gold-ineligibility protection;
-   - idempotent star-profile refresh;
+5. **Derived integrity pipelines — in progress**
+   - event-level Gold/Blue assignment validation — contract complete;
+   - 1–3 gate Gold-ineligibility protection — contract complete;
+   - deterministic, idempotent star-profile refresh with explicit denominators
+     — provider-independent contract complete; PostgreSQL materialization pending;
    - manual-observation reconciliation without duplicate evidence;
    - race fee/payout quarantine until source semantics are validated;
    - lineage graph and family-restriction validation.
