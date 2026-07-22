@@ -1,6 +1,8 @@
 # Review Gates
 
-Codex may continue autonomously between gates. Stop and request owner action at the following points.
+Codex may continue autonomously between gates. Under the owner's standing delivery authority, Gates A–E are mandatory evidence and quality gates that the implementation agent may document and self-accept when every listed proof is complete. Gate F and the always-stop conditions remain client-only and require explicit owner action.
+
+A self-accepted gate must be recorded in the decision log or phase handoff, supported by exact-head validation and CI, and must not weaken any substantive product, privacy, accounting or analytical control.
 
 ## Gate A — Architecture and privacy
 
