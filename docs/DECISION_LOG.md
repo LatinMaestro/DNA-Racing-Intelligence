@@ -200,3 +200,13 @@
 - Rollback requires a reason, preserves staged and contribution provenance, marks the active batch/version rolled back and restores the latest prior non-rolled-back version.
 - Protect all acceptance tables with forced owner RLS and revoke table and function access from PUBLIC. Application-role grants and persistent Preview migration remain gated.
 - Verify migration apply, exact replay, cumulative conflict handling, stale quarantine, snapshot replacement, atomic failure rollback, owner isolation, privilege revocation, rollback and full reverse migration in ephemeral PostgreSQL 16 CI.
+
+## 2026-07-23 — Phase 1 star integrity contract
+
+- Validate Gold and Blue assignments at event level before refreshing core profiles. Preserve zero, one and multiple assignments distinctly; multiple assignments retain every assigned source core ID and leave the unique assigned core null rather than selecting a false winner.
+- Derive Gold eligibility only from `gate_count > 3`. Preserve and flag source Gold in one- to three-gate events, but exclude it from positive and negative Gold evidence.
+- Create a signal assignment opportunity only when exactly one assignment exists, every event row is complete for that signal and core rows are unique. Missing or invalid Gold must not erase otherwise complete Blue evidence, or vice versa.
+- Group star profiles by authoritative source core ID, mode and exact distance. Expose counts plus explicit numerator/denominator pairs; do not substitute an unexplained percentage.
+- Treat complete eligible events with no Gold assignment separately from negative Gold opportunities. Keep incomplete, invalid, multi-assignment and duplicate-event evidence visible but excluded from the affected denominator.
+- Make refresh deterministic across input ordering and replay, and fail closed on a repeated event ID so cumulative imports cannot double-count evidence.
+- Keep PostgreSQL materialization pending until normalized Race Merge facts are transactionally persisted. Manual post-lock observations remain excluded until authoritative reconciliation succeeds.
