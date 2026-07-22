@@ -81,6 +81,35 @@ CREATE TABLE dna.dataset_record_contribution (
 CREATE INDEX dataset_version_record_identity
   ON dna.dataset_version_record(owner_id, source_type, natural_key);
 
+CREATE VIEW dna.active_dataset_record
+WITH (security_invoker = true)
+AS
+SELECT
+  version_record.owner_id,
+  version_record.source_type,
+  version_record.natural_key,
+  version_record.fingerprint_sha256,
+  version_record.first_accepted_batch_id,
+  version_record.dataset_version_id
+FROM dna.dataset_version_record version_record
+JOIN dna.dataset_version record_version
+  ON record_version.owner_id = version_record.owner_id
+  AND record_version.id = version_record.dataset_version_id
+JOIN dna.dataset_version active_version
+  ON active_version.owner_id = version_record.owner_id
+  AND active_version.source_type = version_record.source_type
+  AND active_version.is_active
+WHERE
+  (
+    version_record.source_type IN ('race_merge', 'core_details')
+    AND record_version.version_number <= active_version.version_number
+    AND record_version.rolled_back_at IS NULL
+  )
+  OR (
+    version_record.source_type IN ('current_vault', 'current_arena')
+    AND record_version.id = active_version.id
+  );
+
 CREATE FUNCTION dna.accept_staged_dataset(
   p_import_batch_id uuid,
   p_dataset_version_id uuid,
@@ -647,6 +676,7 @@ REVOKE ALL ON TABLE dna.dataset_stream FROM PUBLIC;
 REVOKE ALL ON TABLE dna.dataset_staged_record FROM PUBLIC;
 REVOKE ALL ON TABLE dna.dataset_version_record FROM PUBLIC;
 REVOKE ALL ON TABLE dna.dataset_record_contribution FROM PUBLIC;
+REVOKE ALL ON TABLE dna.active_dataset_record FROM PUBLIC;
 REVOKE ALL ON FUNCTION dna.accept_staged_dataset(
   uuid,
   uuid,
