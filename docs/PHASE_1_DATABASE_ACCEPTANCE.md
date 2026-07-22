@@ -31,6 +31,9 @@ readiness and issue codes. Raw CSV values remain outside this acceptance layer.
   version deltas, avoiding a full multi-million-row copy per import;
 - resolves the cumulative active set through non-rolled-back deltas, so omitted
   accepted history remains active without storage multiplication;
+- exposes that resolved set through the owner-RLS-aware
+  `dna.active_dataset_record` view, while snapshot sources expose only their
+  active version;
 - records one contribution per accepted natural key and batch;
 - records accepted, rejected and warning counts on the manifest;
 - activates exactly one version only after all database writes succeed; and
