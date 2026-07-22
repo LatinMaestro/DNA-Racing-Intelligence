@@ -46,7 +46,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - 1–3 gate Gold-ineligibility protection — contract complete;
    - deterministic, idempotent star-profile refresh with explicit denominators
      — provider-independent contract and PostgreSQL aggregate materialization complete;
-   - manual-observation reconciliation without duplicate evidence;
+   - manual-observation reconciliation without duplicate evidence — complete;
    - race fee/payout quarantine until source semantics are validated;
    - lineage graph and family-restriction validation.
 
