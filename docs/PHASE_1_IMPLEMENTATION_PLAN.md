@@ -24,7 +24,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - manual observations kept outside authoritative race facts;
    - exact-value economic transactions, allocations and reconciliation records.
 
-3. **Schema detection and staged validation**
+3. **Schema detection and staged validation — complete**
    - source selection plus header-based detection;
    - versioned aliases, encoding status and source-column provenance;
    - quarantine of malformed or ambiguous input;
