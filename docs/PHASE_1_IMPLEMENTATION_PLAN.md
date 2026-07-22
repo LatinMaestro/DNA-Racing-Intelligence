@@ -36,13 +36,16 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - immutable dataset-version activation and reversible rollback contract;
    - separate data current-through, import completion and aggregate refresh timestamps;
    - owner/source-locked PostgreSQL activation, provenance and failure rollback;
-   - PostgreSQL 16 exact replay, conflict, stale, snapshot, RLS and rollback verification.
+   - PostgreSQL 16 exact replay, conflict, stale, snapshot, RLS and rollback verification;
+   - normalized Race Merge staging and atomic event/entry materialization;
+   - source-semantic preservation without guessed elapsed-time or economic conversion;
+   - materialized fact deactivation and restoration during cumulative rollback.
 
 5. **Derived integrity pipelines — in progress**
    - event-level Gold/Blue assignment validation — contract complete;
    - 1–3 gate Gold-ineligibility protection — contract complete;
    - deterministic, idempotent star-profile refresh with explicit denominators
-     — provider-independent contract complete; PostgreSQL materialization pending;
+     — provider-independent contract complete; PostgreSQL aggregate materialization pending;
    - manual-observation reconciliation without duplicate evidence;
    - race fee/payout quarantine until source semantics are validated;
    - lineage graph and family-restriction validation.
