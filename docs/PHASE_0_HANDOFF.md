@@ -1,7 +1,7 @@
 # Phase 0 Handoff
 
 Date: 22 July 2026  
-Status: **Gate A review required**  
+Status: **Gate A accepted**  
 Production: **disabled and unchanged**
 
 ## Delivered
@@ -63,9 +63,9 @@ CI independently repeats formatting, lint, strict typecheck, unit tests and the 
 ## Known limitations and deferred work
 
 - No real export is uploaded to any hosted provider in Phase 0.
-- Clerk, Neon, R2 and Vercel account configuration is intentionally not performed before Gate A.
+- Clerk, Neon, R2 and Vercel account configuration remains deferred until the required client account actions and Preview-only secrets are available.
 - The scaffold has no anonymous/demo mode and remains inaccessible on Vercel until Preview protection is configured and explicitly enabled.
-- Schema/migrations, import processing and persistent auth begin only after Gate A in Phase 1.
+- Schema/migrations and synthetic import processing proceed in Phase 1; persistent hosted integrations remain fail-closed until their Preview-only account configuration is available.
 - Analytics functions beyond invariant foundations are not implemented and no predictive-success claim is made.
 - Vault Performance contains no transactions or totals until validated source and manual-entry paths exist.
 - Source fee semantics remain unconfirmed and cannot create dependable P/L before Gate B.
@@ -77,9 +77,9 @@ Phase 0: **US$0**.
 
 Initial Preview operation is intended to remain within free tiers. Current provider limits and paid triggers are recorded in `docs/ARCHITECTURE.md`. No paid plan or recurring billing is approved.
 
-## Gate A decision requested
+## Gate A decision
 
-Accept or amend:
+Gate A is accepted on the verified Phase 0 package:
 
 1. Clerk authentication plus one-user allowlisting;
 2. Neon for application state and durable aggregates;
@@ -90,4 +90,4 @@ Accept or amend:
 7. the retention/deletion proposal; and
 8. Preview-only, Production-fail-closed delivery.
 
-No account action is required merely to review this PR. After Gate A acceptance, Phase 1 will identify the exact Preview account actions and secrets required before any synthetic hosted integration. Full private data remains blocked until Gate B.
+Phase 1 may proceed with synthetic fixtures and repository-only foundations. Preview provider configuration, secrets and any private-data upload remain blocked until the applicable client action and Gate B evidence are complete.
