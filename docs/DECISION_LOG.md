@@ -165,3 +165,13 @@
 - Store Current Vault and Arena state as imported snapshots. Arena listings cannot create breeding income.
 - Require hosted PostgreSQL CI to apply, smoke-test, reverse and verify removal of every migration before merge.
 - The schema is repository-only. Neon, private uploads and Production remain unchanged and gated.
+
+## 2026-07-22 — Phase 1 schema detection and quarantine
+
+- Detect Race Merge, Core Details, Current Vault and Current Arena files from versioned header contracts, with explicit source selection allowed only when the selected schema requirements also match.
+- Treat `bikeid` as a versioned Core Details alias for `core_id`; retain source-to-canonical column provenance.
+- Record UTF-8 and Windows-1252 status and fail closed on unsupported or binary input.
+- Quarantine malformed, unsupported, ambiguous, selection-mismatched, required-column-incomplete and duplicate-canonical-column headers before row normalization or persistence.
+- Permit unknown extra columns only as provenance-preserving warnings; they do not silently become normalized facts.
+- Restrict routine import summaries and logs to schema, encoding, counts and stable issue codes. Raw headers, filenames and values remain private staging data.
+- Schema readiness is not dataset acceptance. Row validation, transactional activation and rollback remain separate controls.
