@@ -73,7 +73,8 @@ jobs:
           WHERE namespace.nspname = 'dna'
           AND relation.relname IN (
           'dataset_stream', 'dataset_staged_record',
-          'dataset_version_record', 'dataset_record_contribution'
+          'dataset_version_record', 'dataset_record_contribution',
+          'active_dataset_record'
           )
           ) THEN RAISE EXCEPTION 'dataset acceptance objects still exist';
           END IF; END \$\$;"
