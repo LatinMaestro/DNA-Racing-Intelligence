@@ -56,8 +56,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply data-foundation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0001_data_foundation.up.sql
-      - name: Run synthetic migration smoke test
+      - name: Run data-foundation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0001_data_foundation.smoke.sql
+      - name: Apply dataset-acceptance migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.up.sql
+      - name: Run dataset-acceptance smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.smoke.sql
+      - name: Reverse dataset-acceptance migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0002_dataset_acceptance.down.sql
+      - name: Verify dataset-acceptance removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'dataset_stream', 'dataset_staged_record',
+          'dataset_version_record', 'dataset_record_contribution',
+          'active_dataset_record'
+          )
+          ) THEN RAISE EXCEPTION 'dataset acceptance objects still exist';
+          END IF; END \$\$;"
       - name: Reverse data-foundation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0001_data_foundation.down.sql
       - name: Verify schema removal

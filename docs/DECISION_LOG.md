@@ -187,3 +187,16 @@
 - Keep Race Merge fee, payout, prize and asset fields unvalidated; no economic transaction may be derived until source semantics satisfy Gate B.
 - Routine adapter summaries expose counts and stable issue codes only. Raw headers and values remain private staging data.
 - Transactional dataset activation, cumulative deduplication, conflict handling and rollback remain the next Phase 1 slice.
+
+## 2026-07-23 — Phase 1 PostgreSQL dataset acceptance
+
+- Stage only owner-scoped stable natural keys, SHA-256 fingerprints, source row numbers, readiness and issue codes at the dataset-acceptance boundary; raw CSV values remain outside this ledger.
+- Serialize acceptance by owner and source before calculating the next version, and activate exactly one immutable version only after all transaction writes succeed.\n- Store cumulative Race Merge/Core Details identities as immutable version deltas rather than copying the multi-million-row active set on every import; resolve the active set through non-rolled-back deltas.
+- Treat Race Merge and Core Details as cumulative sources whose omitted accepted records carry forward; fingerprint disagreement is quarantined without overwriting the accepted fact.
+- Treat Current Vault and Current Arena as replacement historical snapshots whose earlier versions remain rollback-capable.
+- Reject a data-current-through regression without changing the active version, and keep import completion, data current-through and aggregate completion separate.
+- Record one exact contribution per accepted natural key and batch. An accepted batch replay returns its existing version, while the owner/source/checksum constraint prevents duplicate file registration.
+- Queue aggregate refresh after activation without claiming completion.
+- Rollback requires a reason, preserves staged and contribution provenance, marks the active batch/version rolled back and restores the latest prior non-rolled-back version.
+- Protect all acceptance tables with forced owner RLS and revoke table and function access from PUBLIC. Application-role grants and persistent Preview migration remain gated.
+- Verify migration apply, exact replay, cumulative conflict handling, stale quarantine, snapshot replacement, atomic failure rollback, owner isolation, privilege revocation, rollback and full reverse migration in ephemeral PostgreSQL 16 CI.
