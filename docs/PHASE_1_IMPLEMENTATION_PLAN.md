@@ -52,11 +52,13 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - race fee/payout quarantine until source semantics are validated;
    - lineage graph and family-restriction validation — complete.
 
-6. **Private import UI and recovery**
-   - owner-only upload and batch status;
-   - schema/error summaries without raw-row exposure;
-   - freshness and historical-snapshot wording;
-   - rollback and reconciliation queues.
+6. **Private import UI and recovery — in progress**
+   - owner-only historical status workspace — provider-independent contract complete;
+   - private upload — gated until approved Preview services are configured;
+   - count/code-only schema and error summaries — complete;
+   - freshness and historical-snapshot wording — complete;
+   - rollback and reconciliation queue projection — complete;
+   - authenticated mutations and persistent Preview verification — pending.
 
 7. **Phase 1 verification and Gate B evidence**
    - repeated-import, rollback, anomaly, freshness, observation and economic-key tests;
