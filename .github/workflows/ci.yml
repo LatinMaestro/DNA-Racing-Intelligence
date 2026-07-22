@@ -70,6 +70,30 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.up.sql
       - name: Run star-profile materialization smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.smoke.sql
+      - name: Apply star-observation reconciliation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.up.sql
+      - name: Run star-observation reconciliation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.smoke.sql
+      - name: Reverse star-observation reconciliation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0005_star_observation_reconciliation.down.sql
+      - name: Verify star-observation reconciliation removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'reconcile_manual_star_observations'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'manual_star_observation_reconcile_queue',
+          'race_event_reconcile_candidate'
+          )
+          ) THEN RAISE EXCEPTION 'star-observation reconciliation objects still exist';
+          END IF; END \$\$;"
       - name: Reverse star-profile materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.down.sql
       - name: Verify star-profile materialization removal
