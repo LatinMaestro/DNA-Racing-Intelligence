@@ -152,3 +152,17 @@
 - Gate F remains client-only. Production activation, a custom domain, public routes, full private-data upload to Production and recurring paid infrastructure still require explicit owner approval.
 - The agent must continue through the phased build plan, prefer narrow testable pull requests and verify merged `main` before starting the next dependent slice.
 - Client action is required only for account access, secrets, private-data upload, paid services, irreversible Production changes, material architecture or privacy departures, confirmed-rule changes or ambiguity that would materially alter a recommendation or financial total.
+
+
+## 2026-07-22 — Phase 1 data-foundation schema
+
+- Use reversible direct PostgreSQL migrations for the initial data foundation without applying them to a persistent hosted database.
+- Keep all private relational records owner-scoped and protected by fail-closed row-level security; application-role grants and Preview credentials remain a later account-action boundary.
+- Keep batch coverage, active-dataset current-through time, import completion and aggregate refresh as separate timestamps.
+- Use stable source IDs and batch provenance; ambiguous name matches remain reviewable.
+- Derive Gold eligibility from `gate_count > 3` while retaining anomalous ineligible source Gold assignments and their warning codes.
+- Keep manual post-lock star observations outside authoritative race facts until explicit reconciliation.
+- Store economic amounts as exact signed atomic values against one asset/currency, keep BGC as a distinct asset kind and structurally exclude deposits, withdrawals, transfers, opening balances and reconciliation movements from operating P/L.
+- Store Current Vault and Arena state as imported snapshots. Arena listings cannot create breeding income.
+- Require hosted PostgreSQL CI to apply, smoke-test, reverse and verify removal of every migration before merge.
+- The schema is repository-only. Neon, private uploads and Production remain unchanged and gated.
