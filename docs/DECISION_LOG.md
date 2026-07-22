@@ -268,7 +268,6 @@
 - Keep new tables under forced owner RLS and revoke PUBLIC table, view and function access. Verify activation, quarantine, replay, rollback, lineage, inactive-core protection and full reversal in synthetic PostgreSQL 16 CI.
 - Neon, private Core Details uploads and Production remain unchanged and gated.
 
-
 ## 2026-07-23 — Phase 1 Current Vault and Arena snapshot materialization
 
 - Materialize Current Vault and Current Arena as immutable historical snapshots tied to accepted dataset versions; never describe them as live state.
