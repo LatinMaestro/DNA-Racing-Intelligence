@@ -66,6 +66,32 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.up.sql
       - name: Run normalized Race Merge materialization smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.smoke.sql
+      - name: Apply star-profile materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.up.sql
+      - name: Run star-profile materialization smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.smoke.sql
+      - name: Reverse star-profile materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0004_star_profile_materialization.down.sql
+      - name: Verify star-profile materialization removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname = 'core_star_profile'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'refresh_star_profiles'
+          ) OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND table_name = 'event_star_validation'
+          AND column_name = 'gold_source_core_ids'
+          ) THEN RAISE EXCEPTION 'star-profile materialization objects still exist';
+          END IF; END \$\$;"
       - name: Reverse normalized Race Merge materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0003_race_materialization.down.sql
       - name: Verify normalized Race Merge materialization removal

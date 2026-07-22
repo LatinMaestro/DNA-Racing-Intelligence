@@ -222,3 +222,14 @@
 - Preserve exact elapsed-time and economic source values for audit, but leave normalized milliseconds, speed and race-derived economic transactions unavailable until their source semantics are validated.
 - Rollback deselects the rolled-back batch's provenance and deactivates only materialized facts without another selected, non-rolled-back contribution.
 - Verify migration apply, normalized-fact completeness, conflict quarantine, replay, provenance, rollback, owner isolation, privilege revocation and full reversal using synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 PostgreSQL star validation and profiles
+
+- Refresh event validation and core star profiles only from active normalized historical Race Merge facts; manual post-lock observations remain excluded until authoritative reconciliation.
+- Preserve zero, one and multiple Gold/Blue assignments separately. Store every ambiguous assigned source core ID in deterministic order and leave the unique assigned core null rather than selecting a false winner.
+- Keep Gold and Blue completeness independent, derive Gold eligibility only from `gate_count > 3`, and retain ineligible source Gold as excluded anomalous evidence.
+- Group profiles by authoritative source core ID, mode and exact distance with explicit coverage, received numerators and assignment-opportunity denominators. Complete zero-assignment events remain separate from negative opportunities.
+- Atomically replace the owner's rebuildable derived cache and mark aggregate completion only after validation and profile writes succeed. Replay is deterministic and serialized per owner.
+- Keep `data_current_through` as the latest included historical event timestamp and separate it from refresh completion time.
+- Protect profiles with forced owner RLS and revoke `PUBLIC` table/function access. The reversible migration clears only rebuildable derived validation/profile state, never normalized race facts or source provenance.
+- Verify multi-assignment ambiguity, three/four-gate eligibility, signal-specific completeness, exact denominator counts, replay, freshness, owner isolation, privilege revocation and full reversal in synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
