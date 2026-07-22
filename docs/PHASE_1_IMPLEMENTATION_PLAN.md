@@ -17,7 +17,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - stable race-entry and race-economic keys;
    - authoritative versus candidate-only manual star-observation matching.
 
-2. **PostgreSQL schema and reversible migration — in review**
+2. **PostgreSQL schema and reversible migration — complete**
    - owner, asset, core, lineage and source-provenance records;
    - import manifests, warnings and accepted dataset versions;
    - nullable Gold/Blue facts, explicit Gold eligibility and star-data status;
