@@ -233,3 +233,14 @@
 - Keep `data_current_through` as the latest included historical event timestamp and separate it from refresh completion time.
 - Protect profiles with forced owner RLS and revoke `PUBLIC` table/function access. The reversible migration clears only rebuildable derived validation/profile state, never normalized race facts or source provenance.
 - Verify multi-assignment ambiguity, three/four-gate eligibility, signal-specific completeness, exact denominator counts, replay, freshness, owner isolation, privilege revocation and full reversal in synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 manual star-observation reconciliation
+
+- Reconcile optional post-lock observations only against active imported Race Merge history; never use them as pre-entry inputs, completed results or independent aggregate evidence.
+- Permit automatic resolution only when the observation carries an authoritative game event ID and event metadata, entered-core set, Gold eligibility and imported Gold/Blue assignments validate.
+- Treat composite date/time, mode, distance, gate count and entered-core matches as candidate-only. Even one exact candidate remains review-required and cannot be promoted automatically.
+- Keep exact matches, imported/manual mismatches, malformed observations, incomplete or ambiguous imported star data, and not-yet-imported events as distinct auditable outcomes.
+- Preserve Race Merge as the authoritative historical source. Reconciliation never mutates imported race entries, event validation or core star profiles.
+- Use deterministic reconciliation identities and replace only unreviewed automatic suggestions on replay; reviewed rows are not overwritten and manual observations cannot duplicate star counts.
+- Keep Gold unavailable at three gates or fewer and surface an ineligible manual Gold observation as a mismatch.
+- Verify authoritative matching, candidate review, mismatch, not-yet-imported state, ineligible Gold, replay, aggregate non-mutation, privilege revocation and full reversal in synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
