@@ -340,30 +340,19 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
-    FROM dna.dataset_version_record version_record
-    JOIN dna.dataset_version version_row
-      ON version_row.owner_id = version_record.owner_id
-      AND version_row.id = version_record.dataset_version_id
+    FROM dna.active_dataset_record
     WHERE
-      version_record.source_type = 'race_merge'
-      AND version_row.version_number <= 2
-      AND version_row.rolled_back_at IS NULL
-      AND version_record.natural_key = 'synthetic-race-entry-1'
-      AND version_record.fingerprint_sha256 = repeat('1', 64)
+      source_type = 'race_merge'
+      AND natural_key = 'synthetic-race-entry-1'
+      AND fingerprint_sha256 = repeat('1', 64)
   ) THEN
     RAISE EXCEPTION 'Conflict overwrote an accepted cumulative fact';
   END IF;
 
   IF (
     SELECT count(*)
-    FROM dna.dataset_version_record version_record
-    JOIN dna.dataset_version version_row
-      ON version_row.owner_id = version_record.owner_id
-      AND version_row.id = version_record.dataset_version_id
-    WHERE
-      version_record.source_type = 'race_merge'
-      AND version_row.version_number <= 2
-      AND version_row.rolled_back_at IS NULL
+    FROM dna.active_dataset_record
+    WHERE source_type = 'race_merge'
   ) <> 3 THEN
     RAISE EXCEPTION 'Cumulative deltas do not resolve to the full active set';
   END IF;
@@ -410,9 +399,9 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
-    FROM dna.dataset_version_record
+    FROM dna.active_dataset_record
     WHERE
-      dataset_version_id = '10000000-0000-4000-8000-000000000212'
+      source_type = 'current_arena'
       AND natural_key = 'synthetic-listing-1'
       AND fingerprint_sha256 = repeat('8', 64)
   ) THEN
@@ -513,14 +502,8 @@ BEGIN
 
   IF (
     SELECT count(*)
-    FROM dna.dataset_version_record version_record
-    JOIN dna.dataset_version version_row
-      ON version_row.owner_id = version_record.owner_id
-      AND version_row.id = version_record.dataset_version_id
-    WHERE
-      version_record.source_type = 'race_merge'
-      AND version_row.rolled_back_at IS NULL
-      AND version_row.version_number <= 1
+    FROM dna.active_dataset_record
+    WHERE source_type = 'race_merge'
   ) <> 2 THEN
     RAISE EXCEPTION 'Rollback did not restore the prior cumulative active set';
   END IF;
