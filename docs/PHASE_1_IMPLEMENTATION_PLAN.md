@@ -30,11 +30,12 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - quarantine of malformed or ambiguous input;
    - count-only/redacted logs.
 
-4. **Synthetic source adapters and transactional acceptance — in progress (adapters complete)**
+4. **Synthetic source adapters and transactional acceptance — in progress (contract complete)**
    - Race Merge, Core Details, Current Vault and Current Arena adapters;
-   - cumulative deduplication and conflict warnings;
-   - dataset-version activation and rollback;
-   - latest accepted event, import completion and aggregate refresh timestamps.
+   - cumulative deduplication, conflict quarantine and redacted warnings;
+   - immutable dataset-version activation and reversible rollback contract;
+   - separate data current-through, import completion and aggregate refresh timestamps;
+   - PostgreSQL transaction executor, locking and failure rollback still pending.
 
 5. **Derived integrity pipelines**
    - event-level Gold/Blue assignment validation;
