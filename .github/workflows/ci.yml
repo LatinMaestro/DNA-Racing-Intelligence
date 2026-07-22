@@ -82,6 +82,38 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.up.sql
       - name: Run Core Details materialization smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.smoke.sql
+      - name: Apply current-snapshot materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.up.sql
+      - name: Run current-snapshot materialization smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.smoke.sql
+      - name: Reverse current-snapshot materialization migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.down.sql
+      - name: Verify current-snapshot materialization removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'accept_staged_vault_dataset',
+          'accept_staged_arena_dataset',
+          'rollback_active_dataset_pre_snapshot'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'normalized_vault_staged_fact',
+          'normalized_arena_staged_fact',
+          'vault_snapshot_entry',
+          'arena_snapshot_entry',
+          'current_vault_snapshot_entry',
+          'current_arena_snapshot_entry'
+          )
+          ) THEN RAISE EXCEPTION 'current-snapshot materialization objects still exist';
+          END IF; END \$\$;"
       - name: Reverse Core Details materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0007_core_materialization.down.sql
       - name: Verify Core Details materialization removal
