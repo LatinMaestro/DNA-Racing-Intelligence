@@ -9,6 +9,8 @@ DROP FUNCTION IF EXISTS dna.accept_staged_dataset(
   timestamptz
 );
 
+DROP VIEW IF EXISTS dna.active_dataset_record;
+
 DROP TABLE IF EXISTS dna.dataset_record_contribution;
 DROP TABLE IF EXISTS dna.dataset_version_record;
 DROP TABLE IF EXISTS dna.dataset_staged_record;
