@@ -39,6 +39,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - PostgreSQL 16 exact replay, conflict, stale, snapshot, RLS and rollback verification;
    - normalized Race Merge staging and atomic event/entry materialization;
    - normalized Core Details and parent-edge materialization with cumulative rollback;
+   - Current Vault and Current Arena historical-snapshot materialization with exact rollback;
    - source-semantic preservation without guessed elapsed-time or economic conversion;
    - materialized fact deactivation and restoration during cumulative rollback.
 

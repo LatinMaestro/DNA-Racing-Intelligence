@@ -267,3 +267,16 @@
 - Rollback deselects contributed core/edge provenance, restores the prior cumulative version and source pointers, retains historical evidence and refreshes only the selected lineage graph.
 - Keep new tables under forced owner RLS and revoke PUBLIC table, view and function access. Verify activation, quarantine, replay, rollback, lineage, inactive-core protection and full reversal in synthetic PostgreSQL 16 CI.
 - Neon, private Core Details uploads and Production remain unchanged and gated.
+
+## 2026-07-23 — Phase 1 Current Vault and Arena snapshot materialization
+
+- Materialize Current Vault and Current Arena as immutable historical snapshots tied to accepted dataset versions; never describe them as live state.
+- Keep data current-through, import completion and activation timestamps separate, and retain stale or unknown freshness rather than inventing recency.
+- Because Current Vault has no authoritative core ID, retain each row as snapshot-scoped evidence and create an owner-only identity review. A unique composite candidate may be proposed but is never auto-confirmed; ambiguous and unmatched rows remain unresolved.
+- Preserve Maiden true, false, missing and invalid as distinct eligible, not-eligible, unknown and invalid snapshot states.
+- Link Arena entries only by an exact selected Core Details source ID. Missing source IDs remain unmatched and reviewable without name inference.
+- Store the exact Arena USD price source text without rounding, unit conversion or economic inference.
+- Enforce that Arena listings create no income, expense or operating P/L transaction. Authoritative or manual transaction evidence remains required.
+- Replace only the current snapshot pointer, preserve all historical snapshots, make replay idempotent and restore the prior snapshot on reasoned rollback.
+- Keep typed staging and snapshot entries under forced owner RLS, revoke PUBLIC access and verify apply, replacement, identity review, exact prices, no false economics, rollback and full reversal in synthetic PostgreSQL 16 CI.
+- Neon, private uploads and Production remain unchanged and gated.
