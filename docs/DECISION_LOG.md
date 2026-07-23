@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery evidence agreement
+
+- Classify time/star agreement only for one authoritative core, mode and exact
+  distance while preserving direct time as primary evidence.
+- Keep Gold eligibility, Gold assignment opportunities and Blue assignment
+  opportunities separate and auditable.
+- Treat repeated weak-field eligible no-star evidence as supporting negative
+  evidence only; it cannot authorise an automatic stop.
+- Keep time/star mismatch explicit, preserve data cutoff separately from import
+  completion, and fail closed on incomplete, stale or unknown-cutoff evidence.
+- All outputs remain experimental, non-actionable and incapable of confirming
+  core quality before Gate C.
