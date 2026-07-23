@@ -65,3 +65,17 @@ In-memory provenance retains raw headers and values for private audit. The routi
 ## Deferred acceptance boundary
 
 The next focused slice will provide cumulative deduplication, conflict handling, transactional dataset-version activation, current-through/import/aggregate timestamps and rollback. Race economic derivation remains blocked until fee and payout semantics are validated as required by Gate B.
+
+## Owner-confirmed race economics amendment
+
+Race Merge economics are no longer globally unvalidated. The adapter now:
+
+- maps `rpayout` to a payout-mechanism label rather than an amount;
+- maps `r_tags` to preserved race-restriction text;
+- validates `rfee` and `prize` as exact non-negative per-entry decimals;
+- normalizes `toke_curr` case-insensitively to ETH or DEZ;
+- distinguishes ready, missing, invalid and unsupported-asset economic states;
+- keeps a structurally valid race row available when only its economics require review; and
+- creates no ledger transaction at the adapter boundary.
+
+Exact signed transactions and daily USD valuation are derived only after accepted owned-core identity and source validation.
