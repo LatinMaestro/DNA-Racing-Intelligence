@@ -370,3 +370,19 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 qualification-metric evidence contract
+
+- Translate historical observations into the bracket’s configured fastest,
+  median, average, wins, Top-X, best-finish or points metric without substituting
+  a generic quality or star score.
+- Keep mode, exact-distance, bracket and leaderboard-group evidence separate.
+  Rank only within the same configured leaderboard group.
+- Calculate median and average time as exact rational milliseconds and points as
+  exact base-10 decimals.
+- Preserve incomplete samples, missing time/finish evidence, data-current-through,
+  last-imported and freshness warnings. Reject current-event/future, cross-mode,
+  unconfigured-distance, duplicate-event and impossible-position evidence.
+- Keep the rank experimental and historical. The current qualifying field,
+  Auto-Entry allocation and actionable recommendations remain unavailable until
+  Gate C evidence passes.
