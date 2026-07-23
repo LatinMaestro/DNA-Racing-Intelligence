@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding pair ranking
+
+- Always expose highest exceptional-offspring upside, best vault-gap
+  improvement and best balanced pairing as separate rankings.
+- The elite-upside order uses exceptional and broader quality probabilities
+  only; existing vault saturation cannot demote a pairing in that view.
+- The vault-gap view remains independent, while the balanced view uses explicit
+  integer basis-point weights and auditable exact arithmetic.
+- Hold stale, unavailable, rule-unresolved, uncalibrated or unsupported
+  star-enhanced evidence rather than forcing a rank.
+- Ranking remains experimental and cannot authorise breeding or pass Gate E.
