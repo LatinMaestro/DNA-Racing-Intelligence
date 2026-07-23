@@ -370,3 +370,74 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery evidence agreement
+
+- Classify time/star agreement only for one authoritative core, mode and exact
+  distance while preserving direct time as primary evidence.
+- Keep Gold eligibility, Gold assignment opportunities and Blue assignment
+  opportunities separate and auditable.
+- Treat repeated weak-field eligible no-star evidence as supporting negative
+  evidence only; it cannot authorise an automatic stop.
+- Keep time/star mismatch explicit, preserve data cutoff separately from import
+  completion, and fail closed on incomplete, stale or unknown-cutoff evidence.
+- All outputs remain experimental, non-actionable and incapable of confirming
+  core quality before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery evidence matrix
+
+- Key every Discovery cell by authoritative core ID, mode and exact distance; never merge Bike, Car and Horse or different exact distances.
+- Preserve direct elapsed-time evidence, the 10-race minimum, lineage priority, star denominators, ME/tournament context and freshness as separate auditable inputs.
+- Keep zero direct races as unavailable metrics rather than fabricated zero times, and keep fewer than 10 races hypothesis-only.
+- Reject lineage evidence after the cell cutoff and repeated lineage support from the same relationship/source identity.
+- Preserve Gold eligibility and Gold/Blue assignment-opportunity denominators; inconsistent counts fail closed.
+- Keep no-star evidence non-dispositive: it cannot create an automatic stop.
+- Expose no composite quality score or actionable recommendation until Gate C holdout, baseline and calibration evidence passes.
+
+## 2026-07-23 — Phase 3 chronological Discovery holdout
+
+- Compare a time-plus-star candidate with a time-only baseline using pre-event
+  probabilities and competitive-time outcomes.
+- Require strictly ordered training and holdout windows and a feature cutoff
+  strictly earlier than every evaluated event.
+- Use authoritative event and core IDs to prevent duplicate holdout evidence.
+- Report Brier score, incremental lift, calibration, sample size and star-feature
+  coverage overall and by exact mode/distance cell.
+- Keep synthetic evaluation non-dispositive: it cannot self-pass Gate C or enable
+  actionable Discovery recommendations.
+
+## 2026-07-23 — Phase 3 unexpected outlier review
+
+- Identify unexpected outlier candidates only from exact-distance time evidence that clears both a versioned elite threshold and a configured gap above prior expectation.
+- Keep single and repeated exceptional observations distinct and never confirm elite quality from a review candidate.
+- Use strong-field stars as supporting context only; stars cannot create an outlier without elite time evidence.
+- Treat missing priors, incomplete observations, stale data and unknown cutoffs explicitly and fail closed where comparison is not auditable.
+- Keep all outputs experimental and non-actionable until Gate C passes.
+
+## 2026-07-23 — Phase 3 Discovery path review
+
+- Keep elapsed-time evidence primary in early continue/stop review; thresholds are explicit versioned inputs.
+- Permit early strong-field star evidence to support continued review below the minimum sample, but never let stars override materially weak time.
+- Require the minimum direct sample plus weak time evidence before producing even a non-actionable stop candidate.
+- Treat no-star evidence as non-dispositive, hold time/star mismatches for review, and fail closed on stale or unknown-cutoff evidence.
+- Keep all outputs experimental and non-actionable until Gate C passes.
+
+## 2026-07-23 — Phase 3 Discovery probe planning
+
+- Treat targeted probes as an experimental evidence-review queue until Gate C; do not issue an entry, spending or stop instruction.
+- Keep Bike, Car and Horse separate by exact distance and preserve the 10-race minimum as a coverage boundary rather than proof.
+- Use resolved lineage, tournament relevance and Maiden status only to prioritise review of evidence gaps; direct time evidence remains primary.
+- Defer stale, unknown-cutoff and unresolved-Maiden candidates, and warn before any action could commit Maiden eligibility.
+
+## 2026-07-23 — Phase 3 tournament and Maiden Discovery priority
+
+- Require credible Bike, Car and Horse evidence before identifying a provisional
+  strongest mode for an ME core.
+- Require the strongest mode to clear a versioned evidence gap; otherwise request
+  more cross-mode Discovery.
+- Label a configured Maiden in a weaker mode `preserve ME`; never commit ME from
+  the first available Maiden.
+- Treat tournament relevance as review priority only and retain the configured
+  leaderboard objective.
+- Keep every output experimental and non-actionable until Gate C, with final
+  Maiden entry separately disabled until Gate D.
