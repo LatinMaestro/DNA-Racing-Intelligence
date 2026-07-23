@@ -23,6 +23,27 @@ describe("Phase 1 source schema staging", () => {
     });
   });
 
+  it("maps payout mechanism and race tags without treating them as amounts", () => {
+    const staged = stageSourceHeader({
+      headerBytes: utf8(
+        "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags\\n",
+      ),
+    });
+
+    expect(staged.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rawHeader: "rpayout",
+          canonicalColumn: "payout_mechanism_source_value",
+        }),
+        expect.objectContaining({
+          rawHeader: "r_tags",
+          canonicalColumn: "race_tags_source_value",
+        }),
+      ]),
+    );
+  });
+
   it("treats legacy bikeid as a cross-mode Core Details alias", () => {
     const staged = stageSourceHeader({
       headerBytes: utf8(
