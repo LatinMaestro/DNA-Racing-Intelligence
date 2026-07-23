@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 9 Open Race holdout evaluation
+
+- Evaluate only frozen pre-entry decisions whose feature and historical-data
+  cutoffs do not follow the decision, and whose decision strictly precedes lock
+  and outcome evidence.
+- Require current-race stars to remain unavailable at selection time.
+- Compare the model with a separately versioned simple baseline using
+  competitive outcomes, best-eligible selection and elapsed-time regret.
+- Exclude incomplete outcome evidence, disclose stale inputs and keep mode and
+  exact distance separate.
+- Treat synthetic results as non-dispositive evidence that cannot self-accept
+  Gate C or enable actionable Open Race recommendations.
