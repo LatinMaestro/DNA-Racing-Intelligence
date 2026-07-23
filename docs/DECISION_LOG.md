@@ -370,3 +370,19 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 family tree projection
+
+- Project one authoritative root core into deterministic parent, grandparent,
+  ancestor, child, grandchild, descendant, full-sibling and half-sibling
+  relationships.
+- Use source core IDs only for identity. Display names remain optional labels and
+  never resolve missing lineage.
+- Retain unresolved parents as visible placeholders and make incomplete,
+  duplicated, self-referential and cyclic lineage review-required.
+- Do not allow malformed lineage unrelated to the selected root to contaminate
+  its projection.
+- Keep family-tree display separate from the confirmed breeding-eligibility
+  decision; do not add family restrictions or inherited-quality claims.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
