@@ -370,3 +370,96 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A separate BGC ledger
+
+- Report BGC as a separate game-credit ledger with manual opening balances, actual burn credits, recorded arena-fee spend, signed adjustments and balanced internal transfers.
+- Require two distinct exact postings that net to zero for an internal transfer; transfers affect account balances but never vault earned, spent or net movement.
+- Derive a BGC balance only when period coverage is complete, every active account has explicit opening evidence, reconciliation is resolved and the data cutoff is known.
+- Keep recorded movement visible but the balance unavailable when coverage is insufficient; never assume an unrecorded opening balance is zero.
+- Expose the owner-confirmed USD 1 = BGC 1 reference only as a separately labelled equivalent of a supportable BGC balance.
+- Exclude BGC from ETH/DEZ operating P/L and total recorded crypto cashflow.
+
+## 2026-07-23 — Phase 2A core economic profiles
+
+- Include only exact transaction amounts explicitly allocated to the selected authoritative core ID; never repeat a shared transaction's full amount across related cores.
+- Keep related vault-level activity visible as unallocated evidence without adding it to per-core totals.
+- Separate open racing, tournament, breeding, acquisition, sale, selling-fee, burn-credit and other lifecycle components by original asset.
+- Keep BGC separate and limit it to actual allocated breeding spend and manually recorded burn credits in the core profile.
+- Calculate realised core-trading result only when cost-basis coverage is explicitly known in the same asset; otherwise show proceeds and a missing-or-unconvertible cost-basis warning.
+- Exclude unsold-core estimates, combined unlike-asset totals and complete-lifetime-profit claims.
+
+## 2026-07-23 — Phase 2A economic ledger filters
+
+- Filter immutable ledger evidence by inclusive period, original asset, category/subcategory, linked core, mode, exact metre distance, approved inclusive distance band, tournament and bracket.
+- Use OR within one filter dimension and AND between dimensions; retain deterministic timestamp/transaction ordering.
+- Preserve the approved overlapping distance-band boundaries: 1400 may match sprint or middle and 1800 may match middle or marathon.
+- Keep genuine vault-level payouts unallocated. They remain visible without a core filter and are excluded, not reassigned, when a core filter is applied.
+- Omit excluded/duplicate evidence by default and include it only through an explicit filter while retaining its status and count.
+- Do not use the obsolete race-class field, combine assets, infer attribution or change any reconciliation state.
+
+
+## 2026-07-23 — Phase 2A asset-separated reporting completeness
+
+- Aggregate included ledger records with exact decimal arithmetic by original asset; never expose an unsupported combined cross-asset total.
+- Keep BGC in a separate game-credit result and restrict the BGC-movement scope to BGC records. Do not apply its reference USD equivalent silently.
+- Exclude non-operating deposits, withdrawals, transfers, opening balances and reconciliation movements from activity cashflow.
+- Classify a report as partial for incomplete period coverage, unknown cutoffs or manual payouts, unclassified activity, unresolved reconciliation, scope-relevant missing cost basis/opening balance or missing conversion rates.
+- Use estimated only when evidence is otherwise complete and an explicitly requested converted view uses estimated rates.
+- Retain data-current-through, last-imported, excluded-record count and warnings; never authorize a complete lifetime-profit claim from this contract.
+
+
+## 2026-07-23 — Phase 2A ledger duplicate and reconciliation controls
+
+- Compare duplicate evidence only within the same asset and exact signed amount; unlike assets and opposite directions never become candidates.
+- Treat stable-key, external-reference and same-UTC-date amount/context matches as review evidence with explicit priority. No candidate may auto-exclude or auto-merge a transaction.
+- Preserve accepted ledger facts. Exclusions and confirmed-duplicate links are recoverable aggregate overlays with reasons and ordered audit actions.
+- Implement a correction as an exact opposite signed reversal record while retaining the original and reversal in aggregation so the pair nets to zero.
+- Require a distinct active survivor for confirmed duplicates, unique transaction/action/reversal identities and valid action ordering; unsupported runtime values fail closed.
+- Keep this repository contract independent of hosted economic records, campaign classification, private provider state and Production.
+
+
+## 2026-07-23 — Phase 2A manual ledger validation
+
+- Accept owner-entered amounts only as positive plain base-10 decimal strings and
+  derive exact signed postings without binary floating point.
+- Allowlist manual category/subcategory combinations. Structurally exclude
+  deposits, withdrawals, internal transfers, opening balances and adjustments
+  from operating P/L.
+- Materialize an internal transfer as equal debit and credit postings in the
+  same asset between distinct labelled accounts.
+- Keep every asset separate. Limit BGC to its distinct game-credit ledger for
+  actual burn credits, arena fee spending, opening balance and adjustments; do
+  not apply a silent cash/crypto conversion.
+- Require tournament provenance for manual game-owner payouts while permitting
+  genuine vault-level payouts to remain unallocated with a partial warning.
+- Record core-sale proceeds with a missing-cost-basis warning rather than
+  fabricating realised profit.
+
+## 2026-07-23 — Phase 2A manual tournament payout allocation
+
+- Preserve a manual game-owner prize as operating income in its original crypto or fiat asset and always require duplicate/reconciliation review.
+- Permit genuine tournament- or vault-level prizes to remain unallocated rather than inventing per-core attribution.
+- Support single-core, equal, exact-amount, exact-percentage and documented-points allocation methods.
+- Require explicit allocations to reconcile exactly to the original payout at the configured asset precision using integer atoms and deterministic largest-remainder apportionment.
+- Use core ID as the deterministic tie-break and reject allocations that cannot give every selected core a positive amount at the asset precision.
+- Keep BGC outside manual tournament payouts and in its separate game-credit ledger.
+
+## 2026-07-23 — Phase 2A tournament campaign economics
+
+- Aggregate only included operating records linked to the selected tournament and inclusive campaign period.
+- Keep qualification fees, qualification payouts, automated round/final payouts, manual prizes and campaign expenses visible as separate components.
+- Preserve exact original-asset values, keep BGC separate and never provide a combined unlike-asset total.
+- Retain vault-level tournament prizes as unallocated campaign evidence instead of inventing per-core attribution.
+- Expose inferred or unclassified activity, unresolved reconciliation, source-coverage gaps, manual-payout uncertainty and an unknown data cutoff.
+- `complete_recorded_period` applies only to the stated recorded coverage and never permits a complete-lifetime-profit claim.
+
+## 2026-07-23 — Phase 2A Vault Performance summary
+
+- Aggregate only included immutable ledger evidence inside the selected period.
+- Keep ETH, DEZ, fiat assets and BGC separate; no combined-asset total is available and BGC never enters cash/crypto profit.
+- Show open racing, qualification, later tournament stages, manual prizes, breeding, core trading and other lifecycle activity as distinct exact totals.
+- Exclude deposits, withdrawals, internal transfers, opening balances and reconciliation adjustments from operating cashflow.
+- Withhold realised core-trading results whenever a sale lacks known same-asset cost-basis evidence.
+- Keep reports partial for incomplete coverage, unknown manual payouts, unresolved classifications or reconciliation, missing cutoffs or stale imports.
+- Never permit the recorded-period summary to be described as lifetime profit.
