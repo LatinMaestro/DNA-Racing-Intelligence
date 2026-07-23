@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding star features
+
+- Preserve direct-parent and lineage Gold, Blue and strong-field star evidence as
+  exact numerator/denominator features by mode and exact distance.
+- Exclude stale, unknown, incomplete, wrong-cell and post-breeding feature
+  evidence from chronological research.
+- Compare lineage profiles only with population benchmarks whose cutoff predates
+  breeding, and require a configured minimum opportunity denominator before
+  recording an outlier count.
+- Keep zero opportunities distinct from a zero rate and retain `Data current
+through` separately from `Last imported`.
+- Do not describe star propensity as inherited and do not predict or recommend
+  offspring quality before chronological Gate E evidence.
