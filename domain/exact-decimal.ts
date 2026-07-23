@@ -1,4 +1,4 @@
-const PLAIN_DECIMAL = /^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/;
+const PLAIN_DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
 
 type ParsedDecimal = Readonly<{
   negative: boolean;
