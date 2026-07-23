@@ -339,3 +339,11 @@
 - Decision: BGC remains excluded from race-derived economics and no current-price
   fallback, interpolation or page-time quote call is permitted.
 - Evidence: migration 0009 and its synthetic PostgreSQL smoke test.
+
+## 2026-07-23 — Race-economic ledger hardening amendment
+
+- Supersedes the initial migration 0009 implementation before any Preview provider migration is applied.
+- Create personal race P/L only for race entries whose core is confirmed in the current Vault identity review; other competitors remain performance evidence only.
+- Use the TypeScript stable race-economic natural key and an immutable batch-contribution layer so cumulative replay and dataset rollback cannot double count.
+- Permit auditable provider supersession and manual correction of a UTC-daily rate while retaining prior rates and valuations as non-current history.
+- Keep exact original-asset values authoritative and mark USD coverage partial whenever an active transaction lacks a current daily rate.
