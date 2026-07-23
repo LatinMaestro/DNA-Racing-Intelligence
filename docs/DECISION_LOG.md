@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding pair rules
+
+- Combine confirmed family restrictions with selected-parent availability,
+  supplied splice-capacity evidence and supplied breeding-cycle state.
+- Do not invent a global splice maximum. Preserve available, exhausted and
+  unknown states with the recorded remaining count.
+- Derive offspring class from the confirmed matrix, element from the
+  lower-ranked parent and F-number from the uncapped parent sum.
+- Fail closed on incomplete lineage, unknown parent state, stale evidence or
+  unresolved cycles.
+- Predict no offspring quality and make no inherited-star claim. Keep all
+  recommendations and execution disabled pending Gate E.
