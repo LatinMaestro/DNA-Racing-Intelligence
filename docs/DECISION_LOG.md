@@ -299,3 +299,17 @@
 - Keep the first private upload, provider account creation/access and secret configuration as explicit client actions after the semantic and storage choices are resolved.
 - Preserve completed repository evidence: owner RLS, revoked PUBLIC access, reversible migrations, idempotent source imports, star eligibility/anomaly rules, separate manual observations, exact asset accounting foundations, historical snapshot freshness and privacy-safe summaries.
 - Production, custom domains, public routes and recurring paid infrastructure remain separately blocked at Gate F.
+
+## 2026-07-23 — Race economics, USD valuation and free-tier storage
+
+- `rpayout` is the payout mechanism label, not a monetary amount.
+- `rfee` is the exact per-core race-entry fee and `prize` is the exact per-core gross payout. `toke_curr` identifies the common ETH or DEZ asset for both.
+- A positive fee becomes an entry-fee debit and a positive prize becomes a payout credit. Numeric zero is authoritative; blank, missing, malformed and negative values remain review-required.
+- `r_tags` contains race restrictions and must be preserved raw before versioned parsing.
+- DEZ runs on Polygon at `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`.
+- Preserve exact ETH/DEZ values and report race fees, payouts and net results in USD using one auditable rate for the race's UTC calendar day.
+- Cache historical rates during background imports. Missing dates remain explicit and make USD totals partial; never substitute today's price or silently interpolate.
+- BGC is separate, used for breeding and burning, and has an owner-confirmed USD 1 = BGC 1 reference conversion. Keep it out of ETH/DEZ operating P/L unless shown as a separate equivalent view.
+- The owner approves private Cloudflare R2/Parquet for detailed race history and Neon Free for application state, manifests, exact economics, daily-rate cache and compact aggregates.
+- Imports must stop before exceeding a published free allowance and must never enable a paid tier automatically.
+- Do not attach the GroveKind domain. Keep the DNA site on protected Vercel Preview and Production fail-closed.
