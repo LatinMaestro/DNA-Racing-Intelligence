@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 security and privacy audit
+
+- Require one explicit evidence state for every mandatory authentication, isolation, storage, logging, repository, indexing and dependency/configuration control.
+- Treat unknown evidence as review-required and failed evidence as blocking.
+- Require an evidence note for every verified or failed control and reject missing or duplicate controls.
+- Keep Production readiness, public exposure and secret collection structurally false in the audit output.
+- Block any request to mutate Production, expose routes, collect secrets or enable a paid service within this audit.
+- Keep Gate F client-only; synthetic tests validate deterministic audit behaviour only.
