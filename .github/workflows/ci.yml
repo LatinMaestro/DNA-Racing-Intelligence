@@ -86,6 +86,43 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.up.sql
       - name: Run current-snapshot materialization smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.smoke.sql
+      - name: Apply race-economic ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.up.sql
+      - name: Run race-economic ledger smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.smoke.sql
+      - name: Reverse race-economic ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.down.sql
+      - name: Verify race-economic ledger removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'accept_daily_usd_rate',
+          'materialize_race_economics',
+          'refresh_race_usd_valuations'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'asset_daily_usd_rate',
+          'economic_transaction_usd_valuation',
+          'race_economic_usd_coverage'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND table_name IN ('race_event', 'normalized_race_staged_fact')
+          AND column_name IN (
+          'payout_mechanism_source_value',
+          'race_tags_source_value'
+          )
+          ) THEN RAISE EXCEPTION 'race-economic ledger objects still exist';
+          END IF; END \$\$;"
       - name: Reverse current-snapshot materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.down.sql
       - name: Verify current-snapshot materialization removal
