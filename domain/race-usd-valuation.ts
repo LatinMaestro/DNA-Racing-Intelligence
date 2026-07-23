@@ -17,7 +17,7 @@ export const coinGeckoSeriesByAsset = {
 
 export const BGC_USD_REFERENCE_RATE = "1" as const;
 
-const UTC_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
+const UTC_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function utcRateDate(eventAt: string): string {
   const parsed = new Date(eventAt);
