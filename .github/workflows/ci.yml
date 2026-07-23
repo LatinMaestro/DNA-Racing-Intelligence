@@ -95,7 +95,7 @@ jobs:
       - name: Verify race-economic ledger removal
         run: >-
           psql --set ON_ERROR_STOP=1 --command
-          "DO \\$\\$ BEGIN IF EXISTS (
+          "DO \$\$ BEGIN IF EXISTS (
           SELECT 1 FROM pg_proc proc
           JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
           WHERE namespace.nspname = 'dna'
@@ -139,7 +139,7 @@ jobs:
           ))
           )
           ) THEN RAISE EXCEPTION 'race-economic ledger objects still exist';
-          END IF; END \\$\\$;"
+          END IF; END \$\$;"
       - name: Reverse current-snapshot materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.down.sql
       - name: Verify current-snapshot materialization removal
