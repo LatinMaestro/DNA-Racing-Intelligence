@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 Maiden entitlement lifecycle
+
+- Project Maiden inventory from the latest imported historical snapshot through
+  explicit, reasoned and sequential manual lifecycle events.
+- Keep eligible, planned, committed and consumed states distinct. Planning,
+  commitment, release and consumption must retain the same tournament identity.
+- Reject manual overlays that predate the imported snapshot cutoff.
+- Do not plan from unknown, invalid or ineligible snapshot evidence and do not
+  silently restore a consumed entitlement.
+- Keep data cutoff, import time and freshness separately auditable.
+- Treat the lifecycle as state evidence only; it cannot recommend or execute a
+  Maiden entry before Gate D.
