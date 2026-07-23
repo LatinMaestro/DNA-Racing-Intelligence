@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 Maiden cross-mode comparison
+
+- Compare a Maiden-eligible core across Bike, Car and Horse before identifying a
+  strongest projected mode.
+- Use a configured, versioned time-led projection score with explicit distance,
+  leaderboard objective, tournament-structure, evidence and freshness context.
+- Require credible evidence in all three modes and a material configured gap.
+- Keep historical Gold/Blue evidence and alternative-core scarcity explanatory;
+  neither changes the projection score or rank.
+- Label weaker available Maidens `preserve ME` and wait when the strongest mode
+  has no active tournament.
+- Keep all outputs non-actionable until Gates C and D pass.
