@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 economic reconciliation audit
+
+- Recalculate operating totals with exact decimal arithmetic and compare them by original asset and asset kind.
+- Keep BGC separate from cash and crypto, prohibit silent combined-asset totals and exclude non-operating movements from P/L.
+- Retain invalid duplicate links, unlinked manual payouts, unresolved records, missing sale cost basis and incomplete conversion coverage as explicit issues.
+- Reject a complete-status claim whenever material classification, reconciliation, payout, conversion or cost-basis coverage remains unresolved.
+- The audit is read-only, cannot mutate the ledger and cannot establish dependable totals or accept Gate C from synthetic evidence.
