@@ -151,9 +151,6 @@ function assertMaidenOverrides(
     requireId(override.coreId, "coreId");
     requireId(override.reason, "Maiden override reason");
     canonicalTimestamp(override.effectiveAt, "Maiden effectiveAt");
-    if (override.maidenState === "invalid") {
-      throw new Error("A manual Maiden override cannot be invalid");
-    }
   }
 }
 
