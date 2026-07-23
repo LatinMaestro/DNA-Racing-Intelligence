@@ -62,9 +62,7 @@ describe("Phase 1 exact race economics", () => {
       direction: "credit",
       signedAmount: "10.457516",
     });
-    expect(transactions[0]?.naturalKey).not.toBe(
-      transactions[1]?.naturalKey,
-    );
+    expect(transactions[0]?.naturalKey).not.toBe(transactions[1]?.naturalKey);
   });
 
   it("does not create zero-value transactions", () => {
@@ -121,9 +119,7 @@ describe("Phase 1 exact race economics", () => {
     expect(normalizeExactDecimal("10.5000")).toBe("10.5");
     expect(negateExactDecimal("0.000")).toBe("0");
     expect(multiplyExactDecimals("13.0719", "0.0008")).toBe("0.01045752");
-    expect(multiplyExactDecimals("-10.457516", "0.0008")).toBe(
-      "-0.0083660128",
-    );
+    expect(multiplyExactDecimals("-10.457516", "0.0008")).toBe("-0.0083660128");
   });
 });
 
@@ -165,11 +161,7 @@ describe("Phase 1 UTC daily USD valuation", () => {
     if (fee === undefined) throw new Error("Synthetic fee was not derived.");
 
     expect(
-      valueRaceEconomicTransactionUsd(
-        fee,
-        "2026-07-11T16:53:00.167Z",
-        rate,
-      ),
+      valueRaceEconomicTransactionUsd(fee, "2026-07-11T16:53:00.167Z", rate),
     ).toMatchObject({
       convertedUsdAmount: "-0.01045752",
       rateDate: "2026-07-11",
@@ -190,18 +182,10 @@ describe("Phase 1 UTC daily USD valuation", () => {
     if (fee === undefined) throw new Error("Synthetic fee was not derived.");
 
     expect(
-      valueRaceEconomicTransactionUsd(
-        fee,
-        "2026-07-11T01:00:00Z",
-        null,
-      ),
+      valueRaceEconomicTransactionUsd(fee, "2026-07-11T01:00:00Z", null),
     ).toBeNull();
     expect(() =>
-      valueRaceEconomicTransactionUsd(
-        fee,
-        "2026-07-12T01:00:00Z",
-        rate,
-      ),
+      valueRaceEconomicTransactionUsd(fee, "2026-07-12T01:00:00Z", rate),
     ).toThrow(RangeError);
   });
 
