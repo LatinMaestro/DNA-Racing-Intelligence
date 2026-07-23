@@ -82,9 +82,7 @@ export function CoreIntelligenceWorkspace({
 
         {profiles.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">
-              No validated performance profiles
-            </h3>
+            <h3 className="font-semibold">No validated performance profiles</h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
               No race metric is displayed until elapsed time has been validated,
               normalized to milliseconds and materialized from an accepted
@@ -105,7 +103,8 @@ export function CoreIntelligenceWorkspace({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold tracking-wider text-[var(--accent)] uppercase">
-                      {profile.mode} · {profile.distance.toLocaleString("en-AU")} m
+                      {profile.mode} ·{" "}
+                      {profile.distance.toLocaleString("en-AU")} m
                     </p>
                     <h3 className="mt-2 text-lg font-semibold">
                       Core {profile.coreId}
