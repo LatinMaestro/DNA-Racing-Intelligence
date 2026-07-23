@@ -363,3 +363,10 @@
 
 - The repository owner confirms that race distance values are measured in metres.
 - Phase 2 derived speed may therefore be labelled in metres per second after elapsed time is validated and normalized to milliseconds.
+
+## 2026-07-23 — Phase 2 Core Intelligence workspace
+
+- Replace the Core Intelligence scaffold with an accessible historical-snapshot workspace backed only by validated compact profiles.
+- Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
+- When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
+- Do not enable analytical recommendations or dependability wording before Gate C.
