@@ -69,3 +69,6 @@ The TypeScript domain layer provides:
 - an explicit null result when a historical rate is unavailable.
 
 Malformed economics remain review-required without discarding an otherwise valid historical race result.
+## PostgreSQL storage implementation
+
+Migration `0009_race_economics_storage` adds owner-scoped exact atomic transactions, immutable batch contributions, versioned daily USD rates, exact current valuations and explicit missing-rate coverage. Only confirmed current-Vault identities may enter personal P/L. Asset precision must be explicitly provisioned; unsupported precision, missing rates and natural-key conflicts fail closed. Race-dataset rollback deselects only unsupported contributions, and all new objects are reversible and covered by synthetic PostgreSQL 16 verification.
