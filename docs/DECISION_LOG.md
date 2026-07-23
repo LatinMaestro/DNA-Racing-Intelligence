@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 core-sale evidence
+
+- Recognise a core sale only from confirmed completed evidence and confirmed
+  active ownership at the sale time; strategic advice is never execution proof.
+- Preserve exact proceeds and selling fees by original asset.
+- Calculate realised result only with known same-asset cost basis and fees.
+- Keep proceeds visible while marking gain/loss unavailable when cost basis is
+  missing, and never infer an unsold or sold core's market value.
+- Produce review postings only; do not list, transfer, sell, mutate ownership or
+  post a hosted ledger entry.
