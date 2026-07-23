@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery evidence matrix
+
+- Key every Discovery cell by authoritative core ID, mode and exact distance; never merge Bike, Car and Horse or different exact distances.
+- Preserve direct elapsed-time evidence, the 10-race minimum, lineage priority, star denominators, ME/tournament context and freshness as separate auditable inputs.
+- Keep zero direct races as unavailable metrics rather than fabricated zero times, and keep fewer than 10 races hypothesis-only.
+- Reject lineage evidence after the cell cutoff and repeated lineage support from the same relationship/source identity.
+- Preserve Gold eligibility and Gold/Blue assignment-opportunity denominators; inconsistent counts fail closed.
+- Keep no-star evidence non-dispositive: it cannot create an automatic stop.
+- Expose no composite quality score or actionable recommendation until Gate C holdout, baseline and calibration evidence passes.
