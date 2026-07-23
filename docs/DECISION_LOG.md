@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+## 2026-07-23 — Phase 4 manual external-prize reconciliation
+
+- Compare manual external tournament prizes with imported race payouts using exact external references and conservative same-asset/date/amount/tournament candidates.
+- Surface incompatible facts sharing one reference as a conflict.
+- Never auto-exclude a suspected duplicate.
+- Require a reasoned confirmation before excluding the manual record; preserve the imported payout as immutable evidence.
+- Permit a reasoned separate-payment decision so legitimate race and wallet prizes both remain included.
+- Do not require artificial core allocation for a vault-level overall prize.
