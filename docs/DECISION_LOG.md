@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A ledger duplicate and reconciliation controls
+
+- Compare duplicate evidence only within the same asset and exact signed amount; unlike assets and opposite directions never become candidates.
+- Treat stable-key, external-reference and same-UTC-date amount/context matches as review evidence with explicit priority. No candidate may auto-exclude or auto-merge a transaction.
+- Preserve accepted ledger facts. Exclusions and confirmed-duplicate links are recoverable aggregate overlays with reasons and ordered audit actions.
+- Implement a correction as an exact opposite signed reversal record while retaining the original and reversal in aggregation so the pair nets to zero.
+- Require a distinct active survivor for confirmed duplicates, unique transaction/action/reversal identities and valid action ordering; unsupported runtime values fail closed.
+- Keep this repository contract independent of hosted economic records, campaign classification, private provider state and Production.
+
