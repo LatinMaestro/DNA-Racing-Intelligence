@@ -88,6 +88,24 @@ The profile exposes its historical `Data current through` value and a
 current/ageing/stale/unknown state. Future UI work must display import completion
 separately and must not describe a profile as live.
 
+## Core Intelligence workspace
+
+The private Core Intelligence route now has an accessible historical-snapshot
+presentation contract.
+
+- With no accepted normalized performance profiles, it renders an explicit
+  no-data state and no numerical substitute.
+- A profile card exposes authoritative core ID, mode, exact distance, race count,
+  best and median time, best speed in metres per second, sample status,
+  Gold/Blue received counts and assignment-opportunity denominators.
+- Data current-through, last-imported, freshness and experimental status remain
+  visible and distinct.
+- The workspace does not call imported evidence live, enable a recommendation or
+  claim that 10 races proves core quality.
+
+The route remains on the repository-safe empty state until private Preview
+storage and a validated elapsed-time normalization pipeline are connected.
+
 ## Validation
 
 Synthetic tests cover:
