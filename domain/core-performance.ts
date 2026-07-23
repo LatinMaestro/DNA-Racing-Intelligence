@@ -33,8 +33,8 @@ export type CorePerformanceProfile = {
     interquartileRangeMilliseconds: number;
   };
   speed: {
-    bestMetresPerSecond: number;
-    medianMetresPerSecond: number;
+    bestDistanceUnitsPerSecond: number;
+    medianDistanceUnitsPerSecond: number;
   };
   starProfile: CoreStarProfile | null;
   analyticalStatus: "experimental";
@@ -89,10 +89,10 @@ function roundMetric(value: number): number {
 }
 
 function elapsedToSpeed(
-  distanceMetres: number,
+  distanceUnits: number,
   elapsedMilliseconds: number,
 ): number {
-  return distanceMetres / (elapsedMilliseconds / 1_000);
+  return distanceUnits / (elapsedMilliseconds / 1_000);
 }
 
 function summarize(
@@ -148,10 +148,10 @@ function summarize(
       ),
     },
     speed: {
-      bestMetresPerSecond: roundMetric(
+      bestDistanceUnitsPerSecond: roundMetric(
         elapsedToSpeed(first.distance, bestElapsed),
       ),
-      medianMetresPerSecond: roundMetric(
+      medianDistanceUnitsPerSecond: roundMetric(
         elapsedToSpeed(first.distance, medianElapsed),
       ),
     },
