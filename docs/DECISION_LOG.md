@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race eligibility
+
+- Filter only confirmed active owned and manually available cores.
+- Apply confirmed class, element, F-number and Maiden restrictions without
+  guessing missing attributes or uncertain game rules.
+- Keep unresolved ownership, attributes, availability and ME evidence
+  review-required rather than eligible.
+- Hold otherwise compliant cores when the rule set is uncertain or Vault
+  freshness is stale or unknown.
+- Keep eligibility separate from performance ranking and current-race stars.
+  The contract cannot mutate ownership, ME or race state.
