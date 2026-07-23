@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 offspring outcome distribution
+
+- Represent weaker, comparable, stronger and exceptional offspring outcomes as
+  one exact 10,000-basis-point distribution with explicit uncertainty bounds.
+- Hold stale, unknown, under-sampled or unsupported calibration evidence rather
+  than emitting an unqualified probability.
+- Permit star-enhanced distributions only where incremental chronological lift
+  is supported; otherwise retain a time-only model or hold the result.
+- Keep imported cutoff, import completion, prediction time and expected breeding
+  time separately auditable.
+- Vault saturation cannot reduce the exceptional tail. This contract does not
+  rank or recommend pairings and cannot pass Gate E from synthetic evidence.
