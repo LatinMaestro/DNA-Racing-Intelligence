@@ -1,4 +1,10 @@
 import type { RaceMode } from "@/domain/import-contract";
+import {
+  validateRaceEconomics,
+  type RaceAsset,
+  type RaceEconomicDataStatus,
+  type RaceEconomicIssueCode,
+} from "@/domain/race-economics";
 import type {
   DetectableSourceType,
   SourceColumnProvenance,
@@ -29,9 +35,12 @@ export type SourceRowIssue = Readonly<{
     | "INVALID_MODE"
     | "INVALID_SEX"
     | "INVALID_TIMESTAMP"
+    | "INVALID_ECONOMIC_DECIMAL"
+    | "MISSING_ECONOMIC_VALUE"
     | "MISSING_REQUIRED_VALUE"
     | "ROW_COLUMN_COUNT_MISMATCH"
-    | "SCHEMA_NOT_READY";
+    | "SCHEMA_NOT_READY"
+    | "UNSUPPORTED_RACE_ASSET";
   severity: "warning" | "error";
   canonicalColumn: string | null;
 }>;
@@ -58,10 +67,14 @@ export type AdaptedRaceMergeRow = Readonly<{
   sourceRaceClass: string | null;
   sourceFormat: string | null;
   feeSourceValue: string | null;
-  payoutSourceValue: string | null;
   prizeSourceValue: string | null;
   assetSourceValue: string | null;
-  economicDataStatus: "unvalidated";
+  payoutMechanismSourceValue: string | null;
+  raceTagsSourceValue: string | null;
+  raceAsset: RaceAsset | null;
+  entryFeeAmount: string | null;
+  grossPayoutAmount: string | null;
+  economicDataStatus: RaceEconomicDataStatus;
 }>;
 
 export type AdaptedCoreDetailsRow = Readonly<{
@@ -364,6 +377,27 @@ function raceRow(
           ? "partial"
           : "complete";
 
+  const economics = validateRaceEconomics({
+    feeSourceValue: optional(values, "fee_source_value"),
+    prizeSourceValue: optional(values, "prize_source_value"),
+    assetSourceValue: optional(values, "asset_source_value"),
+    payoutMechanismSourceValue: optional(
+      values,
+      "payout_mechanism_source_value",
+    ),
+    raceTagsSourceValue: optional(values, "race_tags_source_value"),
+  });
+  const economicIssueColumns: Readonly<
+    Record<RaceEconomicIssueCode, string | null>
+  > = {
+    MISSING_ECONOMIC_VALUE: null,
+    INVALID_ECONOMIC_DECIMAL: null,
+    UNSUPPORTED_RACE_ASSET: "asset_source_value",
+  };
+  for (const code of economics.issueCodes) {
+    issues.push(rowIssue(code, "warning", economicIssueColumns[code]));
+  }
+
   if (
     hasErrors(issues) ||
     sourceEventId === null ||
@@ -399,11 +433,15 @@ function raceRow(
     elapsedTimeSourceValue,
     sourceRaceClass: optional(values, "source_race_class"),
     sourceFormat: optional(values, "source_format"),
-    feeSourceValue: optional(values, "fee_source_value"),
-    payoutSourceValue: optional(values, "payout_source_value"),
-    prizeSourceValue: optional(values, "prize_source_value"),
-    assetSourceValue: optional(values, "asset_source_value"),
-    economicDataStatus: "unvalidated",
+    feeSourceValue: economics.feeSourceValue,
+    prizeSourceValue: economics.prizeSourceValue,
+    assetSourceValue: economics.assetSourceValue,
+    payoutMechanismSourceValue: economics.payoutMechanismSourceValue,
+    raceTagsSourceValue: economics.raceTagsSourceValue,
+    raceAsset: economics.asset,
+    entryFeeAmount: economics.entryFee,
+    grossPayoutAmount: economics.grossPayout,
+    economicDataStatus: economics.status,
   };
 }
 
