@@ -26,7 +26,7 @@ describe("Phase 1 source schema staging", () => {
   it("maps payout mechanism and race tags without treating them as amounts", () => {
     const staged = stageSourceHeader({
       headerBytes: utf8(
-        "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags\\n",
+        "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags\n",
       ),
     });
 
