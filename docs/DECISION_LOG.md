@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 9 Gold and Blue conversion diagnostics
+
+- Measure Gold top-three and Blue win/top-three conversion only from complete
+  event evidence whose star observation predates the result.
+- Exclude all one- to three-gate events from Gold conversion and retain any
+  ineligible Gold assignment as an anomaly.
+- Keep not-assigned, partial and invalid star evidence separate from failed
+  conversion.
+- Report exact denominators by mode, distance, gate count and model era.
+- Keep conversion descriptive and post-race only; it cannot become a pre-race
+  feature, self-accept Gate C or enable an actionable recommendation.
