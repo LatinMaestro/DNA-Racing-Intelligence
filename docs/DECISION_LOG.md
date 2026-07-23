@@ -370,3 +370,130 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 9 Open Race holdout evaluation
+
+- Evaluate only frozen pre-entry decisions whose feature and historical-data
+  cutoffs do not follow the decision, and whose decision strictly precedes lock
+  and outcome evidence.
+- Require current-race stars to remain unavailable at selection time.
+- Compare the model with a separately versioned simple baseline using
+  competitive outcomes, best-eligible selection and elapsed-time regret.
+- Exclude incomplete outcome evidence, disclose stale inputs and keep mode and
+  exact distance separate.
+- Treat synthetic results as non-dispositive evidence that cannot self-accept
+  Gate C or enable actionable Open Race recommendations.
+
+## 2026-07-23 — Phase 9 field-relative star validation
+
+- Validate strong-field star and weak-field eligible no-star evidence only when
+  field quality and all analytical features predate the event.
+- Distinguish a star assigned to another core from an event where no star was
+  assigned; only the former is an assignment-opportunity comparison.
+- Exclude Gold evidence at three gates or fewer while leaving Blue independent.
+- Keep mode and exact distance separate, require minimum samples on both sides
+  and exclude incomplete source evidence.
+- Report associations only. No-star evidence cannot independently stop
+  Discovery, recommend burn, self-accept Gate C or enable another action.
+
+## 2026-07-23 — Phase 9 Gold and Blue conversion diagnostics
+
+- Measure Gold top-three and Blue win/top-three conversion only from complete
+  event evidence whose star observation predates the result.
+- Exclude all one- to three-gate events from Gold conversion and retain any
+  ineligible Gold assignment as an anomaly.
+- Keep not-assigned, partial and invalid star evidence separate from failed
+  conversion.
+- Report exact denominators by mode, distance, gate count and model era.
+- Keep conversion descriptive and post-race only; it cannot become a pre-race
+  feature, self-accept Gate C or enable an actionable recommendation.
+
+## 2026-07-24 — Phase 9 prediction calibration
+
+- Compare candidate and simple-baseline probabilities on identical
+  chronological holdout cases.
+- Require every prediction to predate its outcome and reject unpaired or
+  outcome-inconsistent evidence.
+- Use exact basis-point arithmetic for Brier score, calibration bins and
+  expected calibration error.
+- Keep synthetic verification separate from real historical holdout evidence.
+- A calibration report always remains Gate C review evidence and cannot
+  self-authorise analytical recommendations.
+
+## 2026-07-24 — Phase 9 snapshot freshness validation
+
+- Keep historical coverage, import completion and aggregate refresh timestamps
+  separate.
+- Calculate freshness from `Data current through`, never from import time.
+- Preserve not-imported and unknown-coverage states rather than inventing a
+  current date.
+- Use configurable current, ageing and stale thresholds with exact boundary
+  behaviour.
+- Freshness may lower confidence or require review but cannot alter accepted
+  historical facts or create a live-state claim.
+
+## 2026-07-24 — Phase 9 historical-snapshot presentation audit
+
+- Require historical-snapshot, data-current-through, last-imported and
+  freshness labels on imported analytical surfaces.
+- Reject affirmative claims that periodic imported opponents, fields, Arena
+  listings, Vault state or recommendations are live, real-time or up to date.
+- Permit explicit negative disclosures explaining that the application is not
+  live.
+- Require Open Race to distinguish manually entered current-field information
+  from imported historical evidence.
+- A wording audit cannot establish analytical correctness, live integration,
+  Production approval or Gate C acceptance.
+
+## 2026-07-24 — Phase 9 star-algorithm era detection
+
+- Compare only adjacent, non-overlapping periods within the same mode and exact distance.
+- Preserve assignment-frequency and outcome-conversion shifts as separate basis-point comparisons with explicit numerators, denominators and policy thresholds.
+- Treat partial periods or inadequate assignment/outcome samples as insufficient evidence.
+- A material shift is a review candidate only; it cannot confirm an algorithm change, infer its cause or automatically establish a model era.
+- Synthetic validation cannot accept Gate C or establish real analytical stability.
+
+## 2026-07-24 — Phase 9 import recovery validation
+
+- Audit recovery evidence without executing rollback, source deletion or Production mutation.
+- Require exactly one active accepted batch and keep a newer quarantined attempt isolated from accepted facts and freshness.
+- Permit only a reasoned rollback to a prior accepted same-owner/source version while retaining batch and contribution provenance.
+- Require an exact replay to resolve the existing version with zero new contributions.
+- Require a new aggregate refresh after recovered facts change; never carry forward an obsolete completion state.
+- Synthetic validation cannot accept Gate B.
+
+## 2026-07-24 — Phase 9 economic reconciliation audit
+
+- Recalculate operating totals with exact decimal arithmetic and compare them by original asset and asset kind.
+- Keep BGC separate from cash and crypto, prohibit silent combined-asset totals and exclude non-operating movements from P/L.
+- Retain invalid duplicate links, unlinked manual payouts, unresolved records, missing sale cost basis and incomplete conversion coverage as explicit issues.
+- Reject a complete-status claim whenever material classification, reconciliation, payout, conversion or cost-basis coverage remains unresolved.
+- The audit is read-only, cannot mutate the ledger and cannot establish dependable totals or accept Gate C from synthetic evidence.
+
+## 2026-07-24 — Phase 9 large-history capacity audit
+
+- Require representative sanitized or private hosted evidence at the expected multi-million-row scale before capacity can be verified.
+- Require routine requests to use compact precomputed aggregates and scan zero raw race-history rows.
+- Keep import and aggregate refresh work off request paths and process it in bounded batches.
+- Compare repeated exact-head p95 latency and peak memory measurements with explicit budgets.
+- Treat missing measurements, incomplete background runs and inadequate repetitions as review-required.
+- Block private logging, provider changes and Production mutation within the capacity-validation scope.
+- Synthetic tests validate the audit contract only and cannot establish Production readiness or accept Gate F.
+
+## 2026-07-24 — Phase 9 security and privacy audit
+
+- Require one explicit evidence state for every mandatory authentication, isolation, storage, logging, repository, indexing and dependency/configuration control.
+- Treat unknown evidence as review-required and failed evidence as blocking.
+- Require an evidence note for every verified or failed control and reject missing or duplicate controls.
+- Keep Production readiness, public exposure and secret collection structurally false in the audit output.
+- Block any request to mutate Production, expose routes, collect secrets or enable a paid service within this audit.
+- Keep Gate F client-only; synthetic tests validate deterministic audit behaviour only.
+
+## 2026-07-24 — Phase 9 private Production-readiness assessment
+
+- Aggregate Gates A–E, exact-head CI, representative private import, recovery, performance, security, accessibility, migration and known-limitation evidence before Gate F review.
+- Treat missing evidence as review-required and failed evidence as blocking.
+- Require Production to remain fail-closed with no custom domain, public routes, full private dataset or recurring paid infrastructure during assessment.
+- Keep Gate F client-only and require explicit owner approval.
+- Record approval evidence without authorising, executing or permitting a Production mutation.
+- Synthetic tests validate the readiness contract only and cannot establish that the actual application is Production-ready.
