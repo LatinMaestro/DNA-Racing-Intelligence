@@ -370,3 +370,120 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 tournament configuration contract
+
+- Represent tournament qualification as owner-entered tournament and bracket
+  rules rather than hardcoded examples.
+- Preserve mode, exact distances, gate count, exact fee/asset, eligibility,
+  leaderboard split, minimum sample, ranking metric and qualification threshold
+  independently for each bracket.
+- Support shared, separate and unknown qualification race pools. Unknown or
+  uncertain rules remain review-required, and a declared shared pool must link
+  at least two brackets.
+- Normalize entry fees and points as exact base-10 decimals and fail closed on
+  malformed, negative, overlapping or internally inconsistent rules.
+- Do not rank cores, allocate entries, classify imported races or target the
+  50% gate cap in this contract. Gate C evidence and later Phase 4 contracts
+  remain required before actionable qualification recommendations.
+
+## 2026-07-23 — Phase 4 tournament eligibility contract
+
+- Evaluate tournament eligibility only from confirmed active ownership,
+  availability, class, element, F-number and Maiden rules.
+- Support explicit non-overlapping leaderboard groups, including combined
+  element, class and F-number groups. A core matching zero or multiple configured
+  groups remains review-required rather than being assigned arbitrarily.
+- Treat confirmed rule mismatches as ineligible, but keep unresolved identity,
+  attributes, Maiden state, availability and stale/unknown imported evidence in
+  a separate review-required state.
+- Preserve data-current-through, last-imported and freshness evidence and never
+  describe imported ownership or eligibility as live.
+- Use no time, finish or star evidence and permit no automatic entry in this
+  eligibility-only contract.
+
+## 2026-07-23 — Phase 4 tournament candidate ranking contract
+
+- Order candidates only by the bracket's configured qualification-metric rank
+  within the same leaderboard group.
+- Keep historical Gold/Blue evidence as supporting rationale only. It cannot
+  improve rank or override materially weak time evidence.
+- Hold incomplete, unresolved, low-confidence, stale or unknown-cutoff evidence
+  outside the review order rather than forcing a recommendation.
+- Label a Maiden-eligible core reserved for a stronger projected mode
+  `preserve ME`, even when it ranks strongly in the available bracket.
+- Preserve data-current-through, last-imported and freshness separately and
+  reject duplicated identities, duplicated group ranks and inconsistent metric
+  availability.
+- Keep all output historical, experimental and non-actionable. Current-field
+  claims, Auto-Entry and final Maiden entry decisions remain unavailable until
+  their mandatory Gates C and D evidence passes.
+
+## 2026-07-23 — Phase 4 tournament entry allocation contract
+
+- Allocate only the explicitly requested initial probe races for reviewable
+  candidates. Never add entries merely to consume spare capacity.
+- Enforce the owner-confirmed 50% rule as a hard maximum using the whole-number
+  floor of configured gates. Existing planned owned entries count toward it.
+- Keep one core to at most one entry per planned race and preserve any excess
+  request as unallocated rather than weakening the cap.
+- Exclude held, ineligible and `preserve ME` candidates from allocation.
+- Require current-field confirmation for every plan because imported history
+  cannot establish live occupancy or outside entries.
+- Keep the result review-only and incapable of an automatic game action. Gate C
+  remains mandatory before actionable Auto-Entry guidance.
+
+## 2026-07-23 — Phase 4 tournament path guidance contract
+
+- Require both sufficient consistently weak configured-metric evidence and weak
+  time evidence before producing a stop candidate.
+- Keep eligible no-star evidence non-dispositive and exclude Gold-ineligible
+  no-star evidence. Neither may produce a stop.
+- Permit strong-field historical stars to support only a limited early
+  continuation when time is not weak.
+- Pause time/metric disagreement, unavailable or low-confidence evidence, stale
+  or unknown cutoffs, exhausted budget and reached probe limits for review.
+- Preserve an uncommitted ME core when cross-mode evidence identifies a stronger
+  projected Maiden mode.
+- Reject future and duplicate attempts, keep imported timestamps separate and
+  keep every signal experimental and non-actionable pending Gates C and D.
+
+## 2026-07-23 — Phase 4 qualification-metric evidence contract
+
+- Translate historical observations into the bracket’s configured fastest,
+  median, average, wins, Top-X, best-finish or points metric without substituting
+  a generic quality or star score.
+- Keep mode, exact-distance, bracket and leaderboard-group evidence separate.
+  Rank only within the same configured leaderboard group.
+- Calculate median and average time as exact rational milliseconds and points as
+  exact base-10 decimals.
+- Preserve incomplete samples, missing time/finish evidence, data-current-through,
+  last-imported and freshness warnings. Reject current-event/future, cross-mode,
+  unconfigured-distance, duplicate-event and impossible-position evidence.
+- Keep the rank experimental and historical. The current qualifying field,
+  Auto-Entry allocation and actionable recommendations remain unavailable until
+  Gate C evidence passes.
+## 2026-07-23 — Phase 4 historical tournament race classification
+
+- Classify only imported historical races; no output represents live tournament state or gate occupancy.
+- Confirm an authoritative source stage only when the configured tournament rule agrees on identity and race conditions.
+- Treat one exact configured match without authoritative stage evidence as a review proposal, never an aggregate-ready fact.
+- Preserve overlapping matches, uncertain rules, source/configuration conflicts and unmatched races as review-required rather than forcing a category.
+- Do not infer ordinary open racing merely because no tournament rule matched.
+- Match exact entry-fee evidence with exact-decimal normalization and preserve mode, distance, gate count and UTC window as auditable evidence.
+## 2026-07-23 — Phase 4 recoverable tournament campaign linking
+
+- Preserve imported race facts and source labels as immutable evidence.
+- Apply tournament, bracket, leaderboard and stage attribution through reasoned link, correction, unlink and restore overlays.
+- Require unique action identity, chronological ordering and exact optimistic revision for every change.
+- Exclude an unlinked race from campaign totals without deleting its history.
+- Restore only the prior audited link; do not manufacture attribution during recovery.
+- Keep campaign linking historical and independent of live tournament state.
+## 2026-07-23 — Phase 4 manual external-prize reconciliation
+
+- Compare manual external tournament prizes with imported race payouts using exact external references and conservative same-asset/date/amount/tournament candidates.
+- Surface incompatible facts sharing one reference as a conflict.
+- Never auto-exclude a suspected duplicate.
+- Require a reasoned confirmation before excluding the manual record; preserve the imported payout as immutable evidence.
+- Permit a reasoned separate-payment decision so legitimate race and wallet prizes both remain included.
+- Do not require artificial core allocation for a vault-level overall prize.
