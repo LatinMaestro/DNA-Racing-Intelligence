@@ -117,7 +117,7 @@ describe("Phase 1 exact race economics", () => {
   });
 
   it("performs exact decimal operations without binary floating point", () => {
-    expect(normalizeExactDecimal("001")).toThrow;
+    expect(() => normalizeExactDecimal("001")).toThrow(TypeError);
     expect(normalizeExactDecimal("10.5000")).toBe("10.5");
     expect(negateExactDecimal("0.000")).toBe("0");
     expect(multiplyExactDecimals("13.0719", "0.0008")).toBe("0.01045752");
