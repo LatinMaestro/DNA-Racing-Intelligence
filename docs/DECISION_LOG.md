@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A economic ledger filters
+
+- Filter immutable ledger evidence by inclusive period, original asset, category/subcategory, linked core, mode, exact metre distance, approved inclusive distance band, tournament and bracket.
+- Use OR within one filter dimension and AND between dimensions; retain deterministic timestamp/transaction ordering.
+- Preserve the approved overlapping distance-band boundaries: 1400 may match sprint or middle and 1800 may match middle or marathon.
+- Keep genuine vault-level payouts unallocated. They remain visible without a core filter and are excluded, not reassigned, when a core filter is applied.
+- Omit excluded/duplicate evidence by default and include it only through an explicit filter while retaining its status and count.
+- Do not use the obsolete race-class field, combine assets, infer attribution or change any reconciliation state.
+
