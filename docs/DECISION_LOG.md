@@ -370,3 +370,20 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race pre-entry ranking
+
+- Rank confirmed eligible candidates from matching historical mode and exact
+  distance time profiles while the field is forming.
+- Keep lower elapsed time primary and historical Gold/Blue profiles supporting
+  only; stars cannot change the time rank.
+- Preserve the minimum-10 sample boundary and material ties rather than issuing
+  a false winner.
+- Hold stale evidence, unresolved opponents and missing exact-distance
+  histories.
+- Disclose partial historical star coverage without allowing it to block or
+  change a sound time-led rank.
+- Raise an avoid signal only when the best candidate's optimistic time is slower
+  than the strongest opponent's conservative time.
+- Keep all output provisional and non-actionable before Gate C. Current-race
+  stars, post-lock switching and race entry are structurally forbidden.
