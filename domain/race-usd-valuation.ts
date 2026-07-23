@@ -1,4 +1,7 @@
-import { multiplyExactDecimals, normalizeExactDecimal } from "@/domain/exact-decimal";
+import {
+  multiplyExactDecimals,
+  normalizeExactDecimal,
+} from "@/domain/exact-decimal";
 import type {
   RaceAsset,
   RaceEconomicTransaction,
@@ -88,8 +91,13 @@ export function valueRaceEconomicTransactionUsd(
 
   const validated = validateDailyUsdRate(rate);
   const rateDate = utcRateDate(occurredAt);
-  if (validated.asset !== transaction.asset || validated.rateDate !== rateDate) {
-    throw new RangeError("Daily USD rate does not match transaction asset/date.");
+  if (
+    validated.asset !== transaction.asset ||
+    validated.rateDate !== rateDate
+  ) {
+    throw new RangeError(
+      "Daily USD rate does not match transaction asset/date.",
+    );
   }
 
   return {
