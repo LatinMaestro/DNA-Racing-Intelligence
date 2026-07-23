@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 large-history capacity audit
+
+- Require representative sanitized or private hosted evidence at the expected multi-million-row scale before capacity can be verified.
+- Require routine requests to use compact precomputed aggregates and scan zero raw race-history rows.
+- Keep import and aggregate refresh work off request paths and process it in bounded batches.
+- Compare repeated exact-head p95 latency and peak memory measurements with explicit budgets.
+- Treat missing measurements, incomplete background runs and inadequate repetitions as review-required.
+- Block private logging, provider changes and Production mutation within the capacity-validation scope.
+- Synthetic tests validate the audit contract only and cannot establish Production readiness or accept Gate F.
