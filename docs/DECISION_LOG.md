@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 private Production-readiness assessment
+
+- Aggregate Gates A–E, exact-head CI, representative private import, recovery, performance, security, accessibility, migration and known-limitation evidence before Gate F review.
+- Treat missing evidence as review-required and failed evidence as blocking.
+- Require Production to remain fail-closed with no custom domain, public routes, full private dataset or recurring paid infrastructure during assessment.
+- Keep Gate F client-only and require explicit owner approval.
+- Record approval evidence without authorising, executing or permitting a Production mutation.
+- Synthetic tests validate the readiness contract only and cannot establish that the actual application is Production-ready.
