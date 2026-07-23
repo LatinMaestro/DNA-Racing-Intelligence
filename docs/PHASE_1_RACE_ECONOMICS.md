@@ -6,13 +6,13 @@ Production: disabled and fail-closed
 
 ## Source semantics
 
-| Source | Contract |
-|---|---|
-| `rpayout` | Payout mechanism/format label; never an amount |
-| `rfee` | Exact non-negative fee for the row's core entry |
-| `prize` | Exact non-negative gross payout for the row's core entry |
-| `toke_curr` | Common entry/payout asset: ETH or DEZ |
-| `r_tags` | Raw eligibility and restriction tags |
+| Source      | Contract                                                 |
+| ----------- | -------------------------------------------------------- |
+| `rpayout`   | Payout mechanism/format label; never an amount           |
+| `rfee`      | Exact non-negative fee for the row's core entry          |
+| `prize`     | Exact non-negative gross payout for the row's core entry |
+| `toke_curr` | Common entry/payout asset: ETH or DEZ                    |
+| `r_tags`    | Raw eligibility and restriction tags                     |
 
 `rformat` remains separate event-format provenance. Numeric zero is a real zero. Missing, blank, malformed, negative or unsupported-asset data is review-required.
 
