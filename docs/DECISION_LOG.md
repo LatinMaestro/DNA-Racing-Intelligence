@@ -370,3 +370,96 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 distance-band projection
+
+- Build Sprint, Middle and Marathon views as descriptive projections over exact-distance profiles; exact-distance evidence remains primary.
+- Preserve the owner-confirmed inclusive definitions: Sprint 900–1400 m, Middle 1400–1800 m and Marathon 1800–2200 m.
+- Show 1400 m in both Sprint and Middle and 1800 m in both Middle and Marathon, with explicit shared-boundary counts rather than silently selecting one band.
+- Do not pool elapsed times across different distances. Summarize comparable metres-per-second evidence while retaining each exact-distance distribution.
+- Aggregate Gold/Blue evidence only by adding auditable counts and denominators, never by averaging rates.
+- Use the conservative worst freshness represented in the band, retain missing-star and outside-band warnings, and keep all outputs experimental until Gate C.
+
+## 2026-07-23 — Phase 2 evidence confidence and coverage
+
+- Define confidence as evidence maturity, not predicted racing quality. The
+  confidence projection does not consume elapsed times, speed values, star rates
+  or benchmark percentiles when assigning its level.
+- Keep direct exact-distance sample sufficiency, Gold/Blue coverage and
+  anomalies, benchmark completeness, lineage resolution, freshness and
+  chronological validation as separate auditable components.
+- Treat no direct evidence as insufficient and fewer than 10 exact-distance
+  races as low confidence. Ten races is minimally analytical only and cannot
+  produce high confidence by itself.
+- Require current or ageing data, complete benchmark outcomes and passed
+  chronological holdout, simple-baseline and calibration checks before high
+  confidence is possible.
+- Keep incomplete validation experimental. A validated evidence label is not an
+  actionable recommendation or proof that a core is strong.
+- Preserve missing, partial, invalid and anomalous supporting evidence as
+  explicit warnings. Never turn missing star or lineage evidence into a zero
+  quality assessment.
+
+## 2026-07-23 — Phase 2 family tree projection
+
+- Project one authoritative root core into deterministic parent, grandparent,
+  ancestor, child, grandchild, descendant, full-sibling and half-sibling
+  relationships.
+- Use source core IDs only for identity. Display names remain optional labels and
+  never resolve missing lineage.
+- Retain unresolved parents as visible placeholders and make incomplete,
+  duplicated, self-referential and cyclic lineage review-required.
+- Do not allow malformed lineage unrelated to the selected root to contaminate
+  its projection.
+- Keep family-tree display separate from the confirmed breeding-eligibility
+  decision; do not add family restrictions or inherited-quality claims.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
+
+## 2026-07-23 — Phase 2 performance benchmarks
+
+- Build historical benchmark distributions separately by mode, exact distance,
+  gate count and preserved format label.
+- Keep elapsed milliseconds authoritative and expose a transparent
+  faster-than-or-equal percentile whose user-facing direction is
+  higher-is-better.
+- Require complete event coverage before creating winner or in-the-money
+  distributions. Partial events may contribute valid time evidence only.
+- Keep in-the-money status explicit and unknown-capable; do not infer it from
+  finishing position or payout-format assumptions.
+- Keep every benchmark experimental until Gate C chronological holdout,
+  baseline, calibration and no-leakage evidence passes.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
+
+## 2026-07-23 — Phase 2 chronological pre-race field context
+
+- Build historical opponent context only from performance and star evidence with
+  an event timestamp strictly earlier than the event being assessed.
+- Exclude the target event, simultaneous events and all later races, and expose
+  excluded-evidence counts so the no-leakage boundary is auditable.
+- Match opponent history only by authoritative core ID, mode and exact distance.
+  Never merge Bike, Car and Horse, adjacent distances or the entered core's own
+  history into opponent field evidence.
+- Expose each opponent's prior race count, best/median elapsed time, latest prior
+  event and prior Gold/Blue profile, plus complete/partial/unavailable coverage.
+- Keep missing opponents missing rather than treating them as average or weak.
+- Leave strong, weak and elite field bands unclassified until a benchmark frozen
+  at the historical cutoff is supplied and chronologically validated.
+
+## 2026-07-23 — Phase 2 star trend candidates
+
+- Summarize validated Gold and Blue assignment frequency by explicit historical
+  period, mode and exact distance with assigned, no-assignment, excluded and
+  opportunity counts.
+- Exclude Gold-ineligible events from Gold opportunity denominators and keep
+  Gold and Blue evidence independent.
+- Keep race outcomes, elapsed times, prizes and future races outside the
+  assignment-frequency trend input.
+- Compare only adjacent configured periods with sufficient opportunities and
+  label threshold crossings as descriptive change candidates, never confirmed
+  hidden-algorithm eras.
+- Keep all trend outputs experimental pending Gate C and Phase 9 chronological
+  stability and predictive-lift evidence.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
