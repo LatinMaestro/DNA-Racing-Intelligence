@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 parent–offspring research dataset
+
+- Build research evidence by exact mode and distance with parent feature cutoffs
+  strictly before breeding and offspring outcomes strictly afterwards.
+- Partition chronologically by breeding time and deduplicate authoritative
+  offspring event IDs across observations.
+- Preserve explicit Gold/Blue counts and eligibility; incomplete star evidence
+  is excluded rather than converted to negative evidence.
+- Make no inherited-star, predictive-lift, exceptional-offspring probability or
+  pairing recommendation claim before Gate E.
