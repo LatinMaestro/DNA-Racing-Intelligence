@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race star observation
+
+- Record revealed Gold and Blue only after the complete field is locked and set
+  to run.
+- Preserve assigned, not-assigned and not-observed states separately; preserve
+  Gold not applicable at three gates or fewer.
+- Retain any manually claimed ineligible Gold as an anomaly requiring review.
+- Keep manual pre-run observations separate from authoritative imported history
+  and pending later reconciliation.
+- Do not treat the observation as a completed race, predictive success or reason
+  to switch the committed core.
