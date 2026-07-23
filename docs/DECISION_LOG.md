@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race star comparison
+
+- Compare revealed post-lock stars only with the frozen pre-entry ranking and
+  the core the user actually committed.
+- Preserve the provisional leader even where the user selected an alternative,
+  and support no resolved leader without inventing one.
+- Distinguish a provisional leader that was not entered from an entered core
+  that received neither revealed star.
+- Hold incomplete, ineligible-Gold and otherwise review-required observations
+  from a clean diagnostic conclusion.
+- Do not rerank candidates, issue replacement advice, declare prediction
+  success or treat revealed pre-run stars as a completed outcome.
