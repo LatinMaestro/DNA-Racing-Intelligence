@@ -275,3 +275,42 @@ Star profiles may be joined to lineage research as historical features, but the 
 - Uploaded raw files must be private and access-controlled.
 - Production logs must not print complete raw records, credentials, private file content, complete wallet addresses or transaction references unnecessarily.
 - Never request or store private keys, seed phrases or signing credentials.
+
+## Owner-confirmed Race Merge economics
+
+The Race Merge economic columns have these normalized meanings:
+
+| Source column | Meaning                           | Normalized treatment                                                                                                       |
+| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                  |
+| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero |
+| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero   |
+| `toke_curr`   | Entry and payout asset            | Normalize case-insensitively to ETH or DEZ; unsupported assets remain review-required                                      |
+| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                               |
+
+A numeric zero is an authoritative zero. Blank, missing, malformed and negative values are not equivalent to zero. The fee and prize use the same row asset. Race-derived natural keys remain the accepted race-entry key plus `entry_fee` or `payout`, so cumulative imports cannot duplicate them.
+
+Persist exact source decimals and use exact database numerics; do not convert through JavaScript binary floating point. Entry fees are stored as expenses/debits and prizes as income/credits. Refunds, reversals and adjustments require an explicit source event or auditable manual entry.
+
+### USD valuation
+
+Race reports must preserve original ETH/DEZ values and also calculate a USD reporting value from a dated rate for the event's UTC calendar day.
+
+Each valuation must retain:
+
+- asset and original exact amount;
+- UTC rate date;
+- exact USD-per-asset rate;
+- provider and provider-series identifier;
+- retrieval time;
+- source timestamp;
+- valuation method;
+- converted exact USD amount;
+- status such as available, missing, stale, manually overridden or superseded; and
+- correction/supersession history.
+
+Use one canonical daily rate per asset and UTC date for all races on that date. The initial free provider is CoinGecko historical market data: coin ID `ethereum` for ETH and the Polygon contract-pinned DEZ series for `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`. Fetch rates only in the background import workflow, cache them durably and never make routine page requests depend on a third-party price API.
+
+A missing provider rate must leave USD unavailable and visible; it must not silently use today's price, interpolate across a gap or substitute another asset. Manual rates and later corrections are auditable overrides, not destructive replacements.
+
+BGC has an owner-confirmed USD 1 = BGC 1 reference rate. It remains a separate non-cash ledger and is excluded from ETH/DEZ operating P/L totals unless a separately labelled BGC-equivalent view is selected.

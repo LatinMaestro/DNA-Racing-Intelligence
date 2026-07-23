@@ -19,7 +19,7 @@ For an Open Race, current-race Gold and Blue stars are unavailable while the fie
 
 ## Repository status
 
-Phase 0 architecture, privacy controls and the private application scaffold are merged and Gate A is accepted. Phase 1 data-foundation delivery is in progress under the owner's standing autonomous authority. Production remains disabled and requires separate explicit Gate F approval.
+Phase 0 architecture, privacy controls and the private application scaffold are merged and Gate A is accepted. Phase 1 repository foundations are complete; the owner-confirmed race-economics and free-tier R2/Neon Gate B amendments are being implemented under standing autonomous authority. No full private hosted import has occurred. Production remains disabled and requires separate explicit Gate F approval.
 
 ## Source-of-truth documents
 
@@ -51,6 +51,7 @@ Phase 0 architecture, privacy controls and the private application scaffold are 
 - [`docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md`](docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md) — reversible Current Vault and Arena historical snapshots
 - [`docs/PHASE_1_IMPORT_RECOVERY_UI.md`](docs/PHASE_1_IMPORT_RECOVERY_UI.md) — private import status, freshness and recovery workspace contract
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
+- [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
