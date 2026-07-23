@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+## 2026-07-23 — Phase 4 historical tournament race classification
+
+- Classify only imported historical races; no output represents live tournament state or gate occupancy.
+- Confirm an authoritative source stage only when the configured tournament rule agrees on identity and race conditions.
+- Treat one exact configured match without authoritative stage evidence as a review proposal, never an aggregate-ready fact.
+- Preserve overlapping matches, uncertain rules, source/configuration conflicts and unmatched races as review-required rather than forcing a category.
+- Do not infer ordinary open racing merely because no tournament rule matched.
+- Match exact entry-fee evidence with exact-decimal normalization and preserve mode, distance, gate count and UTC window as auditable evidence.
