@@ -370,3 +370,18 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 lifecycle evidence protection
+
+- Evaluate lifecycle evidence only for cores confirmed in the active Vault;
+  inactive cores remain historical and cannot receive an active recommendation.
+- Permanently prohibit burning Genesis cores.
+- Protect eligible or unresolved Maiden, Discovery, racing, breeding and
+  lineage value before considering sale or burn.
+- Hold stale, unknown or incomplete evidence rather than converting missing
+  information into a negative conclusion.
+- Preserve no-star and Gold-ineligible absence as supporting context only. They
+  can never cause a burn or disposal conclusion without independent non-star
+  evidence.
+- Keep this projection non-mutating and review-only. It cannot sell, burn,
+  change ownership, record BGC or post ledger activity.
