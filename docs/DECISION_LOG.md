@@ -370,3 +370,127 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding pair rules
+
+- Combine confirmed family restrictions with selected-parent availability,
+  supplied splice-capacity evidence and supplied breeding-cycle state.
+- Do not invent a global splice maximum. Preserve available, exhausted and
+  unknown states with the recorded remaining count.
+- Derive offspring class from the confirmed matrix, element from the
+  lower-ranked parent and F-number from the uncapped parent sum.
+- Fail closed on incomplete lineage, unknown parent state, stale evidence or
+  unresolved cycles.
+- Predict no offspring quality and make no inherited-star claim. Keep all
+  recommendations and execution disabled pending Gate E.
+
+## 2026-07-23 — Phase 6 breeding fee calculation
+
+- Preserve base and Arena fees as exact source components and exact per-asset
+  totals.
+- Keep BGC and USD separate. The USD 1 = BGC 1 owner reference may be shown
+  only as a reference equivalent and never as a cash transaction.
+- Require exact Arena listing provenance, freshness and expiry. Unknown,
+  ageing, stale or expired fee evidence fails closed.
+- Require live confirmation and keep recommendation and execution disabled
+  pending Gate E.
+
+## 2026-07-23 — Phase 6 breeding star features
+
+- Preserve direct-parent and lineage Gold, Blue and strong-field star evidence as
+  exact numerator/denominator features by mode and exact distance.
+- Exclude stale, unknown, incomplete, wrong-cell and post-breeding feature
+  evidence from chronological research.
+- Compare lineage profiles only with population benchmarks whose cutoff predates
+  breeding, and require a configured minimum opportunity denominator before
+  recording an outlier count.
+- Keep zero opportunities distinct from a zero rate and retain `Data current
+through` separately from `Last imported`.
+- Do not describe star propensity as inherited and do not predict or recommend
+  offspring quality before chronological Gate E evidence.
+
+## 2026-07-23 — Phase 6 parent–offspring research dataset
+
+- Build research evidence by exact mode and distance with parent feature cutoffs
+  strictly before breeding and offspring outcomes strictly afterwards.
+- Partition chronologically by breeding time and deduplicate authoritative
+  offspring event IDs across observations.
+- Preserve explicit Gold/Blue counts and eligibility; incomplete star evidence
+  is excluded rather than converted to negative evidence.
+- Make no inherited-star, predictive-lift, exceptional-offspring probability or
+  pairing recommendation claim before Gate E.
+
+## 2026-07-23 — Phase 6 offspring outcome distribution
+
+- Represent weaker, comparable, stronger and exceptional offspring outcomes as
+  one exact 10,000-basis-point distribution with explicit uncertainty bounds.
+- Hold stale, unknown, under-sampled or unsupported calibration evidence rather
+  than emitting an unqualified probability.
+- Permit star-enhanced distributions only where incremental chronological lift
+  is supported; otherwise retain a time-only model or hold the result.
+- Keep imported cutoff, import completion, prediction time and expected breeding
+  time separately auditable.
+- Vault saturation cannot reduce the exceptional tail. This contract does not
+  rank or recommend pairings and cannot pass Gate E from synthetic evidence.
+
+## 2026-07-23 — Phase 6 breeding pair ranking
+
+- Always expose highest exceptional-offspring upside, best vault-gap
+  improvement and best balanced pairing as separate rankings.
+- The elite-upside order uses exceptional and broader quality probabilities
+  only; existing vault saturation cannot demote a pairing in that view.
+- The vault-gap view remains independent, while the balanced view uses explicit
+  integer basis-point weights and auditable exact arithmetic.
+- Hold stale, unavailable, rule-unresolved, uncalibrated or unsupported
+  star-enhanced evidence rather than forcing a rank.
+- Ranking remains experimental and cannot authorise breeding or pass Gate E.
+
+## 2026-07-23 — Phase 6 historical Arena scanning
+
+- Scan only the selected accepted Current Arena snapshot; newer quarantined or
+  rolled-back attempts do not replace it.
+- Require exact source-core identity and preserve exact USD price, splice
+  capacity and expiry without name inference.
+- Describe every projected listing as historical and require live confirmation.
+- Infer no completed breeding, income or operating P/L from an Arena listing.
+
+## 2026-07-23 — Phase 6 breeding economic evidence
+
+- Create breeding-economic posting proposals only from an authoritative
+  transaction export or a reasoned manual confirmation of completed activity.
+- Never infer a completed splice, income or operating profit from an arena
+  listing.
+- Keep DNA, external-owner, BGC, earned-fee and refund categories explicit and
+  preserve exact original-asset amounts without combining currencies.
+- Hold failed, pending and unknown activity without postings; refunded evidence
+  may contain only confirmed credit refunds.
+- The contract is review-only and cannot mutate the ledger or initiate wallet
+  or game transactions.
+
+## 2026-07-23 — Phase 6 offspring cost basis
+
+- Permit an optional offspring cost-basis assignment only for confirmed actual
+  pairing costs from a completed breeding event that produced a confirmed owned
+  offspring.
+- Keep DNA, external-owner and BGC costs in their original assets and preserve
+  exact amounts.
+- Link each refund to an included cost in the same asset, reject over-refunds,
+  and prevent one transaction from being assigned twice.
+- Hold proposed, reversed, missing, duplicate or unresolved evidence rather
+  than creating a partial automatic assignment.
+- Never infer market value, combine BGC with cash/crypto or calculate a realised
+  gain from this assignment.
+
+## 2026-07-23 — Phase 6 chronological breeding lift evaluation
+
+- Compare a time-plus-star candidate with both time-only and lineage baselines
+  on identical chronological holdout rows.
+- Require feature cutoffs and prediction creation to precede or occur no later
+  than breeding, and require authoritative outcomes to follow breeding.
+- Exclude incomplete star features from all three model comparisons rather than
+  changing the evaluation population between models.
+- Report Brier and calibration evidence by exact mode and distance, with
+  configured minimum sample and improvement thresholds.
+- A supported cell is only a Gate E review candidate. Synthetic evaluation
+  cannot establish predictive lift, inherited star propensity or a breeding
+  recommendation.
