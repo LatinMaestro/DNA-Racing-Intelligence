@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+## 2026-07-23 — Phase 4 recoverable tournament campaign linking
+
+- Preserve imported race facts and source labels as immutable evidence.
+- Apply tournament, bracket, leaderboard and stage attribution through reasoned link, correction, unlink and restore overlays.
+- Require unique action identity, chronological ordering and exact optimistic revision for every change.
+- Exclude an unlinked race from campaign totals without deleting its history.
+- Restore only the prior audited link; do not manufacture attribution during recovery.
+- Keep campaign linking historical and independent of live tournament state.
