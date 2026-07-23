@@ -280,13 +280,13 @@ Star profiles may be joined to lineage research as historical features, but the 
 
 The Race Merge economic columns have these normalized meanings:
 
-| Source column | Meaning | Normalized treatment |
-|---|---|---|
-| `rpayout` | Payout format/mechanism label | Preserve as a versionable label; never parse as an amount |
-| `rfee` | Per-core race-entry fee | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero |
-| `prize` | Per-core gross race payout | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero |
-| `toke_curr` | Entry and payout asset | Normalize case-insensitively to ETH or DEZ; unsupported assets remain review-required |
-| `r_tags` | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules |
+| Source column | Meaning                           | Normalized treatment                                                                                                       |
+| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                  |
+| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero |
+| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero   |
+| `toke_curr`   | Entry and payout asset            | Normalize case-insensitively to ETH or DEZ; unsupported assets remain review-required                                      |
+| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                               |
 
 A numeric zero is an authoritative zero. Blank, missing, malformed and negative values are not equivalent to zero. The fee and prize use the same row asset. Race-derived natural keys remain the accepted race-entry key plus `entry_fee` or `payout`, so cumulative imports cannot duplicate them.
 
