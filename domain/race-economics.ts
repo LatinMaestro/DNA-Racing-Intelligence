@@ -10,10 +10,7 @@ export const supportedRaceAssets = ["ETH", "DEZ"] as const;
 export type RaceAsset = (typeof supportedRaceAssets)[number];
 
 export type RaceEconomicDataStatus =
-  | "ready"
-  | "missing"
-  | "invalid"
-  | "unsupported_asset";
+  "ready" | "missing" | "invalid" | "unsupported_asset";
 
 export type RaceEconomicIssueCode =
   | "MISSING_ECONOMIC_VALUE"
@@ -60,9 +57,7 @@ export function validateRaceEconomics(
   const feeSourceValue = trimmed(input.feeSourceValue);
   const prizeSourceValue = trimmed(input.prizeSourceValue);
   const assetSourceValue = trimmed(input.assetSourceValue);
-  const payoutMechanismSourceValue = trimmed(
-    input.payoutMechanismSourceValue,
-  );
+  const payoutMechanismSourceValue = trimmed(input.payoutMechanismSourceValue);
   const raceTagsSourceValue = trimmed(input.raceTagsSourceValue);
 
   if (
@@ -103,7 +98,8 @@ export function validateRaceEconomics(
   }
 
   const normalizedAsset = assetSourceValue?.toUpperCase() ?? null;
-  const asset = supportedRaceAssets.find((item) => item === normalizedAsset) ?? null;
+  const asset =
+    supportedRaceAssets.find((item) => item === normalizedAsset) ?? null;
   if (assetSourceValue !== null && asset === null) {
     issueCodes.push("UNSUPPORTED_RACE_ASSET");
   }
