@@ -370,3 +370,20 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A manual ledger validation
+
+- Accept owner-entered amounts only as positive plain base-10 decimal strings and
+  derive exact signed postings without binary floating point.
+- Allowlist manual category/subcategory combinations. Structurally exclude
+  deposits, withdrawals, internal transfers, opening balances and adjustments
+  from operating P/L.
+- Materialize an internal transfer as equal debit and credit postings in the
+  same asset between distinct labelled accounts.
+- Keep every asset separate. Limit BGC to its distinct game-credit ledger for
+  actual burn credits, arena fee spending, opening balance and adjustments; do
+  not apply a silent cash/crypto conversion.
+- Require tournament provenance for manual game-owner payouts while permitting
+  genuine vault-level payouts to remain unallocated with a partial warning.
+- Record core-sale proceeds with a missing-cost-basis warning rather than
+  fabricating realised profit.
