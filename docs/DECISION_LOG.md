@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding fee calculation
+
+- Preserve base and Arena fees as exact source components and exact per-asset
+  totals.
+- Keep BGC and USD separate. The USD 1 = BGC 1 owner reference may be shown
+  only as a reference equivalent and never as a cash transaction.
+- Require exact Arena listing provenance, freshness and expiry. Unknown,
+  ageing, stale or expired fee evidence fails closed.
+- Require live confirmation and keep recommendation and execution disabled
+  pending Gate E.
