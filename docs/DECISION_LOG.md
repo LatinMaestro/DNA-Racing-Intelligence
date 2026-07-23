@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 star-algorithm era detection
+
+- Compare only adjacent, non-overlapping periods within the same mode and exact distance.
+- Preserve assignment-frequency and outcome-conversion shifts as separate basis-point comparisons with explicit numerators, denominators and policy thresholds.
+- Treat partial periods or inadequate assignment/outcome samples as insufficient evidence.
+- A material shift is a review candidate only; it cannot confirm an algorithm change, infer its cause or automatically establish a model era.
+- Synthetic validation cannot accept Gate C or establish real analytical stability.
