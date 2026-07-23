@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 lifecycle action ranking
+
+- Compare race, discover, reserve-Maiden, breed, hold, sell and burn using
+  explicit audited evidence for every active core.
+- Preserve equal scores as ties and return insufficient evidence rather than
+  silently resolving the tie through display order.
+- Hold stale, incomplete or protection-blocked evidence before action ranking.
+- Require confirmed ME, a viable Discovery path and confirmed market evidence
+  for their respective strategic actions.
+- Keep Genesis burn forbidden and require independent non-star negative evidence
+  before a spliced core can enter burn review.
+- Keep sell and burn review-only. The ranking cannot execute an action, mutate
+  source facts, record a burn credit or post ledger activity.
