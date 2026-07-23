@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 historical Arena scanning
+
+- Scan only the selected accepted Current Arena snapshot; newer quarantined or
+  rolled-back attempts do not replace it.
+- Require exact source-core identity and preserve exact USD price, splice
+  capacity and expiry without name inference.
+- Describe every projected listing as historical and require live confirmation.
+- Infer no completed breeding, income or operating P/L from an Arena listing.
