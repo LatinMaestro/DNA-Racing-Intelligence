@@ -370,3 +370,85 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race field input
+
+- Treat Stage A race parameters and already-entered opponents as manually
+  supplied current-field facts.
+- Require the entered-opponent count plus available gates to equal the stated
+  gate count.
+- Hold unresolved identities, uncertain restrictions and stale or unknown
+  historical evidence for review.
+- Preserve exact entry-fee text and keep it separate from selection quality.
+- Keep imported profile freshness and manual capture time distinct.
+- Make current-race Gold and Blue stars structurally unavailable while the field
+  is forming. The contract cannot fetch game state, reserve a gate or enter a
+  race.
+
+## 2026-07-23 — Phase 8 Open Race eligibility
+
+- Filter only confirmed active owned and manually available cores.
+- Apply confirmed class, element, F-number and Maiden restrictions without
+  guessing missing attributes or uncertain game rules.
+- Keep unresolved ownership, attributes, availability and ME evidence
+  review-required rather than eligible.
+- Hold otherwise compliant cores when the rule set is uncertain or Vault
+  freshness is stale or unknown.
+- Keep eligibility separate from performance ranking and current-race stars.
+  The contract cannot mutate ownership, ME or race state.
+
+## 2026-07-23 — Phase 8 Open Race pre-entry ranking
+
+- Rank confirmed eligible candidates from matching historical mode and exact
+  distance time profiles while the field is forming.
+- Keep lower elapsed time primary and historical Gold/Blue profiles supporting
+  only; stars cannot change the time rank.
+- Preserve the minimum-10 sample boundary and material ties rather than issuing
+  a false winner.
+- Hold stale evidence, unresolved opponents and missing exact-distance
+  histories.
+- Disclose partial historical star coverage without allowing it to block or
+  change a sound time-led rank.
+- Raise an avoid signal only when the best candidate's optimistic time is slower
+  than the strongest opponent's conservative time.
+- Keep all output provisional and non-actionable before Gate C. Current-race
+  stars, post-lock switching and race entry are structurally forbidden.
+
+## 2026-07-23 — Phase 8 Open Race field lock
+
+- Permit Stage B only after every gate is filled, the user confirms the
+  committed owned core and the game has set the race to run.
+- Preserve the complete entered field, the prior ranking identity, the
+  provisional leader and the user's actual selection without rewriting any
+  pre-entry evidence.
+- Do not require an unselected provisional leader to appear in the locked field.
+- Allow a user-selected alternative or an insufficient-evidence entry to be
+  recorded with an explicit warning rather than inventing a recommendation.
+- Reject current-race stars and race outcomes at the lock transition.
+- After lock, prohibit core switching, replacement recommendations and race
+  entry; only optional observation may follow.
+
+## 2026-07-23 — Phase 8 Open Race star observation
+
+- Record revealed Gold and Blue only after the complete field is locked and set
+  to run.
+- Preserve assigned, not-assigned and not-observed states separately; preserve
+  Gold not applicable at three gates or fewer.
+- Retain any manually claimed ineligible Gold as an anomaly requiring review.
+- Keep manual pre-run observations separate from authoritative imported history
+  and pending later reconciliation.
+- Do not treat the observation as a completed race, predictive success or reason
+  to switch the committed core.
+
+## 2026-07-23 — Phase 8 Open Race star comparison
+
+- Compare revealed post-lock stars only with the frozen pre-entry ranking and
+  the core the user actually committed.
+- Preserve the provisional leader even where the user selected an alternative,
+  and support no resolved leader without inventing one.
+- Distinguish a provisional leader that was not entered from an entered core
+  that received neither revealed star.
+- Hold incomplete, ineligible-Gold and otherwise review-required observations
+  from a clean diagnostic conclusion.
+- Do not rerank candidates, issue replacement advice, declare prediction
+  success or treat revealed pre-run stars as a completed outcome.
