@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 tournament and Maiden Discovery priority
+
+- Require credible Bike, Car and Horse evidence before identifying a provisional
+  strongest mode for an ME core.
+- Require the strongest mode to clear a versioned evidence gap; otherwise request
+  more cross-mode Discovery.
+- Label a configured Maiden in a weaker mode `preserve ME`; never commit ME from
+  the first available Maiden.
+- Treat tournament relevance as review priority only and retain the configured
+  leaderboard objective.
+- Keep every output experimental and non-actionable until Gate C, with final
+  Maiden entry separately disabled until Gate D.
