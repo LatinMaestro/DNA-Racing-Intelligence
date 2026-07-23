@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A separate BGC ledger
+
+- Report BGC as a separate game-credit ledger with manual opening balances, actual burn credits, recorded arena-fee spend, signed adjustments and balanced internal transfers.
+- Require two distinct exact postings that net to zero for an internal transfer; transfers affect account balances but never vault earned, spent or net movement.
+- Derive a BGC balance only when period coverage is complete, every active account has explicit opening evidence, reconciliation is resolved and the data cutoff is known.
+- Keep recorded movement visible but the balance unavailable when coverage is insufficient; never assume an unrecorded opening balance is zero.
+- Expose the owner-confirmed USD 1 = BGC 1 reference only as a separately labelled equivalent of a supportable BGC balance.
+- Exclude BGC from ETH/DEZ operating P/L and total recorded crypto cashflow.
