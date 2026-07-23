@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 chronological Discovery holdout
+
+- Compare a time-plus-star candidate with a time-only baseline using pre-event
+  probabilities and competitive-time outcomes.
+- Require strictly ordered training and holdout windows and a feature cutoff
+  strictly earlier than every evaluated event.
+- Use authoritative event and core IDs to prevent duplicate holdout evidence.
+- Report Brier score, incremental lift, calibration, sample size and star-feature
+  coverage overall and by exact mode/distance cell.
+- Keep synthetic evaluation non-dispositive: it cannot self-pass Gate C or enable
+  actionable Discovery recommendations.
