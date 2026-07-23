@@ -653,7 +653,7 @@ $idempotence_assertions$;
 DO $scale_failure$
 BEGIN
   BEGIN
-    PERFORM dna.exact_decimal_to_atomic(0.001, 2);
+    PERFORM dna.exact_decimal_to_atomic(0.001, 2::smallint);
     RAISE EXCEPTION 'expected exact asset-scale failure was not raised';
   EXCEPTION
     WHEN OTHERS THEN
