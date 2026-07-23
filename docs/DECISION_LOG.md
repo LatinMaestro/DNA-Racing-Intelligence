@@ -370,3 +370,78 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 Vault role and depth analysis
+
+- Measure Vault depth by exact strategic role, mode and distance; do not merge
+  Bike, Car and Horse or different exact distances.
+- Count only supported evidence meeting an explicit credible-strength threshold.
+  Unresolved roles remain visible but do not manufacture depth.
+- Raise a redundancy review only when every supported role for a core has the
+  configured number of credible alternatives.
+- Protect unique roles, Maiden reserves, lineage anchors and exceptional-upside
+  evidence regardless of category saturation.
+- Treat duplicate coverage as context rather than a sell or burn conclusion.
+  This analysis remains non-actionable and cannot mutate the Vault.
+
+## 2026-07-23 — Phase 7 lifecycle evidence protection
+
+- Evaluate lifecycle evidence only for cores confirmed in the active Vault;
+  inactive cores remain historical and cannot receive an active recommendation.
+- Permanently prohibit burning Genesis cores.
+- Protect eligible or unresolved Maiden, Discovery, racing, breeding and
+  lineage value before considering sale or burn.
+- Hold stale, unknown or incomplete evidence rather than converting missing
+  information into a negative conclusion.
+- Preserve no-star and Gold-ineligible absence as supporting context only. They
+  can never cause a burn or disposal conclusion without independent non-star
+  evidence.
+- Keep this projection non-mutating and review-only. It cannot sell, burn,
+  change ownership, record BGC or post ledger activity.
+
+## 2026-07-23 — Phase 7 lifecycle action ranking
+
+- Compare race, discover, reserve-Maiden, breed, hold, sell and burn using
+  explicit audited evidence for every active core.
+- Preserve equal scores as ties and return insufficient evidence rather than
+  silently resolving the tie through display order.
+- Hold stale, incomplete or protection-blocked evidence before action ranking.
+- Require confirmed ME, a viable Discovery path and confirmed market evidence
+  for their respective strategic actions.
+- Keep Genesis burn forbidden and require independent non-star negative evidence
+  before a spliced core can enter burn review.
+- Keep sell and burn review-only. The ranking cannot execute an action, mutate
+  source facts, record a burn credit or post ledger activity.
+
+## 2026-07-23 — Phase 7 core-sale evidence
+
+- Recognise a core sale only from confirmed completed evidence and confirmed
+  active ownership at the sale time; strategic advice is never execution proof.
+- Preserve exact proceeds and selling fees by original asset.
+- Calculate realised result only with known same-asset cost basis and fees.
+- Keep proceeds visible while marking gain/loss unavailable when cost basis is
+  missing, and never infer an unsold or sold core's market value.
+- Produce review postings only; do not list, transfer, sell, mutate ownership or
+  post a hosted ledger entry.
+
+## 2026-07-23 — Phase 7 core-burn event
+
+- Permanently reject Genesis burns.
+- Recognise an irreversible spliced-core burn only from confirmed completed
+  evidence and confirmed active ownership at the event time.
+- Retain every burnt core in historical lineage and propose active-Vault removal
+  only for review; never mutate ownership automatically.
+- Keep strategic advice, actual burn execution and any later BGC credit as
+  separate evidence.
+- Do not predict burn credit, execute a burn or post a ledger transaction.
+
+## 2026-07-23 — Phase 7 burn-credit reconciliation
+
+- Keep strategic burn advice, confirmed burn execution and actual BGC credit as
+  three separate evidence boundaries.
+- Propose a credit posting only when one confirmed positive BGC record explicitly
+  references the same confirmed burn and core after the burn time.
+- Keep core/date candidates, mismatches, provisional records and multiple direct
+  credits review-required; never auto-exclude a candidate.
+- A missing credit remains missing and no burn-credit amount is predicted.
+- Do not mutate the burn event or post a hosted ledger entry.
