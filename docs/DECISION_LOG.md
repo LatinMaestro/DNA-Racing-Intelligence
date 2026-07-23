@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A manual tournament payout allocation
+
+- Preserve a manual game-owner prize as operating income in its original crypto or fiat asset and always require duplicate/reconciliation review.
+- Permit genuine tournament- or vault-level prizes to remain unallocated rather than inventing per-core attribution.
+- Support single-core, equal, exact-amount, exact-percentage and documented-points allocation methods.
+- Require explicit allocations to reconcile exactly to the original payout at the configured asset precision using integer atoms and deterministic largest-remainder apportionment.
+- Use core ID as the deterministic tie-break and reject allocations that cannot give every selected core a positive amount at the asset precision.
+- Keep BGC outside manual tournament payouts and in its separate game-credit ledger.
