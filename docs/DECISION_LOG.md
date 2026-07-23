@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 breeding economic evidence
+
+- Create breeding-economic posting proposals only from an authoritative
+  transaction export or a reasoned manual confirmation of completed activity.
+- Never infer a completed splice, income or operating profit from an arena
+  listing.
+- Keep DNA, external-owner, BGC, earned-fee and refund categories explicit and
+  preserve exact original-asset amounts without combining currencies.
+- Hold failed, pending and unknown activity without postings; refunded evidence
+  may contain only confirmed credit refunds.
+- The contract is review-only and cannot mutate the ledger or initiate wallet
+  or game transactions.
