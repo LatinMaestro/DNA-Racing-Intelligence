@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery path review
+
+- Keep elapsed-time evidence primary in early continue/stop review; thresholds are explicit versioned inputs.
+- Permit early strong-field star evidence to support continued review below the minimum sample, but never let stars override materially weak time.
+- Require the minimum direct sample plus weak time evidence before producing even a non-actionable stop candidate.
+- Treat no-star evidence as non-dispositive, hold time/star mismatches for review, and fail closed on stale or unknown-cutoff evidence.
+- Keep all outputs experimental and non-actionable until Gate C passes.
