@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A core economic profiles
+
+- Include only exact transaction amounts explicitly allocated to the selected authoritative core ID; never repeat a shared transaction's full amount across related cores.
+- Keep related vault-level activity visible as unallocated evidence without adding it to per-core totals.
+- Separate open racing, tournament, breeding, acquisition, sale, selling-fee, burn-credit and other lifecycle components by original asset.
+- Keep BGC separate and limit it to actual allocated breeding spend and manually recorded burn credits in the core profile.
+- Calculate realised core-trading result only when cost-basis coverage is explicitly known in the same asset; otherwise show proceeds and a missing-or-unconvertible cost-basis warning.
+- Exclude unsold-core estimates, combined unlike-asset totals and complete-lifetime-profit claims.
