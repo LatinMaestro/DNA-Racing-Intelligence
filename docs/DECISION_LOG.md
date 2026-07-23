@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 burn-credit reconciliation
+
+- Keep strategic burn advice, confirmed burn execution and actual BGC credit as
+  three separate evidence boundaries.
+- Propose a credit posting only when one confirmed positive BGC record explicitly
+  references the same confirmed burn and core after the burn time.
+- Keep core/date candidates, mismatches, provisional records and multiple direct
+  credits review-required; never auto-exclude a candidate.
+- A missing credit remains missing and no burn-credit amount is predicted.
+- Do not mutate the burn event or post a hosted ledger entry.
