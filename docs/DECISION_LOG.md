@@ -370,3 +370,18 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 chronological pre-race field context
+
+- Build historical opponent context only from performance and star evidence with
+  an event timestamp strictly earlier than the event being assessed.
+- Exclude the target event, simultaneous events and all later races, and expose
+  excluded-evidence counts so the no-leakage boundary is auditable.
+- Match opponent history only by authoritative core ID, mode and exact distance.
+  Never merge Bike, Car and Horse, adjacent distances or the entered core's own
+  history into opponent field evidence.
+- Expose each opponent's prior race count, best/median elapsed time, latest prior
+  event and prior Gold/Blue profile, plus complete/partial/unavailable coverage.
+- Keep missing opponents missing rather than treating them as average or weak.
+- Leave strong, weak and elite field bands unclassified until a benchmark frozen
+  at the historical cutoff is supplied and chronologically validated.
