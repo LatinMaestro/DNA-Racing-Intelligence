@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A Vault Performance summary
+
+- Aggregate only included immutable ledger evidence inside the selected period.
+- Keep ETH, DEZ, fiat assets and BGC separate; no combined-asset total is available and BGC never enters cash/crypto profit.
+- Show open racing, qualification, later tournament stages, manual prizes, breeding, core trading and other lifecycle activity as distinct exact totals.
+- Exclude deposits, withdrawals, internal transfers, opening balances and reconciliation adjustments from operating cashflow.
+- Withhold realised core-trading results whenever a sale lacks known same-asset cost-basis evidence.
+- Keep reports partial for incomplete coverage, unknown manual payouts, unresolved classifications or reconciliation, missing cutoffs or stale imports.
+- Never permit the recorded-period summary to be described as lifetime profit.
