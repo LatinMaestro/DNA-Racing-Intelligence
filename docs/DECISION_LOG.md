@@ -370,3 +370,19 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 tournament configuration contract
+
+- Represent tournament qualification as owner-entered tournament and bracket
+  rules rather than hardcoded examples.
+- Preserve mode, exact distances, gate count, exact fee/asset, eligibility,
+  leaderboard split, minimum sample, ranking metric and qualification threshold
+  independently for each bracket.
+- Support shared, separate and unknown qualification race pools. Unknown or
+  uncertain rules remain review-required, and a declared shared pool must link
+  at least two brackets.
+- Normalize entry fees and points as exact base-10 decimals and fail closed on
+  malformed, negative, overlapping or internally inconsistent rules.
+- Do not rank cores, allocate entries, classify imported races or target the
+  50% gate cap in this contract. Gate C evidence and later Phase 4 contracts
+  remain required before actionable qualification recommendations.
