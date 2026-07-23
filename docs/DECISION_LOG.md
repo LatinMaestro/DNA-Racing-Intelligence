@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 core-burn event
+
+- Permanently reject Genesis burns.
+- Recognise an irreversible spliced-core burn only from confirmed completed
+  evidence and confirmed active ownership at the event time.
+- Retain every burnt core in historical lineage and propose active-Vault removal
+  only for review; never mutate ownership automatically.
+- Keep strategic advice, actual burn execution and any later BGC credit as
+  separate evidence.
+- Do not predict burn credit, execute a burn or post a ledger transaction.
