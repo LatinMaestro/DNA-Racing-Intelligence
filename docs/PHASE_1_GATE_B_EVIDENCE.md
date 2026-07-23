@@ -1,7 +1,7 @@
 # Phase 1 Gate B Evidence and Client Handoff
 
 Date: 23 July 2026  
-Gate status: **not yet accepted**  
+Gate status: **owner decisions received; implementation evidence pending**  
 Production: disabled and fail-closed
 
 ## Purpose
@@ -53,39 +53,25 @@ Official pricing checked on 23 July 2026:
 - [Cloudflare R2 Standard](https://developers.cloudflare.com/r2/pricing/) includes 10 GB-month storage, one million Class A operations and ten million Class B operations monthly.
 - [Neon Free](https://neon.com/pricing) includes 0.5 GB storage and 100 CU-hours per project monthly; Launch is usage-based and Neon describes an intermittent 1 GB workload as typically about US$15/month.
 
-The detailed PostgreSQL model retains normalized rows, immutable acceptance facts and provenance in addition to the raw exports. The supplied private capacity profile must not be committed, but it indicates that the Neon 0.5 GB allowance cannot safely be assumed sufficient. No paid plan or architecture change is authorised by this document.
+The owner has approved the zero-cost architecture amendment: detailed private history will use private R2/Parquet while Neon Free retains application state, manifests, exact economic entries, cached rates and compact aggregates. Imports must stop before activation if projected usage exceeds a published free allowance; no paid tier may be enabled automatically.
 
-## Evidence still required
+## Owner decisions received
 
-### 1. Authoritative Race Merge economic semantics
+### Authoritative Race Merge semantics
 
-The source fee, payout, prize and asset fields cannot safely enter P/L until the owner provides an authoritative export legend or confirms, for every field:
+The owner confirms that `rpayout` is the payout mechanism label, `rfee` is the per-core entry fee, `prize` is the per-core gross payout, `toke_curr` is ETH or DEZ, and `r_tags` carries restrictions. Numeric zero is authoritative; blank, malformed, missing and negative values remain review-required. ETH/DEZ amounts must be preserved and valued in USD using the event UTC day's stored rate. BGC is separate, used for breeding/burning and has a USD 1 = BGC 1 reference conversion.
 
-- asset or currency;
-- integer/decimal unit and precision;
-- whether the value is per entry, per core or per event;
-- debit/credit direction and sign convention;
-- gross versus net treatment;
-- included race/tournament stages;
-- refund and reversal representation; and
-- the meaning of zero, blank and missing values.
+### Preview storage choice
 
-This answer materially changes financial totals and cannot be inferred.
+The owner approves private R2/Parquet for detailed history and Neon Free for application state and compact aggregates. The GroveKind domain is unrelated and will not be attached. Production remains disabled.
 
-### 2. Preview storage choice and cost approval
+## Evidence still required before the first full private hosted import
 
-Choose one path after reviewing the private capacity estimate:
-
-- approve a capped usage-based Neon Preview database and its maximum monthly spend; or
-- approve a documented architecture amendment that keeps detailed normalized history in private R2 analytical storage and only application state/aggregates in Neon.
-
-The second option is a material architecture change and requires explicit approval before implementation.
-
-### 3. Client-owned Preview configuration
-
-After items 1 and 2 are resolved, the owner must create or grant access to the approved Preview-only Clerk, Neon, private R2 and Vercel resources and add their secrets through provider dashboards. Secrets must never be pasted into Git, source files, PR comments or chat output.
-
-The first private upload remains a deliberate client action. Production, custom domains and recurring paid infrastructure remain separately gated by Gate F.
+- exact economic adapter, deduplication and USD-rate tests merged on the repository head;
+- reversible hosted manifest/rate/economic materialization evidence;
+- private R2, Neon, Clerk and Vercel Preview configuration verified without exposing secrets;
+- a sanitized representative capacity measurement within free allowances; and
+- confirmation that missing historical rates produce partial USD coverage rather than fabricated values.
 
 ## Work unlocked
 
