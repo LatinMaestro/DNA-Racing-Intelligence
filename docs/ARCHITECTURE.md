@@ -234,3 +234,32 @@ Gate A is accepted for:
 - the cost envelope.
 
 This acceptance authorises Phase 1 repository and synthetic-data work. Provider account configuration, secrets, paid activation and full private-data upload remain subject to their separate client-action and Gate B requirements.
+
+## 2026-07-23 Gate B storage and valuation amendment
+
+The owner requires the existing GitHub, Vercel, Neon and Cloudflare stack to remain within published free allowances and has approved the R2 analytical-storage path.
+
+### Detailed-history placement
+
+- Private Cloudflare R2 stores encrypted-at-rest raw uploads and partitioned Parquet detail/analytical files.
+- Neon Free stores owner/application state, import manifests, object checksums and partitions, identity/reconciliation queues, exact economic ledger entries, cached daily rates and compact aggregates.
+- The hosted batch worker reads only the required private R2 partitions and writes compact Neon results. Routine Vercel requests never scan multi-million-row CSV or Parquet history.
+- Object keys are opaque and owner-scoped. Buckets are private, public access is disabled and signed access is short-lived and server-generated.
+- A dataset version is not active until every expected object checksum and compact Neon manifest is committed. Rollback moves the selected manifest pointer; immutable prior objects remain recoverable pending explicit deletion.
+- No GroveKind or other custom domain is attached. The application remains a protected Vercel Preview and Production stays fail-closed.
+
+This amendment replaces the assumption that every normalized historical entry must be retained as a durable Neon row. Existing PostgreSQL migrations remain the executable contract and synthetic proof for relational invariants; the hosted detailed-history adapter will materialize equivalent owner-scoped facts in Parquet while Neon retains only data requiring transactional application behavior.
+
+### Free-tier guardrail
+
+The target is US$0, not an unconditional claim that providers can never charge. Imports must estimate projected R2 storage/operations and Neon aggregate growth before activation. If a published free allowance would be exceeded, the job stops before upload/activation and reports the estimate; it cannot opt into a paid tier automatically.
+
+### Historical USD rates
+
+- Preserve ETH and DEZ source amounts exactly.
+- Cache one auditable USD-per-asset rate for each UTC event date.
+- Use background CoinGecko historical endpoints initially; identify ETH as `ethereum` and pin DEZ to Polygon contract `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`.
+- Provider responses are validated and converted to exact decimal text before persistence.
+- Missing, rate-limited or unavailable dates remain explicit gaps. Routine pages use cached rates only.
+- Provider adapters are replaceable and manual corrections create superseding records.
+- CoinGecko's free historical window is limited; dates outside available free coverage require an owner-supplied rate file or another approved free authoritative source. No paid market-data plan is enabled automatically.
