@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A tournament campaign economics
+
+- Aggregate only included operating records linked to the selected tournament and inclusive campaign period.
+- Keep qualification fees, qualification payouts, automated round/final payouts, manual prizes and campaign expenses visible as separate components.
+- Preserve exact original-asset values, keep BGC separate and never provide a combined unlike-asset total.
+- Retain vault-level tournament prizes as unallocated campaign evidence instead of inventing per-core attribution.
+- Expose inferred or unclassified activity, unresolved reconciliation, source-coverage gaps, manual-payout uncertainty and an unknown data cutoff.
+- `complete_recorded_period` applies only to the stated recorded coverage and never permits a complete-lifetime-profit claim.
