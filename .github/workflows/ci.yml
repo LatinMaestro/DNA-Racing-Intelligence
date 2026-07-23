@@ -86,6 +86,55 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.up.sql
       - name: Run current-snapshot materialization smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.smoke.sql
+      - name: Apply race-economics storage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economics_storage.up.sql
+      - name: Run race-economics storage smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economics_storage.smoke.sql
+      - name: Reverse race-economics storage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economics_storage.down.sql
+      - name: Verify race-economics storage removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \\$\\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'exact_decimal_to_atomic',
+          'race_economic_natural_key',
+          'materialize_owned_race_economics',
+          'record_daily_usd_rate',
+          'refresh_race_usd_valuations',
+          'rollback_active_dataset_pre_economics'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'daily_usd_rate',
+          'race_economic_contribution',
+          'economic_transaction_usd_valuation',
+          'current_race_economic_usd',
+          'race_economic_usd_coverage'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND (
+          (table_name = 'normalized_race_staged_fact'
+          AND column_name IN (
+          'race_asset',
+          'entry_fee_amount',
+          'gross_payout_amount',
+          'payout_mechanism_source_value',
+          'race_tags_source_value'
+          ))
+          OR (table_name = 'race_entry_source'
+          AND column_name = 'raw_race_tags')
+          )
+          ) THEN RAISE EXCEPTION 'race-economics storage objects still exist';
+          END IF; END \\$\\$;"
       - name: Reverse current-snapshot materialization migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0008_snapshot_materialization.down.sql
       - name: Verify current-snapshot materialization removal
