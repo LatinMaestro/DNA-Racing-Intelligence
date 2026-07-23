@@ -14,8 +14,7 @@ export type PerformanceObservation = {
 };
 
 export type PerformanceSampleStatus =
-  | "hypothesis_only"
-  | "minimally_analytical";
+  "hypothesis_only" | "minimally_analytical";
 
 export type CorePerformanceProfile = {
   coreId: string;
@@ -66,7 +65,10 @@ function assertObservation(observation: PerformanceObservation): void {
   }
 }
 
-function quantile(sortedValues: readonly number[], probability: number): number {
+function quantile(
+  sortedValues: readonly number[],
+  probability: number,
+): number {
   if (sortedValues.length === 0)
     throw new Error("A quantile requires at least one value.");
 
@@ -112,9 +114,7 @@ function summarize(
       : sortedElapsed;
   const meanElapsed = mean(sortedElapsed);
   const standardDeviation = Math.sqrt(
-    mean(
-      sortedElapsed.map((elapsed) => (elapsed - meanElapsed) ** 2),
-    ),
+    mean(sortedElapsed.map((elapsed) => (elapsed - meanElapsed) ** 2)),
   );
   const dataCurrentThrough = observations.reduce(
     (latest, observation) =>
@@ -201,7 +201,9 @@ export function buildCorePerformanceProfiles(
   }
 
   return [...groupedObservations.entries()]
-    .map(([key, group]) => summarize(group, starsByProfile.get(key) ?? null, now))
+    .map(([key, group]) =>
+      summarize(group, starsByProfile.get(key) ?? null, now),
+    )
     .sort(
       (left, right) =>
         left.coreId.localeCompare(right.coreId) ||
