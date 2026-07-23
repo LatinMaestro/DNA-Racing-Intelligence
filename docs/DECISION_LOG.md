@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 snapshot freshness validation
+
+- Keep historical coverage, import completion and aggregate refresh timestamps
+  separate.
+- Calculate freshness from `Data current through`, never from import time.
+- Preserve not-imported and unknown-coverage states rather than inventing a
+  current date.
+- Use configurable current, ageing and stale thresholds with exact boundary
+  behaviour.
+- Freshness may lower confidence or require review but cannot alter accepted
+  historical facts or create a live-state claim.
