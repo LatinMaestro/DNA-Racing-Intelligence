@@ -509,3 +509,22 @@ Implementation sequencing:
 - Validation must include reconciliation and multi-currency accounting controls.
 
 Where this document adds requirements not yet listed in `docs/MASTER_SPECIFICATION.md`, these requirements are approved and must not be omitted.
+
+## 17. Owner-approved USD race reporting
+
+In addition to original-asset reporting, the website must show ETH and DEZ race fees, prizes and net results in USD using the stored rate for each race's UTC calendar day.
+
+This is a valuation layer, not a replacement for the original ledger:
+
+- retain exact ETH/DEZ amounts and asset-separated totals;
+- retain the daily USD-per-token rate, rate date, source and retrieval metadata;
+- calculate converted amounts with exact decimal arithmetic;
+- use the same asset/date rate for every race on that UTC day;
+- display missing-rate coverage explicitly;
+- never fall back to the current token price for a historical race;
+- permit auditable manual correction or provider supersession; and
+- label aggregate USD totals partial when any included original-asset amount lacks a valid daily rate.
+
+The initial historical-rate source is CoinGecko, with ETH identified by coin ID `ethereum` and DEZ pinned to Polygon contract `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`. Rates are fetched during background import processing and cached, not queried from routine page rendering.
+
+The owner confirms BGC has a USD 1 = BGC 1 reference conversion. BGC must still be reported as a separate in-game-credit ledger. A USD-equivalent BGC view may be shown separately, but BGC must not be silently included in ETH/DEZ racing profit or total recorded crypto cashflow.
