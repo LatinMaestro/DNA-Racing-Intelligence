@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 historical-snapshot presentation audit
+
+- Require historical-snapshot, data-current-through, last-imported and
+  freshness labels on imported analytical surfaces.
+- Reject affirmative claims that periodic imported opponents, fields, Arena
+  listings, Vault state or recommendations are live, real-time or up to date.
+- Permit explicit negative disclosures explaining that the application is not
+  live.
+- Require Open Race to distinguish manually entered current-field information
+  from imported historical evidence.
+- A wording audit cannot establish analytical correctness, live integration,
+  Production approval or Gate C acceptance.
