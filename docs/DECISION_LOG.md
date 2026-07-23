@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race field input
+
+- Treat Stage A race parameters and already-entered opponents as manually
+  supplied current-field facts.
+- Require the entered-opponent count plus available gates to equal the stated
+  gate count.
+- Hold unresolved identities, uncertain restrictions and stale or unknown
+  historical evidence for review.
+- Preserve exact entry-fee text and keep it separate from selection quality.
+- Keep imported profile freshness and manual capture time distinct.
+- Make current-race Gold and Blue stars structurally unavailable while the field
+  is forming. The contract cannot fetch game state, reserve a gate or enter a
+  race.
