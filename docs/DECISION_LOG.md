@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 9 field-relative star validation
+
+- Validate strong-field star and weak-field eligible no-star evidence only when
+  field quality and all analytical features predate the event.
+- Distinguish a star assigned to another core from an event where no star was
+  assigned; only the former is an assignment-opportunity comparison.
+- Exclude Gold evidence at three gates or fewer while leaving Blue independent.
+- Keep mode and exact distance separate, require minimum samples on both sides
+  and exclude incomplete source evidence.
+- Report associations only. No-star evidence cannot independently stop
+  Discovery, recommend burn, self-accept Gate C or enable another action.
