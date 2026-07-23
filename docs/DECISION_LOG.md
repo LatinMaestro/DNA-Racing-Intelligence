@@ -313,3 +313,14 @@
 - The owner approves private Cloudflare R2/Parquet for detailed race history and Neon Free for application state, manifests, exact economics, daily-rate cache and compact aggregates.
 - Imports must stop before exceeding a published free allowance and must never enable a paid tier automatically.
 - Do not attach the GroveKind domain. Keep the DNA site on protected Vercel Preview and Production fail-closed.
+
+## 2026-07-23 — Exact race-economics domain contract
+
+- Validate Race Merge fee/prize/asset data independently from structural race validity so malformed economics cannot erase legitimate performance history.
+- Normalize only ETH and DEZ as racing assets. Keep BGC outside race-derived transactions.
+- Derive no transaction from `rpayout`; it remains the payout-mechanism label.
+- Create at most one negative fee transaction and one positive payout transaction for an accepted owned-core entry, using existing stable economic keys.
+- Omit zero-value ledger rows while preserving authoritative zero source values.
+- Use exact decimal strings and `BigInt` arithmetic for transformations and USD multiplication.
+- Key rates by the event's UTC calendar date. A missing rate returns unavailable rather than falling back or interpolating.
+- Pin provider series identities to CoinGecko Ethereum and the confirmed Polygon DEZ contract.
