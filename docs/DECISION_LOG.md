@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 tournament entry allocation contract
+
+- Allocate only the explicitly requested initial probe races for reviewable
+  candidates. Never add entries merely to consume spare capacity.
+- Enforce the owner-confirmed 50% rule as a hard maximum using the whole-number
+  floor of configured gates. Existing planned owned entries count toward it.
+- Keep one core to at most one entry per planned race and preserve any excess
+  request as unallocated rather than weakening the cap.
+- Exclude held, ineligible and `preserve ME` candidates from allocation.
+- Require current-field confirmation for every plan because imported history
+  cannot establish live occupancy or outside entries.
+- Keep the result review-only and incapable of an automatic game action. Gate C
+  remains mandatory before actionable Auto-Entry guidance.
