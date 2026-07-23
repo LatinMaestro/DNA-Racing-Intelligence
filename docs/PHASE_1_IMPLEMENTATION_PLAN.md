@@ -49,7 +49,7 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - deterministic, idempotent star-profile refresh with explicit denominators
      — provider-independent contract and PostgreSQL aggregate materialization complete;
    - manual-observation reconciliation without duplicate evidence — complete;
-   - race fee/payout quarantine until source semantics are validated;
+   - race fee/payout source semantics, exact ledger materialization and UTC-daily USD valuation — complete;
    - lineage graph and family-restriction validation — complete.
 
 6. **Private import UI and recovery — in progress**
@@ -60,12 +60,12 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
    - rollback and reconciliation queue projection — complete;
    - authenticated mutations and persistent Preview verification — pending.
 
-7. **Phase 1 verification and Gate B evidence — client action required**
+7. **Phase 1 verification and Gate B evidence — provider setup pending**
    - repeated-import, rollback, anomaly, freshness, observation and economic-key tests — complete;
    - migration, security, build and accessibility checks — complete;
    - synthetic representative import evidence — complete;
-   - source fee/payout semantics — awaiting authoritative owner confirmation;
-   - Preview storage path and maximum spend — awaiting owner approval;
+   - source fee/payout semantics and zero-fee Preview storage path — owner-confirmed;
+   - Preview storage path — private R2/Parquet plus Neon Free, with fail-closed usage limits;
    - exact client actions for Preview-only Clerk, Neon, R2 and Vercel — documented;
    - no full private-data upload until Gate B is satisfied.
 

@@ -324,3 +324,18 @@
 - Use exact decimal strings and `BigInt` arithmetic for transformations and USD multiplication.
 - Key rates by the event's UTC calendar date. A missing rate returns unavailable rather than falling back or interpolating.
 - Pin provider series identities to CoinGecko Ethereum and the confirmed Polygon DEZ contract.
+
+## 2026-07-23 — Race-derived ledger and daily-rate persistence
+
+- Decision: materialize non-zero `rfee` and `prize` values as exact, signed,
+  owner-scoped race transactions after dataset acceptance.
+- Decision: retain `rpayout` and `r_tags` as separate source labels; neither is
+  interpreted as an amount.
+- Decision: keep the generic ledger category until race-format-specific accounting
+  classification is independently validated, while using source-confirmed
+  `race_entry_fee` and `race_prize` subcategories.
+- Decision: accept one immutable USD rate per owner, asset and UTC date, with exact
+  provider provenance and explicit missing-rate coverage.
+- Decision: BGC remains excluded from race-derived economics and no current-price
+  fallback, interpolation or page-time quote call is permitted.
+- Evidence: migration 0009 and its synthetic PostgreSQL smoke test.
