@@ -347,3 +347,14 @@
 - Use the TypeScript stable race-economic natural key and an immutable batch-contribution layer so cumulative replay and dataset rollback cannot double count.
 - Permit auditable provider supersession and manual correction of a UTC-daily rate while retaining prior rates and valuations as non-current history.
 - Keep exact original-asset values authoritative and mark USD coverage partial whenever an active transaction lacks a current daily rate.
+
+## 2026-07-23 — Phase 2 core performance contract
+
+- Begin Phase 2 repository work while the first full private hosted import remains separately gated by Preview provider configuration and capacity evidence.
+- Accept performance observations only after elapsed time has been normalized to a positive integer millisecond value; do not guess the legacy source unit inside the analytical profile.
+- Key every profile by authoritative core ID, mode and exact distance. Bike, Car and Horse evidence and different exact distances never merge.
+- Keep fewer than 10 races hypothesis-only and label 10 or more minimally analytical rather than proven.
+- Expose best, median, mean, trimmed mean, population standard deviation, interquartile range and derived speed with transparent formulas and higher-speed/lower-time direction.
+- Link Gold/Blue evidence only from the matching core, mode and exact-distance profile while preserving eligibility, numerators, denominators and anomaly coverage.
+- Keep every profile experimental until Gate C chronological holdout, baseline and calibration evidence passes. Synthetic verification cannot establish analytical success.
+- Expose the historical data cutoff and freshness state; never describe the result as live.
