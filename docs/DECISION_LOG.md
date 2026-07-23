@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 import recovery validation
+
+- Audit recovery evidence without executing rollback, source deletion or Production mutation.
+- Require exactly one active accepted batch and keep a newer quarantined attempt isolated from accepted facts and freshness.
+- Permit only a reasoned rollback to a prior accepted same-owner/source version while retaining batch and contribution provenance.
+- Require an exact replay to resolve the existing version with zero new contributions.
+- Require a new aggregate refresh after recovered facts change; never carry forward an obsolete completion state.
+- Synthetic validation cannot accept Gate B.
