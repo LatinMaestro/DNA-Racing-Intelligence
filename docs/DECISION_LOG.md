@@ -324,3 +324,11 @@
 - Use exact decimal strings and `BigInt` arithmetic for transformations and USD multiplication.
 - Key rates by the event's UTC calendar date. A missing rate returns unavailable rather than falling back or interpolating.
 - Pin provider series identities to CoinGecko Ethereum and the confirmed Polygon DEZ contract.
+## 2026-07-23 — Reversible race economics and daily USD storage
+
+- Materialize personal race fees and payouts only for cores confirmed in the current Vault identity review; competitors' race rows cannot enter owner P/L.
+- Require authoritative ETH/DEZ atomic scales and reject excess source precision rather than rounding or guessing.
+- Persist stable race-derived economic transactions plus immutable batch contributions carrying payout-mechanism and race-tag provenance.
+- Store daily rates as superseding history keyed by owner, asset and UTC date, with pinned CoinGecko identities or explicit manual overrides.
+- Preserve unrounded exact USD multiplication and expose incomplete coverage whenever any active transaction lacks a rate.
+- Deselect rolled-back batch contributions and exclude a transaction only when no accepted contribution remains.
