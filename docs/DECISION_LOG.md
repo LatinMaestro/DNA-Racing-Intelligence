@@ -370,3 +370,20 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 tournament candidate ranking contract
+
+- Order candidates only by the bracket's configured qualification-metric rank
+  within the same leaderboard group.
+- Keep historical Gold/Blue evidence as supporting rationale only. It cannot
+  improve rank or override materially weak time evidence.
+- Hold incomplete, unresolved, low-confidence, stale or unknown-cutoff evidence
+  outside the review order rather than forcing a recommendation.
+- Label a Maiden-eligible core reserved for a stronger projected mode
+  `preserve ME`, even when it ranks strongly in the available bracket.
+- Preserve data-current-through, last-imported and freshness separately and
+  reject duplicated identities, duplicated group ranks and inconsistent metric
+  availability.
+- Keep all output historical, experimental and non-actionable. Current-field
+  claims, Auto-Entry and final Maiden entry decisions remain unavailable until
+  their mandatory Gates C and D evidence passes.
