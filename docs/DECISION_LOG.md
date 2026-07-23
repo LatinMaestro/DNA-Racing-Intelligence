@@ -370,3 +370,13 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2A asset-separated reporting completeness
+
+- Aggregate included ledger records with exact decimal arithmetic by original asset; never expose an unsupported combined cross-asset total.
+- Keep BGC in a separate game-credit result and restrict the BGC-movement scope to BGC records. Do not apply its reference USD equivalent silently.
+- Exclude non-operating deposits, withdrawals, transfers, opening balances and reconciliation movements from activity cashflow.
+- Classify a report as partial for incomplete period coverage, unknown cutoffs or manual payouts, unclassified activity, unresolved reconciliation, scope-relevant missing cost basis/opening balance or missing conversion rates.
+- Use estimated only when evidence is otherwise complete and an explicitly requested converted view uses estimated rates.
+- Retain data-current-through, last-imported, excluded-record count and warnings; never authorize a complete lifetime-profit claim from this contract.
+
