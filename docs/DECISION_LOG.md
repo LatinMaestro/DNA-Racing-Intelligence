@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 whole-vault Maiden allocation
+
+- Allocate review candidates across the entire Vault with one entitlement per
+  core and explicit bracket capacity.
+- Maximise the total configured projected value rather than using a
+  core-by-core greedy choice.
+- Exclude `preserve ME`, held, stale, incomplete, uncertain-bracket and
+  unavailable-entitlement candidates.
+- Treat all assignments as provisional historical-review output. Do not infer
+  live occupancy, mutate ME inventory, commit a core or execute an entry.
+- Require Gates C and D plus live-field confirmation before activation.
