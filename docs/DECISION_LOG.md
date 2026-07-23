@@ -370,3 +370,10 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 Discovery probe planning
+
+- Treat targeted probes as an experimental evidence-review queue until Gate C; do not issue an entry, spending or stop instruction.
+- Keep Bike, Car and Horse separate by exact distance and preserve the 10-race minimum as a coverage boundary rather than proof.
+- Use resolved lineage, tournament relevance and Maiden status only to prioritise review of evidence gaps; direct time evidence remains primary.
+- Defer stale, unknown-cutoff and unresolved-Maiden candidates, and warn before any action could commit Maiden eligibility.
