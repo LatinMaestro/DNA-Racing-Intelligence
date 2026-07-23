@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 chronological breeding lift evaluation
+
+- Compare a time-plus-star candidate with both time-only and lineage baselines
+  on identical chronological holdout rows.
+- Require feature cutoffs and prediction creation to precede or occur no later
+  than breeding, and require authoritative outcomes to follow breeding.
+- Exclude incomplete star features from all three model comparisons rather than
+  changing the evaluation population between models.
+- Report Brier and calibration evidence by exact mode and distance, with
+  configured minimum sample and improvement thresholds.
+- A supported cell is only a Gate E review candidate. Synthetic evaluation
+  cannot establish predictive lift, inherited star propensity or a breeding
+  recommendation.
