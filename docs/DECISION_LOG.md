@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+
+## 2026-07-24 — Staged roadmap integration handoff
+
+- The approved Build Plan ends at Phase 9. Integration closeout must not invent a Phase 10.
+- Use nine phase-level integration branches as the canonical unpublished merge inputs for Phase 2 through Phase 9.
+- The integrations preserve 70 validated standalone contracts across 210 unique domain, synthetic-test and specification paths.
+- The only cross-phase changed-path overlap is the append-only `docs/DECISION_LOG.md`; compose its sections in phase order.
+- Keep draft PR #29 (TSX test discovery) and draft PR #28 (current Vault registry) as separate prerequisites before the phase integrations.
+- Prior hosted-workspace checks and byte-equality audits are provenance, not substitutes for exact-head GitHub CI.
+- When Actions capacity returns, process #29, #28 and then Phase 2, 2A and 3–9 sequentially, verifying merged `main` after every step.
+- Synthetic validation cannot accept Gates B–F or make recommendations, accounting totals, capacity, security or Production readiness dependable.
+- Production, providers, paid usage, domains and private data remain unchanged and gated.
