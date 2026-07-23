@@ -370,3 +370,68 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 Maiden bracket suitability
+
+- Evaluate Maiden suitability against the configured bracket's actual distances,
+  leaderboard objective, eligibility and tournament structure.
+- Require sufficient time-led evidence and configured-metric fit at every
+  expected distance; missing or weak evidence holds the candidate.
+- Keep Gold/Blue star evidence supporting only and prohibit it from overriding
+  weak time.
+- Preserve an entitlement for weaker modes and retain exact tournament identity
+  for planned or committed states.
+- Keep closed, consumed, ineligible, unresolved and committed-elsewhere outcomes
+  distinct.
+- Treat a fully supported strongest-mode bracket as a non-actionable review
+  candidate until Gates C and D pass.
+
+## 2026-07-23 — Phase 5 Maiden cross-mode comparison
+
+- Compare a Maiden-eligible core across Bike, Car and Horse before identifying a
+  strongest projected mode.
+- Use a configured, versioned time-led projection score with explicit distance,
+  leaderboard objective, tournament-structure, evidence and freshness context.
+- Require credible evidence in all three modes and a material configured gap.
+- Keep historical Gold/Blue evidence and alternative-core scarcity explanatory;
+  neither changes the projection score or rank.
+- Label weaker available Maidens `preserve ME` and wait when the strongest mode
+  has no active tournament.
+- Keep all outputs non-actionable until Gates C and D pass.
+
+## 2026-07-23 — Phase 5 Maiden commitment review
+
+- Require a warning-gated review before any future Maiden commitment and state
+  explicitly that the entitlement is single-use.
+- Treat commitment as reserving one exact tournament. It does not itself prove
+  participation or consume the entitlement.
+- Hold unresolved, incomplete, stale or low-confidence evidence and preserve ME
+  for weaker projected modes.
+- Never redirect an existing plan or commitment to another tournament.
+- Keep the review read-only and non-actionable pending Gates C and D,
+  authenticated persistence and owner acknowledgement.
+
+## 2026-07-23 — Phase 5 Maiden entitlement lifecycle
+
+- Project Maiden inventory from the latest imported historical snapshot through
+  explicit, reasoned and sequential manual lifecycle events.
+- Keep eligible, planned, committed and consumed states distinct. Planning,
+  commitment, release and consumption must retain the same tournament identity.
+- Reject manual overlays that predate the imported snapshot cutoff.
+- Do not plan from unknown, invalid or ineligible snapshot evidence and do not
+  silently restore a consumed entitlement.
+- Keep data cutoff, import time and freshness separately auditable.
+- Treat the lifecycle as state evidence only; it cannot recommend or execute a
+  Maiden entry before Gate D.
+
+## 2026-07-23 — Phase 5 whole-vault Maiden allocation
+
+- Allocate review candidates across the entire Vault with one entitlement per
+  core and explicit bracket capacity.
+- Maximise the total configured projected value rather than using a
+  core-by-core greedy choice.
+- Exclude `preserve ME`, held, stale, incomplete, uncertain-bracket and
+  unavailable-entitlement candidates.
+- Treat all assignments as provisional historical-review output. Do not infer
+  live occupancy, mutate ME inventory, commit a core or execute an entry.
+- Require Gates C and D plus live-field confirmation before activation.
