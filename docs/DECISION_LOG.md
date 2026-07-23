@@ -370,3 +370,20 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 star trend candidates
+
+- Summarize validated Gold and Blue assignment frequency by explicit historical
+  period, mode and exact distance with assigned, no-assignment, excluded and
+  opportunity counts.
+- Exclude Gold-ineligible events from Gold opportunity denominators and keep
+  Gold and Blue evidence independent.
+- Keep race outcomes, elapsed times, prizes and future races outside the
+  assignment-frequency trend input.
+- Compare only adjacent configured periods with sufficient opportunities and
+  label threshold crossings as descriptive change candidates, never confirmed
+  hidden-algorithm eras.
+- Keep all trend outputs experimental pending Gate C and Phase 9 chronological
+  stability and predictive-lift evidence.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
