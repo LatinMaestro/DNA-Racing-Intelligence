@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 8 Open Race field lock
+
+- Permit Stage B only after every gate is filled, the user confirms the
+  committed owned core and the game has set the race to run.
+- Preserve the complete entered field, the prior ranking identity, the
+  provisional leader and the user's actual selection without rewriting any
+  pre-entry evidence.
+- Do not require an unselected provisional leader to appear in the locked field.
+- Allow a user-selected alternative or an insufficient-evidence entry to be
+  recorded with an explicit warning rather than inventing a recommendation.
+- Reject current-race stars and race outcomes at the lock transition.
+- After lock, prohibit core switching, replacement recommendations and race
+  entry; only optional observation may follow.
