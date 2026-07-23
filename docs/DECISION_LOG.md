@@ -370,3 +370,11 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 3 unexpected outlier review
+
+- Identify unexpected outlier candidates only from exact-distance time evidence that clears both a versioned elite threshold and a configured gap above prior expectation.
+- Keep single and repeated exceptional observations distinct and never confirm elite quality from a review candidate.
+- Use strong-field stars as supporting context only; stars cannot create an outlier without elite time evidence.
+- Treat missing priors, incomplete observations, stale data and unknown cutoffs explicitly and fail closed where comparison is not auditable.
+- Keep all outputs experimental and non-actionable until Gate C passes.
