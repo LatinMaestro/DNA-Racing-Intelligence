@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Phase 9 prediction calibration
+
+- Compare candidate and simple-baseline probabilities on identical
+  chronological holdout cases.
+- Require every prediction to predate its outcome and reject unpaired or
+  outcome-inconsistent evidence.
+- Use exact basis-point arithmetic for Brier score, calibration bins and
+  expected calibration error.
+- Keep synthetic verification separate from real historical holdout evidence.
+- A calibration report always remains Gate C review evidence and cannot
+  self-authorise analytical recommendations.
