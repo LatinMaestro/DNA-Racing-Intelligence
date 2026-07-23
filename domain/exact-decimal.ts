@@ -27,9 +27,13 @@ function format(parsed: ParsedDecimal): string {
 
   const raw = parsed.digits.toString().padStart(parsed.scale + 1, "0");
   const whole =
-    parsed.scale === 0 ? raw : raw.slice(0, Math.max(1, raw.length - parsed.scale));
+    parsed.scale === 0
+      ? raw
+      : raw.slice(0, Math.max(1, raw.length - parsed.scale));
   const fraction =
-    parsed.scale === 0 ? "" : raw.slice(raw.length - parsed.scale).replace(/0+$/, "");
+    parsed.scale === 0
+      ? ""
+      : raw.slice(raw.length - parsed.scale).replace(/0+$/, "");
   const unsigned = fraction ? `${whole}.${fraction}` : whole;
   return parsed.negative ? `-${unsigned}` : unsigned;
 }
