@@ -358,3 +358,8 @@
 - Link Gold/Blue evidence only from the matching core, mode and exact-distance profile while preserving eligibility, numerators, denominators and anomaly coverage.
 - Keep every profile experimental until Gate C chronological holdout, baseline and calibration evidence passes. Synthetic verification cannot establish analytical success.
 - Expose the historical data cutoff and freshness state; never describe the result as live.
+
+## 2026-07-23 — Race distance unit
+
+- The repository owner confirms that race distance values are measured in metres.
+- Phase 2 derived speed may therefore be labelled in metres per second after elapsed time is validated and normalized to milliseconds.

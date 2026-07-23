@@ -139,6 +139,8 @@ Modes:
 
 A dominant multi-mode racer is rare. Model modes independently.
 
+Race distance values are measured in metres.
+
 Calendar shorthand is confirmed:
 
 - 10 = 1000;

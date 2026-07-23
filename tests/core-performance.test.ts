@@ -80,8 +80,8 @@ describe("Phase 2 core performance profiles", () => {
         meanMilliseconds: 55_000,
       },
       speed: {
-        bestDistanceUnitsPerSecond: 20,
-        medianDistanceUnitsPerSecond: 18.182,
+        bestMetresPerSecond: 20,
+        medianMetresPerSecond: 18.182,
       },
       analyticalStatus: "experimental",
     });
