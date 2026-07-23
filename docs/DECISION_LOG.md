@@ -370,3 +370,23 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 evidence confidence and coverage
+
+- Define confidence as evidence maturity, not predicted racing quality. The
+  confidence projection does not consume elapsed times, speed values, star rates
+  or benchmark percentiles when assigning its level.
+- Keep direct exact-distance sample sufficiency, Gold/Blue coverage and
+  anomalies, benchmark completeness, lineage resolution, freshness and
+  chronological validation as separate auditable components.
+- Treat no direct evidence as insufficient and fewer than 10 exact-distance
+  races as low confidence. Ten races is minimally analytical only and cannot
+  produce high confidence by itself.
+- Require current or ageing data, complete benchmark outcomes and passed
+  chronological holdout, simple-baseline and calibration checks before high
+  confidence is possible.
+- Keep incomplete validation experimental. A validated evidence label is not an
+  actionable recommendation or proof that a core is strong.
+- Preserve missing, partial, invalid and anomalous supporting evidence as
+  explicit warnings. Never turn missing star or lineage evidence into a zero
+  quality assessment.
