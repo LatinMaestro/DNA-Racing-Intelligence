@@ -370,3 +370,19 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 performance benchmarks
+
+- Build historical benchmark distributions separately by mode, exact distance,
+  gate count and preserved format label.
+- Keep elapsed milliseconds authoritative and expose a transparent
+  faster-than-or-equal percentile whose user-facing direction is
+  higher-is-better.
+- Require complete event coverage before creating winner or in-the-money
+  distributions. Partial events may contribute valid time evidence only.
+- Keep in-the-money status explicit and unknown-capable; do not infer it from
+  finishing position or payout-format assumptions.
+- Keep every benchmark experimental until Gate C chronological holdout,
+  baseline, calibration and no-leakage evidence passes.
+- Stage this repository work without a pull request while GitHub-hosted runners
+  are unavailable. Full exact-head CI remains mandatory before merge.
