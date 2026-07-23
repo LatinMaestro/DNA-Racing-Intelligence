@@ -370,3 +370,17 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 6 offspring cost basis
+
+- Permit an optional offspring cost-basis assignment only for confirmed actual
+  pairing costs from a completed breeding event that produced a confirmed owned
+  offspring.
+- Keep DNA, external-owner and BGC costs in their original assets and preserve
+  exact amounts.
+- Link each refund to an included cost in the same asset, reject over-refunds,
+  and prevent one transaction from being assigned twice.
+- Hold proposed, reversed, missing, duplicate or unresolved evidence rather
+  than creating a partial automatic assignment.
+- Never infer market value, combine BGC with cash/crypto or calculate a realised
+  gain from this assignment.
