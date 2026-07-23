@@ -47,12 +47,13 @@ For each profile, the contract calculates:
 - best, median, arithmetic mean and 10%-trimmed mean elapsed time;
 - population standard deviation;
 - interquartile range using linearly interpolated quartiles;
-- best and median speed in metres per second derived from exact distance and
-  elapsed time; and
+- best and median speed equivalents in normalized distance units per second,
+  derived from exact distance and elapsed time; and
 - the latest included event timestamp and freshness state.
 
 Elapsed-time direction remains lower-is-better. Derived speed direction remains
-higher-is-better. Analytical metrics use JavaScript numbers only after monetary
+higher-is-better. The source distance unit is not labelled as metres until it is
+confirmed. Analytical metrics use JavaScript numbers only after monetary
 and token accounting has been separated; exact ETH, DEZ, USD and BGC values
 remain in the exact-value ledger.
 
