@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 distance-band projection
+
+- Build Sprint, Middle and Marathon views as descriptive projections over exact-distance profiles; exact-distance evidence remains primary.
+- Preserve the owner-confirmed inclusive definitions: Sprint 900–1400 m, Middle 1400–1800 m and Marathon 1800–2200 m.
+- Show 1400 m in both Sprint and Middle and 1800 m in both Middle and Marathon, with explicit shared-boundary counts rather than silently selecting one band.
+- Do not pool elapsed times across different distances. Summarize comparable metres-per-second evidence while retaining each exact-distance distribution.
+- Aggregate Gold/Blue evidence only by adding auditable counts and denominators, never by averaging rates.
+- Use the conservative worst freshness represented in the band, retain missing-star and outside-band warnings, and keep all outputs experimental until Gate C.
