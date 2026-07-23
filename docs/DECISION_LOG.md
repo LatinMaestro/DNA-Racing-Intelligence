@@ -370,3 +370,15 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 Maiden commitment review
+
+- Require a warning-gated review before any future Maiden commitment and state
+  explicitly that the entitlement is single-use.
+- Treat commitment as reserving one exact tournament. It does not itself prove
+  participation or consume the entitlement.
+- Hold unresolved, incomplete, stale or low-confidence evidence and preserve ME
+  for weaker projected modes.
+- Never redirect an existing plan or commitment to another tournament.
+- Keep the review read-only and non-actionable pending Gates C and D,
+  authenticated persistence and owner acknowledgement.
