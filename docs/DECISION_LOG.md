@@ -370,3 +370,18 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 4 tournament path guidance contract
+
+- Require both sufficient consistently weak configured-metric evidence and weak
+  time evidence before producing a stop candidate.
+- Keep eligible no-star evidence non-dispositive and exclude Gold-ineligible
+  no-star evidence. Neither may produce a stop.
+- Permit strong-field historical stars to support only a limited early
+  continuation when time is not weak.
+- Pause time/metric disagreement, unavailable or low-confidence evidence, stale
+  or unknown cutoffs, exhausted budget and reached probe limits for review.
+- Preserve an uncommitted ME core when cross-mode evidence identifies a stronger
+  projected Maiden mode.
+- Reject future and duplicate attempts, keep imported timestamps separate and
+  keep every signal experimental and non-actionable pending Gates C and D.
