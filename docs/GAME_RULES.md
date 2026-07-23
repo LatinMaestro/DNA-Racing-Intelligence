@@ -196,3 +196,24 @@ This is an example template, not a universal rule.
 - Top 2 rounds are approximately eight gates with top two advancing.
 - Double Up rounds use varying 6–12 gate fields with half advancing.
 - Both grand finals use 12 gates and seven races with configured scoring.
+
+## Race Merge economic fields and currencies
+
+Owner-confirmed Race Merge semantics:
+
+- `rpayout` is the race payout format/mechanism label. It determines how a race distributes prizes; it is not a monetary amount.
+- `rfee` is the exact entry fee for that core's race entry.
+- `prize` is the exact gross race prize/payout credited to that core's entry. The current export header is `prize`; informal references to `Rprize` mean this field.
+- `toke_curr` identifies the asset used for both entry and payout. Supported racing assets are ETH and DEZ.
+- `r_tags` carries race restrictions or eligibility tags, including F-number, element, breed/class and ME restrictions where present.
+- `rformat` remains a separate raw event-format field and must not be substituted for `rpayout`.
+
+Amounts are unsigned source quantities. The ledger records a positive `rfee` as a debit and a positive `prize` as a credit. A numeric zero means no fee or no payout respectively. Blank, missing, malformed or negative values are not zero and must remain quarantined or review-required. Refunds and reversals are not represented by changing these meanings; they require explicit source or manual adjustment evidence.
+
+DEZ is the DNA Racing game token on Polygon mainnet:
+
+- contract: `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`.
+
+ETH is Ethereum's native crypto asset. Preserve all source token amounts exactly and report racing fees, payouts and net results in both the original asset and USD using a dated rate for the race's UTC calendar day. The daily rate and source must remain auditable and correctable.
+
+BGC is separate from racing. It is used for breeding and burning and has an owner-confirmed reference conversion of USD 1 = BGC 1. Keep BGC in its own ledger and show any USD equivalent separately rather than silently mixing BGC with ETH/DEZ operating profit.
