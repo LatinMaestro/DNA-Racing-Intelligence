@@ -84,11 +84,11 @@ export const sourceSchemaRegistry: Readonly<
       pos: "finish_position",
       time: "elapsed_time",
       rformat: "source_format",
-      rpayout: "payout_source_value",
+      rpayout: "payout_mechanism_source_value",
       rfee: "fee_source_value",
       prize: "prize_source_value",
       toke_curr: "asset_source_value",
-      r_tags: "source_tags",
+      r_tags: "race_tags_source_value",
     },
   },
   core_details: {

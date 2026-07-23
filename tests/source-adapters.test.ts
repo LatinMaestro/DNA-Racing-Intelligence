@@ -12,9 +12,9 @@ function schema(header: string) {
 }
 
 describe("Phase 1 synthetic source adapters", () => {
-  it("normalizes a Race Merge row while keeping economics unvalidated", () => {
+  it("normalizes owner-confirmed Race Merge economics and restrictions", () => {
     const staged = schema(
-      "event_id,event_datetime,rstart_time,rmode,rclass,rcb,token_id,name,gate,rgate_count,gold_star,blue_star,pos,time,rformat,rpayout,rfee,prize,toke_curr",
+      "event_id,event_datetime,rstart_time,rmode,rclass,rcb,token_id,name,gate,rgate_count,gold_star,blue_star,pos,time,rformat,rpayout,rfee,prize,toke_curr,r_tags",
     );
     const row = adaptSourceRow(staged, [
       "synthetic-event",
@@ -36,6 +36,7 @@ describe("Phase 1 synthetic source adapters", () => {
       "0.01",
       "0.02",
       "DEZ",
+      "Water, ME",
     ]);
 
     expect(row).toMatchObject({ status: "ready", sourceType: "race_merge" });
@@ -48,8 +49,49 @@ describe("Phase 1 synthetic source adapters", () => {
       blueStar: false,
       goldStarEligible: true,
       starDataStatus: "complete",
-      economicDataStatus: "unvalidated",
+      economicDataStatus: "ready",
+      raceAsset: "DEZ",
+      entryFeeAmount: "0.01",
+      grossPayoutAmount: "0.02",
+      payoutMechanismSourceValue: "synthetic-payout-label",
+      raceTagsSourceValue: "Water, ME",
     });
+  });
+
+  it("keeps a valid race row while quarantining malformed economics", () => {
+    const staged = schema(
+      "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags",
+    );
+    const row = adaptSourceRow(staged, [
+      "event-economic-review",
+      "2026-07-22T12:00:00.000Z",
+      "bike",
+      "1000",
+      "core-economic-review",
+      "4",
+      "false",
+      "false",
+      "2",
+      "50.1",
+      "top2",
+      "-1",
+      "2",
+      "DEZ",
+      "F1-4",
+    ]);
+
+    expect(row.status).toBe("ready");
+    expect(row.record).toMatchObject({
+      economicDataStatus: "invalid",
+      payoutMechanismSourceValue: "top2",
+      raceTagsSourceValue: "F1-4",
+    });
+    expect(row.issues).toContainEqual(
+      expect.objectContaining({
+        code: "INVALID_ECONOMIC_DECIMAL",
+        severity: "warning",
+      }),
+    );
   });
 
   it("retains an ineligible source Gold assignment with a warning", () => {

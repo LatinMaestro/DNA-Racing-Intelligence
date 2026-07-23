@@ -53,3 +53,19 @@ Activation is two-phase and fail-closed:
 2. atomically select the Neon manifest only when all expected objects and compact writes succeed.
 
 Rollback selects the previous complete manifest. No automatic provider upgrade, Production activation or custom domain is permitted.
+
+## Repository contract implementation
+
+The TypeScript domain layer provides:
+
+- plain exact-decimal normalization, negation and multiplication using `BigInt` rather than binary floating point;
+- strict ETH/DEZ race-economic validation;
+- stable entry-fee and payout keys;
+- omission of zero-value ledger rows;
+- separate payout-mechanism and race-tag provenance;
+- UTC event-date keys;
+- contract-pinned CoinGecko series identifiers;
+- exact signed USD valuation; and
+- an explicit null result when a historical rate is unavailable.
+
+Malformed economics remain review-required without discarding an otherwise valid historical race result.
