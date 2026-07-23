@@ -79,3 +79,11 @@ Phase 1 establishes the private, idempotent and auditable data foundation. It do
 - Unlike assets remain separate, BGC remains non-cash by default and transfers remain outside operating P/L.
 - Imported timestamps describe historical snapshots, not live game state.
 - Production, paid services and private-data hosting remain gated.
+6. **Race economics and USD storage — repository complete**
+   - exact owner-scoped ETH/DEZ fee and payout transactions;
+   - confirmed-current-Vault ownership boundary;
+   - immutable batch contribution and source provenance;
+   - versioned UTC-daily rate cache with supersession history;
+   - exact USD valuation and explicit missing-rate coverage;
+   - reversible rollback integration and PostgreSQL 16 verification;
+   - hosted rate acquisition and private-data activation remain gated.
