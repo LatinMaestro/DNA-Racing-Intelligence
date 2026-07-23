@@ -370,3 +370,18 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 5 Maiden bracket suitability
+
+- Evaluate Maiden suitability against the configured bracket's actual distances,
+  leaderboard objective, eligibility and tournament structure.
+- Require sufficient time-led evidence and configured-metric fit at every
+  expected distance; missing or weak evidence holds the candidate.
+- Keep Gold/Blue star evidence supporting only and prohibit it from overriding
+  weak time.
+- Preserve an entitlement for weaker modes and retain exact tournament identity
+  for planned or committed states.
+- Keep closed, consumed, ineligible, unresolved and committed-elsewhere outcomes
+  distinct.
+- Treat a fully supported strongest-mode bracket as a non-actionable review
+  candidate until Gates C and D pass.
