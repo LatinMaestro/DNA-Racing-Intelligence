@@ -363,3 +363,13 @@
 
 - The repository owner confirms that race distance values are measured in metres.
 - Phase 2 derived speed may therefore be labelled in metres per second after elapsed time is validated and normalized to milliseconds.
+
+
+## 2026-07-23 — Phase 2 current Vault registry contract
+
+- Build the active Vault only from confirmed durable Core Details IDs. Proposed name/composite candidates remain identity-review evidence and cannot create ownership, race P/L or recommendations.
+- Use the current accepted Vault snapshot as the baseline, then apply reasoned manual add/remove events at or after that snapshot import time in deterministic chronological order. Retain older manual history as superseded rather than deleting it.
+- Permit a manual-only durable-ID registry before the first snapshot, with snapshot freshness explicitly unknown.
+- Preserve eligible, not-eligible, unknown and invalid imported Maiden states. Manual overrides may set eligible, not eligible or unknown only for an active core and must not themselves establish ownership.
+- Keep active owned cores with missing Core Details visible with a warning rather than silently dropping or completing them.
+- Expose Current Vault data-current-through, last-imported and freshness separately. Use synthetic IDs only in Git; hosted persistence, private names and UI mutations remain later focused slices.
