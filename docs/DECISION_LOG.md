@@ -370,3 +370,16 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 7 Vault role and depth analysis
+
+- Measure Vault depth by exact strategic role, mode and distance; do not merge
+  Bike, Car and Horse or different exact distances.
+- Count only supported evidence meeting an explicit credible-strength threshold.
+  Unresolved roles remain visible but do not manufacture depth.
+- Raise a redundancy review only when every supported role for a core has the
+  configured number of credible alternatives.
+- Protect unique roles, Maiden reserves, lineage anchors and exceptional-upside
+  evidence regardless of category saturation.
+- Treat duplicate coverage as context rather than a sell or burn conclusion.
+  This analysis remains non-actionable and cannot mutate the Vault.
