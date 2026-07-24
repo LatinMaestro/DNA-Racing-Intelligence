@@ -206,7 +206,7 @@ Owner-confirmed Race Merge semantics:
 - `rpayout` is the race payout format/mechanism label. It determines how a race distributes prizes; it is not a monetary amount.
 - `rfee` is the exact entry fee for that core's race entry.
 - `prize` is the exact gross race prize/payout credited to that core's entry. The current export header is `prize`; informal references to `Rprize` mean this field.
-- `toke_curr` identifies the asset used for both entry and payout. Supported racing assets are ETH and DEZ.
+- `toke_curr` identifies the asset used for both entry and payout. Normal supported racing assets are ETH and DEZ. Historical BGC race rows use the separately confirmed non-economic exception below.
 - `r_tags` carries race restrictions or eligibility tags, including F-number, element, breed/class and ME restrictions where present.
 - `rformat` remains a separate raw event-format field and must not be substituted for `rpayout`.
 
