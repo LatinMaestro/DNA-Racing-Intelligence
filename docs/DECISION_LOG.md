@@ -382,7 +382,6 @@
 - Historical BGC race entries remain performance evidence but are accounted as free-entry, no-payout races: effective fee and payout are zero, no race ledger transaction is created and source monetary fields are excluded from economic totals.
 - Git may retain these approved aggregates and rules only. Raw files, filenames, identities, individual records, monetary values and user-specific derived records remain excluded.
 
-
 ## 2026-07-24 — Periodic source updates and analytical fidelity
 
 - The owner will refresh the website through a private Data Updates workspace rather than editing database tables or GitHub files.
