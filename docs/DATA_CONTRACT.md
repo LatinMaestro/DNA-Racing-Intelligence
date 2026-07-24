@@ -239,6 +239,9 @@ Manual tournament payouts sent directly to a crypto wallet must be supported as 
 - Current Vault is the source of truth for active owned cores at import time.
 - Every accepted Current Vault row represents an owned core; `me` is a separate Maiden-eligibility field and must never be used as the ownership filter.
 - The inspected current snapshot resolves all 195 owner-confirmed rows deterministically to Core Details. Future unmatched, inconsistent or genuinely ambiguous identities remain review-required.
+- Resolve a new row only through one exact normalized name + class + element + F-number + sex composite, or reuse a prior confirmed private signature when its durable ID still exists and attributes agree.
+- Reject duplicate current rows that resolve to the same durable ID. Never use a name alone to create a confirmed mapping.
+- Preserve owner-confirmed ownership evidence even where identity needs review, but do not create a durable profile, personal race P/L or recommendation until the durable ID is confirmed.
 - Allow manual additions, removals and ME overrides.
 - Burnt cores are absent from active vault data but remain in historical core and lineage records.
 - Do not infer current ownership solely from race history.
