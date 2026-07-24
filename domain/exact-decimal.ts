@@ -1,4 +1,4 @@
-const EXACT_DECIMAL = /^(-?)(0|[1-9]\\d*)(?:\\.(\\d+))?(?:[eE]([+-]?\\d+))?$/;
+const EXACT_DECIMAL = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
 const MAX_ABSOLUTE_EXPONENT = 10_000;
 
 type ParsedDecimal = Readonly<{
