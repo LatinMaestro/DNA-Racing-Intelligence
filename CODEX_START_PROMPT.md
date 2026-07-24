@@ -20,6 +20,7 @@ Before changing anything, read every repository control document in full:
 - `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/AGGREGATE_SOURCE_PROFILE.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
 - `docs/BUILD_PLAN.md`
 - `docs/REVIEW_GATES.md`
