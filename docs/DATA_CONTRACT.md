@@ -227,6 +227,8 @@ Manual tournament payouts sent directly to a crypto wallet must be supported as 
 ## Ownership
 
 - Current Vault is the source of truth for active owned cores at import time.
+- Every accepted Current Vault row represents an owned core; `me` is a separate Maiden-eligibility field and must never be used as the ownership filter.
+- The inspected current snapshot resolves all 195 owner-confirmed rows deterministically to Core Details. Future unmatched, inconsistent or genuinely ambiguous identities remain review-required.
 - Allow manual additions, removals and ME overrides.
 - Burnt cores are absent from active vault data but remain in historical core and lineage records.
 - Do not infer current ownership solely from race history.
