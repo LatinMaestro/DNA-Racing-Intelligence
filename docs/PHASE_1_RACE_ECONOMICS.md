@@ -6,13 +6,13 @@ Production: disabled and fail-closed
 
 ## Source semantics
 
-| Source      | Contract                                                 |
-| ----------- | -------------------------------------------------------- |
-| `rpayout`   | Payout mechanism/format label; never an amount           |
-| `rfee`      | Exact non-negative fee for the row's core entry          |
-| `prize`     | Exact non-negative gross payout for the row's core entry |
+| Source      | Contract                                                                                |
+| ----------- | --------------------------------------------------------------------------------------- |
+| `rpayout`   | Payout mechanism/format label; never an amount                                          |
+| `rfee`      | Exact non-negative fee for the row's core entry                                         |
+| `prize`     | Exact non-negative gross payout for the row's core entry                                |
 | `toke_curr` | Ordinary entry/payout asset: ETH or DEZ; historical BGC uses the non-economic exception |
-| `r_tags`    | Raw eligibility and restriction tags                     |
+| `r_tags`    | Raw eligibility and restriction tags                                                    |
 
 `rformat` remains separate event-format provenance. Numeric zero is a real zero. Exact base-10 scientific notation is accepted and normalized without binary floating point. Missing, blank, malformed, negative or genuinely unsupported-asset ETH/DEZ data is review-required.
 
