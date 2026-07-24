@@ -17,12 +17,12 @@ The upload feature is an approved implementation contract. It remains unavailabl
 
 ## What to upload
 
-| Source family | When to upload | Update treatment |
-| --- | --- | --- |
-| Race Merge | Add every new sequential export. Several files may be uploaded together. Re-uploading an earlier file is safe. | Append accepted entries in event-time order, retain prior history, ignore exact replay and boundary duplicates, quarantine conflicting facts and refresh only affected aggregates. |
-| Core Details and lineage | Upload the latest export whenever DNA publishes meaningful identity, attribute, parentage or new-core updates. | Versioned upsert by authoritative durable core ID. Omitted older cores are not silently deleted, and parent relationships are never inferred from names. |
-| Current Vault | Upload whenever current ownership or Maiden eligibility changes, or whenever a newer complete snapshot is available. | Replace the current owned-core snapshot while retaining earlier snapshots and rollback provenance. Every accepted row is owned; the Maiden field is a separate eligible/not-eligible state. |
-| Current Arena | Upload before relying on current external breeding options and whenever a newer listing snapshot is available. | Replace the current listing snapshot while retaining earlier snapshots. Listings absent from the accepted replacement are no longer current; freshness and expiry warnings remain visible. |
+| Source family            | When to upload                                                                                                       | Update treatment                                                                                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Race Merge               | Add every new sequential export. Several files may be uploaded together. Re-uploading an earlier file is safe.       | Append accepted entries in event-time order, retain prior history, ignore exact replay and boundary duplicates, quarantine conflicting facts and refresh only affected aggregates.          |
+| Core Details and lineage | Upload the latest export whenever DNA publishes meaningful identity, attribute, parentage or new-core updates.       | Versioned upsert by authoritative durable core ID. Omitted older cores are not silently deleted, and parent relationships are never inferred from names.                                    |
+| Current Vault            | Upload whenever current ownership or Maiden eligibility changes, or whenever a newer complete snapshot is available. | Replace the current owned-core snapshot while retaining earlier snapshots and rollback provenance. Every accepted row is owned; the Maiden field is a separate eligible/not-eligible state. |
+| Current Arena            | Upload before relying on current external breeding options and whenever a newer listing snapshot is available.       | Replace the current listing snapshot while retaining earlier snapshots. Listings absent from the accepted replacement are no longer current; freshness and expiry warnings remain visible.  |
 
 Race Merge is the only source family that normally grows by adding more files. Core Details is cumulative/upserted, while Vault and Arena are current replacement snapshots.
 
