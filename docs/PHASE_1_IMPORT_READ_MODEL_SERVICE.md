@@ -24,7 +24,18 @@ The current route intentionally supplies no authenticated identity because Clerk
 
 Malformed or internally inconsistent repository rows are not converted to an empty state. They fail closed through the existing import-workspace contract.
 
-No database or provider client is initialized at module scope. A later Neon adapter must create its client lazily at request time and preserve the same owner-scoped interface.
+The Neon adapter now implements this interface without provisioning a database:
+
+- it returns `not_configured` unless `DATABASE_URL` and `DNA_DATABASE_OWNER_ID` both exist;
+- it imports and creates the Neon HTTP query function only on the first authorised repository read, never during module evaluation or `next build`;
+- it opens one bounded read-only repeatable-read transaction;
+- it sets `app.owner_id` only for that transaction so the existing forced row-level-security policies apply;
+- it verifies that the internal database owner maps to the same authenticated Clerk user before returning any batch;
+- it reads the 200 most recent supported import batches plus every active source version, so an older active dataset cannot disappear behind later quarantined attempts;
+- it aggregates count/code-only warnings, unresolved identity reviews and pending observation reconciliation without reading raw race history; and
+- it rejects malformed types, unsafe `bigint` counts, unsupported source/status values and inconsistent domain evidence rather than coercing them.
+
+The route constructs this environment-backed repository, but it still supplies no authenticated identity because Clerk is not connected. The service therefore returns before the lazy Neon factory is called.
 
 ## Rendering behavior
 
@@ -46,7 +57,12 @@ Tests verify:
 - a mismatched owner is denied;
 - configured identity with no repository remains explicitly unavailable;
 - a ready repository receives only the verified owner ID;
+- missing database configuration creates no Neon query function;
+- malformed internal owner IDs fail before provider initialisation;
+- the Neon executor is created lazily and reused only after owner verification;
+- the database-side Clerk mapping must succeed;
+- PostgreSQL `bigint`, timestamp, Boolean, warning and review values are validated before projection;
 - persisted batch inconsistencies fail closed; and
 - each connection state renders semantic disabled-action copy without private identifiers.
 
-The service does not configure Preview providers, upload private files, mutate Production or replace the remaining PostgreSQL migration checks.
+The service adds the provider package and server-only adapter but does not configure a Preview database, add secret values, upload private files, mutate Production or replace the remaining PostgreSQL migration checks.
