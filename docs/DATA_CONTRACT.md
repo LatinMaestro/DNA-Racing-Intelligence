@@ -10,6 +10,8 @@
 6. Manual economic transaction — payout, fee, sale, purchase, burn, transfer, opening balance, adjustment or reconciliation entry.
 7. Future authoritative economic export — only where the game or marketplace provides a supported transaction history.
 
+The currently inspected private source set contains six sequential Race Merge exports and one export each for Core Details, Current Vault and Current Arena. Privacy-safe counts, overlap and coverage evidence are recorded in `docs/AGGREGATE_SOURCE_PROFILE.md`; exact filenames and source records remain outside Git.
+
 ## Import principles
 
 - Detect file type from headers and explicit user selection.
