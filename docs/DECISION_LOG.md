@@ -1550,3 +1550,18 @@ through` separately from `Last imported`.
   mutation and tournament entry disabled while Gates C and D remain unpassed.
 - Keep provider initialization, private-data execution and Preview/Production
   activation unavailable in this read-only slice.
+
+## 2026-07-24 — Owner-scoped Breeding read workspace
+
+- Replace the Breeding placeholder with an authenticated dynamic Server
+  Component and provider-neutral compact pair-ranking service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and scan no raw history on a routine request.
+- Build deterministic rankings through the Phase 6 contract and reject
+  duplicate ranking IDs, parent pairs or invalid evidence.
+- Keep elite-upside, Vault-gap and balanced objectives separate; Vault
+  saturation cannot suppress exceptional-upside evidence.
+- Treat Arena evidence as historical, hold stale or unsupported evidence and
+  keep Gate E, pair execution and breeding transactions disabled.
+- Keep provider initialization, private-data execution and Preview/Production
+  activation unavailable in this read-only slice.
