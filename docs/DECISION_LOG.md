@@ -1358,3 +1358,24 @@ through` separately from `Last imported`.
   present recommendations as refreshed until that later work completes.
 - Keep the worker, queue, raw-object streaming, provider persistence and real
   data processing unconfigured in this contract-only slice.
+
+## 2026-07-24 — Private raw-object streaming integrity
+
+- Resolve every private object reference, source family, expected byte length
+  and SHA-256 checksum from durable owner-scoped preview evidence; never trust
+  those values from a queue delivery or browser request.
+- Require private storage metadata to match the persisted byte length before
+  prepared staging begins.
+- Stream sequential bounded byte chunks with backpressure, incremental SHA-256
+  verification and explicit per-chunk and total capacity limits. Never buffer a
+  multi-million-row source object in application memory.
+- Permit a transactional staging sink to commit only after exact streamed byte
+  length and checksum verification. Abort prepared staging on truncation,
+  extension, corruption, oversized chunks, malformed chunks or staging failure.
+- Keep active source versions, freshness and recommendations unchanged until
+  the separately controlled background activation transaction succeeds.
+- Preserve the original object in private raw storage. Expose only internal
+  identities, counts, checksums, sizes and stable failure codes to routine
+  processing; filenames, rows and source values remain outside Git and logs.
+- Keep the storage provider, credentials, upload route, persistent processing
+  and Preview/Production activation unconfigured in this provider-neutral slice.
