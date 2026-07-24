@@ -1304,3 +1304,14 @@ through` separately from `Last imported`.
 - Keep Gate F client-only and require explicit owner approval.
 - Record approval evidence without authorising, executing or permitting a Production mutation.
 - Synthetic tests validate the readiness contract only and cannot establish that the actual application is Production-ready.
+
+## 2026-07-24 — Lazy owner-scoped Neon import read repository
+
+- Add the Neon serverless driver as the approved PostgreSQL transport without provisioning a database or configuring a secret.
+- Keep provider import and query-function creation lazy. The Imports route may construct the repository during a build, but no database client or network request is created until an authorised owner read occurs.
+- Require both `DATABASE_URL` and the server-only internal `DNA_DATABASE_OWNER_ID`; missing values preserve the explicit not-configured state.
+- Within one bounded read-only repeatable-read transaction, set `app.owner_id`, verify the internal owner-to-Clerk mapping and rely on the existing forced row-level-security policies.
+- Read compact import manifests, versions, aggregate timestamps and count-only review summaries only. Routine route reads scan no raw Race Merge history or private source values.
+- Return the 200 most recent supported batches plus every active source version so quarantined attempts cannot hide the accepted dataset.
+- Validate PostgreSQL timestamps, Booleans, `bigint` counts, source/status enums and warning payloads before they enter the domain projection; unsupported or unsafe values fail closed.
+- Keep Clerk authentication, Preview provider configuration, the first persistent private import, uploads, background processing, PostgreSQL execution evidence and Production separately gated.
