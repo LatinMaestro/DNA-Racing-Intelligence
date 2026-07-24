@@ -1315,3 +1315,13 @@ through` separately from `Last imported`.
 - Return the 200 most recent supported batches plus every active source version so quarantined attempts cannot hide the accepted dataset.
 - Validate PostgreSQL timestamps, Booleans, `bigint` counts, source/status enums and warning payloads before they enter the domain projection; unsupported or unsafe values fail closed.
 - Keep Clerk authentication, Preview provider configuration, the first persistent private import, uploads, background processing, PostgreSQL execution evidence and Production separately gated.
+
+## 2026-07-24 — Fail-closed Clerk owner-session wiring
+
+- Add the Clerk Next.js SDK as the accepted request-authentication transport without provisioning an account, adding a secret or enabling Preview.
+- Preserve the deployment gate before Clerk middleware. Disabled Preview and Production requests remain non-indexable 404 responses even when Clerk is unconfigured.
+- Require both the publishable and secret Clerk keys before requesting authentication evidence. Missing configuration remains unavailable, partial configuration fails closed and no provider call occurs during `next build`.
+- Read only the server-side Clerk user ID from the authenticated request and independently require it to match `AUTHORIZED_CLERK_USER_ID` at the import-service boundary before any persistence query.
+- A signed-out request remains disconnected, a signed-in non-owner is denied before persistence and malformed session evidence fails closed.
+- Render the Clerk provider only when its browser-safe publishable key exists; repository-only validation therefore remains possible without secrets or network initialization.
+- Keep sign-in UI, account provisioning, Preview secrets, real provider verification, uploads, background processing and Production separately gated.
