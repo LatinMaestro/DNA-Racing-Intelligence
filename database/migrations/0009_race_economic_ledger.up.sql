@@ -20,6 +20,7 @@ ALTER TABLE dna.normalized_race_staged_fact
       economic_data_status IN (
         'unvalidated',
         'ready',
+        'historical_non_economic',
         'missing',
         'invalid',
         'unsupported_asset'
@@ -373,6 +374,7 @@ BEGIN
   SET
     economic_data_status = CASE fact.economic_data_status
       WHEN 'ready' THEN 'validated'
+      WHEN 'historical_non_economic' THEN 'validated'
       WHEN 'invalid' THEN 'invalid'
       WHEN 'unsupported_asset' THEN 'invalid'
       WHEN 'missing' THEN 'unvalidated'
@@ -472,7 +474,10 @@ BEGIN
   WHERE
     fact.owner_id = v_owner_id
     AND fact.import_batch_id = p_import_batch_id
-    AND fact.economic_data_status <> 'ready'
+    AND fact.economic_data_status NOT IN (
+      'ready',
+      'historical_non_economic'
+    )
   ORDER BY entry.id, fact.source_row_number
   ON CONFLICT (owner_id, id) DO NOTHING;
 
