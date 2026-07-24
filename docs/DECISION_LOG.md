@@ -1341,3 +1341,20 @@ through` separately from `Last imported`.
   transaction after validation succeeds.
 - Keep all providers unavailable by default. Do not provision services, enable
   uploads, expose routes or change Preview or Production in this slice.
+
+## 2026-07-24 — Background import claim and lease
+
+- Resolve every queue delivery from a durable dispatch ID inside the private
+  persistence boundary; do not trust owner or preview details supplied by a
+  queue payload.
+- Atomically claim one bounded worker lease before processing. Missing,
+  completed and concurrently leased deliveries cannot invoke the processor.
+- Bind the prepared result to the claimed owner, session, dispatch and preview
+  fingerprint, then activate it only through an owner-scoped persistence
+  transaction.
+- Record processor failure without activating prepared data. Keep the prior
+  accepted source version current and allow a later delivery to retry safely.
+- Mark aggregate refresh pending whenever accepted facts change, and do not
+  present recommendations as refreshed until that later work completes.
+- Keep the worker, queue, raw-object streaming, provider persistence and real
+  data processing unconfigured in this contract-only slice.
