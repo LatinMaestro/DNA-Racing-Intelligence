@@ -1432,3 +1432,19 @@ through` separately from `Last imported`.
   freshness independently.
 - Keep all owner mutations, provider initialization, private snapshot execution
   and Preview/Production activation unavailable in this read-only slice.
+
+## 2026-07-24 — Owner-scoped Core Intelligence read workspace
+
+- Replace the Core Intelligence route's hardcoded empty projection with an
+  authenticated dynamic Server Component and provider-neutral application
+  service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before any compact-profile persistence read.
+- Read only materialized owner-scoped profiles and the latest accepted import
+  timestamp on routine requests; do not scan raw Race Merge history.
+- Fail closed on malformed timestamps, metrics, sample labels, star-profile
+  keys or duplicate core/mode/exact-distance projections.
+- Keep all evidence historical and experimental, preserve explicit star
+  denominators and retain the less-than-10-race hypothesis-only boundary.
+- Keep provider initialization, private-data execution, recommendations and
+  Preview/Production activation unavailable in this read-only slice.
