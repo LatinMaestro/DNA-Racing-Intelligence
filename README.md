@@ -55,8 +55,10 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
 - [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
 - [`docs/PHASE_2_CORE_PERFORMANCE.md`](docs/PHASE_2_CORE_PERFORMANCE.md) — exact mode-distance performance profile contract and evidence boundary
+- [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
 - [`docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md`](docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md) — deterministic owner-confirmed Vault-to-Core Details identity contract
 - [`docs/PHASE_2_CORE_SOURCE_COVERAGE.md`](docs/PHASE_2_CORE_SOURCE_COVERAGE.md) — explicit Core Details, race-history, Vault, Arena and lineage coverage states
+- [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
