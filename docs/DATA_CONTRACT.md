@@ -296,6 +296,12 @@ A numeric zero is an authoritative zero. Blank, missing, malformed and negative 
 
 Persist exact source decimals and use exact database numerics; do not convert through JavaScript binary floating point. Entry fees are stored as expenses/debits and prizes as income/credits. Refunds, reversals and adjustments require an explicit source event or auditable manual entry.
 
+### Historical BGC race exception
+
+A Race Merge entry whose `toke_curr` is BGC remains accepted race-performance evidence but has an effective entry fee and payout of zero. It creates no race-derived transaction in ETH, DEZ or BGC, contributes no source fee or prize to an economic aggregate, and does not enter an unsupported-asset review queue merely because the race asset is BGC. Preserve its source provenance only inside the approved private import boundary.
+
+This exception is limited to historical race economics. Genuine BGC breeding costs, arena spending, burn credits, opening balances and adjustments remain separate BGC-ledger activity.
+
 ### USD valuation
 
 Race reports must preserve original ETH/DEZ values and also calculate a USD reporting value from a dated rate for the event's UTC calendar day.
