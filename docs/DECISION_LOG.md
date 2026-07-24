@@ -1448,3 +1448,41 @@ through` separately from `Last imported`.
   denominators and retain the less-than-10-race hypothesis-only boundary.
 - Keep provider initialization, private-data execution, recommendations and
   Preview/Production activation unavailable in this read-only slice.
+
+## 2026-07-24 — Owner-scoped Vault Performance read workspace
+
+- Replace the Vault Performance placeholder with an authenticated dynamic
+  Server Component and provider-neutral materialized-summary service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and read no raw ledger rows on a routine request.
+- Fail closed on malformed periods, timestamps, counts, exact decimals,
+  completeness claims, asset separation or duplicate asset projections.
+- Preserve original-asset totals, keep BGC as separate game credit and keep
+  non-operating movements outside operating activity.
+- Treat missing summaries and cost-basis evidence as unavailable, never zero,
+  and prohibit combined-asset and lifetime-profit claims.
+- Keep manual mutations, provider initialization, private-data execution and
+  Preview/Production activation unavailable in this read-only slice.
+
+## 2026-07-24 — Private chronological evidence remains non-actionable
+
+- Private hosted validation covers all 2,536,710 supplied Race Merge rows,
+  removes 67 exact boundary duplicates and retains only non-identifying
+  aggregate evidence in Git.
+- Partial events retain elapsed-time evidence but remain excluded from outcome,
+  conversion and holdout scoring.
+- Source row order is not accepted as chronological truth. Holdout evidence must
+  be externally ordered, make predictions before the event and update history
+  only after every same-event prediction is fixed.
+- Baselines remain separate by mode, exact distance in metres and gate count.
+- A direct-history dry run improved on its context baseline, while the tested
+  naive historical-star and parent-history proxies did not. None is the final
+  recommendation model and no result self-accepts Gate C or Gate E.
+- Breeding validation remains blocked without breeding timestamps and
+  prediction-at-breeding evidence. Maiden backtesting remains blocked without
+  point-in-time entitlement history; the Current Vault ME snapshot cannot be
+  projected backwards.
+- Era candidates are review signals only and cannot confirm a hidden algorithm
+  change or create authoritative era boundaries automatically.
+- Representative background capacity is recorded separately from unmeasured
+  deployed request latency. Production remains disabled and fail-closed.
