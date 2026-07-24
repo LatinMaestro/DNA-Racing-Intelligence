@@ -393,3 +393,13 @@
 - Preserve original source files and values in the private raw-data boundary, subject to approved capacity limits. Compact application tables may omit redundant or unused fields only when the raw values remain recoverable and current analysis is unaffected.
 - The owner should upload ordinary exports without manually reshaping them. Unsupported source changes fail closed while the prior accepted dataset remains active.
 - Production and the first persistent private Preview import remain subject to their existing Gates F and B respectively.
+
+## 2026-07-24 — Verified real-source race-economic compatibility
+
+- A complete private compatibility pass found a small set of otherwise-valid historical ETH rows whose fee uses base-10 scientific notation. Exact-decimal normalization now accepts plain or scientific notation using string and `BigInt` arithmetic only; binary floating point remains prohibited.
+- Historical BGC Race Merge rows use the owner-confirmed `historical_non_economic` state. They remain valid performance evidence, preserve private source provenance and have zero effective fee and payout.
+- A historical BGC race creates no ETH, DEZ or BGC race-derived transaction and no economic reconciliation/completeness item merely because its source race asset is BGC.
+- Genuinely unknown race assets remain unsupported and review-required.
+- Synthetic TypeScript coverage verifies scientific ETH normalization, exact transaction derivation, BGC zero-effective treatment, absence of BGC ledger rows and continued fail-closed handling of unsupported assets.
+- Reversible migration smoke coverage verifies that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item.
+- Private source records, identities, filenames and amounts remain outside Git. Only the previously approved aggregate compatibility result is documented.
