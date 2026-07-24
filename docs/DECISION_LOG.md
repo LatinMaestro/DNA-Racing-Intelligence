@@ -401,5 +401,5 @@
 - A historical BGC race creates no ETH, DEZ or BGC race-derived transaction and no economic reconciliation/completeness item merely because its source race asset is BGC.
 - Genuinely unknown race assets remain unsupported and review-required.
 - Synthetic TypeScript coverage verifies scientific ETH normalization, exact transaction derivation, BGC zero-effective treatment, absence of BGC ledger rows and continued fail-closed handling of unsupported assets.
-- Reversible migration smoke coverage verifies that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item.
+- Reversible migration smoke coverage now encodes assertions that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item. Exact PostgreSQL execution remains mandatory before merge.
 - Private source records, identities, filenames and amounts remain outside Git. Only the previously approved aggregate compatibility result is documented.
