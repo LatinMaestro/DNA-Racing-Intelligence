@@ -1,4 +1,26 @@
 import type { CorePerformanceProfile } from "@/domain/core-performance";
+import type { CoreIntelligenceConnectionStatus } from "@/lib/core-intelligence-workspace-service";
+
+const connectionCopy: Record<
+  CoreIntelligenceConnectionStatus,
+  Readonly<{ heading: string; detail: string }>
+> = {
+  identity_not_connected: {
+    heading: "Owner identity not connected",
+    detail:
+      "Historical profiles remain unavailable until the signed-in owner is verified against the server-side allowlist.",
+  },
+  persistence_not_configured: {
+    heading: "Core Intelligence storage not connected",
+    detail:
+      "Owner verification is available, but the compact private profile repository is not configured. No raw history is scanned on this page.",
+  },
+  read_model_connected: {
+    heading: "Historical profile read model connected",
+    detail:
+      "Accepted owner-scoped aggregates are available. They remain historical experimental evidence, not the current game field or a recommendation.",
+  },
+};
 
 function timestamp(value: string | null): string {
   if (value === null) return "Not available";
@@ -30,10 +52,14 @@ function label(value: string): string {
 export function CoreIntelligenceWorkspace({
   profiles,
   lastImportedAt,
+  connectionStatus,
 }: Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
+  connectionStatus: CoreIntelligenceConnectionStatus;
 }>) {
+  const connection = connectionCopy[connectionStatus];
+
   return (
     <div className="space-y-8">
       <header className="max-w-4xl">
@@ -49,6 +75,18 @@ export function CoreIntelligenceWorkspace({
           current game field.
         </p>
       </header>
+
+      <section
+        aria-labelledby="core-connection"
+        className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
+      >
+        <h2 className="text-lg font-semibold" id="core-connection">
+          {connection.heading}
+        </h2>
+        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+          {connection.detail}
+        </p>
+      </section>
 
       <section
         aria-labelledby="analytical-boundary"
