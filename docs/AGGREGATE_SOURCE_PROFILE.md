@@ -21,12 +21,12 @@ Synthetic fixtures remain mandatory for repository tests.
 
 The inspected private source set contains nine exports across four source families:
 
-| Source family | Export count | Import treatment |
-| --- | ---: | --- |
-| Race Merge history | 6 | Append sequential history, retain accepted prior facts and deduplicate exact boundary overlap |
-| Core Details and lineage | 1 | Versioned upsert by authoritative durable core ID |
-| Current Vault | 1 | Replace the current owned-core snapshot while retaining historical snapshot provenance |
-| Current Arena | 1 | Replace the current listing snapshot while retaining historical snapshot provenance and freshness |
+| Source family            | Export count | Import treatment                                                                                  |
+| ------------------------ | -----------: | ------------------------------------------------------------------------------------------------- |
+| Race Merge history       |            6 | Append sequential history, retain accepted prior facts and deduplicate exact boundary overlap     |
+| Core Details and lineage |            1 | Versioned upsert by authoritative durable core ID                                                 |
+| Current Vault            |            1 | Replace the current owned-core snapshot while retaining historical snapshot provenance            |
+| Current Arena            |            1 | Replace the current listing snapshot while retaining historical snapshot provenance and freshness |
 
 The legacy Bike-labelled details source is cross-mode Core Details. Its legacy
 `bikeid` field maps to the authoritative durable core ID; it is not Bike-only
@@ -74,13 +74,13 @@ review rather than being guessed.
 
 ### Coverage gaps
 
-| Coverage check | Matched | Source total | Explicit gap |
-| --- | ---: | ---: | ---: |
-| Raced core IDs present in Core Details | 14,830 | 16,992 | 2,162 |
-| Current Arena IDs present in Core Details | 791 | 792 | 1 |
-| Current Arena IDs with race history | 770 | 792 | 22 |
-| Current owned cores present in Core Details | 195 | 195 | 0 |
-| Current owned cores with race history | 195 | 195 | 0 |
+| Coverage check                              | Matched | Source total | Explicit gap |
+| ------------------------------------------- | ------: | -----------: | -----------: |
+| Raced core IDs present in Core Details      |  14,830 |       16,992 |        2,162 |
+| Current Arena IDs present in Core Details   |     791 |          792 |            1 |
+| Current Arena IDs with race history         |     770 |          792 |           22 |
+| Current owned cores present in Core Details |     195 |          195 |            0 |
+| Current owned cores with race history       |     195 |          195 |            0 |
 
 The 2,162 raced IDs absent from the supplied Core Details export remain valid
 performance evidence but must show attributes and lineage as unavailable. The 22
