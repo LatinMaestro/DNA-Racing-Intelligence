@@ -1,4 +1,6 @@
-const EXACT_DECIMAL = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
+const PLAIN_EXACT_DECIMAL = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?$/;
+const SOURCE_EXACT_DECIMAL =
+  /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
 const MAX_ABSOLUTE_EXPONENT = 10_000;
 
 type ParsedDecimal = Readonly<{
@@ -7,9 +9,14 @@ type ParsedDecimal = Readonly<{
   scale: number;
 }>;
 
-function parse(value: string): ParsedDecimal {
+function parse(
+  value: string,
+  notation: "plain" | "source" = "plain",
+): ParsedDecimal {
   const trimmed = value.trim();
-  const match = EXACT_DECIMAL.exec(trimmed);
+  const match = (
+    notation === "source" ? SOURCE_EXACT_DECIMAL : PLAIN_EXACT_DECIMAL
+  ).exec(trimmed);
   if (match === null) {
     throw new TypeError("value must be an exact base-10 decimal.");
   }
@@ -69,6 +76,10 @@ function format(parsed: ParsedDecimal): string {
 
 export function normalizeExactDecimal(value: string): string {
   return format(parse(value));
+}
+
+export function normalizeSourceExactDecimal(value: string): string {
+  return format(parse(value, "source"));
 }
 
 export function isNegativeExactDecimal(value: string): boolean {
