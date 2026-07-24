@@ -381,3 +381,15 @@
 - Explicit partial-profile states remain required for 2,162 raced IDs absent from Core Details, one Arena ID absent from Core Details and 22 Arena IDs without race history.
 - Historical BGC race entries remain performance evidence but are accounted as free-entry, no-payout races: effective fee and payout are zero, no race ledger transaction is created and source monetary fields are excluded from economic totals.
 - Git may retain these approved aggregates and rules only. Raw files, filenames, identities, individual records, monetary values and user-specific derived records remain excluded.
+
+
+## 2026-07-24 — Periodic source updates and analytical fidelity
+
+- The owner will refresh the website through a private Data Updates workspace rather than editing database tables or GitHub files.
+- Race Merge exports are sequential append sources and may be added in groups; Core Details is versioned/upserted by durable ID; Current Vault and Current Arena are replacement historical snapshots.
+- The owner-facing sequence is upload, detected update preview, confirmation, background processing, completion report and reasoned rollback where required.
+- Authenticated owner review may show exact filenames, rows and field values when useful for correcting an import; automated logs, Git, CI and public surfaces remain redacted.
+- The source exports are publicly available DNA Racing data and the website is private. Privacy controls must not remove or suppress analytically relevant fields or compromise recommendations.
+- Preserve original source files and values in the private raw-data boundary, subject to approved capacity limits. Compact application tables may omit redundant or unused fields only when the raw values remain recoverable and current analysis is unaffected.
+- The owner should upload ordinary exports without manually reshaping them. Unsupported source changes fail closed while the prior accepted dataset remains active.
+- Production and the first persistent private Preview import remain subject to their existing Gates F and B respectively.
