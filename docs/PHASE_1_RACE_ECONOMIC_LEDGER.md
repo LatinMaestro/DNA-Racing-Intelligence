@@ -87,3 +87,11 @@ Synthetic PostgreSQL 16 verification covers exact atomic conversion, zero
 suppression, idempotent replay, source provenance, missing-rate coverage,
 rate supersession, exact USD multiplication, provider-series validation,
 owner isolation and dataset rollback.
+
+## Real-source compatibility amendment
+
+- Exact decimal parsing accepts ordinary base-10 and exponent-form source values and normalizes both with string and `BigInt` arithmetic; binary floating point is never used.
+- Historical Race Merge rows whose token currency is BGC are retained as valid race-performance evidence with `historical_non_economic` status, zero effective fee and payout, and original source text retained in the approved private provenance boundary.
+- Historical BGC rows create no race-ledger transaction, require no ETH/DEZ/BGC asset record or daily rate, and create no unsupported-asset reconciliation issue.
+- Other unknown assets remain unsupported and review-required.
+- PostgreSQL migration execution remains part of the later full integration rehearsal; this amendment is covered now by deterministic TypeScript regression tests and static persistence-contract inspection.
