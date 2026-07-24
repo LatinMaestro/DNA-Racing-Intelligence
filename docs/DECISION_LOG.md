@@ -413,3 +413,13 @@
 - A review-required row remains owned-snapshot evidence but cannot create a durable profile, personal race P/L or recommendation until identity is confirmed.
 - The resolver is deterministic across source ordering, keeps candidate IDs sorted, rejects duplicate source/core identifiers and uses synthetic repository fixtures only.
 - The inspected current snapshot is separately confirmed to resolve all 195 owned rows with 68 eligible and 127 not eligible; no private identity map enters Git.
+
+## 2026-07-24 — Phase 2 Core source coverage
+
+- Join Core Details, confirmed Current Vault identities, Current Arena and Race Merge history by authoritative durable ID only.
+- Preserve four explicit analytical states: ready, performance-only, no imported racing history and source identity only. Missing evidence is unavailable, never a zero or a negative quality result.
+- Treat a parentless Genesis Core Details record as a complete founder. Non-Genesis lineage is checkable only with exactly two distinct parent IDs that both resolve in accepted Core Details.
+- Keep partial, unresolved, duplicated or class-inconsistent parentage review-required. A checkable source state does not bypass the dedicated family-restriction decision.
+- Recompute affected source coverage after accepted activation or rollback and carry data freshness and cutoff into downstream displays.
+- The inspected source aggregates imply all 195 owned cores are ready; 2,162 raced IDs are performance-only; and 22 current-Arena IDs have no imported racing history. These are snapshot coverage findings, not permanent constants.
+- Synthetic hosted verification covers deterministic ordering, owned-ready, founder, performance-only, no-history, identity-only and invalid-lineage cases. Exact-head CI and persistence integration remain pending.
