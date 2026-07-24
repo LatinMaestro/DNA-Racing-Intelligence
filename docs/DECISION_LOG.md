@@ -382,7 +382,6 @@
 - Historical BGC race entries remain performance evidence but are accounted as free-entry, no-payout races: effective fee and payout are zero, no race ledger transaction is created and source monetary fields are excluded from economic totals.
 - Git may retain these approved aggregates and rules only. Raw files, filenames, identities, individual records, monetary values and user-specific derived records remain excluded.
 
-
 ## 2026-07-24 — Periodic source updates and analytical fidelity
 
 - The owner will refresh the website through a private Data Updates workspace rather than editing database tables or GitHub files.
@@ -544,7 +543,6 @@
 - Omit excluded/duplicate evidence by default and include it only through an explicit filter while retaining its status and count.
 - Do not use the obsolete race-class field, combine assets, infer attribution or change any reconciliation state.
 
-
 ## 2026-07-23 — Phase 2A asset-separated reporting completeness
 
 - Aggregate included ledger records with exact decimal arithmetic by original asset; never expose an unsupported combined cross-asset total.
@@ -554,7 +552,6 @@
 - Use estimated only when evidence is otherwise complete and an explicitly requested converted view uses estimated rates.
 - Retain data-current-through, last-imported, excluded-record count and warnings; never authorize a complete lifetime-profit claim from this contract.
 
-
 ## 2026-07-23 — Phase 2A ledger duplicate and reconciliation controls
 
 - Compare duplicate evidence only within the same asset and exact signed amount; unlike assets and opposite directions never become candidates.
@@ -563,7 +560,6 @@
 - Implement a correction as an exact opposite signed reversal record while retaining the original and reversal in aggregation so the pair nets to zero.
 - Require a distinct active survivor for confirmed duplicates, unique transaction/action/reversal identities and valid action ordering; unsupported runtime values fail closed.
 - Keep this repository contract independent of hosted economic records, campaign classification, private provider state and Production.
-
 
 ## 2026-07-23 — Phase 2A manual ledger validation
 
@@ -773,6 +769,7 @@
 - Keep the rank experimental and historical. The current qualifying field,
   Auto-Entry allocation and actionable recommendations remain unavailable until
   Gate C evidence passes.
+
 ## 2026-07-23 — Phase 4 historical tournament race classification
 
 - Classify only imported historical races; no output represents live tournament state or gate occupancy.
@@ -781,6 +778,7 @@
 - Preserve overlapping matches, uncertain rules, source/configuration conflicts and unmatched races as review-required rather than forcing a category.
 - Do not infer ordinary open racing merely because no tournament rule matched.
 - Match exact entry-fee evidence with exact-decimal normalization and preserve mode, distance, gate count and UTC window as auditable evidence.
+
 ## 2026-07-23 — Phase 4 recoverable tournament campaign linking
 
 - Preserve imported race facts and source labels as immutable evidence.
@@ -789,6 +787,7 @@
 - Exclude an unlinked race from campaign totals without deleting its history.
 - Restore only the prior audited link; do not manufacture attribution during recovery.
 - Keep campaign linking historical and independent of live tournament state.
+
 ## 2026-07-23 — Phase 4 manual external-prize reconciliation
 
 - Compare manual external tournament prizes with imported race payouts using exact external references and conservative same-asset/date/amount/tournament candidates.
