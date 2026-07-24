@@ -273,6 +273,21 @@ Validate family restrictions before a pairing recommendation.
 
 Star profiles may be joined to lineage research as historical features, but the data layer must not label them as inherited traits without validated analysis.
 
+## Core source coverage states
+
+Join Core Details, confirmed Vault identities, Current Arena and Race Merge history only by authoritative durable ID. Recompute affected coverage after source activation or rollback.
+
+Expose these analytical states explicitly:
+
+- `ready` when Core Details and race history are available;
+- `performance_only` when race history exists without Core Details;
+- `no_imported_racing_history` when Core Details exists without accepted races; and
+- `source_identity_only` when a snapshot ID has neither Core Details nor race history.
+
+A missing profile is unavailable evidence, not a zero or a negative performance result. Preserve race history when attributes are missing and block only the recommendations that require the unavailable attributes or lineage.
+
+Treat a parentless Genesis core as a complete founder. Require exactly two distinct, resolved parents for non-Genesis lineage to be checkable. Partial, unresolved, duplicated or class-inconsistent parentage remains review-required. A checkable lineage state does not itself make a pairing eligible; the confirmed family-restriction service must still evaluate the pair.
+
 ## Reconciliation and duplication
 
 - Re-importing cumulative Race Merge data must not duplicate race, star or economic records.
