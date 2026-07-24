@@ -60,6 +60,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
 - [`docs/PHASE_2_CORE_PERFORMANCE.md`](docs/PHASE_2_CORE_PERFORMANCE.md) — exact mode-distance performance profile contract and evidence boundary
 - [`docs/PHASE_2_CORE_READ_WORKSPACE.md`](docs/PHASE_2_CORE_READ_WORKSPACE.md) — owner-scoped compact-profile application service and historical interface
+- [`docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md`](docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md) — owner-scoped materialized economic summary service and private interface
 - [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
 - [`docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md`](docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md) — deterministic owner-confirmed Vault-to-Core Details identity contract
 - [`docs/PHASE_2_VAULT_READ_WORKSPACE.md`](docs/PHASE_2_VAULT_READ_WORKSPACE.md) — owner-scoped Vault application service and historical-snapshot interface
