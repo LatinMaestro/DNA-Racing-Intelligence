@@ -20,6 +20,7 @@ Before changing anything, read every repository control document in full:
 - `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/DATA_UPDATE_WORKFLOW.md`
 - `docs/AGGREGATE_SOURCE_PROFILE.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
 - `docs/BUILD_PLAN.md`
@@ -132,7 +133,7 @@ At the end of every phase:
 The following are especially important and must not be lost during implementation:
 
 - The product is private and single-user.
-- Real CSVs, economic records and private derived data must never be committed to Git.
+- Real CSVs, economic records and private derived data must never be committed to Git. Preserve all analytically relevant source fields inside the approved private raw-data and processing boundary; privacy controls must not compromise analysis quality.
 - Bike, car and horse are modelled separately.
 - Ignore the obsolete race-class column.
 - Race time and speed by mode and exact distance are primary performance evidence.
