@@ -1,11 +1,30 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { MaidenWorkspace } from "@/components/maiden-workspace";
+import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  loadMaidenWorkspacePageState,
+  unavailableMaidenAllocationRepository,
+} from "@/lib/maiden-workspace-service";
 
-export default function MaidenPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MaidenPage() {
+  const authenticatedOwnerId = await authenticatedClerkOwnerId({
+    environment: {
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    },
+  });
+  const state = await loadMaidenWorkspacePageState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: unavailableMaidenAllocationRepository,
+  });
+
   return (
-    <ModulePlaceholder
-      boundary="Phase 5 will compare projected Bike, Car and Horse Maiden value and preserve ME for the strongest credible mode rather than the first available event."
-      href="/maiden"
-      source="Race"
+    <MaidenWorkspace
+      allocation={state.allocation}
+      connectionStatus={state.connectionStatus}
+      lastImportedAt={state.lastImportedAt}
     />
   );
 }
