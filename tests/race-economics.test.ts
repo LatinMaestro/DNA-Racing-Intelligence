@@ -3,6 +3,7 @@ import {
   multiplyExactDecimals,
   negateExactDecimal,
   normalizeExactDecimal,
+  normalizeSourceExactDecimal,
 } from "@/domain/exact-decimal";
 import {
   deriveRaceEconomicTransactions,
@@ -39,13 +40,16 @@ describe("Phase 1 exact race economics", () => {
     });
   });
 
-  it("normalizes exact scientific notation without binary floating point", () => {
-    expect(normalizeExactDecimal("1e-7")).toBe("0.0000001");
-    expect(normalizeExactDecimal("1.25E+2")).toBe("125");
-    expect(normalizeExactDecimal("-2.50e-3")).toBe("-0.0025");
-    expect(multiplyExactDecimals("1e-7", "2500")).toBe("0.00025");
-    expect(() => normalizeExactDecimal("1e10001")).toThrow(RangeError);
-    expect(() => normalizeExactDecimal("001e-2")).toThrow(TypeError);
+  it("normalizes source scientific notation without widening plain decimals", () => {
+    expect(normalizeSourceExactDecimal("1e-7")).toBe("0.0000001");
+    expect(normalizeSourceExactDecimal("1.25E+2")).toBe("125");
+    expect(normalizeSourceExactDecimal("-2.50e-3")).toBe("-0.0025");
+    expect(
+      multiplyExactDecimals(normalizeSourceExactDecimal("1e-7"), "2500"),
+    ).toBe("0.00025");
+    expect(() => normalizeExactDecimal("1e-7")).toThrow(TypeError);
+    expect(() => normalizeSourceExactDecimal("1e10001")).toThrow(RangeError);
+    expect(() => normalizeSourceExactDecimal("001e-2")).toThrow(TypeError);
   });
 
   it("derives exact ETH economics encoded in scientific notation", () => {
