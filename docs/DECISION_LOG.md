@@ -1515,3 +1515,21 @@ through` separately from `Last imported`.
   returns. No hosted-workspace result replaces mandatory exact-head CI.
 - Keep private sources, provider changes and Production activation outside the
   merge queue.
+
+## 2026-07-24 — Owner-scoped Tournament read workspace
+
+- Replace the Tournaments placeholder with an authenticated dynamic Server
+  Component and provider-neutral compact candidate service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and scan no raw Race Merge history on a routine request.
+- Build candidate review order only from the versioned configured
+  qualification metric and reject duplicate tournament/bracket evidence.
+- Treat imported history as a historical snapshot, never the current
+  qualifying field, and retain freshness and evidence warnings.
+- Preserve the 50% race-gate rule as a hard cap rather than a target and
+  preserve Maiden eligibility for the strongest projected mode-specific
+  opportunity.
+- Keep every output experimental and non-actionable with automatic tournament
+  entry disabled while Gate C remains unpassed.
+- Keep provider initialization, private-data execution and Preview/Production
+  activation unavailable in this read-only slice.
