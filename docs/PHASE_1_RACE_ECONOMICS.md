@@ -11,10 +11,12 @@ Production: disabled and fail-closed
 | `rpayout`   | Payout mechanism/format label; never an amount           |
 | `rfee`      | Exact non-negative fee for the row's core entry          |
 | `prize`     | Exact non-negative gross payout for the row's core entry |
-| `toke_curr` | Common entry/payout asset: ETH or DEZ                    |
+| `toke_curr` | Ordinary entry/payout asset: ETH or DEZ; historical BGC uses the non-economic exception |
 | `r_tags`    | Raw eligibility and restriction tags                     |
 
-`rformat` remains separate event-format provenance. Numeric zero is a real zero. Missing, blank, malformed, negative or unsupported-asset data is review-required.
+`rformat` remains separate event-format provenance. Numeric zero is a real zero. Exact base-10 scientific notation is accepted and normalized without binary floating point. Missing, blank, malformed, negative or genuinely unsupported-asset ETH/DEZ data is review-required.
+
+Historical BGC rows are different: retain their racing facts and private source provenance, set the effective fee and payout to zero, create no race-derived transaction and create no economic review item. This exception does not apply to genuine non-race BGC ledger activity.
 
 ## Ledger derivation
 
@@ -27,13 +29,14 @@ For an accepted owned-core entry:
 - do not create money from `rpayout` or `r_tags`;
 - do not create zero-value ledger rows merely to represent a non-payment;
 - classify the race stage separately and allow unknown;
-- represent refunds, reversals and corrections through explicit auditable records.
+- represent refunds, reversals and corrections through explicit auditable records; and
+- skip historical BGC rows entirely at the race-ledger boundary.
 
 ## Assets
 
 - ETH: CoinGecko coin ID `ethereum`.
 - DEZ: Polygon token `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`.
-- BGC: not a racing asset; separate breeding/burning credit with owner-confirmed USD 1 = BGC 1 reference.
+- BGC: exceptional historical race rows are performance-only and non-economic; genuine BGC remains a separate breeding/burning credit with owner-confirmed USD 1 = BGC 1 reference.
 
 ## Daily USD valuation
 
@@ -58,8 +61,8 @@ Rollback selects the previous complete manifest. No automatic provider upgrade, 
 
 The TypeScript domain layer provides:
 
-- plain exact-decimal normalization, negation and multiplication using `BigInt` rather than binary floating point;
-- strict ETH/DEZ race-economic validation;
+- exact plain/scientific decimal normalization, negation and multiplication using `BigInt` rather than binary floating point;
+- strict ETH/DEZ race-economic validation plus the explicit historical BGC non-economic state;
 - stable entry-fee and payout keys;
 - omission of zero-value ledger rows;
 - separate payout-mechanism and race-tag provenance;
@@ -68,4 +71,4 @@ The TypeScript domain layer provides:
 - exact signed USD valuation; and
 - an explicit null result when a historical rate is unavailable.
 
-Malformed economics remain review-required without discarding an otherwise valid historical race result.
+Malformed ordinary economics remain review-required without discarding an otherwise valid historical race result. Historical BGC source amounts remain provenance only and do not create an economic completeness or reconciliation item.
