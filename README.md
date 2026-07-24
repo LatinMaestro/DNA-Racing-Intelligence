@@ -30,6 +30,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/OPEN_RACE_WORKFLOW.md`](docs/OPEN_RACE_WORKFLOW.md) — pre-entry selection, post-lock star observation and import-reconciliation requirements
 - [`docs/ANALYTICS_METHOD.md`](docs/ANALYTICS_METHOD.md) — statistical and recommendation methodology
 - [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — imports, provenance and privacy controls
+- [`docs/DATA_UPDATE_WORKFLOW.md`](docs/DATA_UPDATE_WORKFLOW.md) — owner-facing periodic upload, preview, activation, retention and rollback workflow
 - [`docs/AGGREGATE_SOURCE_PROFILE.md`](docs/AGGREGATE_SOURCE_PROFILE.md) — privacy-safe source counts, coverage, overlap and confirmed import treatment
 - [`docs/VAULT_PERFORMANCE_ACCOUNTING.md`](docs/VAULT_PERFORMANCE_ACCOUNTING.md) — vault P/L, BGC, manual payouts and economic-ledger requirements
 - [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) — phased implementation plan
