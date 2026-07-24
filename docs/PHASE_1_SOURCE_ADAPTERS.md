@@ -18,6 +18,8 @@ Aggregate-only profiling confirmed:
 - `rstart_time` is the precise race event time, while `event_datetime` is retained as a separate source timestamp;
 - Race Merge modes are bike, car and horse;
 - historical star values use case-varying Boolean text;
+- a small set of historical ETH fee values use exact scientific notation;
+- historical BGC race rows require the owner-confirmed non-economic exception;
 - Core Details and Current Vault F-numbers use an `F` prefix;
 - class, element and sex casing varies across exports; and
 - the Current Vault export requires Windows-1252 handling.
@@ -37,7 +39,7 @@ No source names, IDs, rows, filenames or private derived values are committed.
 - derive `gold_star_eligible = gate_count > 3`;
 - retain a source Gold assignment at three gates or fewer with `GOLD_INELIGIBLE_ASSIGNMENT` rather than rejecting or rewriting it;
 - preserve obsolete race class for provenance only; and
-- keep fee, payout, prize and asset fields as source values with `economicDataStatus = unvalidated`.
+- preserve fee, payout, prize and asset source values separately from the normalized economic state described below.
 
 ### Core Details
 
@@ -72,10 +74,12 @@ Race Merge economics are no longer globally unvalidated. The adapter now:
 
 - maps `rpayout` to a payout-mechanism label rather than an amount;
 - maps `r_tags` to preserved race-restriction text;
-- validates `rfee` and `prize` as exact non-negative per-entry decimals;
-- normalizes `toke_curr` case-insensitively to ETH or DEZ;
-- distinguishes ready, missing, invalid and unsupported-asset economic states;
-- keeps a structurally valid race row available when only its economics require review; and
+- validates `rfee` and `prize` as exact non-negative per-entry decimals, including exact scientific notation without binary floating point;
+- normalizes ordinary `toke_curr` values case-insensitively to ETH or DEZ;
+- classifies historical BGC race rows as `historical_non_economic`, preserves their source values and supplies zero effective fee/payout;
+- distinguishes ready, historical-non-economic, missing, invalid and genuinely unsupported-asset states;
+- keeps a structurally valid race row available when only its economics require review;
+- creates no review item or ledger transaction for the confirmed historical BGC exception; and
 - creates no ledger transaction at the adapter boundary.
 
 Exact signed transactions and daily USD valuation are derived only after accepted owned-core identity and source validation.
