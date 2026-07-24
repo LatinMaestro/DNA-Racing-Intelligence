@@ -370,3 +370,14 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-24 — Verified private-source aggregate contract
+
+- The authoritative inspected source set contains six sequential Race Merge exports and one export each for Core Details, Current Vault and Current Arena.
+- Approved privacy-safe profiling records 2,536,710 race entries across 695,901 events and 16,992 raced core IDs; 18,127 Core Details IDs; 195 owner-confirmed current-Vault cores, including 68 Maiden Eligible; and 792 current-Arena listings.
+- The six Race Merge exports have 13 overlapping boundary events containing 67 exact duplicate entries and no observed conflict. Imports must append and deduplicate while quarantining any future conflict.
+- All 195 current-Vault rows resolve deterministically to Core Details and have race history. ME is a separate eligibility state, not an ownership filter.
+- Core Details provides both parents for 14,181 cores and founder/no-parent state for 3,946. Of the current owned cores, 166 have recorded parents and 29 are founder/no-parent records.
+- Explicit partial-profile states remain required for 2,162 raced IDs absent from Core Details, one Arena ID absent from Core Details and 22 Arena IDs without race history.
+- Historical BGC race entries remain performance evidence but are accounted as free-entry, no-payout races: effective fee and payout are zero, no race ledger transaction is created and source monetary fields are excluded from economic totals.
+- Git may retain these approved aggregates and rules only. Raw files, filenames, identities, individual records, monetary values and user-specific derived records remain excluded.
