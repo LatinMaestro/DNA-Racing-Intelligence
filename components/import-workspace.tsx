@@ -43,6 +43,14 @@ const connectionCopy: Record<
   },
 };
 
+const ownerUpdateSteps = [
+  ["1", "Upload", "Add one or more current DNA Racing exports."],
+  ["2", "Preview", "Review schemas, rows, overlaps, conflicts and coverage."],
+  ["3", "Confirm", "Approve the displayed plan before active data changes."],
+  ["4", "Process", "Import and refresh affected aggregates in the background."],
+  ["5", "Complete", "Review results or use a reasoned recoverable rollback."],
+] as const;
+
 function timestamp(value: string | null): string {
   if (value === null) return "Not available";
   return value.replace("T", " ").replace(".000Z", " UTC");
@@ -104,29 +112,7 @@ export function ImportWorkspacePanel({
           Owner update flow
         </h2>
         <ol className="mt-4 grid gap-3 md:grid-cols-5">
-          {[
-            ["1", "Upload", "Add one or more current DNA Racing exports."],
-            [
-              "2",
-              "Preview",
-              "Review schemas, rows, overlaps, conflicts and coverage.",
-            ],
-            [
-              "3",
-              "Confirm",
-              "Approve the displayed plan before active data changes.",
-            ],
-            [
-              "4",
-              "Process",
-              "Import and refresh affected aggregates in the background.",
-            ],
-            [
-              "5",
-              "Complete",
-              "Review results or use a reasoned recoverable rollback.",
-            ],
-          ].map(([step, label, detail]) => (
+          {ownerUpdateSteps.map(([step, label, detail]) => (
             <li
               className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
               key={step}
