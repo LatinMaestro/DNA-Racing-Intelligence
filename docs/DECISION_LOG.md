@@ -1417,3 +1417,18 @@ through` separately from `Last imported`.
   provenance, and creates a new aggregate-refresh request.
 - Never carry forward old aggregate completion after rollback, delete source
   evidence, mutate Production or expose private details through routine output.
+
+## 2026-07-24 — Owner-scoped Vault read workspace
+
+- Replace the Vault placeholder with an authenticated dynamic Server Component
+  and a provider-neutral application service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before any Vault persistence read.
+- Project the accepted snapshot and auditable manual overlays only through the
+  existing deterministic durable-ID registry. Proposed matches cannot create
+  ownership, personal economics or recommendations.
+- Keep ownership and Maiden eligibility separate, retain missing Core Details
+  as unavailable evidence and show data-current-through, import time and
+  freshness independently.
+- Keep all owner mutations, provider initialization, private snapshot execution
+  and Preview/Production activation unavailable in this read-only slice.
