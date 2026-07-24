@@ -403,3 +403,13 @@
 - Synthetic TypeScript coverage verifies scientific ETH normalization, exact transaction derivation, BGC zero-effective treatment, absence of BGC ledger rows and continued fail-closed handling of unsupported assets.
 - Reversible migration smoke coverage now encodes assertions that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item. Exact PostgreSQL execution remains mandatory before merge.
 - Private source records, identities, filenames and amounts remain outside Git. Only the previously approved aggregate compatibility result is documented.
+
+## 2026-07-24 — Phase 2 deterministic Vault identity resolution
+
+- Treat every accepted Current Vault row as owner-confirmed ownership evidence. The Maiden field remains a separate eligible/not-eligible/unknown/invalid state.
+- Confirm identity only when normalized exact name plus class, element, F-number and sex selects one Core Details durable ID, or when a prior confirmed private signature still points to a present attribute-consistent ID.
+- Reused names are safe only when the full composite selects exactly one durable ID. Names never create lineage, ownership attribution or personal economics by themselves.
+- Future unmatched names, attribute inconsistencies, ambiguous composites, stale/conflicting prior mappings and duplicate resolved-core assignments remain review-required.
+- A review-required row remains owned-snapshot evidence but cannot create a durable profile, personal race P/L or recommendation until identity is confirmed.
+- The resolver is deterministic across source ordering, keeps candidate IDs sorted, rejects duplicate source/core identifiers and uses synthetic repository fixtures only.
+- The inspected current snapshot is separately confirmed to resolve all 195 owned rows with 68 eligible and 127 not eligible; no private identity map enters Git.
