@@ -218,4 +218,6 @@ DEZ is the DNA Racing game token on Polygon mainnet:
 
 ETH is Ethereum's native crypto asset. Preserve all source token amounts exactly and report racing fees, payouts and net results in both the original asset and USD using a dated rate for the race's UTC calendar day. The daily rate and source must remain auditable and correctable.
 
-BGC is separate from racing. It is used for breeding and burning and has an owner-confirmed reference conversion of USD 1 = BGC 1. Keep BGC in its own ledger and show any USD equivalent separately rather than silently mixing BGC with ETH/DEZ operating profit.
+Historical Race Merge rows whose `toke_curr` is BGC remain valid racing-performance evidence but are treated as free-entry, no-payout races. Their effective fee and payout are zero, they create no race-derived ledger transaction in any asset, and their source fee and prize do not enter economic totals or completeness queues. This is an exceptional historical rule and does not change the separate BGC ledger for genuine breeding, arena and burn activity.
+
+BGC is otherwise separate from racing. It is used for breeding and burning and has an owner-confirmed reference conversion of USD 1 = BGC 1. Keep BGC in its own ledger and show any USD equivalent separately rather than silently mixing BGC with ETH/DEZ operating profit.
