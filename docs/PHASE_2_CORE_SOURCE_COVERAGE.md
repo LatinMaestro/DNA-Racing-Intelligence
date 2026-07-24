@@ -17,12 +17,12 @@ It produces deterministic per-core states and aggregate counts suitable for comp
 
 Each core records every applicable source context: `current_vault`, `current_arena` and `race_history`.
 
-| State | Meaning | Permitted use |
-| --- | --- | --- |
-| `ready` | Core Details and imported race history are both available | Attribute, lineage and performance views may be joined |
-| `performance_only` | Race history exists but Core Details is absent | Performance evidence remains valid; attribute- and lineage-dependent claims are unavailable |
-| `no_imported_racing_history` | Core Details exists but no accepted race is present | Identity and lineage may be shown; performance metrics remain unavailable rather than zero |
-| `source_identity_only` | A Vault or Arena source ID exists without Core Details or race history | Preserve the source identity and require review before analytical or family use |
+| State                        | Meaning                                                                | Permitted use                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `ready`                      | Core Details and imported race history are both available              | Attribute, lineage and performance views may be joined                                      |
+| `performance_only`           | Race history exists but Core Details is absent                         | Performance evidence remains valid; attribute- and lineage-dependent claims are unavailable |
+| `no_imported_racing_history` | Core Details exists but no accepted race is present                    | Identity and lineage may be shown; performance metrics remain unavailable rather than zero  |
+| `source_identity_only`       | A Vault or Arena source ID exists without Core Details or race history | Preserve the source identity and require review before analytical or family use             |
 
 The status describes evidence coverage, not core quality. A missing profile must never be ranked as poor or treated as a zero-valued profile.
 
