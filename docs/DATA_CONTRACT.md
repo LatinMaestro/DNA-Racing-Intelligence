@@ -26,6 +26,16 @@ The currently inspected private source set contains six sequential Race Merge ex
 - Ignore race class in analytical models but preserve the source field for provenance if inexpensive.
 - Preserve manually entered economic transactions separately from source-derived transactions.
 - Corrections to accepted economic facts must use auditable overrides, exclusions, reversals or reconciliation records rather than silent destructive mutation.
+- Implement the owner-facing upload, preview, confirmation, processing, completion and rollback flow in `docs/DATA_UPDATE_WORKFLOW.md`.
+
+## Analytical fidelity and private retention
+
+- The private raw-data boundary must retain original uploaded files and source values for provenance, reproducibility and future analysis, subject to approved capacity limits.
+- Do not remove or suppress a field merely because it may be identifiable or sensitive; privacy controls protect access and logging and must not reduce analytical quality.
+- Normalize and index every field required or plausibly useful for current analysis, recommendations, identity, lineage, accounting, freshness, reconciliation or validation.
+- Redundant or currently unused values may be omitted from compact application tables only when they remain recoverable from the private raw source and the omission cannot reduce current analysis.
+- Unknown extra columns remain preserved in raw provenance and produce a schema warning for later assessment.
+- Authenticated owner review may expose exact filename, row and field details where useful. Routine logs, Git, CI, public surfaces and synthetic fixtures remain redacted.
 
 ## Normalisation
 
