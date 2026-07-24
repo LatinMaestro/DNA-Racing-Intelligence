@@ -312,13 +312,13 @@ Treat a parentless Genesis core as a complete founder. Require exactly two disti
 
 The Race Merge economic columns have these normalized meanings:
 
-| Source column | Meaning                           | Normalized treatment                                                                                                       |
-| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                  |
-| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero |
-| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero   |
+| Source column | Meaning                           | Normalized treatment                                                                                                                            |
+| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                                       |
+| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero                      |
+| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero                        |
 | `toke_curr`   | Entry and payout asset            | Normalize ordinary race economics to ETH or DEZ; apply the confirmed historical BGC non-economic exception; other assets remain review-required |
-| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                               |
+| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                                                    |
 
 A numeric zero is an authoritative zero. Blank, missing, malformed and negative values are not equivalent to zero. The fee and prize use the same row asset. Race-derived natural keys remain the accepted race-entry key plus `entry_fee` or `payout`, so cumulative imports cannot duplicate them.
 
