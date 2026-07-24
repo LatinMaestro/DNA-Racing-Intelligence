@@ -393,3 +393,10 @@
 - Preserve original source files and values in the private raw-data boundary, subject to approved capacity limits. Compact application tables may omit redundant or unused fields only when the raw values remain recoverable and current analysis is unaffected.
 - The owner should upload ordinary exports without manually reshaping them. Unsupported source changes fail closed while the prior accepted dataset remains active.
 - Production and the first persistent private Preview import remain subject to their existing Gates F and B respectively.
+
+## 2026-07-24 — Real-source race-economic compatibility
+
+- Accept exact base-10 exponent notation at the source-adapter boundary and normalize it with decimal-string and `BigInt` arithmetic.
+- Classify historical BGC Race Merge rows as `historical_non_economic`: preserve racing evidence and private source provenance, force effective fee and payout to zero, and create no transaction, daily-rate requirement or reconciliation issue.
+- Continue to quarantine unsupported non-BGC assets and invalid ETH/DEZ economics without erasing valid race-performance evidence.
+- Evidence: six deterministic TypeScript compatibility tests plus persistence-contract inspection. PostgreSQL execution remains required in the full hosted integration rehearsal.
