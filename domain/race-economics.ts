@@ -1,16 +1,20 @@
-import { raceEconomicNaturalKey } from "@/domain/import-contract";
 import {
   isNegativeExactDecimal,
   isZeroExactDecimal,
   negateExactDecimal,
   normalizeExactDecimal,
 } from "@/domain/exact-decimal";
+import { raceEconomicNaturalKey } from "@/domain/import-contract";
 
 export const supportedRaceAssets = ["ETH", "DEZ"] as const;
 export type RaceAsset = (typeof supportedRaceAssets)[number];
 
 export type RaceEconomicDataStatus =
-  "ready" | "missing" | "invalid" | "unsupported_asset";
+  | "ready"
+  | "historical_non_economic"
+  | "missing"
+  | "invalid"
+  | "unsupported_asset";
 
 export type RaceEconomicIssueCode =
   | "MISSING_ECONOMIC_VALUE"
@@ -59,6 +63,22 @@ export function validateRaceEconomics(
   const assetSourceValue = trimmed(input.assetSourceValue);
   const payoutMechanismSourceValue = trimmed(input.payoutMechanismSourceValue);
   const raceTagsSourceValue = trimmed(input.raceTagsSourceValue);
+  const normalizedAsset = assetSourceValue?.toUpperCase() ?? null;
+
+  if (normalizedAsset === "BGC") {
+    return {
+      status: "historical_non_economic",
+      asset: null,
+      entryFee: "0",
+      grossPayout: "0",
+      feeSourceValue,
+      prizeSourceValue,
+      assetSourceValue,
+      payoutMechanismSourceValue,
+      raceTagsSourceValue,
+      issueCodes: [],
+    };
+  }
 
   if (
     feeSourceValue === null &&
@@ -97,7 +117,6 @@ export function validateRaceEconomics(
     issueCodes.push("INVALID_ECONOMIC_DECIMAL");
   }
 
-  const normalizedAsset = assetSourceValue?.toUpperCase() ?? null;
   const asset =
     supportedRaceAssets.find((item) => item === normalizedAsset) ?? null;
   if (assetSourceValue !== null && asset === null) {
