@@ -94,7 +94,7 @@ describe("Phase 1 exact race economics", () => {
       validateRaceEconomics({
         feeSourceValue: "1",
         prizeSourceValue: "2",
-        assetSourceValue: "BGC",
+        assetSourceValue: "SOL",
       }),
     ];
 
