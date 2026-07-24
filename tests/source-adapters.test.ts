@@ -58,6 +58,68 @@ describe("Phase 1 synthetic source adapters", () => {
     });
   });
 
+  it("normalizes scientific ETH amounts through the Race Merge adapter", () => {
+    const staged = schema(
+      "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rfee,prize,toke_curr",
+    );
+    const row = adaptSourceRow(staged, [
+      "event-scientific-eth",
+      "2026-07-22T12:00:00.000Z",
+      "bike",
+      "1000",
+      "core-scientific-eth",
+      "4",
+      "false",
+      "false",
+      "2",
+      "50.1",
+      "1e-7",
+      "2.5E-6",
+      "ETH",
+    ]);
+
+    expect(row.status).toBe("ready");
+    expect(row.record).toMatchObject({
+      economicDataStatus: "ready",
+      raceAsset: "ETH",
+      entryFeeAmount: "0.0000001",
+      grossPayoutAmount: "0.0000025",
+    });
+    expect(row.issues).toEqual([]);
+  });
+
+  it("accepts historical BGC races without economic review", () => {
+    const staged = schema(
+      "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rfee,prize,toke_curr",
+    );
+    const row = adaptSourceRow(staged, [
+      "event-historical-bgc",
+      "2026-07-22T12:00:00.000Z",
+      "horse",
+      "1600",
+      "core-historical-bgc",
+      "4",
+      "false",
+      "false",
+      "2",
+      "90.1",
+      "legacy-fee",
+      "legacy-prize",
+      "BGC",
+    ]);
+
+    expect(row.status).toBe("ready");
+    expect(row.record).toMatchObject({
+      economicDataStatus: "historical_non_economic",
+      raceAsset: null,
+      entryFeeAmount: "0",
+      grossPayoutAmount: "0",
+      feeSourceValue: "legacy-fee",
+      prizeSourceValue: "legacy-prize",
+    });
+    expect(row.issues).toEqual([]);
+  });
+
   it("keeps a valid race row while quarantining malformed economics", () => {
     const staged = schema(
       "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags",
