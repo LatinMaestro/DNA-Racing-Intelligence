@@ -1,7 +1,23 @@
 import { ImportWorkspacePanel } from "@/components/import-workspace";
-import { buildImportWorkspace } from "@/domain/import-workflow";
+import {
+  loadImportWorkspacePageState,
+  unavailableImportBatchRepository,
+} from "@/lib/import-workspace-service";
 
-export default function ImportsPage() {
-  const workspace = buildImportWorkspace([], new Date(0));
-  return <ImportWorkspacePanel workspace={workspace} />;
+export const dynamic = "force-dynamic";
+
+export default async function ImportsPage() {
+  const state = await loadImportWorkspacePageState({
+    authenticatedOwnerId: null,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: unavailableImportBatchRepository,
+    now: new Date(),
+  });
+
+  return (
+    <ImportWorkspacePanel
+      connectionStatus={state.connectionStatus}
+      workspace={state.workspace}
+    />
+  );
 }
