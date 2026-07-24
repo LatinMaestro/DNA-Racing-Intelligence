@@ -1533,3 +1533,20 @@ through` separately from `Last imported`.
   entry disabled while Gate C remains unpassed.
 - Keep provider initialization, private-data execution and Preview/Production
   activation unavailable in this read-only slice.
+
+## 2026-07-24 — Owner-scoped Maiden read workspace
+
+- Replace the Maiden placeholder with an authenticated dynamic Server Component
+  and provider-neutral compact allocation service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and scan no raw Race Merge history on a routine request.
+- Treat the Current Vault ME value as current replacement-snapshot evidence,
+  never historical tournament entitlement.
+- Preserve Maiden eligibility for the strongest credible mode-specific
+  opportunity across Bike, Car and Horse rather than the first available event.
+- Enforce one provisional allocation per core plus configured bracket capacity,
+  while preserve-ME, stale, uncertain and incomplete evidence remains blocked.
+- Keep every allocation experimental and non-actionable with entitlement
+  mutation and tournament entry disabled while Gates C and D remain unpassed.
+- Keep provider initialization, private-data execution and Preview/Production
+  activation unavailable in this read-only slice.
