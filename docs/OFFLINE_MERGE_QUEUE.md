@@ -33,6 +33,9 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    12 | Core Intelligence read workspace      | `agent/core-intelligence-read-workspace`    | `569074c49dc9b39479a44e4f8d441ee2d76b0283` | PR the eight-commit delta after order 11                               |
 |    13 | Private chronological evidence        | `agent/private-chronological-validation`    | `3eaeb0373a07fb8dd65ed69b8aec7a6369411741` | PR the four-commit evidence delta after order 12                       |
 |    14 | Vault Performance read workspace      | `agent/vault-performance-read-workspace`    | `892f30c17574216731ec5356dad10a75eb8f242e` | PR the seven-commit delta after order 13                               |
+|    15 | Discovery read workspace              | `agent/discovery-read-workspace`            | `f28f37a97e4bc93f862959d0e1eded9c7b2e69c8` | PR the eight-commit application delta after order 14                   |
+|    16 | Tournament read workspace             | `agent/tournament-read-workspace`           | `e5decdd4dc616ae06d20196bb847645724da14d8` | PR the seven-commit delta after order 15                               |
+|    17 | Maiden read workspace                 | `agent/maiden-read-workspace`               | `c9b0004f7086c8a4fb489690d3465a701312596b` | PR the seven-commit delta after order 16                               |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -40,16 +43,15 @@ must be reconciled during every rebase.
 
 ## Latest hosted evidence
 
-The exact Vault Performance descendant plus this documentation-only queue
-passed:
+The exact Maiden descendant passed:
 
 - Prettier;
 - ESLint;
 - strict TypeScript;
-- 106 test files and 882 tests;
+- 112 test files and 900 tests;
 - optimized Next.js build;
 - dynamic owner-scoped `/imports`, `/vault`, `/core-intelligence` and
-  `/vault-performance` routes;
+  `/vault-performance`, `/discovery`, `/tournaments` and `/maiden` routes;
 - zero dependency vulnerabilities; and
 - byte-for-byte verification of every file in its four-commit delta.
 
@@ -89,6 +91,14 @@ Record privacy-safe aggregate validation, enforce externally ordered
 pre-event holdout, exclude partial outcomes, keep mode/distance/gate-count
 baselines separate and prevent unsupported star, lineage, breeding or Maiden
 claims from passing Gates C or E.
+
+### Discovery, Tournament and Maiden reads
+
+Read compact owner-scoped materialized evidence without scanning raw history,
+preserve exact mode/distance and configured qualification authority, treat
+historical fields and current ME snapshots honestly, keep the 50% gate as a
+hard cap, preserve ME for the strongest mode-specific opportunity and disable
+all automatic entry or entitlement mutation.
 
 ## Gate status and limitations
 
