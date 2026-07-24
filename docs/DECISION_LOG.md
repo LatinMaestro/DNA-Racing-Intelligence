@@ -397,6 +397,15 @@
 - Race Merge exports are sequential append sources and may be added in groups; Core Details is versioned/upserted by durable ID; Current Vault and Current Arena are replacement historical snapshots.
 - The owner-facing sequence is upload, detected update preview, confirmation, background processing, completion report and reasoned rollback where required.
 - Authenticated owner review may show exact filenames, rows and field values when useful for correcting an import; automated logs, Git, CI and public surfaces remain redacted.
+
+## 2026-07-24 — Data Update preview and confirmation contract
+
+- Build one deterministic pre-confirmation plan from staged-file inspection evidence; the preview cannot mutate active data.
+- Permit grouped Race Merge additions and order them by accepted event coverage. Treat Core Details as a single versioned durable-ID upsert and Current Vault/Arena as single replacement snapshots.
+- Report accepted, exact-replay, exact-duplicate, conflict, malformed and warning counts separately.
+- Block confirmation on unsupported schemas, conflicts, malformed rows, duplicate uploads or competing single-file source candidates.
+- Keep confirmation explicit and start only bounded background processing after it; completion reporting and reasoned rollback remain separate stages.
+- Permit exact row-level evidence in the authenticated owner review workspace while keeping Git, routine logs and public surfaces redacted.
 - The source exports are publicly available DNA Racing data and the website is private. Privacy controls must not remove or suppress analytically relevant fields or compromise recommendations.
 - Preserve original source files and values in the private raw-data boundary, subject to approved capacity limits. Compact application tables may omit redundant or unused fields only when the raw values remain recoverable and current analysis is unaffected.
 - The owner should upload ordinary exports without manually reshaping them. Unsupported source changes fail closed while the prior accepted dataset remains active.
@@ -431,6 +440,23 @@
 - Recompute affected source coverage after accepted activation or rollback and carry data freshness and cutoff into downstream displays.
 - The inspected source aggregates imply all 195 owned cores are ready; 2,162 raced IDs are performance-only; and 22 current-Arena IDs have no imported racing history. These are snapshot coverage findings, not permanent constants.
 - Synthetic hosted verification covers deterministic ordering, owned-ready, founder, performance-only, no-history, identity-only and invalid-lineage cases. Exact-head CI and persistence integration remain pending.
+
+## 2026-07-24 — Owner-scoped import read-model service
+
+- Replace the Imports route's hardcoded empty 1970 projection with a dynamic Server Component and provider-neutral application service.
+- Require both an authenticated session owner ID and the single configured allowlist ID before persistence may be queried. Missing identity stays explicitly disconnected; a mismatch fails closed.
+- Query a ready import-batch repository only with the verified owner ID. Do not turn malformed persisted batch evidence into an empty or successful state.
+- Keep the repository adapter explicitly not configured until approved Preview identity and Neon access exist. Never initialize a provider SDK at module scope or during `next build`.
+- Distinguish identity unavailable, persistence unavailable and read-model connected states in the owner UI without exposing private identifiers.
+- Keep raw upload and background processing disabled even when the historical read model is connected; they remain separate gated implementation work.
+
+## 2026-07-24 — Owner data-update preview contract
+
+- Group staged files by Race Merge, Core Details, Current Vault and Current Arena before owner confirmation.
+- Treat Race Merge as chronological append history, Core Details as a durable-ID versioned upsert, and Vault/Arena as single replacement snapshots.
+- Report accepted, exact replay, exact duplicate, conflicting, malformed and warning counts without mutating the active dataset.
+- Block confirmation for unsupported schemas, conflicts, malformed rows or multiple competing snapshot/upsert candidates. Visible warnings and exact duplicates do not block an otherwise valid plan.
+- Require explicit owner confirmation before background processing starts. The preview itself never activates data, deletes provenance or changes Production.
 
 ## 2026-07-23 — Phase 2 distance-band projection
 
