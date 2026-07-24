@@ -2,7 +2,7 @@ import {
   isNegativeExactDecimal,
   isZeroExactDecimal,
   negateExactDecimal,
-  normalizeExactDecimal,
+  normalizeSourceExactDecimal,
 } from "@/domain/exact-decimal";
 import { raceEconomicNaturalKey } from "@/domain/import-contract";
 
@@ -42,7 +42,7 @@ function trimmed(value: string | null | undefined): string | null {
 function exactNonNegative(value: string | null): string | null {
   if (value === null) return null;
   try {
-    const normalized = normalizeExactDecimal(value);
+    const normalized = normalizeSourceExactDecimal(value);
     return isNegativeExactDecimal(normalized) ? null : normalized;
   } catch {
     return null;
