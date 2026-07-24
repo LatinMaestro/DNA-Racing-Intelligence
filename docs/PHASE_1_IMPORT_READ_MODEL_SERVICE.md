@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Imports route previously constructed a permanently empty workspace with a 1970 clock. The route now uses a provider-neutral application service that can load accepted import status from an owner-scoped repository without initializing Clerk, Neon, R2 or another SDK during the build.
+The Imports route previously constructed a permanently empty workspace with a 1970 clock. The route now uses a provider-neutral application service that can load accepted import status from an owner-scoped repository without initializing Clerk, Neon, R2 or another provider client during the build.
 
 ## Access boundary
 
@@ -13,7 +13,9 @@ The service requires two independent server-side identities before it may query 
 
 Missing identity evidence produces an explicit `identity_not_connected` state and does not call the repository. A mismatch fails closed with an access-denied error. Private batch identifiers never enter the connection status.
 
-The current route intentionally supplies no authenticated identity because Clerk is not connected. It therefore remains empty and disabled without inventing an owner or reading private persistence.
+The route now obtains the signed-in user ID from Clerk's server-side `auth()` request context. It accepts that identity only when both Clerk keys are configured and then independently requires the same ID to match `AUTHORIZED_CLERK_USER_ID` before querying persistence. Missing Clerk configuration or a signed-out request remains empty and disabled without inventing an owner. Partial Clerk configuration and malformed session evidence fail closed.
+
+`proxy.ts` preserves the earlier deployment gate before invoking Clerk. Disabled Preview and Production requests still return a non-indexable 404 even when Clerk is not configured. An otherwise allowed request also returns 404 until both Clerk keys exist, and Clerk middleware then establishes request authentication context. The root provider is rendered only when the browser-safe publishable key exists, so repository builds without secrets remain valid.
 
 ## Repository boundary
 
@@ -35,7 +37,7 @@ The Neon adapter now implements this interface without provisioning a database:
 - it aggregates count/code-only warnings, unresolved identity reviews and pending observation reconciliation without reading raw race history; and
 - it rejects malformed types, unsafe `bigint` counts, unsupported source/status values and inconsistent domain evidence rather than coercing them.
 
-The route constructs this environment-backed repository, but it still supplies no authenticated identity because Clerk is not connected. The service therefore returns before the lazy Neon factory is called.
+The route constructs this environment-backed repository after resolving the request's Clerk identity. A missing or signed-out identity returns before the lazy Neon factory is called. A signed-in non-owner is denied before persistence, and an authorised owner reaches the lazy Neon repository only when its own configuration also exists.
 
 ## Rendering behavior
 
@@ -53,6 +55,9 @@ Even the connected read model does not claim that raw upload or background proce
 
 Tests verify:
 
+- missing Clerk configuration performs no provider call;
+- partial Clerk configuration fails closed;
+- signed-out, signed-in and malformed Clerk session states remain distinct;
 - missing identity performs no persistence query;
 - a mismatched owner is denied;
 - configured identity with no repository remains explicitly unavailable;
@@ -65,4 +70,4 @@ Tests verify:
 - persisted batch inconsistencies fail closed; and
 - each connection state renders semantic disabled-action copy without private identifiers.
 
-The service adds the provider package and server-only adapter but does not configure a Preview database, add secret values, upload private files, mutate Production or replace the remaining PostgreSQL migration checks.
+The service adds the Clerk and Neon provider packages plus server-only adapters but does not configure either provider, add secret values, upload private files, mutate Production or replace the remaining PostgreSQL migration checks.
