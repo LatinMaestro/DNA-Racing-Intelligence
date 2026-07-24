@@ -1565,3 +1565,20 @@ through` separately from `Last imported`.
   keep Gate E, pair execution and breeding transactions disabled.
 - Keep provider initialization, private-data execution and Preview/Production
   activation unavailable in this read-only slice.
+
+## 2026-07-24 — Owner-scoped Lifecycle read workspace
+
+- Replace the Lifecycle placeholder with an authenticated dynamic Server
+  Component and provider-neutral compact action-ranking service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and scan no raw race, lineage, breeding or ledger history
+  on a routine request.
+- Preserve unresolved racing, Discovery, Maiden, breeding, lineage and market
+  value by holding actions when evidence is partial, stale or protected.
+- Forbid Genesis burn permanently and prohibit no-star evidence from producing
+  burn without independent non-star negative evidence.
+- Keep actual BGC burn credit outside ranking and preserve source and ledger
+  facts unchanged.
+- Keep final recommendations, sale, burn and ledger mutation disabled.
+- Keep provider initialization, private-data execution and Preview/Production
+  activation unavailable in this read-only slice.
