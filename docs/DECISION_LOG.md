@@ -1486,3 +1486,32 @@ through` separately from `Last imported`.
   change or create authoritative era boundaries automatically.
 - Representative background capacity is recorded separately from unmeasured
   deployed request latency. Production remains disabled and fail-closed.
+
+## 2026-07-24 — Owner-scoped Discovery read workspace
+
+- Replace the Discovery placeholder with an authenticated dynamic Server
+  Component and provider-neutral compact candidate service.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before persistence and scan no raw Race Merge history on a routine request.
+- Build the deterministic probe plan at the application boundary and fail
+  closed on invalid timestamps, duplicate cells, unsafe counts or fabricated
+  lineage evidence.
+- Preserve mode and exact-distance separation, the 10-race minimum, direct
+  evidence priority and all freshness, lineage and Maiden warnings.
+- Keep every output experimental and non-actionable with automatic race entry
+  and stopping disabled while Gate C remains unpassed.
+- Keep provider initialization, private-data execution and Preview/Production
+  activation unavailable in this read-only slice.
+
+## 2026-07-24 — Keep the no-Actions merge queue exact and sequential
+
+- Preserve PR 29 before PR 28, then source/BGC corrections, phase integration
+  and application-service deltas in verified dependency order.
+- Treat the full offline integration branch as composition evidence, not one
+  wholesale merge candidate.
+- Record exact remote heads, hosted validation, limitations and PR-ready delta
+  summaries in `docs/OFFLINE_MERGE_QUEUE.md`.
+- Rebase and validate one focused delta at a time after Actions capacity
+  returns. No hosted-workspace result replaces mandatory exact-head CI.
+- Keep private sources, provider changes and Production activation outside the
+  merge queue.
