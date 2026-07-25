@@ -1,60 +1,66 @@
 # Phase 7 Lifecycle Economic Write Service
 
-## Purpose
+## Scope
 
-This slice provides owner-scoped application boundaries for recording confirmed
-core-sale evidence, confirmed burn evidence and an actual BGC burn credit. It
-keeps strategic lifecycle advice, execution evidence, ownership review and
-economic posting as separate auditable stages.
+This provider-neutral service records owner-confirmed lifecycle economic
+evidence after server-side owner verification. It composes the existing core
+sale, core burn and actual burn-credit reconciliation contracts without
+executing game or wallet actions.
 
-## Core sale
+The repository adapter remains unavailable by default. This slice does not
+provision persistence, expose a form, activate Preview or change Production.
 
-- Require the authenticated Clerk owner before persistence.
-- Validate completed-sale evidence through the existing exact-asset domain.
-- Preserve proceeds and selling fees in their original assets.
-- Calculate realised result only when a same-asset acquisition cost is known.
-- Keep proceeds visible while cost basis is missing or unlike assets prevent a
-  realised calculation.
-- Never infer market value, execute a sale or mutate ownership.
+## Sale evidence
 
-## Core burn
+- Validate completed sale evidence, active ownership at sale time, exact
+  proceeds, exact selling fees and optional acquisition cost.
+- Preserve every original asset. Unlike-asset cost basis cannot produce a
+  realised result.
+- Missing cost basis leaves proceeds visible and realised gain/loss
+  unavailable.
+- Persist one canonical SHA-256 fingerprint per durable sale ID. Exact replay is
+  idempotent and conflicting evidence fails closed.
+- Strategic lifecycle advice is never execution evidence and no market value is
+  inferred.
 
-- Reject Genesis burn evidence permanently.
-- Require confirmed completed evidence and confirmed active ownership before
-  projecting a reviewed active-Vault removal.
-- Retain historical lineage.
-- Keep lifecycle recommendations distinct from execution evidence.
-- Predict no BGC amount and perform no ownership or ledger mutation.
+## Burn evidence
 
-## Actual BGC credit
+- Permanently reject Genesis burns.
+- Record confirmed completed Morphed, Freak or X-Class burn evidence for review.
+- Preserve historical lineage and project active-Vault removal only as a later
+  reviewed persistence action.
+- Do not execute a burn, mutate ownership, predict a burn credit or create a
+  ledger posting from the burn event.
+- Persist one canonical SHA-256 fingerprint per durable burn ID.
 
-- Require one durable burn ID and load its owner-scoped stored evidence.
-- Require the credit core to match the referenced burn.
-- Accept only exact positive BGC evidence.
-- Reconcile the new credit together with existing credit evidence for the same
-  burn.
-- Propose one ledger posting only when exactly one confirmed credit directly
-  references the confirmed burn and core after the burn time.
-- Keep multiple, provisional, mismatched or otherwise ambiguous credits in
-  review.
-- Never predict a credit, auto-exclude evidence or mutate the burn.
+## Actual BGC burn credit
 
-## Durable writes
+- Require one durable stored burn ID and matching authoritative core ID.
+- Accept only exact positive BGC evidence after the burn time.
+- Reconcile the candidate with existing credits for the same burn.
+- One confirmed direct match may propose a separate BGC-ledger posting.
+- Multiple, provisional, conflicting, unlinked or mismatched credits remain
+  review-required and produce no posting proposal.
+- Exact credit replay is idempotent; conflicting durable credit identity fails
+  closed.
+- The service never predicts a credit amount or combines BGC with cash/crypto
+  profit.
 
-Every accepted sale, burn or credit record is fingerprinted with SHA-256.
-Exact durable-ID replay is idempotent and conflicting evidence under the same
-identity fails closed.
+## Security and activation boundary
 
-The provider-neutral repository is unavailable by default. This slice adds no
-form, Neon mutation adapter, wallet/game action, Preview data change or
-Production activation.
+- Clerk owner evidence must match the configured server-side owner before any
+  repository read or write.
+- The browser cannot supply owner authority, execution proof or an existing burn
+  record.
+- Repository methods are owner-scoped and must atomically enforce durable-ID
+  uniqueness when a provider adapter is implemented.
+- No raw exports, private records, credentials, wallet actions, game actions or
+  Production changes are introduced.
 
-## Synthetic verification
+## Verification
 
-Focused tests cover owner and persistence gates, exact sale result, missing and
-unlike cost basis, confirmed burn evidence, Genesis rejection, actual BGC
-credit reconciliation, ambiguous credits, missing burns, exact replay and
-durable-ID conflict.
-
-All outputs remain review evidence. Synthetic tests do not establish complete
-economic coverage or accept Gate C.
+Synthetic tests cover fail-closed identity and persistence, exact sale
+arithmetic, missing cost basis, durable replay/conflict handling, Genesis burn
+rejection, non-mutating spliced-core burn evidence, matching BGC credits,
+multiple-credit review, exact credit replay and missing/mismatched burn
+evidence.
