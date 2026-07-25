@@ -1755,3 +1755,19 @@ through` separately from `Last imported`.
 - Keep provider initialization lazy, server-only and absent from module scope.
 - Keep the upload form, provider adapters, owner confirmation, Preview imports,
   source activation and Production disabled.
+
+## 2026-07-26 — Bounded direct private-object upload client
+
+- Add a provider-neutral browser orchestration boundary between one validated
+  upload reservation and the existing authenticated upload-completion action.
+- Match every selected Blob, prepared candidate and opaque reserved target by
+  exact synthetic client file ID, rejecting missing, duplicate, expired or
+  inconsistent sets before transfer.
+- Verify selected byte lengths, pass each Blob directly to the injected private
+  transport and upload sequentially without calling whole-file read methods.
+- Keep original filenames and provider failure detail outside the transport
+  result, and request completion only after every object succeeds.
+- Preserve the authoritative background full-stream SHA-256 verification and
+  all manifest-bound preview rules.
+- Keep checksum preparation, the concrete object-store adapter, forms,
+  persistence, Preview imports, source activation and Production disabled.
