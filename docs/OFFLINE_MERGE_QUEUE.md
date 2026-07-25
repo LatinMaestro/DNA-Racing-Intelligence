@@ -47,6 +47,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    26 | Breeding economic write service       | `agent/breeding-economic-write-service`        | `5adb71fd47103c830178c93e47eaa006a8071520` | PR the five-commit breeding economics delta after order 25             |
 |    27 | Guarded import upload intake          | `agent/import-upload-intake-service`            | `e2a66de3bfa5ab5e9f6ec84b4cebfdcb167f24b4` | PR the five-commit upload-intake delta after order 26                   |
 |    28 | Upload completion and preview dispatch | `agent/import-upload-completion-service`        | `a4b603feb03a09ce0e6d2a4772aac0c530b35baa` | PR the five-commit completion/dispatch delta after order 27             |
+|    29 | Bounded import preview processing      | `agent/import-preview-processing-service`      | `8b8ec9f3b1bc91c84975840fa2708371149af2f4` | PR the five-commit preview-worker delta after order 28                  |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -132,6 +133,15 @@ preserves full-stream checksum verification and queues one idempotent
 pre-confirmation preview without touching active data. Its three implementation,
 test and contract blobs match the validated hosted files, and the exact head has
 no workflow run, status context or pull request.
+
+The bounded preview-processing descendant passes formatting, lint, strict
+TypeScript and 11 synthetic worker tests; the complete available hosted harness
+passes 77 tests and the dependency audit reports zero vulnerabilities. It leases
+one dispatch, binds the result to the exact upload-manifest fingerprint, retains
+blocked previews as non-confirmable and publishes no partial evidence after
+processor failure. Its three implementation, test and contract blobs match the
+validated hosted files, and the exact head has no workflow run, status context or
+pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -237,6 +247,14 @@ incomplete direct uploads pending and reserve one idempotent preview dispatch on
 after every object agrees. Preserve mandatory full-stream SHA-256 verification in
 the preview worker, sanitize provider failures and leave schema acceptance,
 confirmation, active versions, providers and Production disabled.
+
+### Bounded import preview processing
+
+Lease one durable preview dispatch, stream and inspect only the persisted private
+object manifest, and bind the deterministic preview to that exact manifest
+fingerprint. Validate source-family and blocking-state summaries before
+publication, keep blocked previews non-confirmable and leave owner confirmation,
+source activation, providers and Production disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
