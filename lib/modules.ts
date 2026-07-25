@@ -50,6 +50,11 @@ export const modules = [
     label: "Vault Performance",
     shortDescription: "Auditable asset-separated ledger",
   },
+  {
+    href: "/readiness",
+    label: "Readiness",
+    shortDescription: "Exact-head evidence and blockers",
+  },
 ] as const;
 
 export type ModuleHref = (typeof modules)[number]["href"];
