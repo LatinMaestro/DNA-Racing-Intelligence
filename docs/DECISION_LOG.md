@@ -1787,3 +1787,19 @@ through` separately from `Last imported`.
   and the background worker authoritative for full-stream checksum verification.
 - Keep the hashing implementation, form, provider adapters, persistence,
   Preview imports, source activation and Production disabled.
+
+## 2026-07-26 — Authenticated import confirmation action
+
+- Add one server-only owner action between a persisted confirmable preview and
+  the existing guarded activation service.
+- Resolve Clerk identity inside every confirmation request and never accept an
+  owner ID, preview body, active version, freshness value or recommendation
+  state from the browser.
+- Require the server-side owner allowlist, durable preview ID, persisted
+  SHA-256 fingerprint, idempotency key and explicit owner acknowledgement.
+- Preserve the activation service's capacity, private-upload readiness,
+  durable reservation, queued replay and sanitized dispatch-failure controls.
+- Return the exact missing repository, raw-store, capacity and background-queue
+  capabilities while providers remain unavailable.
+- Keep provider adapters, upload UI, source activation, Preview imports,
+  aggregate publication and Production disabled.
