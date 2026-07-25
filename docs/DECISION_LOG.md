@@ -1618,3 +1618,20 @@ through` separately from `Last imported`.
   Production mutation, even when all evidence is complete.
 - Keep providers, domain attachment, public routes, recurring paid
   infrastructure, private Production data and Production activation disabled.
+
+## 2026-07-26 — Owner-scoped manual ledger write boundary
+
+- Add a provider-neutral write service that accepts only the existing validated
+  exact manual-ledger domain result after Clerk owner allowlist verification.
+- Fingerprint the canonical validated entry with SHA-256 so identical durable-ID
+  replay is idempotent and different evidence under the same ID blocks.
+- Retain category, subcategory, account, tournament, core, cost-basis, exact
+  asset and BGC warnings without combining unlike assets or promoting partial
+  evidence to complete.
+- Implement append-only reversal evidence by loading the accepted original and
+  creating one exact opposite posting per original posting in the same account
+  and asset.
+- Require a durable reversal ID, timestamp not earlier than the original and a
+  non-empty reason; keep original entries and source facts immutable.
+- Keep the repository, form, provider initialization, wallet actions,
+  Preview/Production persistence and Production disabled by default.
