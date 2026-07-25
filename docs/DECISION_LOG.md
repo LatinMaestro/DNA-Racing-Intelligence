@@ -1738,3 +1738,20 @@ through` separately from `Last imported`.
   `next build` remain network-free.
 - Keep the upload form, provider adapters, owner confirmation, activation,
   Preview imports and Production disabled.
+
+## 2026-07-26 — Fail-closed import Server Action adapter
+
+- Add a Next.js Server Action transport for the validated guarded import intake
+  and upload-completion owner actions.
+- Resolve Clerk identity inside every action invocation and never accept an
+  owner ID from the browser.
+- Read the server-side owner allowlist at request time and reject a non-owner
+  before persistence, object storage or queue access.
+- Accept only upload candidate metadata plus an idempotency key, or a durable
+  upload-batch ID plus an idempotency key. File bytes, preview bodies, source
+  versions, freshness and recommendation evidence remain outside the action.
+- Supply explicit unavailable intake and completion capabilities so a verified
+  owner receives `not_configured` and no provider action is possible.
+- Keep provider initialization lazy, server-only and absent from module scope.
+- Keep the upload form, provider adapters, owner confirmation, Preview imports,
+  source activation and Production disabled.
