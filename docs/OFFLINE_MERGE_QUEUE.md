@@ -53,6 +53,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    32 | Bounded direct upload client          | `agent/import-direct-upload-client`              | `01c6667a23e7077993de87c0be4f8851b22925b3` | PR the five-commit direct-upload delta after order 31                   |
 |    33 | Bounded file preparation client       | `agent/import-file-preparation-client`           | `c7dea5ccd2a031e6c6d979b50ec0ca6b915bb234` | PR the five-commit checksum-preparation delta after order 32            |
 |    34 | Authenticated import confirmation     | `agent/import-confirmation-action-service`        | `fd499d1b5fa6d93fd833e80ef9e397a87f04aa88` | PR the seven-commit confirmation-action delta after order 33            |
+|    35 | Authenticated import recovery         | `agent/import-recovery-action-service`            | `7ecfc18d8d8307211da31f71e1885cc795c0e555` | PR the seven-commit recovery-action delta after order 34                |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -192,6 +193,15 @@ explicit acknowledgement and delegates only to the guarded activation service.
 All four activation capabilities remain explicitly unavailable. Its five
 implementation, test and contract blobs match the validated hosted files, and
 the exact head has no workflow run, status context or pull request.
+
+The authenticated recovery descendant passes formatting, lint, strict
+TypeScript and six synthetic recovery/transport tests; the complete available
+hosted harness passes 113 tests and the production dependency audit reports zero
+vulnerabilities. It requires owner identity, a durable batch, meaningful reason,
+idempotency and explicit acknowledgement while the transactional rollback
+repository remains unavailable. Its five implementation, test and contract
+blobs match the validated hosted files, and the exact head has no workflow run,
+status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -347,6 +357,14 @@ preview identity, persisted fingerprint, idempotency key and explicit owner
 acknowledgement, then delegate to the existing capacity/raw-object/dispatch
 controls. Keep every provider capability unavailable so this boundary cannot
 activate a source version, import private data or change Production.
+
+### Authenticated import recovery
+
+Resolve Clerk identity inside each rollback request, require the durable active
+batch, meaningful reason, idempotency and explicit owner acknowledgement, then
+delegate only to the transactional recovery repository. Preserve provenance,
+restore only a prior accepted version and require a fresh aggregate refresh.
+Keep persistence unavailable so no rollback or provider mutation can occur.
 
 ### Lifecycle, Open Race and readiness reads
 
