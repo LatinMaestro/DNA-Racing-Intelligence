@@ -46,6 +46,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    25 | Lifecycle replay hardening            | `agent/lifecycle-economic-write-hardening`     | `f2dc526861736ce5bfbd4beccc8877801dcc0220` | PR the five-commit canonical replay fix after order 24                 |
 |    26 | Breeding economic write service       | `agent/breeding-economic-write-service`        | `5adb71fd47103c830178c93e47eaa006a8071520` | PR the five-commit breeding economics delta after order 25             |
 |    27 | Guarded import upload intake          | `agent/import-upload-intake-service`            | `e2a66de3bfa5ab5e9f6ec84b4cebfdcb167f24b4` | PR the five-commit upload-intake delta after order 26                   |
+|    28 | Upload completion and preview dispatch | `agent/import-upload-completion-service`        | `a4b603feb03a09ce0e6d2a4772aac0c530b35baa` | PR the five-commit completion/dispatch delta after order 27             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -122,6 +123,15 @@ rejects competing replacement snapshots and records incomplete private-object
 targets as failed without touching active data. Its three implementation, test
 and contract blobs match the validated hosted files, and the exact head has no
 workflow run, status context or pull request.
+
+The upload-completion descendant passes formatting, lint, strict TypeScript and
+12 synthetic completion tests; the complete available hosted harness passes 66
+tests and the dependency audit reports zero vulnerabilities. It verifies
+owner-scoped private-object metadata, keeps missing direct uploads pending,
+preserves full-stream checksum verification and queues one idempotent
+pre-confirmation preview without touching active data. Its three implementation,
+test and contract blobs match the validated hosted files, and the exact head has
+no workflow run, status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -219,6 +229,14 @@ gate, allow grouped Race Merge files and one replacement candidate per snapshot
 family, and issue opaque short-lived direct private-object targets. Keep source
 bytes out of application memory and leave preview, activation, providers and
 Production disabled.
+
+### Upload completion and preview dispatch
+
+Verify the owner-scoped private objects against durable reserved metadata, keep
+incomplete direct uploads pending and reserve one idempotent preview dispatch only
+after every object agrees. Preserve mandatory full-stream SHA-256 verification in
+the preview worker, sanitize provider failures and leave schema acceptance,
+confirmation, active versions, providers and Production disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
