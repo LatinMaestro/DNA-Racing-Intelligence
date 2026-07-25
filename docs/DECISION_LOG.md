@@ -1720,3 +1720,21 @@ through` separately from `Last imported`.
 - Publish blocked previews as reviewable but non-confirmable; never hide blocking evidence or infer confirmation readiness.
 - Replay completed previews idempotently and record sanitized processing failures without publishing partial evidence.
 - Keep owner confirmation, source activation, freshness, aggregates, recommendations, provider adapters, route/action wiring, Preview imports and Production disabled.
+
+## 2026-07-26 — Owner-scoped import action boundary
+
+- Add one server-only, provider-neutral action boundary between the authenticated
+  owner request and the existing guarded upload-intake and upload-completion
+  services.
+- Resolve the current Clerk owner identity inside every action and never accept
+  an owner ID from the browser.
+- Require the resolved identity to match the server-side configured allowlist
+  before upload persistence, private-object inspection or preview scheduling.
+- Preserve the existing idempotency keys, durable upload-batch IDs, approved
+  capacity checks and exact provider-not-configured states.
+- Keep file bytes, preview bodies, active source versions, freshness values and
+  recommendation data outside the browser action boundary.
+- Keep provider SDK initialization lazy and server-only; module import and
+  `next build` remain network-free.
+- Keep the upload form, provider adapters, owner confirmation, activation,
+  Preview imports and Production disabled.
