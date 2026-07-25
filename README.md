@@ -57,6 +57,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_PRIVATE_RAW_OBJECT_STREAMING.md`](docs/PHASE_1_PRIVATE_RAW_OBJECT_STREAMING.md) — bounded private raw-object integrity and transactional staging contract
 - [`docs/PHASE_1_IMPORT_UPLOAD_INTAKE_SERVICE.md`](docs/PHASE_1_IMPORT_UPLOAD_INTAKE_SERVICE.md) — owner-scoped guarded direct private-object upload intake contract
 - [`docs/PHASE_1_IMPORT_UPLOAD_COMPLETION_SERVICE.md`](docs/PHASE_1_IMPORT_UPLOAD_COMPLETION_SERVICE.md) — owner-scoped direct-upload verification and preview-dispatch contract
+- [`docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md`](docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md) — manifest-bound bounded background preview-processing contract
 - [`docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md`](docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md) — source-version-bound aggregate refresh and atomic publication contract
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
 - [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
