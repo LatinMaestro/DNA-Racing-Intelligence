@@ -1672,3 +1672,12 @@ through` separately from `Last imported`.
   conflict blocking.
 - Keep repositories, forms, provider initialization, wallet/game actions,
   Preview/Production persistence and Production disabled by default.
+
+## 2026-07-26 — Lifecycle economic durable replay hardening
+
+- Canonicalize lifecycle timestamps, asset identifiers, exact decimal amounts and optional references before SHA-256 fingerprinting so semantically identical evidence replays deterministically.
+- Resolve an existing burn-credit durable ID before burn-scope reconciliation. An exact fingerprint replays without re-reading or double-counting the stored credit; different evidence under the same ID fails closed.
+- Reconcile a genuinely new burn credit with all prior owner-scoped credits for that burn so multiple confirmed credits remain review-required and produce no posting proposal.
+- Retain the confirmed burn/core match, permanent Genesis rejection, missing-cost-basis treatment, historical lineage and non-mutating ownership boundaries.
+- Keep provider persistence, forms, wallet/game actions, Preview and Production disabled.
+
