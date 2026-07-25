@@ -1582,3 +1582,21 @@ through` separately from `Last imported`.
 - Keep final recommendations, sale, burn and ledger mutation disabled.
 - Keep provider initialization, private-data execution and Preview/Production
   activation unavailable in this read-only slice.
+
+## 2026-07-26 — Owner-scoped Open Race read workspace
+
+- Replace the Open Race placeholder with an authenticated dynamic Server
+  Component and provider-neutral staged session service.
+- Bind field, eligibility, pre-entry ranking, field lock, optional star
+  observation and diagnostic comparison to exact durable session identifiers.
+- Require mode, exact distance in metres, historical cutoff, confirmed
+  eligibility and entered opponents to remain coherent across Stage A.
+- Keep current-race Gold and Blue out of Stage A, freeze the pre-entry ranking at
+  field lock and prohibit post-lock switching or replacement recommendations.
+- Treat Stage B observations as optional, non-authoritative and pending
+  idempotent Race Merge reconciliation; they cannot prove prediction success or
+  a completed result.
+- Preserve the three-gate Gold-not-applicable rule and surface contrary manual
+  observations as anomalies.
+- Keep Gate C, mutations, race entry, provider initialization, private-data
+  execution and Preview/Production activation disabled.
