@@ -1681,3 +1681,12 @@ through` separately from `Last imported`.
 - Retain the confirmed burn/core match, permanent Genesis rejection, missing-cost-basis treatment, historical lineage and non-mutating ownership boundaries.
 - Keep provider persistence, forms, wallet/game actions, Preview and Production disabled.
 
+## 2026-07-26 — Owner-scoped breeding economic write boundary
+
+- Add one provider-neutral owner-scoped service for confirmed completed breeding economics and optional offspring cost-basis assignments.
+- Canonicalize timestamps, durable IDs, original-asset codes, exact decimals, references and transaction ordering before SHA-256 fingerprinting.
+- Replay an existing exact evidence or assignment ID before later classification or duplicate queries; different evidence under the same ID fails closed.
+- Permit persistence only for completed/refunded transaction evidence and confirmed actual offspring cost basis. Arena listings, pending activity, incomplete evidence and duplicated transactions remain held.
+- Derive cost-basis duplicate transaction evidence from owner-scoped persistence rather than the request, and require a confirmed completed event plus confirmed owned offspring.
+- Preserve BGC as a separate game-credit asset and never infer completed income, market value or realised gain.
+- Keep repository adapters, forms, provider initialization, splice/wallet/game actions, Preview and Production disabled.
