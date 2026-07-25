@@ -51,6 +51,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    30 | Authenticated import owner actions     | `agent/import-owner-action-service`             | `bf52a3f408551275fca2167fd9fea395988fc2b7` | PR the five-commit owner-action delta after order 29                    |
 |    31 | Fail-closed import Server Actions      | `agent/import-server-action-adapter`             | `e4c077da3a1e5d81371002b9d0d38a369ed27d26` | PR the five-commit Server Action delta after order 30                   |
 |    32 | Bounded direct upload client          | `agent/import-direct-upload-client`              | `01c6667a23e7077993de87c0be4f8851b22925b3` | PR the five-commit direct-upload delta after order 31                   |
+|    33 | Bounded file preparation client       | `agent/import-file-preparation-client`           | `c7dea5ccd2a031e6c6d979b50ec0ca6b915bb234` | PR the five-commit checksum-preparation delta after order 32            |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -172,6 +173,15 @@ without a whole-file read and requests completion only after every object
 succeeds. Its three implementation, test and contract blobs match the validated
 hosted files, and the exact head has no workflow run, status context or pull
 request.
+
+The bounded file-preparation descendant passes formatting, lint, strict
+TypeScript and seven synthetic preparation tests; the complete available hosted
+harness passes 101 tests and the production dependency audit reports zero
+vulnerabilities. It reads selected private CSVs sequentially in bounded slices,
+feeds an injected incremental SHA-256 state and reports only synthetic IDs and
+byte counts. Its three implementation, test and contract blobs match the
+validated hosted files, and the exact head has no workflow run, status context
+or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -310,6 +320,15 @@ an injected private transport without reading whole files into application
 memory, and request idempotent completion only after every object succeeds.
 Checksum preparation, provider adapters, forms, Preview imports, source
 activation and Production remain disabled.
+
+### Bounded private import file preparation client
+
+Normalize one grouped private CSV selection, read every Blob sequentially in
+bounded slices and feed an injected incremental SHA-256 state before guarded
+intake. Preserve the original Blob by reference and expose only synthetic IDs
+and byte counts as progress. The hashing implementation, form, object-store
+adapter, persistence, Preview imports, source activation and Production remain
+disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
