@@ -1700,3 +1700,13 @@ through` separately from `Last imported`.
 - Apply the approved capacity gate before persistence, reserve idempotently and issue only opaque, short-lived upload targets.
 - Mark incomplete or inconsistent reservations failed without advancing active source versions, freshness, aggregates or recommendations.
 - Keep checksum verification, schema preview, confirmation, background activation, provider adapters, route/action wiring, Preview imports and Production disabled.
+
+## 2026-07-26 — Owner-scoped import upload completion boundary
+
+- Add one provider-neutral owner-scoped boundary between direct private-object upload and pre-confirmation preview processing.
+- Load expected object IDs, byte lengths, content types and SHA-256 values only from the durable upload reservation.
+- Require every inspected object to remain private and owner-scoped; block public scope, length, content-type and available provider-checksum mismatch.
+- Permit absent provider checksum metadata only because the bounded preview processor must still stream and verify the full reserved SHA-256 before accepting staged evidence.
+- Keep incomplete direct uploads pending and reserve one idempotent preview dispatch only after every object passes metadata verification.
+- Record sanitized object-store, metadata and preview-queue failures without advancing active versions, freshness, aggregates or recommendations.
+- Keep schema preview execution, owner confirmation, source activation, provider adapters, route/action wiring, Preview imports and Production disabled.
