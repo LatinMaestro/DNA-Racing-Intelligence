@@ -1636,7 +1636,6 @@ through` separately from `Last imported`.
 - Keep the repository, form, provider initialization, wallet actions,
   Preview/Production persistence and Production disabled by default.
 
-
 ## 2026-07-26 — Owner-scoped manual tournament payout write boundary
 
 - Add a provider-neutral write service that validates external tournament prizes
