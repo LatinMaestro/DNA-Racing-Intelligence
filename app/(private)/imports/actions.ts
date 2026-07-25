@@ -1,6 +1,11 @@
 "use server";
 
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { unavailableImportActivationCapabilities } from "@/lib/import-activation-service";
+import {
+  confirmOwnerDataUpdate,
+  type ImportConfirmationActionDependencies,
+} from "@/lib/import-confirmation-action-service";
 import {
   beginOwnerImportUpload,
   completeOwnerImportUpload,
@@ -31,6 +36,21 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
   };
 }
 
+function confirmationActionDependencies(): ImportConfirmationActionDependencies {
+  return {
+    resolveAuthenticatedOwnerId: () =>
+      authenticatedClerkOwnerId({
+        environment: {
+          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+          secretKey: process.env.CLERK_SECRET_KEY,
+        },
+      }),
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    now: () => new Date(),
+    activationCapabilities: unavailableImportActivationCapabilities,
+  };
+}
+
 export async function beginImportUploadAction(
   input: Readonly<{
     idempotencyKey: string;
@@ -47,4 +67,15 @@ export async function completeImportUploadAction(
   }>,
 ) {
   return completeOwnerImportUpload(input, ownerActionDependencies());
+}
+
+export async function confirmImportUpdateAction(
+  input: Readonly<{
+    previewId: string;
+    previewFingerprintSha256: string;
+    idempotencyKey: string;
+    explicitlyConfirmed: boolean;
+  }>,
+) {
+  return confirmOwnerDataUpdate(input, confirmationActionDependencies());
 }
