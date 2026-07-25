@@ -42,6 +42,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    21 | Phase 9 readiness workspace           | `agent/readiness-read-workspace`               | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
 |    22 | Manual ledger write service           | `agent/manual-ledger-write-service`            | `b34ce31b25a0bb17e2dee3bed60c5979247b9105` | PR the four-commit exact-entry/reversal delta after order 21           |
 |    23 | Tournament payout write service       | `agent/manual-tournament-payout-write-service` | `0a5b38f46ab9881f7367a48de94ed62a40659e1e` | PR the five-commit payout/reconciliation delta after order 22          |
+|    24 | Lifecycle economic write service      | `agent/lifecycle-economic-write-service`       | `b04c9423ca2ceb85a110d464624aa37613f4ca56` | PR the four-commit sale/burn/BGC delta after order 23                  |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -86,6 +87,12 @@ or status context.
 The manual tournament payout descendant passes focused formatting, lint, strict
 TypeScript and eight synthetic payout/reconciliation tests; the complete
 focused harness passes 24 tests. Its three implementation, test and contract
+blobs match the validated hosted files, and the exact head has no workflow run
+or status context.
+
+The lifecycle economic write descendant passes focused formatting, lint, strict
+TypeScript and nine synthetic sale, burn and BGC-credit tests; the combined
+focused harness passes 33 tests. Its three implementation, test and contract
 blobs match the validated hosted files, and the exact head has no workflow run
 or status context.
 
@@ -152,6 +159,14 @@ vault-level payouts unallocated where appropriate, detect imported payout
 candidates conservatively and require a reasoned duplicate or separate-payment
 decision. Confirmed duplicates exclude only the manual payout; imported facts
 remain immutable. Provider persistence and forms remain disabled.
+
+### Lifecycle sale, burn and BGC writes
+
+Record only confirmed completed sale and burn evidence, preserve exact
+asset-separated proceeds, fees and cost-basis limitations, reject Genesis burn
+evidence and retain historical lineage. Reconcile actual BGC credits separately
+without predicting an amount, mutating ownership or automatically posting the
+ledger. Provider persistence and forms remain disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
