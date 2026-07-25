@@ -1635,3 +1635,22 @@ through` separately from `Last imported`.
   non-empty reason; keep original entries and source facts immutable.
 - Keep the repository, form, provider initialization, wallet actions,
   Preview/Production persistence and Production disabled by default.
+
+
+## 2026-07-26 — Owner-scoped manual tournament payout write boundary
+
+- Add a provider-neutral write service that validates external tournament prizes
+  through the existing exact-decimal allocation contract after Clerk owner
+  allowlist verification.
+- Preserve original-asset income, permit genuine vault-level rewards to remain
+  unallocated and keep BGC in its separate game-credit ledger.
+- Query bounded owner-scoped imported payout candidates and create a
+  review-required state without automatically excluding either payment.
+- Fingerprint the canonical payout plus reconciliation state with SHA-256 so
+  exact durable-ID replay is idempotent and conflicting evidence blocks.
+- Re-run conservative candidate matching before a reasoned duplicate or
+  separate-payment decision, and require an exact optimistic revision.
+- A confirmed duplicate excludes only the manual payout from aggregates; the
+  imported payout and all source evidence remain immutable.
+- Keep the repository adapter, form, provider initialization, wallet actions,
+  Preview/Production persistence and Production disabled by default.
