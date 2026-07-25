@@ -44,6 +44,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    23 | Tournament payout write service       | `agent/manual-tournament-payout-write-service` | `0a5b38f46ab9881f7367a48de94ed62a40659e1e` | PR the five-commit payout/reconciliation delta after order 22          |
 |    24 | Lifecycle economic write service      | `agent/lifecycle-economic-write-service`       | `b04c9423ca2ceb85a110d464624aa37613f4ca56` | PR the four-commit sale/burn/BGC delta after order 23                  |
 |    25 | Lifecycle replay hardening            | `agent/lifecycle-economic-write-hardening`     | `f2dc526861736ce5bfbd4beccc8877801dcc0220` | PR the five-commit canonical replay fix after order 24                 |
+|    26 | Breeding economic write service       | `agent/breeding-economic-write-service`        | `5adb71fd47103c830178c93e47eaa006a8071520` | PR the five-commit breeding economics delta after order 25             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -103,6 +104,14 @@ harness passes 34 tests. It canonicalizes exact durable fingerprints and replays
 an already stored burn credit before burn-scope reconciliation. Its three
 implementation, test and contract blobs match the validated hosted files, and
 the exact head has no workflow run, status context or pull request.
+
+The breeding economic write descendant passes focused formatting, lint, strict
+TypeScript and eight synthetic orchestration tests; the combined focused harness
+passes 42 tests. It records only completed/refunded transaction evidence, derives
+offspring duplicate checks from owner-scoped persistence and replays existing
+exact assignments before duplicate lookup. Its three implementation, test and
+contract blobs match the validated hosted files, and the exact head has no
+workflow run or status context.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -183,6 +192,15 @@ references before durable fingerprinting. Resolve an existing burn-credit ID
 before burn-scope reconciliation so exact replay is idempotent while different
 evidence conflicts, and keep multiple genuinely distinct credits
 review-required without a posting proposal.
+
+### Breeding economic writes and offspring cost basis
+
+Record only owner-confirmed completed/refunded breeding economics, keep Arena
+listings and incomplete activity non-transactional, preserve exact original-asset
+and BGC separation, and assign actual pairing costs only to a confirmed owned
+offspring after owner-scoped duplicate checks. Durable replay precedes duplicate
+lookup; no splice, wallet, ledger, ownership, market-value or realised-gain action
+is enabled.
 
 ### Lifecycle, Open Race and readiness reads
 
