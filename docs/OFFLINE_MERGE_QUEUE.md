@@ -41,6 +41,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    20 | Open Race read workspace               | `agent/open-race-read-workspace`            | `6254a9a2a409486c4825653a022971f825b7e62f` | PR the six-commit staged Open Race delta after order 19                |
 |    21 | Phase 9 readiness workspace            | `agent/readiness-read-workspace`            | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
 |    22 | Manual ledger write service            | `agent/manual-ledger-write-service`          | `b34ce31b25a0bb17e2dee3bed60c5979247b9105` | PR the four-commit exact-entry/reversal delta after order 21           |
+|    23 | Tournament payout write service        | `agent/manual-tournament-payout-write-service` | `0a5b38f46ab9881f7367a48de94ed62a40659e1e` | PR the five-commit payout/reconciliation delta after order 22          |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -79,6 +80,12 @@ full-suite rehearsal remains pending.
 
 The manual-ledger write descendant passes focused formatting, lint, strict
 TypeScript and six synthetic write/reversal tests. Its three published evidence
+blobs match the validated hosted files, and the exact head has no workflow run
+or status context.
+
+The manual tournament payout descendant passes focused formatting, lint, strict
+TypeScript and eight synthetic payout/reconciliation tests; the complete
+focused harness passes 24 tests. Its three implementation, test and contract
 blobs match the validated hosted files, and the exact head has no workflow run
 or status context.
 
@@ -137,6 +144,14 @@ Validate exact owner-entered entries before persistence, retain original-asset
 and BGC separation, make identical durable-ID replay idempotent, block conflicts
 and record corrections as exact opposite append-only postings without mutating
 source evidence. Provider persistence and forms remain disabled.
+
+### Manual tournament payouts and reconciliation
+
+Validate exact external prizes and allocations before persistence, keep genuine
+vault-level payouts unallocated where appropriate, detect imported payout
+candidates conservatively and require a reasoned duplicate or separate-payment
+decision. Confirmed duplicates exclude only the manual payout; imported facts
+remain immutable. Provider persistence and forms remain disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
