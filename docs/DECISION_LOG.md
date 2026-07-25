@@ -1690,3 +1690,13 @@ through` separately from `Last imported`.
 - Derive cost-basis duplicate transaction evidence from owner-scoped persistence rather than the request, and require a confirmed completed event plus confirmed owned offspring.
 - Preserve BGC as a separate game-credit asset and never infer completed income, market value or realised gain.
 - Keep repository adapters, forms, provider initialization, splice/wallet/game actions, Preview and Production disabled.
+
+## 2026-07-26 — Owner-scoped guarded import upload intake
+
+- Add one provider-neutral owner-scoped boundary for reserving direct private raw-export uploads before preview or activation.
+- Require the authenticated Clerk owner, configured repository, approved-capacity gate and private object-store target provider before any durable reservation.
+- Accept bounded CSV metadata with exact SHA-256, byte length, normalized media type and private original filename; never proxy or buffer source bytes through the application service.
+- Permit grouped sequential Race Merge candidates while allowing at most one Core Details, Current Vault or Current Arena replacement candidate per source family in a batch.
+- Apply the approved capacity gate before persistence, reserve idempotently and issue only opaque, short-lived upload targets.
+- Mark incomplete or inconsistent reservations failed without advancing active source versions, freshness, aggregates or recommendations.
+- Keep checksum verification, schema preview, confirmation, background activation, provider adapters, route/action wiring, Preview imports and Production disabled.
