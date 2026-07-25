@@ -45,6 +45,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    24 | Lifecycle economic write service      | `agent/lifecycle-economic-write-service`       | `b04c9423ca2ceb85a110d464624aa37613f4ca56` | PR the four-commit sale/burn/BGC delta after order 23                  |
 |    25 | Lifecycle replay hardening            | `agent/lifecycle-economic-write-hardening`     | `f2dc526861736ce5bfbd4beccc8877801dcc0220` | PR the five-commit canonical replay fix after order 24                 |
 |    26 | Breeding economic write service       | `agent/breeding-economic-write-service`        | `5adb71fd47103c830178c93e47eaa006a8071520` | PR the five-commit breeding economics delta after order 25             |
+|    27 | Guarded import upload intake          | `agent/import-upload-intake-service`            | `e2a66de3bfa5ab5e9f6ec84b4cebfdcb167f24b4` | PR the five-commit upload-intake delta after order 26                   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -112,6 +113,15 @@ offspring duplicate checks from owner-scoped persistence and replays existing
 exact assignments before duplicate lookup. Its three implementation, test and
 contract blobs match the validated hosted files, and the exact head has no
 workflow run or status context.
+
+The guarded import upload-intake descendant passes focused formatting, lint,
+strict TypeScript and 12 synthetic intake tests; the combined focused harness
+passes 54 tests and the dependency audit reports zero vulnerabilities. It gates
+capacity before durable reservation, permits grouped Race Merge candidates,
+rejects competing replacement snapshots and records incomplete private-object
+targets as failed without touching active data. Its three implementation, test
+and contract blobs match the validated hosted files, and the exact head has no
+workflow run, status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -201,6 +211,14 @@ and BGC separation, and assign actual pairing costs only to a confirmed owned
 offspring after owner-scoped duplicate checks. Durable replay precedes duplicate
 lookup; no splice, wallet, ledger, ownership, market-value or realised-gain action
 is enabled.
+
+### Guarded import upload intake
+
+Reserve only bounded owner-authenticated CSV metadata after the approved capacity
+gate, allow grouped Race Merge files and one replacement candidate per snapshot
+family, and issue opaque short-lived direct private-object targets. Keep source
+bytes out of application memory and leave preview, activation, providers and
+Production disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
