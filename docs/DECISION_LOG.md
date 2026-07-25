@@ -1771,3 +1771,19 @@ through` separately from `Last imported`.
   all manifest-bound preview rules.
 - Keep checksum preparation, the concrete object-store adapter, forms,
   persistence, Preview imports, source activation and Production disabled.
+
+## 2026-07-26 — Bounded import file preparation client
+
+- Add a provider-neutral browser boundary that prepares private CSV metadata and
+  Blob references for guarded intake and direct private-object transfer.
+- Preserve grouped sequential Race Merge additions and allow only one Core
+  Details, Current Vault or Current Arena replacement candidate per batch.
+- Read one file sequentially in configurable 64 KiB to 16 MiB slices and feed
+  an injected incremental SHA-256 state without retaining a whole export in
+  application memory.
+- Report only synthetic client ID and byte counts through progress, reject
+  cancellation before the next chunk and validate the final digest.
+- Keep the authenticated server authoritative for capacity and source metadata,
+  and the background worker authoritative for full-stream checksum verification.
+- Keep the hashing implementation, form, provider adapters, persistence,
+  Preview imports, source activation and Production disabled.
