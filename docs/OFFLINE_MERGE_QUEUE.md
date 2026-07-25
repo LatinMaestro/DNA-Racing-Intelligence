@@ -17,31 +17,31 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 
 ## Dependency order
 
-| Order | Role                                  | Ref                                         | Exact head                                 | Required action                                                        |
-| ----: | ------------------------------------- | ------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
-|     1 | CI prerequisite                       | PR 29 / `agent/include-tsx-component-tests` | `0a3212bc6ac63721858a03048619ad678a85286e` | Run exact-head CI; review; merge first                                 |
-|     2 | Vault registry prerequisite           | PR 28 / `agent/phase-2-vault-registry-v2`   | `8e8b51bcecb8adba9b4c34e2d90d57017113ce88` | Rebase after PR 29; run exact-head CI; review; merge                   |
-|     3 | Source and game-rule correction       | `agent/real-source-contract`                | `cac5d0cbe0556851386d6322aa22a8238da0b2a2` | Rebase after prerequisites; prepare a focused source/BGC PR            |
-|     4 | Integration evidence only             | `agent/offline-integration-rehearsal`       | `ca7572087f7275dd3945b3134f684cd7eb70fa8b` | Do not merge wholesale; use to verify Phase 2, 2A and 3-9 composition  |
-|     5 | Import read/preview and owner session | `agent/import-workspace-read-preview`       | `29cc34cfe0d82ae6bbc7a62e81e569ccbc03bf80` | Recompose after phase merges; open as the first application-service PR |
-|     6 | Guarded activation                    | `agent/import-activation-service`           | `73839d23e2a7896c1b64c9c745c3648f4fcfa6f5` | PR the four-commit delta after order 5                                 |
-|     7 | Background processing                 | `agent/import-background-processing`        | `129d47fe6116e47c51ef275fb78ae70876be57bf` | PR the four-commit delta after order 6                                 |
-|     8 | Private raw streaming                 | `agent/import-raw-object-streaming`         | `d004d1073aebf9702dad688b3b48e27e41e3cd0a` | PR the five-commit delta after order 7                                 |
-|     9 | Aggregate refresh                     | `agent/import-aggregate-refresh`            | `758160fda011166e803462a9a75af28379c85fa7` | PR the five-commit delta after order 8                                 |
-|    10 | Completion and rollback               | `agent/import-completion-rollback`          | `f0ddf35b3844c36d3558e0da75922b495227d76e` | PR the six-commit delta after order 9                                  |
-|    11 | Vault read workspace                  | `agent/vault-read-workspace`                | `4aad2a8a4a14ad2300f20401da314e98ba086d25` | PR the eight-commit delta after order 10                               |
-|    12 | Core Intelligence read workspace      | `agent/core-intelligence-read-workspace`    | `569074c49dc9b39479a44e4f8d441ee2d76b0283` | PR the eight-commit delta after order 11                               |
-|    13 | Private chronological evidence        | `agent/private-chronological-validation`    | `3eaeb0373a07fb8dd65ed69b8aec7a6369411741` | PR the four-commit evidence delta after order 12                       |
-|    14 | Vault Performance read workspace      | `agent/vault-performance-read-workspace`    | `892f30c17574216731ec5356dad10a75eb8f242e` | PR the seven-commit delta after order 13                               |
-|    15 | Discovery read workspace              | `agent/discovery-read-workspace`            | `f28f37a97e4bc93f862959d0e1eded9c7b2e69c8` | PR the eight-commit application delta after order 14                   |
-|    16 | Tournament read workspace             | `agent/tournament-read-workspace`           | `e5decdd4dc616ae06d20196bb847645724da14d8` | PR the seven-commit delta after order 15                               |
-|    17 | Maiden read workspace                 | `agent/maiden-read-workspace`               | `c9b0004f7086c8a4fb489690d3465a701312596b` | PR the seven-commit delta after order 16                               |
-|    18 | Breeding read workspace               | `agent/breeding-read-workspace`             | `c77c30b0169e2835a61c67368901d57ecc7860a9` | PR the seven-commit delta after order 17                               |
-|    19 | Lifecycle read workspace               | `agent/lifecycle-read-workspace`            | `8ce3661b6392dd8dc23f0be207d1c75be892c1ee` | PR the focused Lifecycle delta after order 18                          |
-|    20 | Open Race read workspace               | `agent/open-race-read-workspace`            | `6254a9a2a409486c4825653a022971f825b7e62f` | PR the six-commit staged Open Race delta after order 19                |
-|    21 | Phase 9 readiness workspace            | `agent/readiness-read-workspace`            | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
-|    22 | Manual ledger write service            | `agent/manual-ledger-write-service`          | `b34ce31b25a0bb17e2dee3bed60c5979247b9105` | PR the four-commit exact-entry/reversal delta after order 21           |
-|    23 | Tournament payout write service        | `agent/manual-tournament-payout-write-service` | `0a5b38f46ab9881f7367a48de94ed62a40659e1e` | PR the five-commit payout/reconciliation delta after order 22          |
+| Order | Role                                  | Ref                                            | Exact head                                 | Required action                                                        |
+| ----: | ------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
+|     1 | CI prerequisite                       | PR 29 / `agent/include-tsx-component-tests`    | `0a3212bc6ac63721858a03048619ad678a85286e` | Run exact-head CI; review; merge first                                 |
+|     2 | Vault registry prerequisite           | PR 28 / `agent/phase-2-vault-registry-v2`      | `8e8b51bcecb8adba9b4c34e2d90d57017113ce88` | Rebase after PR 29; run exact-head CI; review; merge                   |
+|     3 | Source and game-rule correction       | `agent/real-source-contract`                   | `cac5d0cbe0556851386d6322aa22a8238da0b2a2` | Rebase after prerequisites; prepare a focused source/BGC PR            |
+|     4 | Integration evidence only             | `agent/offline-integration-rehearsal`          | `ca7572087f7275dd3945b3134f684cd7eb70fa8b` | Do not merge wholesale; use to verify Phase 2, 2A and 3-9 composition  |
+|     5 | Import read/preview and owner session | `agent/import-workspace-read-preview`          | `29cc34cfe0d82ae6bbc7a62e81e569ccbc03bf80` | Recompose after phase merges; open as the first application-service PR |
+|     6 | Guarded activation                    | `agent/import-activation-service`              | `73839d23e2a7896c1b64c9c745c3648f4fcfa6f5` | PR the four-commit delta after order 5                                 |
+|     7 | Background processing                 | `agent/import-background-processing`           | `129d47fe6116e47c51ef275fb78ae70876be57bf` | PR the four-commit delta after order 6                                 |
+|     8 | Private raw streaming                 | `agent/import-raw-object-streaming`            | `d004d1073aebf9702dad688b3b48e27e41e3cd0a` | PR the five-commit delta after order 7                                 |
+|     9 | Aggregate refresh                     | `agent/import-aggregate-refresh`               | `758160fda011166e803462a9a75af28379c85fa7` | PR the five-commit delta after order 8                                 |
+|    10 | Completion and rollback               | `agent/import-completion-rollback`             | `f0ddf35b3844c36d3558e0da75922b495227d76e` | PR the six-commit delta after order 9                                  |
+|    11 | Vault read workspace                  | `agent/vault-read-workspace`                   | `4aad2a8a4a14ad2300f20401da314e98ba086d25` | PR the eight-commit delta after order 10                               |
+|    12 | Core Intelligence read workspace      | `agent/core-intelligence-read-workspace`       | `569074c49dc9b39479a44e4f8d441ee2d76b0283` | PR the eight-commit delta after order 11                               |
+|    13 | Private chronological evidence        | `agent/private-chronological-validation`       | `3eaeb0373a07fb8dd65ed69b8aec7a6369411741` | PR the four-commit evidence delta after order 12                       |
+|    14 | Vault Performance read workspace      | `agent/vault-performance-read-workspace`       | `892f30c17574216731ec5356dad10a75eb8f242e` | PR the seven-commit delta after order 13                               |
+|    15 | Discovery read workspace              | `agent/discovery-read-workspace`               | `f28f37a97e4bc93f862959d0e1eded9c7b2e69c8` | PR the eight-commit application delta after order 14                   |
+|    16 | Tournament read workspace             | `agent/tournament-read-workspace`              | `e5decdd4dc616ae06d20196bb847645724da14d8` | PR the seven-commit delta after order 15                               |
+|    17 | Maiden read workspace                 | `agent/maiden-read-workspace`                  | `c9b0004f7086c8a4fb489690d3465a701312596b` | PR the seven-commit delta after order 16                               |
+|    18 | Breeding read workspace               | `agent/breeding-read-workspace`                | `c77c30b0169e2835a61c67368901d57ecc7860a9` | PR the seven-commit delta after order 17                               |
+|    19 | Lifecycle read workspace              | `agent/lifecycle-read-workspace`               | `8ce3661b6392dd8dc23f0be207d1c75be892c1ee` | PR the focused Lifecycle delta after order 18                          |
+|    20 | Open Race read workspace              | `agent/open-race-read-workspace`               | `6254a9a2a409486c4825653a022971f825b7e62f` | PR the six-commit staged Open Race delta after order 19                |
+|    21 | Phase 9 readiness workspace           | `agent/readiness-read-workspace`               | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
+|    22 | Manual ledger write service           | `agent/manual-ledger-write-service`            | `b34ce31b25a0bb17e2dee3bed60c5979247b9105` | PR the four-commit exact-entry/reversal delta after order 21           |
+|    23 | Tournament payout write service       | `agent/manual-tournament-payout-write-service` | `0a5b38f46ab9881f7367a48de94ed62a40659e1e` | PR the five-commit payout/reconciliation delta after order 22          |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
