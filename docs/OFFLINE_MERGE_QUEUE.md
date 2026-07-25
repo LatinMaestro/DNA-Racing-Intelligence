@@ -52,6 +52,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    31 | Fail-closed import Server Actions      | `agent/import-server-action-adapter`             | `e4c077da3a1e5d81371002b9d0d38a369ed27d26` | PR the five-commit Server Action delta after order 30                   |
 |    32 | Bounded direct upload client          | `agent/import-direct-upload-client`              | `01c6667a23e7077993de87c0be4f8851b22925b3` | PR the five-commit direct-upload delta after order 31                   |
 |    33 | Bounded file preparation client       | `agent/import-file-preparation-client`           | `c7dea5ccd2a031e6c6d979b50ec0ca6b915bb234` | PR the five-commit checksum-preparation delta after order 32            |
+|    34 | Authenticated import confirmation     | `agent/import-confirmation-action-service`        | `fd499d1b5fa6d93fd833e80ef9e397a87f04aa88` | PR the seven-commit confirmation-action delta after order 33            |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -182,6 +183,15 @@ feeds an injected incremental SHA-256 state and reports only synthetic IDs and
 byte counts. Its three implementation, test and contract blobs match the
 validated hosted files, and the exact head has no workflow run, status context
 or pull request.
+
+The authenticated confirmation descendant passes formatting, lint, strict
+TypeScript and six synthetic confirmation/transport tests; the complete
+available hosted harness passes 107 tests and the production dependency audit
+reports zero vulnerabilities. It resolves Clerk identity per request, requires
+explicit acknowledgement and delegates only to the guarded activation service.
+All four activation capabilities remain explicitly unavailable. Its five
+implementation, test and contract blobs match the validated hosted files, and
+the exact head has no workflow run, status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -330,6 +340,14 @@ and byte counts as progress. The hashing implementation, form, object-store
 adapter, persistence, Preview imports, source activation and Production remain
 disabled.
 
+### Authenticated import confirmation
+
+Resolve Clerk identity inside each confirmation request, require the durable
+preview identity, persisted fingerprint, idempotency key and explicit owner
+acknowledgement, then delegate to the existing capacity/raw-object/dispatch
+controls. Keep every provider capability unavailable so this boundary cannot
+activate a source version, import private data or change Production.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -355,6 +373,34 @@ and blockers while remaining non-executable and keeping Gate F client-only.
   snapshot cannot be projected backwards.
 - Any concurrent application slice must receive its own exact remote head,
   full hosted validation and place in this queue before it is PR-ready.
+
+## Remaining no-Actions programme before 1 August
+
+1. Complete owner-scoped import completion, rollback and retry action
+   boundaries, with all persistence and provider capabilities fail-closed.
+2. Add completion/progress/recovery projections and an authenticated import UI
+   shell that cannot enable direct upload until a reviewed incremental hashing
+   implementation and configured provider adapters exist.
+3. Implement lazy, owner-scoped persistence/storage/queue adapter contracts and
+   synthetic RLS/idempotency tests without provisioning, secrets or private
+   source execution.
+4. Add authenticated forms/action boundaries for the staged manual ledger,
+   tournament payout, breeding and lifecycle economic services while keeping
+   wallet/game actions impossible.
+5. Continue Phase 9 chronological, freshness, recovery, capacity, security,
+   accounting and accessibility evidence where the supplied history supports
+   it; preserve unavailable Maiden/breeding evidence honestly.
+6. Rehearse the cumulative hosted composition, run all available formatting,
+   lint, strict types, TS/TSX tests, build, audit and privacy scans, and keep
+   every exact branch head and limitation current in this queue.
+7. Prepare the 1 August exact-head Actions sequence without opening or updating
+   PRs, merging, dispatching workflows, changing providers or touching
+   Production.
+
+Real Preview import, connected-provider capacity, PostgreSQL migration
+execution, deployed request latency, formal Gates B-E acceptance where evidence
+is unavailable, every exact-head Actions run and Gate F remain outside this
+no-Actions programme.
 
 ## Merge procedure after Actions capacity returns
 
