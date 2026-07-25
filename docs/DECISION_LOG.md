@@ -1600,3 +1600,21 @@ through` separately from `Last imported`.
   observations as anomalies.
 - Keep Gate C, mutations, race entry, provider initialization, private-data
   execution and Preview/Production activation disabled.
+
+## 2026-07-26 — Owner-scoped Phase 9 readiness workspace
+
+- Add an authenticated dynamic Server Component for the latest compact
+  exact-head Production-readiness assessment.
+- Require the authenticated Clerk owner to match the server-side allowlist
+  before repository access and scan no raw private history on the route.
+- Preserve passed, review-required and blocked states across Gates A–E, CI,
+  protected import, recovery, capacity, security, accessibility and migration
+  evidence.
+- Keep missing evidence review-required and unsafe or failed evidence blocking;
+  never infer readiness from absent results.
+- Display the exact assessed head and documented limitations while keeping Gate F
+  client-only.
+- Preserve the domain guarantee that assessment never authorizes activation or a
+  Production mutation, even when all evidence is complete.
+- Keep providers, domain attachment, public routes, recurring paid
+  infrastructure, private Production data and Production activation disabled.
