@@ -49,6 +49,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    28 | Upload completion and preview dispatch | `agent/import-upload-completion-service`        | `a4b603feb03a09ce0e6d2a4772aac0c530b35baa` | PR the five-commit completion/dispatch delta after order 27             |
 |    29 | Bounded import preview processing      | `agent/import-preview-processing-service`      | `8b8ec9f3b1bc91c84975840fa2708371149af2f4` | PR the five-commit preview-worker delta after order 28                  |
 |    30 | Authenticated import owner actions     | `agent/import-owner-action-service`             | `bf52a3f408551275fca2167fd9fea395988fc2b7` | PR the five-commit owner-action delta after order 29                    |
+|    31 | Fail-closed import Server Actions      | `agent/import-server-action-adapter`             | `e4c077da3a1e5d81371002b9d0d38a369ed27d26` | PR the five-commit Server Action delta after order 30                   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -153,6 +154,14 @@ request, rejects a non-owner before provider access and preserves explicit
 not-configured states. Its three implementation, test and contract blobs match
 the validated hosted files, and the exact head has no workflow run, status
 context or pull request.
+
+The fail-closed import Server Action descendant passes formatting, lint,
+strict TypeScript and four synthetic adapter tests; the complete available hosted
+harness passes 87 tests and the production dependency audit reports zero
+vulnerabilities. It resolves Clerk identity inside every invocation, accepts no
+browser owner ID and supplies only explicit unavailable provider capabilities.
+Its three implementation, test and contract blobs match the validated hosted
+files, and the exact head has no workflow run, status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -274,6 +283,14 @@ existing guarded upload-intake and upload-completion services. Never accept a
 browser owner ID, initialize providers at module scope or expose file bytes,
 preview bodies, active versions, freshness or recommendations. Provider adapters,
 forms, owner confirmation, Preview imports and Production remain disabled.
+
+### Fail-closed import Server Actions
+
+Expose the validated owner intake and completion boundaries as Next.js Server
+Actions while resolving Clerk identity inside every request and accepting no
+browser owner ID. Keep provider capabilities explicitly unavailable, so no
+upload target, persistence write, object inspection, queue dispatch, source
+activation, Preview import or Production action is possible.
 
 ### Lifecycle, Open Race and readiness reads
 
