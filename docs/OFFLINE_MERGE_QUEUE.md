@@ -1,6 +1,6 @@
 # Offline Merge Queue
 
-Status captured: 2026-07-24  
+Status captured: 2026-07-26  
 Mode: no-Actions staging; no merge or pull-request mutation authorized
 
 ## Controls
@@ -37,6 +37,9 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    16 | Tournament read workspace             | `agent/tournament-read-workspace`           | `e5decdd4dc616ae06d20196bb847645724da14d8` | PR the seven-commit delta after order 15                               |
 |    17 | Maiden read workspace                 | `agent/maiden-read-workspace`               | `c9b0004f7086c8a4fb489690d3465a701312596b` | PR the seven-commit delta after order 16                               |
 |    18 | Breeding read workspace               | `agent/breeding-read-workspace`             | `c77c30b0169e2835a61c67368901d57ecc7860a9` | PR the seven-commit delta after order 17                               |
+|    19 | Lifecycle read workspace               | `agent/lifecycle-read-workspace`            | `8ce3661b6392dd8dc23f0be207d1c75be892c1ee` | PR the focused Lifecycle delta after order 18                          |
+|    20 | Open Race read workspace               | `agent/open-race-read-workspace`            | `6254a9a2a409486c4825653a022971f825b7e62f` | PR the six-commit staged Open Race delta after order 19                |
+|    21 | Phase 9 readiness workspace            | `agent/readiness-read-workspace`            | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -57,8 +60,24 @@ The exact Breeding descendant passed:
 - zero dependency vulnerabilities; and
 - byte-for-byte verification of every file in its four-commit delta.
 
-The branch has no workflow run or status context. Hosted validation is useful
-staging evidence but is not a substitute for mandatory exact-head Actions.
+The exact Lifecycle descendant subsequently passed the cumulative hosted
+validation boundary:
+
+- Prettier and ESLint;
+- strict TypeScript;
+- 116 test files and 912 tests;
+- optimized Next.js build;
+- dynamic owner-scoped routes through Lifecycle; and
+- zero dependency vulnerabilities.
+
+The Open Race and readiness descendants each passed focused hosted formatting,
+lint and strict-TypeScript checks. Their ten synthetic workspace tests pass,
+every published implementation blob matches its validated hosted copy, and both
+exact heads have zero workflow runs or status contexts. Their next cumulative
+full-suite rehearsal remains pending.
+
+Hosted validation is useful staging evidence but is not a substitute for
+mandatory exact-head Actions.
 
 ## PR-ready delta summaries
 
@@ -105,6 +124,15 @@ all automatic entry or entitlement mutation.
 Breeding reads retain separate elite-upside and Vault-gap rankings, require
 durable parent IDs, hold unsupported or stale evidence and preserve Arena
 freshness/live-confirmation boundaries with Gate E unpassed.
+
+### Lifecycle, Open Race and readiness reads
+
+Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
+burn credit outside action ranking and disables sale, burn and ledger mutation.
+Open Race binds manual field input, eligibility, exact-distance ranking, lock,
+optional star observation and diagnostic comparison without allowing current
+stars into Stage A or switching after lock. Readiness displays exact-head checks
+and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Gate status and limitations
 
