@@ -1803,3 +1803,19 @@ through` separately from `Last imported`.
   capabilities while providers remain unavailable.
 - Keep provider adapters, upload UI, source activation, Preview imports,
   aggregate publication and Production disabled.
+
+## 2026-07-26 — Authenticated import recovery action
+
+- Add one server-only owner action over the existing recoverable import rollback
+  service.
+- Resolve Clerk identity inside every request and never accept an owner ID,
+  source family, restored version, aggregate state, freshness value or
+  recommendation state from the browser.
+- Require the server-side owner allowlist, durable active-batch ID, a meaningful
+  reason, idempotency key and explicit owner acknowledgement.
+- Preserve not-found, not-active and no-prior-version states and delegate only
+  to the owner-scoped transactional rollback repository.
+- Retain source and contribution provenance and require a new pending aggregate
+  refresh after restoration; never reuse superseded completion evidence.
+- Keep the rollback repository unavailable so no source version, raw object,
+  aggregate, Preview import or Production state can change.
