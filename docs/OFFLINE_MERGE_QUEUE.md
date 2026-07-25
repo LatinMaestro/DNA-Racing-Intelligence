@@ -40,6 +40,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    19 | Lifecycle read workspace               | `agent/lifecycle-read-workspace`            | `8ce3661b6392dd8dc23f0be207d1c75be892c1ee` | PR the focused Lifecycle delta after order 18                          |
 |    20 | Open Race read workspace               | `agent/open-race-read-workspace`            | `6254a9a2a409486c4825653a022971f825b7e62f` | PR the six-commit staged Open Race delta after order 19                |
 |    21 | Phase 9 readiness workspace            | `agent/readiness-read-workspace`            | `9a9cd34023755ebb8480e4d56f8c36c628a00957` | PR the seven-commit readiness delta after order 20                     |
+|    22 | Manual ledger write service            | `agent/manual-ledger-write-service`          | `b34ce31b25a0bb17e2dee3bed60c5979247b9105` | PR the four-commit exact-entry/reversal delta after order 21           |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -75,6 +76,11 @@ lint and strict-TypeScript checks. Their ten synthetic workspace tests pass,
 every published implementation blob matches its validated hosted copy, and both
 exact heads have zero workflow runs or status contexts. Their next cumulative
 full-suite rehearsal remains pending.
+
+The manual-ledger write descendant passes focused formatting, lint, strict
+TypeScript and six synthetic write/reversal tests. Its three published evidence
+blobs match the validated hosted files, and the exact head has no workflow run
+or status context.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -124,6 +130,13 @@ all automatic entry or entitlement mutation.
 Breeding reads retain separate elite-upside and Vault-gap rankings, require
 durable parent IDs, hold unsupported or stale evidence and preserve Arena
 freshness/live-confirmation boundaries with Gate E unpassed.
+
+### Manual ledger writes and reversals
+
+Validate exact owner-entered entries before persistence, retain original-asset
+and BGC separation, make identical durable-ID replay idempotent, block conflicts
+and record corrections as exact opposite append-only postings without mutating
+source evidence. Provider persistence and forms remain disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
