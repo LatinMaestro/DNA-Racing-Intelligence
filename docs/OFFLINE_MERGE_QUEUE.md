@@ -48,6 +48,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    27 | Guarded import upload intake          | `agent/import-upload-intake-service`            | `e2a66de3bfa5ab5e9f6ec84b4cebfdcb167f24b4` | PR the five-commit upload-intake delta after order 26                   |
 |    28 | Upload completion and preview dispatch | `agent/import-upload-completion-service`        | `a4b603feb03a09ce0e6d2a4772aac0c530b35baa` | PR the five-commit completion/dispatch delta after order 27             |
 |    29 | Bounded import preview processing      | `agent/import-preview-processing-service`      | `8b8ec9f3b1bc91c84975840fa2708371149af2f4` | PR the five-commit preview-worker delta after order 28                  |
+|    30 | Authenticated import owner actions     | `agent/import-owner-action-service`             | `bf52a3f408551275fca2167fd9fea395988fc2b7` | PR the five-commit owner-action delta after order 29                    |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -142,6 +143,16 @@ blocked previews as non-confirmable and publishes no partial evidence after
 processor failure. Its three implementation, test and contract blobs match the
 validated hosted files, and the exact head has no workflow run, status context or
 pull request.
+
+The authenticated import owner-action descendant passes formatting, lint,
+strict TypeScript and six synthetic action tests; the complete available hosted
+harness passes 83 tests. Its production dependency audit reports zero
+vulnerabilities; the isolated ESLint development tree retains the known no-fix
+brace-expansion advisory. The service resolves Clerk identity inside each
+request, rejects a non-owner before provider access and preserves explicit
+not-configured states. Its three implementation, test and contract blobs match
+the validated hosted files, and the exact head has no workflow run, status
+context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -255,6 +266,14 @@ object manifest, and bind the deterministic preview to that exact manifest
 fingerprint. Validate source-family and blocking-state summaries before
 publication, keep blocked previews non-confirmable and leave owner confirmation,
 source activation, providers and Production disabled.
+
+### Authenticated import owner actions
+
+Resolve Clerk identity inside each server request and delegate only to the
+existing guarded upload-intake and upload-completion services. Never accept a
+browser owner ID, initialize providers at module scope or expose file bytes,
+preview bodies, active versions, freshness or recommendations. Provider adapters,
+forms, owner confirmation, Preview imports and Production remain disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
