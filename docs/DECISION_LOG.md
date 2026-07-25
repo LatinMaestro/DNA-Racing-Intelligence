@@ -1653,3 +1653,22 @@ through` separately from `Last imported`.
   imported payout and all source evidence remain immutable.
 - Keep the repository adapter, form, provider initialization, wallet actions,
   Preview/Production persistence and Production disabled by default.
+
+## 2026-07-26 — Owner-scoped lifecycle economic write boundary
+
+- Add provider-neutral owner-scoped write services for confirmed core-sale,
+  confirmed core-burn and actual BGC burn-credit evidence.
+- Preserve exact sale proceeds and fees by asset, withhold realised result when
+  cost basis is missing or uses an unlike asset, and never infer market value.
+- Reject Genesis burn evidence permanently, retain historical lineage and keep
+  active-Vault removal as a separate review projection.
+- Keep lifecycle recommendations, execution evidence, ownership changes and
+  economic postings as distinct boundaries.
+- Require an actual credit to reference one durable burn and matching core, then
+  reconcile it with existing owner-scoped credit evidence.
+- Propose a BGC posting only for one unambiguous confirmed credit after a
+  confirmed burn; hold multiple, provisional or mismatched evidence for review.
+- Fingerprint each canonical write with SHA-256 for idempotent replay and
+  conflict blocking.
+- Keep repositories, forms, provider initialization, wallet/game actions,
+  Preview/Production persistence and Production disabled by default.
