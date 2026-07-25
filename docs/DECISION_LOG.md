@@ -1710,3 +1710,13 @@ through` separately from `Last imported`.
 - Keep incomplete direct uploads pending and reserve one idempotent preview dispatch only after every object passes metadata verification.
 - Record sanitized object-store, metadata and preview-queue failures without advancing active versions, freshness, aggregates or recommendations.
 - Keep schema preview execution, owner confirmation, source activation, provider adapters, route/action wiring, Preview imports and Production disabled.
+
+## 2026-07-26 — Manifest-bound background import preview processing
+
+- Add one provider-neutral bounded worker between completed private uploads and explicit owner confirmation.
+- Claim a durable preview dispatch through one worker lease and load the exact owner-scoped object manifest from persistence.
+- Bind every prepared preview to the SHA-256 fingerprint of that upload manifest and require unique file/object identities plus supported source families.
+- Validate file count, represented source-family count, blocking-issue count and confirmable state before atomic preview publication.
+- Publish blocked previews as reviewable but non-confirmable; never hide blocking evidence or infer confirmation readiness.
+- Replay completed previews idempotently and record sanitized processing failures without publishing partial evidence.
+- Keep owner confirmation, source activation, freshness, aggregates, recommendations, provider adapters, route/action wiring, Preview imports and Production disabled.
