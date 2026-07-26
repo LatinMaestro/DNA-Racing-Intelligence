@@ -2020,3 +2020,11 @@ through` separately from `Last imported`.
 - Build offspring cost-basis requests only from server-confirmed owned offspring, completed breeding events and selected persisted cost/refund transaction evidence.
 - Reject browser-restated cost facts, cross-event transactions, refund-only selections, unconfigured assets and a selected refund without its referenced cost.
 - Keep duplicate-assignment discovery in the owner-scoped repository and keep forms, action feedback, forced-RLS Preview persistence, splices, wallets, game actions, providers and Production disabled.
+
+## 2026-07-26 — Lifecycle economic FormData boundary
+
+- Parse completed sale evidence with server-generated durable identity, server-confirmed active ownership, explicit-offset timestamps and positive exact original-asset amounts.
+- Preserve selling fees and nullable acquisition cost in the sale asset without fabricating realised gain when cost basis is missing.
+- Resolve burn ownership and core class from accepted server configuration, require browser-restated class evidence to agree and permanently reject Genesis burns.
+- Parse only actual positive BGC credits linked to one server-confirmed burn, require matching core and chronological evidence, and delegate final matching to the authoritative burn-credit reconciliation domain.
+- Keep historical Race Merge BGC as zero-economics race-performance evidence and keep forms, action feedback, forced-RLS Preview persistence, wallets, game actions, ownership mutation, providers and Production disabled.
