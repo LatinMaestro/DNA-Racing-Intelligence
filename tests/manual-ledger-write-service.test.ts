@@ -138,6 +138,7 @@ describe("Manual ledger write service", () => {
       tournamentId: null,
       coreIds: ["synthetic-core"],
       externalReference: null,
+      costBasisStatus: null,
       note: null,
       postings: [
         {
