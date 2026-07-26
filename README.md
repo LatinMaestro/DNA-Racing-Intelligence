@@ -106,6 +106,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_CUMULATIVE_REHEARSAL_EVIDENCE.md`](docs/PHASE_9_CUMULATIVE_REHEARSAL_EVIDENCE.md) — exact-head cumulative checks, reversible migration proof and fail-closed limitations
 - [`docs/PHASE_9_HOSTED_CHECK_ATTESTATIONS.md`](docs/PHASE_9_HOSTED_CHECK_ATTESTATIONS.md) — fixed-command exact-head check attestations with redacted-summary and synthetic-fixture controls
 - [`docs/PHASE_9_HOSTED_MIGRATION_ATTESTATION.md`](docs/PHASE_9_HOSTED_MIGRATION_ATTESTATION.md) — ordered reversible PostgreSQL attestations with ephemeral-target and schema-restoration controls
+- [`docs/PHASE_9_HOSTED_PRIVACY_ATTESTATION.md`](docs/PHASE_9_HOSTED_PRIVACY_ATTESTATION.md) — exact-head tree, diff, history, fixture and retained-output privacy attestations
 - [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
