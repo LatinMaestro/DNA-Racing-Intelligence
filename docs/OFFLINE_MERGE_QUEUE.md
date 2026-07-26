@@ -85,6 +85,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    64 | Hosted check attestations           | `agent/hosted-check-attestations`              | `1a2ec2c8bcee41b13e1de40f4ae1eadb57f9a283` | PR the five-commit auditable check-evidence delta after order 63                    |
 |    65 | Hosted migration attestations       | `agent/hosted-migration-attestations`          | `a031a67c64446fb619d6555ac17f6b1de91e30b3` | PR the five-commit reversible PostgreSQL evidence delta after order 64            |
 |    66 | Hosted privacy attestations         | `agent/hosted-privacy-attestations`            | `7ab9b922f923834f8ac69e6adf19bb189b230e80` | PR the five-commit exact-head privacy evidence delta after order 65                |
+|    67 | Hosted analytical validation        | `agent/hosted-analytical-validation-attestations` | `564f75424d454475a27e87a94e3c236effb47232` | PR the five-commit chronological analytical evidence delta after order 66          |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -834,6 +835,19 @@ fails closed. Formatting, ESLint, strict TypeScript and the complete
 47-file/342-test hosted harness pass with zero production vulnerabilities; all
 three implementation, test and contract blobs reconcile exactly. No scan output,
 private artifact, workflow, merge or Production authority is created.
+
+### Hosted analytical validation attestations
+
+Bind performance, lineage, breeding, Gold/Blue-era, tournament/Maiden,
+recommendation, capacity and economic validation to one exact head and source
+manifest. Require chronological cutoffs, authenticated owner-workspace execution,
+documented coverage, aggregate-only retained evidence and experimental labels.
+Future leakage, private-row retention, source drift or failed commands block.
+Historical Race Merge BGC economics and transfers remain excluded. Formatting,
+ESLint, strict TypeScript and the complete 48-file/351-test hosted harness pass
+with zero production vulnerabilities; all three implementation, test and
+contract blobs reconcile exactly. Private analytical execution remains
+unavailable and unclaimed. No workflow, merge or Production authority is created.
 
 ## Gate status and limitations
 
