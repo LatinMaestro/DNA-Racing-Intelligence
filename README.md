@@ -80,6 +80,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_2_CORE_READ_WORKSPACE.md`](docs/PHASE_2_CORE_READ_WORKSPACE.md) — owner-scoped compact-profile application service and historical interface
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md`](docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md) — owner-scoped materialized economic summary service and private interface
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_ACTIONS.md`](docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_ACTIONS.md) — fail-closed authenticated manual ledger and tournament-payout Server Action boundary
+- [`docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_FORMS.md`](docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_FORMS.md) — accessible disabled manual ledger and tournament-payout form shell
 - [`docs/PHASE_3_DISCOVERY_WORKSPACE.md`](docs/PHASE_3_DISCOVERY_WORKSPACE.md) — owner-scoped exact-distance probe review service and non-actionable interface
 - [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
 - [`docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md`](docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md) — deterministic owner-confirmed Vault-to-Core Details identity contract
