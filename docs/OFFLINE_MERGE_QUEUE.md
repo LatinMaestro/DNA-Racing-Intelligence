@@ -98,6 +98,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    77 | Hosted source-contract attestations  | `agent/hosted-source-contract-attestations`         | `1f502e2866e9deece2f6a7886b52094c0b93a573` | PR the ten-commit exact-head nine-input source evidence delta after order 76           |
 |    78 | Hosted identity-lineage attestations | `agent/hosted-identity-lineage-attestations`        | `7158fa3116a4ce78a74d614be118cd91f7c28a4e` | PR the ten-commit exact-head identity/lineage evidence delta after order 77            |
 |    79 | Hosted private import assurance     | `agent/hosted-private-import-assurance-attestations` | `a2f237e85b319315314d23cbd575be609fc0502b` | PR the 11-commit exact-head private import assurance delta after order 78              |
+|    80 | Hosted programme completion         | `agent/hosted-programme-completion-attestations`    | `dd629a890cde0819134469de4dc0ceccf38b3400` | PR the ten-commit exact-head nine-item completion evidence delta after order 79       |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -1037,6 +1038,20 @@ vulnerabilities; all eight validated implementation, test and contract
 artifacts reconcile exactly. Connected authenticated private real-file execution
 remains unavailable and unclaimed. No source upload, activation, persistence,
 workflow, merge, provider or Production authority is created.
+
+### Hosted programme completion attestations
+
+Project all nine approved programme items against one exact candidate head and
+reviewed programme/evidence manifests. Require fixed commands, complete
+assertions, verified implementation and synthetic regressions, recorded
+limitations, no private Git data and disabled Production. Private execution,
+connected persistence and exact-head Actions remain explicitly pending wherever
+required; unavailable evidence never becomes completion. Formatting, ESLint,
+strict TypeScript and the complete 61-file/459-test hosted harness pass with
+zero production vulnerabilities; all eight validated implementation, test and
+contract artifacts reconcile exactly. No nine-item completion or formal
+acceptance is claimed. No workflow, merge, provider or Production authority is
+created.
 
 ## Gate status and limitations
 
