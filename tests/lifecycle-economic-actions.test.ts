@@ -10,10 +10,13 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   recordActualBurnCreditFeedbackAction,
+  recordActualBurnCreditFormAction,
   recordActualBurnCreditAction,
   recordCoreBurnEvidenceFeedbackAction,
+  recordCoreBurnFormAction,
   recordCoreBurnEvidenceAction,
   recordCoreSaleEvidenceFeedbackAction,
+  recordCoreSaleFormAction,
   recordCoreSaleEvidenceAction,
 } from "../app/(private)/lifecycle/actions";
 
@@ -141,5 +144,41 @@ describe("lifecycle economic Server Actions", () => {
         rawErrorEchoed: false,
       });
     }
+  });
+
+  it("keeps all strict FormData actions unavailable before parsing", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    const results = await Promise.all([
+      recordCoreSaleFormAction(new FormData()),
+      recordCoreBurnFormAction(new FormData()),
+      recordActualBurnCreditFormAction(new FormData()),
+    ]);
+
+    expect(results).toHaveLength(3);
+    for (const result of results) {
+      expect(result).toMatchObject({
+        title: "Evidence recording is unavailable",
+        submittedValuesEchoed: false,
+        rawErrorEchoed: false,
+      });
+    }
+  });
+
+  it("denies a non-owner FormData action before parser access", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("other-owner");
+
+    await expect(
+      recordCoreSaleFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      title: "Owner verification required",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
   });
 });
