@@ -65,6 +65,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    44 | Import provider capacity adapter  | `agent/import-provider-capacity-adapter`        | `70e5a82f758044aec088a652d1d29d93b91eb615` | PR the five-commit fresh-capacity delta after order 43                       |
 |    45 | Vault Performance economic actions | `agent/vault-performance-economic-actions`     | `d115bf9b4fe972817377bbfa131906eb4d1e7454` | PR the five-commit fail-closed economic-action delta after order 44          |
 |    46 | Vault Performance economic forms   | `agent/vault-performance-economic-forms`       | `b6f6ea2989fee4521dce375c6505f96a3b115de4` | PR the six-commit disabled accessible-form delta after order 45              |
+|    47 | Breeding economic actions          | `agent/breeding-economic-actions`              | `4862a604811c55588c742ae856683dda87cdb8ca` | PR the five-commit fail-closed breeding-action delta after order 46           |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -562,6 +563,16 @@ Three new synthetic rendering tests pass inside the complete 27-file/196-test
 hosted harness; all three form, test and contract blobs reconcile exactly. No
 client state, credential input, wallet, game or Production operation exists.
 
+### Breeding economic actions
+
+Resolve Clerk identity independently for completed/refunded breeding evidence
+and optional offspring cost-basis requests, then delegate only to the validated
+owner-scoped write service. The repository remains explicitly unavailable, so
+Arena listings, incomplete evidence, duplicate costs and ambiguous refunds
+cannot enter accounting. Five focused action tests pass inside the complete
+28-file/201-test hosted harness; no splice, wallet, ownership, private-record or
+Production operation is possible.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -597,9 +608,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    synthetic/hosted evidence.
 2. Enable the manual-ledger and tournament-payout forms only alongside strict
    FormData parsing, server-generated durable IDs, action feedback and
-   forced-RLS persistence. Add action boundaries and disabled forms for breeding
-   and lifecycle economic services while keeping wallet and game actions
-   impossible.
+   forced-RLS persistence. Add disabled forms for breeding economics, then add
+   lifecycle action boundaries and disabled forms while keeping wallet and game
+   actions impossible.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
