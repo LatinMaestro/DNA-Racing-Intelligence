@@ -15,6 +15,7 @@ const CHECK_NAMES = [
   "freshness_snapshot_integrity",
   "confirmed_game_rules",
   "recommendation_explainability",
+  "authoritative_source_contracts",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const;
 
