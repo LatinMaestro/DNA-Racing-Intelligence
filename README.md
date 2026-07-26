@@ -69,6 +69,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_IMPORT_PROGRESS_UI.md`](docs/PHASE_1_IMPORT_PROGRESS_UI.md) — owner-scoped progress, completion and disabled recovery interface
 - [`docs/PHASE_1_IMPORT_PROVIDER_ADAPTER_BUNDLE.md`](docs/PHASE_1_IMPORT_PROVIDER_ADAPTER_BUNDLE.md) — lazy owner-bound provider readiness and initialization contract
 - [`docs/PHASE_1_IMPORT_PERSISTENCE_OPERATION_ADAPTER.md`](docs/PHASE_1_IMPORT_PERSISTENCE_OPERATION_ADAPTER.md) — owner-scoped transaction, forced-RLS and durable-operation contract
+- [`docs/PHASE_1_NEON_IMPORT_PERSISTENCE_DRIVER.md`](docs/PHASE_1_NEON_IMPORT_PERSISTENCE_DRIVER.md) — lazy Neon transaction, forced-RLS verification and reversible durable reservation schema
 - [`docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md`](docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md) — source-version-bound aggregate refresh and atomic publication contract
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
 - [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
