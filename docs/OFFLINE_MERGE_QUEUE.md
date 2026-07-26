@@ -97,6 +97,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    76 | Hosted explainability attestations   | `agent/hosted-explainability-attestations`          | `cc9952d9a122365c3efaf4c1b8be46c68e7805fd` | PR the ten-commit exact-head explainability evidence delta after order 75             |
 |    77 | Hosted source-contract attestations  | `agent/hosted-source-contract-attestations`         | `1f502e2866e9deece2f6a7886b52094c0b93a573` | PR the ten-commit exact-head nine-input source evidence delta after order 76           |
 |    78 | Hosted identity-lineage attestations | `agent/hosted-identity-lineage-attestations`        | `7158fa3116a4ce78a74d614be118cd91f7c28a4e` | PR the ten-commit exact-head identity/lineage evidence delta after order 77            |
+|    79 | Hosted private import assurance     | `agent/hosted-private-import-assurance-attestations` | `a2f237e85b319315314d23cbd575be609fc0502b` | PR the 11-commit exact-head private import assurance delta after order 78              |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -1022,6 +1023,20 @@ eight validated implementation, test and contract artifacts reconcile exactly.
 Connected forced-RLS and private mapping execution remain unavailable and
 unclaimed. No mapping confirmation, persistence, workflow, merge, provider or
 Production authority is created.
+
+### Hosted private import assurance attestations
+
+Bind private real-file import assurance for Core Details/lineage, Windows-1252
+Vault, Arena and all six Race Merge files to one exact head. Require aggregate
+coverage of 18,127 Core Details rows, 195 Vault rows, 792 Arena rows and all
+2,536,710 Race Merge rows, plus append ordering, boundary deduplication, replay,
+older backfill, snapshot replacement, rollback, quarantine, freshness,
+provenance and bounded memory. Formatting, ESLint, strict TypeScript and the
+complete 60-file/451-test hosted harness pass with zero production
+vulnerabilities; all eight validated implementation, test and contract
+artifacts reconcile exactly. Connected authenticated private real-file execution
+remains unavailable and unclaimed. No source upload, activation, persistence,
+workflow, merge, provider or Production authority is created.
 
 ## Gate status and limitations
 
