@@ -2132,3 +2132,11 @@ through` separately from `Last imported`.
 - Require authenticated owner-workspace evidence using synthetic private states only; observed or retained private material blocks.
 - Missing scopes remain review-required, while stale heads, route drift, incomplete manual review or failed checks block.
 - This contract records evidence only and cannot claim execution, dispatch Actions, merge, expose routes or mutate Production.
+
+## 2026-07-26 — Hosted recovery attestations
+
+- Bind grouped append, boundary replay, older backfill, snapshot replacement, Core Details/lineage refresh, quarantine, rollback, aggregate retry, freshness/provenance and bounded-memory scenarios to one exact head.
+- Require fixed commands, one reviewed source-contract digest and one synthetic fixture-manifest digest.
+- Require idempotent replay/retry, failure isolation, previous-version restoration and freshness bound only to accepted versions.
+- Block incomplete assertions, private-data observation, retained private artifacts and non-synthetic fixtures.
+- Keep the evidence contract non-executable and deny workflow, merge, provider and Production authority.
