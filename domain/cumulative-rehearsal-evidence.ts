@@ -17,6 +17,7 @@ const CHECK_NAMES = [
   "recommendation_explainability",
   "authoritative_source_contracts",
   "identity_lineage_integrity",
+  "private_real_file_import_assurance",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const;
 
