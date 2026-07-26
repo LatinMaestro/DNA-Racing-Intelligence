@@ -25,6 +25,7 @@ const commands = {
   accounting_reconciliation: "accounting_reconciliation_attestation",
   freshness_snapshot_integrity: "freshness_snapshot_attestation",
   confirmed_game_rules: "confirmed_game_rules_attestation",
+  recommendation_explainability: "recommendation_explainability_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -47,6 +48,7 @@ function attestations(): HostedCheckAttestation[] {
       check === "accounting_reconciliation" ||
       check === "freshness_snapshot_integrity" ||
       check === "confirmed_game_rules" ||
+      check === "recommendation_explainability" ||
       check === "synthetic_import_replay_rollback_reconciliation",
   }));
 }
@@ -72,7 +74,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(16);
+    expect(result.checks).toHaveLength(17);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
