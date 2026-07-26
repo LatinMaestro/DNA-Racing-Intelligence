@@ -5,6 +5,10 @@ import {
   type ManualLedgerEntryInput,
   type ValidatedManualLedgerEntry,
 } from "@/domain/manual-ledger";
+import {
+  EconomicActionConflictError,
+  EconomicActionIdentityError,
+} from "@/lib/economic-action-errors";
 
 export type ManualLedgerPersistenceResult =
   | Readonly<{ status: "created" }>
@@ -97,7 +101,9 @@ function authorizedOwner(input: {
   const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) return null;
   if (authenticatedOwnerId !== configuredOwnerId) {
-    throw new Error("Manual ledger write access denied.");
+    throw new EconomicActionIdentityError(
+      "Manual ledger write access denied.",
+    );
   }
   return authenticatedOwnerId;
 }
@@ -113,7 +119,7 @@ function resolvedStatus(
   ) {
     return "replayed";
   }
-  throw new Error(
+  throw new EconomicActionConflictError(
     "Manual ledger durable identity conflicts with prior evidence.",
   );
 }
