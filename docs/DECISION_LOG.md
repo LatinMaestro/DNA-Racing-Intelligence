@@ -1895,3 +1895,13 @@ through` separately from `Last imported`.
 - Treat the presigned target as a bearer secret and reject non-HTTPS, unsigned, overlong, public-host, custom-domain or unexpected-path targets.
 - Use HEAD only for private object presence and advertised metadata. Provider checksum evidence may be absent; the bounded background GET stream remains subject to exact byte-length and SHA-256 verification before staging can commit.
 - Expose no LIST, DELETE, public URL, bucket mutation, CORS, lifecycle, provider provisioning, Preview activation or Production operation from this boundary.
+
+
+## 2026-07-26 — Cloudflare import queue adapter
+
+- Keep preview work separate from background activation and aggregate-refresh work.
+- Require a live consumer, bounded retry policy and dead-letter queue before the first provider send; a paused or incompletely configured queue fails closed.
+- Send compact JSON containing only message version, work kind, durable dispatch ID and an opaque owner-scope SHA-256. Do not place raw owner IDs, filenames, rows, object URLs, economics or recommendations in queue messages.
+- Treat Cloudflare delivery as at least once. Durable repository dispatch claims remain authoritative for replay, activation and aggregate-publication idempotency.
+- Every future consumer must catch each message independently and explicitly acknowledge or retry it so one failure cannot replay an otherwise successful batch.
+- Keep real queues, bindings, messages, private imports, Preview activation and Production unconfigured.
