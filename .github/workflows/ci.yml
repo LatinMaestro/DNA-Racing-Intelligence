@@ -99,7 +99,7 @@ jobs:
       - name: Verify import-operation reservation removal
         run: >-
           psql --set ON_ERROR_STOP=1 --command
-          "DO \\$\\$ BEGIN IF EXISTS (
+          "DO \$\$ BEGIN IF EXISTS (
           SELECT 1 FROM pg_proc proc
           JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
           WHERE namespace.nspname = 'dna'
@@ -110,7 +110,7 @@ jobs:
           WHERE namespace.nspname = 'dna'
           AND relation.relname = 'import_operation_reservation'
           ) THEN RAISE EXCEPTION 'import-operation reservation objects still exist';
-          END IF; END \\$\\$;"
+          END IF; END \$\$;"
       - name: Reverse race-economic ledger migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.down.sql
       - name: Verify race-economic ledger removal
