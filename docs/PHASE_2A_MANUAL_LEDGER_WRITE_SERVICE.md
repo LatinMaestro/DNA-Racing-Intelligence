@@ -14,6 +14,16 @@ slice.
 - The existing manual-ledger domain remains authoritative for category,
   subcategory, exact decimal, account, asset, BGC, tournament, cost-basis and
   linked-core validation.
+- Exact amounts and timestamps are canonicalized before fingerprinting, and
+  asset/BGC identity plus runtime category, direction and cost-basis enums fail
+  closed.
+- An internal transfer contains exactly one negative source-account posting and
+  one equal positive destination-account posting in the same asset. It is
+  non-operating and the accounts must be distinct.
+- A non-operating adjustment requires an explicit credit or debit direction.
+  Fixed-direction categories reject a conflicting browser direction.
+- Core-sale proceeds retain the submitted nullable cost-basis status and remain
+  partial with a warning unless that status is known.
 - The validated entry receives a SHA-256 fingerprint over its deterministic
   canonical projection.
 - A new durable entry ID records once.
