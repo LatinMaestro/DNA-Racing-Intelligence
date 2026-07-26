@@ -120,6 +120,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_HOSTED_GAME_RULES_ATTESTATION.md`](docs/PHASE_9_HOSTED_GAME_RULES_ATTESTATION.md) — exact-head owner-confirmed game-rule and boundary evidence
 - [`docs/PHASE_9_HOSTED_EXPLAINABILITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_EXPLAINABILITY_ATTESTATION.md) — exact-head recommendation evidence, uncertainty, provenance, chronology and review-only traceability
 - [`docs/PHASE_9_HOSTED_SOURCE_CONTRACT_ATTESTATION.md`](docs/PHASE_9_HOSTED_SOURCE_CONTRACT_ATTESTATION.md) — exact-head nine-input, periodic-update, durable-identity, aggregate-coverage and private raw-boundary evidence
+- [`docs/PHASE_9_HOSTED_IDENTITY_LINEAGE_ATTESTATION.md`](docs/PHASE_9_HOSTED_IDENTITY_LINEAGE_ATTESTATION.md) — exact-head Vault identity, ME, Core versioning, family graph and coverage-state evidence
 
 ## Privacy
 
