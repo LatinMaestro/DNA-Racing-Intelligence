@@ -2157,3 +2157,11 @@ through` separately from `Last imported`.
 - Require connected evidence for provider-backed controls; missing controls remain review-required.
 - Block stale heads, manifest drift, failed or incomplete workloads, over-limit results, private-data observation and unconnected provider claims.
 - Keep execution, provider changes, paid services, Actions, merge and Production outside this evidence-only boundary.
+
+## 2026-07-26 — Hosted end-to-end attestations
+
+- Bind fail-closed access, import upload/preview/confirmation, processing/recovery, private analytical reads, economic review, Open Race staging and readiness non-activation to one exact head and reviewed route/fixture manifests.
+- Require fixed browser command identities, exact UTC bounds, complete checkpoints, owner-boundary verification and redacted summary digests.
+- Require synthetic fixtures without observed or retained private data and connected evidence for provider-backed persistence journeys.
+- Block stale heads, manifest drift, failed or partial journeys, unconnected provider claims, public exposure and Production mutation.
+- Add end-to-end workflows to cumulative hosted evidence while denying workflow, merge, provider and Production authority.
