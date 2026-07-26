@@ -12,6 +12,7 @@ import {
   beginImportUploadAction,
   confirmImportUpdateAction,
   completeImportUploadAction,
+  retryAggregateRefreshAction,
   rollbackImportAction,
 } from "../app/(private)/imports/actions";
 import type { ImportUploadCandidate } from "../lib/import-upload-intake-service";
@@ -124,6 +125,25 @@ describe("import server action adapter", () => {
         explicitlyConfirmed: true,
       }),
     ).resolves.toEqual({ status: "persistence_not_configured" });
+
+    expect(session.ownerId).toHaveBeenCalledOnce();
+  });
+
+  it("re-verifies the owner and keeps aggregate retry fail-closed", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+
+    await expect(
+      retryAggregateRefreshAction({
+        failedRefreshId: "refresh-failed-1",
+        retryReason: "Retry the failed aggregate publication.",
+        idempotencyKey: "retry-request-1",
+        explicitlyConfirmed: true,
+      }),
+    ).resolves.toEqual({
+      status: "not_configured",
+      missingCapabilities: ["repository", "background_queue"],
+    });
 
     expect(session.ownerId).toHaveBeenCalledOnce();
   });
