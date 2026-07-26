@@ -1905,3 +1905,11 @@ through` separately from `Last imported`.
 - Treat Cloudflare delivery as at least once. Durable repository dispatch claims remain authoritative for replay, activation and aggregate-publication idempotency.
 - Every future consumer must catch each message independently and explicitly acknowledge or retry it so one failure cannot replay an otherwise successful batch.
 - Keep real queues, bindings, messages, private imports, Preview activation and Production unconfigured.
+
+## 2026-07-26 — Import provider capacity adapter
+
+- Check provider capacity before upload reservation and recheck it from the exact persisted preview immediately before activation.
+- Require fresh provider API usage plus projected increments for R2 storage, R2 Class A/B operations, Neon storage and queue backlog; missing, duplicate, stale, future or malformed evidence fails closed.
+- Keep approved limits, evidence age and reserved headroom in reviewed configuration rather than hardcoded product rules.
+- Stop before upload or activation when current usage plus the projection crosses usable capacity after reserved headroom. The adapter cannot opt into a paid tier.
+- Keep real provider measurements, private uploads, Preview activation, provider upgrades and Production unconfigured.
