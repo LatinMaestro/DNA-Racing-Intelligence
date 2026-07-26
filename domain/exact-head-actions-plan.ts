@@ -19,6 +19,7 @@ const REQUIRED_CHECKS = [
   "freshness_snapshot_integrity",
   "confirmed_game_rules",
   "recommendation_explainability",
+  "authoritative_source_contracts",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
