@@ -2066,3 +2066,12 @@ through` separately from `Last imported`.
 - Keep an unverified remote head or unrun hosted validation review-required; block head mismatch, failed validation, broken dependency or any workflow, status context or pull request on a no-Actions staging branch.
 - Block provider drift, private data in Git, public routes, recurring paid infrastructure or any Production enablement.
 - A complete result means only `ready_for_exact_head_ci`; merge, workflow dispatch and Production mutation remain false until post-capacity rebase, complete validation, exact-head Actions and focused review pass.
+
+## 2026-07-26 — Exact-head Actions capacity plan
+
+- Convert only a fully verified offline-readiness projection into one serial post-capacity preflight sequence; non-merge precursors remain auditable but are excluded.
+- Start the first candidate from the verified current `main`; every later candidate starts only after the prior candidate is merged and the resulting `main` is verified.
+- Require shared-document reconciliation, formatting, lint, strict typing, all TS/TSX tests, build, dependency audit, privacy scan, exact-head Actions, complete diff review, resolved review threads and post-merge verification for every candidate.
+- Require migration-bearing candidates to apply, smoke-test, reverse and verify removal in the approved ephemeral PostgreSQL environment.
+- Treat every rebase, amendment or head change as invalidating prior exact-head CI; stop on any failed check, unresolved thread, privacy issue, migration failure or provider/Production drift.
+- Before capacity returns, remain `awaiting_actions_capacity`. Capacity evidence may permit only the first preflight to begin; the contract never dispatches a workflow, opens or updates a pull request, merges, configures a provider or mutates Production.
