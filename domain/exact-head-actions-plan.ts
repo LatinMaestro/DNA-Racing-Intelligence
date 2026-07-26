@@ -22,6 +22,7 @@ const REQUIRED_CHECKS = [
   "authoritative_source_contracts",
   "identity_lineage_integrity",
   "private_real_file_import_assurance",
+  "nine_item_programme_completion",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
