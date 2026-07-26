@@ -22,6 +22,7 @@ const commands = {
   security_privacy: "security_privacy_attestation",
   performance_capacity: "performance_capacity_attestation",
   end_to_end_workflows: "end_to_end_workflow_attestation",
+  accounting_reconciliation: "accounting_reconciliation_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -41,6 +42,7 @@ function attestations(): HostedCheckAttestation[] {
     privateDataObserved: false,
     syntheticFixturesOnly:
       check === "end_to_end_workflows" ||
+      check === "accounting_reconciliation" ||
       check === "synthetic_import_replay_rollback_reconciliation",
   }));
 }
@@ -66,7 +68,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(13);
+    expect(result.checks).toHaveLength(14);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
