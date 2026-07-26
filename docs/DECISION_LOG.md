@@ -2028,3 +2028,12 @@ through` separately from `Last imported`.
 - Resolve burn ownership and core class from accepted server configuration, require browser-restated class evidence to agree and permanently reject Genesis burns.
 - Parse only actual positive BGC credits linked to one server-confirmed burn, require matching core and chronological evidence, and delegate final matching to the authoritative burn-credit reconciliation domain.
 - Keep historical Race Merge BGC as zero-economics race-performance evidence and keep forms, action feedback, forced-RLS Preview persistence, wallets, game actions, ownership mutation, providers and Production disabled.
+
+## 2026-07-26 — Economic action feedback boundary
+
+- Project fixed manual-ledger, tournament, breeding, offspring-cost, sale, burn and actual burn-credit outcomes into reviewed accessible feedback.
+- Use assertive alerts for rejected or failed requests and polite status regions for readiness, replay, review and success outcomes.
+- Display only reviewed invalid-field labels; never echo submitted values, arbitrary field names or raw exception text.
+- Distinguish a new durable record, exact idempotent replay, review-required evidence and conflicting durable identity.
+- Keep owner verification and forced-RLS persistence blockers explicit rather than presenting a false success state.
+- Keep every economic form disabled and keep wallets, game actions, providers, private persistence and Production outside this projection.
