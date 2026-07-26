@@ -27,6 +27,7 @@ const commands = {
   confirmed_game_rules: "confirmed_game_rules_attestation",
   recommendation_explainability: "recommendation_explainability_attestation",
   authoritative_source_contracts: "authoritative_source_contracts_attestation",
+  identity_lineage_integrity: "identity_lineage_integrity_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -51,6 +52,7 @@ function attestations(): HostedCheckAttestation[] {
       check === "confirmed_game_rules" ||
       check === "recommendation_explainability" ||
       check === "authoritative_source_contracts" ||
+      check === "identity_lineage_integrity" ||
       check === "synthetic_import_replay_rollback_reconciliation",
   }));
 }
@@ -76,7 +78,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(18);
+    expect(result.checks).toHaveLength(19);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
