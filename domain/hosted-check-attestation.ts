@@ -24,6 +24,7 @@ const REQUIRED_CHECKS = [
   "identity_lineage_integrity",
   "private_real_file_import_assurance",
   "nine_item_programme_completion",
+  "connected_provider_preflight",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -49,6 +50,7 @@ const COMMAND_BY_CHECK = {
   private_real_file_import_assurance:
     "private_real_file_import_assurance_attestation",
   nine_item_programme_completion: "nine_item_programme_completion_attestation",
+  connected_provider_preflight: "connected_provider_preflight_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
