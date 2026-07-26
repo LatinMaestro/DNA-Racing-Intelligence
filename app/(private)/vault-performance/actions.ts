@@ -4,6 +4,7 @@ import type { ManualLedgerEntryInput } from "@/domain/manual-ledger";
 import type { ManualTournamentPayoutInput } from "@/domain/manual-tournament-payout";
 import type { TournamentPrizeReconciliationDecision } from "@/domain/tournament-prize-reconciliation";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
 import {
   recordManualLedgerEntry,
   reverseManualLedgerEntry,
@@ -43,6 +44,15 @@ export async function recordManualLedgerEntryAction(
   });
 }
 
+export async function recordManualLedgerEntryFeedbackAction(
+  entry: ManualLedgerEntryInput,
+) {
+  return runEconomicActionForFeedback({
+    operation: "manual_ledger",
+    execute: () => recordManualLedgerEntryAction(entry),
+  });
+}
+
 export async function reverseManualLedgerEntryAction(input: {
   reversalId: string;
   originalEntryId: string;
@@ -57,6 +67,18 @@ export async function reverseManualLedgerEntryAction(input: {
   });
 }
 
+export async function reverseManualLedgerEntryFeedbackAction(input: {
+  reversalId: string;
+  originalEntryId: string;
+  reversedAt: string;
+  reason: string;
+}) {
+  return runEconomicActionForFeedback({
+    operation: "manual_ledger",
+    execute: () => reverseManualLedgerEntryAction(input),
+  });
+}
+
 export async function recordManualTournamentPayoutAction(
   payout: ManualTournamentPayoutInput,
 ) {
@@ -65,6 +87,15 @@ export async function recordManualTournamentPayoutAction(
     configuredOwnerId: configuredOwnerId(),
     repository: unavailableManualTournamentPayoutWriteRepository,
     payout,
+  });
+}
+
+export async function recordManualTournamentPayoutFeedbackAction(
+  payout: ManualTournamentPayoutInput,
+) {
+  return runEconomicActionForFeedback({
+    operation: "tournament_payout",
+    execute: () => recordManualTournamentPayoutAction(payout),
   });
 }
 
@@ -78,5 +109,16 @@ export async function decideManualTournamentPayoutReconciliationAction(input: {
     configuredOwnerId: configuredOwnerId(),
     repository: unavailableManualTournamentPayoutWriteRepository,
     ...input,
+  });
+}
+
+export async function decideManualTournamentPayoutReconciliationFeedbackAction(input: {
+  payoutId: string;
+  expectedRevision: number;
+  decision: TournamentPrizeReconciliationDecision;
+}) {
+  return runEconomicActionForFeedback({
+    operation: "tournament_payout",
+    execute: () => decideManualTournamentPayoutReconciliationAction(input),
   });
 }
