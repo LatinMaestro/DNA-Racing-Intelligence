@@ -2216,3 +2216,12 @@ through` separately from `Last imported`.
 - Preserve 68 ME true and 127 ME false states, reuse confirmed mappings and review only future unmatched or genuinely ambiguous rows.
 - Require authoritative parent/child IDs for family queries and breeding restrictions, with explicit partial raced-profile and Arena no-history states.
 - Block stale heads, manifest drift, partial evidence, identity inference, private Git evidence and retained private artifacts while denying persistence, Actions, merge and Production authority.
+
+
+## 2026-07-27 — Hosted private import assurance attestations
+
+- Bind representative private real-file import evidence for Core Details/lineage, Windows-1252 Vault, Arena and all six Race Merge files to one exact head and reviewed manifests.
+- Require the aggregate coverage of 18,127 Core Details rows, 195 owned Vault rows, 792 Arena rows and all 2,536,710 Race Merge rows.
+- Verify append ordering, boundary deduplication, replay, older backfill, snapshot replacement, rollback, malformed/conflict quarantine, freshness, provenance and bounded memory.
+- Preserve original files and source values inside the approved private raw-data boundary while retaining aggregate-only redacted evidence outside it.
+- Block stale heads, manifest drift, incomplete coverage, unsafe logs, private Git evidence and retained private evidence artifacts while denying source activation, providers, Actions, merge and Production authority.
