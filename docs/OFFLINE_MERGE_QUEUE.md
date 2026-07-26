@@ -64,6 +64,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    43 | Cloudflare import queue adapter    | `agent/import-cloudflare-queue-adapter`         | `d188879f248b5f45e12aeb5be2a840b1e4b97523` | PR the five-commit preview/background queue delta after order 42            |
 |    44 | Import provider capacity adapter  | `agent/import-provider-capacity-adapter`        | `70e5a82f758044aec088a652d1d29d93b91eb615` | PR the five-commit fresh-capacity delta after order 43                       |
 |    45 | Vault Performance economic actions | `agent/vault-performance-economic-actions`     | `d115bf9b4fe972817377bbfa131906eb4d1e7454` | PR the five-commit fail-closed economic-action delta after order 44          |
+|    46 | Vault Performance economic forms   | `agent/vault-performance-economic-forms`       | `b6f6ea2989fee4521dce375c6505f96a3b115de4` | PR the six-commit disabled accessible-form delta after order 45              |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -551,6 +552,16 @@ synthetic tests pass inside the complete 26-file/193-test hosted harness; all
 three action, test and contract blobs reconcile exactly. No wallet, game,
 ownership, private-record or Production operation is possible.
 
+### Vault Performance economic forms
+
+Render separate semantic manual-ledger and tournament-payout forms inside the
+owner-authenticated Vault Performance Server Component. Every fieldset and
+submit button remains disabled until strict form parsing, server-generated
+durable IDs, action feedback and forced-RLS persistence are connected together.
+Three new synthetic rendering tests pass inside the complete 27-file/196-test
+hosted harness; all three form, test and contract blobs reconcile exactly. No
+client state, credential input, wallet, game or Production operation exists.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -584,8 +595,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Add accessible authenticated forms for the staged manual ledger and
-   tournament-payout actions, then add action boundaries and forms for breeding
+2. Enable the manual-ledger and tournament-payout forms only alongside strict
+   FormData parsing, server-generated durable IDs, action feedback and
+   forced-RLS persistence. Add action boundaries and disabled forms for breeding
    and lifecycle economic services while keeping wallet and game actions
    impossible.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
