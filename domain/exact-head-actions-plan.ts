@@ -14,6 +14,7 @@ const REQUIRED_CHECKS = [
   "dependency_audit",
   "privacy_scan",
   "security_privacy",
+  "performance_capacity",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
