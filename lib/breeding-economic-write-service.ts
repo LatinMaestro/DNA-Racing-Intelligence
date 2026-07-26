@@ -10,6 +10,10 @@ import {
   type OffspringCostBasisInput,
   type OffspringCostBasisResult,
 } from "@/domain/offspring-cost-basis";
+import {
+  EconomicActionConflictError,
+  EconomicActionIdentityError,
+} from "@/lib/economic-action-errors";
 
 type CostBasisRequest = Omit<
   OffspringCostBasisInput,
@@ -124,7 +128,9 @@ function authorizedOwner(input: {
   const configuredOwnerId = optional(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) return null;
   if (authenticatedOwnerId !== configuredOwnerId) {
-    throw new Error("Breeding economic write access denied.");
+    throw new EconomicActionIdentityError(
+      "Breeding economic write access denied.",
+    );
   }
   return authenticatedOwnerId;
 }
@@ -144,7 +150,7 @@ function resolvedStatus(
   ) {
     return "replayed";
   }
-  throw new Error(
+  throw new EconomicActionConflictError(
     "Breeding economic durable identity conflicts with prior evidence.",
   );
 }
@@ -243,7 +249,7 @@ export async function recordBreedingEconomicEvidence(input: {
   );
   if (existing !== null) {
     if (existing.fingerprint !== evidenceFingerprint) {
-      throw new Error(
+      throw new EconomicActionConflictError(
         "Breeding economic durable identity conflicts with prior evidence.",
       );
     }
@@ -306,7 +312,7 @@ export async function assignOffspringCostBasis(input: {
   );
   if (existing !== null) {
     if (existing.fingerprint !== requestFingerprint) {
-      throw new Error(
+      throw new EconomicActionConflictError(
         "Breeding economic durable identity conflicts with prior evidence.",
       );
     }
