@@ -1887,6 +1887,7 @@ through` separately from `Last imported`.
 - Preserve the first accepted fingerprint for exact replay and return it for application-level conflict rejection; never overwrite accepted idempotency evidence.
 - Add synthetic driver tests and forward, smoke and reverse SQL, while recording that PostgreSQL execution remains unavailable in the current hosted workspace.
 - Keep the database URL, provider connection, private import execution, Preview imports and Production unconfigured and fail-closed.
+
 ## 2026-07-26 — Cloudflare R2 private import object storage
 
 - Keep the approved raw-data bucket private: public access, the `r2.dev` URL and custom domains must all be disabled before the adapter can issue a target or read an object.
