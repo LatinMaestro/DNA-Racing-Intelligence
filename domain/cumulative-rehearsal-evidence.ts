@@ -9,6 +9,7 @@ const CHECK_NAMES = [
   "dependency_audit",
   "privacy_scan",
   "security_privacy",
+  "performance_capacity",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const;
 
