@@ -1846,3 +1846,14 @@ through` separately from `Last imported`.
 - Expose count-only completion evidence plus separate data-current-through, last-imported and aggregate-refresh timestamps without filenames, durable batch IDs or raw rows.
 - Keep upload, confirmation, aggregate retry and rollback controls visibly disabled until approved provider adapters and incremental hashing are configured.
 - Keep the route server-rendered, owner-authenticated and free of module-scope provider initialization, raw-history scans, Preview imports and Production activation.
+
+## 2026-07-26 — Lazy owner-scoped import provider adapter bundle
+
+- Define one server-only readiness boundary for import persistence, private object storage, preview queue, background queue, approved capacity gate and incremental SHA-256 adapters.
+- Require authenticated Clerk owner evidence to match the server-side allowlist before any configured factory can be returned or invoked.
+- Report every missing adapter in deterministic order and initialize none while the required bundle is incomplete.
+- Bind each configured factory to the verified owner and initialize it lazily on first use rather than at module scope or during build.
+- Reuse one initialization promise for concurrent access and retain a sanitized failed initialization without implicit duplicate retry.
+- Keep concrete provider provisioning, credentials, database access, object transfer, queue dispatch and private-source execution outside this contract.
+- Require later concrete persistence adapters to prove forced owner RLS and operation-level idempotency; this bundle does not claim that evidence.
+- Keep all application adapters unavailable, direct upload disabled, Preview imports gated and Production fail-closed.
