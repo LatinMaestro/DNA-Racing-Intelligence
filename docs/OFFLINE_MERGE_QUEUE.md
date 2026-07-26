@@ -78,6 +78,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    57 | Economic action feedback            | `agent/economic-action-feedback`                | `a6a750798560f78746341da02f7d2e7fd5f4c1b9` | PR the six-commit privacy-safe feedback delta after order 56                      |
 |    58 | Economic action feedback actions    | `agent/economic-action-feedback-actions`        | `5f5c6b9dd424500657d7ff82d9d1b082041707a2` | PR the 17-commit fail-closed action translation delta after order 57              |
 |    59 | Strict economic FormData actions    | `agent/economic-form-data-actions`              | `a1d7ca694dede968dbe8aa05ecdbe868c3a166c9` | PR the 11-commit strict action-binding delta after order 58                       |
+|    60 | Offline merge readiness             | `agent/offline-merge-readiness`                 | `3496ca339233292ca78de96eb70a5793ff4b85f3` | PR the five-commit non-executable queue-readiness delta after order 59             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -736,6 +737,20 @@ Open Race binds manual field input, eligibility, exact-distance ranking, lock,
 optional star observation and diagnostic comparison without allowing current
 stars into Stage A or switching after lock. Readiness displays exact-head checks
 and blockers while remaining non-executable and keeping Gate F client-only.
+
+### Offline merge readiness
+
+Validate the maintained handoff as one deterministic exact-head merge-candidate
+chain while excluding explicitly marked non-merge precursors. Unverified heads
+and unrun hosted checks remain review-required; mismatches, failures, broken
+dependencies, staging workflows/statuses/PRs or provider/privacy/Production drift
+block the projection. Formatting, ESLint, strict TypeScript and the complete
+41-file/292-test hosted harness pass with zero production vulnerabilities, and
+all three implementation, test and contract blobs reconcile exactly. A clean
+result only waits for Actions capacity: merge, workflow dispatch and Production
+mutation remain forbidden. Read-only connected-service discovery found no DNA
+Racing Neon project or branch, so forced-RLS Preview and PostgreSQL execution
+remain unclaimed and no provider was provisioned.
 
 ## Gate status and limitations
 
