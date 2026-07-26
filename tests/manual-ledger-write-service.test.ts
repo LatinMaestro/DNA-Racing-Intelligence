@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ValidatedManualLedgerEntry } from "@/domain/manual-ledger";
+import type {
+  ManualLedgerEntryInput,
+  ValidatedManualLedgerEntry,
+} from "@/domain/manual-ledger";
 import {
   recordManualLedgerEntry,
   reverseManualLedgerEntry,
@@ -17,7 +20,7 @@ const entryInput = {
   subcategory: "other_income",
   accountLabel: "Synthetic account",
   note: "Synthetic evidence.",
-};
+} satisfies ManualLedgerEntryInput;
 
 function readyRepository(
   overrides: Partial<
@@ -138,6 +141,7 @@ describe("Manual ledger write service", () => {
       tournamentId: null,
       coreIds: ["synthetic-core"],
       externalReference: null,
+      costBasisStatus: null,
       note: null,
       postings: [
         {
