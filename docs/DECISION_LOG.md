@@ -1929,3 +1929,11 @@ through` separately from `Last imported`.
 - Preserve original-asset entry, exact decimal guidance, BGC separation, transfer exclusion and payout reconciliation language.
 - Never request wallet credentials, private keys, seed phrases or signing material and never call a wallet or game system.
 - Require strict FormData parsing, server-generated durable IDs, action feedback and forced-RLS persistent Preview evidence before enabling submission.
+
+## 2026-07-26 — Breeding economic Server Actions
+
+- Resolve Clerk identity inside every completed/refunded breeding-evidence and offspring cost-basis action; never accept owner identity from the browser.
+- Delegate only to the existing canonical, idempotent review service while its owner-scoped repository remains unavailable.
+- Keep Arena listings non-transactional, hold incomplete or duplicate evidence, preserve original assets and keep BGC separate.
+- Never assign market value, calculate realised gain, call a wallet or game system, mutate ownership, record private evidence or change Production.
+- Keep strict FormData parsing, server-generated durable IDs, accessible disabled forms and persistent Preview evidence as later focused work.
