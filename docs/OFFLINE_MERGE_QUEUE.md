@@ -95,6 +95,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    74 | Hosted freshness attestations       | `agent/hosted-freshness-attestations`             | `c470bf9d2ac221dad5c9a5a5dbcadc8b1956a322` | PR the ten-commit exact-head freshness evidence delta after order 73                 |
 |    75 | Hosted game-rule attestations       | `agent/hosted-game-rules-attestations`             | `98e89d04197b63c3842de56f907b51d305c4cd55` | PR the 13-commit exact-head confirmed-rule evidence delta after order 74             |
 |    76 | Hosted explainability attestations   | `agent/hosted-explainability-attestations`          | `cc9952d9a122365c3efaf4c1b8be46c68e7805fd` | PR the ten-commit exact-head explainability evidence delta after order 75             |
+|    77 | Hosted source-contract attestations  | `agent/hosted-source-contract-attestations`         | `1f502e2866e9deece2f6a7886b52094c0b93a573` | PR the ten-commit exact-head nine-input source evidence delta after order 76           |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -988,6 +989,22 @@ implementation, test and contract artifacts reconcile exactly. Private
 chronological analytical execution remains unavailable and unclaimed. No
 recommendation activation, game action, workflow, merge, provider or Production
 authority is created.
+
+
+### Hosted source-contract attestations
+
+Bind cross-mode Core Details, confirmed-owned Current Vault and ME states,
+replacement Current Arena snapshots, six ordered Race Merge additions,
+durable-ID resolution, periodic updates, aggregate coverage, historical BGC
+provenance/zero economics and the approved private raw-data boundary to one
+exact head and reviewed manifests. Fixed commands, UTC bounds, complete
+assertions and redacted digests are mandatory; stale, drifting, incomplete,
+field-suppressing or private Git evidence fails closed. Formatting, ESLint,
+strict TypeScript and the complete 58-file/435-test hosted harness pass with zero
+production vulnerabilities; all eight validated implementation, test and
+contract artifacts reconcile exactly. Connected imports and private real-file
+execution remain unavailable and unclaimed. No upload, activation, workflow,
+merge, provider or Production authority is created.
 
 ## Gate status and limitations
 
