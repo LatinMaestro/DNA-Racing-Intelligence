@@ -86,6 +86,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    65 | Hosted migration attestations       | `agent/hosted-migration-attestations`          | `a031a67c64446fb619d6555ac17f6b1de91e30b3` | PR the five-commit reversible PostgreSQL evidence delta after order 64            |
 |    66 | Hosted privacy attestations         | `agent/hosted-privacy-attestations`            | `7ab9b922f923834f8ac69e6adf19bb189b230e80` | PR the five-commit exact-head privacy evidence delta after order 65                |
 |    67 | Hosted analytical validation        | `agent/hosted-analytical-validation-attestations` | `564f75424d454475a27e87a94e3c236effb47232` | PR the five-commit chronological analytical evidence delta after order 66          |
+|    68 | Hosted accessibility attestations   | `agent/hosted-accessibility-attestations`          | `5c3f8a0222676dac604ebec55f75bca9dcee6b70` | PR the five-commit exact-head accessibility evidence delta after order 67           |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -848,6 +849,20 @@ ESLint, strict TypeScript and the complete 48-file/351-test hosted harness pass
 with zero production vulnerabilities; all three implementation, test and
 contract blobs reconcile exactly. Private analytical execution remains
 unavailable and unclaimed. No workflow, merge or Production authority is created.
+
+
+### Hosted accessibility attestations
+
+Bind semantic structure, keyboard navigation, focus management,
+assistive-technology semantics, visual contrast/non-colour status and responsive
+reflow to one exact head and reviewed route manifest. Fixed command identities,
+exact UTC bounds, complete route/checkpoint coverage and zero automated or
+manual findings are mandatory. Formatting, ESLint, strict TypeScript and the
+complete 49-file/360-test hosted harness pass with zero production
+vulnerabilities; all three implementation, test and contract blobs reconcile
+exactly. Actual accessibility execution remains unavailable and unclaimed. No
+private artifact, workflow, merge, route exposure or Production authority is
+created.
 
 ## Gate status and limitations
 
