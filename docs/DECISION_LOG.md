@@ -2217,7 +2217,6 @@ through` separately from `Last imported`.
 - Require authoritative parent/child IDs for family queries and breeding restrictions, with explicit partial raced-profile and Arena no-history states.
 - Block stale heads, manifest drift, partial evidence, identity inference, private Git evidence and retained private artifacts while denying persistence, Actions, merge and Production authority.
 
-
 ## 2026-07-27 — Hosted private import assurance attestations
 
 - Bind representative private real-file import evidence for Core Details/lineage, Windows-1252 Vault, Arena and all six Race Merge files to one exact head and reviewed manifests.
