@@ -112,6 +112,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 - [`docs/PHASE_9_HOSTED_ACCESSIBILITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_ACCESSIBILITY_ATTESTATION.md) — exact-head keyboard, semantic, focus, contrast and responsive evidence contract
 - [`docs/PHASE_9_HOSTED_RECOVERY_ATTESTATION.md`](docs/PHASE_9_HOSTED_RECOVERY_ATTESTATION.md) — exact-head synthetic append, replay, quarantine, rollback, freshness and bounded-memory evidence
+- [`docs/PHASE_9_HOSTED_SECURITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_SECURITY_ATTESTATION.md) — exact-head authentication, owner isolation, storage, logging, indexing and dependency/configuration evidence
 
 ## Privacy
 
