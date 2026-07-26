@@ -13,6 +13,7 @@ const REQUIRED_CHECKS = [
   "production_build",
   "dependency_audit",
   "privacy_scan",
+  "security_privacy",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -26,6 +27,7 @@ const COMMAND_BY_CHECK = {
   production_build: "npm_build",
   dependency_audit: "npm_audit_production",
   privacy_scan: "repository_privacy_scan",
+  security_privacy: "security_privacy_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
