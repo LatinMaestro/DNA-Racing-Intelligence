@@ -87,6 +87,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    66 | Hosted privacy attestations         | `agent/hosted-privacy-attestations`            | `7ab9b922f923834f8ac69e6adf19bb189b230e80` | PR the five-commit exact-head privacy evidence delta after order 65                |
 |    67 | Hosted analytical validation        | `agent/hosted-analytical-validation-attestations` | `564f75424d454475a27e87a94e3c236effb47232` | PR the five-commit chronological analytical evidence delta after order 66          |
 |    68 | Hosted accessibility attestations   | `agent/hosted-accessibility-attestations`          | `5c3f8a0222676dac604ebec55f75bca9dcee6b70` | PR the five-commit exact-head accessibility evidence delta after order 67           |
+|    69 | Hosted recovery attestations        | `agent/hosted-recovery-attestations`               | `bec6fd1ea3892ae5e62f7e930ff2644cb9c1bd04` | PR the five-commit import/replay/rollback evidence delta after order 68             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -863,6 +864,18 @@ vulnerabilities; all three implementation, test and contract blobs reconcile
 exactly. Actual accessibility execution remains unavailable and unclaimed. No
 private artifact, workflow, merge, route exposure or Production authority is
 created.
+
+### Hosted recovery attestations
+
+Bind grouped append, boundary replay, older backfill, snapshot replacement,
+Core Details/lineage refresh, quarantine, rollback, aggregate retry,
+freshness/provenance and bounded-memory evidence to one exact head, source
+contract and synthetic fixture manifest. Require idempotency, failure isolation,
+previous-version restoration and accepted-version freshness. Formatting, ESLint,
+strict TypeScript and the complete 50-file/370-test hosted harness pass with
+zero production vulnerabilities; all three implementation, test and contract
+blobs reconcile exactly. Real private recovery execution remains unavailable and
+unclaimed. No workflow, merge, provider or Production authority is created.
 
 ## Gate status and limitations
 
