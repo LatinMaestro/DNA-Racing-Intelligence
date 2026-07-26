@@ -90,6 +90,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    69 | Hosted recovery attestations        | `agent/hosted-recovery-attestations`               | `bec6fd1ea3892ae5e62f7e930ff2644cb9c1bd04` | PR the five-commit import/replay/rollback evidence delta after order 68             |
 |    70 | Hosted security attestations        | `agent/hosted-security-attestations`               | `347e75e6db3d527ab951bc560913c079cff34306` | PR the ten-commit exact-head security evidence delta after order 69                 |
 |    71 | Hosted capacity attestations        | `agent/hosted-capacity-attestations`              | `8ff28eb0b3ab1e3105524df05d3c64305b2822d6` | PR the ten-commit exact-head capacity evidence delta after order 70                  |
+|    72 | Hosted end-to-end attestations      | `agent/hosted-end-to-end-attestations`            | `e8f93893d8d273499641f0a667be907e2a766e2c` | PR the ten-commit exact-head private browser-journey evidence delta after order 71   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -905,6 +906,20 @@ zero production vulnerabilities; all eight validated implementation and test
 artifacts reconcile exactly. Connected provider capacity and deployed latency
 remain unavailable and unclaimed. No workflow, merge, provider, paid-service or
 Production authority is created.
+
+### Hosted end-to-end attestations
+
+Bind fail-closed access, import upload/preview/confirmation, processing/recovery,
+private analytical reads, Vault Performance economics, Open Race staging and
+readiness non-activation to one exact head and reviewed route/fixture manifests.
+Fixed browser commands, UTC bounds, complete checkpoints, owner-boundary proof,
+redacted digests and synthetic fixtures are mandatory; provider-backed journeys
+require connected evidence. Formatting, ESLint, strict TypeScript and the
+complete 53-file/395-test hosted harness pass with zero production
+vulnerabilities; all eight validated implementation, test and contract artifacts
+reconcile exactly. Actual protected-Preview browser and connected-provider
+execution remain unavailable and unclaimed. No workflow, merge, provider, public
+route or Production authority is created.
 
 ## Gate status and limitations
 
