@@ -73,6 +73,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    52 | FormData validation precursor     | `agent/vault-performance-economic-form-data` | `2ebb58164aa9c5f620e379d7fe88b6eca0bb7741` | Do not PR alone; authoritative-domain compatibility is corrected by order 53   |
 |    53 | Strict FormData and ledger hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the combined authoritative parser/posting delta after order 51               |
 |    54 | Tournament payout allocation parser | `agent/tournament-payout-allocation-form-data` | `cd1fbf94d6e95168db7e63354e78dcf3fbd679d8` | PR the six-commit strict repeated-row allocation delta after order 53             |
+|    55 | Breeding economic FormData          | `agent/breeding-economic-form-data`             | `92fc9359f226cc9db9f1f9ce1260f8b0f13fa517` | PR the five-commit strict breeding parser delta after order 54                    |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -664,6 +665,18 @@ complete 35-file/242-test hosted harness; all three implementation, test and
 contract blobs reconcile exactly. The visible form, action feedback,
 persistence, providers, wallets, game actions and Production remain disabled.
 
+### Breeding economic FormData
+
+Parse completed/refunded manual breeding evidence with server-generated evidence
+and transaction IDs, category-derived direction and server-configured asset kind.
+Resolve offspring cost basis only from server-confirmed ownership, completed
+breeding events and selected persisted cost/refund facts; reject browser-restated
+costs, cross-event evidence and refund-only selections. Seven focused parser
+tests pass inside the complete 36-file/249-test hosted harness; all three
+implementation, test and contract blobs reconcile exactly. Forms, action
+feedback, persistence, providers, splices, wallets, game actions and Production
+remain disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -697,9 +710,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Add strict breeding and lifecycle FormData boundaries. Enable any staged
-   economic form only alongside server-generated durable IDs, accessible action
-   feedback and forced-RLS persistent Preview evidence.
+2. Add the strict lifecycle FormData boundary. Enable any staged economic
+   form only alongside server-generated durable IDs, accessible action feedback
+   and forced-RLS persistent Preview evidence.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
