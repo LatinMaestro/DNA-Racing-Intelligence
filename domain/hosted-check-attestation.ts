@@ -19,6 +19,7 @@ const REQUIRED_CHECKS = [
   "accounting_reconciliation",
   "freshness_snapshot_integrity",
   "confirmed_game_rules",
+  "recommendation_explainability",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -38,6 +39,7 @@ const COMMAND_BY_CHECK = {
   accounting_reconciliation: "accounting_reconciliation_attestation",
   freshness_snapshot_integrity: "freshness_snapshot_attestation",
   confirmed_game_rules: "confirmed_game_rules_attestation",
+  recommendation_explainability: "recommendation_explainability_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
