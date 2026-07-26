@@ -58,6 +58,63 @@ export type PrivateProductionReadiness = {
   gateFStatus: "client_only";
 };
 
+function assertRuntimeInput(input: PrivateProductionReadinessInput): void {
+  if (
+    typeof input.assessmentId !== "string" ||
+    input.assessmentId.trim() === ""
+  ) {
+    throw new Error("Assessment ID is required.");
+  }
+  if (
+    typeof input.exactHeadSha !== "string" ||
+    !/^[0-9a-f]{40}$/i.test(input.exactHeadSha)
+  ) {
+    throw new Error("Exact-head SHA must contain 40 hexadecimal characters.");
+  }
+  if (
+    typeof input.gates !== "object" ||
+    input.gates === null ||
+    Object.values(input.gates).some(
+      (state) => !["accepted", "not_accepted", "blocked"].includes(state),
+    )
+  ) {
+    throw new Error("Review-gate evidence state is invalid.");
+  }
+  if (
+    [
+      input.exactHeadCi,
+      input.representativePrivateImport,
+      input.recoveryValidation,
+      input.performanceCapacity,
+      input.securityPrivacy,
+      input.accessibilityResponsive,
+    ].some((state) => !["passed", "not_run", "failed"].includes(state))
+  ) {
+    throw new Error("Operational readiness evidence state is invalid.");
+  }
+  if (
+    !["reversible_verified", "not_verified", "irreversible"].includes(
+      input.migrations,
+    )
+  ) {
+    throw new Error("Migration readiness state is invalid.");
+  }
+  if (
+    [
+      input.knownLimitationsDocumented,
+      input.productionDisabled,
+      input.customDomainAttached,
+      input.publicRoutesExposed,
+      input.fullPrivateDataInProduction,
+      input.recurringPaidInfrastructureEnabled,
+      input.ownerGateFApproval,
+      input.activationRequested,
+    ].some((value) => typeof value !== "boolean")
+  ) {
+    throw new Error("Readiness boolean evidence is invalid.");
+  }
+}
+
 function evidenceStatus(
   state: ReadinessEvidenceState,
 ): ProductionReadinessCheck["status"] {
@@ -68,12 +125,8 @@ function evidenceStatus(
 export function assessPrivateProductionReadiness(
   input: PrivateProductionReadinessInput,
 ): PrivateProductionReadiness {
-  if (input.assessmentId.trim() === "") {
-    throw new Error("Assessment ID is required.");
-  }
-  if (!/^[0-9a-f]{40}$/i.test(input.exactHeadSha)) {
-    throw new Error("Exact-head SHA must contain 40 hexadecimal characters.");
-  }
+  assertRuntimeInput(input);
+
   const checks: ProductionReadinessCheck[] = [
     {
       code: "GATES_A_TO_E",
