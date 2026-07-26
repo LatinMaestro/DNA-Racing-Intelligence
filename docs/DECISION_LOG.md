@@ -1946,3 +1946,11 @@ through` separately from `Last imported`.
 - Keep strategic recommendations separate from execution evidence and never predict a burn-credit amount.
 - Do not call a wallet or game system, mutate ownership, accept signing material, record private economic evidence or change Production.
 - Keep strict form parsing, server-generated durable IDs, accessible forms and persistent Preview evidence as later focused work.
+
+## 2026-07-26 — Breeding economic form shell
+
+- Render separate semantic completed/refunded breeding-evidence and offspring cost-basis forms inside the owner-authenticated Breeding Server Component.
+- Keep every fieldset and submit button disabled while strict parsing, durable IDs, action feedback and forced-RLS persistence are unavailable.
+- Preserve original assets and BGC separation; Arena listings cannot create income or expenses and cost basis cannot infer market value or realised gain.
+- Require confirmed actual costs and confirmed owned offspring before a future cost-basis assignment can pass review.
+- Never request wallet credentials or signing material and never initiate a splice, wallet, game, ownership or Production operation.
