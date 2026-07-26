@@ -95,6 +95,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_WRITE_SERVICE.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_WRITE_SERVICE.md) — owner-scoped core sale, burn and actual BGC credit write boundary
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_ACTIONS.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_ACTIONS.md) — fail-closed authenticated core sale, burn and actual BGC credit Server Actions
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_FORMS.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_FORMS.md) — disabled accessible sale, burn and actual post-burn BGC form shell
+- [`docs/PHASE_7_LIFECYCLE_ECONOMIC_FORM_DATA.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_FORM_DATA.md) — strict completed sale, non-Genesis burn and actual post-burn BGC credit parsing
 - [`docs/PHASE_9_READINESS_COMPLETENESS.md`](docs/PHASE_9_READINESS_COMPLETENESS.md) — complete fail-closed readiness evidence projection and Gate F boundary
 - [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
