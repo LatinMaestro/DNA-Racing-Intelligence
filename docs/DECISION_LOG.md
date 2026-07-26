@@ -1969,3 +1969,22 @@ through` separately from `Last imported`.
 - Validate persisted assessment identity, exact-head SHA, gate and operational enums, migration state and every boolean flag at runtime.
 - Reject string-like booleans instead of allowing JavaScript truthiness to distort a readiness result.
 - Keep not-run and unverified evidence review-required, failed evidence blocking, Gate F client-only and every assessment non-executable.
+
+## 2026-07-26 — Vault Performance strict FormData boundary
+
+- Add a provider-neutral strict parser for staged manual-ledger and manual
+  tournament-payout forms without connecting a form action or repository.
+- Reject unknown fields, repeated scalars, non-text values, browser-supplied
+  durable IDs, ambiguous local timestamps and non-positive or malformed exact
+  decimals.
+- Generate durable evidence IDs only through an injected server-owned factory
+  and resolve asset kind and precision from reviewed server configuration.
+- Require a configured manual category/subcategory pair, bounded unique core
+  IDs and explicit timestamp offsets while preserving exact original assets.
+- Keep BGC as separate game credit and structurally exclude it from manual
+  tournament payouts.
+- Keep transfers, directional adjustments and per-core payout allocations
+  disabled until their balanced-posting or conditional repeated-row contracts
+  are complete.
+- Keep the forms disabled, persistence unavailable, private evidence unrecorded
+  and every wallet, game, provider and Production capability absent.
