@@ -88,6 +88,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    67 | Hosted analytical validation        | `agent/hosted-analytical-validation-attestations` | `564f75424d454475a27e87a94e3c236effb47232` | PR the five-commit chronological analytical evidence delta after order 66          |
 |    68 | Hosted accessibility attestations   | `agent/hosted-accessibility-attestations`          | `5c3f8a0222676dac604ebec55f75bca9dcee6b70` | PR the five-commit exact-head accessibility evidence delta after order 67           |
 |    69 | Hosted recovery attestations        | `agent/hosted-recovery-attestations`               | `bec6fd1ea3892ae5e62f7e930ff2644cb9c1bd04` | PR the five-commit import/replay/rollback evidence delta after order 68             |
+|    70 | Hosted security attestations        | `agent/hosted-security-attestations`               | `347e75e6db3d527ab951bc560913c079cff34306` | PR the ten-commit exact-head security evidence delta after order 69                 |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -876,6 +877,19 @@ strict TypeScript and the complete 50-file/370-test hosted harness pass with
 zero production vulnerabilities; all three implementation, test and contract
 blobs reconcile exactly. Real private recovery execution remains unavailable and
 unclaimed. No workflow, merge, provider or Production authority is created.
+
+### Hosted security attestations
+
+Bind fail-closed authentication, owner allowlisting, private routes, forced
+owner RLS, revoked public database access, private object storage, secret
+boundaries, redacted logging, repository privacy, no indexing and
+dependency/configuration review to one exact head and reviewed manifests.
+Provider-backed controls require connected evidence; repository contracts alone
+cannot satisfy them. Formatting, ESLint, strict TypeScript and the complete
+51-file/379-test hosted harness pass with zero production vulnerabilities; all
+ten changed artifacts reconcile exactly. Connected provider security execution
+remains unavailable and unclaimed. No workflow, merge, paid-service, public
+exposure, secret-collection or Production authority is created.
 
 ## Gate status and limitations
 
