@@ -1867,3 +1867,12 @@ through` separately from `Last imported`.
 - Reserve upload, completion, preview, activation, recovery and aggregate-retry operations with a bounded idempotency key, exact SHA-256 request fingerprint and canonical UTC timestamp.
 - Treat an existing reservation as replay only when the stored fingerprint matches exactly; conflicting evidence under one idempotency key fails closed and rolls back.
 - Keep the concrete Neon driver, live policy verification, schema changes, provider credentials, private source execution, Preview imports and Production disabled.
+
+## 2026-07-26 — Bounded browser incremental SHA-256
+
+- Add one independent browser-side SHA-256 state for the bounded private file-preparation client.
+- Retain only one 64-byte block, one 64-word schedule and eight state words while processing supplied byte chunks synchronously.
+- Validate the implementation against the published empty, abc, long-message and million-a SHA-256 vectors plus one-byte and 63/64/65-byte chunk boundaries.
+- Finalize idempotently, reject later mutation and expose only the lowercase digest; carry no owner identity, filename, provider, database or object-target capability.
+- Keep the background preview worker authoritative for independently streaming each stored object and verifying complete byte length and SHA-256.
+- Keep the file picker, upload form, provider adapters, Preview imports and Production disabled.
