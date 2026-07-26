@@ -1835,3 +1835,14 @@ through` separately from `Last imported`.
   and atomic publication inside the aggregate worker.
 - Keep both repository and queue capabilities unavailable so no aggregate,
   Preview import, recommendation or Production state can change.
+
+## 2026-07-26 — Owner-scoped import progress and completion UI
+
+- Add one compact Server Component projection over the validated owner-scoped import-batch read model.
+- Keep received, validation, accepted activation, aggregate publication and historical-view readiness as separate auditable stages.
+- A received, validating or quarantined attempt cannot advance accepted-data freshness or recommendation readiness.
+- Keep accepted data not ready until aggregate publication; retain rejected rows, identity review and observation reconciliation as explicit review-required evidence.
+- Show rolled-back batches as recovered evidence rather than current or ready, while preserving prior accepted data and the need for a fresh aggregate refresh.
+- Expose count-only completion evidence plus separate data-current-through, last-imported and aggregate-refresh timestamps without filenames, durable batch IDs or raw rows.
+- Keep upload, confirmation, aggregate retry and rollback controls visibly disabled until approved provider adapters and incremental hashing are configured.
+- Keep the route server-rendered, owner-authenticated and free of module-scope provider initialization, raw-history scans, Preview imports and Production activation.
