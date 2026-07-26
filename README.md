@@ -83,6 +83,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_FORMS.md`](docs/PHASE_2A_VAULT_PERFORMANCE_ECONOMIC_FORMS.md) — accessible disabled manual ledger and tournament-payout form shell
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_FORM_DATA.md`](docs/PHASE_2A_VAULT_PERFORMANCE_FORM_DATA.md) — strict server-configured economic FormData and durable-ID boundary
 - [`docs/PHASE_2A_TOURNAMENT_PAYOUT_ALLOCATION_FORM_DATA.md`](docs/PHASE_2A_TOURNAMENT_PAYOUT_ALLOCATION_FORM_DATA.md) — strict repeated-row manual payout allocation parsing and exact reconciliation
+- [`docs/PHASE_2A_ECONOMIC_ACTION_FEEDBACK.md`](docs/PHASE_2A_ECONOMIC_ACTION_FEEDBACK.md) — privacy-safe accessible feedback projection for staged economic actions
 - [`docs/PHASE_3_DISCOVERY_WORKSPACE.md`](docs/PHASE_3_DISCOVERY_WORKSPACE.md) — owner-scoped exact-distance probe review service and non-actionable interface
 - [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
 - [`docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md`](docs/PHASE_2_VAULT_IDENTITY_RESOLUTION.md) — deterministic owner-confirmed Vault-to-Core Details identity contract
