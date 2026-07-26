@@ -9,7 +9,9 @@ vi.mock("../lib/clerk-owner-session", () => ({
 }));
 
 import {
+  assignOffspringCostBasisFeedbackAction,
   assignOffspringCostBasisAction,
+  recordBreedingEconomicEvidenceFeedbackAction,
   recordBreedingEconomicEvidenceAction,
 } from "../app/(private)/breeding/actions";
 
@@ -119,5 +121,27 @@ describe("breeding economic Server Actions", () => {
     await assignOffspringCostBasisAction(assignment);
 
     expect(session.ownerId).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns reviewed feedback without enabling either repository", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    await expect(
+      recordBreedingEconomicEvidenceFeedbackAction(evidence),
+    ).resolves.toMatchObject({
+      title: "Evidence recording is unavailable",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+    await expect(
+      assignOffspringCostBasisFeedbackAction(assignment),
+    ).resolves.toMatchObject({
+      title: "Evidence recording is unavailable",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
   });
 });
