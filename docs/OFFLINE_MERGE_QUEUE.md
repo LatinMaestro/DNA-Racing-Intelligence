@@ -75,6 +75,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    54 | Tournament payout allocation parser | `agent/tournament-payout-allocation-form-data` | `cd1fbf94d6e95168db7e63354e78dcf3fbd679d8` | PR the six-commit strict repeated-row allocation delta after order 53             |
 |    55 | Breeding economic FormData          | `agent/breeding-economic-form-data`             | `92fc9359f226cc9db9f1f9ce1260f8b0f13fa517` | PR the five-commit strict breeding parser delta after order 54                    |
 |    56 | Lifecycle economic FormData         | `agent/lifecycle-economic-form-data`            | `9ea0dbb12e30be554e879c8d6769ce0ceac96a4f` | PR the five-commit strict lifecycle parser delta after order 55                   |
+|    57 | Economic action feedback            | `agent/economic-action-feedback`                | `a6a750798560f78746341da02f7d2e7fd5f4c1b9` | PR the six-commit privacy-safe feedback delta after order 56                      |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -688,6 +689,17 @@ Eight focused parser tests pass inside the complete 37-file/257-test hosted
 harness; all three implementation, test and contract blobs reconcile exactly.
 Forms, action feedback, persistence, providers, wallets, game actions, ownership
 mutation and Production remain disabled.
+
+### Economic action feedback
+
+Project fixed manual-ledger, tournament, breeding, offspring-cost, sale, burn and
+actual burn-credit outcomes into privacy-safe semantic status or alert regions.
+Display only reviewed invalid-field labels and never echo submitted values,
+arbitrary field names or raw exceptions. Six focused projection/rendering tests
+pass inside the complete 38-file/263-test hosted harness; all four implementation,
+component, test and contract blobs reconcile exactly. Server Action translation,
+form integration, forced-RLS persistence, providers and Production remain
+disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
