@@ -123,6 +123,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_HOSTED_IDENTITY_LINEAGE_ATTESTATION.md`](docs/PHASE_9_HOSTED_IDENTITY_LINEAGE_ATTESTATION.md) — exact-head Vault identity, ME, Core versioning, family graph and coverage-state evidence
 - [`docs/PHASE_9_HOSTED_PRIVATE_IMPORT_ASSURANCE_ATTESTATION.md`](docs/PHASE_9_HOSTED_PRIVATE_IMPORT_ASSURANCE_ATTESTATION.md) — exact-head full-volume private real-file import, recovery, provenance and bounded-memory evidence
 - [`docs/PHASE_9_HOSTED_PROGRAMME_COMPLETION_ATTESTATION.md`](docs/PHASE_9_HOSTED_PROGRAMME_COMPLETION_ATTESTATION.md) — exact-head nine-item coverage, execution blockers and formal-acceptance evidence
+- [`docs/PHASE_9_HOSTED_CONNECTED_PROVIDER_PREFLIGHT.md`](docs/PHASE_9_HOSTED_CONNECTED_PROVIDER_PREFLIGHT.md) — isolated Neon capability evidence, Vercel Gate F observation and deployment hold
 
 ## Privacy
 
