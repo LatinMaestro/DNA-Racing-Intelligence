@@ -94,6 +94,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    73 | Hosted accounting attestations      | `agent/hosted-accounting-attestations`            | `0e929790c2f63c8b6fcf3e27a81e986e39f618a1` | PR the ten-commit exact-head accounting evidence delta after order 72                |
 |    74 | Hosted freshness attestations       | `agent/hosted-freshness-attestations`             | `c470bf9d2ac221dad5c9a5a5dbcadc8b1956a322` | PR the ten-commit exact-head freshness evidence delta after order 73                 |
 |    75 | Hosted game-rule attestations       | `agent/hosted-game-rules-attestations`             | `98e89d04197b63c3842de56f907b51d305c4cd55` | PR the 13-commit exact-head confirmed-rule evidence delta after order 74             |
+|    76 | Hosted explainability attestations   | `agent/hosted-explainability-attestations`          | `cc9952d9a122365c3efaf4c1b8be46c68e7805fd` | PR the ten-commit exact-head explainability evidence delta after order 75             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -959,7 +960,8 @@ merge, provider, source activation or Production authority is created.
 ### Hosted game-rule attestations
 
 Bind metres, Gold gate eligibility, Open Race star timing, the 50% cap, Maiden
-mode preservation, separate breeding upside/vault-gap rankings, durable-ID
+mode preservation, separate elite-upside, vault-gap and balanced breeding
+rankings, durable-ID
 lineage, historical BGC zero economics, asset/transfer accounting, Genesis burn
 exclusion, configurable qualification and the ten-race Discovery minimum to one
 exact head and reviewed rule/fixture manifests. Fixed commands, UTC bounds,
@@ -970,6 +972,22 @@ harness pass with zero production vulnerabilities; all eight validated
 implementation, test and contract artifacts reconcile exactly. Formal exact-head
 rule execution remains unavailable and unclaimed. No rule mutation, game action,
 workflow, merge, provider or Production authority is created.
+
+
+### Hosted explainability attestations
+
+Bind recommendation evidence, sample size, confidence, uncertainty, freshness,
+coverage, rule/model provenance, feature contributions, alternatives, tradeoffs,
+mode and exact-distance context, experimental labels, chronological no-leakage
+cutoffs and partial/unavailable states to one exact head and reviewed manifests.
+Fixed commands, UTC bounds, complete assertions and redacted digests are
+mandatory; stale, drifting, incomplete or private evidence fails closed.
+Formatting, ESLint, strict TypeScript and the complete 57-file/427-test hosted
+harness pass with zero production vulnerabilities; all eight validated
+implementation, test and contract artifacts reconcile exactly. Private
+chronological analytical execution remains unavailable and unclaimed. No
+recommendation activation, game action, workflow, merge, provider or Production
+authority is created.
 
 ## Gate status and limitations
 
