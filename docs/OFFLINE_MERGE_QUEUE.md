@@ -74,6 +74,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    53 | Strict FormData and ledger hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the combined authoritative parser/posting delta after order 51               |
 |    54 | Tournament payout allocation parser | `agent/tournament-payout-allocation-form-data` | `cd1fbf94d6e95168db7e63354e78dcf3fbd679d8` | PR the six-commit strict repeated-row allocation delta after order 53             |
 |    55 | Breeding economic FormData          | `agent/breeding-economic-form-data`             | `92fc9359f226cc9db9f1f9ce1260f8b0f13fa517` | PR the five-commit strict breeding parser delta after order 54                    |
+|    56 | Lifecycle economic FormData         | `agent/lifecycle-economic-form-data`            | `9ea0dbb12e30be554e879c8d6769ce0ceac96a4f` | PR the five-commit strict lifecycle parser delta after order 55                   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -677,6 +678,17 @@ implementation, test and contract blobs reconcile exactly. Forms, action
 feedback, persistence, providers, splices, wallets, game actions and Production
 remain disabled.
 
+### Lifecycle economic FormData
+
+Parse completed sales, completed non-Genesis burns and actual post-burn BGC
+credits through a strict server-configured boundary. Durable identities,
+ownership, evidence status, record time and the BGC credit asset remain
+server-owned; exact amounts and explicit-offset occurrence times are required.
+Eight focused parser tests pass inside the complete 37-file/257-test hosted
+harness; all three implementation, test and contract blobs reconcile exactly.
+Forms, action feedback, persistence, providers, wallets, game actions, ownership
+mutation and Production remain disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -708,18 +720,15 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 1. Connect the staged Neon, R2, Queue and capacity adapters only after
    migration 0010, private-bucket/CORS, queue-consumer/DLQ and provider-capacity
    evidence exist. Keep provisioning, secrets, private-source execution and the
-   direct-upload form disabled until the full bundle has connected
-   synthetic/hosted evidence.
-2. Add the strict lifecycle FormData boundary. Enable any staged economic
-   form only alongside server-generated durable IDs, accessible action feedback
-   and forced-RLS persistent Preview evidence.
-3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
+   direct-upload and economic forms disabled until the full bundle has connected
+   synthetic/hosted evidence with forced owner RLS.
+2. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
-4. Rehearse the cumulative hosted composition, run all available formatting,
+3. Rehearse the cumulative hosted composition, run all available formatting,
    lint, strict types, TS/TSX tests, build, audit and privacy scans, and keep
    every exact branch head and limitation current in this queue.
-5. Prepare the 1 August exact-head Actions sequence without opening or updating
+4. Prepare the 1 August exact-head Actions sequence without opening or updating
    PRs, merging, dispatching workflows, changing providers or touching
    Production.
 
