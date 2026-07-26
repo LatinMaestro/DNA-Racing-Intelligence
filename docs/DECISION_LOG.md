@@ -2183,3 +2183,12 @@ through` separately from `Last imported`.
 - Require rollback restoration, source-specific coverage, non-live snapshot wording, freshness warnings, provenance and idempotent aggregate rebuilds.
 - Require connected evidence for persistence-backed controls; repository contracts alone remain insufficient.
 - Block stale heads, manifest drift, partial checks, private data and retained private artifacts while denying source activation, provider changes, Actions, merge and Production authority.
+
+## 2026-07-27 — Hosted game-rule attestations
+
+- Bind metres, Gold eligibility, Open Race star timing, the 50% cap, Maiden preservation, breeding dual rankings, durable identity/lineage, BGC, accounting, Genesis, qualification and Discovery rules to one exact head.
+- Require reviewed rule and synthetic-fixture manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
+- Verify positive, boundary and negative cases without replacing an owner-confirmed rule through source inference or model output.
+- Preserve rule provenance, non-live snapshot wording and review-only recommendation boundaries.
+- Block stale heads, manifest drift, partial checks, private data and retained private artifacts.
+- Keep rule mutation, game actions, provider changes, Actions, merge and Production outside this evidence-only boundary.
