@@ -16,10 +16,11 @@ function configuration(
     ],
     manualLedgerSubcategories: [
       { category: "income", subcategory: "other_income" },
+      { category: "income", subcategory: "burn_bgc_credit" },
       { category: "expense", subcategory: "other_expense" },
       { category: "opening_balance", subcategory: "opening_balance" },
       { category: "transfer", subcategory: "internal_transfer" },
-      { category: "adjustment", subcategory: "balance_adjustment" },
+      { category: "adjustment", subcategory: "adjustment" },
     ],
     createDurableId: (kind) => `${kind}:synthetic-0001`,
     ...overrides,
@@ -110,6 +111,9 @@ describe("Vault Performance economic FormData", () => {
     const bgc = manualLedgerForm();
     bgc.set("assetCode", "BGC");
     bgc.set("assetKind", "game_credit");
+    bgc.set("subcategory", "burn_bgc_credit");
+    bgc.delete("coreId");
+    bgc.set("coreId", "core-burnt");
     expect(parseManualLedgerFormData(bgc, configuration())).toMatchObject({
       assetCode: "BGC",
       assetKind: "game_credit",
@@ -118,7 +122,7 @@ describe("Vault Performance economic FormData", () => {
 
   it("requires an allowlisted category/subcategory pair", () => {
     const form = manualLedgerForm();
-    form.set("subcategory", "breeding_income");
+    form.set("subcategory", "other_expense");
 
     expect(() => parseManualLedgerFormData(form, configuration())).toThrow(
       "category and subcategory are not configured",
@@ -145,20 +149,30 @@ describe("Vault Performance economic FormData", () => {
     );
   });
 
-  it("keeps transfers and directional adjustments disabled", () => {
+  it("creates balanced transfer and directional-adjustment inputs", () => {
     const transfer = manualLedgerForm();
     transfer.set("category", "transfer");
     transfer.set("subcategory", "internal_transfer");
-    expect(() => parseManualLedgerFormData(transfer, configuration())).toThrow(
-      "remain disabled",
-    );
+    transfer.delete("accountLabel");
+    transfer.set("fromAccountLabel", "Wallet A");
+    transfer.set("toAccountLabel", "Wallet B");
+    expect(parseManualLedgerFormData(transfer, configuration())).toMatchObject({
+      category: "transfer",
+      fromAccountLabel: "Wallet A",
+      toAccountLabel: "Wallet B",
+    });
 
     const adjustment = manualLedgerForm();
     adjustment.set("category", "adjustment");
-    adjustment.set("subcategory", "balance_adjustment");
-    expect(() =>
+    adjustment.set("subcategory", "adjustment");
+    adjustment.set("direction", "debit");
+    expect(
       parseManualLedgerFormData(adjustment, configuration()),
-    ).toThrow("remain disabled");
+    ).toMatchObject({
+      category: "adjustment",
+      direction: "debit",
+      accountLabel: "Owner wallet",
+    });
   });
 
   it("creates an unallocated payout with server-owned precision and ID", () => {
