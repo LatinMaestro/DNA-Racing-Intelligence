@@ -56,6 +56,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    35 | Authenticated import recovery         | `agent/import-recovery-action-service`            | `7ecfc18d8d8307211da31f71e1885cc795c0e555` | PR the seven-commit recovery-action delta after order 34                |
 |    36 | Authenticated aggregate refresh retry | `agent/import-aggregate-retry-action-service`     | `6453a5761807441a833f5d23ab9884d022a4f36e` | PR the seven-commit aggregate-retry delta after order 35                 |
 |    37 | Import progress and completion UI    | `agent/import-progress-completion-ui`          | `69b06066f35287042fb83d781d744a918b32d973` | PR the eight-commit progress/completion UI delta after order 36          |
+|    38 | Import provider adapter bundle       | `agent/import-provider-adapter-bundle`         | `ce0aafcc446d7cb808dbf4c5aafb1e25e628a80a` | PR the five-commit lazy owner-bound adapter delta after order 37         |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -223,6 +224,16 @@ historical-view-ready and rolled-back evidence while keeping provider actions
 disabled. Its five new implementation, test and contract blobs match the
 validated hosted files byte-for-byte; the exact eight-file delta has no workflow
 run, status context or pull request.
+
+The lazy import provider adapter bundle passes formatting, lint, strict
+TypeScript and five new synthetic owner-binding/lazy-initialization tests; the
+complete available hosted harness passes 19 test files and 135 tests and the
+production dependency audit reports zero vulnerabilities. It denies non-owners
+before factory access, reports incomplete bundles deterministically and reuses
+one owner-bound initialization promise without provisioning a provider. Its
+three implementation, test and contract blobs match the validated hosted files
+byte-for-byte; the exact five-file delta has no workflow run, status context or
+pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -404,6 +415,15 @@ from advancing freshness, retain material review work after publication, show
 rollback as recovered evidence and keep every upload, confirmation, retry and
 rollback control disabled until approved provider adapters are configured.
 
+### Import provider adapter bundle
+
+Require the authenticated owner and complete persistence, storage, preview queue,
+background queue, capacity and incremental-hashing configuration before returning
+a bundle. Bind factories to the verified owner, initialize lazily and once, and
+keep concrete providers, secrets, private data and Production outside the
+contract. Do not treat this bundle as proof of database RLS or operation-level
+idempotency.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -432,10 +452,11 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Implement lazy, owner-scoped persistence, storage and queue adapter contracts
-   with synthetic RLS and idempotency tests, without provisioning, secrets or
-   private source execution. Keep the direct-upload form unavailable until the
-   incremental hashing implementation and every provider adapter are reviewed.
+1. Implement the concrete owner-scoped persistence, private-storage, queue and
+   capacity adapters behind the lazy bundle, with synthetic forced-RLS and
+   operation-level idempotency tests but no provisioning, secrets or private
+   source execution. Add and review the incremental SHA-256 implementation
+   before enabling any direct-upload form.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
    wallet and game actions impossible.
