@@ -9,7 +9,7 @@ live state.
 
 Required controls cover metres, Gold gate eligibility, Open Race star timing,
 the 50% gate cap, Maiden mode preservation, separate breeding upside and
-vault-gap rankings, durable-ID lineage, historical BGC zero economics,
+vault-gap and balanced rankings, durable-ID lineage, historical BGC zero economics,
 asset-separated accounting with transfer exclusion, Genesis burn exclusion,
 configurable qualification and the ten-race Discovery minimum.
 
