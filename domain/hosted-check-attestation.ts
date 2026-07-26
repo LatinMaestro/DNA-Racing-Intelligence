@@ -15,6 +15,7 @@ const REQUIRED_CHECKS = [
   "privacy_scan",
   "security_privacy",
   "performance_capacity",
+  "end_to_end_workflows",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -30,6 +31,7 @@ const COMMAND_BY_CHECK = {
   privacy_scan: "repository_privacy_scan",
   security_privacy: "security_privacy_attestation",
   performance_capacity: "performance_capacity_attestation",
+  end_to_end_workflows: "end_to_end_workflow_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -226,7 +228,8 @@ export function projectHostedCheckAttestations(
       blockingCodes.push("PRIVATE_DATA_OBSERVED");
     }
     if (
-      name === "synthetic_import_replay_rollback_reconciliation" &&
+      (name === "end_to_end_workflows" ||
+        name === "synthetic_import_replay_rollback_reconciliation") &&
       !attestation.syntheticFixturesOnly
     ) {
       blockingCodes.push("NON_SYNTHETIC_FIXTURE");
