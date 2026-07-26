@@ -1819,3 +1819,19 @@ through` separately from `Last imported`.
   refresh after restoration; never reuse superseded completion evidence.
 - Keep the rollback repository unavailable so no source version, raw object,
   aggregate, Preview import or Production state can change.
+
+## 2026-07-26 — Authenticated aggregate-refresh retry action
+
+- Add one server-only owner action for retrying a failed aggregate refresh without
+  re-uploading its accepted private source files.
+- Resolve Clerk identity inside every request and never accept an owner ID,
+  source-version set, aggregate result, freshness value or recommendation state
+  from the browser.
+- Require the server-side owner allowlist, durable failed-refresh ID, meaningful
+  reason, idempotency key and explicit owner acknowledgement.
+- Reserve one owner-scoped retry and background dispatch, replay already queued
+  work without duplicate delivery and record only sanitized queue failure.
+- Keep source-version fingerprint validation, bounded computation, supersession
+  and atomic publication inside the aggregate worker.
+- Keep both repository and queue capabilities unavailable so no aggregate,
+  Preview import, recommendation or Production state can change.
