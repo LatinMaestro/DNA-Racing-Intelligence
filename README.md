@@ -91,6 +91,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_6_BREEDING_ECONOMIC_WRITE_SERVICE.md`](docs/PHASE_6_BREEDING_ECONOMIC_WRITE_SERVICE.md) — owner-scoped completed breeding economics and optional offspring cost-basis write boundary
 - [`docs/PHASE_6_BREEDING_ECONOMIC_ACTIONS.md`](docs/PHASE_6_BREEDING_ECONOMIC_ACTIONS.md) — fail-closed authenticated breeding evidence and offspring cost-basis Server Actions
 - [`docs/PHASE_6_BREEDING_ECONOMIC_FORMS.md`](docs/PHASE_6_BREEDING_ECONOMIC_FORMS.md) — disabled accessible completed/refunded breeding and offspring cost-basis form shell
+- [`docs/PHASE_6_BREEDING_ECONOMIC_FORM_DATA.md`](docs/PHASE_6_BREEDING_ECONOMIC_FORM_DATA.md) — strict manual breeding evidence and server-resolved offspring cost-basis parsing
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_WRITE_SERVICE.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_WRITE_SERVICE.md) — owner-scoped core sale, burn and actual BGC credit write boundary
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_ACTIONS.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_ACTIONS.md) — fail-closed authenticated core sale, burn and actual BGC credit Server Actions
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_FORMS.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_FORMS.md) — disabled accessible sale, burn and actual post-burn BGC form shell
