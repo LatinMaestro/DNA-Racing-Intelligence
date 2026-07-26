@@ -9,9 +9,13 @@ vi.mock("../lib/clerk-owner-session", () => ({
 }));
 
 import {
+  decideManualTournamentPayoutReconciliationFeedbackAction,
   decideManualTournamentPayoutReconciliationAction,
+  recordManualLedgerEntryFeedbackAction,
   recordManualLedgerEntryAction,
+  recordManualTournamentPayoutFeedbackAction,
   recordManualTournamentPayoutAction,
+  reverseManualLedgerEntryFeedbackAction,
   reverseManualLedgerEntryAction,
 } from "../app/(private)/vault-performance/actions";
 
@@ -135,5 +139,44 @@ describe("Vault Performance economic Server Actions", () => {
     });
 
     expect(session.ownerId).toHaveBeenCalledTimes(4);
+  });
+
+  it("returns reviewed fail-closed feedback for every disabled operation", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    const results = await Promise.all([
+      recordManualLedgerEntryFeedbackAction(manualEntry),
+      reverseManualLedgerEntryFeedbackAction({
+        reversalId: "reversal-1",
+        originalEntryId: "manual-entry-1",
+        reversedAt: "2026-07-26T03:00:00.000Z",
+        reason: "Correct synthetic evidence.",
+      }),
+      recordManualTournamentPayoutFeedbackAction(payout),
+      decideManualTournamentPayoutReconciliationFeedbackAction({
+        payoutId: "payout-1",
+        expectedRevision: 0,
+        decision: {
+          kind: "confirmed_separate",
+          decidedAt: "2026-07-26T04:00:00.000Z",
+          reason: "Separate synthetic payout.",
+        },
+      }),
+    ]);
+
+    expect(results).toHaveLength(4);
+    for (const result of results) {
+      expect(result).toMatchObject({
+        title: "Evidence recording is unavailable",
+        tone: "warning",
+        submittedValuesEchoed: false,
+        rawErrorEchoed: false,
+      });
+    }
   });
 });
