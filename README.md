@@ -115,6 +115,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_HOSTED_SECURITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_SECURITY_ATTESTATION.md) — exact-head authentication, owner isolation, storage, logging, indexing and dependency/configuration evidence
 - [`docs/PHASE_9_HOSTED_CAPACITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_CAPACITY_ATTESTATION.md) — exact-head bounded-memory, throughput, provider-capacity, latency and fail-closed degradation evidence
 - [`docs/PHASE_9_HOSTED_END_TO_END_ATTESTATION.md`](docs/PHASE_9_HOSTED_END_TO_END_ATTESTATION.md) — exact-head private browser-journey, owner-boundary and non-activation evidence
+- [`docs/PHASE_9_HOSTED_ACCOUNTING_ATTESTATION.md`](docs/PHASE_9_HOSTED_ACCOUNTING_ATTESTATION.md) — exact-head asset-separated accounting, BGC, transfer, reconciliation and durable-replay evidence
 
 ## Privacy
 
