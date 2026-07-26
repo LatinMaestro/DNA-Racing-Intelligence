@@ -63,6 +63,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    42 | Cloudflare R2 object storage       | `agent/import-cloudflare-r2-object-storage`     | `704537fc78cfcd99ca0743e12823252d48d8a7c9` | PR the seven-commit private-object adapter delta after order 41            |
 |    43 | Cloudflare import queue adapter    | `agent/import-cloudflare-queue-adapter`         | `d188879f248b5f45e12aeb5be2a840b1e4b97523` | PR the five-commit preview/background queue delta after order 42            |
 |    44 | Import provider capacity adapter  | `agent/import-provider-capacity-adapter`        | `70e5a82f758044aec088a652d1d29d93b91eb615` | PR the five-commit fresh-capacity delta after order 43                       |
+|    45 | Vault Performance economic actions | `agent/vault-performance-economic-actions`     | `d115bf9b4fe972817377bbfa131906eb4d1e7454` | PR the five-commit fail-closed economic-action delta after order 44          |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -540,6 +541,16 @@ harness; all three implementation, test and contract blobs reconcile exactly.
 Keep real provider measurements, paid-tier changes, private uploads, Preview
 activation and Production disabled.
 
+### Vault Performance economic actions
+
+Resolve Clerk identity inside every manual ledger entry, append-only reversal,
+tournament payout and payout-reconciliation action, and never accept owner
+identity from the browser. Delegate only to the existing exact asset-separated
+services while both repositories remain explicitly unavailable. Five new
+synthetic tests pass inside the complete 26-file/193-test hosted harness; all
+three action, test and contract blobs reconcile exactly. No wallet, game,
+ownership, private-record or Production operation is possible.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -573,9 +584,10 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Add authenticated forms and action boundaries for the staged manual ledger,
-   tournament payout, breeding and lifecycle economic services while keeping
-   wallet and game actions impossible.
+2. Add accessible authenticated forms for the staged manual ledger and
+   tournament-payout actions, then add action boundaries and forms for breeding
+   and lifecycle economic services while keeping wallet and game actions
+   impossible.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
