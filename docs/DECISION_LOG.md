@@ -1937,3 +1937,12 @@ through` separately from `Last imported`.
 - Keep Arena listings non-transactional, hold incomplete or duplicate evidence, preserve original assets and keep BGC separate.
 - Never assign market value, calculate realised gain, call a wallet or game system, mutate ownership, record private evidence or change Production.
 - Keep strict FormData parsing, server-generated durable IDs, accessible disabled forms and persistent Preview evidence as later focused work.
+
+## 2026-07-26 — Lifecycle economic Server Actions
+
+- Resolve Clerk identity inside every sale, completed-burn and actual BGC-credit action; never accept owner identity from the browser.
+- Delegate only to the validated canonical lifecycle write service while its repository remains explicitly unavailable.
+- Preserve exact asset separation, missing-cost-basis states, Genesis burn rejection, historical lineage and actual-credit replay/conflict controls.
+- Keep strategic recommendations separate from execution evidence and never predict a burn-credit amount.
+- Do not call a wallet or game system, mutate ownership, accept signing material, record private economic evidence or change Production.
+- Keep strict form parsing, server-generated durable IDs, accessible forms and persistent Preview evidence as later focused work.
