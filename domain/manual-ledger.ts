@@ -86,6 +86,7 @@ export type ValidatedManualLedgerEntry = {
   tournamentId: string | null;
   coreIds: readonly string[];
   externalReference: string | null;
+  costBasisStatus: ManualLedgerEntryInput["costBasisStatus"] | null;
   note: string | null;
   postings: readonly ManualLedgerPosting[];
   warnings: readonly ManualLedgerWarning[];
@@ -127,6 +128,8 @@ const debitCategories = new Set<ManualLedgerCategory>([
   "expense",
   "withdrawal",
 ]);
+const directions = ["credit", "debit"] as const;
+const costBasisStatuses = ["known", "missing", "not_applicable"] as const;
 const assetCodePattern = /^[A-Z][A-Z0-9_]{1,15}$/;
 
 function requiredTrimmed(
@@ -176,9 +179,11 @@ function assertCategoryPair(
 ): void {
   if (
     !manualLedgerCategories.includes(category) ||
-    !manualLedgerSubcategories.includes(subcategory) ||
-    !allowedSubcategories[category].includes(subcategory)
+    !manualLedgerSubcategories.includes(subcategory)
   ) {
+    throw new Error("Manual category and subcategory are incompatible.");
+  }
+  if (!allowedSubcategories[category].includes(subcategory)) {
     throw new Error("Manual category and subcategory are incompatible.");
   }
 }
@@ -221,9 +226,13 @@ function signedAmount(
   amount: string,
   direction: "credit" | "debit" | undefined,
 ): string {
+  if (direction !== undefined && !directions.includes(direction)) {
+    throw new Error("Manual ledger direction is invalid.");
+  }
   if (category === "adjustment") {
-    if (direction === undefined)
+    if (direction === undefined) {
       throw new Error("An adjustment requires a credit or debit direction.");
+    }
     return direction === "debit" ? negateExactDecimal(amount) : amount;
   }
   if (direction !== undefined) {
@@ -248,6 +257,11 @@ function buildPostings(input: {
   toAccountLabel: string | null;
 }): ManualLedgerPosting[] {
   if (input.category === "transfer") {
+    if (input.direction !== undefined || input.accountLabel !== null) {
+      throw new Error(
+        "Internal transfer cannot contain a single posting direction or account.",
+      );
+    }
     const from = requiredTrimmed(
       input.fromAccountLabel,
       "Transfer source account",
@@ -283,6 +297,11 @@ function buildPostings(input: {
     ];
   }
 
+  if (input.fromAccountLabel !== null || input.toAccountLabel !== null) {
+    throw new Error(
+      "Non-transfer evidence cannot contain transfer account fields.",
+    );
+  }
   const accountLabel = requiredTrimmed(
     input.accountLabel,
     "Manual entry account",
@@ -305,14 +324,22 @@ export function validateManualLedgerEntry(
   input: ManualLedgerEntryInput,
 ): ValidatedManualLedgerEntry {
   const entryId = requiredTrimmed(input.entryId, "Manual entry ID");
-  const occurredAt = requiredTrimmed(input.occurredAt, "Occurred at");
-  if (Number.isNaN(Date.parse(occurredAt))) {
+  const occurredAtValue = requiredTrimmed(input.occurredAt, "Occurred at");
+  const occurredAtMillis = Date.parse(occurredAtValue);
+  if (Number.isNaN(occurredAtMillis)) {
     throw new Error("Occurred at must be a valid timestamp.");
   }
+  const occurredAt = new Date(occurredAtMillis).toISOString();
   const assetCode = validateAsset(input.assetCode, input.assetKind);
   const amount = validateAmount(input.amount);
   assertCategoryPair(input.category, input.subcategory);
   assertBgcUse(assetCode, input.subcategory);
+  if (
+    input.costBasisStatus !== undefined &&
+    !costBasisStatuses.includes(input.costBasisStatus)
+  ) {
+    throw new Error("Manual ledger cost-basis status is invalid.");
+  }
 
   const tournamentId = optionalTrimmed(input.tournamentId);
   const coreIds = normalizeCoreIds(input.coreIds);
@@ -368,6 +395,7 @@ export function validateManualLedgerEntry(
     tournamentId,
     coreIds,
     externalReference,
+    costBasisStatus: input.costBasisStatus ?? null,
     note,
     postings,
     warnings,
