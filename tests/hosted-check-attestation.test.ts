@@ -20,6 +20,7 @@ const commands = {
   dependency_audit: "npm_audit_production",
   privacy_scan: "repository_privacy_scan",
   security_privacy: "security_privacy_attestation",
+  performance_capacity: "performance_capacity_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -63,7 +64,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(11);
+    expect(result.checks).toHaveLength(12);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
@@ -132,7 +133,11 @@ describe("hosted check attestations", () => {
 
   it("requires synthetic import and recovery fixtures", () => {
     const values = attestations();
-    values[10] = { ...values[10]!, syntheticFixturesOnly: false };
+    const index = values.findIndex(
+      ({ check }) =>
+        check === "synthetic_import_replay_rollback_reconciliation",
+    );
+    values[index] = { ...values[index]!, syntheticFixturesOnly: false };
     const result = projectHostedCheckAttestations(
       input({ attestations: values }),
     );
