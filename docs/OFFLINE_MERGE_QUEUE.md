@@ -429,12 +429,12 @@ rollback control disabled until approved provider adapters are configured.
 
 ### Import provider adapter bundle
 
-Require the authenticated owner and complete persistence, storage, preview queue,
-background queue, capacity and incremental-hashing configuration before returning
-a bundle. Bind factories to the verified owner, initialize lazily and once, and
-keep concrete providers, secrets, private data and Production outside the
-contract. Do not treat this bundle as proof of database RLS or operation-level
-idempotency.
+Require the authenticated owner and complete persistence, private-storage,
+preview-queue, background-queue and capacity-gate configuration before returning
+a server-only bundle. Bind factories to the verified owner, initialize lazily and
+once, and keep concrete providers, secrets, private data and Production outside
+the contract. Keep the browser incremental hasher separate and do not treat
+bundle readiness as proof of database RLS or operation-level idempotency.
 
 ### Import persistence operation adapter
 
