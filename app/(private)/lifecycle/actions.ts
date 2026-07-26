@@ -4,6 +4,7 @@ import type { BurnCreditEvidence } from "@/domain/burn-credit-reconciliation";
 import type { CoreBurnEventInput } from "@/domain/core-burn-event";
 import type { CoreSaleEvidenceInput } from "@/domain/core-sale-evidence";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
 import {
   recordActualBurnCredit,
   recordCoreBurnEvidence,
@@ -35,6 +36,15 @@ export async function recordCoreSaleEvidenceAction(
   });
 }
 
+export async function recordCoreSaleEvidenceFeedbackAction(
+  sale: CoreSaleEvidenceInput,
+) {
+  return runEconomicActionForFeedback({
+    operation: "core_sale",
+    execute: () => recordCoreSaleEvidenceAction(sale),
+  });
+}
+
 export async function recordCoreBurnEvidenceAction(burn: CoreBurnEventInput) {
   return recordCoreBurnEvidence({
     authenticatedOwnerId: await authenticatedOwnerId(),
@@ -44,11 +54,29 @@ export async function recordCoreBurnEvidenceAction(burn: CoreBurnEventInput) {
   });
 }
 
+export async function recordCoreBurnEvidenceFeedbackAction(
+  burn: CoreBurnEventInput,
+) {
+  return runEconomicActionForFeedback({
+    operation: "core_burn",
+    execute: () => recordCoreBurnEvidenceAction(burn),
+  });
+}
+
 export async function recordActualBurnCreditAction(credit: BurnCreditEvidence) {
   return recordActualBurnCredit({
     authenticatedOwnerId: await authenticatedOwnerId(),
     configuredOwnerId: configuredOwnerId(),
     repository: unavailableLifecycleEconomicWriteRepository,
     credit,
+  });
+}
+
+export async function recordActualBurnCreditFeedbackAction(
+  credit: BurnCreditEvidence,
+) {
+  return runEconomicActionForFeedback({
+    operation: "burn_bgc_credit",
+    execute: () => recordActualBurnCreditAction(credit),
   });
 }
