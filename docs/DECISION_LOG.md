@@ -1988,3 +1988,19 @@ through` separately from `Last imported`.
   are complete.
 - Keep the forms disabled, persistence unavailable, private evidence unrecorded
   and every wallet, game, provider and Production capability absent.
+
+## 2026-07-26 — Manual ledger authoritative-domain hardening
+
+- Preserve the authoritative fixed category/subcategory allowlist, BGC-use
+  restrictions, tournament provenance and existing completeness warnings while
+  hardening the newer strict FormData boundary.
+- Canonicalize accepted timestamps and retain nullable cost-basis status in the
+  validated evidence used for durable fingerprinting and persistence.
+- Reject malformed runtime direction or cost-basis enums, a transfer carrying a
+  single account/direction and non-transfer evidence carrying transfer accounts.
+- Keep internal transfers as two exact same-asset postings that net to zero and
+  require explicit direction for non-operating adjustments.
+- Parse only authoritative manual-ledger subcategory values and keep server
+  configuration as an additional narrowing allowlist.
+- Keep forms, action feedback, repositories, private Preview evidence, wallets,
+  game actions, providers and Production disabled.
