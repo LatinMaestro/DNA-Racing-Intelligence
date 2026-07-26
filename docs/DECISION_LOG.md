@@ -2075,3 +2075,11 @@ through` separately from `Last imported`.
 - Require migration-bearing candidates to apply, smoke-test, reverse and verify removal in the approved ephemeral PostgreSQL environment.
 - Treat every rebase, amendment or head change as invalidating prior exact-head CI; stop on any failed check, unresolved thread, privacy issue, migration failure or provider/Production drift.
 - Before capacity returns, remain `awaiting_actions_capacity`. Capacity evidence may permit only the first preflight to begin; the contract never dispatches a workflow, opens or updates a pull request, merges, configures a provider or mutates Production.
+
+## 2026-07-26 — Exact-head Actions progress enforcement
+
+- Consume the reviewed static exact-head plan as immutable candidate-order, branch, queued-head and precursor-exclusion evidence.
+- Bind hosted validation, reversible migration checks, exact-diff review, resolved review threads and GitHub Actions results to the exact rebased commit SHA; stale success cannot pass a changed head.
+- Reject recorded merges that lack complete passing pre-merge evidence, and require every rebase base to match the prior verified serial merge.
+- Bind post-merge verification to the resulting exact `main` SHA and stop before the next candidate on missing, failed or drifting main evidence.
+- Project only one next action, stop on the first current-head failure and keep merge, workflow dispatch and Production mutation permanently unauthorized.
