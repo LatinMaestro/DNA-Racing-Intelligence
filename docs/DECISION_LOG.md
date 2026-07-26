@@ -2124,3 +2124,11 @@ through` separately from `Last imported`.
 - Block future leakage, stale evidence, retained private rows, missing experimental labels and failed or substituted commands.
 - Exclude historical Race Merge BGC economics and internal transfers from economic reconciliation.
 - Preserve missing breeding timestamps and point-in-time ME history only as explicit approved limitations; grant no workflow, merge or Production authority.
+
+## 2026-07-26 — Hosted accessibility attestations
+
+- Bind semantic structure, keyboard navigation, focus management, assistive-technology semantics, visual contrast/non-colour status and responsive reflow to one exact candidate head and reviewed route manifest.
+- Require fixed command identities, exact UTC bounds, redacted summary digests, complete route/checkpoint coverage and zero automated violations or manual findings.
+- Require authenticated owner-workspace evidence using synthetic private states only; observed or retained private material blocks.
+- Missing scopes remain review-required, while stale heads, route drift, incomplete manual review or failed checks block.
+- This contract records evidence only and cannot claim execution, dispatch Actions, merge, expose routes or mutate Production.
