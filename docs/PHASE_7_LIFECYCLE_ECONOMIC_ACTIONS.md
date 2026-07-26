@@ -18,6 +18,8 @@ wallet or game system, request signing material or change Production.
 - Preserve the permanent Genesis burn prohibition.
 - Keep strategic recommendations separate from execution evidence and never
   infer an actual BGC amount.
+- Keep actual post-burn BGC credit evidence distinct from historical Race Merge
+  rows whose BGC fee and payout are economically zero.
 - Do not request or accept wallet credentials, private keys, seed phrases or
   signing material.
 - Return `persistence_not_configured` until an owner-scoped forced-RLS
