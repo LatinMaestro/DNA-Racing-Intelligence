@@ -96,6 +96,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    75 | Hosted game-rule attestations       | `agent/hosted-game-rules-attestations`             | `98e89d04197b63c3842de56f907b51d305c4cd55` | PR the 13-commit exact-head confirmed-rule evidence delta after order 74             |
 |    76 | Hosted explainability attestations   | `agent/hosted-explainability-attestations`          | `cc9952d9a122365c3efaf4c1b8be46c68e7805fd` | PR the ten-commit exact-head explainability evidence delta after order 75             |
 |    77 | Hosted source-contract attestations  | `agent/hosted-source-contract-attestations`         | `1f502e2866e9deece2f6a7886b52094c0b93a573` | PR the ten-commit exact-head nine-input source evidence delta after order 76           |
+|    78 | Hosted identity-lineage attestations | `agent/hosted-identity-lineage-attestations`        | `7158fa3116a4ce78a74d614be118cd91f7c28a4e` | PR the ten-commit exact-head identity/lineage evidence delta after order 77            |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -1005,6 +1006,22 @@ production vulnerabilities; all eight validated implementation, test and
 contract artifacts reconcile exactly. Connected imports and private real-file
 execution remain unavailable and unclaimed. No upload, activation, workflow,
 merge, provider or Production authority is created.
+
+
+### Hosted identity-lineage attestations
+
+Bind confirmed Vault ownership, authoritative Core Details IDs, deterministic
+matching evidence, confirmed-mapping reuse, 68 ME true/127 false states, future
+review handling, versioned core persistence, parent/child graph refresh, family
+queries/restrictions and partial/no-history coverage states to one exact head and
+reviewed manifests. Fixed commands, UTC bounds, complete assertions and redacted
+digests are mandatory; stale, drifting, inferred-name, incomplete or private Git
+evidence fails closed. Formatting, ESLint, strict TypeScript and the complete
+59-file/443-test hosted harness pass with zero production vulnerabilities; all
+eight validated implementation, test and contract artifacts reconcile exactly.
+Connected forced-RLS and private mapping execution remain unavailable and
+unclaimed. No mapping confirmation, persistence, workflow, merge, provider or
+Production authority is created.
 
 ## Gate status and limitations
 
