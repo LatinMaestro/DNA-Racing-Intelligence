@@ -101,9 +101,7 @@ function authorizedOwner(input: {
   const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) return null;
   if (authenticatedOwnerId !== configuredOwnerId) {
-    throw new EconomicActionIdentityError(
-      "Manual ledger write access denied.",
-    );
+    throw new EconomicActionIdentityError("Manual ledger write access denied.");
   }
   return authenticatedOwnerId;
 }
