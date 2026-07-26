@@ -2165,3 +2165,12 @@ through` separately from `Last imported`.
 - Require synthetic fixtures without observed or retained private data and connected evidence for provider-backed persistence journeys.
 - Block stale heads, manifest drift, failed or partial journeys, unconnected provider claims, public exposure and Production mutation.
 - Add end-to-end workflows to cumulative hosted evidence while denying workflow, merge, provider and Production authority.
+
+## 2026-07-27 — Hosted accounting attestations
+
+- Bind exact asset balances, separate non-cash BGC, historical zero-economics BGC races, transfer exclusion, tournament reconciliation, breeding/lifecycle evidence, freshness/provenance and idempotent rebuilds to one exact head.
+- Require reviewed accounting and synthetic-fixture manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
+- Require exact decimal arithmetic, asset separation, transfer exclusion, source provenance and durable replay across every control.
+- Require connected evidence for persistence-backed controls; repository contracts alone remain insufficient.
+- Block stale heads, manifest drift, partial checks, implicit conversion, historical BGC ledger activity, private data and retained private artifacts.
+- Keep economic mutation, provider changes, Actions, merge and Production outside this evidence-only boundary.
