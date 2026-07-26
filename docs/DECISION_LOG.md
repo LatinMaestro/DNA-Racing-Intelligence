@@ -2092,3 +2092,11 @@ through` separately from `Last imported`.
 - Accept reversible migration evidence only from one non-Production exact-head apply, smoke, reverse and removal sequence; preserve unavailable PostgreSQL execution as an explicit limitation.
 - Keep connected forced-owner-RLS Preview/provider evidence and exact-head GitHub Actions pending even after complete offline rehearsal.
 - Permanently deny workflow dispatch, merge, provider change and Production mutation from this evidence boundary.
+
+## 2026-07-26 — Hosted check attestations
+
+- Replace unaudited pass flags with one exact-head hosted attestation per required cumulative-rehearsal check.
+- Permit only reviewed fixed command identifiers; bind each result to UTC start/completion times, non-negative exit code and a SHA-256 digest of its redacted summary.
+- Block stale heads, command substitution, failed or non-hosted checks, inverted timestamps, unredacted summaries and any private-data observation.
+- Require the import/replay/rollback/reconciliation check to use synthetic fixtures only.
+- Retain no private artifacts and permanently deny workflow dispatch and Production mutation from attestation evidence.
