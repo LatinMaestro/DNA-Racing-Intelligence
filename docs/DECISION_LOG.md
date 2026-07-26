@@ -2083,3 +2083,12 @@ through` separately from `Last imported`.
 - Reject recorded merges that lack complete passing pre-merge evidence, and require every rebase base to match the prior verified serial merge.
 - Bind post-merge verification to the resulting exact `main` SHA and stop before the next candidate on missing, failed or drifting main evidence.
 - Project only one next action, stop on the first current-head failure and keep merge, workflow dispatch and Production mutation permanently unauthorized.
+
+## 2026-07-26 — Cumulative no-Actions rehearsal evidence
+
+- Require the cumulative composition to equal the latest merge-candidate head before accepting any rehearsal evidence.
+- Require exact-head dependency, shared-document, formatting, lint, strict-type, TS/TSX test, production-build, dependency-audit, privacy and synthetic import/replay/rollback/reconciliation evidence.
+- Treat missing or unrun checks as review-required and block failed or stale evidence.
+- Accept reversible migration evidence only from one non-Production exact-head apply, smoke, reverse and removal sequence; preserve unavailable PostgreSQL execution as an explicit limitation.
+- Keep connected forced-owner-RLS Preview/provider evidence and exact-head GitHub Actions pending even after complete offline rehearsal.
+- Permanently deny workflow dispatch, merge, provider change and Production mutation from this evidence boundary.
