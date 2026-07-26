@@ -208,7 +208,123 @@ describe("Vault Performance economic FormData", () => {
     allocated.set("allocationMethod", "single_core");
     expect(() =>
       parseManualTournamentPayoutFormData(allocated, configuration()),
-    ).toThrow("conditional allocation controls");
+    ).toThrow("allocation core rows are required");
+  });
+
+  it("parses single-core and equal repeated-row allocations", () => {
+    const single = payoutForm();
+    single.set("allocationMethod", "single_core");
+    single.set("allocationCoreId", " core-one ");
+    expect(
+      parseManualTournamentPayoutFormData(single, configuration()),
+    ).toMatchObject({
+      allocationMethod: "single_core",
+      allocations: [{ coreId: "core-one" }],
+    });
+
+    const equal = payoutForm();
+    equal.set("allocationMethod", "equal");
+    equal.append("allocationCoreId", "core-z");
+    equal.append("allocationCoreId", "core-a");
+    expect(
+      parseManualTournamentPayoutFormData(equal, configuration()),
+    ).toMatchObject({
+      allocationMethod: "equal",
+      allocations: [{ coreId: "core-a" }, { coreId: "core-z" }],
+    });
+  });
+
+  it("parses exact-amount allocation rows and verifies reconciliation", () => {
+    const form = payoutForm();
+    form.set("assetCode", "USD");
+    form.set("amount", "10.00");
+    form.set("allocationMethod", "manual_amounts");
+    form.append("allocationCoreId", "core-b");
+    form.append("allocationAmount", "6.25");
+    form.append("allocationCoreId", "core-a");
+    form.append("allocationAmount", "3.75");
+
+    expect(
+      parseManualTournamentPayoutFormData(form, configuration()),
+    ).toMatchObject({
+      allocationMethod: "manual_amounts",
+      allocations: [
+        { coreId: "core-a", amount: "3.75" },
+        { coreId: "core-b", amount: "6.25" },
+      ],
+    });
+
+    form.delete("allocationAmount");
+    form.append("allocationAmount", "4");
+    form.append("allocationAmount", "5");
+    expect(() =>
+      parseManualTournamentPayoutFormData(form, configuration()),
+    ).toThrow("must equal the payout amount");
+  });
+
+  it("parses exact-percentage and documented-points allocation rows", () => {
+    const percentages = payoutForm();
+    percentages.set("allocationMethod", "manual_percentages");
+    percentages.append("allocationCoreId", "core-a");
+    percentages.append("allocationPercentage", "25");
+    percentages.append("allocationCoreId", "core-b");
+    percentages.append("allocationPercentage", "75.0");
+    expect(
+      parseManualTournamentPayoutFormData(percentages, configuration()),
+    ).toMatchObject({
+      allocationMethod: "manual_percentages",
+      allocations: [
+        { coreId: "core-a", percentage: "25" },
+        { coreId: "core-b", percentage: "75.0" },
+      ],
+    });
+
+    const points = payoutForm();
+    points.set("allocationMethod", "documented_points");
+    points.append("allocationCoreId", "core-a");
+    points.append("allocationPoints", "1");
+    points.append("allocationCoreId", "core-b");
+    points.append("allocationPoints", "3");
+    expect(
+      parseManualTournamentPayoutFormData(points, configuration()),
+    ).toMatchObject({
+      allocationMethod: "documented_points",
+      allocations: [
+        { coreId: "core-a", points: "1" },
+        { coreId: "core-b", points: "3" },
+      ],
+    });
+  });
+
+  it("rejects mismatched, irrelevant, duplicate and unallocated rows", () => {
+    const mismatched = payoutForm();
+    mismatched.set("allocationMethod", "manual_amounts");
+    mismatched.append("allocationCoreId", "core-a");
+    expect(() =>
+      parseManualTournamentPayoutFormData(mismatched, configuration()),
+    ).toThrow("one matching value");
+
+    const irrelevant = payoutForm();
+    irrelevant.set("allocationMethod", "equal");
+    irrelevant.append("allocationCoreId", "core-a");
+    irrelevant.append("allocationPoints", "1");
+    expect(() =>
+      parseManualTournamentPayoutFormData(irrelevant, configuration()),
+    ).toThrow("do not match the selected method");
+
+    const duplicate = payoutForm();
+    duplicate.set("allocationMethod", "equal");
+    duplicate.append("allocationCoreId", "core-a");
+    duplicate.append("allocationCoreId", "core-a");
+    expect(() =>
+      parseManualTournamentPayoutFormData(duplicate, configuration()),
+    ).toThrow("core IDs must be unique");
+
+    const unallocated = payoutForm();
+    unallocated.append("allocationCoreId", "core-a");
+    expect(() =>
+      parseManualTournamentPayoutFormData(unallocated, configuration()),
+    ).toThrow("cannot contain core allocation fields");
   });
 
   it("fails closed on malformed or duplicate server configuration", () => {
