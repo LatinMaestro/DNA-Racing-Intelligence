@@ -9,8 +9,11 @@ vi.mock("../lib/clerk-owner-session", () => ({
 }));
 
 import {
+  recordActualBurnCreditFeedbackAction,
   recordActualBurnCreditAction,
+  recordCoreBurnEvidenceFeedbackAction,
   recordCoreBurnEvidenceAction,
+  recordCoreSaleEvidenceFeedbackAction,
   recordCoreSaleEvidenceAction,
 } from "../app/(private)/lifecycle/actions";
 
@@ -114,5 +117,29 @@ describe("lifecycle economic Server Actions", () => {
     await recordActualBurnCreditAction(credit);
 
     expect(session.ownerId).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns reviewed feedback without enabling sale, burn or credit persistence", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    const results = await Promise.all([
+      recordCoreSaleEvidenceFeedbackAction(sale),
+      recordCoreBurnEvidenceFeedbackAction(burn),
+      recordActualBurnCreditFeedbackAction(credit),
+    ]);
+
+    expect(results).toHaveLength(3);
+    for (const result of results) {
+      expect(result).toMatchObject({
+        title: "Evidence recording is unavailable",
+        tone: "warning",
+        submittedValuesEchoed: false,
+        rawErrorEchoed: false,
+      });
+    }
   });
 });
