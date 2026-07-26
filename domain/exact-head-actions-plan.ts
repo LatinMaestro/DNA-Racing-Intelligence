@@ -18,6 +18,7 @@ const REQUIRED_CHECKS = [
   "accounting_reconciliation",
   "freshness_snapshot_integrity",
   "confirmed_game_rules",
+  "recommendation_explainability",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
