@@ -2108,3 +2108,11 @@ through` separately from `Last imported`.
 - Require an ephemeral non-Production PostgreSQL target, synthetic-only data and redacted evidence.
 - Require the final schema digest to equal the pre-apply baseline after reversal and temporary-object removal.
 - Keep unavailable runtime review-required; the evidence contract cannot connect to PostgreSQL or authorize Production.
+
+## 2026-07-26 — Hosted privacy attestations
+
+- Replace the cumulative privacy pass flag with exact-head evidence for the current tree, candidate diff, reachable history, synthetic fixtures and retained outputs.
+- Bind every scope to a reviewed fixed command, exact UTC bounds, scope and redacted-summary SHA-256 digests, zero findings and complete coverage.
+- Keep a missing scope review-required and block stale heads, command substitution, failed or incomplete scans, findings, unredacted output and observed or retained private material.
+- Require test fixtures to remain synthetic-only; retain no private scan output or artifact.
+- The contract cannot dispatch Actions, merge a pull request or mutate Production.
