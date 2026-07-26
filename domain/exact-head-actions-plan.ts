@@ -13,6 +13,7 @@ const REQUIRED_CHECKS = [
   "production_build",
   "dependency_audit",
   "privacy_scan",
+  "security_privacy",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
