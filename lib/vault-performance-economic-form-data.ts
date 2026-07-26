@@ -47,6 +47,10 @@ const TOURNAMENT_PAYOUT_FIELDS = new Set([
   "externalReference",
   "evidenceNote",
   "allocationMethod",
+  "allocationCoreId",
+  "allocationAmount",
+  "allocationPercentage",
+  "allocationPoints",
 ]);
 
 const PAYOUT_STAGE_VALUES = [
@@ -272,6 +276,79 @@ function unique(values: readonly string[], label: string): string[] {
   return [...values].sort();
 }
 
+function payoutAllocations(
+  form: StrictFormData,
+  allocationMethod: ManualTournamentPayoutInput["allocationMethod"],
+): ManualTournamentPayoutInput["allocations"] {
+  const coreIds = form.repeated("allocationCoreId", 128, 100);
+  const amounts = form.repeated("allocationAmount", 256, 100);
+  const percentages = form.repeated("allocationPercentage", 256, 100);
+  const points = form.repeated("allocationPoints", 256, 100);
+  const suppliedValueCount =
+    amounts.length + percentages.length + points.length;
+
+  if (allocationMethod === "vault_unallocated") {
+    if (coreIds.length !== 0 || suppliedValueCount !== 0) {
+      throw new Error(
+        "Vault-level payout cannot contain core allocation fields.",
+      );
+    }
+    return undefined;
+  }
+  if (coreIds.length === 0) {
+    throw new Error("Payout allocation core rows are required.");
+  }
+
+  const expectedValues =
+    allocationMethod === "manual_amounts"
+      ? amounts
+      : allocationMethod === "manual_percentages"
+        ? percentages
+        : allocationMethod === "documented_points"
+          ? points
+          : [];
+  const valueRequired =
+    allocationMethod === "manual_amounts" ||
+    allocationMethod === "manual_percentages" ||
+    allocationMethod === "documented_points";
+  if (
+    amounts.length + percentages.length + points.length !==
+    expectedValues.length
+  ) {
+    throw new Error(
+      "Payout allocation fields do not match the selected method.",
+    );
+  }
+  if (valueRequired && expectedValues.length !== coreIds.length) {
+    throw new Error(
+      "Every payout allocation core row requires one matching value.",
+    );
+  }
+  if (
+    !valueRequired &&
+    (amounts.length !== 0 || percentages.length !== 0 || points.length !== 0)
+  ) {
+    throw new Error(
+      "Payout allocation fields do not match the selected method.",
+    );
+  }
+
+  return coreIds
+    .map((coreId, index) => ({
+      coreId,
+      ...(allocationMethod === "manual_amounts"
+        ? { amount: amounts[index]! }
+        : {}),
+      ...(allocationMethod === "manual_percentages"
+        ? { percentage: percentages[index]! }
+        : {}),
+      ...(allocationMethod === "documented_points"
+        ? { points: points[index]! }
+        : {}),
+    }))
+    .sort((left, right) => left.coreId.localeCompare(right.coreId));
+}
+
 export function parseManualLedgerFormData(
   formData: FormData,
   configuration: VaultPerformanceEconomicFormConfiguration,
@@ -408,11 +485,7 @@ export function parseManualTournamentPayoutFormData(
     manualTournamentPayoutAllocationMethods,
     "Payout allocation method",
   );
-  if (allocationMethod !== "vault_unallocated") {
-    throw new Error(
-      "Core allocation form submissions remain disabled until conditional allocation controls are available.",
-    );
-  }
+  const allocations = payoutAllocations(form, allocationMethod);
 
   const input: ManualTournamentPayoutInput = {
     payoutId: durableId(configuration, "manual_tournament_payout"),
@@ -437,6 +510,7 @@ export function parseManualTournamentPayoutFormData(
     externalReference: form.optional("externalReference", 256),
     evidenceNote: form.optional("evidenceNote", 1_000),
     allocationMethod,
+    ...(allocations === undefined ? {} : { allocations }),
   };
 
   createManualTournamentPayout(input);
