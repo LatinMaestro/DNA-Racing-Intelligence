@@ -2192,3 +2192,11 @@ through` separately from `Last imported`.
 - Preserve rule provenance, non-live snapshot wording and review-only recommendation boundaries.
 - Block stale heads, manifest drift, partial checks, private data and retained private artifacts.
 - Keep rule mutation, game actions, provider changes, Actions, merge and Production outside this evidence-only boundary.
+
+## 2026-07-27 — Hosted explainability attestations
+
+- Bind recommendation evidence, sample size, confidence, uncertainty, freshness, coverage, provenance, feature contributions, alternatives, tradeoffs, mode/distance context, experimental labels, chronological cutoffs and partial states to one exact head.
+- Clarify the earlier game-rule shorthand: breeding retains three separate rankings for elite-upside, vault-gap value and balanced pairing.
+- Require reviewed recommendation and synthetic-fixture manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
+- Block stale heads, manifest drift, partial evidence, hidden limitations, missing chronology, private data and retained private artifacts.
+- Keep recommendations review-only and deny game actions, provider changes, Actions, merge and Production authority.
