@@ -18,8 +18,9 @@ repository, so it cannot record private evidence.
   the separate game-credit asset and keep BGC outside tournament payouts.
 - Require a server-configured manual category/subcategory pair and unique
   bounded core IDs.
-- Keep transfer and directional-adjustment submission disabled until the ledger
-  domain produces balanced exact postings for those categories.
+- Materialize an internal transfer as two distinct exact same-asset postings
+  that net to zero and remain non-operating.
+- Require an explicit credit or debit direction for a non-operating adjustment.
 - Keep per-core tournament allocation methods disabled until conditional,
   accessible allocation controls and strict repeated-row parsing exist.
 - Re-run the existing manual-ledger or tournament-payout domain validator before
@@ -29,8 +30,6 @@ repository, so it cannot record private evidence.
 
 - Connect the parser only through an authenticated Server Action that creates
   the durable ID and returns accessible action-state feedback.
-- Add balanced transfer and directional-adjustment domain postings before those
-  categories can be enabled.
 - Add conditional payout allocation controls and exact repeated-row parsing.
 - Exercise create, replay, conflict, reversal and reconciliation against
   owner-scoped forced-RLS Preview persistence before enabling either form.
