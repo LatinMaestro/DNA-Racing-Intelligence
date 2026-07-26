@@ -1921,3 +1921,11 @@ through` separately from `Last imported`.
 - Keep both repositories explicitly unavailable until owner-scoped forced-RLS persistence is connected and validated.
 - Do not call a wallet or game system, mutate ownership, accept signing material, record private economic evidence or change Production.
 - Keep accessible authenticated forms and persistent Preview evidence as later focused work.
+
+## 2026-07-26 — Vault Performance economic form shell
+
+- Render separate semantic manual-ledger and tournament-payout forms inside the existing owner-authenticated Vault Performance Server Component.
+- Keep every fieldset and submit button disabled while owner-scoped write persistence and strict form parsing are unavailable.
+- Preserve original-asset entry, exact decimal guidance, BGC separation, transfer exclusion and payout reconciliation language.
+- Never request wallet credentials, private keys, seed phrases or signing material and never call a wallet or game system.
+- Require strict FormData parsing, server-generated durable IDs, action feedback and forced-RLS persistent Preview evidence before enabling submission.
