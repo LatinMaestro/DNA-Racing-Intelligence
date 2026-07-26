@@ -31,6 +31,7 @@ const commands = {
   private_real_file_import_assurance:
     "private_real_file_import_assurance_attestation",
   nine_item_programme_completion: "nine_item_programme_completion_attestation",
+  connected_provider_preflight: "connected_provider_preflight_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -83,7 +84,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(21);
+    expect(result.checks).toHaveLength(22);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
