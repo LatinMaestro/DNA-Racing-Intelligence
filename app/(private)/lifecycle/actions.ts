@@ -4,7 +4,16 @@ import type { BurnCreditEvidence } from "@/domain/burn-credit-reconciliation";
 import type { CoreBurnEventInput } from "@/domain/core-burn-event";
 import type { CoreSaleEvidenceInput } from "@/domain/core-sale-evidence";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
 import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
+import {
+  parseBurnCreditFormData,
+  parseCoreBurnFormData,
+  parseCoreSaleFormData,
+} from "@/lib/lifecycle-economic-form-data";
 import {
   recordActualBurnCredit,
   recordCoreBurnEvidence,
@@ -45,6 +54,17 @@ export async function recordCoreSaleEvidenceFeedbackAction(
   });
 }
 
+export async function recordCoreSaleFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    operation: "core_sale",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseCoreSaleFormData,
+  });
+}
+
 export async function recordCoreBurnEvidenceAction(burn: CoreBurnEventInput) {
   return recordCoreBurnEvidence({
     authenticatedOwnerId: await authenticatedOwnerId(),
@@ -63,6 +83,17 @@ export async function recordCoreBurnEvidenceFeedbackAction(
   });
 }
 
+export async function recordCoreBurnFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    operation: "core_burn",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseCoreBurnFormData,
+  });
+}
+
 export async function recordActualBurnCreditAction(credit: BurnCreditEvidence) {
   return recordActualBurnCredit({
     authenticatedOwnerId: await authenticatedOwnerId(),
@@ -78,5 +109,16 @@ export async function recordActualBurnCreditFeedbackAction(
   return runEconomicActionForFeedback({
     operation: "burn_bgc_credit",
     execute: () => recordActualBurnCreditAction(credit),
+  });
+}
+
+export async function recordActualBurnCreditFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    operation: "burn_bgc_credit",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseBurnCreditFormData,
   });
 }
