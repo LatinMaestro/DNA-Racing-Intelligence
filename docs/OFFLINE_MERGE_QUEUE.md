@@ -68,6 +68,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    47 | Breeding economic actions          | `agent/breeding-economic-actions-format-fix`   | `6ec0c9e9c5e6258539056d7499d6c22c824cb25f` | PR the six-commit exact fail-closed action delta after order 46               |
 |    48 | Lifecycle economic actions         | `agent/lifecycle-economic-actions-bgc-clarification-v2` | `db3337471e7da8d4a3566c735ac7169e95db55b8` | PR the six-commit exact lifecycle-action delta after order 47                |
 |    49 | Breeding economic forms           | `agent/breeding-economic-forms-v2`             | `4bfbc496b82adddb6db085efcbff430cb3adc9db` | PR the six-commit disabled breeding-form delta after order 48                 |
+|    50 | Lifecycle economic forms          | `agent/lifecycle-economic-forms`               | `b6a964ac9669c02b76e30c28498d18445c1522d9` | PR the six-commit disabled lifecycle-form delta after order 49                |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -599,6 +600,17 @@ three form, test and contract blobs reconcile exactly. Arena listings cannot
 create economics, original assets remain separate and no splice, wallet, game,
 ownership, market-value or Production operation exists.
 
+### Lifecycle economic forms
+
+Render separate semantic completed-sale, completed non-Genesis burn and actual
+post-burn BGC-credit forms inside the authenticated Lifecycle Server Component.
+Every fieldset and submit control remains disabled until strict parsing, durable
+IDs, action feedback and forced-RLS persistence are connected. Three focused
+rendering tests pass inside the complete 31-file/211-test hosted harness; all
+three form, test and contract blobs reconcile exactly. Missing cost basis stays
+unavailable, Genesis is omitted and no sale, burn, wallet, game, ownership or
+Production operation exists.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -632,10 +644,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Enable the manual-ledger and tournament-payout forms only alongside strict
-   FormData parsing, server-generated durable IDs, action feedback and
-   forced-RLS persistence. Add disabled forms for breeding economics, then add
-   lifecycle forms while keeping wallet and game actions impossible.
+2. Enable the staged manual-ledger, tournament-payout, breeding and lifecycle
+   forms only alongside strict FormData parsing, server-generated durable IDs,
+   action feedback and forced-RLS persistent Preview evidence.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
