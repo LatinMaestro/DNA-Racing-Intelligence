@@ -2232,3 +2232,11 @@ through` separately from `Last imported`.
 - Keep private execution, connected persistence and exact-head Actions explicitly pending wherever required; never convert unavailable evidence into completion.
 - Treat stale heads, command substitution, manifest drift, failed or incomplete evidence, private Git data and Production enablement as blocking.
 - Even a fully verified nine-item projection requires formal acceptance and grants no workflow, merge, provider or Production authority.
+
+## 2026-07-27 — Hosted connected-provider preflight
+
+- Record the connected Neon project and isolated Preview branch as capability evidence while leaving the default branch untouched.
+- Bind the read-only preflight to PostgreSQL version, row-security state and an empty public-schema count without running migrations, write SQL or secret changes.
+- Record the failed Vercel main setup as the expected Gate F Production block; do not weaken the deployment guard, attach a domain or retry Production.
+- Preserve missing connected Vercel project access as an explicit limitation and hold all Vercel deployments until exact-head Actions, serial queue merges and the resulting main verification complete.
+- Require separate Gate F owner approval for any future Production deployment; this evidence grants no migration, deployment, workflow, secret or Production authority.
