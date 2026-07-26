@@ -80,6 +80,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    59 | Strict economic FormData actions    | `agent/economic-form-data-actions`              | `a1d7ca694dede968dbe8aa05ecdbe868c3a166c9` | PR the 11-commit strict action-binding delta after order 58                       |
 |    60 | Offline merge readiness             | `agent/offline-merge-readiness`                 | `3496ca339233292ca78de96eb70a5793ff4b85f3` | PR the five-commit non-executable queue-readiness delta after order 59             |
 |    61 | Exact-head Actions capacity plan    | `agent/exact-head-actions-plan`                 | `11412fa3ea44cedf434a867a33c5c3aeea20bc7f` | PR the five-commit non-executable post-capacity plan after order 60                |
+|    62 | Exact-head Actions progress enforcement | `agent/exact-head-actions-progress`          | `aa142c0f91ddb41c9aae79230c8b21fc89580e2a` | PR the five-commit head-bound progress evaluator after order 61                    |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -768,6 +769,19 @@ vulnerabilities; all three implementation, test and contract blobs reconcile
 exactly. The contract remains non-executable and authorizes no workflow, PR,
 merge, provider or Production mutation.
 
+### Exact-head Actions progress enforcement
+
+Consume the static capacity plan as immutable queue metadata and evaluate one
+current next step from exact head-bound evidence. Hosted validation, reversible
+migration proof, complete diff review, resolved review threads and Actions must
+pass on the rebased head; older-head evidence becomes stale. Recorded merges
+must retain their complete pre-merge proof and pass post-merge verification on
+the resulting exact `main` before the sequence advances. Formatting, ESLint,
+strict TypeScript and the complete 43-file/309-test hosted harness pass with
+zero production vulnerabilities; all three implementation, test and contract
+blobs reconcile exactly. The evaluator never authorizes a workflow, PR, merge,
+provider or Production mutation.
+
 ## Gate status and limitations
 
 - Gate A: previously accepted.
@@ -798,8 +812,8 @@ merge, provider or Production mutation.
 3. Rehearse the cumulative hosted composition, run all available formatting,
    lint, strict types, TS/TSX tests, build, audit and privacy scans, and keep
    every exact branch head and limitation current in this queue.
-4. Keep the completed exact-head Actions sequence synchronized with any later
-   queue entry. Do not open or update PRs, merge, dispatch workflows, change
+4. Keep the completed static exact-head Actions plan and head-bound progress
+   evaluator synchronized with every later queue entry. Do not open or update PRs, merge, dispatch workflows, change
    providers or touch Production before Actions capacity returns.
 
 Real Preview import, connected-provider capacity, PostgreSQL migration
