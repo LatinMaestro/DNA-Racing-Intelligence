@@ -2005,7 +2005,6 @@ through` separately from `Last imported`.
 - Keep forms, action feedback, repositories, private Preview evidence, wallets,
   game actions, providers and Production disabled.
 
-
 ## 2026-07-26 — Manual tournament payout allocation FormData
 
 - Extend the strict manual tournament payout parser with bounded repeated rows for single-core, equal, exact-amount, exact-percentage and documented-points allocations.
