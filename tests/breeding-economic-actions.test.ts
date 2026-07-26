@@ -10,8 +10,10 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   assignOffspringCostBasisFeedbackAction,
+  assignOffspringCostBasisFormAction,
   assignOffspringCostBasisAction,
   recordBreedingEconomicEvidenceFeedbackAction,
+  recordBreedingEconomicEvidenceFormAction,
   recordBreedingEconomicEvidenceAction,
 } from "../app/(private)/breeding/actions";
 
@@ -140,6 +142,41 @@ describe("breeding economic Server Actions", () => {
       assignOffspringCostBasisFeedbackAction(assignment),
     ).resolves.toMatchObject({
       title: "Evidence recording is unavailable",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+  });
+
+  it("keeps both strict FormData actions unavailable before parsing", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    await expect(
+      recordBreedingEconomicEvidenceFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      title: "Evidence recording is unavailable",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+    await expect(
+      assignOffspringCostBasisFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      title: "Evidence recording is unavailable",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+  });
+
+  it("denies a non-owner FormData action before parser access", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("other-owner");
+
+    await expect(
+      recordBreedingEconomicEvidenceFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      title: "Owner verification required",
       submittedValuesEchoed: false,
       rawErrorEchoed: false,
     });
