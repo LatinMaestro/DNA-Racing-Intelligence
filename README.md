@@ -62,6 +62,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_IMPORT_SERVER_ACTION_ADAPTER.md`](docs/PHASE_1_IMPORT_SERVER_ACTION_ADAPTER.md) — fail-closed Next.js Server Action transport for import intake and completion
 - [`docs/PHASE_1_IMPORT_DIRECT_UPLOAD_CLIENT.md`](docs/PHASE_1_IMPORT_DIRECT_UPLOAD_CLIENT.md) — bounded provider-neutral browser transfer orchestration for reserved private objects
 - [`docs/PHASE_1_IMPORT_FILE_PREPARATION_CLIENT.md`](docs/PHASE_1_IMPORT_FILE_PREPARATION_CLIENT.md) — bounded incremental checksum preparation for private browser-selected exports
+- [`docs/PHASE_1_IMPORT_INCREMENTAL_SHA256.md`](docs/PHASE_1_IMPORT_INCREMENTAL_SHA256.md) — fixed-memory browser SHA-256 implementation and vector evidence
 - [`docs/PHASE_1_IMPORT_CONFIRMATION_ACTION.md`](docs/PHASE_1_IMPORT_CONFIRMATION_ACTION.md) — authenticated explicit-preview confirmation and guarded dispatch boundary
 - [`docs/PHASE_1_IMPORT_RECOVERY_ACTION.md`](docs/PHASE_1_IMPORT_RECOVERY_ACTION.md) — authenticated reasoned rollback transport with provenance retention
 - [`docs/PHASE_1_IMPORT_AGGREGATE_RETRY_ACTION.md`](docs/PHASE_1_IMPORT_AGGREGATE_RETRY_ACTION.md) — authenticated failed aggregate-refresh retry and queue boundary
