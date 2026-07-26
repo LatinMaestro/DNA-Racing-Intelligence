@@ -2047,3 +2047,13 @@ through` separately from `Last imported`.
 - Use typed internal owner-denial and durable-conflict errors so feedback never inspects or exposes raw exception text.
 - Collapse every other exception to generic fail-closed feedback with no submitted value, fingerprint, owner identity or provider detail.
 - Keep strict parser form integration and forced-RLS Preview execution pending; all forms, repositories, wallets, game actions, providers and Production remain disabled.
+
+
+## 2026-07-26 — Strict economic FormData Server Actions
+
+- Bind the seven reviewed strict economic parsers to dedicated `FormData` Server Actions for manual ledger, tournament payout, breeding, offspring cost basis, sale, burn and actual burn-credit evidence.
+- Resolve Clerk identity inside every invocation and require an exact configured-owner match before capability or parser access.
+- Keep the staged capability explicitly unavailable so verified-owner requests return before parsing and no private values can be persisted.
+- Require a future connected capability to supply reviewed server-side parser configuration and an owner-bound executor; the browser cannot choose durable identities, ownership, event state, asset precision or authoritative evidence.
+- Collapse strict parser rejection to generic invalid-input feedback and unexpected execution failure to a generic fail-closed response without submitted values, arbitrary field names or raw provider errors.
+- Keep every visible form disabled and leave forced-RLS Preview evidence, reversible PostgreSQL execution, providers, wallets, game actions and Production pending.
