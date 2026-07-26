@@ -2224,3 +2224,11 @@ through` separately from `Last imported`.
 - Verify append ordering, boundary deduplication, replay, older backfill, snapshot replacement, rollback, malformed/conflict quarantine, freshness, provenance and bounded memory.
 - Preserve original files and source values inside the approved private raw-data boundary while retaining aggregate-only redacted evidence outside it.
 - Block stale heads, manifest drift, incomplete coverage, unsafe logs, private Git evidence and retained private evidence artifacts while denying source activation, providers, Actions, merge and Production authority.
+
+## 2026-07-27 — Hosted programme completion attestations
+
+- Project all nine approved programme items against one exact candidate head and reviewed programme/evidence manifests.
+- Require fixed commands, complete assertions, verified implementation and synthetic regressions, recorded limitations, no private Git data and disabled Production.
+- Keep private execution, connected persistence and exact-head Actions explicitly pending wherever required; never convert unavailable evidence into completion.
+- Treat stale heads, command substitution, manifest drift, failed or incomplete evidence, private Git data and Production enablement as blocking.
+- Even a fully verified nine-item projection requires formal acceptance and grants no workflow, merge, provider or Production authority.
