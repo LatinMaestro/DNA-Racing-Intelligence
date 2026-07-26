@@ -4,8 +4,11 @@ import {
   normalizeExactDecimal,
 } from "@/domain/exact-decimal";
 import {
+  manualLedgerCategories,
+  manualLedgerSubcategories,
   validateManualLedgerEntry,
   type ManualLedgerEntryInput,
+  type ManualLedgerSubcategory as DomainManualLedgerSubcategory,
 } from "@/domain/manual-ledger";
 import {
   createManualTournamentPayout,
@@ -46,16 +49,6 @@ const TOURNAMENT_PAYOUT_FIELDS = new Set([
   "allocationMethod",
 ]);
 
-const CATEGORY_VALUES = [
-  "income",
-  "expense",
-  "deposit",
-  "withdrawal",
-  "transfer",
-  "opening_balance",
-  "adjustment",
-] as const;
-
 const PAYOUT_STAGE_VALUES = [
   "qualification",
   "round",
@@ -82,14 +75,14 @@ export type EconomicFormAsset = Readonly<{
   decimalPlaces: number;
 }>;
 
-export type ManualLedgerSubcategory = Readonly<{
+export type ManualLedgerSubcategoryConfiguration = Readonly<{
   category: ManualLedgerCategory;
-  subcategory: string;
+  subcategory: DomainManualLedgerSubcategory;
 }>;
 
 export type VaultPerformanceEconomicFormConfiguration = Readonly<{
   assets: readonly EconomicFormAsset[];
-  manualLedgerSubcategories: readonly ManualLedgerSubcategory[];
+  manualLedgerSubcategories: readonly ManualLedgerSubcategoryConfiguration[];
   createDurableId: (
     kind: "manual_ledger_entry" | "manual_tournament_payout",
   ) => string;
@@ -245,7 +238,7 @@ function configuredSubcategories(
   const subcategories = new Set<string>();
   for (const candidate of configuration.manualLedgerSubcategories) {
     if (
-      !CATEGORY_VALUES.includes(candidate.category) ||
+      !manualLedgerCategories.includes(candidate.category) ||
       !SUBCATEGORY_PATTERN.test(candidate.subcategory) ||
       subcategories.has(`${candidate.category}:${candidate.subcategory}`)
     ) {
@@ -296,10 +289,14 @@ export function parseManualLedgerFormData(
 
   const category = enumValue(
     form.required("category", 32),
-    CATEGORY_VALUES,
+    manualLedgerCategories,
     "Manual ledger category",
   );
-  const subcategory = form.required("subcategory", 64);
+  const subcategory = enumValue(
+    form.required("subcategory", 64),
+    manualLedgerSubcategories,
+    "Manual ledger subcategory",
+  );
   if (!SUBCATEGORY_PATTERN.test(subcategory)) {
     throw new Error("Manual ledger subcategory is invalid.");
   }
@@ -310,30 +307,53 @@ export function parseManualLedgerFormData(
       "Manual ledger category and subcategory are not configured.",
     );
   }
-  if (category === "transfer" || category === "adjustment") {
-    throw new Error(
-      "Transfer and adjustment form submissions remain disabled until exact directional postings are available.",
-    );
-  }
-
   const directionValue = form.optional("direction", 8);
   const direction =
     directionValue === null
       ? undefined
       : enumValue(directionValue, DIRECTION_VALUES, "Posting direction");
   const expectedDirection =
-    category === "expense" || category === "withdrawal" ? "debit" : "credit";
-  if (direction !== undefined && direction !== expectedDirection) {
+    category === "expense" || category === "withdrawal"
+      ? "debit"
+      : category === "adjustment" || category === "transfer"
+        ? null
+        : "credit";
+  if (
+    expectedDirection !== null &&
+    direction !== undefined &&
+    direction !== expectedDirection
+  ) {
     throw new Error("Posting direction conflicts with the ledger category.");
   }
+  if (category === "adjustment" && direction === undefined) {
+    throw new Error("Adjustment direction is required.");
+  }
+  if (category === "transfer" && direction !== undefined) {
+    throw new Error("Transfer cannot contain a single posting direction.");
+  }
 
-  const accountLabel = form.required("accountLabel", 120);
+  const accountLabel = form.optional("accountLabel", 120);
   const fromAccountLabel = form.optional("fromAccountLabel", 120);
   const toAccountLabel = form.optional("toAccountLabel", 120);
-  if (fromAccountLabel !== null || toAccountLabel !== null) {
+  if (category === "transfer") {
+    if (
+      accountLabel !== null ||
+      fromAccountLabel === null ||
+      toAccountLabel === null
+    ) {
+      throw new Error(
+        "Transfer requires distinct source and destination accounts only.",
+      );
+    }
+    if (fromAccountLabel === toAccountLabel) {
+      throw new Error("Transfer accounts must be distinct.");
+    }
+  } else if (fromAccountLabel !== null || toAccountLabel !== null) {
     throw new Error(
       "Transfer account fields are unavailable for this ledger category.",
     );
+  } else if (accountLabel === null) {
+    throw new Error("accountLabel is required.");
   }
 
   const costBasisValue = form.optional("costBasisStatus", 24);
@@ -349,8 +369,12 @@ export function parseManualLedgerFormData(
     amount: positiveDecimal(form.required("amount", 256), "Manual amount"),
     category,
     subcategory,
-    direction: direction ?? expectedDirection,
-    accountLabel,
+    ...(category === "transfer"
+      ? { fromAccountLabel, toAccountLabel }
+      : {
+          direction: direction ?? expectedDirection!,
+          accountLabel,
+        }),
     tournamentId: form.optional("tournamentId", 128),
     coreIds,
     externalReference: form.optional("externalReference", 256),
