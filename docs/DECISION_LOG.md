@@ -2208,3 +2208,11 @@ through` separately from `Last imported`.
 - Require durable-ID resolution, privacy-safe aggregate coverage, historical BGC zero economics with retained provenance and retention of every analytically relevant field inside the approved private raw boundary.
 - Block stale heads, manifest drift, partial contracts, identity inference, field suppression, private Git evidence and retained private artifacts.
 - Keep uploads, source activation, providers, Actions, merge and Production outside this evidence-only boundary.
+
+## 2026-07-27 — Hosted identity-lineage attestations
+
+- Bind confirmed Vault ownership, durable Core Details ID resolution, matching evidence, mapping reuse, ME states, versioned core persistence, family graph refresh and coverage states to one exact head and reviewed manifests.
+- Use name, F-number, class, element and sex only as deterministic matching evidence; never create ownership or lineage from names.
+- Preserve 68 ME true and 127 ME false states, reuse confirmed mappings and review only future unmatched or genuinely ambiguous rows.
+- Require authoritative parent/child IDs for family queries and breeding restrictions, with explicit partial raced-profile and Arena no-history states.
+- Block stale heads, manifest drift, partial evidence, identity inference, private Git evidence and retained private artifacts while denying persistence, Actions, merge and Production authority.
