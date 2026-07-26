@@ -69,6 +69,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    48 | Lifecycle economic actions         | `agent/lifecycle-economic-actions-bgc-clarification-v2` | `db3337471e7da8d4a3566c735ac7169e95db55b8` | PR the six-commit exact lifecycle-action delta after order 47                |
 |    49 | Breeding economic forms           | `agent/breeding-economic-forms-v2`             | `4bfbc496b82adddb6db085efcbff430cb3adc9db` | PR the six-commit disabled breeding-form delta after order 48                 |
 |    50 | Lifecycle economic forms          | `agent/lifecycle-economic-forms`               | `b6a964ac9669c02b76e30c28498d18445c1522d9` | PR the six-commit disabled lifecycle-form delta after order 49                |
+|    51 | Phase 9 readiness runtime hardening | `agent/phase-9-readiness-completeness`        | `1eb67e32beb7dd91444d9c39f29565496f073b0c` | PR the exact five-file runtime-evidence delta after order 50                  |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -610,6 +611,17 @@ rendering tests pass inside the complete 31-file/211-test hosted harness; all
 three form, test and contract blobs reconcile exactly. Missing cost basis stays
 unavailable, Genesis is omitted and no sale, burn, wallet, game, ownership or
 Production operation exists.
+
+### Phase 9 readiness runtime hardening
+
+Preserve the complete existing readiness projection while rejecting malformed
+persisted assessment identity, exact-head SHA, gate and operational enums,
+migration state and boolean flags. String-like booleans cannot exploit
+JavaScript truthiness to create a false pass or suppress an activation blocker.
+Four focused runtime-shape assertions pass inside the complete 33-file/220-test
+hosted validation harness; all three domain, test and contract blobs reconcile
+exactly. This adds no Actions, private Preview import, provider, migration,
+latency, analytical-gate or Gate F evidence and cannot activate Production.
 
 ### Lifecycle, Open Race and readiness reads
 
