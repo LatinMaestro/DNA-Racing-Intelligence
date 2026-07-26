@@ -4,6 +4,10 @@ import type { ManualLedgerEntryInput } from "@/domain/manual-ledger";
 import type { ManualTournamentPayoutInput } from "@/domain/manual-tournament-payout";
 import type { TournamentPrizeReconciliationDecision } from "@/domain/tournament-prize-reconciliation";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
 import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
 import {
   recordManualLedgerEntry,
@@ -15,6 +19,10 @@ import {
   recordManualTournamentPayout,
   unavailableManualTournamentPayoutWriteRepository,
 } from "@/lib/manual-tournament-payout-write-service";
+import {
+  parseManualLedgerFormData,
+  parseManualTournamentPayoutFormData,
+} from "@/lib/vault-performance-economic-form-data";
 
 function ownerIdentityEnvironment() {
   return {
@@ -50,6 +58,17 @@ export async function recordManualLedgerEntryFeedbackAction(
   return runEconomicActionForFeedback({
     operation: "manual_ledger",
     execute: () => recordManualLedgerEntryAction(entry),
+  });
+}
+
+export async function recordManualLedgerFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    operation: "manual_ledger",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseManualLedgerFormData,
   });
 }
 
@@ -96,6 +115,19 @@ export async function recordManualTournamentPayoutFeedbackAction(
   return runEconomicActionForFeedback({
     operation: "tournament_payout",
     execute: () => recordManualTournamentPayoutAction(payout),
+  });
+}
+
+export async function recordManualTournamentPayoutFormAction(
+  formData: FormData,
+) {
+  return runEconomicFormAction({
+    operation: "tournament_payout",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseManualTournamentPayoutFormData,
   });
 }
 
