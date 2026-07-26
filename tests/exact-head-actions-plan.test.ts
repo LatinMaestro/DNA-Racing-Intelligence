@@ -117,6 +117,7 @@ describe("exact-head Actions capacity plan", () => {
       expect.arrayContaining([
         "rebase_on_verified_main",
         "exact_head_actions",
+        "connected_provider_preflight",
         "exact_diff_review",
         "review_threads_resolved",
         "post_merge_main_verification",
