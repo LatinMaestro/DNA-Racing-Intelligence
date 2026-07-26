@@ -2200,3 +2200,11 @@ through` separately from `Last imported`.
 - Require reviewed recommendation and synthetic-fixture manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
 - Block stale heads, manifest drift, partial evidence, hidden limitations, missing chronology, private data and retained private artifacts.
 - Keep recommendations review-only and deny game actions, provider changes, Actions, merge and Production authority.
+
+## 2026-07-27 — Hosted source-contract attestations
+
+- Bind all nine authoritative inputs, their roles and periodic-update semantics to one exact head, reviewed source contracts, a reviewed aggregate profile and synthetic fixtures.
+- Treat legacy Bike Details as cross-mode Core Details, every supplied Vault row as owned, ME as a separate true/false state, Current Vault/Arena as replacement snapshots and six Race Merge inputs as ordered additions.
+- Require durable-ID resolution, privacy-safe aggregate coverage, historical BGC zero economics with retained provenance and retention of every analytically relevant field inside the approved private raw boundary.
+- Block stale heads, manifest drift, partial contracts, identity inference, field suppression, private Git evidence and retained private artifacts.
+- Keep uploads, source activation, providers, Actions, merge and Production outside this evidence-only boundary.
