@@ -8,6 +8,7 @@ import {
   unavailableBreedingEconomicWriteRepository,
 } from "@/lib/breeding-economic-write-service";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
 
 type OffspringCostBasisRequest = Omit<
   OffspringCostBasisInput,
@@ -38,6 +39,15 @@ export async function recordBreedingEconomicEvidenceAction(
   });
 }
 
+export async function recordBreedingEconomicEvidenceFeedbackAction(
+  evidence: BreedingEconomicEvidenceInput,
+) {
+  return runEconomicActionForFeedback({
+    operation: "breeding_evidence",
+    execute: () => recordBreedingEconomicEvidenceAction(evidence),
+  });
+}
+
 export async function assignOffspringCostBasisAction(
   assignment: OffspringCostBasisRequest,
 ) {
@@ -46,5 +56,14 @@ export async function assignOffspringCostBasisAction(
     configuredOwnerId: configuredOwnerId(),
     repository: unavailableBreedingEconomicWriteRepository,
     assignment,
+  });
+}
+
+export async function assignOffspringCostBasisFeedbackAction(
+  assignment: OffspringCostBasisRequest,
+) {
+  return runEconomicActionForFeedback({
+    operation: "offspring_cost_basis",
+    execute: () => assignOffspringCostBasisAction(assignment),
   });
 }
