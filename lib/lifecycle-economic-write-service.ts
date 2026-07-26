@@ -15,6 +15,10 @@ import {
   type CoreSaleEvidenceResult,
 } from "@/domain/core-sale-evidence";
 import { normalizeExactDecimal } from "@/domain/exact-decimal";
+import {
+  EconomicActionConflictError,
+  EconomicActionIdentityError,
+} from "@/lib/economic-action-errors";
 
 export type LifecycleEconomicPersistenceResult =
   | Readonly<{ status: "created" }>
@@ -139,7 +143,9 @@ function authorizedOwner(input: {
   const configuredOwnerId = optional(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) return null;
   if (authenticatedOwnerId !== configuredOwnerId) {
-    throw new Error("Lifecycle economic write access denied.");
+    throw new EconomicActionIdentityError(
+      "Lifecycle economic write access denied.",
+    );
   }
   return authenticatedOwnerId;
 }
@@ -159,7 +165,7 @@ function resolvedStatus(
   ) {
     return "replayed";
   }
-  throw new Error(
+  throw new EconomicActionConflictError(
     "Lifecycle economic durable identity conflicts with prior evidence.",
   );
 }
@@ -306,7 +312,7 @@ export async function recordActualBurnCredit(input: {
   );
   if (existing !== null) {
     if (existing.fingerprint !== creditFingerprint) {
-      throw new Error(
+      throw new EconomicActionConflictError(
         "Lifecycle economic durable identity conflicts with prior evidence.",
       );
     }
