@@ -2174,3 +2174,12 @@ through` separately from `Last imported`.
 - Require connected evidence for persistence-backed controls; repository contracts alone remain insufficient.
 - Block stale heads, manifest drift, partial checks, implicit conversion, historical BGC ledger activity, private data and retained private artifacts.
 - Keep economic mutation, provider changes, Actions, merge and Production outside this evidence-only boundary.
+
+## 2026-07-27 — Hosted freshness attestations
+
+- Bind accepted-version timestamps, latest accepted event current-through values, aggregate publication, failure isolation, rollback restoration, source/mode coverage, snapshot wording, confidence, provenance and rebuilds to one exact head.
+- Require reviewed source-contract and synthetic-fixture manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
+- Retain import, latest accepted event and aggregate-refresh timestamps without allowing previewed, failed, quarantined or rejected input to advance freshness.
+- Require rollback restoration, source-specific coverage, non-live snapshot wording, freshness warnings, provenance and idempotent aggregate rebuilds.
+- Require connected evidence for persistence-backed controls; repository contracts alone remain insufficient.
+- Block stale heads, manifest drift, partial checks, private data and retained private artifacts while denying source activation, provider changes, Actions, merge and Production authority.
