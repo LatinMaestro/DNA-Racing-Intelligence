@@ -79,6 +79,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    58 | Economic action feedback actions    | `agent/economic-action-feedback-actions`        | `5f5c6b9dd424500657d7ff82d9d1b082041707a2` | PR the 17-commit fail-closed action translation delta after order 57              |
 |    59 | Strict economic FormData actions    | `agent/economic-form-data-actions`              | `a1d7ca694dede968dbe8aa05ecdbe868c3a166c9` | PR the 11-commit strict action-binding delta after order 58                       |
 |    60 | Offline merge readiness             | `agent/offline-merge-readiness`                 | `3496ca339233292ca78de96eb70a5793ff4b85f3` | PR the five-commit non-executable queue-readiness delta after order 59             |
+|    61 | Exact-head Actions capacity plan    | `agent/exact-head-actions-plan`                 | `11412fa3ea44cedf434a867a33c5c3aeea20bc7f` | PR the five-commit non-executable post-capacity plan after order 60                |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -752,6 +753,21 @@ mutation remain forbidden. Read-only connected-service discovery found no DNA
 Racing Neon project or branch, so forced-RLS Preview and PostgreSQL execution
 remain unclaimed and no provider was provisioned.
 
+### Exact-head Actions capacity plan
+
+Convert the verified offline-readiness projection into one serial post-capacity
+preflight sequence, excluding non-merge precursors while retaining their audit
+trail. Every candidate requires rebase/recomposition from verified `main`,
+shared-document reconciliation, formatting, ESLint, strict TypeScript, all
+TS/TSX tests, build, dependency audit, privacy scan, exact-head Actions, complete
+diff review, resolved threads and post-merge `main` verification. Declared
+migration candidates additionally require apply, smoke, reverse and removal
+evidence in ephemeral PostgreSQL. Formatting, ESLint, strict TypeScript and the
+complete 42-file/297-test hosted harness pass with zero production
+vulnerabilities; all three implementation, test and contract blobs reconcile
+exactly. The contract remains non-executable and authorizes no workflow, PR,
+merge, provider or Production mutation.
+
 ## Gate status and limitations
 
 - Gate A: previously accepted.
@@ -782,9 +798,9 @@ remain unclaimed and no provider was provisioned.
 3. Rehearse the cumulative hosted composition, run all available formatting,
    lint, strict types, TS/TSX tests, build, audit and privacy scans, and keep
    every exact branch head and limitation current in this queue.
-4. Prepare the 1 August exact-head Actions sequence without opening or updating
-   PRs, merging, dispatching workflows, changing providers or touching
-   Production.
+4. Keep the completed exact-head Actions sequence synchronized with any later
+   queue entry. Do not open or update PRs, merge, dispatch workflows, change
+   providers or touch Production before Actions capacity returns.
 
 Real Preview import, connected-provider capacity, PostgreSQL migration
 execution, deployed request latency, formal Gates B-E acceptance where evidence
