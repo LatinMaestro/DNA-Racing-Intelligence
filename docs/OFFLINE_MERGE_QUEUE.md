@@ -91,6 +91,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    70 | Hosted security attestations        | `agent/hosted-security-attestations`               | `347e75e6db3d527ab951bc560913c079cff34306` | PR the ten-commit exact-head security evidence delta after order 69                 |
 |    71 | Hosted capacity attestations        | `agent/hosted-capacity-attestations`              | `8ff28eb0b3ab1e3105524df05d3c64305b2822d6` | PR the ten-commit exact-head capacity evidence delta after order 70                  |
 |    72 | Hosted end-to-end attestations      | `agent/hosted-end-to-end-attestations`            | `e8f93893d8d273499641f0a667be907e2a766e2c` | PR the ten-commit exact-head private browser-journey evidence delta after order 71   |
+|    73 | Hosted accounting attestations      | `agent/hosted-accounting-attestations`            | `0e929790c2f63c8b6fcf3e27a81e986e39f618a1` | PR the ten-commit exact-head accounting evidence delta after order 72                |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -920,6 +921,21 @@ vulnerabilities; all eight validated implementation, test and contract artifacts
 reconcile exactly. Actual protected-Preview browser and connected-provider
 execution remain unavailable and unclaimed. No workflow, merge, provider, public
 route or Production authority is created.
+
+### Hosted accounting attestations
+
+Bind exact asset-separated balances, non-cash BGC, historical zero-economics BGC
+races, transfer exclusion, tournament reconciliation, completed/refunded
+breeding evidence, lifecycle cost basis, actual post-burn BGC,
+freshness/provenance and idempotent rebuilds to one exact head and reviewed
+accounting/fixture manifests. Fixed commands, UTC bounds, complete assertions,
+redacted digests and exact decimals are mandatory; stale, drifting, incomplete
+or private evidence fails closed. Formatting, ESLint, strict TypeScript and the
+complete 54-file/403-test hosted harness pass with zero production
+vulnerabilities; all eight validated implementation, test and contract artifacts
+reconcile exactly. Connected persistence and private chronological
+reconciliation remain unavailable and unclaimed. No workflow, merge, provider,
+economic mutation or Production authority is created.
 
 ## Gate status and limitations
 
