@@ -71,6 +71,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    50 | Lifecycle economic forms          | `agent/lifecycle-economic-forms`               | `b6a964ac9669c02b76e30c28498d18445c1522d9` | PR the six-commit disabled lifecycle-form delta after order 49                |
 |    51 | Phase 9 readiness runtime hardening | `agent/phase-9-readiness-completeness`        | `1eb67e32beb7dd91444d9c39f29565496f073b0c` | PR the exact five-file runtime-evidence delta after order 50                  |
 |    52 | Vault Performance strict FormData | `agent/vault-performance-economic-form-data` | `2ebb58164aa9c5f620e379d7fe88b6eca0bb7741` | PR the five-commit strict parsing/ID delta after order 51                       |
+|    53 | Manual ledger authoritative hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the nine-commit canonical posting delta after order 52                       |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -636,6 +637,18 @@ implementation, test and contract blobs reconcile exactly. Forms, transfer and
 adjustment postings, per-core allocation controls, action feedback, persistence,
 providers and Production remain disabled.
 
+### Manual ledger authoritative hardening
+
+Preserve the fixed category/subcategory and BGC-use controls while canonicalizing
+timestamps and retaining nullable cost-basis evidence in durable fingerprints.
+Reject runtime direction/cost-basis variants and inconsistent account shapes;
+materialize internal transfers as two exact same-asset non-operating postings and
+require directional adjustments. Eight focused hardening tests pass inside the
+complete 35-file/238-test hosted harness, all eight validated artifacts reconcile
+exactly and the authoritative pre-existing domain suite is unchanged. Forms,
+action feedback, persistence, providers, wallets, game actions and Production
+remain disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -669,11 +682,10 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Complete balanced transfer/adjustment postings, conditional tournament
-   allocation controls and parsing, then add strict breeding and lifecycle
-   FormData boundaries. Enable any staged economic form only alongside
-   server-generated durable IDs, accessible action feedback and forced-RLS
-   persistent Preview evidence.
+2. Complete conditional tournament allocation controls and repeated-row
+   parsing, then add strict breeding and lifecycle FormData boundaries. Enable
+   any staged economic form only alongside server-generated durable IDs,
+   accessible action feedback and forced-RLS persistent Preview evidence.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
