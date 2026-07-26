@@ -22,6 +22,7 @@ const REQUIRED_CHECKS = [
   "recommendation_explainability",
   "authoritative_source_contracts",
   "identity_lineage_integrity",
+  "private_real_file_import_assurance",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -44,6 +45,8 @@ const COMMAND_BY_CHECK = {
   recommendation_explainability: "recommendation_explainability_attestation",
   authoritative_source_contracts: "authoritative_source_contracts_attestation",
   identity_lineage_integrity: "identity_lineage_integrity_attestation",
+  private_real_file_import_assurance:
+    "private_real_file_import_assurance_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
