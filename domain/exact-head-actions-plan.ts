@@ -23,6 +23,7 @@ const REQUIRED_CHECKS = [
   "identity_lineage_integrity",
   "private_real_file_import_assurance",
   "nine_item_programme_completion",
+  "connected_provider_preflight",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
