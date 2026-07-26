@@ -60,6 +60,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    39 | Import persistence operation adapter | `agent/import-persistence-operation-adapter`   | `6317d2f39c767e82586e8e6d6e62f21d5fdeea17` | PR the five-commit forced-RLS/idempotency delta after order 38            |
 |    40 | Browser incremental SHA-256          | `agent/import-incremental-sha256`              | `eb364fdf6a383318fffc4bf2e09e020fad51a4f9` | PR the five-commit bounded hashing delta after order 39                   |
 |    41 | Neon import persistence driver     | `agent/import-neon-persistence-driver`          | `c5c778166c6cfd2992622e87b16b1002ec9b118c` | PR the ten-commit driver/migration delta after order 40                   |
+|    42 | Cloudflare R2 object storage       | `agent/import-cloudflare-r2-object-storage`     | `704537fc78cfcd99ca0743e12823252d48d8a7c9` | PR the seven-commit private-object adapter delta after order 41            |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -268,6 +269,18 @@ smoke and reverse SQL and is wired into the future migration job, but PostgreSQL
 execution remains pending because this workspace has no PostgreSQL runtime.
 No database URL, provider connection, Preview import or Production capability is
 enabled.
+
+The Cloudflare R2 private-object descendant passes formatting, lint, strict
+TypeScript and 13 new synthetic adapter tests; the complete available hosted
+harness passes 23 test files and 170 tests and the production dependency audit
+reports zero vulnerabilities. It verifies private-bucket evidence before every
+lazy provider path, issues only exact-account HTTPS SigV4 PUT targets, uses
+opaque quarantine keys and exposes bounded HEAD/GET operations without LIST,
+DELETE or public URLs. Its three implementation, test and contract blobs match
+the validated hosted files byte-for-byte; the exact five-path delta has no
+workflow run, status context or pull request. R2 credentials, bucket/CORS
+configuration, real private objects, Preview imports and Production remain
+unconfigured.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -483,6 +496,16 @@ serializable transaction, and close on success or rollback. Apply reversible
 migration 0010 before connecting the driver. Keep the database URL, providers,
 private-source execution, Preview imports and Production disabled.
 
+### Cloudflare R2 private import object storage
+
+Bind one lazy private-object adapter to the verified owner, require public
+access, r2.dev and custom domains to be disabled, issue only content-type-bound
+short-lived SigV4 PUTs on the exact account S3 endpoint, and stream quarantined
+objects without buffering. Keep provider checksum metadata advisory and require
+the existing exact full-stream byte/SHA verification before staging commits.
+Expose no list, delete, public URL, credentials, provisioning, Preview activation
+or Production operation.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -511,11 +534,11 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Implement private-storage, preview/background queue and capacity adapters
-   behind the lazy bundle, then connect the staged Neon driver only after
-   migration 0010 has reversible PostgreSQL evidence. Keep provisioning, secrets,
-   private-source execution and the direct-upload form disabled until the full
-   bundle has connected synthetic evidence.
+1. Implement preview/background queue and capacity adapters behind the lazy
+   bundle, then connect the staged Neon and R2 drivers only after migration 0010,
+   private-bucket/CORS and provider-capacity evidence exist. Keep provisioning,
+   secrets, private-source execution and the direct-upload form disabled until
+   the full bundle has connected synthetic evidence.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
    wallet and game actions impossible.
