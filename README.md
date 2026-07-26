@@ -101,6 +101,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_7_LIFECYCLE_ECONOMIC_FORM_DATA.md`](docs/PHASE_7_LIFECYCLE_ECONOMIC_FORM_DATA.md) — strict completed sale, non-Genesis burn and actual post-burn BGC credit parsing
 - [`docs/PHASE_9_READINESS_COMPLETENESS.md`](docs/PHASE_9_READINESS_COMPLETENESS.md) — complete fail-closed readiness evidence projection and Gate F boundary
 - [`docs/PHASE_9_OFFLINE_MERGE_READINESS.md`](docs/PHASE_9_OFFLINE_MERGE_READINESS.md) — deterministic exact-head no-Actions queue and dependency-readiness projection
+- [`docs/PHASE_9_EXACT_HEAD_ACTIONS_PLAN.md`](docs/PHASE_9_EXACT_HEAD_ACTIONS_PLAN.md) — serial post-capacity rebase, validation, exact-head CI and merge preflight contract
 - [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
