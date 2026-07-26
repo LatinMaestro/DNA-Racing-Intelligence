@@ -2116,3 +2116,11 @@ through` separately from `Last imported`.
 - Keep a missing scope review-required and block stale heads, command substitution, failed or incomplete scans, findings, unredacted output and observed or retained private material.
 - Require test fixtures to remain synthetic-only; retain no private scan output or artifact.
 - The contract cannot dispatch Actions, merge a pull request or mutate Production.
+
+## 2026-07-26 — Hosted analytical validation attestations
+
+- Bind performance, lineage, breeding, Gold/Blue era, tournament/Maiden, recommendation, capacity and economic validation to one exact head and source-manifest digest.
+- Require chronological cutoffs, authenticated owner-workspace execution, documented coverage and privacy-safe aggregate evidence only.
+- Block future leakage, stale evidence, retained private rows, missing experimental labels and failed or substituted commands.
+- Exclude historical Race Merge BGC economics and internal transfers from economic reconciliation.
+- Preserve missing breeding timestamps and point-in-time ME history only as explicit approved limitations; grant no workflow, merge or Production authority.
