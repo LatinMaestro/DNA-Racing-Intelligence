@@ -16,6 +16,7 @@ const REQUIRED_CHECKS = [
   "security_privacy",
   "performance_capacity",
   "end_to_end_workflows",
+  "accounting_reconciliation",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -32,6 +33,7 @@ const COMMAND_BY_CHECK = {
   security_privacy: "security_privacy_attestation",
   performance_capacity: "performance_capacity_attestation",
   end_to_end_workflows: "end_to_end_workflow_attestation",
+  accounting_reconciliation: "accounting_reconciliation_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -229,6 +231,7 @@ export function projectHostedCheckAttestations(
     }
     if (
       (name === "end_to_end_workflows" ||
+        name === "accounting_reconciliation" ||
         name === "synthetic_import_replay_rollback_reconciliation") &&
       !attestation.syntheticFixturesOnly
     ) {
