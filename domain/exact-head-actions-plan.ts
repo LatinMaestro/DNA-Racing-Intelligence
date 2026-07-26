@@ -20,6 +20,7 @@ const REQUIRED_CHECKS = [
   "confirmed_game_rules",
   "recommendation_explainability",
   "authoritative_source_contracts",
+  "identity_lineage_integrity",
   "exact_head_actions",
   "exact_diff_review",
   "review_threads_resolved",
