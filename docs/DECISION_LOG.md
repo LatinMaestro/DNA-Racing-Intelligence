@@ -2140,3 +2140,11 @@ through` separately from `Last imported`.
 - Require idempotent replay/retry, failure isolation, previous-version restoration and freshness bound only to accepted versions.
 - Block incomplete assertions, private-data observation, retained private artifacts and non-synthetic fixtures.
 - Keep the evidence contract non-executable and deny workflow, merge, provider and Production authority.
+
+## 2026-07-26 — Hosted security attestations
+
+- Bind every mandatory authentication, owner-isolation, route, provider, storage, logging, repository, indexing and dependency/configuration control to one exact head and reviewed manifests.
+- Require fixed command identities, exact UTC bounds, redacted summary digests and complete assertion counts.
+- Require connected evidence for forced owner RLS, revoked public database access and private object storage; repository contracts alone remain insufficient.
+- Block stale heads, manifest drift, failed assertions, public access, secret exposure, private data and retained private artifacts.
+- Add security/privacy to cumulative rehearsal and exact-head preflight while denying workflow, merge, paid-service, public-exposure, secret-collection and Production authority.
