@@ -76,6 +76,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    55 | Breeding economic FormData          | `agent/breeding-economic-form-data`             | `92fc9359f226cc9db9f1f9ce1260f8b0f13fa517` | PR the five-commit strict breeding parser delta after order 54                    |
 |    56 | Lifecycle economic FormData         | `agent/lifecycle-economic-form-data`            | `9ea0dbb12e30be554e879c8d6769ce0ceac96a4f` | PR the five-commit strict lifecycle parser delta after order 55                   |
 |    57 | Economic action feedback            | `agent/economic-action-feedback`                | `a6a750798560f78746341da02f7d2e7fd5f4c1b9` | PR the six-commit privacy-safe feedback delta after order 56                      |
+|    58 | Economic action feedback actions    | `agent/economic-action-feedback-actions`        | `5f5c6b9dd424500657d7ff82d9d1b082041707a2` | PR the 17-commit fail-closed action translation delta after order 57              |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -700,6 +701,18 @@ pass inside the complete 38-file/263-test hosted harness; all four implementatio
 component, test and contract blobs reconcile exactly. Server Action translation,
 form integration, forced-RLS persistence, providers and Production remain
 disabled.
+
+### Economic action feedback actions
+
+Expose nine feedback-returning Server Action variants across manual ledger,
+tournament payout, breeding and lifecycle economics. Typed internal owner-denial
+and durable-conflict errors allow fixed redacted outcomes without inspecting raw
+exception text; every other failure collapses to generic fail-closed feedback.
+Formatting, ESLint, strict TypeScript and the complete 39-file/273-test hosted
+harness pass with zero production vulnerabilities, and all 14 implementation,
+test and contract blobs reconcile exactly. Strict FormData action binding,
+forced-RLS Preview persistence, providers, wallets, game actions and Production
+remain disabled.
 
 ### Lifecycle, Open Race and readiness reads
 
