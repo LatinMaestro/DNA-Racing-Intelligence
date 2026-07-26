@@ -58,6 +58,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    37 | Import progress and completion UI    | `agent/import-progress-completion-ui`          | `69b06066f35287042fb83d781d744a918b32d973` | PR the eight-commit progress/completion UI delta after order 36          |
 |    38 | Import provider adapter bundle       | `agent/import-provider-adapter-bundle`         | `ce0aafcc446d7cb808dbf4c5aafb1e25e628a80a` | PR the five-commit lazy owner-bound adapter delta after order 37         |
 |    39 | Import persistence operation adapter | `agent/import-persistence-operation-adapter`   | `6317d2f39c767e82586e8e6d6e62f21d5fdeea17` | PR the five-commit forced-RLS/idempotency delta after order 38            |
+|    40 | Browser incremental SHA-256          | `agent/import-incremental-sha256`              | `eb364fdf6a383318fffc4bf2e09e020fad51a4f9` | PR the five-commit bounded hashing delta after order 39                   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -246,6 +247,15 @@ conflicts roll back. Its three implementation, test and contract blobs match the
 validated hosted files byte-for-byte; the exact five-file delta has no workflow
 run, status context or pull request. Live database policy execution remains
 gated.
+
+The independent incremental SHA-256 descendant passes formatting, lint, strict
+TypeScript and seven new vector/integration tests; the complete available hosted
+harness passes 21 test files and 151 tests and the production dependency audit
+reports zero vulnerabilities. Published empty, abc, long-message and million-a
+vectors pass, as do one-byte and 63/64/65-byte boundaries and bounded file
+preparation. Its three implementation, test and contract blobs match the
+validated hosted files byte-for-byte; the exact five-file delta has no workflow
+run, status context or pull request. No form or provider is enabled.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -445,6 +455,14 @@ operations. Replay only an exact request fingerprint; conflicting evidence rolls
 back. Keep the live Neon driver, schema, credentials and Preview execution
 disabled.
 
+### Browser incremental SHA-256
+
+Hash each private browser-selected export through bounded byte chunks using one
+fixed-memory state. Validate standard vectors and chunk boundaries, finalize
+idempotently and carry no owner, filename, provider or storage capability. Keep
+the background preview stream authoritative and leave the form and providers
+disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -475,9 +493,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 1. Implement the concrete Neon transaction driver and reversible policy/schema
    verification behind the persistence contract, plus private-storage, queue and
-   capacity adapters behind the lazy bundle. Add and review the independent
-   browser incremental SHA-256 implementation before enabling any direct-upload
-   form. Keep provisioning, secrets and private-source execution disabled.
+   capacity adapters behind the lazy bundle. Keep provisioning, secrets,
+   private-source execution and the direct-upload form disabled until the full
+   bundle has connected synthetic evidence.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
    wallet and game actions impossible.
