@@ -21,8 +21,9 @@ Missing evidence remains review-required. Stale heads, command substitution,
 failed checks, local execution, inverted timestamps, unredacted summaries or
 private data block the projection.
 
-The import/replay/rollback/reconciliation suite must use synthetic fixtures
-only. Git and routine evidence retain only redacted summaries and digests.
+The end-to-end and import/replay/rollback/reconciliation suites must use
+synthetic fixtures only. Git and routine evidence retain only redacted summaries
+and digests.
 
 The contract never retains private artifacts, dispatches Actions or mutates
 Production.
