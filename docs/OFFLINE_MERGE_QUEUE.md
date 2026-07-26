@@ -61,6 +61,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    40 | Browser incremental SHA-256          | `agent/import-incremental-sha256`              | `eb364fdf6a383318fffc4bf2e09e020fad51a4f9` | PR the five-commit bounded hashing delta after order 39                   |
 |    41 | Neon import persistence driver     | `agent/import-neon-persistence-driver`          | `c5c778166c6cfd2992622e87b16b1002ec9b118c` | PR the ten-commit driver/migration delta after order 40                   |
 |    42 | Cloudflare R2 object storage       | `agent/import-cloudflare-r2-object-storage`     | `704537fc78cfcd99ca0743e12823252d48d8a7c9` | PR the seven-commit private-object adapter delta after order 41            |
+|    43 | Cloudflare import queue adapter    | `agent/import-cloudflare-queue-adapter`         | `d188879f248b5f45e12aeb5be2a840b1e4b97523` | PR the five-commit preview/background queue delta after order 42            |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -281,6 +282,16 @@ the validated hosted files byte-for-byte; the exact five-path delta has no
 workflow run, status context or pull request. R2 credentials, bucket/CORS
 configuration, real private objects, Preview imports and Production remain
 unconfigured.
+
+The Cloudflare import-queue descendant passes formatting, lint, strict
+TypeScript and ten new synthetic adapter tests; the complete available hosted
+harness passes 24 test files and 180 tests and the production dependency audit
+reports zero vulnerabilities. It keeps preview and background delivery separate,
+requires active consumers, bounded retries and dead-letter queues, and sends only
+compact redacted JSON keyed by durable dispatch IDs. Its three implementation,
+test and contract blobs match the validated hosted files byte-for-byte; the
+exact five-path delta has no workflow run, status context or pull request. Real
+queues, bindings, messages, Preview imports and Production remain unconfigured.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -506,6 +517,16 @@ the existing exact full-stream byte/SHA verification before staging commits.
 Expose no list, delete, public URL, credentials, provisioning, Preview activation
 or Production operation.
 
+### Cloudflare import queues
+
+Bind one lazy producer to the verified owner, keep preview and background work
+on separate queues, require a consumer, bounded retries and a dead-letter queue,
+and send only version, work kind, durable dispatch ID and an opaque owner scope.
+Treat delivery as at least once and leave durable repository claims authoritative
+for replay. Require future consumers to acknowledge or retry every message
+independently. Keep provisioning, bindings, real messages, Preview activation
+and Production disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -534,11 +555,11 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Implement preview/background queue and capacity adapters behind the lazy
-   bundle, then connect the staged Neon and R2 drivers only after migration 0010,
-   private-bucket/CORS and provider-capacity evidence exist. Keep provisioning,
-   secrets, private-source execution and the direct-upload form disabled until
-   the full bundle has connected synthetic evidence.
+1. Implement the capacity adapter behind the lazy bundle, then connect the
+   staged Neon, R2 and Cloudflare Queue drivers only after migration 0010,
+   private-bucket/CORS, queue-consumer/DLQ and provider-capacity evidence exist.
+   Keep provisioning, secrets, private-source execution and the direct-upload
+   form disabled until the full bundle has connected synthetic evidence.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
    wallet and game actions impossible.
