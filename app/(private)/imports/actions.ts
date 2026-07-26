@@ -1,6 +1,11 @@
 "use server";
 
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  retryOwnerAggregateRefresh,
+  type AggregateRetryActionDependencies,
+  unavailableAggregateRetryCapabilities,
+} from "@/lib/import-aggregate-retry-action-service";
 import { unavailableImportActivationCapabilities } from "@/lib/import-activation-service";
 import {
   confirmOwnerDataUpdate,
@@ -52,6 +57,21 @@ function confirmationActionDependencies(): ImportConfirmationActionDependencies 
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
     now: () => new Date(),
     activationCapabilities: unavailableImportActivationCapabilities,
+  };
+}
+
+function aggregateRetryActionDependencies(): AggregateRetryActionDependencies {
+  return {
+    resolveAuthenticatedOwnerId: () =>
+      authenticatedClerkOwnerId({
+        environment: {
+          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+          secretKey: process.env.CLERK_SECRET_KEY,
+        },
+      }),
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    now: () => new Date(),
+    capabilities: unavailableAggregateRetryCapabilities,
   };
 }
 
@@ -108,4 +128,15 @@ export async function rollbackImportAction(
   }>,
 ) {
   return rollbackOwnerImport(input, recoveryActionDependencies());
+}
+
+export async function retryAggregateRefreshAction(
+  input: Readonly<{
+    failedRefreshId: string;
+    retryReason: string;
+    idempotencyKey: string;
+    explicitlyConfirmed: boolean;
+  }>,
+) {
+  return retryOwnerAggregateRefresh(input, aggregateRetryActionDependencies());
 }
