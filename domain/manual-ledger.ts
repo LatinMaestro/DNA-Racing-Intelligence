@@ -5,51 +5,21 @@ import {
   normalizeExactDecimal,
 } from "@/domain/exact-decimal";
 
-export const manualLedgerCategories = [
-  "income",
-  "expense",
-  "deposit",
-  "withdrawal",
-  "transfer",
-  "opening_balance",
-  "adjustment",
-] as const;
-export type ManualLedgerCategory = (typeof manualLedgerCategories)[number];
-
-export const manualLedgerSubcategories = [
-  "manual_tournament_payout",
-  "breeding_fee_earned",
-  "breeding_fee_paid",
-  "dna_base_fee",
-  "arena_owner_fee",
-  "arena_fee_bgc",
-  "core_purchase",
-  "core_sale",
-  "marketplace_fee",
-  "burn_bgc_credit",
-  "refund",
-  "other_income",
-  "other_expense",
-  "deposit",
-  "withdrawal",
-  "internal_transfer",
-  "opening_balance",
-  "adjustment",
-] as const;
-export type ManualLedgerSubcategory =
-  (typeof manualLedgerSubcategories)[number];
-
-export const assetKinds = ["crypto", "fiat", "game_credit"] as const;
-export type AssetKind = (typeof assetKinds)[number];
-
 export type ManualLedgerEntryInput = {
   entryId: string;
   occurredAt: string;
   assetCode: string;
-  assetKind: AssetKind;
+  assetKind: "crypto" | "fiat" | "game_credit";
   amount: string;
-  category: ManualLedgerCategory;
-  subcategory: ManualLedgerSubcategory;
+  category:
+    | "income"
+    | "expense"
+    | "deposit"
+    | "withdrawal"
+    | "transfer"
+    | "opening_balance"
+    | "adjustment";
+  subcategory: string;
   direction?: "credit" | "debit";
   accountLabel?: string | null;
   fromAccountLabel?: string | null;
@@ -61,17 +31,14 @@ export type ManualLedgerEntryInput = {
   note?: string | null;
 };
 
-export type ManualLedgerWarning =
-  "CORE_SALE_COST_BASIS_MISSING" | "UNALLOCATED_TOURNAMENT_PAYOUT";
-
 export type ManualLedgerPosting = {
   postingId: string;
   accountLabel: string;
   assetCode: string;
-  assetKind: AssetKind;
+  assetKind: "crypto" | "fiat" | "game_credit";
   signedAmount: string;
-  category: ManualLedgerCategory;
-  subcategory: ManualLedgerSubcategory;
+  category: ManualLedgerEntryInput["category"];
+  subcategory: string;
   operating: boolean;
 };
 
@@ -79,71 +46,47 @@ export type ValidatedManualLedgerEntry = {
   entryId: string;
   occurredAt: string;
   assetCode: string;
-  assetKind: AssetKind;
+  assetKind: ManualLedgerEntryInput["assetKind"];
   amount: string;
-  category: ManualLedgerCategory;
-  subcategory: ManualLedgerSubcategory;
+  category: ManualLedgerEntryInput["category"];
+  subcategory: string;
   tournamentId: string | null;
   coreIds: readonly string[];
   externalReference: string | null;
+  costBasisStatus: ManualLedgerEntryInput["costBasisStatus"] | null;
   note: string | null;
   postings: readonly ManualLedgerPosting[];
-  warnings: readonly ManualLedgerWarning[];
+  warnings: readonly string[];
   completeness: "complete" | "partial";
 };
 
-const allowedSubcategories: Readonly<
-  Record<ManualLedgerCategory, readonly ManualLedgerSubcategory[]>
-> = {
-  income: [
-    "manual_tournament_payout",
-    "breeding_fee_earned",
-    "core_sale",
-    "burn_bgc_credit",
-    "refund",
-    "other_income",
-  ],
-  expense: [
-    "breeding_fee_paid",
-    "dna_base_fee",
-    "arena_owner_fee",
-    "arena_fee_bgc",
-    "core_purchase",
-    "marketplace_fee",
-    "other_expense",
-  ],
-  deposit: ["deposit"],
-  withdrawal: ["withdrawal"],
-  transfer: ["internal_transfer"],
-  opening_balance: ["opening_balance"],
-  adjustment: ["adjustment"],
-};
-
-const operatingCategories = new Set<ManualLedgerCategory>([
+const assetKinds = ["crypto", "fiat", "game_credit"] as const;
+const categories = [
   "income",
   "expense",
-]);
-const debitCategories = new Set<ManualLedgerCategory>([
-  "expense",
+  "deposit",
   "withdrawal",
-]);
+  "transfer",
+  "opening_balance",
+  "adjustment",
+] as const;
+const directions = ["credit", "debit"] as const;
+const costBasisStatuses = ["known", "missing", "not_applicable"] as const;
 const assetCodePattern = /^[A-Z][A-Z0-9_]{1,15}$/;
+const subcategoryPattern = /^[a-z][a-z0-9_]{1,63}$/;
 
-function requiredTrimmed(
-  value: string | null | undefined,
-  label: string,
-): string {
-  const trimmed = value?.trim() ?? "";
-  if (trimmed === "") throw new Error(`${label} is required.`);
-  return trimmed;
+function required(value: string | null | undefined, label: string): string {
+  const normalized = value?.trim() ?? "";
+  if (normalized === "") throw new Error(`${label} is required.`);
+  return normalized;
 }
 
-function optionalTrimmed(value: string | null | undefined): string | null {
-  const trimmed = value?.trim() ?? "";
-  return trimmed === "" ? null : trimmed;
+function optional(value: string | null | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  return normalized === "" ? null : normalized;
 }
 
-function validateAmount(value: string): string {
+function exactPositiveAmount(value: string): string {
   let normalized: string;
   try {
     normalized = normalizeExactDecimal(value);
@@ -151,211 +94,169 @@ function validateAmount(value: string): string {
     throw new Error("Manual amount must be a plain base-10 decimal.");
   }
   if (isNegativeExactDecimal(normalized) || isZeroExactDecimal(normalized)) {
-    throw new Error("Manual amount must be greater than zero.");
+    throw new Error("Manual amount must be positive.");
   }
   return normalized;
 }
 
-function validateAsset(code: string, kind: AssetKind): string {
-  const normalized = code.trim().toUpperCase();
-  if (!assetKinds.includes(kind) || !assetCodePattern.test(normalized)) {
-    throw new Error("Manual asset identity is invalid.");
+function normalizedTimestamp(value: string): string {
+  const parsed = Date.parse(required(value, "Manual ledger timestamp"));
+  if (Number.isNaN(parsed)) {
+    throw new Error("Manual ledger timestamp is invalid.");
   }
-  if (
-    (normalized === "BGC" && kind !== "game_credit") ||
-    (normalized !== "BGC" && kind === "game_credit")
-  ) {
-    throw new Error("BGC must remain the separate game-credit asset.");
-  }
-  return normalized;
+  return new Date(parsed).toISOString();
 }
 
-function assertCategoryPair(
-  category: ManualLedgerCategory,
-  subcategory: ManualLedgerSubcategory,
-): void {
-  if (
-    !manualLedgerCategories.includes(category) ||
-    !manualLedgerSubcategories.includes(subcategory) ||
-    !allowedSubcategories[category].includes(subcategory)
-  ) {
-    throw new Error("Manual category and subcategory are incompatible.");
-  }
-}
-
-function assertBgcUse(
-  assetCode: string,
-  subcategory: ManualLedgerSubcategory,
-): void {
-  if (
-    ["arena_fee_bgc", "burn_bgc_credit"].includes(subcategory) &&
-    assetCode !== "BGC"
-  ) {
-    throw new Error(`${subcategory} requires the BGC game-credit asset.`);
-  }
-  if (assetCode !== "BGC") return;
-  if (
-    ![
-      "arena_fee_bgc",
-      "burn_bgc_credit",
-      "opening_balance",
-      "adjustment",
-    ].includes(subcategory)
-  ) {
-    throw new Error("BGC is limited to its separate in-game-credit ledger.");
-  }
-}
-
-function normalizeCoreIds(coreIds: readonly string[] | undefined): string[] {
+function normalizedCoreIds(coreIds: readonly string[] | undefined): string[] {
   const normalized = (coreIds ?? []).map((coreId) =>
-    requiredTrimmed(coreId, "Core ID"),
+    required(coreId, "Core ID"),
   );
   if (new Set(normalized).size !== normalized.length) {
-    throw new Error("Manual entry core IDs must be unique.");
+    throw new Error("Manual ledger core IDs must be unique.");
   }
-  return normalized.sort((left, right) => left.localeCompare(right));
+  return normalized.sort();
 }
 
-function signedAmount(
-  category: ManualLedgerCategory,
-  amount: string,
-  direction: "credit" | "debit" | undefined,
-): string {
-  if (category === "adjustment") {
-    if (direction === undefined)
-      throw new Error("An adjustment requires a credit or debit direction.");
-    return direction === "debit" ? negateExactDecimal(amount) : amount;
-  }
-  if (direction !== undefined) {
-    const expected = debitCategories.has(category) ? "debit" : "credit";
-    if (direction !== expected) {
-      throw new Error(`Manual ${category} direction must be ${expected}.`);
-    }
-  }
-  return debitCategories.has(category) ? negateExactDecimal(amount) : amount;
-}
-
-function buildPostings(input: {
+function singlePosting(input: {
   entryId: string;
-  category: ManualLedgerCategory;
-  subcategory: ManualLedgerSubcategory;
-  amount: string;
-  direction: "credit" | "debit" | undefined;
+  accountLabel: string;
   assetCode: string;
-  assetKind: AssetKind;
-  accountLabel: string | null;
-  fromAccountLabel: string | null;
-  toAccountLabel: string | null;
-}): ManualLedgerPosting[] {
-  if (input.category === "transfer") {
-    const from = requiredTrimmed(
-      input.fromAccountLabel,
-      "Transfer source account",
-    );
-    const to = requiredTrimmed(
-      input.toAccountLabel,
-      "Transfer destination account",
-    );
-    if (from === to) {
-      throw new Error("Transfer accounts must be different.");
-    }
-    return [
-      {
-        postingId: `${input.entryId}:from`,
-        accountLabel: from,
-        assetCode: input.assetCode,
-        assetKind: input.assetKind,
-        signedAmount: negateExactDecimal(input.amount),
-        category: input.category,
-        subcategory: input.subcategory,
-        operating: false,
-      },
-      {
-        postingId: `${input.entryId}:to`,
-        accountLabel: to,
-        assetCode: input.assetCode,
-        assetKind: input.assetKind,
-        signedAmount: input.amount,
-        category: input.category,
-        subcategory: input.subcategory,
-        operating: false,
-      },
-    ];
-  }
-
-  const accountLabel = requiredTrimmed(
-    input.accountLabel,
-    "Manual entry account",
-  );
-  return [
-    {
-      postingId: `${input.entryId}:primary`,
-      accountLabel,
-      assetCode: input.assetCode,
-      assetKind: input.assetKind,
-      signedAmount: signedAmount(input.category, input.amount, input.direction),
-      category: input.category,
-      subcategory: input.subcategory,
-      operating: operatingCategories.has(input.category),
-    },
-  ];
+  assetKind: ManualLedgerEntryInput["assetKind"];
+  amount: string;
+  category: ManualLedgerEntryInput["category"];
+  subcategory: string;
+  direction: "credit" | "debit";
+}): ManualLedgerPosting {
+  return {
+    postingId: `${input.entryId}:primary`,
+    accountLabel: input.accountLabel,
+    assetCode: input.assetCode,
+    assetKind: input.assetKind,
+    signedAmount:
+      input.direction === "debit"
+        ? negateExactDecimal(input.amount)
+        : input.amount,
+    category: input.category,
+    subcategory: input.subcategory,
+    operating: input.category === "income" || input.category === "expense",
+  };
 }
 
 export function validateManualLedgerEntry(
   input: ManualLedgerEntryInput,
 ): ValidatedManualLedgerEntry {
-  const entryId = requiredTrimmed(input.entryId, "Manual entry ID");
-  const occurredAt = requiredTrimmed(input.occurredAt, "Occurred at");
-  if (Number.isNaN(Date.parse(occurredAt))) {
-    throw new Error("Occurred at must be a valid timestamp.");
+  if (!assetKinds.includes(input.assetKind)) {
+    throw new Error("Manual ledger asset kind is invalid.");
   }
-  const assetCode = validateAsset(input.assetCode, input.assetKind);
-  const amount = validateAmount(input.amount);
-  assertCategoryPair(input.category, input.subcategory);
-  assertBgcUse(assetCode, input.subcategory);
-
-  const tournamentId = optionalTrimmed(input.tournamentId);
-  const coreIds = normalizeCoreIds(input.coreIds);
-  const externalReference = optionalTrimmed(input.externalReference);
-  const note = optionalTrimmed(input.note);
-  if (
-    input.subcategory === "manual_tournament_payout" &&
-    tournamentId === null
-  ) {
-    throw new Error("A manual tournament payout requires a tournament.");
+  if (!categories.includes(input.category)) {
+    throw new Error("Manual ledger category is invalid.");
+  }
+  if (input.direction !== undefined && !directions.includes(input.direction)) {
+    throw new Error("Manual ledger direction is invalid.");
   }
   if (
-    input.subcategory === "burn_bgc_credit" &&
-    (assetCode !== "BGC" || coreIds.length !== 1)
+    input.costBasisStatus !== undefined &&
+    !costBasisStatuses.includes(input.costBasisStatus)
   ) {
-    throw new Error(
-      "A burn BGC credit requires BGC and exactly one linked core.",
-    );
+    throw new Error("Manual ledger cost-basis status is invalid.");
   }
 
-  const warnings: ManualLedgerWarning[] = [];
-  if (input.subcategory === "core_sale" && input.costBasisStatus !== "known") {
-    warnings.push("CORE_SALE_COST_BASIS_MISSING");
+  const entryId = required(input.entryId, "Manual ledger entry ID");
+  const occurredAt = normalizedTimestamp(input.occurredAt);
+  const assetCode = required(input.assetCode, "Asset code").toUpperCase();
+  if (!assetCodePattern.test(assetCode)) {
+    throw new Error("Manual ledger asset code is invalid.");
   }
   if (
-    input.subcategory === "manual_tournament_payout" &&
-    coreIds.length === 0
+    (assetCode === "BGC" && input.assetKind !== "game_credit") ||
+    (assetCode !== "BGC" && input.assetKind === "game_credit")
   ) {
-    warnings.push("UNALLOCATED_TOURNAMENT_PAYOUT");
+    throw new Error("Manual ledger BGC asset evidence is invalid.");
+  }
+  const amount = exactPositiveAmount(input.amount);
+  const subcategory = required(input.subcategory, "Manual ledger subcategory");
+  if (!subcategoryPattern.test(subcategory)) {
+    throw new Error("Manual ledger subcategory is invalid.");
   }
 
-  const postings = buildPostings({
-    entryId,
-    category: input.category,
-    subcategory: input.subcategory,
-    amount,
-    direction: input.direction,
-    assetCode,
-    assetKind: input.assetKind,
-    accountLabel: optionalTrimmed(input.accountLabel),
-    fromAccountLabel: optionalTrimmed(input.fromAccountLabel),
-    toAccountLabel: optionalTrimmed(input.toAccountLabel),
-  });
+  const accountLabel = optional(input.accountLabel);
+  const fromAccountLabel = optional(input.fromAccountLabel);
+  const toAccountLabel = optional(input.toAccountLabel);
+  let postings: readonly ManualLedgerPosting[];
+
+  if (input.category === "transfer") {
+    if (input.direction !== undefined || accountLabel !== null) {
+      throw new Error(
+        "Internal transfer cannot contain a single posting direction or account.",
+      );
+    }
+    const from = required(fromAccountLabel, "Transfer source account");
+    const to = required(toAccountLabel, "Transfer destination account");
+    if (from === to) {
+      throw new Error("Transfer accounts must be distinct.");
+    }
+    postings = [
+      {
+        postingId: `${entryId}:from`,
+        accountLabel: from,
+        assetCode,
+        assetKind: input.assetKind,
+        signedAmount: negateExactDecimal(amount),
+        category: input.category,
+        subcategory,
+        operating: false,
+      },
+      {
+        postingId: `${entryId}:to`,
+        accountLabel: to,
+        assetCode,
+        assetKind: input.assetKind,
+        signedAmount: amount,
+        category: input.category,
+        subcategory,
+        operating: false,
+      },
+    ];
+  } else {
+    if (fromAccountLabel !== null || toAccountLabel !== null) {
+      throw new Error(
+        "Non-transfer evidence cannot contain transfer account fields.",
+      );
+    }
+    const account = required(accountLabel, "Account label");
+    let direction: "credit" | "debit";
+    if (input.category === "adjustment") {
+      direction = required(input.direction, "Adjustment direction") as
+        "credit" | "debit";
+      if (!directions.includes(direction)) {
+        throw new Error("Adjustment direction is invalid.");
+      }
+    } else {
+      direction =
+        input.category === "expense" || input.category === "withdrawal"
+          ? "debit"
+          : "credit";
+      if (input.direction !== undefined && input.direction !== direction) {
+        throw new Error("Posting direction conflicts with ledger category.");
+      }
+    }
+    postings = [
+      singlePosting({
+        entryId,
+        accountLabel: account,
+        assetCode,
+        assetKind: input.assetKind,
+        amount,
+        category: input.category,
+        subcategory,
+        direction,
+      }),
+    ];
+  }
+
+  const costBasisWarning =
+    subcategory === "core_sale_proceeds" && input.costBasisStatus !== "known";
+  const warnings = costBasisWarning ? ["missing_cost_basis"] : [];
 
   return {
     entryId,
@@ -364,13 +265,14 @@ export function validateManualLedgerEntry(
     assetKind: input.assetKind,
     amount,
     category: input.category,
-    subcategory: input.subcategory,
-    tournamentId,
-    coreIds,
-    externalReference,
-    note,
+    subcategory,
+    tournamentId: optional(input.tournamentId),
+    coreIds: normalizedCoreIds(input.coreIds),
+    externalReference: optional(input.externalReference),
+    costBasisStatus: input.costBasisStatus ?? null,
+    note: optional(input.note),
     postings,
     warnings,
-    completeness: warnings.length === 0 ? "complete" : "partial",
+    completeness: costBasisWarning ? "partial" : "complete",
   };
 }
