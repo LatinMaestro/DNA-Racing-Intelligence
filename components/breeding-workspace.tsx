@@ -1,3 +1,4 @@
+import { BreedingEconomicForms } from "@/components/breeding-economic-forms";
 import type { BreedingPairRankingResult } from "@/domain/breeding-pair-ranking";
 import type { BreedingWorkspaceConnectionStatus } from "@/lib/breeding-workspace-service";
 
@@ -221,6 +222,14 @@ export function BreedingWorkspace({
           </div>
         )}
       </section>
+
+      <BreedingEconomicForms
+        status={
+          connectionStatus === "identity_not_connected"
+            ? "identity_not_connected"
+            : "persistence_not_configured"
+        }
+      />
     </div>
   );
 }
