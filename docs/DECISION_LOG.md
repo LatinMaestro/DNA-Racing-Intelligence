@@ -2004,3 +2004,12 @@ through` separately from `Last imported`.
   configuration as an additional narrowing allowlist.
 - Keep forms, action feedback, repositories, private Preview evidence, wallets,
   game actions, providers and Production disabled.
+
+
+## 2026-07-26 — Manual tournament payout allocation FormData
+
+- Extend the strict manual tournament payout parser with bounded repeated rows for single-core, equal, exact-amount, exact-percentage and documented-points allocations.
+- Pair each submitted core with only the value type required by the selected method, reject mismatched fields and require unique deterministic core identities.
+- Delegate exact amount reconciliation, 100% percentage validation, positive documented points, asset-precision checks and largest-remainder apportionment to the authoritative payout domain.
+- Preserve genuine vault-level payouts without artificial allocation, keep BGC excluded and retain server-generated durable IDs plus server-owned asset kind and precision.
+- Keep the visible form, action feedback, repository, forced-RLS Preview persistence, wallets, game actions, providers and Production disabled.
