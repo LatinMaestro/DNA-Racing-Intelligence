@@ -82,6 +82,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    61 | Exact-head Actions capacity plan    | `agent/exact-head-actions-plan`                 | `11412fa3ea44cedf434a867a33c5c3aeea20bc7f` | PR the five-commit non-executable post-capacity plan after order 60                |
 |    62 | Exact-head Actions progress enforcement | `agent/exact-head-actions-progress`          | `aa142c0f91ddb41c9aae79230c8b21fc89580e2a` | PR the five-commit head-bound progress evaluator after order 61                    |
 |    63 | Cumulative rehearsal evidence boundary | `agent/cumulative-rehearsal-evidence`        | `0bb4ed5c2859cae3304cafbc3379f4213e80d756` | PR the five-commit fail-closed rehearsal evidence delta after order 62              |
+|    64 | Hosted check attestations           | `agent/hosted-check-attestations`              | `1a2ec2c8bcee41b13e1de40f4ae1eadb57f9a283` | PR the five-commit auditable check-evidence delta after order 63                    |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -797,6 +798,18 @@ hosted harness pass with zero production vulnerabilities; all three validated
 artifacts reconcile exactly. Connected forced-owner-RLS/provider evidence,
 full cumulative build execution and exact-head Actions remain pending. The
 evaluator cannot authorize a workflow, PR, merge, provider or Production change.
+
+### Hosted check attestations
+
+Replace bare cumulative pass flags with exact-head hosted attestations using
+reviewed fixed command identifiers, UTC execution bounds, exit codes and
+SHA-256 digests of redacted summaries. Stale heads, command substitution,
+failed/non-hosted checks, inverted time, unredacted output, private-data
+observation or non-synthetic import/recovery fixtures block evidence. Formatting,
+ESLint, strict TypeScript and the complete 45-file/325-test hosted harness pass
+with zero production vulnerabilities; all three implementation, test and
+contract blobs reconcile exactly. No private artifact, workflow, PR, provider
+or Production authority is created.
 
 ## Gate status and limitations
 
