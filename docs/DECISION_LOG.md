@@ -1988,3 +1988,19 @@ through` separately from `Last imported`.
   are complete.
 - Keep the forms disabled, persistence unavailable, private evidence unrecorded
   and every wallet, game, provider and Production capability absent.
+
+## 2026-07-26 — Manual ledger exact posting hardening
+
+- Canonicalize positive exact amounts, timestamps, asset codes, linked cores and
+  optional provenance before durable write-service fingerprinting.
+- Validate asset kind, category, direction and cost-basis enums at runtime and
+  require BGC to remain the distinct game-credit asset.
+- Materialize an internal transfer as one exact negative source-account posting
+  and one equal positive destination-account posting in the same asset; require
+  distinct accounts and keep both postings non-operating.
+- Require an explicit credit or debit direction for non-operating adjustments
+  and reject direction conflicts for fixed-direction categories.
+- Retain nullable cost-basis status on validated evidence and keep core-sale
+  proceeds partial with a missing-cost-basis warning until it is known.
+- Keep the staged forms disabled, repositories unavailable and every wallet,
+  game, provider, private Preview and Production capability absent.
