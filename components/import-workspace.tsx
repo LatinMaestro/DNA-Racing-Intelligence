@@ -1,3 +1,4 @@
+import { ImportProgressPanel } from "@/components/import-progress-panel";
 import type {
   HistoricalImportSource,
   ImportWorkspace,
@@ -205,6 +206,8 @@ export function ImportWorkspacePanel({
           ))}
         </div>
       </section>
+
+      <ImportProgressPanel batches={workspace.recentBatches} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section
