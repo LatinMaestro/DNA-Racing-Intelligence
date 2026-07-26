@@ -54,6 +54,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    33 | Bounded file preparation client       | `agent/import-file-preparation-client`           | `c7dea5ccd2a031e6c6d979b50ec0ca6b915bb234` | PR the five-commit checksum-preparation delta after order 32            |
 |    34 | Authenticated import confirmation     | `agent/import-confirmation-action-service`        | `fd499d1b5fa6d93fd833e80ef9e397a87f04aa88` | PR the seven-commit confirmation-action delta after order 33            |
 |    35 | Authenticated import recovery         | `agent/import-recovery-action-service`            | `7ecfc18d8d8307211da31f71e1885cc795c0e555` | PR the seven-commit recovery-action delta after order 34                |
+|    36 | Authenticated aggregate refresh retry | `agent/import-aggregate-retry-action-service`     | `6453a5761807441a833f5d23ab9884d022a4f36e` | PR the seven-commit aggregate-retry delta after order 35                 |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -202,6 +203,15 @@ idempotency and explicit acknowledgement while the transactional rollback
 repository remains unavailable. Its five implementation, test and contract
 blobs match the validated hosted files, and the exact head has no workflow run,
 status context or pull request.
+
+The authenticated aggregate-refresh retry descendant passes formatting, lint,
+strict TypeScript and nine synthetic retry/transport tests; the complete
+available hosted harness passes 122 tests and the production dependency audit
+reports zero vulnerabilities. It reserves and queues only failed refresh work,
+preserves exact queued replay and records sanitized queue failure while both
+provider capabilities remain unavailable. Its five implementation, test and
+contract blobs match the validated hosted files, and the exact head has no
+workflow run, status context or pull request.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -366,6 +376,15 @@ delegate only to the transactional recovery repository. Preserve provenance,
 restore only a prior accepted version and require a fresh aggregate refresh.
 Keep persistence unavailable so no rollback or provider mutation can occur.
 
+### Authenticated aggregate-refresh retry
+
+Resolve Clerk identity inside each retry request, require a durable failed
+refresh, meaningful reason, idempotency and explicit owner acknowledgement, then
+reserve and queue only one owner-scoped retry. Preserve queued replay, sanitize
+queue failures and keep source-version validation, bounded computation and
+atomic publication in the worker. Keep repository and queue providers
+unavailable so no aggregate or recommendation can change.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -394,24 +413,22 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Complete owner-scoped import completion, rollback and retry action
-   boundaries, with all persistence and provider capabilities fail-closed.
-2. Add completion/progress/recovery projections and an authenticated import UI
-   shell that cannot enable direct upload until a reviewed incremental hashing
-   implementation and configured provider adapters exist.
-3. Implement lazy, owner-scoped persistence/storage/queue adapter contracts and
-   synthetic RLS/idempotency tests without provisioning, secrets or private
-   source execution.
-4. Add authenticated forms/action boundaries for the staged manual ledger,
+1. Add completion, progress and recovery projections plus an authenticated
+   import UI shell that cannot enable direct upload until a reviewed incremental
+   hashing implementation and configured provider adapters exist.
+2. Implement lazy, owner-scoped persistence, storage and queue adapter contracts
+   with synthetic RLS and idempotency tests, without provisioning, secrets or
+   private source execution.
+3. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
-   wallet/game actions impossible.
-5. Continue Phase 9 chronological, freshness, recovery, capacity, security,
+   wallet and game actions impossible.
+4. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
-   it; preserve unavailable Maiden/breeding evidence honestly.
-6. Rehearse the cumulative hosted composition, run all available formatting,
+   it; preserve unavailable Maiden and breeding evidence honestly.
+5. Rehearse the cumulative hosted composition, run all available formatting,
    lint, strict types, TS/TSX tests, build, audit and privacy scans, and keep
    every exact branch head and limitation current in this queue.
-7. Prepare the 1 August exact-head Actions sequence without opening or updating
+6. Prepare the 1 August exact-head Actions sequence without opening or updating
    PRs, merging, dispatching workflows, changing providers or touching
    Production.
 
