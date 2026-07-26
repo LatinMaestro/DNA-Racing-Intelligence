@@ -30,6 +30,7 @@ const commands = {
   identity_lineage_integrity: "identity_lineage_integrity_attestation",
   private_real_file_import_assurance:
     "private_real_file_import_assurance_attestation",
+  nine_item_programme_completion: "nine_item_programme_completion_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -56,6 +57,7 @@ function attestations(): HostedCheckAttestation[] {
       check === "authoritative_source_contracts" ||
       check === "identity_lineage_integrity" ||
       check === "private_real_file_import_assurance" ||
+      check === "nine_item_programme_completion" ||
       check === "synthetic_import_replay_rollback_reconciliation",
   }));
 }
@@ -81,7 +83,7 @@ describe("hosted check attestations", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.checks).toHaveLength(20);
+    expect(result.checks).toHaveLength(21);
     expect(result.checks.every(({ state }) => state === "passed")).toBe(true);
   });
 
