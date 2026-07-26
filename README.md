@@ -110,6 +110,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_HOSTED_ANALYTICAL_VALIDATION_ATTESTATION.md`](docs/PHASE_9_HOSTED_ANALYTICAL_VALIDATION_ATTESTATION.md) — chronological aggregate-only analytical evidence, leakage and known-limitation controls
 - [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
+- [`docs/PHASE_9_HOSTED_ACCESSIBILITY_ATTESTATION.md`](docs/PHASE_9_HOSTED_ACCESSIBILITY_ATTESTATION.md) — exact-head keyboard, semantic, focus, contrast and responsive evidence contract
 
 ## Privacy
 
