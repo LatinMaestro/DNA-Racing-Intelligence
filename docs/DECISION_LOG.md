@@ -1962,3 +1962,10 @@ through` separately from `Last imported`.
 - Keep missing acquisition cost explicit, omit Genesis from burn choices and never predict a burn-credit amount.
 - Distinguish actual post-burn BGC credits from historical zero-economics Race Merge BGC rows.
 - Never request wallet credentials or signing material and never initiate a sale, burn, wallet, game, ownership or Production operation.
+
+## 2026-07-26 — Phase 9 readiness completeness
+
+- Report every evidence family already declared by the readiness assessment contract instead of silently ignoring private import, recovery, capacity, security/privacy, accessibility, migration and limitations evidence.
+- Keep not-run and unverified evidence review-required; block failed evidence, blocked gates, irreversible migrations, Production exposure and activation requests.
+- Reach ready-for-Gate-F review only after all technical evidence passes, while Gate F remains client-only.
+- Keep activation authorization and Production mutation false in every state.
