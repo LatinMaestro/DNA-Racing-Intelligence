@@ -145,20 +145,30 @@ describe("Vault Performance economic FormData", () => {
     );
   });
 
-  it("keeps transfers and directional adjustments disabled", () => {
+  it("creates balanced transfer and directional-adjustment inputs", () => {
     const transfer = manualLedgerForm();
     transfer.set("category", "transfer");
     transfer.set("subcategory", "internal_transfer");
-    expect(() => parseManualLedgerFormData(transfer, configuration())).toThrow(
-      "remain disabled",
-    );
+    transfer.delete("accountLabel");
+    transfer.set("fromAccountLabel", "Wallet A");
+    transfer.set("toAccountLabel", "Wallet B");
+    expect(parseManualLedgerFormData(transfer, configuration())).toMatchObject({
+      category: "transfer",
+      fromAccountLabel: "Wallet A",
+      toAccountLabel: "Wallet B",
+    });
 
     const adjustment = manualLedgerForm();
     adjustment.set("category", "adjustment");
     adjustment.set("subcategory", "balance_adjustment");
-    expect(() =>
+    adjustment.set("direction", "debit");
+    expect(
       parseManualLedgerFormData(adjustment, configuration()),
-    ).toThrow("remain disabled");
+    ).toMatchObject({
+      category: "adjustment",
+      direction: "debit",
+      accountLabel: "Owner wallet",
+    });
   });
 
   it("creates an unallocated payout with server-owned precision and ID", () => {
