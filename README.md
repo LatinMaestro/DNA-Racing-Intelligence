@@ -103,6 +103,7 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_9_OFFLINE_MERGE_READINESS.md`](docs/PHASE_9_OFFLINE_MERGE_READINESS.md) — deterministic exact-head no-Actions queue and dependency-readiness projection
 - [`docs/PHASE_9_EXACT_HEAD_ACTIONS_PLAN.md`](docs/PHASE_9_EXACT_HEAD_ACTIONS_PLAN.md) — serial post-capacity rebase, validation, exact-head CI and merge preflight contract
 - [`docs/PHASE_9_EXACT_HEAD_ACTIONS_PROGRESS.md`](docs/PHASE_9_EXACT_HEAD_ACTIONS_PROGRESS.md) — head-bound serial evidence, stale-result invalidation and post-merge main verification
+- [`docs/PHASE_9_CUMULATIVE_REHEARSAL_EVIDENCE.md`](docs/PHASE_9_CUMULATIVE_REHEARSAL_EVIDENCE.md) — exact-head cumulative checks, reversible migration proof and fail-closed limitations
 - [`docs/OFFLINE_INTEGRATION_REHEARSAL.md`](docs/OFFLINE_INTEGRATION_REHEARSAL.md) — prerequisite and Phase 2–9 composition, defect resolution, validation evidence and remaining database boundary
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
