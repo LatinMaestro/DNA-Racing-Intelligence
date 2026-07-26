@@ -7,7 +7,15 @@ import {
   recordBreedingEconomicEvidence,
   unavailableBreedingEconomicWriteRepository,
 } from "@/lib/breeding-economic-write-service";
+import {
+  parseBreedingEconomicEvidenceFormData,
+  parseOffspringCostBasisFormData,
+} from "@/lib/breeding-economic-form-data";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
 import { runEconomicActionForFeedback } from "@/lib/economic-action-feedback-service";
 
 type OffspringCostBasisRequest = Omit<
@@ -48,6 +56,19 @@ export async function recordBreedingEconomicEvidenceFeedbackAction(
   });
 }
 
+export async function recordBreedingEconomicEvidenceFormAction(
+  formData: FormData,
+) {
+  return runEconomicFormAction({
+    operation: "breeding_evidence",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseBreedingEconomicEvidenceFormData,
+  });
+}
+
 export async function assignOffspringCostBasisAction(
   assignment: OffspringCostBasisRequest,
 ) {
@@ -65,5 +86,16 @@ export async function assignOffspringCostBasisFeedbackAction(
   return runEconomicActionForFeedback({
     operation: "offspring_cost_basis",
     execute: () => assignOffspringCostBasisAction(assignment),
+  });
+}
+
+export async function assignOffspringCostBasisFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    operation: "offspring_cost_basis",
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseOffspringCostBasisFormData,
   });
 }
