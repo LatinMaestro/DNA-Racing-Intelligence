@@ -1857,3 +1857,13 @@ through` separately from `Last imported`.
 - Keep concrete provider provisioning, credentials, database access, object transfer, queue dispatch and private-source execution outside this contract.
 - Require later concrete persistence adapters to prove forced owner RLS and operation-level idempotency; this bundle does not claim that evidence.
 - Keep all application adapters unavailable, direct upload disabled, Preview imports gated and Production fail-closed.
+
+## 2026-07-26 — Owner-scoped import persistence operation boundary
+
+- Correct the prior adapter-bundle description: the server-only bundle contains persistence, private object storage, preview queue, background queue and capacity-gate adapters; incremental SHA-256 remains a separate browser capability.
+- Add one provider-neutral persistence operation adapter that validates the database-owner UUID and authenticated Clerk identity before lazy driver initialization.
+- Establish transaction-local owner scope and require the database to echo that exact scope before any owner verification or operation reservation.
+- Verify the database-owner and Clerk-user binding in the same transaction and require both row-level security and forced row-level security evidence.
+- Reserve upload, completion, preview, activation, recovery and aggregate-retry operations with a bounded idempotency key, exact SHA-256 request fingerprint and canonical UTC timestamp.
+- Treat an existing reservation as replay only when the stored fingerprint matches exactly; conflicting evidence under one idempotency key fails closed and rolls back.
+- Keep the concrete Neon driver, live policy verification, schema changes, provider credentials, private source execution, Preview imports and Production disabled.
