@@ -2037,3 +2037,13 @@ through` separately from `Last imported`.
 - Distinguish a new durable record, exact idempotent replay, review-required evidence and conflicting durable identity.
 - Keep owner verification and forced-RLS persistence blockers explicit rather than presenting a false success state.
 - Keep every economic form disabled and keep wallets, game actions, providers, private persistence and Production outside this projection.
+
+
+## 2026-07-26 — Economic action feedback Server Actions
+
+- Add feedback-returning variants for manual ledger, tournament payout, breeding, offspring cost basis, sale, burn and actual burn-credit Server Actions.
+- Delegate through the existing action on every invocation so Clerk identity is re-resolved and checked before persistence.
+- Translate fixed service outcomes only: preserve unavailable persistence, recorded and replayed states, and map held breeding evidence to review-required.
+- Use typed internal owner-denial and durable-conflict errors so feedback never inspects or exposes raw exception text.
+- Collapse every other exception to generic fail-closed feedback with no submitted value, fingerprint, owner identity or provider detail.
+- Keep strict parser form integration and forced-RLS Preview execution pending; all forms, repositories, wallets, game actions, providers and Production remain disabled.
