@@ -1954,3 +1954,11 @@ through` separately from `Last imported`.
 - Preserve original assets and BGC separation; Arena listings cannot create income or expenses and cost basis cannot infer market value or realised gain.
 - Require confirmed actual costs and confirmed owned offspring before a future cost-basis assignment can pass review.
 - Never request wallet credentials or signing material and never initiate a splice, wallet, game, ownership or Production operation.
+
+## 2026-07-26 — Lifecycle economic form shell
+
+- Render separate semantic completed-sale, completed non-Genesis burn and actual post-burn BGC-credit forms inside the authenticated Lifecycle Server Component.
+- Keep every fieldset and submit button disabled while strict parsing, durable IDs, action feedback and forced-RLS persistence are unavailable.
+- Keep missing acquisition cost explicit, omit Genesis from burn choices and never predict a burn-credit amount.
+- Distinguish actual post-burn BGC credits from historical zero-economics Race Merge BGC rows.
+- Never request wallet credentials or signing material and never initiate a sale, burn, wallet, game, ownership or Production operation.
