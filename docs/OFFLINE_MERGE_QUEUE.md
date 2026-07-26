@@ -70,8 +70,8 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    49 | Breeding economic forms           | `agent/breeding-economic-forms-v2`             | `4bfbc496b82adddb6db085efcbff430cb3adc9db` | PR the six-commit disabled breeding-form delta after order 48                 |
 |    50 | Lifecycle economic forms          | `agent/lifecycle-economic-forms`               | `b6a964ac9669c02b76e30c28498d18445c1522d9` | PR the six-commit disabled lifecycle-form delta after order 49                |
 |    51 | Phase 9 readiness runtime hardening | `agent/phase-9-readiness-completeness`        | `1eb67e32beb7dd91444d9c39f29565496f073b0c` | PR the exact five-file runtime-evidence delta after order 50                  |
-|    52 | Vault Performance strict FormData | `agent/vault-performance-economic-form-data` | `2ebb58164aa9c5f620e379d7fe88b6eca0bb7741` | PR the five-commit strict parsing/ID delta after order 51                       |
-|    53 | Manual ledger authoritative hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the nine-commit canonical posting delta after order 52                       |
+|    52 | FormData validation precursor     | `agent/vault-performance-economic-form-data` | `2ebb58164aa9c5f620e379d7fe88b6eca0bb7741` | Do not PR alone; authoritative-domain compatibility is corrected by order 53   |
+|    53 | Strict FormData and ledger hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the combined authoritative parser/posting delta after order 51               |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -635,7 +635,10 @@ BGC remains separate and excluded from tournament payouts. Ten focused parser
 tests pass inside the complete 34-file/230-test hosted harness; all three
 implementation, test and contract blobs reconcile exactly. Forms, transfer and
 adjustment postings, per-core allocation controls, action feedback, persistence,
-providers and Production remain disabled.
+providers and Production remain disabled. This standalone precursor is
+not a merge candidate because its isolated harness used a stale manual-ledger
+type shape; the dependent authoritative-domain branch below corrects that
+compatibility before exact-head CI.
 
 ### Manual ledger authoritative hardening
 
