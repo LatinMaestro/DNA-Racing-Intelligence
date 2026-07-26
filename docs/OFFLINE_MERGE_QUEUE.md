@@ -72,6 +72,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    51 | Phase 9 readiness runtime hardening | `agent/phase-9-readiness-completeness`        | `1eb67e32beb7dd91444d9c39f29565496f073b0c` | PR the exact five-file runtime-evidence delta after order 50                  |
 |    52 | FormData validation precursor     | `agent/vault-performance-economic-form-data` | `2ebb58164aa9c5f620e379d7fe88b6eca0bb7741` | Do not PR alone; authoritative-domain compatibility is corrected by order 53   |
 |    53 | Strict FormData and ledger hardening | `agent/manual-ledger-posting-hardening-v2` | `578a9ecb38ce86782ddd4ae1c70fbbf79dcff92d` | PR the combined authoritative parser/posting delta after order 51               |
+|    54 | Tournament payout allocation parser | `agent/tournament-payout-allocation-form-data` | `cd1fbf94d6e95168db7e63354e78dcf3fbd679d8` | PR the six-commit strict repeated-row allocation delta after order 53             |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -652,6 +653,17 @@ exactly and the authoritative pre-existing domain suite is unchanged. Forms,
 action feedback, persistence, providers, wallets, game actions and Production
 remain disabled.
 
+### Manual tournament payout allocation FormData
+
+Parse bounded repeated allocation rows for single-core, equal, exact-amount,
+exact-percentage and documented-points manual tournament payouts. Reject fields
+that do not belong to the selected method, preserve deterministic unique core
+pairing and delegate exact reconciliation plus asset-precision apportionment to
+the authoritative payout domain. Four additional parser tests pass inside the
+complete 35-file/242-test hosted harness; all three implementation, test and
+contract blobs reconcile exactly. The visible form, action feedback,
+persistence, providers, wallets, game actions and Production remain disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -685,10 +697,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
    evidence exist. Keep provisioning, secrets, private-source execution and the
    direct-upload form disabled until the full bundle has connected
    synthetic/hosted evidence.
-2. Complete conditional tournament allocation controls and repeated-row
-   parsing, then add strict breeding and lifecycle FormData boundaries. Enable
-   any staged economic form only alongside server-generated durable IDs,
-   accessible action feedback and forced-RLS persistent Preview evidence.
+2. Add strict breeding and lifecycle FormData boundaries. Enable any staged
+   economic form only alongside server-generated durable IDs, accessible action
+   feedback and forced-RLS persistent Preview evidence.
 3. Continue Phase 9 chronological, freshness, recovery, capacity, security,
    accounting and accessibility evidence where the supplied history supports
    it; preserve unavailable Maiden and breeding evidence honestly.
