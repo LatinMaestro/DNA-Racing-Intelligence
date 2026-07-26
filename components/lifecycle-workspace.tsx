@@ -1,3 +1,4 @@
+import { LifecycleEconomicForms } from "@/components/lifecycle-economic-forms";
 import type { LifecycleActionRankingResult } from "@/domain/lifecycle-action-ranking";
 import type { LifecycleWorkspaceConnectionStatus } from "@/lib/lifecycle-workspace-service";
 
@@ -179,6 +180,14 @@ export function LifecycleWorkspace({
           </ul>
         )}
       </section>
+
+      <LifecycleEconomicForms
+        status={
+          connectionStatus === "identity_not_connected"
+            ? "identity_not_connected"
+            : "persistence_not_configured"
+        }
+      />
     </div>
   );
 }
