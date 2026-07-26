@@ -22,7 +22,7 @@ const manualEntry = {
   assetKind: "crypto" as const,
   amount: "1.25",
   category: "income" as const,
-  subcategory: "synthetic-evidence",
+  subcategory: "other_income" as const,
 };
 
 const payout = {
