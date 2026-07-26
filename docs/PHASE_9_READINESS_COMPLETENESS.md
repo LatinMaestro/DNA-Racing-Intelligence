@@ -2,9 +2,10 @@
 
 ## Status
 
-The private readiness projection now reports every evidence family declared by
-its persisted assessment contract. The projection remains non-executable and
-cannot enable Production.
+The private readiness projection reports every evidence family declared by its
+persisted assessment contract and rejects malformed runtime evidence before it
+can affect a readiness result. The projection remains non-executable and cannot
+enable Production.
 
 ## Contract
 
@@ -18,6 +19,10 @@ cannot enable Production.
 - Reach `ready_for_gate_f_review` only after every technical check passes.
 - Keep Gate F client-only. Recording Gate F never authorizes activation or a
   Production mutation.
+- Validate assessment identity, the exact-head SHA, review-gate and operational
+  enums, migration state and every boolean flag at runtime.
+- Reject string-like booleans such as `"false"` rather than allowing JavaScript
+  truthiness to distort the fail-closed assessment.
 - Use synthetic evidence only in Git and routine validation.
 
 ## Current limitations
