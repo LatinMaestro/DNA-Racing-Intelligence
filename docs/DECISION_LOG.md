@@ -2012,3 +2012,11 @@ through` separately from `Last imported`.
 - Delegate exact amount reconciliation, 100% percentage validation, positive documented points, asset-precision checks and largest-remainder apportionment to the authoritative payout domain.
 - Preserve genuine vault-level payouts without artificial allocation, keep BGC excluded and retain server-generated durable IDs plus server-owned asset kind and precision.
 - Keep the visible form, action feedback, repository, forced-RLS Preview persistence, wallets, game actions, providers and Production disabled.
+
+## 2026-07-26 — Breeding economic FormData boundary
+
+- Parse manual completed/refunded breeding evidence through an explicit-offset, exact-decimal boundary with two distinct parents, a required audit note and category-derived direction.
+- Generate new evidence and transaction durable IDs server-side, resolve asset kind from reviewed configuration and keep BGC separate.
+- Build offspring cost-basis requests only from server-confirmed owned offspring, completed breeding events and selected persisted cost/refund transaction evidence.
+- Reject browser-restated cost facts, cross-event transactions, refund-only selections, unconfigured assets and a selected refund without its referenced cost.
+- Keep duplicate-assignment discovery in the owner-scoped repository and keep forms, action feedback, forced-RLS Preview persistence, splices, wallets, game actions, providers and Production disabled.
