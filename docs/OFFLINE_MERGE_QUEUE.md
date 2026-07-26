@@ -59,6 +59,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    38 | Import provider adapter bundle       | `agent/import-provider-adapter-bundle`         | `ce0aafcc446d7cb808dbf4c5aafb1e25e628a80a` | PR the five-commit lazy owner-bound adapter delta after order 37         |
 |    39 | Import persistence operation adapter | `agent/import-persistence-operation-adapter`   | `6317d2f39c767e82586e8e6d6e62f21d5fdeea17` | PR the five-commit forced-RLS/idempotency delta after order 38            |
 |    40 | Browser incremental SHA-256          | `agent/import-incremental-sha256`              | `eb364fdf6a383318fffc4bf2e09e020fad51a4f9` | PR the five-commit bounded hashing delta after order 39                   |
+|    41 | Neon import persistence driver     | `agent/import-neon-persistence-driver`          | `c5c778166c6cfd2992622e87b16b1002ec9b118c` | PR the ten-commit driver/migration delta after order 40                   |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -256,6 +257,17 @@ vectors pass, as do one-byte and 63/64/65-byte boundaries and bounded file
 preparation. Its three implementation, test and contract blobs match the
 validated hosted files byte-for-byte; the exact five-file delta has no workflow
 run, status context or pull request. No form or provider is enabled.
+
+The Neon persistence descendant passes formatting, lint, strict TypeScript and
+six new driver tests; the complete available hosted harness passes 22 test files
+and 157 tests and the production dependency audit reports zero vulnerabilities.
+All six implementation, test, migration and contract artifacts match the
+validated hosted files byte-for-byte; the exact nine-file delta has no workflow
+run, status context or pull request. Migration 0010 contains forward, synthetic
+smoke and reverse SQL and is wired into the future migration job, but PostgreSQL
+execution remains pending because this workspace has no PostgreSQL runtime.
+No database URL, provider connection, Preview import or Production capability is
+enabled.
 
 Hosted validation is useful staging evidence but is not a substitute for
 mandatory exact-head Actions.
@@ -463,6 +475,14 @@ idempotently and carry no owner, filename, provider or storage capability. Keep
 the background preview stream authoritative and leave the form and providers
 disabled.
 
+### Neon import persistence driver
+
+Open one short-lived Neon WebSocket pool only after configured use, execute owner
+scope, Clerk binding, live forced-RLS evidence and durable reservation in one
+serializable transaction, and close on success or rollback. Apply reversible
+migration 0010 before connecting the driver. Keep the database URL, providers,
+private-source execution, Preview imports and Production disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -491,9 +511,9 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Implement the concrete Neon transaction driver and reversible policy/schema
-   verification behind the persistence contract, plus private-storage, queue and
-   capacity adapters behind the lazy bundle. Keep provisioning, secrets,
+1. Implement private-storage, preview/background queue and capacity adapters
+   behind the lazy bundle, then connect the staged Neon driver only after
+   migration 0010 has reversible PostgreSQL evidence. Keep provisioning, secrets,
    private-source execution and the direct-upload form disabled until the full
    bundle has connected synthetic evidence.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
