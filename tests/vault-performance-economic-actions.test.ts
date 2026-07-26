@@ -11,8 +11,10 @@ vi.mock("../lib/clerk-owner-session", () => ({
 import {
   decideManualTournamentPayoutReconciliationFeedbackAction,
   decideManualTournamentPayoutReconciliationAction,
+  recordManualLedgerFormAction,
   recordManualLedgerEntryFeedbackAction,
   recordManualLedgerEntryAction,
+  recordManualTournamentPayoutFormAction,
   recordManualTournamentPayoutFeedbackAction,
   recordManualTournamentPayoutAction,
   reverseManualLedgerEntryFeedbackAction,
@@ -178,5 +180,39 @@ describe("Vault Performance economic Server Actions", () => {
         rawErrorEchoed: false,
       });
     }
+  });
+
+  it("keeps both strict FormData actions unavailable before parsing", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId
+      .mockResolvedValueOnce("owner-1")
+      .mockResolvedValueOnce("owner-1");
+
+    const results = await Promise.all([
+      recordManualLedgerFormAction(new FormData()),
+      recordManualTournamentPayoutFormAction(new FormData()),
+    ]);
+
+    expect(results).toHaveLength(2);
+    for (const result of results) {
+      expect(result).toMatchObject({
+        title: "Evidence recording is unavailable",
+        submittedValuesEchoed: false,
+        rawErrorEchoed: false,
+      });
+    }
+  });
+
+  it("denies a non-owner FormData action before parser access", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("other-owner");
+
+    await expect(
+      recordManualLedgerFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      title: "Owner verification required",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
   });
 });
