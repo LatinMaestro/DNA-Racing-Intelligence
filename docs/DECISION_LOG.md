@@ -2057,3 +2057,12 @@ through` separately from `Last imported`.
 - Require a future connected capability to supply reviewed server-side parser configuration and an owner-bound executor; the browser cannot choose durable identities, ownership, event state, asset precision or authoritative evidence.
 - Collapse strict parser rejection to generic invalid-input feedback and unexpected execution failure to a generic fail-closed response without submitted values, arbitrary field names or raw provider errors.
 - Keep every visible form disabled and leave forced-RLS Preview evidence, reversible PostgreSQL execution, providers, wallets, game actions and Production pending.
+
+## 2026-07-26 — Phase 9 offline merge readiness
+
+- Project the offline handoff as a strict, non-executable exact-head queue rather than treating maintained Markdown as merge authority.
+- Require unique positive order, focused `agent/` branches, lowercase 40-character SHAs, explicit candidate/precursor disposition, the prior real merge-candidate dependency and non-negative staging evidence counts.
+- Exclude non-merge precursors from the eventual PR sequence while requiring every merge candidate to form one dependency chain across any skipped precursor.
+- Keep an unverified remote head or unrun hosted validation review-required; block head mismatch, failed validation, broken dependency or any workflow, status context or pull request on a no-Actions staging branch.
+- Block provider drift, private data in Git, public routes, recurring paid infrastructure or any Production enablement.
+- A complete result means only `ready_for_exact_head_ci`; merge, workflow dispatch and Production mutation remain false until post-capacity rebase, complete validation, exact-head Actions and focused review pass.
