@@ -2148,3 +2148,12 @@ through` separately from `Last imported`.
 - Require connected evidence for forced owner RLS, revoked public database access and private object storage; repository contracts alone remain insufficient.
 - Block stale heads, manifest drift, failed assertions, public access, secret exposure, private data and retained private artifacts.
 - Add security/privacy to cumulative rehearsal and exact-head preflight while denying workflow, merge, paid-service, public-exposure, secret-collection and Production authority.
+
+## 2026-07-26 — Hosted capacity attestations
+
+- Bind bounded streaming memory, preview row budgets, queue throughput/recovery, database and object-storage capacity, authenticated request/aggregate latency, provider headroom and fail-closed degradation to one exact candidate head.
+- Require reviewed capacity and synthetic-workload manifests, fixed command identities, exact UTC bounds, complete assertions and redacted summary digests.
+- Compare every non-negative observed value against a positive approved limit and require complete synthetic workloads without retained private artifacts.
+- Require connected evidence for provider-backed controls; missing controls remain review-required.
+- Block stale heads, manifest drift, failed or incomplete workloads, over-limit results, private-data observation and unconnected provider claims.
+- Keep execution, provider changes, paid services, Actions, merge and Production outside this evidence-only boundary.
