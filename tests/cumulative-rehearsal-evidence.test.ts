@@ -24,6 +24,7 @@ function input(): CumulativeRehearsalEvidenceInput {
       "dependency_audit",
       "privacy_scan",
       "security_privacy",
+      "performance_capacity",
       "synthetic_import_replay_rollback_reconciliation",
     ].map((name) => ({
       name,
@@ -62,7 +63,7 @@ describe("cumulative rehearsal evidence", () => {
       workflowDispatchAllowed: false,
       productionMutationAllowed: false,
     });
-    expect(result.passedChecks).toHaveLength(11);
+    expect(result.passedChecks).toHaveLength(12);
     expect(result.issues).toEqual([]);
   });
 
