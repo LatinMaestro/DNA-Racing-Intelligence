@@ -58,24 +58,11 @@ export type PrivateProductionReadiness = {
   gateFStatus: "client_only";
 };
 
-function check(
-  code: ProductionReadinessCheck["code"],
-  status: ProductionReadinessCheck["status"],
-  detail: string,
-): ProductionReadinessCheck {
-  return { code, status, detail };
-}
-
-function evidenceCheck(
-  code: ProductionReadinessCheck["code"],
+function evidenceStatus(
   state: ReadinessEvidenceState,
-  detail: string,
-): ProductionReadinessCheck {
-  return check(
-    code,
-    state === "passed" ? "pass" : state === "failed" ? "block" : "review",
-    detail,
-  );
+): ProductionReadinessCheck["status"] {
+  if (state === "passed") return "pass";
+  return state === "failed" ? "block" : "review";
 }
 
 export function assessPrivateProductionReadiness(
@@ -87,134 +74,108 @@ export function assessPrivateProductionReadiness(
   if (!/^[0-9a-f]{40}$/i.test(input.exactHeadSha)) {
     throw new Error("Exact-head SHA must contain 40 hexadecimal characters.");
   }
-
-  const gateStates = Object.values(input.gates);
-  if (
-    gateStates.some(
-      (state) => !["accepted", "not_accepted", "blocked"].includes(state),
-    )
-  ) {
-    throw new Error("Review-gate evidence state is invalid.");
-  }
-  const operationalStates = [
-    input.exactHeadCi,
-    input.representativePrivateImport,
-    input.recoveryValidation,
-    input.performanceCapacity,
-    input.securityPrivacy,
-    input.accessibilityResponsive,
-  ];
-  if (
-    operationalStates.some(
-      (state) => !["passed", "not_run", "failed"].includes(state),
-    )
-  ) {
-    throw new Error("Operational readiness evidence state is invalid.");
-  }
-  if (
-    !["reversible_verified", "not_verified", "irreversible"].includes(
-      input.migrations,
-    )
-  ) {
-    throw new Error("Migration readiness state is invalid.");
-  }
   const checks: ProductionReadinessCheck[] = [
-    check(
-      "GATES_A_TO_E",
-      gateStates.some((state) => state === "blocked")
+    {
+      code: "GATES_A_TO_E",
+      status: Object.values(input.gates).some((state) => state === "blocked")
         ? "block"
-        : gateStates.every((state) => state === "accepted")
+        : Object.values(input.gates).every((state) => state === "accepted")
           ? "pass"
           : "review",
-      "Every evidence gate from A to E must be accepted before Gate F review.",
-    ),
-    evidenceCheck(
-      "EXACT_HEAD_CI",
-      input.exactHeadCi,
-      "Complete CI must pass against the exact assessed repository head.",
-    ),
-    evidenceCheck(
-      "REPRESENTATIVE_PRIVATE_IMPORT",
-      input.representativePrivateImport,
-      "A representative private import must pass its approved protected-environment controls.",
-    ),
-    evidenceCheck(
-      "RECOVERY_VALIDATION",
-      input.recoveryValidation,
-      "Import rollback, replay and aggregate recovery evidence must pass.",
-    ),
-    evidenceCheck(
-      "PERFORMANCE_CAPACITY",
-      input.performanceCapacity,
-      "Representative large-history latency and resource evidence must pass.",
-    ),
-    evidenceCheck(
-      "SECURITY_PRIVACY",
-      input.securityPrivacy,
-      "The exact-head security and privacy audit must pass.",
-    ),
-    evidenceCheck(
-      "ACCESSIBILITY_RESPONSIVE",
-      input.accessibilityResponsive,
-      "Applicable private workflows require accessibility and responsive evidence.",
-    ),
-    check(
-      "MIGRATION_SAFETY",
-      input.migrations === "reversible_verified"
-        ? "pass"
-        : input.migrations === "irreversible"
-          ? "block"
-          : "review",
-      "Applicable database migrations must be reviewed and reversibly verified.",
-    ),
-    check(
-      "KNOWN_LIMITATIONS",
-      input.knownLimitationsDocumented ? "pass" : "review",
-      "Known limitations and deferred items must be documented.",
-    ),
+      detail: "Every evidence gate from A to E must be accepted.",
+    },
+    {
+      code: "EXACT_HEAD_CI",
+      status: evidenceStatus(input.exactHeadCi),
+      detail: "Complete CI must pass against the exact assessed head.",
+    },
+    {
+      code: "REPRESENTATIVE_PRIVATE_IMPORT",
+      status: evidenceStatus(input.representativePrivateImport),
+      detail:
+        "A representative private Preview import must pass without exposing source rows.",
+    },
+    {
+      code: "RECOVERY_VALIDATION",
+      status: evidenceStatus(input.recoveryValidation),
+      detail:
+        "Replay, rollback and aggregate-recovery evidence must pass for the assessed head.",
+    },
+    {
+      code: "PERFORMANCE_CAPACITY",
+      status: evidenceStatus(input.performanceCapacity),
+      detail:
+        "Bounded-memory processing, provider capacity and routine-request performance must pass.",
+    },
+    {
+      code: "SECURITY_PRIVACY",
+      status: evidenceStatus(input.securityPrivacy),
+      detail:
+        "Owner isolation, privacy scans, secret handling and fail-closed provider boundaries must pass.",
+    },
+    {
+      code: "ACCESSIBILITY_RESPONSIVE",
+      status: evidenceStatus(input.accessibilityResponsive),
+      detail:
+        "Authenticated workflows must pass keyboard, screen-reader and responsive review.",
+    },
+    {
+      code: "MIGRATION_SAFETY",
+      status:
+        input.migrations === "reversible_verified"
+          ? "pass"
+          : input.migrations === "irreversible"
+            ? "block"
+            : "review",
+      detail:
+        "PostgreSQL migrations must be applied, smoke-tested and reversibly verified.",
+    },
+    {
+      code: "KNOWN_LIMITATIONS",
+      status: input.knownLimitationsDocumented ? "pass" : "review",
+      detail:
+        "Known limitations and unavailable evidence must remain explicit.",
+    },
+    {
+      code: "PRODUCTION_FAIL_CLOSED",
+      status:
+        input.productionDisabled &&
+        !input.customDomainAttached &&
+        !input.publicRoutesExposed &&
+        !input.fullPrivateDataInProduction &&
+        !input.recurringPaidInfrastructureEnabled
+          ? "pass"
+          : "block",
+      detail: "Production must remain fail-closed.",
+    },
+    {
+      code: "GATE_F_OWNER_APPROVAL",
+      status: input.ownerGateFApproval ? "pass" : "review",
+      detail: "Gate F remains client-only.",
+    },
+    {
+      code: "NON_EXECUTABLE_ASSESSMENT",
+      status: input.activationRequested ? "block" : "pass",
+      detail: "Assessment cannot activate Production.",
+    },
   ];
-
-  const failClosed =
-    input.productionDisabled &&
-    !input.customDomainAttached &&
-    !input.publicRoutesExposed &&
-    !input.fullPrivateDataInProduction &&
-    !input.recurringPaidInfrastructureEnabled;
-  checks.push(
-    check(
-      "PRODUCTION_FAIL_CLOSED",
-      failClosed ? "pass" : "block",
-      "Production must remain disabled with no domain, public routes, full private data or recurring paid infrastructure.",
-    ),
+  const technicalChecks = checks.filter(
+    ({ code }) =>
+      code !== "GATE_F_OWNER_APPROVAL" && code !== "NON_EXECUTABLE_ASSESSMENT",
   );
-  checks.push(
-    check(
-      "GATE_F_OWNER_APPROVAL",
-      input.ownerGateFApproval ? "pass" : "review",
-      "Gate F requires explicit owner approval and remains client-only.",
-    ),
+  const hasBlocker = checks.some(({ status }) => status === "block");
+  const technicalEvidencePassed = technicalChecks.every(
+    ({ status }) => status === "pass",
   );
-  checks.push(
-    check(
-      "NON_EXECUTABLE_ASSESSMENT",
-      input.activationRequested ? "block" : "pass",
-      "This assessment records evidence only and cannot activate or mutate Production.",
-    ),
-  );
-
-  const nonGateFChecks = checks.filter(
-    (item) => item.code !== "GATE_F_OWNER_APPROVAL",
-  );
-  const status = checks.some((item) => item.status === "block")
-    ? "blocked"
-    : nonGateFChecks.some((item) => item.status === "review")
-      ? "review_required"
-      : input.ownerGateFApproval
-        ? "gate_f_approval_recorded"
-        : "ready_for_gate_f_review";
 
   return {
-    status,
+    status: hasBlocker
+      ? "blocked"
+      : technicalEvidencePassed
+        ? input.ownerGateFApproval
+          ? "gate_f_approval_recorded"
+          : "ready_for_gate_f_review"
+        : "review_required",
     checks,
     activationAuthorized: false,
     productionMutationAllowed: false,
