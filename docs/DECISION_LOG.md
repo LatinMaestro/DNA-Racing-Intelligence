@@ -1913,3 +1913,11 @@ through` separately from `Last imported`.
 - Keep approved limits, evidence age and reserved headroom in reviewed configuration rather than hardcoded product rules.
 - Stop before upload or activation when current usage plus the projection crosses usable capacity after reserved headroom. The adapter cannot opt into a paid tier.
 - Keep real provider measurements, private uploads, Preview activation, provider upgrades and Production unconfigured.
+
+## 2026-07-26 — Vault Performance economic Server Actions
+
+- Resolve Clerk identity inside every manual ledger, append-only reversal, tournament payout and payout-reconciliation action; never accept owner identity from the browser.
+- Delegate only to the existing exact asset-separated, idempotent write services and preserve their conflict, allocation and duplicate-review rules.
+- Keep both repositories explicitly unavailable until owner-scoped forced-RLS persistence is connected and validated.
+- Do not call a wallet or game system, mutate ownership, accept signing material, record private economic evidence or change Production.
+- Keep accessible authenticated forms and persistent Preview evidence as later focused work.
