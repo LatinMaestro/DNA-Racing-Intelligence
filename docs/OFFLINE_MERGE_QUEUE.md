@@ -84,6 +84,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    63 | Cumulative rehearsal evidence boundary | `agent/cumulative-rehearsal-evidence`        | `0bb4ed5c2859cae3304cafbc3379f4213e80d756` | PR the five-commit fail-closed rehearsal evidence delta after order 62              |
 |    64 | Hosted check attestations           | `agent/hosted-check-attestations`              | `1a2ec2c8bcee41b13e1de40f4ae1eadb57f9a283` | PR the five-commit auditable check-evidence delta after order 63                    |
 |    65 | Hosted migration attestations       | `agent/hosted-migration-attestations`          | `a031a67c64446fb619d6555ac17f6b1de91e30b3` | PR the five-commit reversible PostgreSQL evidence delta after order 64            |
+|    66 | Hosted privacy attestations         | `agent/hosted-privacy-attestations`            | `7ab9b922f923834f8ac69e6adf19bb189b230e80` | PR the five-commit exact-head privacy evidence delta after order 65                |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -822,6 +823,17 @@ strict TypeScript and the complete 46-file/334-test hosted harness pass with
 zero production vulnerabilities; all three implementation, test and contract
 blobs reconcile exactly. PostgreSQL runtime execution remains unavailable and
 unclaimed. No private artifact, provider or Production authority is created.
+
+### Hosted privacy attestations
+
+Require exact-head privacy evidence for the current tree, candidate diff,
+reachable history, synthetic fixtures and retained outputs. Fixed command IDs,
+scope and redacted-summary digests, complete coverage and zero findings are
+mandatory; stale, incomplete, unredacted, observed or retained private evidence
+fails closed. Formatting, ESLint, strict TypeScript and the complete
+47-file/342-test hosted harness pass with zero production vulnerabilities; all
+three implementation, test and contract blobs reconcile exactly. No scan output,
+private artifact, workflow, merge or Production authority is created.
 
 ## Gate status and limitations
 
