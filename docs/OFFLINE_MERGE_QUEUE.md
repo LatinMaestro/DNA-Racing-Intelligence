@@ -62,6 +62,7 @@ Mode: no-Actions staging; no merge or pull-request mutation authorized
 |    41 | Neon import persistence driver     | `agent/import-neon-persistence-driver`          | `c5c778166c6cfd2992622e87b16b1002ec9b118c` | PR the ten-commit driver/migration delta after order 40                   |
 |    42 | Cloudflare R2 object storage       | `agent/import-cloudflare-r2-object-storage`     | `704537fc78cfcd99ca0743e12823252d48d8a7c9` | PR the seven-commit private-object adapter delta after order 41            |
 |    43 | Cloudflare import queue adapter    | `agent/import-cloudflare-queue-adapter`         | `d188879f248b5f45e12aeb5be2a840b1e4b97523` | PR the five-commit preview/background queue delta after order 42            |
+|    44 | Import provider capacity adapter  | `agent/import-provider-capacity-adapter`        | `70e5a82f758044aec088a652d1d29d93b91eb615` | PR the five-commit fresh-capacity delta after order 43                       |
 
 The integration rehearsal and application branches are staging evidence, not
 permission to bypass the sequential merge order. Shared append-only documents
@@ -527,6 +528,18 @@ for replay. Require future consumers to acknowledge or retry every message
 independently. Keep provisioning, bindings, real messages, Preview activation
 and Production disabled.
 
+### Import provider capacity
+
+Bind one lazy capacity port to the verified owner, measure upload and activation
+projections separately, and require fresh provider API evidence for R2 storage,
+R2 Class A/B operations, Neon storage and queue backlog. Reserve configured
+headroom, reject missing, duplicate, stale, future or malformed evidence, and
+stop before upload or activation when projected use crosses usable capacity.
+Eight new synthetic tests pass inside the complete 25-file/188-test hosted
+harness; all three implementation, test and contract blobs reconcile exactly.
+Keep real provider measurements, paid-tier changes, private uploads, Preview
+activation and Production disabled.
+
 ### Lifecycle, Open Race and readiness reads
 
 Lifecycle preserves unresolved value, forbids Genesis burn, keeps actual BGC
@@ -555,11 +568,11 @@ and blockers while remaining non-executable and keeping Gate F client-only.
 
 ## Remaining no-Actions programme before 1 August
 
-1. Implement the capacity adapter behind the lazy bundle, then connect the
-   staged Neon, R2 and Cloudflare Queue drivers only after migration 0010,
-   private-bucket/CORS, queue-consumer/DLQ and provider-capacity evidence exist.
-   Keep provisioning, secrets, private-source execution and the direct-upload
-   form disabled until the full bundle has connected synthetic evidence.
+1. Connect the staged Neon, R2, Queue and capacity adapters only after
+   migration 0010, private-bucket/CORS, queue-consumer/DLQ and provider-capacity
+   evidence exist. Keep provisioning, secrets, private-source execution and the
+   direct-upload form disabled until the full bundle has connected
+   synthetic/hosted evidence.
 2. Add authenticated forms and action boundaries for the staged manual ledger,
    tournament payout, breeding and lifecycle economic services while keeping
    wallet and game actions impossible.
