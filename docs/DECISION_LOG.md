@@ -1963,9 +1963,9 @@ through` separately from `Last imported`.
 - Distinguish actual post-burn BGC credits from historical zero-economics Race Merge BGC rows.
 - Never request wallet credentials or signing material and never initiate a sale, burn, wallet, game, ownership or Production operation.
 
-## 2026-07-26 — Phase 9 readiness completeness
+## 2026-07-26 — Phase 9 readiness runtime hardening
 
-- Report every evidence family already declared by the readiness assessment contract instead of silently ignoring private import, recovery, capacity, security/privacy, accessibility, migration and limitations evidence.
-- Keep not-run and unverified evidence review-required; block failed evidence, blocked gates, irreversible migrations, Production exposure and activation requests.
-- Reach ready-for-Gate-F review only after all technical evidence passes, while Gate F remains client-only.
-- Keep activation authorization and Production mutation false in every state.
+- Preserve the complete existing readiness projection for Gates A-E, exact-head CI, protected import, recovery, capacity, security/privacy, accessibility, migration safety, limitations and fail-closed Production.
+- Validate persisted assessment identity, exact-head SHA, gate and operational enums, migration state and every boolean flag at runtime.
+- Reject string-like booleans instead of allowing JavaScript truthiness to distort a readiness result.
+- Keep not-run and unverified evidence review-required, failed evidence blocking, Gate F client-only and every assessment non-executable.
