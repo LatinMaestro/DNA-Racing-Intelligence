@@ -2100,3 +2100,11 @@ through` separately from `Last imported`.
 - Block stale heads, command substitution, failed or non-hosted checks, inverted timestamps, unredacted summaries and any private-data observation.
 - Require the import/replay/rollback/reconciliation check to use synthetic fixtures only.
 - Retain no private artifacts and permanently deny workflow dispatch and Production mutation from attestation evidence.
+
+## 2026-07-26 — Hosted migration attestations
+
+- Require fixed apply, smoke, reverse and removal commands in chronological order on one exact candidate head.
+- Bind every step to one reviewed migration-set digest and opaque target fingerprint.
+- Require an ephemeral non-Production PostgreSQL target, synthetic-only data and redacted evidence.
+- Require the final schema digest to equal the pre-apply baseline after reversal and temporary-object removal.
+- Keep unavailable runtime review-required; the evidence contract cannot connect to PostgreSQL or authorize Production.
