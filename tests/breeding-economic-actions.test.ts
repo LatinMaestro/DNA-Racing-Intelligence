@@ -69,7 +69,9 @@ describe("breeding economic Server Actions", () => {
 
     await expect(
       recordBreedingEconomicEvidenceAction(evidence),
-    ).resolves.toEqual({ status: "identity_not_connected" });
+    ).resolves.toEqual({
+      status: "identity_not_connected",
+    });
     expect(session.ownerId).toHaveBeenCalledWith({
       environment: {
         publishableKey: undefined,
@@ -93,7 +95,9 @@ describe("breeding economic Server Actions", () => {
 
     await expect(
       recordBreedingEconomicEvidenceAction(evidence),
-    ).resolves.toEqual({ status: "persistence_not_configured" });
+    ).resolves.toEqual({
+      status: "persistence_not_configured",
+    });
   });
 
   it("keeps offspring cost-basis persistence unavailable", async () => {
