@@ -1876,3 +1876,14 @@ through` separately from `Last imported`.
 - Finalize idempotently, reject later mutation and expose only the lowercase digest; carry no owner identity, filename, provider, database or object-target capability.
 - Keep the background preview worker authoritative for independently streaming each stored object and verifying complete byte length and SHA-256.
 - Keep the file picker, upload form, provider adapters, Preview imports and Production disabled.
+
+
+## 2026-07-26 — Concrete Neon import persistence transaction
+
+- Add reversible migration 0010 for owner-scoped import-operation reservations, deterministic durable IDs and exact SHA-256 request fingerprints.
+- Enable and force row-level security on the reservation table and require the transaction-scoped owner to match the explicit database owner before reservation.
+- Use one short-lived Neon WebSocket pool and serializable transaction so owner scope, Clerk binding, live RLS metadata and reservation evidence are verified in order.
+- Parameterize every dynamic SQL value, import the provider only on first configured use and close the pool after every operation.
+- Preserve the first accepted fingerprint for exact replay and return it for application-level conflict rejection; never overwrite accepted idempotency evidence.
+- Add synthetic driver tests and forward, smoke and reverse SQL, while recording that PostgreSQL execution remains unavailable in the current hosted workspace.
+- Keep the database URL, provider connection, private import execution, Preview imports and Production unconfigured and fail-closed.
