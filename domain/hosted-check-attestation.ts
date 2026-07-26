@@ -23,6 +23,7 @@ const REQUIRED_CHECKS = [
   "authoritative_source_contracts",
   "identity_lineage_integrity",
   "private_real_file_import_assurance",
+  "nine_item_programme_completion",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const satisfies readonly CumulativeRehearsalCheckName[];
 
@@ -47,6 +48,7 @@ const COMMAND_BY_CHECK = {
   identity_lineage_integrity: "identity_lineage_integrity_attestation",
   private_real_file_import_assurance:
     "private_real_file_import_assurance_attestation",
+  nine_item_programme_completion: "nine_item_programme_completion_attestation",
   synthetic_import_replay_rollback_reconciliation:
     "synthetic_import_recovery_suite",
 } as const;
@@ -245,6 +247,7 @@ export function projectHostedCheckAttestations(
     if (
       (name === "end_to_end_workflows" ||
         name === "accounting_reconciliation" ||
+        name === "nine_item_programme_completion" ||
         name === "synthetic_import_replay_rollback_reconciliation") &&
       !attestation.syntheticFixturesOnly
     ) {
