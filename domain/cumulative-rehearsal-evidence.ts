@@ -12,6 +12,7 @@ const CHECK_NAMES = [
   "performance_capacity",
   "end_to_end_workflows",
   "accounting_reconciliation",
+  "freshness_snapshot_integrity",
   "synthetic_import_replay_rollback_reconciliation",
 ] as const;
 
