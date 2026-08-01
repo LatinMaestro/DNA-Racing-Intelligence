@@ -648,3 +648,26 @@
 - Keep every candidate experimental and non-actionable. Automatic race entry,
   automatic stopping, provider initialization, private-data execution, Preview
   and Production remain disabled.
+
+## 2026-08-01 — Owner-scoped Tournament read workspace
+
+- Recompose queue order 16 from exact source head
+  `e5decdd4dc616ae06d20196bb847645724da14d8` onto verified `main`
+  `fb1f171e0bedea48b08a010d219bb5d6e2449ad6`; do not merge its staged
+  ancestry, queue ledger or rehearsal descendants.
+- Include the missing deterministic tournament-ranking prerequisite and
+  synthetic tests so current `main` remains independently buildable.
+- Preserve separate labelled leaderboard groups and group-scoped ranks,
+  including legitimate ties; render the tournament split and group labels.
+- Bind every candidate to the exact tournament configuration and
+  candidate-snapshot versions. Reject version drift and inconsistent ID-to-label
+  mappings.
+- Derive freshness from the accepted data cutoff and server time at read time.
+  Reject future imports, future cutoffs and cutoffs that follow their import,
+  with exact 3/4/7/8-day boundary coverage.
+- Preserve the configurable qualification metric as the sole ordering authority,
+  the 50% gate rule as a cap rather than a target, and Maiden eligibility for
+  the strongest credible mode-specific opportunity.
+- Keep every result historical, experimental and non-actionable. Provider
+  initialization, private-data execution, automatic entry, Preview and
+  Production remain disabled.
