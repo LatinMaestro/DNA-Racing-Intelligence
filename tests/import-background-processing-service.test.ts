@@ -164,7 +164,6 @@ describe("background import dispatch processing", () => {
     expect(services.repository.activatePreparedResult).not.toHaveBeenCalled();
   });
 
-
   it("canonicalizes repository identifiers before processing and activation", async () => {
     const services = capabilities({
       status: "claimed",
@@ -208,10 +207,7 @@ describe("background import dispatch processing", () => {
   });
 
   it("rejects stale or unbounded concurrent-lease retry evidence", async () => {
-    for (const retryAfter of [
-      now.toISOString(),
-      "2026-07-24T06:00:00.001Z",
-    ]) {
+    for (const retryAfter of [now.toISOString(), "2026-07-24T06:00:00.001Z"]) {
       const services = capabilities({
         status: "leased_elsewhere",
         retryAfter,

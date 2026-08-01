@@ -467,7 +467,6 @@
 - Keep all providers unavailable by default. Do not provision services, enable
   uploads, expose routes or change Preview or Production in this slice.
 
-
 ## 2026-07-24 — Background import claim and lease
 
 - Resolve every queue delivery from a durable dispatch ID inside the private
