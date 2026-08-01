@@ -504,3 +504,23 @@
   processing; filenames, rows and source values remain outside Git and logs.
 - Keep the storage provider, credentials, upload route, persistent processing
   and Preview/Production activation unconfigured in this provider-neutral slice.
+
+## 2026-07-24 — Source-version-bound aggregate refresh
+
+- Resolve every refresh from one durable internal ID and owner-scoped
+  persistence. Queue payloads cannot supply owner, update-session or source
+  version evidence.
+- Atomically claim one bounded lease and keep missing, completed or concurrently
+  leased refreshes outside analytical processing.
+- Bind every prepared aggregate set to a SHA-256 fingerprint of the exact active
+  source-version set used for computation.
+- Publish a prepared set only through an owner-scoped transaction that verifies
+  the same source-version fingerprint is still active. A newer accepted import
+  supersedes the old refresh instead of allowing stale aggregate publication.
+- Keep the last completely published aggregate set available to routine reads.
+  Partly prepared or superseded results cannot advance aggregate completion,
+  freshness or recommendation readiness.
+- Record computation and publication failures as retryable evidence without
+  claiming completion or exposing private analytical values in routine output.
+- Keep repository SQL, queue/worker providers, private-data execution and
+  Preview/Production activation outside this provider-neutral service slice.
