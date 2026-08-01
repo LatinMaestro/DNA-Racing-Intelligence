@@ -286,6 +286,99 @@ describe("Phase 2 current Vault registry", () => {
     expect(forward).toEqual(reversed);
   });
 
+  it("projects ownership and Maiden events on one effective-time timeline", () => {
+    const overrideBeforeAdd = deriveCurrentVaultRegistry({
+      knownCoreIds: ["core-1"],
+      ownershipEdits: [
+        {
+          editId: "add-later",
+          coreId: "core-1",
+          action: "add",
+          effectiveAt: "2026-07-22T00:00:00.000Z",
+        },
+      ],
+      maidenOverrides: [
+        {
+          overrideId: "override-earlier",
+          coreId: "core-1",
+          maidenEntry: "entered",
+          effectiveAt: "2026-07-21T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(overrideBeforeAdd.cores).toEqual([
+      {
+        coreId: "core-1",
+        maidenEntry: "unknown",
+        source: "manual",
+      },
+    ]);
+    expect(overrideBeforeAdd.warnings).toEqual([
+      {
+        code: "inactive_maiden_override",
+        referenceId: "override-earlier",
+        coreId: "core-1",
+      },
+    ]);
+
+    const sameTimestamp = deriveCurrentVaultRegistry({
+      knownCoreIds: ["core-1"],
+      ownershipEdits: [
+        {
+          editId: "add-core",
+          coreId: "core-1",
+          action: "add",
+          effectiveAt: "2026-07-21T00:00:00.000Z",
+        },
+      ],
+      maidenOverrides: [
+        {
+          overrideId: "set-maiden",
+          coreId: "core-1",
+          maidenEntry: "entered",
+          effectiveAt: "2026-07-21T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(sameTimestamp.cores).toEqual([
+      {
+        coreId: "core-1",
+        maidenEntry: "entered",
+        source: "manual",
+      },
+    ]);
+    expect(sameTimestamp.warnings).toEqual([]);
+
+    const validOverrideBeforeRemoval = deriveCurrentVaultRegistry({
+      knownCoreIds: ["core-1"],
+      snapshot: {
+        importedAt: "2026-07-20T00:00:00.000Z",
+        cores: [{ coreId: "core-1", maidenEntry: "unknown" }],
+      },
+      ownershipEdits: [
+        {
+          editId: "remove-later",
+          coreId: "core-1",
+          action: "remove",
+          effectiveAt: "2026-07-22T00:00:00.000Z",
+        },
+      ],
+      maidenOverrides: [
+        {
+          overrideId: "override-while-active",
+          coreId: "core-1",
+          maidenEntry: "entered",
+          effectiveAt: "2026-07-21T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(validOverrideBeforeRemoval.cores).toEqual([]);
+    expect(validOverrideBeforeRemoval.warnings).toEqual([]);
+  });
+
   it("fails closed on unsupported manual actions and Maiden overrides", () => {
     expect(() =>
       buildCurrentVaultRegistry({
