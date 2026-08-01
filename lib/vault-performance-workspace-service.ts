@@ -166,7 +166,7 @@ function normalizeSummary(
     summary.dataCurrentThrough === null
       ? "unknown"
       : deriveFreshness(new Date(summary.dataCurrentThrough), now);
-  const normalizedWarnings = new Set(
+  const normalizedWarnings = new Set<VaultPerformanceWarning>(
     summary.warnings.filter(
       (warning) =>
         warning !== "IMPORTED_DATA_AGEING" &&
