@@ -607,3 +607,24 @@
   causality or automatic boundaries.
 - Gate C and Gate E remain unaccepted; recommendations and Production mutation
   remain disabled for every assessment result.
+
+## 2026-08-01 — Owner-scoped Vault Performance read workspace
+
+- Recompose the focused Vault Performance summary and read-workspace evidence from
+  queue source head `892f30c17574216731ec5356dad10a75eb8f242e` onto verified
+  `main` rather than merging its 130-commit staged ancestry.
+- Include the missing deterministic summary prerequisite and its synthetic tests
+  with the workspace so current `main` remains independently buildable.
+- Require authenticated Clerk owner identity to match the server-side allowlist
+  before the compact summary repository can be queried.
+- Validate canonical periods, timestamps, safe counts, exact decimals, asset
+  identities, BGC separation, completeness flags and duplicate assets at the
+  application boundary.
+- Derive freshness from the accepted data-current-through timestamp and server
+  time on every read, update freshness warnings deterministically and reject
+  evidence whose cutoff follows its import.
+- Render historical original-asset totals only, keep BGC and non-operating
+  movements separate, preserve unavailable cost-basis results and never claim a
+  live wallet balance, combined-asset total or complete lifetime profit.
+- Keep the repository adapter unavailable. Manual entries, provider
+  initialization, private-data execution, Preview and Production remain disabled.

@@ -1,10 +1,30 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { VaultPerformanceWorkspace } from "@/components/vault-performance-workspace";
+import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  loadVaultPerformancePageState,
+  unavailableVaultPerformanceSummaryRepository,
+} from "@/lib/vault-performance-workspace-service";
 
-export default function VaultPerformancePage() {
+export const dynamic = "force-dynamic";
+
+export default async function VaultPerformancePage() {
+  const authenticatedOwnerId = await authenticatedClerkOwnerId({
+    environment: {
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    },
+  });
+  const state = await loadVaultPerformancePageState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: unavailableVaultPerformanceSummaryRepository,
+    now: new Date(),
+  });
+
   return (
-    <ModulePlaceholder
-      boundary="Phase 2A will add an auditable exact-value ledger. Assets remain separate, BGC is non-cash by default, transfers are excluded from operating P/L and incomplete cost basis stays explicit."
-      href="/vault-performance"
+    <VaultPerformanceWorkspace
+      connectionStatus={state.connectionStatus}
+      summary={state.summary}
     />
   );
 }
