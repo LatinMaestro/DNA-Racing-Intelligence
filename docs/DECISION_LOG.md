@@ -379,3 +379,4 @@
 - Preserve eligible, not-eligible, unknown and invalid imported Maiden states. Manual overrides may set eligible, not eligible or unknown only for an active core and must not themselves establish ownership.
 - Keep active owned cores with missing Core Details visible with a warning rather than silently dropping or completing them.
 - Expose Current Vault data-current-through, last-imported and freshness separately. Use synthetic IDs only in Git; hosted persistence, private names and UI mutations remain later focused slices.
+- Project ownership edits and Maiden overrides on one effective-time timeline. Apply ownership first at equal timestamps, bind overrides only while the Core is active, and never validate an override retroactively from a later ownership change.
