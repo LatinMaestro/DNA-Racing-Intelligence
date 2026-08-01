@@ -105,9 +105,7 @@ function canonicalTimestamp(now: Date): string {
   return now.toISOString();
 }
 
-function requireReservationDisposition(
-  value: unknown,
-): "created" | "existing" {
+function requireReservationDisposition(value: unknown): "created" | "existing" {
   if (value !== "created" && value !== "existing") {
     throw new Error("reservation.disposition is invalid");
   }
