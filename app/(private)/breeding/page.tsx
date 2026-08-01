@@ -1,11 +1,30 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { BreedingWorkspace } from "@/components/breeding-workspace";
+import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  loadBreedingWorkspacePageState,
+  unavailableBreedingRankingRepository,
+} from "@/lib/breeding-workspace-service";
 
-export default function BreedingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function BreedingPage() {
+  const authenticatedOwnerId = await authenticatedClerkOwnerId({
+    environment: {
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    },
+  });
+  const state = await loadBreedingWorkspacePageState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: unavailableBreedingRankingRepository,
+    now: new Date(),
+  });
+
   return (
-    <ModulePlaceholder
-      boundary="Phase 6 will keep elite-upside, vault-gap and balanced rankings separate. Arena availability will use the latest imported snapshot with freshness and expiry warnings."
-      href="/breeding"
-      source="Arena"
+    <BreedingWorkspace
+      connectionStatus={state.connectionStatus}
+      rankings={state.rankings}
     />
   );
 }
