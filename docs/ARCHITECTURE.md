@@ -74,8 +74,9 @@ The accepted design is defence in depth:
 2. Clerk authenticates the user in Phase 1.
 3. Every private request must also match one server-side `AUTHORIZED_CLERK_USER_ID`.
 4. Missing authentication configuration denies access; it never creates an anonymous mode.
-5. PostgreSQL queries remain scoped to the single internal owner record even though there is currently one user.
-6. Robots metadata, `robots.txt` and response headers deny indexing.
+5. `DNA_DATABASE_OWNER_ID` identifies the corresponding internal PostgreSQL owner record without exposing it to the browser.
+6. Each private repository read sets that internal owner only for one read-only transaction, verifies the Clerk-to-database owner mapping and remains protected by forced row-level security.
+7. Robots metadata, `robots.txt` and response headers deny indexing.
 
 The scaffold currently implements the deployment boundary, route structure and fail-closed defaults. Clerk integration is an account/secret action that must occur after Gate A acceptance. It is not bypassed with a public demo mode.
 

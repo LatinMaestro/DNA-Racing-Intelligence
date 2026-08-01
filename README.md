@@ -52,6 +52,8 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_1_CORE_MATERIALIZATION.md`](docs/PHASE_1_CORE_MATERIALIZATION.md) — atomic Core Details and parent-edge persistence with rollback
 - [`docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md`](docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md) — reversible Current Vault and Arena historical snapshots
 - [`docs/PHASE_1_IMPORT_RECOVERY_UI.md`](docs/PHASE_1_IMPORT_RECOVERY_UI.md) — private import status, freshness and recovery workspace contract
+- [`docs/PHASE_1_DATA_UPDATE_PREVIEW.md`](docs/PHASE_1_DATA_UPDATE_PREVIEW.md) — grouped owner upload preview and explicit confirmation contract
+- [`docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md`](docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md) — owner-scoped fail-closed application service for historical import status
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
 - [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
 - [`docs/PHASE_2_CORE_PERFORMANCE.md`](docs/PHASE_2_CORE_PERFORMANCE.md) — exact mode-distance performance profile contract and evidence boundary

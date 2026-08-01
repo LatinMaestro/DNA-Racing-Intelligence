@@ -3,6 +3,7 @@ import type {
   ImportWorkspace,
   RecoveryQueueItem,
 } from "@/domain/import-workflow";
+import type { ImportWorkspaceConnectionStatus } from "@/lib/import-workspace-service";
 
 const sourceLabels: Record<HistoricalImportSource, string> = {
   race_merge: "Race Merge",
@@ -18,6 +19,38 @@ const queueLabels: Record<RecoveryQueueItem["kind"], string> = {
   aggregate_pending: "Aggregate refresh pending",
 };
 
+const connectionCopy: Record<
+  ImportWorkspaceConnectionStatus,
+  Readonly<{ heading: string; detail: string; action: string }>
+> = {
+  identity_not_connected: {
+    heading: "Owner identity not connected",
+    detail:
+      "Private source status and upload remain unavailable until the signed-in owner is verified against the server-side allowlist. Production remains fail-closed.",
+    action: "Upload unavailable",
+  },
+  persistence_not_configured: {
+    heading: "Private status storage not connected",
+    detail:
+      "Owner verification is available, but the Preview-only database repository is not configured. No private source file is hosted and the prior accepted dataset remains unchanged.",
+    action: "Upload unavailable",
+  },
+  read_model_connected: {
+    heading: "Historical status connected",
+    detail:
+      "Owner-scoped import status can be read from private persistence. Raw upload and background processing remain a separate gated implementation boundary.",
+    action: "Upload workflow pending",
+  },
+};
+
+const ownerUpdateSteps = [
+  ["1", "Upload", "Add one or more current DNA Racing exports."],
+  ["2", "Preview", "Review schemas, rows, overlaps, conflicts and coverage."],
+  ["3", "Confirm", "Approve the displayed plan before active data changes."],
+  ["4", "Process", "Import and refresh affected aggregates in the background."],
+  ["5", "Complete", "Review results or use a reasoned recoverable rollback."],
+] as const;
+
 function timestamp(value: string | null): string {
   if (value === null) return "Not available";
   return value.replace("T", " ").replace(".000Z", " UTC");
@@ -29,7 +62,13 @@ function count(value: number | null): string {
 
 export function ImportWorkspacePanel({
   workspace,
-}: Readonly<{ workspace: ImportWorkspace }>) {
+  connectionStatus,
+}: Readonly<{
+  workspace: ImportWorkspace;
+  connectionStatus: ImportWorkspaceConnectionStatus;
+}>) {
+  const connection = connectionCopy[connectionStatus];
+
   return (
     <div className="space-y-8">
       <header className="max-w-4xl">
@@ -51,21 +90,50 @@ export function ImportWorkspacePanel({
         className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
       >
         <h2 className="text-lg font-semibold" id="hosting-boundary">
-          Private upload not connected
+          {connection.heading}
         </h2>
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-          The repository workflow is ready, but no private source file is
-          hosted. Upload remains disabled until the owner configures the
-          approved Preview-only identity, database and private object-storage
-          services. Production remains fail-closed.
+          {connection.detail}
         </p>
         <button
           className="mt-5 cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
           disabled
           type="button"
         >
-          Upload unavailable
+          {connection.action}
         </button>
+      </section>
+
+      <section
+        aria-labelledby="update-flow"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <h2 className="text-lg font-semibold" id="update-flow">
+          Owner update flow
+        </h2>
+        <ol className="mt-4 grid gap-3 md:grid-cols-5">
+          {ownerUpdateSteps.map(([step, label, detail]) => (
+            <li
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+              key={step}
+            >
+              <span className="text-xs font-semibold text-[var(--accent)]">
+                Step {step}
+              </span>
+              <h3 className="mt-2 font-semibold">{label}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {detail}
+              </p>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+          Race Merge files append in chronological order. Core Details updates
+          durable IDs and lineage. Current Vault and Current Arena each replace
+          the active snapshot while retaining prior accepted versions. The
+          authenticated preview may show exact source values when needed for
+          owner review.
+        </p>
       </section>
 
       <section aria-labelledby="source-freshness">
