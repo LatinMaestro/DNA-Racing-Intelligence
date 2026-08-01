@@ -154,6 +154,20 @@ describe("private import completion report", () => {
     );
   });
 
+  it("prevents unchanged work from manufacturing accepted or refresh evidence", () => {
+    const duplicateOnly = source({
+      sourceRows: 10,
+      acceptedRows: 0,
+      duplicateRows: 10,
+      quarantinedRows: 0,
+      warningRows: 0,
+    });
+    expect(() => report([duplicateOnly])).toThrow("must contain accepted rows");
+    expect(() =>
+      report([{ ...duplicateOnly, outcome: "exact_replay" }], "pending"),
+    ).toThrow("cannot claim aggregate refresh evidence");
+  });
+
   it("rejects impossible or unsafe row totals and false aggregate claims", () => {
     expect(() => report([source({ sourceRows: 11 })])).toThrow(
       "classifications",

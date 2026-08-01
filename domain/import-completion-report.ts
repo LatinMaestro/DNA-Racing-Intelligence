@@ -146,6 +146,9 @@ function normalizeSource(value: unknown): CompletedSourceUpdate {
   if (source.outcome === "quarantined" && counts.acceptedRows !== 0) {
     throw new Error("A quarantined source cannot contain accepted rows");
   }
+  if (source.outcome === "accepted" && counts.acceptedRows === 0) {
+    throw new Error("An accepted source must contain accepted rows");
+  }
   if (
     source.outcome === "exact_replay" &&
     (counts.acceptedRows !== 0 || counts.quarantinedRows !== 0)
@@ -215,8 +218,10 @@ export function buildImportCompletionReport(
   if (acceptedChange && aggregateStatus === "not_required") {
     throw new Error("Accepted changes require aggregate refresh evidence");
   }
-  if (!acceptedChange && aggregateStatus === "completed") {
-    throw new Error("Aggregate completion cannot be claimed without changes");
+  if (!acceptedChange && aggregateStatus !== "not_required") {
+    throw new Error(
+      "Unchanged sources cannot claim aggregate refresh evidence",
+    );
   }
 
   const reviewReasons: string[] = [];
