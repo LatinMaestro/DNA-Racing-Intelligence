@@ -358,7 +358,9 @@ describe("Phase 2 current Vault registry", () => {
           "2026-07-22T00:00:00.000Z",
         ),
       ],
-      maidenOverrides: [maidenOverride("override-active", "core-a", "eligible")],
+      maidenOverrides: [
+        maidenOverride("override-active", "core-a", "eligible"),
+      ],
       knownCoreIds: ["core-a"],
       now,
     });
