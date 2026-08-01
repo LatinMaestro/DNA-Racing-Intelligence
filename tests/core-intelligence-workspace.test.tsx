@@ -7,9 +7,14 @@ import { refreshStarProfiles } from "@/domain/star-signals";
 describe("Core Intelligence historical workspace", () => {
   it("renders an honest empty state without fabricated performance", () => {
     const html = renderToStaticMarkup(
-      <CoreIntelligenceWorkspace lastImportedAt={null} profiles={[]} />,
+      <CoreIntelligenceWorkspace
+        connectionStatus="persistence_not_configured"
+        lastImportedAt={null}
+        profiles={[]}
+      />,
     );
 
+    expect(html).toContain("Core Intelligence storage not connected");
     expect(html).toContain("No validated performance profiles");
     expect(html).toContain("Last imported Not available");
     expect(html).toContain("Missing data is not treated as zero performance");
@@ -60,6 +65,7 @@ describe("Core Intelligence historical workspace", () => {
 
     const html = renderToStaticMarkup(
       <CoreIntelligenceWorkspace
+        connectionStatus="read_model_connected"
         lastImportedAt="2026-07-20T01:00:00Z"
         profiles={profiles}
       />,
@@ -77,5 +83,7 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("Gold-eligible races");
     expect(html).toContain("Historical snapshot");
     expect(html).toContain("Experimental");
+    expect(html).toContain('dateTime="2026-07-20T01:00:00Z"');
+    expect(html).toContain('dateTime="2026-07-20T00:00:00Z"');
   });
 });
