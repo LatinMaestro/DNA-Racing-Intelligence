@@ -771,3 +771,24 @@
 - Open Race remains historical, experimental and non-actionable. Gate C,
   mutations, race entry, game or wallet actions, live connectivity, Preview and
   Production remain disabled.
+
+## 2026-08-02 — Owner-scoped Phase 9 readiness workspace
+
+- Queue order 21 source `agent/readiness-read-workspace` at exact head
+  `9a9cd34023755ebb8480e4d56f8c36c628a00957` was recomposed as a focused delta
+  onto verified `main` at
+  `64fdc686824c38f22c96dfc325561a87a5f183d6`; staged ancestry was not merged.
+- Readiness evidence is owner-scoped, read-only and non-executable. It can
+  report pass, review or block states but cannot enable a provider, public
+  route, custom domain, recurring paid infrastructure, Preview or Production.
+- Accepted readiness evidence must bind its exact assessment version and
+  canonical chronology to the running deployment's exact commit SHA. Branch
+  names, stale versions, future evidence, non-canonical timestamps and
+  inconsistent publication order fail closed.
+- Freshness is derived server-side from the evidence cutoff with exact 3-day,
+  4-day, 7-day and 8-day boundary coverage. Ageing and stale readiness evidence
+  cannot support a ready state.
+- Gates B–E remain unaccepted until every repository and protected private
+  evidence criterion passes. Gate F remains owner-only, and even a recorded
+  approval cannot make this assessment authorize activation or a Production
+  mutation.
