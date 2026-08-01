@@ -95,7 +95,11 @@ function requireSafeIdentifier(value: unknown, field: string): string {
 }
 
 function requirePositiveSafeInteger(value: unknown, field: string): number {
-  if (!Number.isSafeInteger(value) || value <= 0) {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value <= 0
+  ) {
     throw new Error(`${field} must be a positive safe integer`);
   }
   return value;
