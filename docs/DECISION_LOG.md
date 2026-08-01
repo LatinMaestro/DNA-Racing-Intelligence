@@ -849,3 +849,36 @@
 - Keep persistence unavailable by default. Forms, provider initialization,
   private data, wallet/game actions, Preview writes and Production remain
   disabled.
+
+## 2026-08-02 — Owner-scoped lifecycle economic write boundary
+
+- Recompose queue order 24 from exact source head
+  `b04c9423ca2ceb85a110d464624aa37613f4ca56` onto verified `main`
+  `98885c094062ff336857993015656de113ab2a33`; do not merge staged ancestry,
+  queue ledgers, rehearsal branches or cumulative descendants.
+- Include the three unstated sale, burn and burn-credit reconciliation domain
+  prerequisites and their synthetic coverage so the focused delta is complete
+  on current `main`.
+- Require authenticated Clerk owner equality before any repository access and
+  keep provider-neutral persistence unavailable by default.
+- Canonicalize sale, burn, recorded and BGC-credit timestamps at the service
+  boundary and reject future evidence using server-derived time.
+- Resolve every sale and credit asset code, kind and precision from an
+  authoritative versioned server-side registry. Bind persisted evidence to that
+  exact registry version and reject missing, ambiguous, invalid or drifted
+  definitions and excess precision.
+- Bind each sale, burn or BGC-credit create to the caller's expected lifecycle
+  version. Keep exact fingerprint replay idempotent, reject optimistic-version
+  drift and fail closed when a durable identity is reused for changed evidence.
+- Preserve proceeds and fees in their original assets. Calculate realised sale
+  result only when proceeds, fees and acquisition cost share one asset; retain
+  proceeds while missing or unlike cost basis leaves gain unavailable.
+- Permanently reject Genesis burn evidence. A confirmed non-Genesis burn can
+  only propose reviewed Vault removal while historical lineage remains; it
+  cannot execute a burn, mutate ownership or predict BGC.
+- Accept a BGC credit only as actual positive game-credit evidence linked to one
+  durable owner-scoped burn. Verify the stored burn fingerprint and core
+  identity; ambiguous, provisional, conflicted, early or multiple credits remain
+  review-only.
+- Keep forms, provider initialization, ledger mutation, private data,
+  wallet/game actions, Preview writes and Production disabled.
