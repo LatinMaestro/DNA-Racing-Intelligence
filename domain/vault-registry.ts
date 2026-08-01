@@ -215,68 +215,102 @@ export function buildCurrentVaultRegistry(input: {
   }
 
   const snapshotImportedAt = input.snapshot
-    ? Date.parse(input.snapshot.lastImportedAt)
-    : null;
-  let supersededOwnershipEditCount = 0;
-  for (const edit of chronological(
-    input.ownershipEdits,
-    ({ editId }) => editId,
-  )) {
+    ? parseTimestamp(input.snapshot.importedAt, "snapshot.importedAt")
+    : undefined;
+
+  type TimelineEvent =
+    | Readonly<{
+        kind: "ownership";
+        effectiveAt: string;
+        referenceId: string;
+        value: ManualOwnershipEdit;
+      }>
+    | Readonly<{
+        kind: "maiden";
+        effectiveAt: string;
+        referenceId: string;
+        value: ManualMaidenOverride;
+      }>;
+
+  const timeline: TimelineEvent[] = [];
+
+  for (const edit of input.ownershipEdits) {
+    const effectiveAt = parseTimestamp(
+      edit.effectiveAt,
+      `ownershipEdits.${edit.editId}.effectiveAt`,
+    );
+
     if (
-      snapshotImportedAt !== null &&
-      Date.parse(edit.effectiveAt) < snapshotImportedAt
+      snapshotImportedAt !== undefined &&
+      Date.parse(effectiveAt) <= Date.parse(snapshotImportedAt)
     ) {
-      supersededOwnershipEditCount += 1;
+      supersededOwnershipEdits += 1;
       continue;
     }
 
-    if (edit.action === "add") {
-      if (active.has(edit.coreId)) {
-        warnings.push({
-          code: "redundant_manual_add",
-          referenceId: edit.editId,
-          coreId: edit.coreId,
-        });
-        continue;
-      }
-      const priorMaidenState =
-        snapshotMaidenState.get(edit.coreId) ?? "unknown";
-      active.set(edit.coreId, {
-        coreId: edit.coreId,
-        ownershipSource: "manual",
-        maidenState: priorMaidenState,
-        maidenSource:
-          priorMaidenState === "eligible" || priorMaidenState === "not_eligible"
-            ? "snapshot"
-            : "unknown",
-      });
-      continue;
-    }
-
-    if (!active.delete(edit.coreId)) {
-      warnings.push({
-        code: "redundant_manual_remove",
-        referenceId: edit.editId,
-        coreId: edit.coreId,
-      });
-    }
+    timeline.push({
+      kind: "ownership",
+      effectiveAt,
+      referenceId: edit.editId,
+      value: edit,
+    });
   }
 
-  let supersededMaidenOverrideCount = 0;
-  for (const override of chronological(
-    input.maidenOverrides,
-    ({ overrideId }) => overrideId,
-  )) {
+  for (const override of input.maidenOverrides) {
+    const effectiveAt = parseTimestamp(
+      override.effectiveAt,
+      `maidenOverrides.${override.overrideId}.effectiveAt`,
+    );
+
     if (
-      snapshotImportedAt !== null &&
-      Date.parse(override.effectiveAt) < snapshotImportedAt
+      snapshotImportedAt !== undefined &&
+      Date.parse(effectiveAt) <= Date.parse(snapshotImportedAt)
     ) {
-      supersededMaidenOverrideCount += 1;
+      supersededMaidenOverrides += 1;
       continue;
     }
 
-    const core = active.get(override.coreId);
-    if (!core) {
+    timeline.push({
+      kind: "maiden",
+      effectiveAt,
+      referenceId: override.overrideId,
+      value: override,
+    });
+  }
+
+  timeline.sort(
+    (left, right) =>
+      Date.parse(left.effectiveAt) - Date.parse(right.effectiveAt) ||
+      (left.kind === right.kind ? 0 : left.kind === "ownership" ? -1 : 1) ||
+      left.referenceId.localeCompare(right.referenceId),
+  );
+
+  for (const event of timeline) {
+    if (event.kind === "ownership") {
+      const edit = event.value;
+
+      if (edit.action === "add") {
+        const snapshotCore = snapshotByCoreId.get(edit.coreId);
+        coresById.set(
+          edit.coreId,
+          snapshotCore
+            ? { ...snapshotCore, source: "manual" }
+            : {
+                coreId: edit.coreId,
+                maidenEntry: "unknown",
+                source: "manual",
+              },
+        );
+        continue;
+      }
+
+      coresById.delete(edit.coreId);
+      continue;
+    }
+
+    const override = event.value;
+
+    if (!coresById.has(override.coreId)) {
       warnings.push({
         code: "inactive_maiden_override",
         referenceId: override.overrideId,
@@ -284,11 +318,14 @@ export function buildCurrentVaultRegistry(input: {
       });
       continue;
     }
-    active.set(override.coreId, {
-      ...core,
-      maidenState: override.maidenState,
-      maidenSource: "manual_override",
-    });
+
+    const current = coresById.get(override.coreId);
+    if (current) {
+      coresById.set(override.coreId, {
+        ...current,
+        maidenEntry: override.maidenEntry,
+      });
+    }
   }
 
   const knownCoreIds = new Set(input.knownCoreIds);
