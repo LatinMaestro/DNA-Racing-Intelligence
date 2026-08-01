@@ -721,3 +721,28 @@
 - Keep Arena listings historical, non-live and non-economic. Keep every result
   experimental and non-actionable; provider initialization, breeding execution,
   private-data execution, Preview and Production remain disabled.
+
+## 2026-08-02 — Owner-scoped Lifecycle read workspace
+
+- Recompose queue order 19 from exact source head
+  `8ce3661b6392dd8dc23f0be207d1c75be892c1ee` onto verified `main`
+  `05da45d1f0e581e840b77607154f6299c5aee3cd`; do not merge its staged
+  precursor, queue ledger, rehearsal branches or cumulative descendants.
+- Include the missing deterministic lifecycle-ranking prerequisite and
+  synthetic tests so current `main` remains independently buildable.
+- Require authenticated Clerk owner identity to match the server-side allowlist
+  before compact ranking evidence can be read.
+- Bind configuration, candidate, racing, Discovery, Maiden, breeding, lineage
+  and market snapshot versions. Version drift holds every action.
+- Derive freshness from canonical accepted cutoffs and server time. Reject
+  future or post-import evidence, stale stored labels and rankings not bound to
+  the latest accepted import, with exact 3/4/7/8-day tests.
+- Preserve unresolved racing, Discovery, Maiden, breeding, lineage and market
+  value by holding every action when evidence is partial, stale or protected.
+- Apply the confirmed Genesis burn prohibition. No-star evidence cannot create
+  burn without explicit independent non-star negatives, and predicted BGC burn
+  credit is forbidden in ranking.
+- Preserve missing cost basis without inventing sale profit. Keep all results
+  historical, experimental and non-actionable; provider initialization,
+  private-data execution, game/wallet actions, ledger mutation, Preview and
+  Production remain disabled.
