@@ -524,3 +524,27 @@
   claiming completion or exposing private analytical values in routine output.
 - Keep repository SQL, queue/worker providers, private-data execution and
   Preview/Production activation outside this provider-neutral service slice.
+
+## 2026-07-24 — Import completion and recoverable rollback
+
+- Build one deterministic completion report per update session with accepted,
+  duplicate, quarantined, warning, identity-review and reconciliation-review
+  counts by source.
+- Validate and canonicalize every runtime identifier, discriminant, Boolean,
+  timestamp and count before completion evidence can affect readiness.
+- Reject unsafe per-source classification sums and cross-source total overflow;
+  normalized batch IDs define uniqueness and are the only IDs returned.
+- Keep recommendation readiness partial until the exact accepted source-version
+  set has a completely published aggregate refresh and no material review work
+  remains.
+- Treat exact replay as no accepted change: it creates no new rollback boundary
+  and needs no aggregate refresh.
+- Require exact owner identity, literal confirmation, a printable meaningful
+  reason, a genuine timestamp and an idempotency key before requesting rollback.
+- Validate every repository outcome, disposition, source family and returned ID;
+  malformed provider evidence fails closed rather than becoming a result.
+- Execute rollback as one owner/source-scoped persistence transaction that
+  restores only a prior accepted version, retains raw and contribution
+  provenance, and creates a new aggregate-refresh request.
+- Never carry forward old aggregate completion after rollback, delete source
+  evidence, mutate Production or expose private details through routine output.
