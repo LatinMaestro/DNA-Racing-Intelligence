@@ -290,12 +290,7 @@ describe("Phase 2 current Vault registry", () => {
     const overrideBeforeAdd = buildCurrentVaultRegistry({
       snapshot: null,
       ownershipEdits: [
-        ownershipEdit(
-          "add-later",
-          "core-a",
-          "add",
-          "2026-07-22T00:00:00.000Z",
-        ),
+        ownershipEdit("add-later", "core-a", "add", "2026-07-22T00:00:00.000Z"),
       ],
       maidenOverrides: [
         maidenOverride(
@@ -327,9 +322,7 @@ describe("Phase 2 current Vault registry", () => {
     const sameTimestamp = buildCurrentVaultRegistry({
       snapshot: null,
       ownershipEdits: [ownershipEdit("add-core", "core-a", "add")],
-      maidenOverrides: [
-        maidenOverride("set-maiden", "core-a", "eligible"),
-      ],
+      maidenOverrides: [maidenOverride("set-maiden", "core-a", "eligible")],
       knownCoreIds: ["core-a"],
       now,
     });
