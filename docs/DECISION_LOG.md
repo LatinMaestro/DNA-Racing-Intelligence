@@ -628,3 +628,23 @@
   live wallet balance, combined-asset total or complete lifetime profit.
 - Keep the repository adapter unavailable. Manual entries, provider
   initialization, private-data execution, Preview and Production remain disabled.
+
+## 2026-08-01 — Owner-scoped Discovery read workspace
+
+- Recompose the focused Discovery evidence from queue source head
+  `f28f37a97e4bc93f862959d0e1eded9c7b2e69c8` onto verified `main`
+  `53460e97de5aba1299651624af09ec37a27745b2` rather than merging staged
+  ancestry or its embedded queue ledger.
+- Include the missing deterministic probe-plan prerequisite and synthetic tests
+  so current `main` remains independently buildable.
+- Require authenticated Clerk owner identity to match the server-side allowlist
+  before the compact candidate repository can be queried.
+- Preserve separate Bike, Car and Horse evidence at exact distances in metres,
+  the ten-race minimum boundary, direct-evidence priority, resolved-lineage
+  hypotheses and Maiden commitment warnings.
+- Derive freshness from canonical accepted cutoffs and server time instead of
+  trusting a persisted label. Defer evidence without an accepted import and
+  reject future imports plus future or post-import cutoffs.
+- Keep every candidate experimental and non-actionable. Automatic race entry,
+  automatic stopping, provider initialization, private-data execution, Preview
+  and Production remain disabled.
