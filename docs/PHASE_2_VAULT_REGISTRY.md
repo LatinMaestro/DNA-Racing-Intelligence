@@ -47,6 +47,8 @@ The registry records whether the effective state came from the snapshot, a
 manual override or unresolved evidence. Future Maiden logic must continue to
 apply the one-use preservation and commitment rules separately.
 
+Ownership edits and Maiden overrides are projected on one effective-time timeline. Ownership is applied before a Maiden override at an identical timestamp, and an override binds only when the Core is active at that point; later ownership changes cannot make an earlier override retroactively valid or invalid.
+
 ## Profile and freshness boundary
 
 An active owned core without selected Core Details remains visible with a
