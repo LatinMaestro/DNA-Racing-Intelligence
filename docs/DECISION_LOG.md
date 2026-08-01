@@ -585,3 +585,25 @@
   denominators and retain the less-than-10-race hypothesis-only boundary.
 - Keep provider initialization, private-data execution, recommendations and
   Preview/Production activation unavailable in this read-only slice.
+
+## 2026-07-24 — Private chronological evidence contract
+
+- Keep all private exports, exact aggregates, model scores, identities, economic
+  values and derived private results outside Git; repository fixtures remain
+  synthetic.
+- Bind a hosted assessment to a canonical non-secret evidence identifier and
+  exact lowercase 40-character source head without storing the report payload.
+- Require externally ordered evidence, strict pre-event feature cutoffs,
+  prediction before same-event updates, partial-event outcome exclusion and
+  separate mode/exact-metre/gate-count baselines.
+- Bind direct-history, historical-star and lineage conclusions to their own
+  eligible case counts. Positive lift is review-only; zero/negative lift cannot
+  be promoted.
+- Validate runtime shapes, Booleans, discriminants, safe counts, overflow,
+  signed integer millionths, positive memory evidence and BGC exception counts
+  fail-closed.
+- Keep breeding blocked without breeding-time evidence and Maiden blocked
+  without point-in-time entitlement history. Era candidates cannot establish
+  causality or automatic boundaries.
+- Gate C and Gate E remain unaccepted; recommendations and Production mutation
+  remain disabled for every assessment result.
