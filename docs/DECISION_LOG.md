@@ -696,3 +696,28 @@
 - Keep every result historical, experimental and non-actionable. Entitlement
   mutation, provider initialization, private-data execution, automatic entry,
   Preview and Production remain disabled.
+
+## 2026-08-02 — Owner-scoped Breeding read workspace
+
+- Recompose queue order 18 from exact source head
+  `c77c30b0169e2835a61c67368901d57ecc7860a9` onto verified `main`
+  `8a1bdd208496d44a190bd188b449e85575b6fcc3`; do not merge its staged
+  precursor, queue ledger, rehearsal branches or cumulative descendants.
+- Include the missing deterministic pair-ranking prerequisite and synthetic
+  tests so current `main` remains independently buildable.
+- Require authenticated Clerk owner identity to match the server-side allowlist
+  before compact ranking evidence can be read.
+- Keep elite-upside, Vault-gap and balanced objectives separate. Vault
+  saturation cannot demote the elite-upside order.
+- Bind confirmed ruleset, candidate-snapshot, chronological-projection and Arena
+  snapshot versions. Derive offspring class, lower element and uncapped F-number
+  through the confirmed game-rule functions.
+- Require cleared family, sex, cycle, lifetime-splice, availability,
+  chronological-validation and offspring-distribution evidence. Star features
+  require supported incremental holdout lift over a time-only baseline.
+- Derive performance and Arena freshness from canonical accepted cutoffs and
+  server time. Reject future or post-import evidence and hold stale, expired,
+  missing or version-drifted external listings.
+- Keep Arena listings historical, non-live and non-economic. Keep every result
+  experimental and non-actionable; provider initialization, breeding execution,
+  private-data execution, Preview and Production remain disabled.
