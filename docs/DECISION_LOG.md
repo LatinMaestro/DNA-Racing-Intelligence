@@ -746,3 +746,28 @@
   historical, experimental and non-actionable; provider initialization,
   private-data execution, game/wallet actions, ledger mutation, Preview and
   Production remain disabled.
+
+## 2026-08-02 — Owner-scoped Open Race read workspace
+
+- Queue order 20 source `agent/open-race-read-workspace` at exact head
+  `6254a9a2a409486c4825653a022971f825b7e62f` was recomposed as a focused delta
+  onto verified `main` at
+  `cfc66c62b131c78c3cb2a51273c98f6473ca942f`; staged ancestry was not merged.
+- Open Race Stage A remains a manually captured, owner-scoped review using
+  imported historical evidence. Current-race Gold and Blue are rejected at the
+  field, opponent, candidate and ranking boundaries and cannot affect the
+  pre-entry rank.
+- Stage B is available only after the owner-confirmed core and complete field
+  are locked. Its Gold/Blue record is diagnostic, pending authoritative Race
+  Merge reconciliation and cannot change the frozen ranking, recommend a
+  replacement or claim a race outcome.
+- Each session is bound to the latest accepted Race Merge import, Vault
+  snapshot and historical aggregate versions and to exact per-stage versions,
+  identifiers, timestamps, ordered ranking, entered field and observed signals.
+- Freshness is derived server-side from canonical accepted cutoffs. Exact
+  3-day, 4-day, 7-day and 8-day boundaries are covered; future,
+  post-import, non-canonical, stale-version and inconsistent evidence fails
+  closed.
+- Open Race remains historical, experimental and non-actionable. Gate C,
+  mutations, race entry, game or wallet actions, live connectivity, Preview and
+  Production remain disabled.
