@@ -104,7 +104,11 @@ describe("Vault Performance workspace service", () => {
       ["2026-07-13T00:00:00.000Z", "stale", ["IMPORTED_DATA_STALE"]],
     ] as const;
 
-    for (const [dataCurrentThrough, freshnessState, expectedWarnings] of cases) {
+    for (const [
+      dataCurrentThrough,
+      freshnessState,
+      expectedWarnings,
+    ] of cases) {
       const result = await loadVaultPerformancePageState({
         authenticatedOwnerId: "owner",
         configuredOwnerId: "owner",
