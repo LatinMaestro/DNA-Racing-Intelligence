@@ -20,6 +20,7 @@ ALTER TABLE dna.normalized_race_staged_fact
       economic_data_status IN (
         'unvalidated',
         'ready',
+        'historical_non_economic',
         'missing',
         'invalid',
         'unsupported_asset'
@@ -27,11 +28,21 @@ ALTER TABLE dna.normalized_race_staged_fact
     ),
   ADD CONSTRAINT normalized_race_staged_fact_economics_ready_check
     CHECK (
-      economic_data_status <> 'ready'
-      OR (
-        race_asset IS NOT NULL
-        AND entry_fee_amount IS NOT NULL
-        AND gross_payout_amount IS NOT NULL
+      (
+        economic_data_status <> 'ready'
+        OR (
+          race_asset IS NOT NULL
+          AND entry_fee_amount IS NOT NULL
+          AND gross_payout_amount IS NOT NULL
+        )
+      )
+      AND (
+        economic_data_status <> 'historical_non_economic'
+        OR (
+          race_asset IS NULL
+          AND entry_fee_amount = 0
+          AND gross_payout_amount = 0
+        )
       )
     );
 
@@ -373,6 +384,7 @@ BEGIN
   SET
     economic_data_status = CASE fact.economic_data_status
       WHEN 'ready' THEN 'validated'
+      WHEN 'historical_non_economic' THEN 'validated'
       WHEN 'invalid' THEN 'invalid'
       WHEN 'unsupported_asset' THEN 'invalid'
       WHEN 'missing' THEN 'unvalidated'
@@ -472,7 +484,10 @@ BEGIN
   WHERE
     fact.owner_id = v_owner_id
     AND fact.import_batch_id = p_import_batch_id
-    AND fact.economic_data_status <> 'ready'
+    AND fact.economic_data_status NOT IN (
+      'ready',
+      'historical_non_economic'
+    )
   ORDER BY entry.id, fact.source_row_number
   ON CONFLICT (owner_id, id) DO NOTHING;
 
