@@ -370,3 +370,12 @@
 - Keep the repository route in an explicit empty state until accepted normalized performance data is connected; never render missing metrics as zero.
 - When data exists, show exact mode/distance evidence, sample status, time, metres-per-second speed, Gold/Blue numerators and assignment-opportunity denominators, data cutoff, import time, freshness and experimental status.
 - Do not enable analytical recommendations or dependability wording before Gate C.
+
+## 2026-07-23 — Phase 2 current Vault registry contract
+
+- Build the active Vault only from confirmed durable Core Details IDs. Proposed name/composite candidates remain identity-review evidence and cannot create ownership, race P/L or recommendations.
+- Use the current accepted Vault snapshot as the baseline, then apply reasoned manual add/remove events at or after that snapshot import time in deterministic chronological order. Retain older manual history as superseded rather than deleting it.
+- Permit a manual-only durable-ID registry before the first snapshot, with snapshot freshness explicitly unknown.
+- Preserve eligible, not-eligible, unknown and invalid imported Maiden states. Manual overrides may set eligible, not eligible or unknown only for an active core and must not themselves establish ownership.
+- Keep active owned cores with missing Core Details visible with a warning rather than silently dropping or completing them.
+- Expose Current Vault data-current-through, last-imported and freshness separately. Use synthetic IDs only in Git; hosted persistence, private names and UI mutations remain later focused slices.
