@@ -792,3 +792,27 @@
   evidence criterion passes. Gate F remains owner-only, and even a recorded
   approval cannot make this assessment authorize activation or a Production
   mutation.
+
+## 2026-08-02 — Owner-scoped manual ledger write boundary
+
+- Recompose the staged exact-entry and reversal service together with its
+  previously unstated manual-ledger domain prerequisite so the focused delta is
+  complete on current `main`.
+- Require authenticated Clerk owner equality before validation or repository
+  access and keep persistence unavailable by default.
+- Resolve asset code, kind and precision from a versioned server-side registry;
+  reject caller metadata mismatch, excess precision and registry-version drift.
+- Canonicalize entry and reversal timestamps to UTC, reject future evidence and
+  preserve exact base-10 amounts without binary floating point.
+- Treat a free-text tournament ID as non-authoritative. Tournament totals remain
+  ineligible until owner-scoped persistence returns matching acknowledged
+  evidence and exact tournament-configuration version.
+- Bind every create or reversal to an expected ledger version. Keep exact
+  durable-ID replay idempotent and reject changed payloads or stale writes.
+- Build reversals only from the immutable accepted original, require its exact
+  fingerprint and current registry evidence, and require persistence to enforce
+  one reversal per original atomically.
+- Preserve separate assets, BGC isolation, transfer exclusion, missing-cost-basis
+  warnings and tournament-allocation warnings without claiming completeness.
+- Keep forms, provider initialization, wallet actions, private data,
+  Preview/Production persistence and Production disabled.
