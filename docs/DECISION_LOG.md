@@ -380,3 +380,35 @@
 - Keep active owned cores with missing Core Details visible with a warning rather than silently dropping or completing them.
 - Expose Current Vault data-current-through, last-imported and freshness separately. Use synthetic IDs only in Git; hosted persistence, private names and UI mutations remain later focused slices.
 - Project ownership edits and Maiden overrides on one effective-time timeline. Apply ownership first at equal timestamps, bind overrides only while the Core is active, and never validate an override retroactively from a later ownership change.
+
+## 2026-07-24 — Verified private-source aggregate contract
+
+- The authoritative inspected source set contains six sequential Race Merge exports and one export each for Core Details, Current Vault and Current Arena.
+- Approved privacy-safe profiling records 2,536,710 race entries across 695,901 events and 16,992 raced core IDs; 18,127 Core Details IDs; 195 owner-confirmed current-Vault cores, including 68 Maiden Eligible; and 792 current-Arena listings.
+- The six Race Merge exports have 13 overlapping boundary events containing 67 exact duplicate entries and no observed conflict. Imports must append and deduplicate while quarantining any future conflict.
+- All 195 current-Vault rows resolve deterministically to Core Details and have race history. ME is a separate eligibility state, not an ownership filter.
+- Core Details provides both parents for 14,181 cores and founder/no-parent state for 3,946. Of the current owned cores, 166 have recorded parents and 29 are founder/no-parent records.
+- Explicit partial-profile states remain required for 2,162 raced IDs absent from Core Details, one Arena ID absent from Core Details and 22 Arena IDs without race history.
+- Historical BGC race entries remain performance evidence but are accounted as free-entry, no-payout races: effective fee and payout are zero, no race ledger transaction is created and source monetary fields are excluded from economic totals.
+- Git may retain these approved aggregates and rules only. Raw files, filenames, identities, individual records, monetary values and user-specific derived records remain excluded.
+
+## 2026-07-24 — Periodic source updates and analytical fidelity
+
+- The owner will refresh the website through a private Data Updates workspace rather than editing database tables or GitHub files.
+- Race Merge exports are sequential append sources and may be added in groups; Core Details is versioned/upserted by durable ID; Current Vault and Current Arena are replacement historical snapshots.
+- The owner-facing sequence is upload, detected update preview, confirmation, background processing, completion report and reasoned rollback where required.
+- Authenticated owner review may show exact filenames, rows and field values when useful for correcting an import; automated logs, Git, CI and public surfaces remain redacted.
+- The source exports are publicly available DNA Racing data and the website is private. Privacy controls must not remove or suppress analytically relevant fields or compromise recommendations.
+- Preserve original source files and values in the private raw-data boundary, subject to approved capacity limits. Compact application tables may omit redundant or unused fields only when the raw values remain recoverable and current analysis is unaffected.
+- The owner should upload ordinary exports without manually reshaping them. Unsupported source changes fail closed while the prior accepted dataset remains active.
+- Production and the first persistent private Preview import remain subject to their existing Gates F and B respectively.
+
+## 2026-07-24 — Verified real-source race-economic compatibility
+
+- A complete private compatibility pass found a small set of otherwise-valid historical ETH rows whose fee uses base-10 scientific notation. Exact-decimal normalization now accepts plain or scientific notation using string and `BigInt` arithmetic only; binary floating point remains prohibited.
+- Historical BGC Race Merge rows use the owner-confirmed `historical_non_economic` state. They remain valid performance evidence, preserve private source provenance and have zero effective fee and payout.
+- A historical BGC race creates no ETH, DEZ or BGC race-derived transaction and no economic reconciliation/completeness item merely because its source race asset is BGC.
+- Genuinely unknown race assets remain unsupported and review-required.
+- Synthetic TypeScript coverage verifies scientific ETH normalization, exact transaction derivation, BGC zero-effective treatment, absence of BGC ledger rows and continued fail-closed handling of unsupported assets.
+- Reversible migration smoke coverage now encodes assertions that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item. Exact PostgreSQL execution remains mandatory before merge.
+- Private source records, identities, filenames and amounts remain outside Git. Only the previously approved aggregate compatibility result is documented.
