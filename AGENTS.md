@@ -37,6 +37,8 @@ Before changing code or data models, read:
 - `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/DATA_UPDATE_WORKFLOW.md`
+- `docs/AGGREGATE_SOURCE_PROFILE.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
 - `docs/BUILD_PLAN.md`
 - `docs/REVIEW_GATES.md`
@@ -194,7 +196,7 @@ Before changing code or data models, read:
 - Version game rules, inferred payout rules and detected star-algorithm eras by effective date.
 - Make imports idempotent and auditable.
 - Use database transactions for imports.
-- Preserve original source values where practical and store normalized equivalents separately.
+- Preserve original source values in the approved private raw-data boundary and store normalized equivalents separately. Do not discard an analytically relevant field merely because it may be identifiable or sensitive; access control and redacted logging must protect it without reducing analysis quality.
 - Record import provenance and validation warnings.
 - Store Gold and Blue stars as nullable race-entry attributes, store Gold eligibility and validate event-level assignment anomalies.
 - Store import timestamp, latest accepted event timestamp and freshness status inputs.

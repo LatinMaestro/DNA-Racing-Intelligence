@@ -10,6 +10,8 @@
 6. Manual economic transaction — payout, fee, sale, purchase, burn, transfer, opening balance, adjustment or reconciliation entry.
 7. Future authoritative economic export — only where the game or marketplace provides a supported transaction history.
 
+The currently inspected private source set contains six sequential Race Merge exports and one export each for Core Details, Current Vault and Current Arena. Privacy-safe counts, overlap and coverage evidence are recorded in `docs/AGGREGATE_SOURCE_PROFILE.md`; exact filenames and source records remain outside Git.
+
 ## Import principles
 
 - Detect file type from headers and explicit user selection.
@@ -24,6 +26,16 @@
 - Ignore race class in analytical models but preserve the source field for provenance if inexpensive.
 - Preserve manually entered economic transactions separately from source-derived transactions.
 - Corrections to accepted economic facts must use auditable overrides, exclusions, reversals or reconciliation records rather than silent destructive mutation.
+- Implement the owner-facing upload, preview, confirmation, processing, completion and rollback flow in `docs/DATA_UPDATE_WORKFLOW.md`.
+
+## Analytical fidelity and private retention
+
+- The private raw-data boundary must retain original uploaded files and source values for provenance, reproducibility and future analysis, subject to approved capacity limits.
+- Do not remove or suppress a field merely because it may be identifiable or sensitive; privacy controls protect access and logging and must not reduce analytical quality.
+- Normalize and index every field required or plausibly useful for current analysis, recommendations, identity, lineage, accounting, freshness, reconciliation or validation.
+- Redundant or currently unused values may be omitted from compact application tables only when they remain recoverable from the private raw source and the omission cannot reduce current analysis.
+- Unknown extra columns remain preserved in raw provenance and produce a schema warning for later assessment.
+- Authenticated owner review may expose exact filename, row and field details where useful. Routine logs, Git, CI, public surfaces and synthetic fixtures remain redacted.
 
 ## Normalisation
 
@@ -225,6 +237,8 @@ Manual tournament payouts sent directly to a crypto wallet must be supported as 
 ## Ownership
 
 - Current Vault is the source of truth for active owned cores at import time.
+- Every accepted Current Vault row represents an owned core; `me` is a separate Maiden-eligibility field and must never be used as the ownership filter.
+- The inspected current snapshot resolves all 195 owner-confirmed rows deterministically to Core Details. Future unmatched, inconsistent or genuinely ambiguous identities remain review-required.
 - Allow manual additions, removals and ME overrides.
 - Burnt cores are absent from active vault data but remain in historical core and lineage records.
 - Do not infer current ownership solely from race history.
@@ -280,17 +294,23 @@ Star profiles may be joined to lineage research as historical features, but the 
 
 The Race Merge economic columns have these normalized meanings:
 
-| Source column | Meaning                           | Normalized treatment                                                                                                       |
-| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                  |
-| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero |
-| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero   |
-| `toke_curr`   | Entry and payout asset            | Normalize case-insensitively to ETH or DEZ; unsupported assets remain review-required                                      |
-| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                               |
+| Source column | Meaning                           | Normalized treatment                                                                                                                            |
+| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                                       |
+| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero                      |
+| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero                        |
+| `toke_curr`   | Entry and payout asset            | Normalize ordinary race economics to ETH or DEZ; apply the confirmed historical BGC non-economic exception; other assets remain review-required |
+| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                                                    |
 
 A numeric zero is an authoritative zero. Blank, missing, malformed and negative values are not equivalent to zero. The fee and prize use the same row asset. Race-derived natural keys remain the accepted race-entry key plus `entry_fee` or `payout`, so cumulative imports cannot duplicate them.
 
 Persist exact source decimals and use exact database numerics; do not convert through JavaScript binary floating point. Entry fees are stored as expenses/debits and prizes as income/credits. Refunds, reversals and adjustments require an explicit source event or auditable manual entry.
+
+### Historical BGC race exception
+
+A Race Merge entry whose `toke_curr` is BGC remains accepted race-performance evidence but has an effective entry fee and payout of zero. It creates no race-derived transaction in ETH, DEZ or BGC, contributes no source fee or prize to an economic aggregate, and does not enter an unsupported-asset review queue merely because the race asset is BGC. Preserve its source provenance only inside the approved private import boundary.
+
+This exception is limited to historical race economics. Genuine BGC breeding costs, arena spending, burn credits, opening balances and adjustments remain separate BGC-ledger activity.
 
 ### USD valuation
 

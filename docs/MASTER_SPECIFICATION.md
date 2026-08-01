@@ -42,9 +42,9 @@ The initial supplied exports include:
 - season/tournament calendars and rule screenshots; and
 - user-entered economic transactions, manual tournament payouts and reconciliation records.
 
-Initial exploration identified approximately 2.5 million race-entry rows, about 695,000 events, approximately 18,000 core records, a current vault of roughly 68 cores and hundreds of active arena listings. Treat these figures as initial observations, not hardcoded assumptions.
+Approved aggregate profiling of the current nine-export source set identified 2,536,710 race-entry records across 695,901 events, 18,127 Core Details records, 195 owner-confirmed current-Vault cores of which 68 are Maiden Eligible, and 792 current-Arena listings. Coverage gaps and boundary-overlap statistics are recorded in `docs/AGGREGATE_SOURCE_PROFILE.md`. These are privacy-safe observations of the inspected source snapshot, not hardcoded product limits.
 
-The user will periodically upload newer versions. Imports must be incremental, idempotent, validated and auditable.
+The user will periodically upload newer versions through the private owner-facing workflow in `docs/DATA_UPDATE_WORKFLOW.md`. Imports must be incremental, idempotent, validated and auditable. Privacy safeguards must not remove analytically relevant source fields from the private processing boundary.
 
 ## 4. Core product modules
 
@@ -432,6 +432,8 @@ Required views include:
 - detailed ledger and filters.
 
 ## 5. Data refresh workflow
+
+The complete owner upload, preview, confirmation, background-processing, retention, completion and rollback contract is defined in `docs/DATA_UPDATE_WORKFLOW.md` and forms part of this specification.
 
 Support periodic uploads of:
 

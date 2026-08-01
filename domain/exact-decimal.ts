@@ -1,4 +1,7 @@
-const PLAIN_DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
+const PLAIN_EXACT_DECIMAL = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?$/;
+const SOURCE_EXACT_DECIMAL =
+  /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
+const MAX_ABSOLUTE_EXPONENT = 10_000;
 
 type ParsedDecimal = Readonly<{
   negative: boolean;
@@ -6,19 +9,52 @@ type ParsedDecimal = Readonly<{
   scale: number;
 }>;
 
-function parse(value: string): ParsedDecimal {
+function parse(
+  value: string,
+  notation: "plain" | "source" = "plain",
+): ParsedDecimal {
   const trimmed = value.trim();
-  if (!PLAIN_DECIMAL.test(trimmed)) {
-    throw new TypeError("value must be a plain base-10 decimal.");
+  const match = (
+    notation === "source" ? SOURCE_EXACT_DECIMAL : PLAIN_EXACT_DECIMAL
+  ).exec(trimmed);
+  if (match === null) {
+    throw new TypeError("value must be an exact base-10 decimal.");
   }
 
-  const negative = trimmed.startsWith("-");
-  const unsigned = negative ? trimmed.slice(1) : trimmed;
-  const [whole = "0", fraction = ""] = unsigned.split(".");
+  const whole = match[2] ?? "0";
+  const fraction = match[3] ?? "";
+  const exponentText = match[4] ?? "0";
+  const exponentDigits = exponentText.replace(/^[+-]/, "");
+  if (exponentDigits.length > 6) {
+    throw new RangeError("decimal exponent is outside the supported range.");
+  }
+
+  const exponent = Number(exponentText);
+  if (
+    !Number.isSafeInteger(exponent) ||
+    Math.abs(exponent) > MAX_ABSOLUTE_EXPONENT
+  ) {
+    throw new RangeError("decimal exponent is outside the supported range.");
+  }
+
+  let digits = BigInt(`${whole}${fraction}`);
+  if (digits === 0n) {
+    return { negative: false, digits: 0n, scale: 0 };
+  }
+
+  let scale = fraction.length - exponent;
+  if (scale < 0) {
+    digits *= 10n ** BigInt(-scale);
+    scale = 0;
+  }
+  if (scale > MAX_ABSOLUTE_EXPONENT) {
+    throw new RangeError("decimal scale is outside the supported range.");
+  }
+
   return {
-    negative,
-    digits: BigInt(`${whole}${fraction}`),
-    scale: fraction.length,
+    negative: match[1] === "-",
+    digits,
+    scale,
   };
 }
 
@@ -40,6 +76,10 @@ function format(parsed: ParsedDecimal): string {
 
 export function normalizeExactDecimal(value: string): string {
   return format(parse(value));
+}
+
+export function normalizeSourceExactDecimal(value: string): string {
+  return format(parse(value, "source"));
 }
 
 export function isNegativeExactDecimal(value: string): boolean {

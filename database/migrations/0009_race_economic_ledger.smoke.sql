@@ -539,6 +539,187 @@ VALUES
     NULL
   );
 
+INSERT INTO dna.dataset_staged_record (
+  owner_id,
+  import_batch_id,
+  source_row_number,
+  natural_key,
+  fingerprint_sha256,
+  status,
+  issue_codes
+)
+VALUES (
+  '90000000-0000-4000-8000-000000000001',
+  '90000000-0000-4000-8000-000000000104',
+  3,
+  'race-entry-historical-bgc',
+  repeat('c', 64),
+  'ready',
+  '{}'
+);
+
+INSERT INTO dna.normalized_race_staged_fact (
+  owner_id,
+  import_batch_id,
+  source_row_number,
+  source_event_id,
+  event_at,
+  mode,
+  distance,
+  source_core_id,
+  source_core_name,
+  source_gate,
+  gate_count,
+  gold_star,
+  blue_star,
+  raw_gold_star,
+  raw_blue_star,
+  star_data_status,
+  finish_position,
+  elapsed_time_source_value,
+  source_format_label,
+  raw_entry_fee,
+  raw_payout,
+  raw_prize,
+  raw_asset,
+  economic_data_status,
+  race_asset,
+  entry_fee_amount,
+  gross_payout_amount,
+  payout_mechanism_source_value,
+  race_tags_source_value
+)
+VALUES (
+  '90000000-0000-4000-8000-000000000001',
+  '90000000-0000-4000-8000-000000000104',
+  3,
+  'synthetic-historical-bgc-event',
+  '2026-07-22T14:00:00Z',
+  'horse',
+  1600,
+  'synthetic-owned-core',
+  'Synthetic Owned Core',
+  1,
+  4,
+  false,
+  false,
+  'FALSE',
+  'FALSE',
+  'complete',
+  3,
+  '91.000',
+  'synthetic-format',
+  '12.5',
+  'legacy-bgc',
+  '99',
+  'BGC',
+  'historical_non_economic',
+  NULL,
+  0,
+  0,
+  'legacy-bgc',
+  NULL
+);
+
+INSERT INTO dna.race_event (
+  id,
+  owner_id,
+  source_event_id,
+  event_at,
+  mode,
+  distance,
+  gate_count,
+  source_format_label,
+  source_import_batch_id,
+  active_in_dataset
+)
+VALUES (
+  '90000000-0000-4000-8000-000000000503',
+  '90000000-0000-4000-8000-000000000001',
+  'synthetic-historical-bgc-event',
+  '2026-07-22T14:00:00Z',
+  'horse',
+  1600,
+  4,
+  'synthetic-format',
+  '90000000-0000-4000-8000-000000000104',
+  true
+);
+
+INSERT INTO dna.race_entry (
+  id,
+  owner_id,
+  race_event_id,
+  source_core_id,
+  core_id,
+  gate_count,
+  gold_star,
+  blue_star,
+  star_data_status,
+  finish_position,
+  economic_data_status,
+  source_import_batch_id,
+  active_in_dataset
+)
+VALUES (
+  '90000000-0000-4000-8000-000000000603',
+  '90000000-0000-4000-8000-000000000001',
+  '90000000-0000-4000-8000-000000000503',
+  'synthetic-owned-core',
+  '90000000-0000-4000-8000-000000000201',
+  4,
+  false,
+  false,
+  'complete',
+  3,
+  'unvalidated',
+  '90000000-0000-4000-8000-000000000104',
+  true
+);
+
+INSERT INTO dna.race_entry_source (
+  id,
+  owner_id,
+  race_entry_id,
+  import_batch_id,
+  source_row_number,
+  source_row_checksum,
+  raw_gold_star,
+  raw_blue_star,
+  raw_entry_fee,
+  raw_payout,
+  is_selected_fact,
+  source_event_datetime,
+  source_core_name,
+  source_gate,
+  raw_elapsed_time,
+  raw_prize,
+  raw_asset,
+  source_format_label,
+  raw_race_tags
+)
+VALUES (
+  '90000000-0000-4000-8000-000000000703',
+  '90000000-0000-4000-8000-000000000001',
+  '90000000-0000-4000-8000-000000000603',
+  '90000000-0000-4000-8000-000000000104',
+  3,
+  repeat('c', 64),
+  'FALSE',
+  'FALSE',
+  '12.5',
+  'legacy-bgc',
+  true,
+  '2026-07-22T14:00:00Z',
+  'Synthetic Owned Core',
+  1,
+  '91.000',
+  '99',
+  'BGC',
+  'synthetic-format',
+  NULL
+);
+
 SELECT *
 FROM dna.materialize_owned_race_economics(
   '90000000-0000-4000-8000-000000000104',
@@ -623,8 +804,26 @@ BEGIN
     WHERE
       owner_id = '90000000-0000-4000-8000-000000000001'
       AND economic_data_status = 'validated'
-  ) <> 2 THEN
+  ) <> 3 THEN
     RAISE EXCEPTION 'accepted economic status was not materialized';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM dna.race_entry
+    WHERE
+      id = '90000000-0000-4000-8000-000000000603'
+      AND economic_data_status = 'validated'
+  ) OR EXISTS (
+    SELECT 1
+    FROM dna.economic_transaction
+    WHERE race_entry_id = '90000000-0000-4000-8000-000000000603'
+  ) OR EXISTS (
+    SELECT 1
+    FROM dna.reconciliation_issue
+    WHERE entity_id = '90000000-0000-4000-8000-000000000603'
+  ) THEN
+    RAISE EXCEPTION 'historical BGC race created economics or review work';
   END IF;
 END
 $materialization_assertions$;
