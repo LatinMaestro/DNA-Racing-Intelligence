@@ -412,3 +412,41 @@
 - Synthetic TypeScript coverage verifies scientific ETH normalization, exact transaction derivation, BGC zero-effective treatment, absence of BGC ledger rows and continued fail-closed handling of unsupported assets.
 - Reversible migration smoke coverage now encodes assertions that the durable BGC state is constrained, materializes as economically validated and produces neither a transaction nor a review item. Exact PostgreSQL execution remains mandatory before merge.
 - Private source records, identities, filenames and amounts remain outside Git. Only the previously approved aggregate compatibility result is documented.
+
+## 2026-07-24 — Owner-scoped import read-model service
+
+- Replace the Imports route's hardcoded empty 1970 projection with a dynamic Server Component and provider-neutral application service.
+- Require both an authenticated session owner ID and the single configured allowlist ID before persistence may be queried. Missing identity stays explicitly disconnected; a mismatch fails closed.
+- Query a ready import-batch repository only with the verified owner ID. Do not turn malformed persisted batch evidence into an empty or successful state.
+- Keep the repository adapter explicitly not configured until approved Preview identity and Neon access exist. Never initialize a provider SDK at module scope or during `next build`.
+- Distinguish identity unavailable, persistence unavailable and read-model connected states in the owner UI without exposing private identifiers.
+- Keep raw upload and background processing disabled even when the historical read model is connected; they remain separate gated implementation work.
+
+## 2026-07-24 — Owner data-update preview contract
+
+- Group staged files by Race Merge, Core Details, Current Vault and Current Arena before owner confirmation.
+- Treat Race Merge as chronological append history, Core Details as a durable-ID versioned upsert, and Vault/Arena as single replacement snapshots.
+- Report accepted, exact replay, exact duplicate, conflicting, malformed and warning counts without mutating the active dataset.
+- Block confirmation for unsupported schemas, conflicts, malformed rows or multiple competing snapshot/upsert candidates. Visible warnings and exact duplicates do not block an otherwise valid plan.
+- Require explicit owner confirmation before background processing starts. The preview itself never activates data, deletes provenance or changes Production.
+
+## 2026-07-24 — Lazy owner-scoped Neon import read repository
+
+- Add the Neon serverless driver as the approved PostgreSQL transport without provisioning a database or configuring a secret.
+- Keep provider import and query-function creation lazy. The Imports route may construct the repository during a build, but no database client or network request is created until an authorised owner read occurs.
+- Require both `DATABASE_URL` and the server-only internal `DNA_DATABASE_OWNER_ID`; missing values preserve the explicit not-configured state.
+- Within one bounded read-only repeatable-read transaction, set `app.owner_id`, verify the internal owner-to-Clerk mapping and rely on the existing forced row-level-security policies.
+- Read compact import manifests, versions, aggregate timestamps and count-only review summaries only. Routine route reads scan no raw Race Merge history or private source values.
+- Return the 200 most recent supported batches plus every active source version so quarantined attempts cannot hide the accepted dataset.
+- Validate PostgreSQL timestamps, Booleans, `bigint` counts, source/status enums and warning payloads before they enter the domain projection; unsupported or unsafe values fail closed.
+- Keep Clerk authentication, Preview provider configuration, the first persistent private import, uploads, background processing, PostgreSQL execution evidence and Production separately gated.
+
+## 2026-07-24 — Fail-closed Clerk owner-session wiring
+
+- Add the Clerk Next.js SDK as the accepted request-authentication transport without provisioning an account, adding a secret or enabling Preview.
+- Preserve the deployment gate before Clerk middleware. Disabled Preview and Production requests remain non-indexable 404 responses even when Clerk is unconfigured.
+- Require both the publishable and secret Clerk keys before requesting authentication evidence. Missing configuration remains unavailable, partial configuration fails closed and no provider call occurs during `next build`.
+- Read only the server-side Clerk user ID from the authenticated request and independently require it to match `AUTHORIZED_CLERK_USER_ID` at the import-service boundary before any persistence query.
+- A signed-out request remains disconnected, a signed-in non-owner is denied before persistence and malformed session evidence fails closed.
+- Render the Clerk provider only when its browser-safe publishable key exists; repository-only validation therefore remains possible without secrets or network initialization.
+- Keep sign-in UI, account provisioning, Preview secrets, real provider verification, uploads, background processing and Production separately gated.
