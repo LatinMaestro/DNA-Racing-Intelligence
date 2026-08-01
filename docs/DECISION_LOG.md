@@ -816,3 +816,36 @@
   warnings and tournament-allocation warnings without claiming completeness.
 - Keep forms, provider initialization, wallet actions, private data,
   Preview/Production persistence and Production disabled.
+
+## 2026-08-02 — Owner-scoped manual tournament payout write boundary
+
+- Recompose queue order 23 from exact source head
+  `0a5b38f46ab9881f7367a48de94ed62a40659e1e` onto verified `main`
+  `e29cbd2b94264c618d9b82f720dd1e39da3458a4`; do not merge staged ancestry,
+  queue ledgers, rehearsal branches or cumulative descendants.
+- Include the missing deterministic allocation and prize-reconciliation domains
+  and synthetic tests so the focused delta is independently buildable.
+- Require authenticated Clerk owner equality before economic repository access,
+  an owner-acknowledged persisted campaign binding, exact tournament evidence
+  and exact configuration version. Free text cannot authorize campaign totals.
+- Resolve asset kind and precision from an authoritative versioned server-side
+  registry. Reject BGC, caller metadata mismatch and registry drift; preserve
+  exact asset separation and allocation conservation.
+- Bind reconciliation to the active import-snapshot SHA-256, an independently
+  recomputed candidate-set SHA-256 and the complete expected imported
+  transaction-identity set.
+- Keep imported facts immutable and suspected duplicates included pending a
+  reasoned owner decision. A confirmed duplicate excludes only the manual
+  payout; a confirmed separate payment remains included.
+- Revalidate the campaign, asset registry, stored-state fingerprint, candidate
+  evidence and optimistic revision at decision time. Candidate or snapshot drift
+  atomically reopens review and restores an included manual aggregate state.
+- Require an atomic reopen to return its exact bounded candidate set and
+  independently canonicalize and re-hash it before reporting the reopened
+  snapshot or candidate evidence.
+- Bind stored ledger version, revision and the last operation fingerprint into
+  state evidence so exact lost-response retries replay without another write;
+  changed or genuinely stale decisions remain blocked.
+- Keep persistence unavailable by default. Forms, provider initialization,
+  private data, wallet/game actions, Preview writes and Production remain
+  disabled.
