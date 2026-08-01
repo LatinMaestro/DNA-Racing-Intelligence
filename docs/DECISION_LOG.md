@@ -450,3 +450,19 @@
 - A signed-out request remains disconnected, a signed-in non-owner is denied before persistence and malformed session evidence fails closed.
 - Render the Clerk provider only when its browser-safe publishable key exists; repository-only validation therefore remains possible without secrets or network initialization.
 - Keep sign-in UI, account provisioning, Preview secrets, real provider verification, uploads, background processing and Production separately gated.
+
+## 2026-07-24 — Guarded import confirmation and dispatch
+
+- Treat the persisted owner-scoped preview and its SHA-256 fingerprint as the
+  activation authority; never trust a browser-supplied preview body.
+- Require exact owner identity, explicit confirmation, private raw-object
+  attestation, an approved-capacity decision, durable persistence and an
+  idempotent background queue before activation can be scheduled.
+- Reserve the update session and stable dispatch ID before enqueueing work.
+  Repeated confirmation returns the existing queued reservation rather than
+  creating another job.
+- Record enqueue failure as retryable dispatch evidence without changing the
+  active source version. Dataset activation remains a later background
+  transaction after validation succeeds.
+- Keep all providers unavailable by default. Do not provision services, enable
+  uploads, expose routes or change Preview or Production in this slice.
