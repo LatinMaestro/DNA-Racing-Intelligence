@@ -671,3 +671,28 @@
 - Keep every result historical, experimental and non-actionable. Provider
   initialization, private-data execution, automatic entry, Preview and
   Production remain disabled.
+
+## 2026-08-01 — Owner-scoped Maiden read workspace
+
+- Recompose queue order 17 from exact source head
+  `c9b0004f7086c8a4fb489690d3465a701312596b` onto verified `main`
+  `4748f3e21f0eade849fb69d2ceff99ea497c3217`; do not merge its staged
+  precursor, queue ledger, rehearsal branches or cumulative descendants.
+- Include the missing deterministic whole-Vault allocation prerequisite and
+  synthetic tests so current `main` remains independently buildable.
+- Require authenticated Clerk owner identity to match the server-side allowlist
+  before any compact allocation evidence can be queried.
+- Bind tournament/bracket labels, configuration version, candidate-snapshot
+  version and time-led projection version end-to-end. Reject drift and
+  inconsistent ID-to-label or cross-mode bindings.
+- Compare complete Bike, Car and Horse evidence and preserve ME for the strongest
+  credible opportunity. Weak or unknown time evidence fails closed; historical
+  stars remain supporting context and never drive allocation.
+- Derive freshness from canonical accepted cutoffs and server time. Defer
+  candidates without an accepted import and reject future imports, future
+  cutoffs and post-import evidence, with exact 3/4/7/8-day tests.
+- Keep current Vault ME evidence explicitly non-historical, and keep planned,
+  committed and consumed lifecycle states unavailable for allocation.
+- Keep every result historical, experimental and non-actionable. Entitlement
+  mutation, provider initialization, private-data execution, automatic entry,
+  Preview and Production remain disabled.
