@@ -162,17 +162,6 @@ function assertMaidenOverrides(
   }
 }
 
-function chronological<T extends { effectiveAt: string }>(
-  values: readonly T[],
-  id: (value: T) => string,
-): T[] {
-  return [...values].sort(
-    (left, right) =>
-      Date.parse(left.effectiveAt) - Date.parse(right.effectiveAt) ||
-      id(left).localeCompare(id(right)),
-  );
-}
-
 export function buildCurrentVaultRegistry(input: {
   snapshot: CurrentVaultSnapshot | null;
   ownershipEdits: readonly ManualOwnershipEdit[];
