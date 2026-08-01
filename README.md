@@ -19,7 +19,7 @@ For an Open Race, current-race Gold and Blue stars are unavailable while the fie
 
 ## Repository status
 
-Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core race economics and historical USD-rate controls are implemented with synthetic verification. Phase 2 core-performance and confirmed-ID current-vault registry work is in progress while the first full private hosted import remains separately gated by Preview configuration and capacity evidence. Production remains disabled and requires explicit Gate F approval.
+Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core race economics and historical USD-rate controls are implemented with synthetic verification. Phase 2 Core Intelligence and current-Vault historical read workspaces are merged; the Phase 2A Vault Performance read workspace is in progress while the first full private hosted import remains separately gated by Preview configuration and capacity evidence. Production remains disabled and requires explicit Gate F approval.
 
 ## Source-of-truth documents
 
@@ -62,6 +62,8 @@ Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core
 - [`docs/PHASE_2_CORE_READ_WORKSPACE.md`](docs/PHASE_2_CORE_READ_WORKSPACE.md) — owner-scoped compact-profile application service and historical interface
 - [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
 - [`docs/PHASE_2_VAULT_READ_WORKSPACE.md`](docs/PHASE_2_VAULT_READ_WORKSPACE.md) — owner-scoped Vault application service and historical-snapshot interface
+- [`docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md`](docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md) — exact asset-separated Vault Performance aggregation contract
+- [`docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md`](docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md) — owner-scoped historical economic summary service and private interface
 - [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
 
 ## Privacy
