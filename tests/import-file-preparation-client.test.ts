@@ -226,4 +226,24 @@ describe("import file preparation client", () => {
     expect(hash.update).toHaveBeenCalledOnce();
     expect(hash.digestHex).not.toHaveBeenCalled();
   });
+
+  it("does not return prepared files when cancellation occurs during digest", async () => {
+    const controller = new AbortController();
+    const hash = hasher();
+    hash.digestHex.mockImplementationOnce(async () => {
+      controller.abort();
+      return "a".repeat(64);
+    });
+
+    await expect(
+      prepareImportUploadFiles({
+        selections: [selection({ body: new Blob(["final"]) })],
+        chunkByteLength: CHUNK_BYTES,
+        createSha256: () => hash.value,
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("aborted");
+
+    expect(hash.digestHex).toHaveBeenCalledOnce();
+  });
 });
