@@ -1010,3 +1010,10 @@
 - Keep this as one specific private-import worker rather than a general workflow
   platform. Concrete provider wiring, private data, Preview execution and
   Production remain disabled.
+
+## 2026-08-08 — Lean authenticated private-import owner actions
+
+- Extract only the useful executable portion of source-inventory order 30 from exact head `bf52a3f408551275fca2167fd9fea395988fc2b7` onto `main` `e1f6b5c17c3da6f370d38982dc5901ae45d6a5c3`.
+- Resolve the authenticated identity inside each server-only action and never accept a browser-supplied owner ID. Signed-out requests fail closed, non-owner sessions are denied before provider access and authentication-provider failures are sanitized.
+- Forward the exact idempotency and upload-request fingerprints into the existing guarded upload-intake and completion services.
+- Keep provider wiring, forms, administration, private data, Preview execution and Production disabled. The historical standalone service document and README catalogue entry were omitted as unnecessary for this basic single-owner website.
