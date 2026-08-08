@@ -12,6 +12,7 @@ import {
   beginImportUploadAction,
   confirmImportUpdateAction,
   completeImportUploadAction,
+  rollbackImportAction,
 } from "../app/(private)/imports/actions";
 import type { ImportUploadCandidate } from "../lib/import-upload-intake-service";
 
@@ -110,6 +111,22 @@ describe("import server action adapter", () => {
         "background_queue",
       ],
     });
+
+    expect(session.ownerId).toHaveBeenCalledOnce();
+  });
+
+  it("re-verifies the owner and keeps rollback persistence fail-closed", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+
+    await expect(
+      rollbackImportAction({
+        batchId: "batch-active",
+        rollbackReason: "Restore the prior accepted source snapshot.",
+        idempotencyKey: "rollback-request-1",
+        explicitlyConfirmed: true,
+      }),
+    ).resolves.toEqual({ status: "persistence_not_configured" });
 
     expect(session.ownerId).toHaveBeenCalledOnce();
   });
