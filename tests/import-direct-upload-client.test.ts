@@ -144,6 +144,25 @@ describe("direct import upload client", () => {
     expect(completion.completeUpload).not.toHaveBeenCalled();
   });
 
+  it("rejects a changed upload-request fingerprint before uploading", async () => {
+    const { transport, completion } = dependencies();
+
+    await expect(
+      uploadReservedImportFiles({
+        reservation: { ...reservation, requestFingerprint: "tampered" },
+        candidates,
+        files,
+        completionIdempotencyKey: "complete-request-1",
+        now: new Date("2026-07-26T00:30:00.000Z"),
+        transport,
+        completion,
+      }),
+    ).rejects.toThrow("uploadRequestFingerprint");
+
+    expect(transport.putPrivateObject).not.toHaveBeenCalled();
+    expect(completion.completeUpload).not.toHaveBeenCalled();
+  });
+
   it("requires candidates, files and targets to have the same identities", async () => {
     const { transport, completion } = dependencies();
 
