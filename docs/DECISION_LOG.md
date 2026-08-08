@@ -1024,3 +1024,10 @@
 - Add two server-only request adapters for starting and completing the private import. Each resolves the current Clerk identity inside the request and forwards only validated metadata, idempotency and upload-request fingerprints to the existing guarded services.
 - Keep all storage, persistence and queue capabilities unavailable until protected Preview provider setup. The actions cannot proxy CSV bytes, activate data, alter freshness or create recommendations.
 - Omit the historical standalone service document and README catalogue entry because they add no runtime or owner-facing value.
+
+## 2026-08-08 — Lean bounded direct-upload client
+
+- Extract only the useful executable portion of source-inventory order 32 from exact head `01c6667a23e7077993de87c0be4f8851b22925b3` onto verified `main` `8dfd1ae39f038c8bad73708b50c380a10bd209af`.
+- Upload selected CSV `Blob` bodies directly to the exact private PUT targets returned by guarded intake; validate expiry, identities, byte lengths and candidate metadata before transferring any file.
+- Preserve deterministic target order, stop before completion on transfer failure and bind completion to the reservation's exact upload-request fingerprint.
+- Keep provider wiring, file preparation/hashing UI, private data, Preview execution and Production disabled. Omit the historical standalone service document and README catalogue entry as unnecessary for this private-owner runtime slice.
