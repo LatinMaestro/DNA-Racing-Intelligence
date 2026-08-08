@@ -937,3 +937,29 @@
   realised gain, or initiate a splice, wallet/game action or ledger mutation.
 - Keep adapters, forms, provider initialization, private-data execution,
   Preview writes and Production disabled.
+
+## 2026-08-08 — Guarded private import upload intake
+
+- Recompose queue order 27 from exact source head
+  `e2a66de3bfa5ab5e9f6ec84b4cebfdcb167f24b4` onto verified `main`
+  `1f7dc7618a087dec236a3f76ec0a286c83233ca9`; do not merge staged
+  ancestry, queue ledgers, rehearsal branches or cumulative descendants.
+- Require exact authenticated-owner equality before capacity, persistence or
+  object-store access and keep all provider capabilities unavailable by default.
+- Accept bounded CSV metadata only: safe private filename, normalized content
+  type, positive safe byte length, declared source family and lowercase SHA-256.
+  The application never receives, proxies or buffers source bytes.
+- Preserve the four authoritative source families: Core Details, Current Vault,
+  Current Arena and sequential Race Merge. Permit grouped Race Merge candidates
+  but only one replacement candidate per non-history source family in a batch.
+- Apply the approved capacity gate before durable reservation. Bind the
+  idempotency key and ordered canonical file metadata to a SHA-256 request
+  fingerprint carried through every reservation state transition; changed
+  replay evidence fails closed before any upload target is issued.
+- Validate provider-returned disposition, request fingerprint, complete unique
+  identity set, PUT method and bounded control-free opaque target tokens.
+  Partial or inconsistent target reservations are marked failed without source
+  activation, freshness, aggregate or recommendation mutation.
+- Upload intake is not preview, confirmation, processing or activation. Keep
+  route/action wiring, concrete adapters, private data, Preview execution and
+  Production disabled.
