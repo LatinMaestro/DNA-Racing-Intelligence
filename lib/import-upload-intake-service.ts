@@ -104,6 +104,7 @@ export type ImportUploadIntakeResult =
       status: "ready";
       disposition: "created" | "existing";
       uploadBatchId: string;
+      requestFingerprint: string;
       expiresAt: string;
       targets: readonly ImportUploadTarget[];
     }>;
@@ -420,6 +421,7 @@ export async function beginPrivateImportUpload(
       status: "ready",
       disposition: reservation.disposition,
       uploadBatchId: reservation.uploadBatchId,
+      requestFingerprint: reservation.requestFingerprint,
       expiresAt,
       targets,
     };
