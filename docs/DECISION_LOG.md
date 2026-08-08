@@ -1017,3 +1017,10 @@
 - Resolve the authenticated identity inside each server-only action and never accept a browser-supplied owner ID. Signed-out requests fail closed, non-owner sessions are denied before provider access and authentication-provider failures are sanitized.
 - Forward the exact idempotency and upload-request fingerprints into the existing guarded upload-intake and completion services.
 - Keep provider wiring, forms, administration, private data, Preview execution and Production disabled. The historical standalone service document and README catalogue entry were omitted as unnecessary for this basic single-owner website.
+
+## 2026-08-08 — Lean private-import Server Actions
+
+- Extract only the useful executable portion of source-inventory order 31 from exact head `e4c077da3a1e5d81371002b9d0d38a369ed27d26` onto `main` `470c870033253030b4e3d03cb12e298a8f990717`.
+- Add two server-only request adapters for starting and completing the private import. Each resolves the current Clerk identity inside the request and forwards only validated metadata, idempotency and upload-request fingerprints to the existing guarded services.
+- Keep all storage, persistence and queue capabilities unavailable until protected Preview provider setup. The actions cannot proxy CSV bytes, activate data, alter freshness or create recommendations.
+- Omit the historical standalone service document and README catalogue entry because they add no runtime or owner-facing value.
