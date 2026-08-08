@@ -50,6 +50,13 @@ with SHA-256. Persistence receives an expected lifecycle version; concurrent
 version drift fails closed. Exact durable-ID replay is idempotent and
 conflicting evidence under the same identity fails closed.
 
+Burn-credit retries first load the owner-scoped durable credit by its canonical
+ID. The service verifies both the canonical credit-and-asset fingerprint and
+the complete stored-record fingerprint. An exact lost-response retry returns
+the stored reconciliation and lifecycle version without re-reading the burn,
+recomputing against sibling credits or attempting another write. Changed or
+corrupt stored evidence fails closed.
+
 Event and recorded timestamps are canonical UTC values derived at the service
 boundary. Future evidence relative to server time is rejected.
 
@@ -62,8 +69,8 @@ Production activation.
 Focused tests cover owner and persistence gates, exact sale result, missing and
 unlike cost basis, confirmed burn evidence, Genesis rejection, actual BGC
 credit reconciliation, ambiguous credits, missing burns, exact replay, durable
-ID conflict, registry drift, asset precision, optimistic concurrency and future
-evidence.
+ID conflict, pre-dependency burn-credit replay, stored-record integrity,
+registry drift, asset precision, optimistic concurrency and future evidence.
 
 All outputs remain review evidence. Synthetic tests do not establish complete
 economic coverage or accept Gate C.

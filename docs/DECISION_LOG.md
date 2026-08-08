@@ -882,3 +882,29 @@
   review-only.
 - Keep forms, provider initialization, ledger mutation, private data,
   wallet/game actions, Preview writes and Production disabled.
+
+## 2026-08-08 — Lifecycle burn-credit replay hardening
+
+- Recompose queue order 25 from exact source head
+  `f2dc526861736ce5bfbd4beccc8877801dcc0220` onto verified `main`
+  `33dbb7e334eeb8f90e35412b86ec8e0ce5ddabf2`; do not merge its staged
+  ancestry, queue ledger, rehearsal branches or cumulative descendants.
+- Preserve the newer authoritative asset registry, exact precision, canonical
+  timestamp, optimistic lifecycle-version, Genesis prohibition and accounting
+  controls already accepted with queue order 24.
+- Load an existing owner-scoped burn credit by canonical durable ID before
+  reading its referenced burn or sibling credits. Exact lost-response replay
+  returns the stored reconciliation and lifecycle version without another
+  write or dependency read.
+- Bind durable identity to the canonical credit and authoritative asset
+  evidence, and independently verify the complete stored reconciliation record.
+  Changed input, corrupted stored evidence or invalid lifecycle versions fail
+  closed.
+- A fresh exact-lock audit exposed new production advisories in transitive
+  `postcss` and `nanoid`, plus a new development-only `js-yaml` advisory.
+  Pin their patched compatible releases through the existing override boundary;
+  keep the inherited development-only `brace-expansion` advisory tracked
+  without weakening validation or forcing incompatible transitive majors.
+- Keep persistence unavailable by default. Forms, provider initialization,
+  ledger mutation, private data, wallet/game actions, Preview writes and
+  Production remain disabled.
