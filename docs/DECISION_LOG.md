@@ -989,3 +989,24 @@
 - Keep repository, private object-store and queue capabilities unavailable by
   default. Route/action wiring, concrete provider adapters, private data,
   Preview execution and Production remain disabled.
+
+## 2026-08-08 — Lean bounded import preview processing
+
+- Recompose the useful executable portion of queue order 29 from exact source
+  `8b8ec9f3b1bc91c84975840fa2708371149af2f4` onto scope-corrected
+  `main` `a0ccfdba61114330397748c69873bd70091b7952`.
+- Keep only the private import worker needed to claim one queued dispatch,
+  validate its durable object manifest, run bounded deterministic preview
+  preparation and publish review evidence atomically.
+- Bind queue message, lease, completed replay and publication to the exact
+  upload-request fingerprint. Require publication acknowledgement to repeat the
+  request, manifest and preview identities.
+- Enforce the approved total manifest byte boundary before processing. The
+  later concrete processor must stream every object through the existing
+  bounded SHA-256-verifying raw-object path.
+- Blocked previews remain reviewable and non-confirmable. No preview can
+  confirm an import, activate a source, alter freshness, refresh aggregates or
+  produce an actionable recommendation.
+- Keep this as one specific private-import worker rather than a general workflow
+  platform. Concrete provider wiring, private data, Preview execution and
+  Production remain disabled.
