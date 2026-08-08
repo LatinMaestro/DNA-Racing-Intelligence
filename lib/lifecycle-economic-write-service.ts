@@ -72,6 +72,13 @@ export type StoredBurnEvidence = Readonly<{
   fingerprint: string;
 }>;
 
+export type StoredBurnCreditEvidence = Readonly<{
+  record: ValidatedBurnCreditRecord;
+  fingerprint: string;
+  recordFingerprint: string;
+  lifecycleVersion: string;
+}>;
+
 export type LifecycleEconomicWriteRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
@@ -92,6 +99,10 @@ export type LifecycleEconomicWriteRepository =
         ownerId: string,
         burnId: string,
       ) => Promise<StoredBurnEvidence | null>;
+      loadBurnCreditByOwner: (
+        ownerId: string,
+        creditId: string,
+      ) => Promise<StoredBurnCreditEvidence | null>;
       loadBurnCreditsByOwner: (
         ownerId: string,
         burnId: string,
@@ -507,6 +518,42 @@ export async function recordBurnCreditEvidence(input: {
   if (credit.burnId === null) {
     throw new Error("Burn credit must reference one durable burn ID.");
   }
+  const evidenceFingerprint = fingerprint({ credit, asset: evidence });
+  const storedCredit = await input.repository.loadBurnCreditByOwner(
+    ownerId,
+    credit.creditId,
+  );
+  if (storedCredit !== null) {
+    if (
+      fingerprint({
+        credit: storedCredit.record.credit,
+        asset: storedCredit.record.asset,
+      }) !== storedCredit.fingerprint ||
+      fingerprint(storedCredit.record) !== storedCredit.recordFingerprint
+    ) {
+      throw new Error("Stored burn credit evidence fingerprint is invalid.");
+    }
+    if (storedCredit.fingerprint !== evidenceFingerprint) {
+      throw new Error(
+        "Lifecycle economic durable identity conflicts with prior evidence.",
+      );
+    }
+    return {
+      status: "replayed",
+      creditId: credit.creditId,
+      burnId: credit.burnId,
+      fingerprint: evidenceFingerprint,
+      lifecycleVersion: required(
+        storedCredit.lifecycleVersion,
+        "Lifecycle version",
+      ),
+      reconciliationStatus: storedCredit.record.reconciliation.status,
+      ledgerPostingProposed:
+        storedCredit.record.reconciliation.ledgerPostingProposed,
+      ledgerMutationAllowed: false,
+      creditPredicted: false,
+    };
+  }
   const storedBurn = await input.repository.loadBurnByOwner(
     ownerId,
     credit.burnId,
@@ -539,7 +586,6 @@ export async function recordBurnCreditEvidence(input: {
     reconciliation,
     asset: evidence,
   };
-  const evidenceFingerprint = fingerprint(record);
   const persisted = await input.repository.saveBurnCreditByOwner(
     ownerId,
     record,
