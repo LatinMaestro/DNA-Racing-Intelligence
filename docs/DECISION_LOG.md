@@ -963,3 +963,29 @@
 - Upload intake is not preview, confirmation, processing or activation. Keep
   route/action wiring, concrete adapters, private data, Preview execution and
   Production disabled.
+
+## 2026-08-08 — Guarded private import upload completion
+
+- Recompose queue order 28 from exact source head
+  `a4b603feb03a09ce0e6d2a4772aac0c530b35baa` onto verified `main`
+  `a192e351cd422b76f5bc5fb1220662d4203b0eac`; do not merge staged
+  ancestry, queue ledgers, rehearsal branches or cumulative descendants.
+- Preserve order 27's capacity-gated, owner-scoped, request-fingerprinted
+  direct-upload reservation. Bind the completion claim, exact replay and
+  preview dispatch to that same upload-request fingerprint.
+- Require canonical, unexpired upload-target evidence before object access.
+  Inspect only the exact private owner/batch/file/object identity reserved by
+  the repository; reject public, cross-owner or substituted provider metadata.
+- Require exact reserved byte length and normalized content type. Compare
+  provider SHA-256 when available; when absent, the later bounded preview
+  worker must still stream and verify every byte before accepting staged
+  evidence.
+- Reserve a durable dispatch before queue access. Require the idempotent queue
+  acknowledgement to repeat the exact dispatch ID and request fingerprint so
+  lost-response retries cannot schedule a second logical preview.
+- Completion is not schema acceptance, preview confirmation, processing or
+  activation. It cannot advance an active source version, freshness,
+  aggregates or recommendations.
+- Keep repository, private object-store and queue capabilities unavailable by
+  default. Route/action wiring, concrete provider adapters, private data,
+  Preview execution and Production remain disabled.
