@@ -1,3 +1,4 @@
+import { VaultPerformanceEconomicForms } from "@/components/vault-performance-economic-forms";
 import type {
   VaultPerformanceAssetTotal,
   VaultPerformanceSummary,
@@ -229,6 +230,13 @@ export function VaultPerformanceWorkspace({
           </section>
         </>
       )}
+      <VaultPerformanceEconomicForms
+        status={
+          connectionStatus === "identity_not_connected"
+            ? "identity_not_connected"
+            : "persistence_not_configured"
+        }
+      />
     </div>
   );
 }
