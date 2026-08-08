@@ -155,6 +155,10 @@ export async function uploadReservedImportFiles(
     input.completionIdempotencyKey,
     "completionIdempotencyKey",
   );
+  const uploadRequestFingerprint = input.reservation.requestFingerprint;
+  if (!SHA_256_PATTERN.test(uploadRequestFingerprint)) {
+    throw new Error("uploadRequestFingerprint is invalid");
+  }
   const expiresAt = requireValidTimestamp(
     input.reservation.expiresAt,
     "expiresAt",
@@ -220,7 +224,7 @@ export async function uploadReservedImportFiles(
     completion: await input.completion.completeUpload({
       uploadBatchId,
       idempotencyKey: completionIdempotencyKey,
-      uploadRequestFingerprint: input.reservation.requestFingerprint,
+      uploadRequestFingerprint,
     }),
   };
 }
