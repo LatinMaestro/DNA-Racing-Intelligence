@@ -1031,3 +1031,11 @@
 - Upload selected CSV `Blob` bodies directly to the exact private PUT targets returned by guarded intake; validate expiry, identities, byte lengths and candidate metadata before transferring any file.
 - Preserve deterministic target order, stop before completion on transfer failure and bind completion to the reservation's exact upload-request fingerprint.
 - Keep provider wiring, file preparation/hashing UI, private data, Preview execution and Production disabled. Omit the historical standalone service document and README catalogue entry as unnecessary for this private-owner runtime slice.
+
+## 2026-08-08 — Lean bounded import file preparation
+
+- Extract only the useful executable portion of source-inventory order 33 from exact head `c7dea5ccd2a031e6c6d979b50ec0ca6b915bb234` onto verified `main` `4b28aae719d8a17e59531886793bf4b6d9c7407e`.
+- Validate one to 24 selected CSV files and prepare the exact intake metadata and original `Blob` references without copying or persisting private bytes.
+- Hash files sequentially in bounded 64 KiB to 16 MiB chunks, report only client ID and byte-count progress, and preserve grouped Race Merge versus single replacement-snapshot rules.
+- Reject unsafe metadata, duplicate identities, empty/oversized files, malformed digests and cancellation—including cancellation during the final asynchronous hash update.
+- Keep the concrete incremental hasher, picker/UI, provider wiring, private data, Preview execution and Production disabled. Omit the historical README catalogue and standalone design document as unnecessary.
