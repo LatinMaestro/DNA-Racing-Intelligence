@@ -102,6 +102,24 @@ describe("Vault Performance economic Server Actions", () => {
     ).resolves.toEqual({ status: "persistence_not_configured" });
   });
 
+  it("does not let serialized input replace server-owned capabilities", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+
+    const hostileInput = {
+      ...manualEntryInput,
+      authenticatedOwnerId: "other-owner",
+      configuredOwnerId: "other-owner",
+      repository: { status: "ready" },
+      assetRegistry: { status: "ready", version: "browser-controlled" },
+      serverNow: "2099-01-01T00:00:00.000Z",
+    } as unknown as Parameters<typeof recordManualLedgerEntryAction>[0];
+
+    await expect(recordManualLedgerEntryAction(hostileInput)).resolves.toEqual({
+      status: "persistence_not_configured",
+    });
+  });
+
   it("keeps payout and reconciliation persistence unavailable", async () => {
     vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
     session.ownerId
