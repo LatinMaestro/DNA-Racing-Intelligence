@@ -166,6 +166,7 @@ export async function prepareImportUploadFiles(
       });
     }
     const digest = (await sha256.digestHex()).trim().toLowerCase();
+    throwIfAborted(input.signal);
     if (!SHA_256_PATTERN.test(digest)) {
       throw new Error("incremental SHA-256 digest is invalid");
     }
