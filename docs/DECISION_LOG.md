@@ -1039,3 +1039,11 @@
 - Hash files sequentially in bounded 64 KiB to 16 MiB chunks, report only client ID and byte-count progress, and preserve grouped Race Merge versus single replacement-snapshot rules.
 - Reject unsafe metadata, duplicate identities, empty/oversized files, malformed digests and cancellation—including cancellation during the final asynchronous hash update.
 - Keep the concrete incremental hasher, picker/UI, provider wiring, private data, Preview execution and Production disabled. Omit the historical README catalogue and standalone design document as unnecessary.
+
+## 2026-08-08 — Lean authenticated import confirmation
+
+- Extract only the useful executable portion of source-inventory order 34 from exact head `fd499d1b5fa6d93fd833e80ef9e397a87f04aa88` onto verified `main` `6eac03d7ca92add043dac9a4afd102a883081c5c`.
+- Re-authenticate the configured single owner at confirmation time and bind the request to the exact preview ID, SHA-256 fingerprint, idempotency key and literal explicit-confirmation flag.
+- Keep every hosted activation capability unavailable until Preview providers are deliberately configured, so confirmation cannot reserve or dispatch work in the repository-only state.
+- Convert authentication-provider failures to a stable private error and preserve the newer upload-completion request-fingerprint binding already on `main`.
+- Omit the historical README catalogue and standalone service document as unnecessary for the private-owner product.

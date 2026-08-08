@@ -10,6 +10,7 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   beginImportUploadAction,
+  confirmImportUpdateAction,
   completeImportUploadAction,
 } from "../app/(private)/imports/actions";
 import type { ImportUploadCandidate } from "../lib/import-upload-intake-service";
@@ -85,6 +86,30 @@ describe("import server action adapter", () => {
         uploadRequestFingerprint: UPLOAD_REQUEST_SHA,
       }),
     ).resolves.toEqual({ status: "not_configured" });
+
+    expect(session.ownerId).toHaveBeenCalledOnce();
+  });
+
+  it("re-verifies the owner and keeps import confirmation fail-closed", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+
+    await expect(
+      confirmImportUpdateAction({
+        previewId: "preview-1",
+        previewFingerprintSha256: "b".repeat(64),
+        idempotencyKey: "confirm-request-1",
+        explicitlyConfirmed: true,
+      }),
+    ).resolves.toEqual({
+      status: "not_configured",
+      missingCapabilities: [
+        "repository",
+        "raw_upload_store",
+        "capacity_gate",
+        "background_queue",
+      ],
+    });
 
     expect(session.ownerId).toHaveBeenCalledOnce();
   });
