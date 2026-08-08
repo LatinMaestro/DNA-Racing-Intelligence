@@ -900,6 +900,11 @@
   evidence, and independently verify the complete stored reconciliation record.
   Changed input, corrupted stored evidence or invalid lifecycle versions fail
   closed.
+- A fresh exact-lock audit exposed new production advisories in transitive
+  `postcss` and `nanoid`, plus a new development-only `js-yaml` advisory.
+  Pin their patched compatible releases through the existing override boundary;
+  keep the inherited development-only `brace-expansion` advisory tracked
+  without weakening validation or forcing incompatible transitive majors.
 - Keep persistence unavailable by default. Forms, provider initialization,
   ledger mutation, private data, wallet/game actions, Preview writes and
   Production remain disabled.
