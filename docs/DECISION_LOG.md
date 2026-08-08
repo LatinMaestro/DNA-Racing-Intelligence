@@ -909,7 +909,6 @@
   ledger mutation, private data, wallet/game actions, Preview writes and
   Production remain disabled.
 
-
 ## 2026-08-08 — Owner-scoped breeding economic write boundary
 
 - Recompose queue order 26 from exact source head
