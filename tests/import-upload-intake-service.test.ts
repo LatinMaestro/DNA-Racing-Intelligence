@@ -118,6 +118,7 @@ describe("beginPrivateImportUpload", () => {
     expect(result).toMatchObject({
       status: "ready",
       uploadBatchId: "batch-1",
+      requestFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       targets: [
         { clientFileId: "file-1", uploadFileId: "upload-1" },
         { clientFileId: "file-2", uploadFileId: "upload-2" },
