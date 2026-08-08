@@ -1047,3 +1047,11 @@
 - Keep every hosted activation capability unavailable until Preview providers are deliberately configured, so confirmation cannot reserve or dispatch work in the repository-only state.
 - Convert authentication-provider failures to a stable private error and preserve the newer upload-completion request-fingerprint binding already on `main`.
 - Omit the historical README catalogue and standalone service document as unnecessary for the private-owner product.
+
+## 2026-08-09 — Lean authenticated import recovery
+
+- Extract only the useful executable portion of source-inventory order 35 from exact head `7ecfc18d8d8307211da31f71e1885cc795c0e555` onto verified `main` `024fd5361ed92f2983b6b853edd7255e0bd7d058`.
+- Re-authenticate the configured single owner for every rollback request and require the exact active batch ID, a printable reason, an idempotency key and literal explicit confirmation.
+- Preserve the guarded rollback contract: restore only a prior accepted source version, retain source provenance and mark aggregates pending before recommendations can refresh.
+- Keep rollback persistence unavailable until the protected Preview database is deliberately configured; authentication-provider failures return a stable private error.
+- Preserve the current upload-completion fingerprint and confirmation boundaries. Omit the historical README catalogue and standalone design document as unnecessary.

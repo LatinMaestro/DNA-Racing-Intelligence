@@ -7,6 +7,10 @@ import {
   type ImportConfirmationActionDependencies,
 } from "@/lib/import-confirmation-action-service";
 import {
+  rollbackOwnerImport,
+  type ImportRecoveryActionDependencies,
+} from "@/lib/import-recovery-action-service";
+import {
   beginOwnerImportUpload,
   completeOwnerImportUpload,
   type ImportOwnerActionDependencies,
@@ -51,6 +55,21 @@ function confirmationActionDependencies(): ImportConfirmationActionDependencies 
   };
 }
 
+function recoveryActionDependencies(): ImportRecoveryActionDependencies {
+  return {
+    resolveAuthenticatedOwnerId: () =>
+      authenticatedClerkOwnerId({
+        environment: {
+          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+          secretKey: process.env.CLERK_SECRET_KEY,
+        },
+      }),
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    now: () => new Date(),
+    rollbackRepository: { status: "not_configured" },
+  };
+}
+
 export async function beginImportUploadAction(
   input: Readonly<{
     idempotencyKey: string;
@@ -79,4 +98,15 @@ export async function confirmImportUpdateAction(
   }>,
 ) {
   return confirmOwnerDataUpdate(input, confirmationActionDependencies());
+}
+
+export async function rollbackImportAction(
+  input: Readonly<{
+    batchId: string;
+    rollbackReason: string;
+    idempotencyKey: string;
+    explicitlyConfirmed: boolean;
+  }>,
+) {
+  return rollbackOwnerImport(input, recoveryActionDependencies());
 }
