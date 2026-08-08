@@ -90,6 +90,30 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.up.sql
       - name: Run race-economic ledger smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.smoke.sql
+      - name: Apply import-operation reservation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.up.sql
+      - name: Run import-operation reservation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.smoke.sql
+      - name: Reverse import-operation reservation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.down.sql
+      - name: Verify import-operation reservation removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'reserve_import_operation'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname = 'import_operation_reservation'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_catalog.pg_roles
+          WHERE rolname = 'dna_app_runtime'
+          ) THEN RAISE EXCEPTION 'import-operation reservation objects still exist';
+          END IF; END \$\$;"
       - name: Reverse race-economic ledger migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0009_race_economic_ledger.down.sql
       - name: Verify race-economic ledger removal
