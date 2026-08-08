@@ -7,6 +7,8 @@ import {
   unavailableLifecycleEconomicAssetRegistry,
   unavailableLifecycleEconomicWriteRepository,
   type LifecycleEconomicWriteRepository,
+  type StoredBurnCreditEvidence,
+  type ValidatedBurnCreditRecord,
 } from "@/lib/lifecycle-economic-write-service";
 
 const assetRegistry = {
@@ -54,6 +56,18 @@ const burn = {
   recommendationReferenceId: null,
 };
 
+const credit = {
+  creditId: "credit-1",
+  burnId: "burn-1",
+  coreId: "core-1",
+  occurredAt: "2026-07-21T00:00:00.000Z",
+  asset: "bgc",
+  amount: "12.5",
+  evidenceSource: "manual" as const,
+  evidenceStatus: "confirmed" as const,
+  externalReference: null,
+};
+
 function storedBurn() {
   const record = {
     input: burn,
@@ -96,6 +110,7 @@ function readyRepository(
       lifecycleVersion: "lifecycle-v2",
     }),
     loadBurnByOwner: async () => null,
+    loadBurnCreditByOwner: async () => null,
     loadBurnCreditsByOwner: async () => [],
     saveBurnCreditByOwner: async () => ({
       status: "created",
@@ -382,17 +397,7 @@ describe("Lifecycle economic write service", () => {
           return { status: "created", lifecycleVersion: "lifecycle-v2" };
         },
       }),
-      credit: {
-        creditId: "credit-1",
-        burnId: "burn-1",
-        coreId: "core-1",
-        occurredAt: "2026-07-21T00:00:00.000Z",
-        asset: "bgc",
-        amount: "12.5",
-        evidenceSource: "manual",
-        evidenceStatus: "confirmed",
-        externalReference: null,
-      },
+      credit,
     });
     expect(result).toMatchObject({
       reconciliationStatus: "matched_actual_credit",
@@ -487,6 +492,131 @@ describe("Lifecycle economic write service", () => {
         },
       }),
     ).rejects.toThrow("Stored burn evidence fingerprint is invalid");
+  });
+
+  it("replays a canonical burn credit before dependent reads", async () => {
+    let storedCredit: StoredBurnCreditEvidence | null = null;
+    await recordBurnCreditEvidence({
+      ...common,
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: readyRepository({
+        loadBurnByOwner: async () => storedBurn(),
+        saveBurnCreditByOwner: async (
+          _ownerId,
+          record,
+          evidenceFingerprint,
+        ) => {
+          storedCredit = {
+            record,
+            fingerprint: evidenceFingerprint,
+            recordFingerprint: createHash("sha256")
+              .update(JSON.stringify(record))
+              .digest("hex"),
+            lifecycleVersion: "lifecycle-v2",
+          };
+          return { status: "created", lifecycleVersion: "lifecycle-v2" };
+        },
+      }),
+      credit,
+    });
+
+    const loadBurnByOwner = vi.fn(async () => storedBurn());
+    const loadBurnCreditsByOwner = vi.fn(async () => []);
+    const saveBurnCreditByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      lifecycleVersion: "lifecycle-v3",
+    }));
+    await expect(
+      recordBurnCreditEvidence({
+        ...common,
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: readyRepository({
+          loadBurnCreditByOwner: async () => storedCredit,
+          loadBurnByOwner,
+          loadBurnCreditsByOwner,
+          saveBurnCreditByOwner,
+        }),
+        credit: {
+          ...credit,
+          asset: "BGC",
+          amount: "12.50",
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "replayed",
+      lifecycleVersion: "lifecycle-v2",
+      reconciliationStatus: "matched_actual_credit",
+      ledgerPostingProposed: true,
+    });
+    expect(loadBurnByOwner).not.toHaveBeenCalled();
+    expect(loadBurnCreditsByOwner).not.toHaveBeenCalled();
+    expect(saveBurnCreditByOwner).not.toHaveBeenCalled();
+  });
+
+  it("rejects changed or corrupt stored burn-credit evidence before dependent reads", async () => {
+    const record: ValidatedBurnCreditRecord = {
+      credit: { ...credit, asset: "BGC" },
+      reconciliation: {
+        burnId: "burn-1",
+        coreId: "core-1",
+        status: "matched_actual_credit" as const,
+        matchedCreditId: "credit-1",
+        actualBgcAmount: "12.5",
+        reviewItems: [],
+        ledgerPostingProposed: true,
+        automaticExclusionAllowed: false,
+        creditPredicted: false,
+        strategicRecommendationUsed: false,
+        burnEventMutated: false,
+      },
+      asset: {
+        code: "BGC",
+        kind: "game_credit" as const,
+        precision: 2,
+        registryVersion: "assets-v1",
+      },
+    };
+    const recordFingerprint = createHash("sha256")
+      .update(JSON.stringify(record))
+      .digest("hex");
+    const evidenceFingerprint = createHash("sha256")
+      .update(JSON.stringify({ credit: record.credit, asset: record.asset }))
+      .digest("hex");
+    const repository = readyRepository({
+      loadBurnCreditByOwner: async () => ({
+        record,
+        fingerprint: evidenceFingerprint,
+        recordFingerprint,
+        lifecycleVersion: "lifecycle-v2",
+      }),
+    });
+    await expect(
+      recordBurnCreditEvidence({
+        ...common,
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository,
+        credit: { ...credit, amount: "13" },
+      }),
+    ).rejects.toThrow("conflicts");
+    await expect(
+      recordBurnCreditEvidence({
+        ...common,
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: readyRepository({
+          loadBurnCreditByOwner: async () => ({
+            record,
+            fingerprint: evidenceFingerprint,
+            recordFingerprint: "0".repeat(64),
+            lifecycleVersion: "lifecycle-v2",
+          }),
+        }),
+        credit,
+      }),
+    ).rejects.toThrow("Stored burn credit evidence fingerprint is invalid");
   });
 
   it("replays exact evidence and blocks conflicting durable identities", async () => {
