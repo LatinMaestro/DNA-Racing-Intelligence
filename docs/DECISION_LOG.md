@@ -908,3 +908,33 @@
 - Keep persistence unavailable by default. Forms, provider initialization,
   ledger mutation, private data, wallet/game actions, Preview writes and
   Production remain disabled.
+
+
+## 2026-08-08 — Owner-scoped breeding economic write boundary
+
+- Recompose queue order 26 from exact source head
+  `5adb71fd47103c830178c93e47eaa006a8071520` onto verified `main`
+  `4e3e4c0b7f59c440bb5576a3ce664a7d13ea18f2`; do not merge its staged
+  ancestry, queue ledger, rehearsal branches or cumulative descendants.
+- Include the deterministic breeding-evidence and offspring-cost-basis domain
+  prerequisites and synthetic tests so the focused delta is independently
+  buildable.
+- Require authenticated Clerk owner equality before repository access and keep
+  provider-neutral persistence unavailable by default.
+- Resolve asset kind and precision from an authoritative versioned server-side
+  registry. Reject missing, ambiguous, invalid or drifted definitions, caller
+  metadata mismatch and excess precision.
+- Canonicalize timestamps, durable IDs, exact original-asset amounts, references
+  and transaction ordering before SHA-256 fingerprinting. Reject future
+  evidence using server-derived time.
+- Replay exact owner-scoped durable evidence before later classification or
+  duplicate queries. Changed payloads fail closed; fresh writes carry an
+  expected economic version and atomic version drift requires refresh.
+- Persist only completed/refunded transaction evidence and confirmed actual
+  offspring cost-basis review records. Arena listings, pending activity,
+  incomplete evidence and duplicate transactions remain held.
+- Preserve separate original assets and BGC isolation. Never infer completed
+  income from an Arena listing, combine assets, assign market value, calculate
+  realised gain, or initiate a splice, wallet/game action or ledger mutation.
+- Keep adapters, forms, provider initialization, private-data execution,
+  Preview writes and Production disabled.
