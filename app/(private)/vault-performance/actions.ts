@@ -49,7 +49,12 @@ export async function recordManualLedgerEntryAction(
     repository: unavailableManualLedgerWriteRepository,
     assetRegistry: unavailableManualLedgerAssetRegistry,
     serverNow: serverNow(),
-    ...input,
+    entry: input.entry,
+    expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
+    expectedLedgerVersion: input.expectedLedgerVersion,
+    expectedTournamentEvidenceId: input.expectedTournamentEvidenceId ?? null,
+    expectedTournamentConfigurationVersion:
+      input.expectedTournamentConfigurationVersion ?? null,
   });
 }
 
@@ -69,7 +74,12 @@ export async function reverseManualLedgerEntryAction(
     repository: unavailableManualLedgerWriteRepository,
     assetRegistry: unavailableManualLedgerAssetRegistry,
     serverNow: serverNow(),
-    ...input,
+    reversalId: input.reversalId,
+    originalEntryId: input.originalEntryId,
+    reversedAt: input.reversedAt,
+    reason: input.reason,
+    expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
+    expectedLedgerVersion: input.expectedLedgerVersion,
   });
 }
 
@@ -91,7 +101,15 @@ export async function recordManualTournamentPayoutAction(
     repository: unavailableManualTournamentPayoutWriteRepository,
     assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
     serverNow: serverNow(),
-    ...input,
+    payout: input.payout,
+    expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
+    expectedLedgerVersion: input.expectedLedgerVersion,
+    expectedTournamentEvidenceId: input.expectedTournamentEvidenceId,
+    expectedTournamentConfigurationVersion:
+      input.expectedTournamentConfigurationVersion,
+    expectedActiveImportSnapshotHash: input.expectedActiveImportSnapshotHash,
+    expectedCandidateSetHash: input.expectedCandidateSetHash,
+    expectedCandidateTransactionIds: input.expectedCandidateTransactionIds,
   });
 }
 
@@ -112,6 +130,12 @@ export async function decideManualTournamentPayoutReconciliationAction(
     repository: unavailableManualTournamentPayoutWriteRepository,
     assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
     serverNow: serverNow(),
-    ...input,
+    payoutId: input.payoutId,
+    expectedRevision: input.expectedRevision,
+    decision: input.decision,
+    expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
+    expectedActiveImportSnapshotHash: input.expectedActiveImportSnapshotHash,
+    expectedCandidateSetHash: input.expectedCandidateSetHash,
+    expectedCandidateTransactionIds: input.expectedCandidateTransactionIds,
   });
 }
