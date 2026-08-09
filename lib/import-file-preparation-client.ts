@@ -1,6 +1,7 @@
 import type { DirectImportUploadFile } from "./import-direct-upload-client";
 import {
   importUploadSourceFamilies,
+  maxImportUploadFilesPerBatch,
   type ImportUploadCandidate,
   type ImportUploadSourceFamily,
 } from "./import-upload-intake-service";
@@ -32,7 +33,6 @@ export type ImportFilePreparationProgress = Readonly<{
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
-const MAX_FILES_PER_BATCH = 24;
 const MIN_CHUNK_BYTES = 64 * 1024;
 const MAX_CHUNK_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_NAME_LENGTH = 255;
@@ -82,8 +82,11 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 function validateSelections(
   selections: readonly SelectedImportUploadFile[],
 ): readonly SelectedImportUploadFile[] {
-  if (selections.length === 0 || selections.length > MAX_FILES_PER_BATCH) {
-    throw new Error("files must contain between 1 and 24 selections");
+  if (
+    selections.length === 0 ||
+    selections.length > maxImportUploadFilesPerBatch
+  ) {
+    throw new Error("files must contain between 1 and 8 selections");
   }
   const clientFileIds = new Set<string>();
   const replacementFamilies = new Set<ImportUploadSourceFamily>();
