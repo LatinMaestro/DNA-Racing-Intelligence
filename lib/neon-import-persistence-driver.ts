@@ -141,7 +141,7 @@ function oneRow(
   return databaseRecord(result.rows[0], field);
 }
 
-async function defaultSessionFactory(
+export async function createDefaultNeonImportPersistenceSession(
   databaseUrl: string,
 ): Promise<NeonImportPersistenceSession> {
   const { Pool } = await import("@neondatabase/serverless");
@@ -245,7 +245,8 @@ export function createNeonImportPersistenceDriverFactory(input: {
   const databaseUrl = input.databaseUrl.trim();
   if (databaseUrl === "") throw new Error("databaseUrl is required");
   const runtimeRole = requireRuntimeRole(input.runtimeRole);
-  const sessionFactory = input.sessionFactory ?? defaultSessionFactory;
+  const sessionFactory =
+    input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 
   return async (): Promise<ImportPersistenceDriver> => ({
     async transaction<Result>(
