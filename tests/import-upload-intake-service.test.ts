@@ -132,6 +132,38 @@ describe("beginPrivateImportUpload", () => {
     });
   });
 
+  it("accepts the complete eight-file game-data layout", async () => {
+    const ready = readyCapabilities();
+    const files: ImportUploadCandidate[] = Array.from(
+      { length: 6 },
+      (_, index) =>
+        candidate({
+          clientFileId: `race-${index + 1}`,
+          originalFileName: `race-${index + 1}.csv`,
+        }),
+    );
+    files.push(
+      candidate({
+        clientFileId: "core-1",
+        sourceFamily: "core_details",
+        originalFileName: "core-details.csv",
+      }),
+      candidate({
+        clientFileId: "arena-1",
+        sourceFamily: "current_arena",
+        originalFileName: "current-arena.csv",
+      }),
+    );
+
+    await expect(
+      beginPrivateImportUpload({
+        ...baseInput,
+        files,
+        capabilities: ready.capabilities,
+      }),
+    ).resolves.toMatchObject({ status: "ready", targets: { length: 8 } });
+  });
+
   it("rejects competing replacement snapshots before capacity or persistence", async () => {
     const ready = readyCapabilities();
     await expect(
@@ -139,20 +171,51 @@ describe("beginPrivateImportUpload", () => {
         ...baseInput,
         files: [
           candidate({
-            clientFileId: "vault-1",
-            sourceFamily: "current_vault",
-            originalFileName: "vault-a.csv",
+            clientFileId: "arena-1",
+            sourceFamily: "current_arena",
+            originalFileName: "arena-a.csv",
           }),
           candidate({
-            clientFileId: "vault-2",
-            sourceFamily: "current_vault",
-            originalFileName: "vault-b.csv",
+            clientFileId: "arena-2",
+            sourceFamily: "current_arena",
+            originalFileName: "arena-b.csv",
             sha256: SHA_B,
           }),
         ],
         capabilities: ready.capabilities,
       }),
     ).rejects.toThrow("one replacement candidate");
+    expect(ready.assertWithinApprovedCapacity).not.toHaveBeenCalled();
+    expect(ready.reserveUploadBatch).not.toHaveBeenCalled();
+  });
+
+  it("rejects the retired Current Vault source and batches above eight files", async () => {
+    const ready = readyCapabilities();
+    await expect(
+      beginPrivateImportUpload({
+        ...baseInput,
+        files: [
+          candidate({
+            sourceFamily: "current_vault" as never,
+            originalFileName: "retired-vault.csv",
+          }),
+        ],
+        capabilities: ready.capabilities,
+      }),
+    ).rejects.toThrow("sourceFamily is invalid");
+
+    await expect(
+      beginPrivateImportUpload({
+        ...baseInput,
+        files: Array.from({ length: 9 }, (_, index) =>
+          candidate({
+            clientFileId: `race-${index + 1}`,
+            originalFileName: `race-${index + 1}.csv`,
+          }),
+        ),
+        capabilities: ready.capabilities,
+      }),
+    ).rejects.toThrow("between 1 and 8 candidates");
     expect(ready.assertWithinApprovedCapacity).not.toHaveBeenCalled();
     expect(ready.reserveUploadBatch).not.toHaveBeenCalled();
   });
