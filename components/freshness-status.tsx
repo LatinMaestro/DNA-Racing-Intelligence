@@ -14,11 +14,11 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
             {source} snapshot
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            No accepted import in this scaffold.
+            No accepted import is connected yet.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-          Awaiting data foundation
+          Awaiting first accepted import
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
@@ -36,7 +36,7 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
         </div>
       </dl>
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        Imported data will be labelled as a historical snapshot, never as live
+        Accepted imports are labelled as historical snapshots, never as live
         game state.
       </p>
     </section>

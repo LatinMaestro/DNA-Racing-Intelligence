@@ -19,7 +19,7 @@ For an Open Race, current-race Gold and Blue stars are unavailable while the fie
 
 ## Repository status
 
-Phase 0 and the repository-only Phase 1 foundations are merged. Exact owned-core race economics and historical USD-rate controls are implemented with synthetic verification. Phase 2 Core Intelligence, current-Vault and Vault Performance historical read workspaces are merged; the Phase 3 Discovery read workspace is in progress while the first full private hosted import remains separately gated by Preview configuration and capacity evidence. Production remains disabled and requires explicit Gate F approval.
+The private Vercel application is active with Clerk owner authentication, while automatic Git deployments remain disabled in `vercel.json`. The repository contains the guarded owner workspaces, import/recovery services, analytical domains and economic write boundaries described by the private-owner scope. Hosted Neon Production and Preview databases still contain no application tables or private data. The next delivery focus is Preview-first persistence and provider commissioning; Production schema changes and the first real private-data import remain explicit owner approval boundaries.
 
 ## Source-of-truth documents
 

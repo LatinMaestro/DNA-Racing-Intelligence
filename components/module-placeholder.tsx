@@ -20,7 +20,7 @@ export function ModulePlaceholder({
     <div className="space-y-7">
       <header className="max-w-3xl">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Phase 0 scaffold
+          Private owner workspace
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           {moduleDefinition.label}
@@ -37,8 +37,8 @@ export function ModulePlaceholder({
       </section>
       {source ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-          {source} freshness fields are reserved here and will remain empty
-          until an accepted import exists.
+          {source} freshness remains unavailable until an accepted import is
+          connected.
         </div>
       ) : null}
     </div>

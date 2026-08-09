@@ -1055,3 +1055,16 @@
 - Preserve the guarded rollback contract: restore only a prior accepted source version, retain source provenance and mark aggregates pending before recommendations can refresh.
 - Keep rollback persistence unavailable until the protected Preview database is deliberately configured; authentication-provider failures return a stable private error.
 - Preserve the current upload-completion fingerprint and confirmation boundaries. Omit the historical README catalogue and standalone design document as unnecessary.
+
+## 2026-08-09 — Private Vercel hosting activated
+
+- The owner activated the private Vercel Production deployment and configured
+  Clerk owner authentication. This supersedes earlier statements that the
+  website itself remains Production-disabled.
+- Keep `vercel.json` Git deployment automation disabled. Routine Git pushes,
+  pull requests and intermediate heads must not create deployments.
+- The hosted application remains an authenticated historical workspace with no
+  accepted import connected. Do not display Phase 0 or disabled-Production copy
+  as the current operating state.
+- Production database schema/data, private object storage, queue providers and
+  real private-data imports remain separately approval-gated and unchanged.
