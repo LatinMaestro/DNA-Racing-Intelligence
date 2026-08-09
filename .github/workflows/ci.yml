@@ -20,6 +20,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Scan tracked files for common secrets
+        shell: bash
+        run: |
+          if git grep -nIE '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{36,255}|sk_(live|test|proj)_[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})' -- . ':!package-lock.json'; then
+            echo "A tracked file contains a credential-like value."
+            exit 1
+          fi
       - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
