@@ -77,6 +77,21 @@ describe("import server action adapter", () => {
     ).resolves.toEqual({ status: "not_configured" });
   });
 
+  it("keeps partial hosted intake configuration fail-closed", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    vi.stubEnv("DATABASE_URL", "postgresql://preview.invalid/dna");
+    vi.stubEnv("DNA_DATABASE_OWNER_ID", "11111111-1111-4111-8111-111111111111");
+    vi.stubEnv("DNA_DATABASE_RUNTIME_ROLE", "dna_app_runtime");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+
+    await expect(
+      beginImportUploadAction({
+        idempotencyKey: "request-1",
+        files: [candidate],
+      }),
+    ).resolves.toEqual({ status: "not_configured" });
+  });
+
   it("re-verifies the owner and preserves not-configured upload completion", async () => {
     vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
     session.ownerId.mockResolvedValueOnce("owner-1");
