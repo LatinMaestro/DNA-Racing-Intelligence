@@ -5,6 +5,10 @@ import type { ManualTournamentPayoutInput } from "@/domain/manual-tournament-pay
 import type { TournamentPrizeReconciliationDecision } from "@/domain/tournament-prize-reconciliation";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
+import {
   recordManualLedgerEntry,
   reverseManualLedgerEntry,
   unavailableManualLedgerAssetRegistry,
@@ -16,6 +20,10 @@ import {
   unavailableManualTournamentPayoutAssetRegistry,
   unavailableManualTournamentPayoutWriteRepository,
 } from "@/lib/manual-tournament-payout-write-service";
+import {
+  parseManualLedgerFormData,
+  parseManualTournamentPayoutFormData,
+} from "@/lib/vault-performance-economic-form-data";
 
 function authenticatedOwnerId(): Promise<string | null> {
   return authenticatedClerkOwnerId({
@@ -55,6 +63,16 @@ export async function recordManualLedgerEntryAction(
     expectedTournamentEvidenceId: input.expectedTournamentEvidenceId ?? null,
     expectedTournamentConfigurationVersion:
       input.expectedTournamentConfigurationVersion ?? null,
+  });
+}
+
+export async function recordManualLedgerFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseManualLedgerFormData,
   });
 }
 
@@ -110,6 +128,18 @@ export async function recordManualTournamentPayoutAction(
     expectedActiveImportSnapshotHash: input.expectedActiveImportSnapshotHash,
     expectedCandidateSetHash: input.expectedCandidateSetHash,
     expectedCandidateTransactionIds: input.expectedCandidateTransactionIds,
+  });
+}
+
+export async function recordManualTournamentPayoutFormAction(
+  formData: FormData,
+) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseManualTournamentPayoutFormData,
   });
 }
 
