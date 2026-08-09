@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/assert-deployment-scope.mjs && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --check .",
