@@ -1,5 +1,6 @@
 import {
   importUploadSourceFamilies,
+  maxImportUploadFilesPerBatch,
   type ImportUploadSourceFamily,
 } from "./import-upload-intake-service";
 
@@ -157,7 +158,6 @@ export type ImportUploadCompletionResult =
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
-const MAX_FILES_PER_BATCH = 24;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
 const MAX_OBJECT_VERSION_LENGTH = 512;
 const sourceFamilySet = new Set<ImportUploadSourceFamily>(
@@ -232,7 +232,7 @@ async function recordVerificationFailureSafely(
 function validateClaimedFiles(
   files: readonly ReservedImportUploadObject[],
 ): readonly ReservedImportUploadObject[] {
-  if (files.length === 0 || files.length > MAX_FILES_PER_BATCH) {
+  if (files.length === 0 || files.length > maxImportUploadFilesPerBatch) {
     throw new Error("reserved upload file count is invalid");
   }
   const uploadFileIds = new Set<string>();
@@ -331,7 +331,7 @@ export async function completePrivateImportUpload(
       claim.uploadRequestFingerprint !== uploadRequestFingerprint ||
       !Number.isSafeInteger(claim.fileCount) ||
       claim.fileCount <= 0 ||
-      claim.fileCount > MAX_FILES_PER_BATCH
+      claim.fileCount > maxImportUploadFilesPerBatch
     ) {
       throw new Error("Stored upload completion is inconsistent.");
     }
