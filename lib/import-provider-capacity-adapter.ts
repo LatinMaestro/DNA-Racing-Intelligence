@@ -1,13 +1,13 @@
 import type { ImportCapacityGate } from "./import-activation-service";
 import {
   importUploadSourceFamilies,
+  maxImportUploadFilesPerBatch,
   type ImportUploadCapacityGate,
   type ImportUploadSourceFamily,
 } from "./import-upload-intake-service";
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
-const MAX_FILES_PER_BATCH = 24;
 const MAX_MEASUREMENT_AGE_MILLISECONDS = 15 * 60 * 1000;
 
 export const importCapacityResources = [
@@ -265,14 +265,14 @@ function validateUploadCapacityRequest(
   if (
     !Number.isSafeInteger(request.fileCount) ||
     request.fileCount <= 0 ||
-    request.fileCount > MAX_FILES_PER_BATCH
+    request.fileCount > maxImportUploadFilesPerBatch
   ) {
     throw new Error("fileCount is invalid");
   }
   if (
     !Number.isSafeInteger(request.totalByteLength) ||
     request.totalByteLength <= 0 ||
-    request.totalByteLength > MAX_FILES_PER_BATCH * MAX_FILE_BYTES
+    request.totalByteLength > maxImportUploadFilesPerBatch * MAX_FILE_BYTES
   ) {
     throw new Error("totalByteLength is invalid");
   }
