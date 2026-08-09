@@ -10,8 +10,11 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   recordBurnCreditEvidenceAction,
+  recordBurnCreditFormAction,
   recordCoreBurnEvidenceAction,
+  recordCoreBurnFormAction,
   recordCoreSaleEvidenceAction,
+  recordCoreSaleFormAction,
 } from "../app/(private)/lifecycle/actions";
 
 const saleInput = {
@@ -136,5 +139,36 @@ describe("Lifecycle economic Server Actions", () => {
     await recordBurnCreditEvidenceAction(creditInput);
 
     expect(session.ownerId).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps all strict FormData actions unavailable before parsing", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValue("owner-1");
+
+    const results = await Promise.all([
+      recordCoreSaleFormAction(new FormData()),
+      recordCoreBurnFormAction(new FormData()),
+      recordBurnCreditFormAction(new FormData()),
+    ]);
+
+    for (const result of results) {
+      expect(result).toMatchObject({
+        status: "persistence_not_configured",
+        submittedValuesEchoed: false,
+        rawErrorEchoed: false,
+      });
+    }
+  });
+
+  it("denies a non-owner FormData action before parser access", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("other-owner");
+
+    await expect(recordCoreSaleFormAction(new FormData())).resolves.toMatchObject({
+      status: "identity_not_connected",
+      title: "Owner verification required",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
   });
 });
