@@ -11,7 +11,7 @@ The implementation goal is the minimum architecture and interface required to de
 Retain or build a component only when it is necessary for one or more of:
 
 - the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence or Vault Performance functionality;
-- correct import and processing of the nine agreed periodically imported private sources, including the multi-million-row Race Merge history;
+- correct import and processing of the agreed periodically imported game-data sources, including the multi-million-row Race Merge history;
 - basic owner authentication and private access;
 - data integrity, deterministic replay, rollback or duplicate prevention that is necessary to avoid corrupting the owner's data;
 - basic accounting correctness for the agreed ledger and economic features;
@@ -19,6 +19,21 @@ Retain or build a component only when it is necessary for one or more of:
 - enough background processing or private object storage to make the known large imports work reliably on hosted infrastructure.
 
 Do not add functionality merely because it would be useful to a larger public or commercial product.
+
+## Owner-approved Vault and Core Search simplification — 10 August 2026
+
+This section is a current owner decision and overrides older specifications, phase notes and import contracts wherever they still require a Current Vault CSV as an ongoing source.
+
+- Retire the Current Vault spreadsheet from future imports and from the normal owner workflow. The owner does not want a one-time CSV seed and will manually establish the approximately 200 current Vault cores in the website.
+- The recurring imported game-data set is therefore six sequential Race Merge files, one Core Details export (historically/legacy named Bike Details) and one Current Arena export: eight files across three imported source families.
+- Core Details remains the authoritative game-wide core catalogue. Current ownership and Maiden Eligibility are private owner-maintained state keyed to the durable Core Details ID; race history must never be used to infer current ownership.
+- The Vault workspace must let the owner search by core name or core ID; filter owned cores by element, breed/class, sex and F-number; and toggle `In My Vault` and `ME Eligible` on or off. Removing a core from the active Vault must not delete its historical race, lineage, breeding, lifecycle or economic evidence.
+- Maiden Eligibility remains a separate current state from ownership. It is used by Maiden strategy only after the core is in the active Vault and continues to follow the already-confirmed one-use Maiden commitment rules.
+- Add a private game-wide **Search Core** function for marketplace due diligence. It must find any known core by name or durable core ID and show the existing Core Details, lineage, Bike/Car/Horse, exact-distance, benchmark, sample-size, confidence and historical performance evidence that is supportable from accepted imports. It must not imply ownership or perform marketplace/wallet actions.
+- **Discovery keeps its original meaning.** Discovery is not marketplace/core discovery. It is the owner-Vault testing planner that identifies promising but under-tested owned core × mode × exact-distance combinations and recommends efficient test races to populate evidence. It must use direct results first, then lineage and supporting population evidence; show current exact-distance sample count and races needed to reach the 10-race minimum; recommend an initial probe where warranted; provide stop/continue guidance; and conserve races by deprioritising weak hypotheses. All recommendations remain advisory and never enter a race automatically.
+- Search Core and Discovery must remain separate workflows: Search Core answers “what do we know about this game-wide core?”, while Discovery answers “what should I test next on a core I own?”.
+
+Until the older source documents are reconciled during implementation, this section is authoritative for Vault ownership, source-count assumptions, Search Core and Discovery scope.
 
 ## Explicitly out of scope
 
@@ -79,6 +94,6 @@ Do not create separate governance artefacts merely to prove that these checks ra
 
 ## Completion definition
 
-The website is complete when the owner can privately sign in and perform the agreed workflows with the agreed imported data, with correct results, understandable freshness/limitations and reliable import/recovery behaviour.
+The website is complete when the owner can privately sign in and perform the agreed workflows with the agreed imported data and owner-maintained Vault state, with correct results, understandable freshness/limitations and reliable import/recovery behaviour.
 
 A public launch programme, enterprise readiness programme or additional governance package is not required for completion.
