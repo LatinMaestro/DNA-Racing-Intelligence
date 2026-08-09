@@ -3,12 +3,20 @@
 import type { BreedingEconomicEvidenceInput } from "@/domain/breeding-economic-evidence";
 import type { OffspringCostBasisInput } from "@/domain/offspring-cost-basis";
 import {
+  parseBreedingEconomicEvidenceFormData,
+  parseOffspringCostBasisFormData,
+} from "@/lib/breeding-economic-form-data";
+import {
   assignOffspringCostBasis,
   recordBreedingEconomicEvidence,
   unavailableBreedingEconomicAssetRegistry,
   unavailableBreedingEconomicWriteRepository,
 } from "@/lib/breeding-economic-write-service";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
 
 type OffspringCostBasisRequest = Omit<
   OffspringCostBasisInput,
@@ -67,5 +75,27 @@ export async function assignOffspringCostBasisAction(
     assignment: input.assignment,
     expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
     expectedEconomicVersion: input.expectedEconomicVersion,
+  });
+}
+
+export async function recordBreedingEconomicEvidenceFormAction(
+  formData: FormData,
+) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseBreedingEconomicEvidenceFormData,
+  });
+}
+
+export async function assignOffspringCostBasisFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseOffspringCostBasisFormData,
   });
 }
