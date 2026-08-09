@@ -164,7 +164,9 @@ describe("Lifecycle economic Server Actions", () => {
     vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
     session.ownerId.mockResolvedValueOnce("other-owner");
 
-    await expect(recordCoreSaleFormAction(new FormData())).resolves.toMatchObject({
+    await expect(
+      recordCoreSaleFormAction(new FormData()),
+    ).resolves.toMatchObject({
       status: "identity_not_connected",
       title: "Owner verification required",
       submittedValuesEchoed: false,
