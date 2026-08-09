@@ -6,6 +6,12 @@ SELECT set_config(
   true
 );
 
+INSERT INTO dna.app_owner (id, clerk_user_id)
+VALUES (
+  '11111111-1111-4111-8111-111111111111',
+  'synthetic-owner-1'
+);
+
 DO $retired_source$
 BEGIN
   BEGIN
