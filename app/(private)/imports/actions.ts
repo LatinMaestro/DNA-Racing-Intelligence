@@ -6,6 +6,7 @@ import {
   type AggregateRetryActionDependencies,
   unavailableAggregateRetryCapabilities,
 } from "@/lib/import-aggregate-retry-action-service";
+import { hostedImportUploadIntakeRuntime } from "@/lib/hosted-import-upload-intake-runtime";
 import { unavailableImportActivationCapabilities } from "@/lib/import-activation-service";
 import {
   confirmOwnerDataUpdate,
@@ -21,14 +22,12 @@ import {
   type ImportOwnerActionDependencies,
 } from "@/lib/import-owner-action-service";
 import { unavailableImportUploadCompletionCapabilities } from "@/lib/import-upload-completion-service";
-import {
-  type ImportUploadCandidate,
-  unavailableImportUploadIntakeCapabilities,
-} from "@/lib/import-upload-intake-service";
+import { type ImportUploadCandidate } from "@/lib/import-upload-intake-service";
 
 const UPLOAD_TARGET_LIFETIME_MILLISECONDS = 15 * 60 * 1000;
 
 function ownerActionDependencies(): ImportOwnerActionDependencies {
+  const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID;
   return {
     resolveAuthenticatedOwnerId: () =>
       authenticatedClerkOwnerId({
@@ -37,10 +36,43 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
           secretKey: process.env.CLERK_SECRET_KEY,
         },
       }),
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    configuredOwnerId: configuredOwnerId ?? null,
     now: () => new Date(),
     uploadTargetLifetimeMilliseconds: UPLOAD_TARGET_LIFETIME_MILLISECONDS,
-    uploadIntakeCapabilities: unavailableImportUploadIntakeCapabilities,
+    uploadIntakeCapabilities: hostedImportUploadIntakeRuntime({
+      environment: {
+        authorizedOwnerId: configuredOwnerId,
+        database: {
+          databaseUrl: process.env.DATABASE_URL,
+          databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+          runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+        },
+        r2: {
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+          bucketName: process.env.DNA_R2_BUCKET_NAME,
+          accessKeyId: process.env.DNA_R2_ACCESS_KEY_ID,
+          secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
+        },
+        cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
+        queueId: process.env.DNA_IMPORT_QUEUE_ID,
+        capacity: {
+          approvedLimits: {
+            r2_storage_bytes: process.env.DNA_IMPORT_LIMIT_R2_STORAGE_BYTES,
+            r2_class_a_operations:
+              process.env.DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS,
+            r2_class_b_operations:
+              process.env.DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS,
+            neon_storage_bytes: process.env.DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES,
+            queue_backlog_messages:
+              process.env.DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES,
+          },
+          minimumHeadroomBasisPoints:
+            process.env.DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS,
+          maximumMeasurementAgeMilliseconds:
+            process.env.DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS,
+        },
+      },
+    }),
     uploadCompletionCapabilities: unavailableImportUploadCompletionCapabilities,
   };
 }
