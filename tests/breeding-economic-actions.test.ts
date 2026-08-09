@@ -10,7 +10,9 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   assignOffspringCostBasisAction,
+  assignOffspringCostBasisFormAction,
   recordBreedingEconomicEvidenceAction,
+  recordBreedingEconomicEvidenceFormAction,
 } from "../app/(private)/breeding/actions";
 
 const versions = {
@@ -135,5 +137,39 @@ describe("breeding economic Server Actions", () => {
     await assignOffspringCostBasisAction(assignmentInput);
 
     expect(session.ownerId).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps both strict FormData actions unavailable before parsing", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValue("owner-1");
+
+    await expect(
+      recordBreedingEconomicEvidenceFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      status: "persistence_not_configured",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+    await expect(
+      assignOffspringCostBasisFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      status: "persistence_not_configured",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
+  });
+
+  it("denies a non-owner FormData action before parser access", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("other-owner");
+
+    await expect(
+      recordBreedingEconomicEvidenceFormAction(new FormData()),
+    ).resolves.toMatchObject({
+      status: "identity_not_connected",
+      title: "Owner verification required",
+      submittedValuesEchoed: false,
+      rawErrorEchoed: false,
+    });
   });
 });
