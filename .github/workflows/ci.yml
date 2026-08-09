@@ -103,6 +103,34 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.up.sql
       - name: Run import-operation reservation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.smoke.sql
+      - name: Apply private-upload reservation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.up.sql
+      - name: Run private-upload reservation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.smoke.sql
+      - name: Reverse private-upload reservation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.down.sql
+      - name: Verify private-upload reservation removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'reserve_import_upload_batch',
+          'mark_import_upload_targets_ready',
+          'mark_import_upload_reservation_failed'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'import_upload_batch',
+          'import_upload_file'
+          )
+          ) THEN RAISE EXCEPTION 'private-upload reservation objects still exist';
+          END IF; END \$\$;"
       - name: Reverse import-operation reservation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0010_import_operation_reservation.down.sql
       - name: Verify import-operation reservation removal
