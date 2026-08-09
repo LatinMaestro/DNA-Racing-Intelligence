@@ -5,6 +5,15 @@ import type { CoreBurnEventInput } from "@/domain/core-burn-event";
 import type { CoreSaleEvidenceInput } from "@/domain/core-sale-evidence";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import {
+  runEconomicFormAction,
+  unavailableEconomicFormActionCapability,
+} from "@/lib/economic-form-action-service";
+import {
+  parseBurnCreditFormData,
+  parseCoreBurnFormData,
+  parseCoreSaleFormData,
+} from "@/lib/lifecycle-economic-form-data";
+import {
   recordBurnCreditEvidence,
   recordCoreBurnEvidence,
   recordCoreSaleEvidence,
@@ -80,5 +89,35 @@ export async function recordBurnCreditEvidenceAction(
     credit: input.credit,
     expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
     expectedLifecycleVersion: input.expectedLifecycleVersion,
+  });
+}
+
+export async function recordCoreSaleFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseCoreSaleFormData,
+  });
+}
+
+export async function recordCoreBurnFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseCoreBurnFormData,
+  });
+}
+
+export async function recordBurnCreditFormAction(formData: FormData) {
+  return runEconomicFormAction({
+    authenticatedOwnerId: await authenticatedOwnerId(),
+    configuredOwnerId: configuredOwnerId(),
+    formData,
+    capability: unavailableEconomicFormActionCapability,
+    parse: parseBurnCreditFormData,
   });
 }
