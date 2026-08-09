@@ -140,11 +140,11 @@ describe("import file preparation client", () => {
     await expect(
       prepareImportUploadFiles({
         selections: [
-          selection({ sourceFamily: "current_vault" }),
+          selection({ sourceFamily: "current_arena" }),
           selection({
             clientFileId: "client-file-2",
-            originalFileName: "synthetic-vault-2.csv",
-            sourceFamily: "current_vault",
+            originalFileName: "synthetic-arena-2.csv",
+            sourceFamily: "current_arena",
           }),
         ],
         chunkByteLength: CHUNK_BYTES,
@@ -152,6 +152,33 @@ describe("import file preparation client", () => {
       }),
     ).rejects.toThrow("one replacement candidate");
 
+    expect(createSha256).not.toHaveBeenCalled();
+  });
+
+  it("rejects the retired Current Vault source and more than eight files before reading", async () => {
+    const hash = hasher();
+    const createSha256 = vi.fn(() => hash.value);
+
+    await expect(
+      prepareImportUploadFiles({
+        selections: [selection({ sourceFamily: "current_vault" as never })],
+        chunkByteLength: CHUNK_BYTES,
+        createSha256,
+      }),
+    ).rejects.toThrow("sourceFamily is invalid");
+
+    await expect(
+      prepareImportUploadFiles({
+        selections: Array.from({ length: 9 }, (_, index) =>
+          selection({
+            clientFileId: `race-${index + 1}`,
+            originalFileName: `synthetic-race-${index + 1}.csv`,
+          }),
+        ),
+        chunkByteLength: CHUNK_BYTES,
+        createSha256,
+      }),
+    ).rejects.toThrow("between 1 and 8 selections");
     expect(createSha256).not.toHaveBeenCalled();
   });
 

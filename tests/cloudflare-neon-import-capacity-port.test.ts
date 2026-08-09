@@ -193,7 +193,7 @@ describe("Cloudflare and Neon import capacity port", () => {
         ownerId: "owner-1",
         fileCount: 1,
         totalByteLength: 1,
-        sourceFamilies: ["current_vault"],
+        sourceFamilies: ["current_arena"],
       }),
     ).rejects.not.toThrow(/private provider|private database/);
   });

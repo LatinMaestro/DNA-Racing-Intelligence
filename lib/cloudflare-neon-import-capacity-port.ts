@@ -2,11 +2,11 @@ import type {
   ImportCapacityProjection,
   ImportProviderCapacityPort,
 } from "./import-provider-capacity-adapter";
+import { maxImportUploadFilesPerBatch } from "./import-upload-intake-service";
 
 const CLOUDFLARE_API_ORIGIN = "https://api.cloudflare.com";
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
-const MAX_FILES_PER_BATCH = 24;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
 const NEON_STAGING_MULTIPLIER = 2;
 
@@ -294,10 +294,10 @@ export function createCloudflareNeonImportCapacityPort(
       if (
         !Number.isSafeInteger(input.fileCount) ||
         input.fileCount < 1 ||
-        input.fileCount > MAX_FILES_PER_BATCH ||
+        input.fileCount > maxImportUploadFilesPerBatch ||
         !Number.isSafeInteger(input.totalByteLength) ||
         input.totalByteLength < 1 ||
-        input.totalByteLength > MAX_FILES_PER_BATCH * MAX_FILE_BYTES
+        input.totalByteLength > maxImportUploadFilesPerBatch * MAX_FILE_BYTES
       ) {
         throw new Error("Import provider capacity request is invalid.");
       }

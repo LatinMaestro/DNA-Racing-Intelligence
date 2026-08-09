@@ -107,6 +107,27 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.up.sql
       - name: Run private-upload reservation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.smoke.sql
+      - name: Apply retired Current Vault upload migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.up.sql
+      - name: Run retired Current Vault upload smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.smoke.sql
+      - name: Reverse retired Current Vault upload migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.down.sql
+      - name: Verify retired Current Vault upload reversal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'enforce_import_upload_batch_file_limit'
+          ) OR NOT EXISTS (
+          SELECT 1 FROM pg_constraint constraint_record
+          WHERE constraint_record.conrelid = 'dna.import_upload_file'::regclass
+          AND constraint_record.conname = 'import_upload_file_source_family_check'
+          AND pg_get_constraintdef(constraint_record.oid) LIKE '%current_vault%'
+          ) THEN RAISE EXCEPTION 'retired Current Vault upload migration did not reverse cleanly';
+          END IF; END \$\$;"
       - name: Reverse private-upload reservation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0011_private_upload_reservation.down.sql
       - name: Verify private-upload reservation removal

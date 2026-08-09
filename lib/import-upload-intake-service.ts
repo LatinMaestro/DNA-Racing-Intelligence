@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 export const importUploadSourceFamilies = [
   "race_merge",
   "core_details",
-  "current_vault",
   "current_arena",
 ] as const;
+
+export const maxImportUploadFilesPerBatch = 8;
 
 export type ImportUploadSourceFamily =
   (typeof importUploadSourceFamilies)[number];
@@ -112,7 +113,6 @@ export type ImportUploadIntakeResult =
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
-const MAX_FILES_PER_BATCH = 24;
 const MAX_FILE_NAME_LENGTH = 255;
 const MAX_TARGET_TOKEN_LENGTH = 8192;
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -195,8 +195,11 @@ function validateCandidate(
 function validateCandidates(
   candidates: readonly ImportUploadCandidate[],
 ): readonly ImportUploadCandidate[] {
-  if (candidates.length === 0 || candidates.length > MAX_FILES_PER_BATCH) {
-    throw new Error("files must contain between 1 and 24 candidates");
+  if (
+    candidates.length === 0 ||
+    candidates.length > maxImportUploadFilesPerBatch
+  ) {
+    throw new Error("files must contain between 1 and 8 candidates");
   }
   const validated = candidates.map(validateCandidate);
   const clientFileIds = new Set<string>();
