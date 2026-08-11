@@ -1,21 +1,21 @@
 import { createHash } from "node:crypto";
 
-export type OwnerVaultMutationStatus =
-  | "applied"
-  | "replayed"
+export type OwnerVaultMutationFailureStatus =
   | "conflict"
   | "core_unavailable"
   | "idempotency_conflict"
   | "invalid_state";
 
-export type OwnerVaultMutationResult = Readonly<{
-  status: OwnerVaultMutationStatus;
-  sourceCoreId: string;
-  inMyVault: boolean;
-  meEligible: boolean;
-  version: number;
-  updatedAt: string;
-}>;
+export type OwnerVaultMutationResult =
+  | Readonly<{
+      status: "applied" | "replayed";
+      sourceCoreId: string;
+      inMyVault: boolean;
+      meEligible: boolean;
+      version: number;
+      updatedAt: string;
+    }>
+  | Readonly<{ status: OwnerVaultMutationFailureStatus }>;
 
 export type OwnerVaultMutationRepository =
   | Readonly<{ status: "not_configured" }>
@@ -34,7 +34,10 @@ export type OwnerVaultMutationRepository =
     }>;
 
 export type OwnerVaultActionResult =
-  | Readonly<{ status: "updated"; state: OwnerVaultMutationResult }>
+  | Readonly<{
+      status: "updated";
+      state: Extract<OwnerVaultMutationResult, { status: "applied" | "replayed" }>;
+    }>
   | Readonly<{
       status:
         | "identity_not_connected"
@@ -97,12 +100,14 @@ function canonicalNow(value: Date): string {
   return value.toISOString();
 }
 
-function fingerprint(input: Readonly<{
-  sourceCoreId: string;
-  inMyVault: boolean;
-  meEligible: boolean;
-  expectedVersion: number;
-}>): string {
+function fingerprint(
+  input: Readonly<{
+    sourceCoreId: string;
+    inMyVault: boolean;
+    meEligible: boolean;
+    expectedVersion: number;
+  }>,
+): string {
   return createHash("sha256")
     .update(
       JSON.stringify([
