@@ -41,6 +41,13 @@ The currently inspected private source set contains six sequential Race Merge ex
 
 Normalize without losing source values:
 
+Race distances are metres. Race elapsed-time values are seconds (for example,
+`52.500` is 52.500 seconds). Derive
+`elapsed_time_milliseconds = elapsed_time_seconds * 1000` and speed in metres per
+second as `distance_metres / elapsed_time_seconds`; reject values that cannot be
+represented at the chosen integer-millisecond boundary rather than silently
+rounding them.
+
 - core IDs;
 - names and casing;
 - mode;
