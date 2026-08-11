@@ -111,6 +111,30 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.up.sql
       - name: Run retired Current Vault upload smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.smoke.sql
+      - name: Apply owner Vault registry migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.up.sql
+      - name: Run owner Vault registry smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.smoke.sql
+      - name: Reverse owner Vault registry migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.down.sql
+      - name: Verify owner Vault registry removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'set_owner_vault_core'
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'owner_vault_core',
+          'owner_vault_mutation_receipt'
+          )
+          ) THEN RAISE EXCEPTION 'owner Vault registry objects still exist';
+          END IF; END \$\$;"
       - name: Reverse retired Current Vault upload migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0012_retire_current_vault_upload.down.sql
       - name: Verify retired Current Vault upload reversal
