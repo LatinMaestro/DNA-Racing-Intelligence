@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import type {
   TournamentEligibilityGroup,
   TournamentRuleConfiguration,
@@ -27,8 +28,7 @@ function key(value: string): string {
 
 function stringMatches(values: readonly string[], candidate: string): boolean {
   return (
-    values.length === 0 ||
-    values.some((value) => key(value) === key(candidate))
+    values.length === 0 || values.some((value) => key(value) === key(candidate))
   );
 }
 
@@ -73,8 +73,7 @@ function configuredGroupMatchesValue(
 ): boolean {
   const candidates = [value, ...alternatives].map(key);
   return (
-    candidates.includes(key(group.id)) ||
-    candidates.includes(key(group.label))
+    candidates.includes(key(group.id)) || candidates.includes(key(group.label))
   );
 }
 
@@ -194,3 +193,8 @@ export function projectTournamentCandidateEligibility(
     leaderboardGroupLabel: matches[0]!.label,
   };
 }
+npm notice
+npm notice New minor version of npm available! 11.9.0 -> 11.19.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.19.0
+npm notice To update run: npm install -g npm@11.19.0
+npm notice
