@@ -16,6 +16,9 @@ function bracket(
     tournamentLabel: "Synthetic Tournament",
     bracketId: "synthetic-split",
     splitLabel: "Synthetic Split",
+    mode: "horse",
+    eligibleDistancesMetres: [1_200, 1_600],
+    discoveryRelevance: "eligible",
     qualificationMetricLabel: "Qualification points",
     configurationVersion: "config-v3",
     candidateSnapshotVersion: "snapshot-v9",
@@ -113,6 +116,9 @@ describe("Tournament workspace service", () => {
         {
           configurationVersion: "config-v3",
           candidateSnapshotVersion: "snapshot-v9",
+          mode: "horse",
+          eligibleDistancesMetres: [1_200, 1_600],
+          discoveryRelevance: "eligible",
           leaderboardGroups: [
             {
               leaderboardGroupLabel: "Synthetic Group",
