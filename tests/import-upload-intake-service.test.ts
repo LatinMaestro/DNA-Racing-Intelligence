@@ -132,10 +132,10 @@ describe("beginPrivateImportUpload", () => {
     });
   });
 
-  it("accepts the complete eight-file game-data layout", async () => {
+  it("accepts the current rolling Race Merge game-data layout", async () => {
     const ready = readyCapabilities();
     const files: ImportUploadCandidate[] = Array.from(
-      { length: 6 },
+      { length: 7 },
       (_, index) =>
         candidate({
           clientFileId: `race-${index + 1}`,
@@ -161,7 +161,7 @@ describe("beginPrivateImportUpload", () => {
         files,
         capabilities: ready.capabilities,
       }),
-    ).resolves.toMatchObject({ status: "ready", targets: { length: 8 } });
+    ).resolves.toMatchObject({ status: "ready", targets: { length: 9 } });
   });
 
   it("rejects competing replacement snapshots before capacity or persistence", async () => {
@@ -189,7 +189,7 @@ describe("beginPrivateImportUpload", () => {
     expect(ready.reserveUploadBatch).not.toHaveBeenCalled();
   });
 
-  it("rejects the retired Current Vault source and batches above eight files", async () => {
+  it("rejects the retired Current Vault source and batches above the bounded limit", async () => {
     const ready = readyCapabilities();
     await expect(
       beginPrivateImportUpload({
@@ -207,7 +207,7 @@ describe("beginPrivateImportUpload", () => {
     await expect(
       beginPrivateImportUpload({
         ...baseInput,
-        files: Array.from({ length: 9 }, (_, index) =>
+        files: Array.from({ length: 33 }, (_, index) =>
           candidate({
             clientFileId: `race-${index + 1}`,
             originalFileName: `race-${index + 1}.csv`,
@@ -215,7 +215,7 @@ describe("beginPrivateImportUpload", () => {
         ),
         capabilities: ready.capabilities,
       }),
-    ).rejects.toThrow("between 1 and 8 candidates");
+    ).rejects.toThrow("between 1 and 32 candidates");
     expect(ready.assertWithinApprovedCapacity).not.toHaveBeenCalled();
     expect(ready.reserveUploadBatch).not.toHaveBeenCalled();
   });
