@@ -79,12 +79,33 @@ export function createDiscoveryProbeRepository(
         )
         .map((profile): DiscoveryProbeCandidateInput => {
           const core = ownedById.get(profile.coreId)!;
+          const star = profile.starProfile;
           return {
             coreId: profile.coreId,
             coreName: core.displayName,
             mode: profile.mode,
             distanceMetres: profile.distance,
             directRaceCount: profile.raceCount,
+            directTimeEvidence: {
+              bestMilliseconds: profile.elapsedTime.bestMilliseconds,
+              medianMilliseconds: profile.elapsedTime.medianMilliseconds,
+              meanMilliseconds: profile.elapsedTime.meanMilliseconds,
+              standardDeviationMilliseconds:
+                profile.elapsedTime.standardDeviationMilliseconds,
+            },
+            starEvidence:
+              star === null
+                ? null
+                : {
+                    completeStarDataRaceCount: star.completeStarDataRaceCount,
+                    goldEligibleRaceCount: star.goldEligibleRaceCount,
+                    goldAssignmentOpportunityCount:
+                      star.goldAssignmentOpportunityCount,
+                    goldReceivedCount: star.goldReceivedCount,
+                    blueAssignmentOpportunityCount:
+                      star.blueAssignmentOpportunityCount,
+                    blueReceivedCount: star.blueReceivedCount,
+                  },
             lineageRelationship: null,
             lineageResolved: true,
             lineageRaceCount: 0,
@@ -102,6 +123,8 @@ export function createDiscoveryProbeRepository(
           mode: hypothesis.mode,
           distanceMetres: hypothesis.distanceMetres,
           directRaceCount: 0,
+          directTimeEvidence: null,
+          starEvidence: null,
           lineageRelationship: hypothesis.lineageRelationship,
           lineageResolved: true,
           lineageRaceCount: hypothesis.lineageRaceCount,

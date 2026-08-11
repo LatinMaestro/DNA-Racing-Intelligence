@@ -43,6 +43,47 @@ function timestamp(value: string | null): string {
   }).format(parsed);
 }
 
+function elapsed(milliseconds: number): string {
+  return `${(milliseconds / 1_000).toFixed(3)} s`;
+}
+
+function ratio(numerator: number, denominator: number): string {
+  if (denominator === 0) return "No assignment opportunities";
+  const rate = Math.round((numerator / denominator) * 100);
+  return `${numerator}/${denominator} (${rate}%)`;
+}
+
+function directTimeSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.directTimeEvidence;
+  if (evidence === null) return "Not yet available";
+  return `Best ${elapsed(evidence.bestMilliseconds)} · Median ${elapsed(evidence.medianMilliseconds)}`;
+}
+
+function consistencySummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.directTimeEvidence;
+  if (evidence === null) return "Not yet available";
+  return `Mean ${elapsed(evidence.meanMilliseconds)} · σ ${elapsed(evidence.standardDeviationMilliseconds)}`;
+}
+
+function goldSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.starEvidence;
+  if (evidence === null) return "No usable direct star profile";
+  const received = ratio(
+    evidence.goldReceivedCount,
+    evidence.goldAssignmentOpportunityCount,
+  );
+  return `${received} · ${evidence.goldEligibleRaceCount} Gold-eligible races`;
+}
+
+function blueSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.starEvidence;
+  if (evidence === null) return "No usable direct star profile";
+  return ratio(
+    evidence.blueReceivedCount,
+    evidence.blueAssignmentOpportunityCount,
+  );
+}
+
 export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
@@ -128,9 +169,14 @@ export function DiscoveryWorkspace({
                       Core ID {candidate.coreId}
                     </p>
                   </div>
-                  <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
-                    {label(candidate.reviewPriority)} priority
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                      {label(candidate.reviewPriority)} priority
+                    </span>
+                    <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                      {label(candidate.confidence)} confidence
+                    </span>
+                  </div>
                 </div>
 
                 <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
@@ -180,6 +226,32 @@ export function DiscoveryWorkspace({
                           : `${label(candidate.lineageRelationship)} hypothesis · ${candidate.lineageRaceCount.toLocaleString("en-AU")} lineage races`}
                     </dd>
                   </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">
+                      Direct time evidence
+                    </dt>
+                    <dd className="mt-1 font-semibold">
+                      {directTimeSummary(candidate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">Time consistency</dt>
+                    <dd className="mt-1 font-semibold">
+                      {consistencySummary(candidate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">Gold support</dt>
+                    <dd className="mt-1 font-semibold">
+                      {goldSummary(candidate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">Blue support</dt>
+                    <dd className="mt-1 font-semibold">
+                      {blueSummary(candidate)}
+                    </dd>
+                  </div>
                 </dl>
 
                 <div className="mt-5 border-t border-[var(--border)] pt-4 text-sm text-[var(--muted)]">
@@ -193,6 +265,11 @@ export function DiscoveryWorkspace({
                       {candidate.warnings.map(label).join(" · ")}
                     </p>
                   ) : null}
+                  <p className="mt-2">
+                    Gold uses eligible assignment opportunities only. Blue uses
+                    its recorded assignment opportunities. Stars are
+                    field-relative support, not an absolute rating.
+                  </p>
                   <p className="mt-2">
                     Reassess after the probe. Lineage or population evidence
                     nominates a test only; it does not replace direct evidence
