@@ -73,6 +73,8 @@ describe("Tournament workspace", () => {
 
     expect(html).toContain("Synthetic Tournament");
     expect(html).toContain("Horse Sprint Split");
+    expect(html).toContain("Horse · 1,200 m · 1,600 m");
+    expect(html).toContain("Priority Discovery relevance");
     expect(html).toContain("Elite Group");
     expect(html).toContain("Configuration config-v3");
     expect(html).toContain("Candidate snapshot snapshot-v9");
