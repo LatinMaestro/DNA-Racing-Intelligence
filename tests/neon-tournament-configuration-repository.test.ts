@@ -16,8 +16,10 @@ const authenticatedOwnerId = "user_owner";
 function ownerEvidence(overrides: Record<string, unknown> = {}) {
   return {
     authenticated_owner_id: authenticatedOwnerId,
-    row_security_enabled: true,
-    force_row_security_enabled: true,
+    tournament_row_security_enabled: true,
+    tournament_force_row_security_enabled: true,
+    vault_row_security_enabled: true,
+    vault_force_row_security_enabled: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -76,7 +78,7 @@ describe("Neon Tournament configuration repository", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it("maps owner-scoped configuration without inventing candidate evidence", async () => {
+  it("binds active My Vault cores to each configured split without inventing rankings", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
@@ -93,6 +95,10 @@ describe("Neon Tournament configuration repository", () => {
           configuration_version: "config-1",
           candidate_snapshot_version: "snapshot-1",
         },
+      ],
+      [
+        { source_core_id: "core-2", me_eligible: false },
+        { source_core_id: "core-7", me_eligible: true },
       ],
     ]);
 
@@ -111,7 +117,46 @@ describe("Neon Tournament configuration repository", () => {
           qualificationMetricLabel: "Qualification points",
           configurationVersion: "config-1",
           candidateSnapshotVersion: "snapshot-1",
-          candidates: [],
+          candidates: [
+            {
+              coreId: "core-2",
+              leaderboardGroupId: "unassigned",
+              leaderboardGroupLabel: "Eligibility review required",
+              configurationVersion: "config-1",
+              candidateSnapshotVersion: "snapshot-1",
+              eligibility: "review_required",
+              metricStatus: "unavailable",
+              metricRank: null,
+              metricEvidenceLabel: null,
+              timeEvidence: "unknown",
+              historicalStarSupport: "unavailable",
+              evidenceConfidence: "unknown",
+              maidenState: "not_eligible",
+              maidenModeDisposition: "not_applicable",
+              dataCurrentThrough: null,
+              lastImported: null,
+              freshness: "unknown",
+            },
+            {
+              coreId: "core-7",
+              leaderboardGroupId: "unassigned",
+              leaderboardGroupLabel: "Eligibility review required",
+              configurationVersion: "config-1",
+              candidateSnapshotVersion: "snapshot-1",
+              eligibility: "review_required",
+              metricStatus: "unavailable",
+              metricRank: null,
+              metricEvidenceLabel: null,
+              timeEvidence: "unknown",
+              historicalStarSupport: "unavailable",
+              evidenceConfidence: "unknown",
+              maidenState: "eligible",
+              maidenModeDisposition: "unresolved",
+              dataCurrentThrough: null,
+              lastImported: null,
+              freshness: "unknown",
+            },
+          ],
         },
       ],
       lastImportedAt: null,
@@ -121,13 +166,16 @@ describe("Neon Tournament configuration repository", () => {
       "'dna.tournament_configuration'::regclass",
     );
     expect(test.events[3]).toContain("dna.list_tournament_configurations");
+    expect(test.events[4]).toContain("dna.owner_vault_core");
+    expect(test.events[4]).toContain("vault.in_my_vault");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
   it("rejects non-owner or privileged runtime evidence before reading configuration", async () => {
     for (const evidence of [
       ownerEvidence({ authenticated_owner_id: "user_other" }),
-      ownerEvidence({ force_row_security_enabled: false }),
+      ownerEvidence({ tournament_force_row_security_enabled: false }),
+      ownerEvidence({ vault_force_row_security_enabled: false }),
       ownerEvidence({ runtime_bypasses_rls: true }),
     ]) {
       const test = harness([[{ owner_scope: databaseOwnerId }], [evidence]]);
