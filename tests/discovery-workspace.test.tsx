@@ -58,6 +58,7 @@ describe("Discovery workspace", () => {
     ["full_sibling", "Full Sibling hypothesis"],
     ["half_sibling", "Half Sibling hypothesis"],
     ["offspring", "Offspring hypothesis"],
+    ["wider_lineage", "Wider Lineage hypothesis"],
   ] as const)(
     "labels zero-race %s evidence without treating lineage as direct evidence",
     (lineageRelationship, expectedLabel) => {

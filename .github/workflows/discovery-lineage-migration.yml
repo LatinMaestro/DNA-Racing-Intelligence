@@ -5,6 +5,7 @@ on:
     paths:
       - "database/migrations/0016_discovery_lineage_hypotheses.*.sql"
       - "database/migrations/0017_discovery_extended_lineage.*.sql"
+      - "database/migrations/0018_discovery_wider_lineage.*.sql"
       - ".github/workflows/discovery-lineage-migration.yml"
 
 permissions:
@@ -51,6 +52,22 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.up.sql
       - name: Run extended Discovery lineage smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.smoke.sql
+      - name: Apply wider-lineage Discovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.up.sql
+      - name: Run wider-lineage Discovery smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.smoke.sql
+      - name: Reverse wider-lineage Discovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.down.sql
+      - name: Verify extended function restored
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ DECLARE definition text; BEGIN
+          SELECT pg_get_functiondef(proc.oid) INTO definition
+          FROM pg_proc proc JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna' AND proc.proname = 'list_discovery_lineage_hypotheses';
+          IF definition IS NULL OR position('full_sibling' IN definition) = 0 OR position('offspring' IN definition) = 0 OR position('wider_lineage' IN definition) > 0
+          THEN RAISE EXCEPTION 'Extended Discovery lineage function was not restored'; END IF;
+          END \$\$;"
       - name: Reverse extended Discovery lineage migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.down.sql
       - name: Verify base function restored

@@ -9,7 +9,12 @@ import {
 
 type SupportedDiscoveryLineageRelationship = Extract<
   ProbeLineageRelationship,
-  "parent" | "grandparent" | "full_sibling" | "half_sibling" | "offspring"
+  | "parent"
+  | "grandparent"
+  | "full_sibling"
+  | "half_sibling"
+  | "offspring"
+  | "wider_lineage"
 >;
 
 export type DiscoveryLineageHypothesis = Readonly<{
@@ -42,6 +47,7 @@ const SUPPORTED_RELATIONSHIPS = [
   "full_sibling",
   "half_sibling",
   "offspring",
+  "wider_lineage",
 ] as const satisfies readonly SupportedDiscoveryLineageRelationship[];
 const SET_OWNER_SCOPE_SQL = `SELECT set_config('app.owner_id', $1, true) AS owner_scope`;
 const VERIFY_OWNER_SQL = `
