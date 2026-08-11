@@ -90,9 +90,7 @@ function distances(value: unknown): readonly number[] {
     typeof item === "string" && /^\d+$/.test(item) ? Number(item) : item,
   );
   if (
-    parsed.some(
-      (item) => !Number.isSafeInteger(item) || (item as number) <= 0,
-    )
+    parsed.some((item) => !Number.isSafeInteger(item) || (item as number) <= 0)
   ) {
     throw new Error("Tournament eligible distances are invalid.");
   }
@@ -154,16 +152,11 @@ export function createNeonTournamentConfigurationRepository(
             }
             return {
               tournamentId: text(row.tournament_id, "Tournament ID"),
-              tournamentLabel: text(
-                row.tournament_label,
-                "Tournament label",
-              ),
+              tournamentLabel: text(row.tournament_label, "Tournament label"),
               bracketId: text(row.bracket_id, "Bracket ID"),
               splitLabel: text(row.split_label, "Split label"),
               mode: mode as TournamentCandidateRankingInput["mode"],
-              eligibleDistancesMetres: distances(
-                row.eligible_distances_metres,
-              ),
+              eligibleDistancesMetres: distances(row.eligible_distances_metres),
               discoveryRelevance:
                 relevance as TournamentCandidateRankingInput["discoveryRelevance"],
               qualificationMetricLabel: text(
@@ -201,7 +194,11 @@ export function neonTournamentConfigurationRepositoryFromEnvironment(
   const databaseUrl = normalized(environment.databaseUrl);
   const databaseOwnerId = normalized(environment.databaseOwnerId);
   const runtimeRole = normalized(environment.runtimeRole);
-  if (databaseUrl === null || databaseOwnerId === null || runtimeRole === null) {
+  if (
+    databaseUrl === null ||
+    databaseOwnerId === null ||
+    runtimeRole === null
+  ) {
     return { status: "not_configured" };
   }
   return createNeonTournamentConfigurationRepository({
