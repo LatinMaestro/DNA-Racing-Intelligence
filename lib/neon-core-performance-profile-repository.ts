@@ -1,6 +1,4 @@
-import type {
-  CorePerformanceProfileRepository,
-} from "./core-intelligence-workspace-service";
+import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -186,18 +184,12 @@ function profile(rowValue: unknown): Record<string, unknown> {
         ? "minimally_analytical"
         : "hypothesis_only",
     elapsedTime: {
-      bestMilliseconds: roundMetric(
-        row.best_milliseconds,
-        "best_milliseconds",
-      ),
+      bestMilliseconds: roundMetric(row.best_milliseconds, "best_milliseconds"),
       medianMilliseconds: roundMetric(
         row.median_milliseconds,
         "median_milliseconds",
       ),
-      meanMilliseconds: roundMetric(
-        row.mean_milliseconds,
-        "mean_milliseconds",
-      ),
+      meanMilliseconds: roundMetric(row.mean_milliseconds, "mean_milliseconds"),
       trimmedMeanMilliseconds: roundMetric(
         row.trimmed_mean_milliseconds,
         "trimmed_mean_milliseconds",
