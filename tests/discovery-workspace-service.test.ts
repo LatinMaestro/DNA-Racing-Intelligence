@@ -8,6 +8,7 @@ import {
 const now = new Date("2026-07-21T00:00:00.000Z");
 const candidate: DiscoveryProbeCandidateInput = {
   coreId: "synthetic-core",
+  coreName: "Synthetic Core",
   mode: "bike",
   distanceMetres: 1_400,
   directRaceCount: 4,
@@ -87,10 +88,12 @@ describe("Discovery workspace service", () => {
       candidates: [
         {
           coreId: "synthetic-core",
+          coreName: "Synthetic Core",
           observationsToMinimum: 6,
+          recommendedInitialProbeSize: 3,
           reviewPriority: "high",
           freshness: "current",
-          actionable: false,
+          actionable: true,
           automaticEntryAllowed: false,
           automaticStopAllowed: false,
         },
@@ -147,7 +150,14 @@ describe("Discovery workspace service", () => {
       }),
     ).resolves.toMatchObject({
       lastImportedAt: null,
-      candidates: [{ freshness: "unknown", reviewPriority: "defer" }],
+      candidates: [
+        {
+          freshness: "unknown",
+          reviewPriority: "defer",
+          recommendedInitialProbeSize: 0,
+          actionable: false,
+        },
+      ],
     });
   });
 
