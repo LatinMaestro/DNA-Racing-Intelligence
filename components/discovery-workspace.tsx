@@ -13,12 +13,12 @@ const connectionCopy: Record<
   persistence_not_configured: {
     heading: "Discovery read model not connected",
     detail:
-      "Owner verification is available, but the compact private candidate repository is not configured. No raw history is scanned on this page.",
+      "Owner verification is available, but the manual Vault and compact performance repositories are not configured. No raw history is scanned on this page.",
   },
   read_model_connected: {
-    heading: "Historical Discovery evidence connected",
+    heading: "Owned-core Discovery planner connected",
     detail:
-      "The review queue describes exact-distance evidence gaps. It does not authorise race entry, automatic stopping or a quality claim.",
+      "Candidates come only from active My Vault cores and imported historical performance. Recommendations are advisory and never enter races automatically.",
   },
 };
 
@@ -58,21 +58,21 @@ export function DiscoveryWorkspace({
     <div className="space-y-8">
       <header className="max-w-4xl">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Phase 3 evidence review
+          Owned-core testing planner
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           Discovery
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Review exact core, mode and distance evidence gaps. Ten races is a
-          minimum coverage boundary, direct results remain primary and resolved
-          lineage supplies hypotheses only.
+          Prioritise efficient testing of active My Vault cores. Ten exact-distance
+          races is the minimum analytical boundary, not proof of quality, and the
+          initial probe is deliberately smaller than the full remaining sample.
         </p>
       </header>
 
       <section
         aria-labelledby="discovery-connection"
-        className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
       >
         <h2 className="text-lg font-semibold" id="discovery-connection">
           {connection.heading}
@@ -80,36 +80,27 @@ export function DiscoveryWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           {connection.detail}
         </p>
-        <button
-          className="mt-5 cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
-          disabled
-          type="button"
-        >
-          Race entry unavailable
-        </button>
       </section>
 
       <section aria-labelledby="discovery-plan">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold" id="discovery-plan">
-              Experimental probe review
+              Recommended test probes
             </h2>
             <p className="mt-2 text-sm text-[var(--muted)]">
               Historical snapshot · Last imported {timestamp(lastImportedAt)}
             </p>
           </div>
-          <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-            Gate C not passed
-          </span>
         </div>
 
         {candidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">No accepted Discovery candidates</h3>
+            <h3 className="font-semibold">No current under-tested candidates</h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-              Missing candidate evidence is unavailable. It does not mean every
-              core has sufficient coverage or that no Discovery work remains.
+              This view currently covers owned exact-distance combinations that
+              already have imported race evidence. Zero-race and lineage-led
+              hypotheses remain a later Discovery slice and are not inferred here.
             </p>
           </div>
         ) : (
@@ -130,49 +121,42 @@ export function DiscoveryWorkspace({
                       {candidate.distanceMetres.toLocaleString("en-AU")} m
                     </p>
                     <h3 className="mt-2 text-lg font-semibold">
-                      Core {candidate.coreId}
+                      {candidate.coreName}
                     </h3>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Core ID {candidate.coreId}
+                    </p>
                   </div>
                   <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
-                    {label(candidate.reviewPriority)} review
+                    {label(candidate.reviewPriority)} priority
                   </span>
                 </div>
 
                 <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-[var(--muted)]">Direct races</dt>
+                    <dt className="text-[var(--muted)]">Current exact-distance sample</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.directRaceCount.toLocaleString("en-AU")}
+                      {candidate.directRaceCount.toLocaleString("en-AU")} races
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">
-                      Observations to minimum
-                    </dt>
+                    <dt className="text-[var(--muted)]">Races to minimum 10</dt>
                     <dd className="mt-1 font-semibold">
                       {candidate.observationsToMinimum.toLocaleString("en-AU")}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Evidence purpose</dt>
+                    <dt className="text-[var(--muted)]">Recommended next probe</dt>
                     <dd className="mt-1 font-semibold">
-                      {label(candidate.evidencePurpose)}
+                      {candidate.recommendedInitialProbeSize === 0
+                        ? "No probe recommended"
+                        : `${candidate.recommendedInitialProbeSize} race${candidate.recommendedInitialProbeSize === 1 ? "" : "s"}`}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Lineage context</dt>
+                    <dt className="text-[var(--muted)]">Guidance</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.lineageRelationship === null
-                        ? "Not available"
-                        : label(candidate.lineageRelationship)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--muted)]">
-                      Tournament relevance
-                    </dt>
-                    <dd className="mt-1 font-semibold">
-                      {label(candidate.tournamentRelevance)}
+                      {label(candidate.guidance)}
                     </dd>
                   </div>
                   <div>
@@ -181,16 +165,27 @@ export function DiscoveryWorkspace({
                       {label(candidate.maidenState)}
                     </dd>
                   </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">Evidence basis</dt>
+                    <dd className="mt-1 font-semibold">
+                      Direct imported results
+                    </dd>
+                  </div>
                 </dl>
 
                 <div className="mt-5 border-t border-[var(--border)] pt-4 text-sm text-[var(--muted)]">
                   <p>
-                    Data current through{" "}
-                    {timestamp(candidate.dataCurrentThrough)} ·{" "}
+                    Data current through {timestamp(candidate.dataCurrentThrough)} ·{" "}
                     {label(candidate.freshness)}
                   </p>
-                  <p className="mt-1">
-                    {candidate.warnings.map(label).join(" · ")}
+                  {candidate.warnings.length > 0 ? (
+                    <p className="mt-1">
+                      {candidate.warnings.map(label).join(" · ")}
+                    </p>
+                  ) : null}
+                  <p className="mt-2">
+                    Reassess after the probe. Do not automatically run all races to
+                    10 and do not treat 10 races as proof.
                   </p>
                 </div>
               </article>
