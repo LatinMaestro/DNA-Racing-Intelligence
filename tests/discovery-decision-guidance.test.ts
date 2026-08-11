@@ -92,13 +92,18 @@ describe("Discovery decision guidance", () => {
       "continue_targeted_probe",
       "competitive_top_three_range",
     ],
-    [{}, "stop_prioritising_this_cell", "weak_times_without_positive_star_signal"],
+    [
+      {},
+      "stop_prioritising_this_cell",
+      "weak_times_without_positive_star_signal",
+    ],
   ] as const)(
     "maps exact-distance evidence to %s",
     (overrides, expectedGuidance, expectedReason) => {
       expect(guidance(candidate(overrides))).toEqual(
         expect.objectContaining({
-          decisionGuidance: expectedGuidance satisfies DiscoveryDecisionGuidance,
+          decisionGuidance:
+            expectedGuidance satisfies DiscoveryDecisionGuidance,
           decisionReason: expectedReason satisfies DiscoveryDecisionReason,
           automaticEntryAllowed: false,
           automaticStopAllowed: false,
