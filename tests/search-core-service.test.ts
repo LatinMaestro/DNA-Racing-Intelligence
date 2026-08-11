@@ -51,15 +51,15 @@ const noPerformance: CorePerformanceProfileRepository = {
   status: "not_configured",
 };
 
+type ReadyCatalogue = Extract<
+  OwnerVaultCatalogueRepository,
+  Readonly<{ status: "ready" }>
+>;
+
 function catalogue(
-  listCoresByOwner: OwnerVaultCatalogueRepository extends Readonly<{
-    status: "ready";
-    listCoresByOwner: infer List;
-  }>
-    ? List
-    : never,
+  listCoresByOwner: ReadyCatalogue["listCoresByOwner"],
 ): OwnerVaultCatalogueRepository {
-  return { status: "ready", listCoresByOwner } as OwnerVaultCatalogueRepository;
+  return { status: "ready", listCoresByOwner };
 }
 
 describe("Search Core service", () => {
