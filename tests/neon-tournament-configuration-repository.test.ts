@@ -268,7 +268,9 @@ describe("Neon Tournament configuration repository", () => {
 
     await expect(
       repository(test).listCandidateEvidenceByOwner(authenticatedOwnerId),
-    ).rejects.toThrow("Tournament performance import evidence is inconsistent.");
+    ).rejects.toThrow(
+      "Tournament performance import evidence is inconsistent.",
+    );
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
