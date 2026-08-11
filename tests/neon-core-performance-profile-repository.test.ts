@@ -101,66 +101,60 @@ describe("Neon Core Intelligence profile repository", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it(
-    "reads bounded compact owner-Vault profiles with normalized units",
-    async () => {
-      const test = harness([
-        [{ owner_scope: databaseOwnerId }],
-        [ownerEvidence()],
-        [profileRow],
-      ]);
+  it("reads bounded compact owner-Vault profiles with normalized units", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [profileRow],
+    ]);
+    await expect(
+      ready(test).listProfilesByOwner(clerkOwnerId),
+    ).resolves.toEqual({
+      profiles: [
+        expect.objectContaining({
+          coreId: "core-7",
+          mode: "bike",
+          distance: 1050,
+          raceCount: 2,
+          sampleStatus: "hypothesis_only",
+          elapsedTime: expect.objectContaining({
+            bestMilliseconds: 50000,
+            medianMilliseconds: 51250,
+          }),
+          speed: {
+            bestMetresPerSecond: 21,
+            medianMetresPerSecond: 20.488,
+          },
+          starProfile: null,
+          analyticalStatus: "experimental",
+        }),
+      ],
+      lastImportedAt: "2026-08-11T02:00:00.000Z",
+    });
+    const readCall = test.calls.find((call) =>
+      call.statement.includes("dna.list_core_performance_profiles"),
+    );
+    expect(readCall?.values).toEqual([databaseOwnerId, 5000]);
+    expect(readCall?.statement).toContain("NULL::text");
+    expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed before profile access for unsafe isolation or privileges", async () => {
+    for (const evidence of [
+      ownerEvidence({ profile_force_row_security_enabled: false }),
+      ownerEvidence({ runtime_bypasses_rls: true }),
+    ]) {
+      const test = harness([[{ owner_scope: databaseOwnerId }], [evidence]]);
       await expect(
         ready(test).listProfilesByOwner(clerkOwnerId),
-      ).resolves.toEqual({
-        profiles: [
-          expect.objectContaining({
-            coreId: "core-7",
-            mode: "bike",
-            distance: 1050,
-            raceCount: 2,
-            sampleStatus: "hypothesis_only",
-            elapsedTime: expect.objectContaining({
-              bestMilliseconds: 50000,
-              medianMilliseconds: 51250,
-            }),
-            speed: {
-              bestMetresPerSecond: 21,
-              medianMetresPerSecond: 20.488,
-            },
-            starProfile: null,
-            analyticalStatus: "experimental",
-          }),
-        ],
-        lastImportedAt: "2026-08-11T02:00:00.000Z",
-      });
-      const readCall = test.calls.find((call) =>
-        call.statement.includes("dna.list_core_performance_profiles"),
-      );
-      expect(readCall?.values).toEqual([databaseOwnerId, 5000]);
-      expect(readCall?.statement).toContain("NULL::text");
-      expect(test.close).toHaveBeenCalledOnce();
-    },
-  );
-
-  it(
-    "fails closed before profile access for unsafe isolation or privileges",
-    async () => {
-      for (const evidence of [
-        ownerEvidence({ profile_force_row_security_enabled: false }),
-        ownerEvidence({ runtime_bypasses_rls: true }),
-      ]) {
-        const test = harness([[{ owner_scope: databaseOwnerId }], [evidence]]);
-        await expect(
-          ready(test).listProfilesByOwner(clerkOwnerId),
-        ).rejects.toThrow(/forced owner isolation|least privileged/);
-        expect(
-          test.calls.some((call) =>
-            call.statement.includes("dna.list_core_performance_profiles"),
-          ),
-        ).toBe(false);
-      }
-    },
-  );
+      ).rejects.toThrow(/forced owner isolation|least privileged/);
+      expect(
+        test.calls.some((call) =>
+          call.statement.includes("dna.list_core_performance_profiles"),
+        ),
+      ).toBe(false);
+    }
+  });
 
   it("rolls back and closes when the compact read fails", async () => {
     const test = harness([
@@ -168,9 +162,9 @@ describe("Neon Core Intelligence profile repository", () => {
       [ownerEvidence()],
       new Error("synthetic read failure"),
     ]);
-    await expect(
-      ready(test).listProfilesByOwner(clerkOwnerId),
-    ).rejects.toThrow("synthetic read failure");
+    await expect(ready(test).listProfilesByOwner(clerkOwnerId)).rejects.toThrow(
+      "synthetic read failure",
+    );
     expect(test.calls.at(-1)?.statement).toBe("ROLLBACK");
     expect(test.close).toHaveBeenCalledOnce();
   });
