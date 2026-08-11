@@ -179,6 +179,38 @@ function normalizeTournamentConfiguration(
   };
 }
 
+export function tournamentDiscoveryRelevanceForExactDistance(
+  configurations: readonly Pick<
+    TournamentCandidateRankingInput,
+    "mode" | "eligibleDistancesMetres" | "discoveryRelevance"
+  >[],
+  mode: TournamentMode,
+  distanceMetres: number,
+): "none" | TournamentDiscoveryRelevance {
+  if (!tournamentModes.includes(mode)) {
+    throw new Error("Discovery tournament mode is invalid.");
+  }
+  if (!Number.isSafeInteger(distanceMetres) || distanceMetres <= 0) {
+    throw new Error(
+      "Discovery tournament distance must be positive integer metres.",
+    );
+  }
+
+  let relevance: "none" | TournamentDiscoveryRelevance = "none";
+  for (const configuration of configurations) {
+    const normalized = normalizeTournamentConfiguration(configuration);
+    if (
+      normalized.mode !== mode ||
+      !normalized.eligibleDistancesMetres.includes(distanceMetres)
+    ) {
+      continue;
+    }
+    if (normalized.discoveryRelevance === "priority") return "priority";
+    relevance = "eligible";
+  }
+  return relevance;
+}
+
 function positiveRank(value: number | null): number | null {
   if (value === null) return null;
   if (!Number.isSafeInteger(value) || value <= 0) {
