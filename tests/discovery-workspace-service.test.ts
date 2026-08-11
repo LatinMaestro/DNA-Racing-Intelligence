@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DiscoveryExactDistanceBenchmarkEvidence } from "@/domain/discovery-benchmark";
 import type { DiscoveryProbeCandidateInput } from "@/domain/discovery-probe-plan";
 import {
+  createDiscoveryProbeRepository,
   loadDiscoveryWorkspacePageState,
   unavailableDiscoveryProbeRepository,
 } from "@/lib/discovery-workspace-service";
@@ -235,5 +236,96 @@ describe("Discovery workspace service", () => {
         now,
       }),
     ).rejects.toThrow("repository status");
+  });
+  it("filters only under-supported population hypotheses at the repository boundary", async () => {
+    const repository = createDiscoveryProbeRepository({
+      vaultRepository: {
+        status: "ready",
+        listCoresByOwner: async () => [
+          {
+            sourceCoreId: "owned-core",
+            displayName: "Owned Core",
+            coreClass: "Genesis",
+            element: "Fire",
+            fNumber: 1,
+            sex: "female",
+            inMyVault: true,
+            meEligible: false,
+            version: 1,
+            updatedAt: null,
+          },
+        ],
+      },
+      performanceRepository: {
+        status: "ready",
+        listProfilesByOwner: async () => ({
+          profiles: [],
+          lastImportedAt: null,
+        }),
+      },
+      lineageRepository: {
+        status: "ready",
+        listHypothesesByOwner: async () => [
+          {
+            coreId: "owned-core",
+            coreName: "Owned Core",
+            meEligible: false,
+            mode: "bike",
+            distanceMetres: 1_200,
+            lineageRelationship: "population_pattern",
+            lineageRaceCount: 9,
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            lastImportedAt: "2026-07-20T01:00:00.000Z",
+          },
+          {
+            coreId: "owned-core",
+            coreName: "Owned Core",
+            meEligible: false,
+            mode: "bike",
+            distanceMetres: 1_400,
+            lineageRelationship: "population_pattern",
+            lineageRaceCount: 10,
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            lastImportedAt: "2026-07-20T01:00:00.000Z",
+          },
+          {
+            coreId: "owned-core",
+            coreName: "Owned Core",
+            meEligible: false,
+            mode: "bike",
+            distanceMetres: 1_600,
+            lineageRelationship: "parent",
+            lineageRaceCount: 1,
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            lastImportedAt: "2026-07-20T01:00:00.000Z",
+          },
+        ],
+      },
+      benchmarkRepository: {
+        status: "ready",
+        listBenchmarksByOwner: async () => [],
+      },
+    });
+
+    expect(repository.status).toBe("ready");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
+
+    await expect(
+      repository.listCandidateEvidenceByOwner("owner"),
+    ).resolves.toMatchObject({
+      candidates: [
+        {
+          distanceMetres: 1_400,
+          lineageRelationship: "population_pattern",
+          lineageRaceCount: 10,
+        },
+        {
+          distanceMetres: 1_600,
+          lineageRelationship: "parent",
+          lineageRaceCount: 1,
+        },
+      ],
+    });
   });
 });

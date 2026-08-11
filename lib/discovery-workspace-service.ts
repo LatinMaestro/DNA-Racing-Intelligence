@@ -6,6 +6,7 @@ import {
   deriveDiscoveryDecisionGuidance,
   type DiscoveryDecisionCandidate,
 } from "@/domain/discovery-decision-guidance";
+import { discoveryHypothesisIsEligible } from "@/domain/discovery-hypothesis-governance";
 import {
   buildDiscoveryProbePlan,
   type DiscoveryProbeCandidateInput,
@@ -130,8 +131,14 @@ export function createDiscoveryProbeRepository(
           };
         });
 
-      const lineageCandidates = lineageHypotheses.map(
-        (hypothesis): DiscoveryProbeCandidateInput => ({
+      const lineageCandidates = lineageHypotheses
+        .filter((hypothesis) =>
+          discoveryHypothesisIsEligible({
+            relationship: hypothesis.lineageRelationship,
+            supportingRaceCount: hypothesis.lineageRaceCount,
+          }),
+        )
+        .map((hypothesis): DiscoveryProbeCandidateInput => ({
           coreId: hypothesis.coreId,
           coreName: hypothesis.coreName,
           mode: hypothesis.mode,
@@ -146,8 +153,7 @@ export function createDiscoveryProbeRepository(
           maidenState: hypothesis.meEligible ? "eligible" : "not_eligible",
           freshness: "stale",
           dataCurrentThrough: hypothesis.dataCurrentThrough,
-        }),
-      );
+        }));
 
       const importTimestamps = [
         performance.lastImportedAt,
