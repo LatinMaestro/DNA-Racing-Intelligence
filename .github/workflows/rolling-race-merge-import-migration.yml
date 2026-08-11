@@ -57,3 +57,4 @@ jobs:
           ) NOT LIKE '%v_existing_count >= 8%'
           THEN RAISE EXCEPTION 'eight-file limit was not restored';
           END IF; END \$\$;"
+
