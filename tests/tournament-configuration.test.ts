@@ -75,20 +75,22 @@ function configuration(
 
 describe("Tournament rule configuration", () => {
   it("normalizes exact values, ordering, grouping and percentage targets", () => {
-    expect(normalizeTournamentRuleConfiguration(configuration())).toMatchObject({
-      eligibleDistancesMetres: [1_200, 1_600],
-      entryFee: { amount: "0.01", asset: "USD" },
-      eligibility: {
-        elements: ["Fire", "Metal"],
-        fNumbers: [1, 2, 3],
-        fNumberRanges: [{ minimum: 4, maximum: 6 }],
+    expect(normalizeTournamentRuleConfiguration(configuration())).toMatchObject(
+      {
+        eligibleDistancesMetres: [1_200, 1_600],
+        entryFee: { amount: "0.01", asset: "USD" },
+        eligibility: {
+          elements: ["Fire", "Metal"],
+          fNumbers: [1, 2, 3],
+          fNumberRanges: [{ minimum: 4, maximum: 6 }],
+        },
+        qualification: {
+          target: { kind: "percentage", value: "10" },
+          rankingMetric: "top_x_finishes",
+          topFinishPosition: 3,
+        },
       },
-      qualification: {
-        target: { kind: "percentage", value: "10" },
-        rankingMetric: "top_x_finishes",
-        topFinishPosition: 3,
-      },
-    });
+    );
   });
 
   it("accepts each supported ranking metric with its required configuration", () => {
@@ -185,21 +187,39 @@ describe("Tournament rule configuration", () => {
     expect(result).toMatchObject({
       status: "review_required",
       actionableRecommendationAllowed: false,
-      reasons: [
-        "FREE_TEXT_CAMPAIGN_ACTION",
-        "OWNER_ACKNOWLEDGEMENT_MISSING",
-      ],
+      reasons: ["FREE_TEXT_CAMPAIGN_ACTION", "OWNER_ACKNOWLEDGEMENT_MISSING"],
     });
   });
 
   it("allows an authoritative confirmed configuration", () => {
-    expect(
-      assessTournamentConfigurationAuthority(configuration()),
-    ).toEqual({
+    expect(assessTournamentConfigurationAuthority(configuration())).toEqual({
       status: "authoritative",
       reasons: [],
       actionableRecommendationAllowed: true,
     });
+  });
+
+  it("rejects missing required timestamps at runtime", () => {
+    expect(() =>
+      normalizeTournamentRuleConfiguration(
+        configuration({
+          updatedAt: null as unknown as string,
+        }),
+      ),
+    ).toThrow("Tournament update timestamp is required");
+
+    expect(() =>
+      normalizeTournamentRuleConfiguration(
+        configuration({
+          campaignAction: {
+            kind: "configured",
+            action: "Continue",
+            ownerAcknowledgedAt: null as unknown as string,
+            evidence: "Owner-confirmed evidence.",
+          },
+        }),
+      ),
+    ).toThrow("Campaign action owner acknowledgement is required");
   });
 
   it("rejects ambiguous qualification, grouping and scoring boundaries", () => {
