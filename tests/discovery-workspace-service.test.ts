@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { DiscoveryExactDistanceBenchmarkEvidence } from "@/domain/discovery-benchmark";
 import type { DiscoveryProbeCandidateInput } from "@/domain/discovery-probe-plan";
 import {
   loadDiscoveryWorkspacePageState,
@@ -12,6 +13,12 @@ const candidate: DiscoveryProbeCandidateInput = {
   mode: "bike",
   distanceMetres: 1_400,
   directRaceCount: 4,
+  directTimeEvidence: {
+    bestMilliseconds: 51_000,
+    medianMilliseconds: 52_000,
+    meanMilliseconds: 52_500,
+    standardDeviationMilliseconds: 800,
+  },
   lineageRelationship: "parent",
   lineageResolved: true,
   lineageRaceCount: 12,
@@ -20,6 +27,36 @@ const candidate: DiscoveryProbeCandidateInput = {
   freshness: "stale",
   dataCurrentThrough: "2026-07-20T00:00:00.000Z",
 };
+const benchmark: DiscoveryExactDistanceBenchmarkEvidence = {
+  mode: "bike",
+  distanceMetres: 1_400,
+  dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+  raceEntryCount: 100,
+  winningEntryCount: 25,
+  topThreeEntryCount: 60,
+  winningP25Milliseconds: 49_000,
+  winningMedianMilliseconds: 50_000,
+  winningP75Milliseconds: 51_500,
+  topThreeP25Milliseconds: 50_000,
+  topThreeMedianMilliseconds: 52_500,
+  topThreeP75Milliseconds: 54_000,
+  refreshedAt: "2026-07-20T01:00:00.000Z",
+};
+
+function evidence(
+  overrides: Partial<{
+    candidates: readonly DiscoveryProbeCandidateInput[];
+    benchmarks: readonly DiscoveryExactDistanceBenchmarkEvidence[];
+    lastImportedAt: string | null;
+  }> = {},
+) {
+  return {
+    candidates: [candidate],
+    benchmarks: [benchmark],
+    lastImportedAt: "2026-07-20T01:00:00.000Z",
+    ...overrides,
+  };
+}
 
 describe("Discovery workspace service", () => {
   it("returns identity and persistence states without reading evidence", async () => {
@@ -50,10 +87,7 @@ describe("Discovery workspace service", () => {
   });
 
   it("denies a different owner before persistence", async () => {
-    const listCandidateEvidenceByOwner = vi.fn(async () => ({
-      candidates: [candidate],
-      lastImportedAt: "2026-07-20T01:00:00.000Z",
-    }));
+    const listCandidateEvidenceByOwner = vi.fn(async () => evidence());
     await expect(
       loadDiscoveryWorkspacePageState({
         authenticatedOwnerId: "other-owner",
@@ -65,7 +99,7 @@ describe("Discovery workspace service", () => {
     expect(listCandidateEvidenceByOwner).not.toHaveBeenCalled();
   });
 
-  it("derives current freshness instead of trusting a stored label", async () => {
+  it("derives current freshness and attaches exact-distance benchmark context", async () => {
     await expect(
       loadDiscoveryWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -74,10 +108,7 @@ describe("Discovery workspace service", () => {
           status: "ready",
           listCandidateEvidenceByOwner: async (ownerId) => {
             expect(ownerId).toBe("owner");
-            return {
-              candidates: [candidate],
-              lastImportedAt: "2026-07-20T01:00:00.000Z",
-            };
+            return evidence();
           },
         },
         now,
@@ -94,6 +125,11 @@ describe("Discovery workspace service", () => {
           reviewPriority: "high",
           freshness: "current",
           actionable: true,
+          benchmarkAssessment: "winning_range",
+          benchmarkEvidence: {
+            winningMedianMilliseconds: 50_000,
+            topThreeMedianMilliseconds: 52_500,
+          },
           automaticEntryAllowed: false,
           automaticStopAllowed: false,
         },
@@ -115,16 +151,16 @@ describe("Discovery workspace service", () => {
           configuredOwnerId: "owner",
           repository: {
             status: "ready",
-            listCandidateEvidenceByOwner: async () => ({
-              candidates: [
-                {
-                  ...candidate,
-                  freshness: "current",
-                  dataCurrentThrough,
-                },
-              ],
-              lastImportedAt: "2026-07-20T01:00:00.000Z",
-            }),
+            listCandidateEvidenceByOwner: async () =>
+              evidence({
+                candidates: [
+                  {
+                    ...candidate,
+                    freshness: "current",
+                    dataCurrentThrough,
+                  },
+                ],
+              }),
           },
           now,
         }),
@@ -141,10 +177,8 @@ describe("Discovery workspace service", () => {
         configuredOwnerId: "owner",
         repository: {
           status: "ready",
-          listCandidateEvidenceByOwner: async () => ({
-            candidates: [candidate],
-            lastImportedAt: null,
-          }),
+          listCandidateEvidenceByOwner: async () =>
+            evidence({ lastImportedAt: null }),
         },
         now,
       }),
@@ -163,31 +197,28 @@ describe("Discovery workspace service", () => {
 
   it("rejects inconsistent timestamps, duplicate candidates and repository evidence", async () => {
     const invalidEvidence = [
-      { candidates: [candidate, candidate], lastImportedAt: null },
-      { candidates: [candidate], lastImportedAt: "invalid" },
-      {
+      evidence({ candidates: [candidate, candidate], lastImportedAt: null }),
+      evidence({ lastImportedAt: "invalid" }),
+      evidence({
         candidates: [
           {
             ...candidate,
             dataCurrentThrough: "2026-07-20T02:00:00.000Z",
           },
         ],
-        lastImportedAt: "2026-07-20T01:00:00.000Z",
-      },
-      {
-        candidates: [candidate],
-        lastImportedAt: "2026-07-22T00:00:00.000Z",
-      },
+      }),
+      evidence({ lastImportedAt: "2026-07-22T00:00:00.000Z" }),
+      { candidates: [candidate], lastImportedAt: null } as never,
     ];
 
-    for (const evidence of invalidEvidence) {
+    for (const invalid of invalidEvidence) {
       await expect(
         loadDiscoveryWorkspacePageState({
           authenticatedOwnerId: "owner",
           configuredOwnerId: "owner",
           repository: {
             status: "ready",
-            listCandidateEvidenceByOwner: async () => evidence,
+            listCandidateEvidenceByOwner: async () => invalid,
           },
           now,
         }),
