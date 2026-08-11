@@ -113,12 +113,15 @@ export type TournamentRuleConfiguration = Readonly<{
 export type TournamentConfigurationReviewReason =
   | "CANDIDATE_SNAPSHOT_UNBOUND"
   | "CUSTOM_SCORING_CONFIGURATION_MISSING"
+  | "ENTRY_FEE_RULE_INCOMPLETE"
   | "FREE_TEXT_CAMPAIGN_ACTION"
   | "LEADERBOARD_GROUPS_MISSING"
   | "OWNER_ACKNOWLEDGEMENT_MISSING"
   | "POINTS_TABLE_MISSING"
   | "QUALIFICATION_WINDOW_INCOMPLETE"
+  | "RACE_FORMAT_RULE_INCOMPLETE"
   | "RULE_EVIDENCE_UNCERTAIN"
+  | "SEASON_RULE_INCOMPLETE"
   | "SOURCE_EVIDENCE_MISSING";
 
 export type TournamentConfigurationAuthority = Readonly<{
@@ -540,6 +543,15 @@ export function assessTournamentConfigurationAuthority(
   ) {
     reasons.add("QUALIFICATION_WINDOW_INCOMPLETE");
   }
+  if (configuration.seasonLabel.toLowerCase() === "unspecified") {
+    reasons.add("SEASON_RULE_INCOMPLETE");
+  }
+  if (configuration.entryFee.asset.toLowerCase() === "unspecified") {
+    reasons.add("ENTRY_FEE_RULE_INCOMPLETE");
+  }
+  if (configuration.raceFormat.toLowerCase() === "unspecified") {
+    reasons.add("RACE_FORMAT_RULE_INCOMPLETE");
+  }
   if (configuration.evidence.status === "uncertain") {
     reasons.add("RULE_EVIDENCE_UNCERTAIN");
   }
@@ -565,7 +577,10 @@ export function assessTournamentConfigurationAuthority(
   ) {
     reasons.add("CUSTOM_SCORING_CONFIGURATION_MISSING");
   }
-  if (configuration.candidateSnapshotVersion === null) {
+  if (
+    configuration.candidateSnapshotVersion === null ||
+    configuration.candidateSnapshotVersion === "snapshot-unbound"
+  ) {
     reasons.add("CANDIDATE_SNAPSHOT_UNBOUND");
   }
   if (configuration.campaignAction?.kind === "review_only_free_text") {
