@@ -134,12 +134,18 @@ function normalizeDirectTimeEvidence(
     throw new Error("Direct time evidence requires direct races.");
   }
   const normalized = {
-    bestMilliseconds: positiveFinite(value.bestMilliseconds, "Direct best time"),
+    bestMilliseconds: positiveFinite(
+      value.bestMilliseconds,
+      "Direct best time",
+    ),
     medianMilliseconds: positiveFinite(
       value.medianMilliseconds,
       "Direct median time",
     ),
-    meanMilliseconds: positiveFinite(value.meanMilliseconds, "Direct mean time"),
+    meanMilliseconds: positiveFinite(
+      value.meanMilliseconds,
+      "Direct mean time",
+    ),
     standardDeviationMilliseconds: nonNegativeFinite(
       value.standardDeviationMilliseconds,
       "Direct time standard deviation",
@@ -188,23 +194,23 @@ function normalizeStarEvidence(
     ) ||
     normalized.goldAssignmentOpportunityCount >
       normalized.goldEligibleRaceCount ||
-    normalized.goldReceivedCount >
-      normalized.goldAssignmentOpportunityCount ||
-    normalized.blueReceivedCount >
-      normalized.blueAssignmentOpportunityCount
+    normalized.goldReceivedCount > normalized.goldAssignmentOpportunityCount ||
+    normalized.blueReceivedCount > normalized.blueAssignmentOpportunityCount
   ) {
     throw new Error("Star evidence is inconsistent with the direct sample.");
   }
   return normalized;
 }
 
-function confidenceFor(input: Readonly<{
-  directRaceCount: number;
-  directTimeEvidence: DiscoveryDirectTimeEvidence | null;
-  starEvidence: DiscoveryStarEvidence | null;
-  freshness: DiscoveryProbeCandidateInput["freshness"];
-  unusable: boolean;
-}>): DiscoveryProbeCandidate["confidence"] {
+function confidenceFor(
+  input: Readonly<{
+    directRaceCount: number;
+    directTimeEvidence: DiscoveryDirectTimeEvidence | null;
+    starEvidence: DiscoveryStarEvidence | null;
+    freshness: DiscoveryProbeCandidateInput["freshness"];
+    unusable: boolean;
+  }>,
+): DiscoveryProbeCandidate["confidence"] {
   if (input.unusable || input.directRaceCount === 0) return "low";
   const starCoverage =
     input.starEvidence === null
