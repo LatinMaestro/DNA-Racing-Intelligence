@@ -4,11 +4,11 @@ import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
 import {
   createDiscoveryProbeRepository,
   loadDiscoveryWorkspacePageState,
 } from "@/lib/discovery-workspace-service";
-import { unavailableTournamentCandidateRepository } from "@/lib/tournament-workspace-service";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,10 @@ export default async function DiscoveryPage() {
         ),
       benchmarkRepository:
         neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
-      tournamentRepository: unavailableTournamentCandidateRepository,
+      tournamentRepository:
+        neonTournamentConfigurationRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
     }),
     now: new Date(),
   });

@@ -1,9 +1,7 @@
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import {
-  loadTournamentWorkspacePageState,
-  unavailableTournamentCandidateRepository,
-} from "@/lib/tournament-workspace-service";
+import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
+import { loadTournamentWorkspacePageState } from "@/lib/tournament-workspace-service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +12,16 @@ export default async function TournamentsPage() {
       secretKey: process.env.CLERK_SECRET_KEY,
     },
   });
+  const databaseEnvironment = {
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  };
   const state = await loadTournamentWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: unavailableTournamentCandidateRepository,
+    repository:
+      neonTournamentConfigurationRepositoryFromEnvironment(databaseEnvironment),
     now: new Date(),
   });
 
