@@ -523,7 +523,10 @@ export function rankTournamentCandidates(
     candidateSnapshotVersion,
     ...(ruleConfiguration === undefined
       ? {}
-      : { ruleConfiguration, configurationAuthority }),
+      : {
+          ruleConfiguration,
+          configurationAuthority: configurationAuthority!,
+        }),
     leaderboardGroups: [...groups.entries()]
       .map(([leaderboardGroupId, candidates]) => ({
         leaderboardGroupId,
