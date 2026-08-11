@@ -1,10 +1,15 @@
 import {
+  attachDiscoveryBenchmarks,
+  type DiscoveryBenchmarkedCandidate,
+  type DiscoveryExactDistanceBenchmarkEvidence,
+} from "@/domain/discovery-benchmark";
+import {
   buildDiscoveryProbePlan,
-  type DiscoveryProbeCandidate,
   type DiscoveryProbeCandidateInput,
 } from "@/domain/discovery-probe-plan";
 import { deriveFreshness } from "@/domain/freshness";
 import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import type { DiscoveryBenchmarkRepository } from "./neon-discovery-benchmark-repository";
 import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 
@@ -15,6 +20,7 @@ export type DiscoveryProbeRepository =
       listCandidateEvidenceByOwner: (ownerId: string) => Promise<
         Readonly<{
           candidates: readonly DiscoveryProbeCandidateInput[];
+          benchmarks: readonly DiscoveryExactDistanceBenchmarkEvidence[];
           lastImportedAt: string | null;
         }>
       >;
@@ -26,7 +32,7 @@ export type DiscoveryWorkspaceConnectionStatus =
   | "read_model_connected";
 
 export type DiscoveryWorkspacePageState = Readonly<{
-  candidates: readonly DiscoveryProbeCandidate[];
+  candidates: readonly DiscoveryBenchmarkedCandidate[];
   lastImportedAt: string | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
 }>;
@@ -39,12 +45,14 @@ export function createDiscoveryProbeRepository(
     vaultRepository: OwnerVaultCatalogueRepository;
     performanceRepository: CorePerformanceProfileRepository;
     lineageRepository: DiscoveryLineageHypothesisRepository;
+    benchmarkRepository: DiscoveryBenchmarkRepository;
   }>,
 ): DiscoveryProbeRepository {
   if (
     input.vaultRepository.status !== "ready" ||
     input.performanceRepository.status !== "ready" ||
-    input.lineageRepository.status !== "ready"
+    input.lineageRepository.status !== "ready" ||
+    input.benchmarkRepository.status !== "ready"
   ) {
     return unavailableDiscoveryProbeRepository;
   }
@@ -52,21 +60,24 @@ export function createDiscoveryProbeRepository(
   const vaultRepository = input.vaultRepository;
   const performanceRepository = input.performanceRepository;
   const lineageRepository = input.lineageRepository;
+  const benchmarkRepository = input.benchmarkRepository;
   return {
     status: "ready",
     async listCandidateEvidenceByOwner(ownerId) {
-      const [ownedCores, performance, lineageHypotheses] = await Promise.all([
-        vaultRepository.listCoresByOwner(ownerId, {
-          scope: "vault",
-          query: null,
-          element: null,
-          coreClass: null,
-          sex: null,
-          fNumber: null,
-        }),
-        performanceRepository.listProfilesByOwner(ownerId),
-        lineageRepository.listHypothesesByOwner(ownerId),
-      ]);
+      const [ownedCores, performance, lineageHypotheses, benchmarks] =
+        await Promise.all([
+          vaultRepository.listCoresByOwner(ownerId, {
+            scope: "vault",
+            query: null,
+            element: null,
+            coreClass: null,
+            sex: null,
+            fNumber: null,
+          }),
+          performanceRepository.listProfilesByOwner(ownerId),
+          lineageRepository.listHypothesesByOwner(ownerId),
+          benchmarkRepository.listBenchmarksByOwner(ownerId),
+        ]);
       const ownedById = new Map(
         ownedCores
           .filter((core) => core.inMyVault)
@@ -148,6 +159,7 @@ export function createDiscoveryProbeRepository(
 
       return {
         candidates: [...directCandidates, ...lineageCandidates],
+        benchmarks,
         lastImportedAt,
       };
     },
@@ -265,7 +277,8 @@ export async function loadDiscoveryWorkspacePageState(
   if (
     typeof evidence !== "object" ||
     evidence === null ||
-    !Array.isArray(evidence.candidates)
+    !Array.isArray(evidence.candidates) ||
+    !Array.isArray(evidence.benchmarks)
   ) {
     throw new Error("Discovery evidence is invalid.");
   }
@@ -273,10 +286,11 @@ export async function loadDiscoveryWorkspacePageState(
     evidence.lastImportedAt,
     "Discovery import timestamp",
   );
+  const probePlan = buildDiscoveryProbePlan(
+    normalizeFreshness(evidence.candidates, lastImportedAt, now),
+  );
   return {
-    candidates: buildDiscoveryProbePlan(
-      normalizeFreshness(evidence.candidates, lastImportedAt, now),
-    ),
+    candidates: attachDiscoveryBenchmarks(probePlan, evidence.benchmarks),
     lastImportedAt,
     connectionStatus: "read_model_connected",
   };
