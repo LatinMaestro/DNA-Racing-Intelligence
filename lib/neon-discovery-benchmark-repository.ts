@@ -120,7 +120,8 @@ export function createNeonDiscoveryBenchmarkRepository(
     status: "ready",
     async listBenchmarksByOwner(authenticatedOwnerId) {
       const clerkOwner = authenticatedOwnerId.trim();
-      if (clerkOwner === "") throw new Error("authenticated owner is required.");
+      if (clerkOwner === "")
+        throw new Error("authenticated owner is required.");
       const session = await sessionFactory(url);
       let transactionStarted = false;
       try {
@@ -146,7 +147,9 @@ export function createNeonDiscoveryBenchmarkRepository(
           bool(ownerRow.runtime_is_superuser, "runtime_is_superuser") ||
           bool(ownerRow.runtime_bypasses_rls, "runtime_bypasses_rls")
         ) {
-          throw new Error("Discovery benchmark runtime owner isolation failed.");
+          throw new Error(
+            "Discovery benchmark runtime owner isolation failed.",
+          );
         }
 
         const result = (await session.client.query(LIST_SQL, [
