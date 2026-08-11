@@ -91,6 +91,9 @@ describe("tournament candidate ranking", () => {
       qualificationMetricLabel: "Qualification points",
       configurationVersion: "config-v3",
       candidateSnapshotVersion: "snapshot-v9",
+      mode: "horse",
+      eligibleDistancesMetres: [1_200, 1_600],
+      discoveryRelevance: "priority",
       orderingAuthority: "configured_qualification_metric",
       historicalStarsRole: "supporting_rationale_only",
       actionableRecommendationAllowed: false,
@@ -101,6 +104,36 @@ describe("tournament candidate ranking", () => {
       starUsedForOrdering: false,
       automaticEntryAllowed: false,
     });
+  });
+
+  it("rejects invalid or ambiguous Discovery configuration", () => {
+    expect(() =>
+      rankTournamentCandidates(
+        input([candidate("core", 1)], {
+          mode: "plane" as TournamentCandidateRankingInput["mode"],
+        }),
+      ),
+    ).toThrow("mode is invalid");
+    expect(() =>
+      rankTournamentCandidates(
+        input([candidate("core", 1)], { eligibleDistancesMetres: [] }),
+      ),
+    ).toThrow("positive integer metres");
+    expect(() =>
+      rankTournamentCandidates(
+        input([candidate("core", 1)], {
+          eligibleDistancesMetres: [1_200, 1_200],
+        }),
+      ),
+    ).toThrow("must be unique");
+    expect(() =>
+      rankTournamentCandidates(
+        input([candidate("core", 1)], {
+          discoveryRelevance:
+            "guessed" as TournamentCandidateRankingInput["discoveryRelevance"],
+        }),
+      ),
+    ).toThrow("relevance is invalid");
   });
 
   it("rejects candidate evidence bound to different versions", () => {
