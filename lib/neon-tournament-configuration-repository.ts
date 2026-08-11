@@ -280,7 +280,9 @@ export function createNeonTournamentConfigurationRepository(
             "Tournament performance last imported",
           );
           if (importedAt === null) {
-            throw new Error("Tournament performance import evidence is missing.");
+            throw new Error(
+              "Tournament performance import evidence is missing.",
+            );
           }
           if (dataCurrentThrough > importedAt) {
             throw new Error(
