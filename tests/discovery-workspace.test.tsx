@@ -53,34 +53,42 @@ describe("Discovery workspace", () => {
     expect(html).toContain("Owned-core Discovery planner connected");
   });
 
-  it("labels a zero-race parent hypothesis without treating lineage as direct evidence", () => {
-    const candidates = buildDiscoveryProbePlan([
-      {
-        coreId: "untested-core",
-        coreName: "Untested Core",
-        mode: "bike",
-        distanceMetres: 1_400,
-        directRaceCount: 0,
-        lineageRelationship: "parent",
-        lineageResolved: true,
-        lineageRaceCount: 18,
-        tournamentRelevance: "none",
-        maidenState: "not_eligible",
-        freshness: "current",
-        dataCurrentThrough: "2026-07-20T00:00:00.000Z",
-      },
-    ]);
-    const html = renderToStaticMarkup(
-      <DiscoveryWorkspace
-        candidates={candidates}
-        connectionStatus="read_model_connected"
-        lastImportedAt="2026-07-20T01:00:00.000Z"
-      />,
-    );
+  it.each([
+    ["parent", "Parent hypothesis"],
+    ["full_sibling", "Full Sibling hypothesis"],
+    ["half_sibling", "Half Sibling hypothesis"],
+    ["offspring", "Offspring hypothesis"],
+  ] as const)(
+    "labels zero-race %s evidence without treating lineage as direct evidence",
+    (lineageRelationship, expectedLabel) => {
+      const candidates = buildDiscoveryProbePlan([
+        {
+          coreId: "untested-core",
+          coreName: "Untested Core",
+          mode: "bike",
+          distanceMetres: 1_400,
+          directRaceCount: 0,
+          lineageRelationship,
+          lineageResolved: true,
+          lineageRaceCount: 18,
+          tournamentRelevance: "none",
+          maidenState: "not_eligible",
+          freshness: "current",
+          dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+        },
+      ]);
+      const html = renderToStaticMarkup(
+        <DiscoveryWorkspace
+          candidates={candidates}
+          connectionStatus="read_model_connected"
+          lastImportedAt="2026-07-20T01:00:00.000Z"
+        />,
+      );
 
-    expect(html).toContain("0 races");
-    expect(html).toContain("Parent hypothesis · 18 lineage races");
-    expect(html).toContain("3 races");
-    expect(html).toContain("Lineage nominates a test only");
-  });
+      expect(html).toContain("0 races");
+      expect(html).toContain(`${expectedLabel} · 18 lineage races`);
+      expect(html).toContain("3 races");
+      expect(html).toContain("Lineage nominates a test only");
+    },
+  );
 });
