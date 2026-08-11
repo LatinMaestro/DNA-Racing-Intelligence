@@ -132,9 +132,8 @@ describe("Neon Tournament configuration repository", () => {
       ],
     ]);
 
-    const result = await repository(test).listCandidateEvidenceByOwner(
-      authenticatedOwnerId,
-    );
+    const result =
+      await repository(test).listCandidateEvidenceByOwner(authenticatedOwnerId);
     expect(result.lastImportedAt).toBeNull();
     expect(result.brackets).toHaveLength(1);
     expect(result.brackets[0]).toMatchObject({
@@ -207,7 +206,9 @@ describe("Neon Tournament configuration repository", () => {
     expect(test.events[2]).toContain(
       "'dna.tournament_configuration'::regclass",
     );
-    expect(test.events[3]).toContain("dna.list_complete_tournament_configurations");
+    expect(test.events[3]).toContain(
+      "dna.list_complete_tournament_configurations",
+    );
     expect(test.events[4]).toContain("dna.owner_vault_core");
     expect(test.events[4]).toContain("vault.in_my_vault");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
