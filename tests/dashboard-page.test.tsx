@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+
 import DashboardPage from "@/app/(private)/page";
 
 describe("private dashboard operating status", () => {
@@ -12,7 +13,9 @@ describe("private dashboard operating status", () => {
     expect(markup).toContain("My Vault");
     expect(markup).toContain("Owner-maintained current ownership");
     expect(markup).toContain("Owner setup pending");
-    expect(markup).toContain("not inferred from historical races or a Vault CSV");
+    expect(markup).toContain(
+      "not inferred from historical races or a Vault CSV",
+    );
     expect(markup).toContain("Core snapshot");
     expect(markup).toContain("Race snapshot");
     expect(markup).toContain("Arena snapshot");
