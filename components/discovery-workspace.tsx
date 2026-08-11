@@ -1,4 +1,4 @@
-import type { DiscoveryBenchmarkedCandidate } from "@/domain/discovery-benchmark";
+import type { DiscoveryDecisionCandidate } from "@/domain/discovery-decision-guidance";
 import type { DiscoveryWorkspaceConnectionStatus } from "@/lib/discovery-workspace-service";
 
 const connectionCopy: Record<
@@ -53,19 +53,19 @@ function ratio(numerator: number, denominator: number): string {
   return `${numerator}/${denominator} (${rate}%)`;
 }
 
-function directTimeSummary(candidate: DiscoveryBenchmarkedCandidate): string {
+function directTimeSummary(candidate: DiscoveryDecisionCandidate): string {
   const evidence = candidate.directTimeEvidence;
   if (evidence === null) return "Not yet available";
   return `Best ${elapsed(evidence.bestMilliseconds)} · Median ${elapsed(evidence.medianMilliseconds)}`;
 }
 
-function consistencySummary(candidate: DiscoveryBenchmarkedCandidate): string {
+function consistencySummary(candidate: DiscoveryDecisionCandidate): string {
   const evidence = candidate.directTimeEvidence;
   if (evidence === null) return "Not yet available";
   return `Mean ${elapsed(evidence.meanMilliseconds)} · σ ${elapsed(evidence.standardDeviationMilliseconds)}`;
 }
 
-function goldSummary(candidate: DiscoveryBenchmarkedCandidate): string {
+function goldSummary(candidate: DiscoveryDecisionCandidate): string {
   const evidence = candidate.starEvidence;
   if (evidence === null) return "No usable direct star profile";
   const received = ratio(
@@ -75,7 +75,7 @@ function goldSummary(candidate: DiscoveryBenchmarkedCandidate): string {
   return `${received} · ${evidence.goldEligibleRaceCount} Gold-eligible races`;
 }
 
-function blueSummary(candidate: DiscoveryBenchmarkedCandidate): string {
+function blueSummary(candidate: DiscoveryDecisionCandidate): string {
   const evidence = candidate.starEvidence;
   if (evidence === null) return "No usable direct star profile";
   return ratio(
@@ -85,7 +85,7 @@ function blueSummary(candidate: DiscoveryBenchmarkedCandidate): string {
 }
 
 function winningBenchmarkSummary(
-  candidate: DiscoveryBenchmarkedCandidate,
+  candidate: DiscoveryDecisionCandidate,
 ): string {
   const benchmark = candidate.benchmarkEvidence;
   if (benchmark === null) return "Not available for this exact distance";
@@ -93,11 +93,32 @@ function winningBenchmarkSummary(
 }
 
 function topThreeBenchmarkSummary(
-  candidate: DiscoveryBenchmarkedCandidate,
+  candidate: DiscoveryDecisionCandidate,
 ): string {
   const benchmark = candidate.benchmarkEvidence;
   if (benchmark === null) return "Not available for this exact distance";
   return `Median ${elapsed(benchmark.topThreeMedianMilliseconds)} · 75th percentile ${elapsed(benchmark.topThreeP75Milliseconds)} · ${benchmark.topThreeEntryCount.toLocaleString("en-AU")} top-three results`;
+}
+
+function decisionReasonSummary(candidate: DiscoveryDecisionCandidate): string {
+  switch (candidate.decisionReason) {
+    case "competitive_winner_range":
+      return "Direct time reaches the historical winner range; continue a bounded exact-distance probe.";
+    case "competitive_top_three_range":
+      return "Direct time reaches the historical top-three range; continue a bounded exact-distance probe.";
+    case "benchmark_not_available":
+      return "No exact-distance benchmark is available; continue only as a small evidence-building probe.";
+    case "small_sample_needs_confirmation":
+      return "Direct times are outside the historical top-three range, but fewer than four races is too small to deprioritise without one confirmation.";
+    case "weak_times_but_positive_star_signal":
+      return "Direct times are outside the historical top-three range, but recorded Gold or Blue support conflicts; pause and review rather than spend another race.";
+    case "weak_times_without_positive_star_signal":
+      return "At least four direct races remain outside the historical top-three range without recorded positive Gold or Blue support; stop prioritising this exact cell, not the core.";
+    case "minimum_sample_reached":
+      return "The ten-race minimum is reached; review the complete evidence without treating the boundary as proof.";
+    case "evidence_stale_or_unresolved":
+      return "Evidence is stale or unresolved; defer testing until the data state is trustworthy.";
+  }
 }
 
 export function DiscoveryWorkspace({
@@ -105,7 +126,7 @@ export function DiscoveryWorkspace({
   lastImportedAt,
   connectionStatus,
 }: Readonly<{
-  candidates: readonly DiscoveryBenchmarkedCandidate[];
+  candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
 }>) {
@@ -229,6 +250,12 @@ export function DiscoveryWorkspace({
                       {label(candidate.guidance)}
                     </dd>
                   </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-[var(--muted)]">Decision rationale</dt>
+                    <dd className="mt-1 font-semibold">
+                      {decisionReasonSummary(candidate)}
+                    </dd>
+                  </div>
                   <div>
                     <dt className="text-[var(--muted)]">Maiden state</dt>
                     <dd className="mt-1 font-semibold">
@@ -322,6 +349,11 @@ export function DiscoveryWorkspace({
                     Reassess after the probe. Lineage or population evidence
                     nominates a test only; it does not replace direct evidence
                     or prove performance.
+                  </p>
+                  <p className="mt-2">
+                    Stop guidance deprioritises only this core, mode and exact
+                    distance. It never stops the core automatically or replaces
+                    owner judgement.
                   </p>
                 </div>
               </article>
