@@ -14,6 +14,20 @@ function candidate(
     mode: "bike",
     distanceMetres: 1400,
     directRaceCount: 4,
+    directTimeEvidence: {
+      bestMilliseconds: 90_000,
+      medianMilliseconds: 91_500,
+      meanMilliseconds: 91_750,
+      standardDeviationMilliseconds: 1_100,
+    },
+    starEvidence: {
+      completeStarDataRaceCount: 3,
+      goldEligibleRaceCount: 3,
+      goldAssignmentOpportunityCount: 2,
+      goldReceivedCount: 1,
+      blueAssignmentOpportunityCount: 3,
+      blueReceivedCount: 1,
+    },
     lineageRelationship: "parent",
     lineageResolved: true,
     lineageRaceCount: 12,
@@ -40,6 +54,7 @@ describe("discovery probe plan", () => {
     expect(plan[0]).toEqual(
       expect.objectContaining({
         reviewPriority: "high",
+        confidence: "moderate",
         observationsToMinimum: 6,
         recommendedInitialProbeSize: 3,
         guidance: "continue_targeted_probe",
@@ -50,10 +65,42 @@ describe("discovery probe plan", () => {
     );
   });
 
+  it("preserves direct time and eligibility-aware star evidence", () => {
+    const [result] = buildDiscoveryProbePlan([candidate()]);
+
+    expect(result?.directTimeEvidence).toEqual({
+      bestMilliseconds: 90_000,
+      medianMilliseconds: 91_500,
+      meanMilliseconds: 91_750,
+      standardDeviationMilliseconds: 1_100,
+    });
+    expect(result?.starEvidence).toEqual({
+      completeStarDataRaceCount: 3,
+      goldEligibleRaceCount: 3,
+      goldAssignmentOpportunityCount: 2,
+      goldReceivedCount: 1,
+      blueAssignmentOpportunityCount: 3,
+      blueReceivedCount: 1,
+    });
+    expect(result?.warnings).not.toContain("STAR_EVIDENCE_UNAVAILABLE");
+  });
+
   it("keeps the ten-race minimum as a review boundary only", () => {
     const [nine, ten] = buildDiscoveryProbePlan([
       candidate({ coreId: "nine", coreName: "Nine", directRaceCount: 9 }),
-      candidate({ coreId: "ten", coreName: "Ten", directRaceCount: 10 }),
+      candidate({
+        coreId: "ten",
+        coreName: "Ten",
+        directRaceCount: 10,
+        starEvidence: {
+          completeStarDataRaceCount: 8,
+          goldEligibleRaceCount: 8,
+          goldAssignmentOpportunityCount: 7,
+          goldReceivedCount: 3,
+          blueAssignmentOpportunityCount: 8,
+          blueReceivedCount: 2,
+        },
+      }),
     ]);
 
     expect(nine).toEqual(
@@ -70,6 +117,7 @@ describe("discovery probe plan", () => {
         recommendedInitialProbeSize: 0,
         guidance: "review_minimum_sample",
         evidencePurpose: "validate_lineage_hypothesis",
+        confidence: "high",
         actionable: false,
       }),
     );
@@ -97,6 +145,7 @@ describe("discovery probe plan", () => {
     expect(plan[0]).toEqual(
       expect.objectContaining({
         reviewPriority: "defer",
+        confidence: "low",
         recommendedInitialProbeSize: 0,
         guidance: "defer_stale_or_unresolved",
         actionable: false,
@@ -128,6 +177,27 @@ describe("discovery probe plan", () => {
     expect(result?.reviewPriority).toBe("low");
   });
 
+  it("keeps zero-direct lineage hypotheses low confidence", () => {
+    const [result] = buildDiscoveryProbePlan([
+      candidate({
+        directRaceCount: 0,
+        directTimeEvidence: null,
+        starEvidence: null,
+        lineageRelationship: "full_sibling",
+        lineageRaceCount: 18,
+      }),
+    ]);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        confidence: "low",
+        directTimeEvidence: null,
+        starEvidence: null,
+        recommendedInitialProbeSize: 3,
+      }),
+    );
+  });
+
   it("keeps mode and exact distance candidates distinct", () => {
     const plan = buildDiscoveryProbePlan([
       candidate(),
@@ -152,7 +222,7 @@ describe("discovery probe plan", () => {
     ).toThrow("mode is invalid");
   });
 
-  it("rejects fabricated lineage samples", () => {
+  it("rejects fabricated lineage, direct-time and star samples", () => {
     expect(() =>
       buildDiscoveryProbePlan([
         candidate({
@@ -161,5 +231,29 @@ describe("discovery probe plan", () => {
         }),
       ]),
     ).toThrow("requires a lineage relationship");
+
+    expect(() =>
+      buildDiscoveryProbePlan([
+        candidate({
+          directRaceCount: 0,
+          starEvidence: null,
+        }),
+      ]),
+    ).toThrow("Direct time evidence requires direct races");
+
+    expect(() =>
+      buildDiscoveryProbePlan([
+        candidate({
+          starEvidence: {
+            completeStarDataRaceCount: 4,
+            goldEligibleRaceCount: 2,
+            goldAssignmentOpportunityCount: 3,
+            goldReceivedCount: 1,
+            blueAssignmentOpportunityCount: 4,
+            blueReceivedCount: 1,
+          },
+        }),
+      ]),
+    ).toThrow("Star evidence is inconsistent");
   });
 });
