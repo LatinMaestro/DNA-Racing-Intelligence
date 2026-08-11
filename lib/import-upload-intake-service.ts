@@ -199,7 +199,9 @@ function validateCandidates(
     candidates.length === 0 ||
     candidates.length > maxImportUploadFilesPerBatch
   ) {
-    throw new Error(`files must contain between 1 and ${maxImportUploadFilesPerBatch} candidates`);
+    throw new Error(
+      `files must contain between 1 and ${maxImportUploadFilesPerBatch} candidates`,
+    );
   }
   const validated = candidates.map(validateCandidate);
   const clientFileIds = new Set<string>();
