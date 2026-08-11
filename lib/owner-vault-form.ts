@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-export const ownerVaultOperations = ["add", "remove", "me_on", "me_off"] as const;
+export const ownerVaultOperations = [
+  "add",
+  "remove",
+  "me_on",
+  "me_off",
+] as const;
 export type OwnerVaultOperation = (typeof ownerVaultOperations)[number];
 
 export type ParsedOwnerVaultMutation = Readonly<{
