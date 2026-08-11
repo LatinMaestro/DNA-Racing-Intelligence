@@ -16,26 +16,51 @@ function percentage(numerator: number, denominator: number): string {
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
+function starRate(
+  numerator: number,
+  denominator: number,
+  denominatorLabel: string,
+): string {
+  return `${percentage(numerator, denominator)} (${numerator}/${denominator} ${denominatorLabel})`;
+}
+
 function PerformanceProfile({
   profile,
 }: Readonly<{ profile: CorePerformanceProfile }>) {
   const stars = profile.starProfile;
+  const sampleLabel =
+    profile.sampleStatus === "minimally_analytical"
+      ? "10+ race minimum reached"
+      : "Hypothesis only";
+  const goldRate =
+    stars === null
+      ? "—"
+      : starRate(
+          stars.goldReceivedRate.numerator,
+          stars.goldReceivedRate.denominator,
+          "eligible opportunities",
+        );
+  const blueRate =
+    stars === null
+      ? "—"
+      : starRate(
+          stars.blueReceivedRate.numerator,
+          stars.blueReceivedRate.denominator,
+          "opportunities",
+        );
+  const currentThrough = new Date(profile.dataCurrentThrough).toLocaleString(
+    "en-AU",
+  );
+
   return (
     <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h4 className="font-semibold">
-            {label(profile.mode)} · {profile.distance.toLocaleString("en-AU")} m
-          </h4>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {profile.raceCount.toLocaleString("en-AU")} races ·{" "}
-            {label(profile.freshness)} ·{" "}
-            {profile.sampleStatus === "minimally_analytical"
-              ? "10+ race minimum reached"
-              : "Hypothesis only"}
-          </p>
-        </div>
-      </div>
+      <h4 className="font-semibold">
+        {label(profile.mode)} · {profile.distance.toLocaleString("en-AU")} m
+      </h4>
+      <p className="mt-1 text-xs text-[var(--muted)]">
+        {profile.raceCount.toLocaleString("en-AU")} races ·{" "}
+        {label(profile.freshness)} · {sampleLabel}
+      </p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
         <div>
           <dt className="text-[var(--muted)]">Best time</dt>
@@ -75,35 +100,16 @@ function PerformanceProfile({
         </div>
         <div>
           <dt className="text-[var(--muted)]">Gold star</dt>
-          <dd className="font-semibold">
-            {stars === null
-              ? "—"
-              : `${percentage(
-                  stars.goldReceivedRate.numerator,
-                  stars.goldReceivedRate.denominator,
-                )} (${stars.goldReceivedRate.numerator}/${
-                  stars.goldReceivedRate.denominator
-                } eligible opportunities)`}
-          </dd>
+          <dd className="font-semibold">{goldRate}</dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Blue star</dt>
-          <dd className="font-semibold">
-            {stars === null
-              ? "—"
-              : `${percentage(
-                  stars.blueReceivedRate.numerator,
-                  stars.blueReceivedRate.denominator,
-                )} (${stars.blueReceivedRate.numerator}/${
-                  stars.blueReceivedRate.denominator
-                } opportunities)`}
-          </dd>
+          <dd className="font-semibold">{blueRate}</dd>
         </div>
       </dl>
       <p className="mt-4 text-xs text-[var(--muted)]">
-        Data current through{" "}
-        {new Date(profile.dataCurrentThrough).toLocaleString("en-AU")}. Historical
-        imported evidence only; not live game state.
+        Data current through {currentThrough}. Historical imported evidence only;
+        not live game state.
       </p>
     </article>
   );
