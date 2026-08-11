@@ -4,7 +4,7 @@ import { DiscoveryWorkspace } from "@/components/discovery-workspace";
 import { buildDiscoveryProbePlan } from "@/domain/discovery-probe-plan";
 
 describe("Discovery workspace", () => {
-  it("renders unavailable evidence without a fake recommendation", () => {
+  it("renders unavailable evidence without inventing candidates", () => {
     const html = renderToStaticMarkup(
       <DiscoveryWorkspace
         candidates={[]}
@@ -14,23 +14,22 @@ describe("Discovery workspace", () => {
     );
 
     expect(html).toContain("Discovery read model not connected");
-    expect(html).toContain("No accepted Discovery candidates");
-    expect(html).toContain("Race entry unavailable");
-    expect(html).toContain("Gate C not passed");
+    expect(html).toContain("No current under-tested candidates");
     expect(html).not.toContain("Recommended core");
   });
 
-  it("renders exact-distance coverage and warnings as review evidence", () => {
+  it("renders bounded owner probe guidance for an owned core", () => {
     const candidates = buildDiscoveryProbePlan([
       {
         coreId: "synthetic-core",
+        coreName: "Synthetic Core",
         mode: "horse",
         distanceMetres: 1_600,
         directRaceCount: 4,
-        lineageRelationship: "full_sibling",
+        lineageRelationship: null,
         lineageResolved: true,
-        lineageRaceCount: 10,
-        tournamentRelevance: "priority",
+        lineageRaceCount: 0,
+        tournamentRelevance: "none",
         maidenState: "eligible",
         freshness: "current",
         dataCurrentThrough: "2026-07-20T00:00:00.000Z",
@@ -45,10 +44,11 @@ describe("Discovery workspace", () => {
     );
 
     expect(html).toContain("horse · 1,600 m");
-    expect(html).toContain("Core synthetic-core");
-    expect(html).toContain("6");
-    expect(html).toContain("Full Sibling");
+    expect(html).toContain("Synthetic Core");
+    expect(html).toContain("Core ID synthetic-core");
+    expect(html).toContain("3 races");
+    expect(html).toContain("Continue Targeted Probe");
     expect(html).toContain("Maiden Commitment Review Required");
-    expect(html).toContain("Historical Discovery evidence connected");
+    expect(html).toContain("Owned-core Discovery planner connected");
   });
 });
