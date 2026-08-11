@@ -11,8 +11,7 @@ export const tournamentRankingMetrics = [
   "best_finish",
   "custom",
 ] as const;
-export type TournamentRankingMetric =
-  (typeof tournamentRankingMetrics)[number];
+export type TournamentRankingMetric = (typeof tournamentRankingMetrics)[number];
 
 export type TournamentRuleEvidenceStatus = "confirmed" | "uncertain";
 export type TournamentQualifyingRaceSemantics = "shared" | "separate";
@@ -163,6 +162,12 @@ function timestamp(value: string | null, label: string): string | null {
     throw new Error(`${label} must be a canonical timestamp.`);
   }
   return value;
+}
+
+function requiredTimestamp(value: string, label: string): string {
+  const normalized = timestamp(value, label);
+  if (normalized === null) throw new Error(`${label} is required.`);
+  return normalized;
 }
 
 function positiveInteger(value: number, label: string, maximum = 100_000) {
@@ -348,7 +353,9 @@ export function normalizeTournamentRuleConfiguration(
   if (!["eligible", "priority"].includes(input.discoveryRelevance)) {
     throw new Error("Tournament Discovery relevance is invalid.");
   }
-  if (!["shared", "separate"].includes(input.leaderboard.qualifyingRaceSemantics)) {
+  if (
+    !["shared", "separate"].includes(input.leaderboard.qualifyingRaceSemantics)
+  ) {
     throw new Error("Tournament qualifying-race semantics are invalid.");
   }
   if (!["confirmed", "uncertain"].includes(input.evidence.status)) {
@@ -397,10 +404,10 @@ export function normalizeTournamentRuleConfiguration(
         ? {
             kind: "configured" as const,
             action: required(input.campaignAction.action, "Campaign action"),
-            ownerAcknowledgedAt: timestamp(
+            ownerAcknowledgedAt: requiredTimestamp(
               input.campaignAction.ownerAcknowledgedAt,
               "Campaign action owner acknowledgement",
-            )!,
+            ),
             evidence: required(
               input.campaignAction.evidence,
               "Campaign action evidence",
@@ -515,7 +522,10 @@ export function normalizeTournamentRuleConfiguration(
             input.candidateSnapshotVersion,
             "Tournament candidate snapshot version",
           ),
-    updatedAt: timestamp(input.updatedAt, "Tournament update timestamp")!,
+    updatedAt: requiredTimestamp(
+      input.updatedAt,
+      "Tournament update timestamp",
+    ),
   };
 }
 
