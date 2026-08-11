@@ -10,6 +10,7 @@ import {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_RUNTIME_ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/;
+const SERVER_CONFIGURATION_VERSION = /^cfg-[a-f0-9]{32}$/;
 
 const SET_OWNER_SCOPE_SQL = `SELECT set_config('app.owner_id', $1, true) AS owner_scope`;
 const VERIFY_OWNER_SQL = `
@@ -26,19 +27,43 @@ const VERIFY_OWNER_SQL = `
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 `;
 const UPSERT_SQL = `
-  SELECT * FROM dna.upsert_tournament_configuration(
+  SELECT * FROM dna.upsert_complete_tournament_configuration(
     $1::uuid,
     $2::text,
     $3::text,
     $4::text,
-    $5::text,
-    $6::text,
-    $7::integer[],
+    $5::timestamptz,
+    $6::timestamptz,
+    $7::text,
     $8::text,
     $9::text,
-    $10::text,
-    $11::text,
-    $12::timestamptz
+    $10::integer[],
+    $11::integer,
+    $12::numeric,
+    $13::text,
+    $14::text,
+    $15::text[],
+    $16::text[],
+    $17::text[],
+    $18::integer[],
+    $19::jsonb,
+    $20::jsonb,
+    $21::text,
+    $22::jsonb,
+    $23::integer,
+    $24::integer,
+    $25::numeric,
+    $26::text,
+    $27::integer,
+    $28::jsonb,
+    $29::jsonb,
+    $30::text,
+    $31::text,
+    $32::text,
+    $33::text,
+    $34::text,
+    $35::jsonb,
+    $36::jsonb
   )
 `;
 
@@ -67,6 +92,11 @@ function text(value: unknown, label: string): string {
 function bool(value: unknown, label: string): boolean {
   if (typeof value !== "boolean") throw new Error(`${label} is invalid.`);
   return value;
+}
+
+function timestamp(value: unknown, label: string): void {
+  const date = value instanceof Date ? value : new Date(text(value, label));
+  if (Number.isNaN(date.getTime())) throw new Error(`${label} is invalid.`);
 }
 
 function normalized(value: string | undefined): string | null {
@@ -99,6 +129,22 @@ function verifyOwner(
   }
 }
 
+function verifyWrite(result: QueryResult): void {
+  if (result.rows.length !== 1) {
+    throw new Error("Tournament configuration write did not persist.");
+  }
+  const row = record(result.rows[0]);
+  if (
+    !SERVER_CONFIGURATION_VERSION.test(
+      text(row.configuration_version, "server configuration version"),
+    )
+  ) {
+    throw new Error("Tournament server configuration version is invalid.");
+  }
+  text(row.candidate_snapshot_version, "candidate snapshot version");
+  timestamp(row.updated_at, "Tournament server update timestamp");
+}
+
 export function createNeonTournamentConfigurationWriteRepository(
   input: Readonly<{
     databaseUrl: string;
@@ -126,6 +172,7 @@ export function createNeonTournamentConfigurationWriteRepository(
       configuration: TournamentConfigurationWrite,
     ) {
       const authenticatedOwnerId = text(ownerId, "ownerId");
+      const target = configuration.qualification.target;
       const session = await sessionFactory(databaseUrl);
       try {
         await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
@@ -138,23 +185,46 @@ export function createNeonTournamentConfigurationWriteRepository(
           authenticatedOwnerId,
           runtimeRole,
         );
-        const result = await session.client.query(UPSERT_SQL, [
-          databaseOwnerId,
-          configuration.tournamentId,
-          configuration.tournamentLabel,
-          configuration.bracketId,
-          configuration.splitLabel,
-          configuration.mode,
-          configuration.eligibleDistancesMetres,
-          configuration.discoveryRelevance,
-          configuration.qualificationMetricLabel,
-          configuration.configurationVersion,
-          configuration.candidateSnapshotVersion,
-          configuration.updatedAt,
-        ]);
-        if (result.rows.length !== 1) {
-          throw new Error("Tournament configuration write did not persist.");
-        }
+        verifyWrite(
+          await session.client.query(UPSERT_SQL, [
+            databaseOwnerId,
+            configuration.tournamentId,
+            configuration.tournamentLabel,
+            configuration.seasonLabel,
+            configuration.qualificationStartsAt,
+            configuration.qualificationEndsAt,
+            configuration.bracketId,
+            configuration.splitLabel,
+            configuration.mode,
+            configuration.eligibleDistancesMetres,
+            configuration.gateCount,
+            configuration.entryFee.amount,
+            configuration.entryFee.asset,
+            configuration.raceFormat,
+            configuration.eligibility.breeds,
+            configuration.eligibility.classes,
+            configuration.eligibility.elements,
+            configuration.eligibility.fNumbers,
+            configuration.eligibility.fNumberRanges,
+            configuration.eligibility.groups,
+            configuration.leaderboard.splitDimension,
+            configuration.leaderboard.groups,
+            configuration.qualification.minimumRaceCount,
+            target.kind === "count" ? target.value : null,
+            target.kind === "percentage" ? target.value : null,
+            configuration.qualification.rankingMetric,
+            configuration.qualification.topFinishPosition,
+            configuration.qualification.pointsTable,
+            configuration.qualification.customScoringConfiguration,
+            configuration.leaderboard.qualifyingRaceSemantics,
+            configuration.discoveryRelevance,
+            configuration.evidence.status,
+            configuration.evidence.notes,
+            configuration.evidence.sourceEvidence,
+            configuration.evidence.provenance,
+            configuration.campaignAction,
+          ]),
+        );
         await session.client.query("COMMIT");
       } catch (error) {
         await session.client.query("ROLLBACK").catch(() => undefined);

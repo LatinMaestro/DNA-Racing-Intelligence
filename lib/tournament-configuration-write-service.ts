@@ -1,19 +1,12 @@
-export type TournamentConfigurationMode = "bike" | "car" | "horse";
-export type TournamentDiscoveryRelevance = "eligible" | "priority";
+import {
+  normalizeTournamentRuleConfiguration,
+  type TournamentRuleConfiguration,
+} from "@/domain/tournament-configuration";
 
-export type TournamentConfigurationWrite = Readonly<{
-  tournamentId: string;
-  tournamentLabel: string;
-  bracketId: string;
-  splitLabel: string;
-  mode: TournamentConfigurationMode;
-  eligibleDistancesMetres: readonly number[];
-  discoveryRelevance: TournamentDiscoveryRelevance;
-  qualificationMetricLabel: string;
-  configurationVersion: string;
-  candidateSnapshotVersion: string;
-  updatedAt: string;
-}>;
+export type TournamentConfigurationWrite = Omit<
+  TournamentRuleConfiguration,
+  "configurationVersion" | "candidateSnapshotVersion" | "updatedAt"
+>;
 
 export type TournamentConfigurationWriteRepository =
   | Readonly<{ status: "not_configured" }>
@@ -25,102 +18,64 @@ export type TournamentConfigurationWriteRepository =
       ) => Promise<void>;
     }>;
 
-const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
-const MODES = new Set<TournamentConfigurationMode>(["bike", "car", "horse"]);
-const RELEVANCE = new Set<TournamentDiscoveryRelevance>([
-  "eligible",
-  "priority",
-]);
-
-function text(
-  value: FormDataEntryValue | null,
-  label: string,
-  max = 160,
-): string {
-  if (typeof value !== "string") throw new Error(`${label} is required.`);
-  const normalized = value.trim();
-  if (normalized === "" || normalized.length > max) {
-    throw new Error(`${label} is invalid.`);
-  }
-  return normalized;
-}
-
-function id(value: FormDataEntryValue | null, label: string): string {
-  const normalized = text(value, label, 100);
-  if (!ID_PATTERN.test(normalized)) throw new Error(`${label} is invalid.`);
-  return normalized;
-}
-
-function distances(value: FormDataEntryValue | null): readonly number[] {
-  const raw = text(value, "Eligible distances", 240);
-  const parsed = raw
-    .split(/[\s,]+/)
-    .filter(Boolean)
-    .map((item) => Number(item));
-  if (
-    parsed.length === 0 ||
-    parsed.length > 20 ||
-    parsed.some(
-      (distance) =>
-        !Number.isSafeInteger(distance) || distance < 100 || distance > 100000,
-    )
-  ) {
-    throw new Error("Eligible distances are invalid.");
-  }
-  return [...new Set(parsed)].sort((left, right) => left - right);
-}
-
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
   return normalized === "" ? null : normalized;
 }
 
-export function parseTournamentConfigurationFormData(
-  formData: FormData,
-  updatedAt: string,
-): TournamentConfigurationWrite {
-  const mode = text(formData.get("mode"), "Mode", 10);
-  const discoveryRelevance = text(
-    formData.get("discoveryRelevance"),
-    "Discovery relevance",
-    10,
-  );
-  if (!MODES.has(mode as TournamentConfigurationMode)) {
-    throw new Error("Mode is invalid.");
-  }
-  if (!RELEVANCE.has(discoveryRelevance as TournamentDiscoveryRelevance)) {
-    throw new Error("Discovery relevance is invalid.");
-  }
-  const parsedUpdatedAt = new Date(updatedAt);
+function configurationPayload(formData: FormData): Record<string, unknown> {
+  const value = formData.get("ruleConfiguration");
   if (
-    Number.isNaN(parsedUpdatedAt.getTime()) ||
-    parsedUpdatedAt.toISOString() !== updatedAt
+    typeof value !== "string" ||
+    value.trim() === "" ||
+    value.length > 100_000
   ) {
-    throw new Error("Tournament configuration timestamp is invalid.");
+    throw new Error("Complete Tournament rule configuration is required.");
   }
 
-  return {
-    tournamentId: id(formData.get("tournamentId"), "Tournament ID"),
-    tournamentLabel: text(formData.get("tournamentLabel"), "Tournament label"),
-    bracketId: id(formData.get("bracketId"), "Bracket ID"),
-    splitLabel: text(formData.get("splitLabel"), "Split label"),
-    mode: mode as TournamentConfigurationMode,
-    eligibleDistancesMetres: distances(formData.get("eligibleDistancesMetres")),
-    discoveryRelevance: discoveryRelevance as TournamentDiscoveryRelevance,
-    qualificationMetricLabel: text(
-      formData.get("qualificationMetricLabel"),
-      "Qualification metric label",
-    ),
-    configurationVersion: id(
-      formData.get("configurationVersion"),
-      "Configuration version",
-    ),
-    candidateSnapshotVersion: id(
-      formData.get("candidateSnapshotVersion"),
-      "Candidate snapshot version",
-    ),
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("Tournament rule configuration must be valid JSON.");
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("Tournament rule configuration must be a JSON object.");
+  }
+  const payload = parsed as Record<string, unknown>;
+  for (const serverField of [
+    "configurationVersion",
+    "candidateSnapshotVersion",
+    "updatedAt",
+  ]) {
+    if (serverField in payload) {
+      throw new Error(
+        `Tournament rule configuration cannot set server field ${serverField}.`,
+      );
+    }
+  }
+  return payload;
+}
+
+export function parseTournamentConfigurationFormData(
+  formData: FormData,
+): TournamentConfigurationWrite {
+  const normalized = normalizeTournamentRuleConfiguration({
+    ...configurationPayload(formData),
+    configurationVersion: "server-derived",
+    candidateSnapshotVersion: null,
+    updatedAt: "1970-01-01T00:00:00.000Z",
+  } as TournamentRuleConfiguration);
+  const {
+    configurationVersion,
+    candidateSnapshotVersion,
     updatedAt,
-  };
+    ...configuration
+  } = normalized;
+  void configurationVersion;
+  void candidateSnapshotVersion;
+  void updatedAt;
+  return configuration;
 }
 
 export async function saveTournamentConfiguration(

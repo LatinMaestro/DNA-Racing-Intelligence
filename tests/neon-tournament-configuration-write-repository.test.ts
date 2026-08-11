@@ -72,15 +72,60 @@ function repository(test: ReturnType<typeof harness>) {
 const configuration = {
   tournamentId: "tour-1",
   tournamentLabel: "Cup",
+  seasonLabel: "Season 12",
+  qualificationStartsAt: "2026-09-01T00:00:00.000Z",
+  qualificationEndsAt: "2026-09-07T23:59:59.000Z",
   bracketId: "bike-a",
   splitLabel: "Bike A",
   mode: "bike" as const,
   eligibleDistancesMetres: [1200, 1400],
+  gateCount: 8,
+  entryFee: { amount: "0.01", asset: "USD" },
+  raceFormat: "Paid qualification",
+  eligibility: {
+    breeds: ["Genesis"],
+    classes: ["Bike"],
+    elements: ["Fire"],
+    fNumbers: [1, 2, 3],
+    fNumberRanges: [{ minimum: 4, maximum: 6 }],
+    groups: [
+      {
+        id: "fire",
+        label: "Fire",
+        breeds: ["Genesis"],
+        classes: ["Bike"],
+        elements: ["Fire"],
+        fNumbers: [1, 2, 3],
+        fNumberRanges: [],
+      },
+    ],
+  },
+  leaderboard: {
+    splitDimension: "element",
+    groups: [{ id: "fire", label: "Fire" }],
+    qualifyingRaceSemantics: "shared" as const,
+  },
+  qualification: {
+    minimumRaceCount: 5,
+    target: { kind: "percentage" as const, value: "10" },
+    rankingMetric: "top_x_finishes" as const,
+    topFinishPosition: 3,
+    pointsTable: { "1": "10", "2": "6", "3": "3" },
+    customScoringConfiguration: {},
+  },
   discoveryRelevance: "priority" as const,
-  qualificationMetricLabel: "Qualification points",
-  configurationVersion: "config-2",
-  candidateSnapshotVersion: "snapshot-3",
-  updatedAt: "2026-08-11T10:30:00.000Z",
+  evidence: {
+    status: "confirmed" as const,
+    notes: "Confirmed rules.",
+    sourceEvidence: "Rules screenshot.",
+    provenance: { source: "owner_entry" },
+  },
+  campaignAction: {
+    kind: "configured" as const,
+    action: "Review candidates",
+    ownerAcknowledgedAt: "2026-08-12T00:00:00.000Z",
+    evidence: "Owner acknowledgement.",
+  },
 };
 
 describe("Neon Tournament configuration write repository", () => {
@@ -94,15 +139,15 @@ describe("Neon Tournament configuration write repository", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it("writes only after least-privilege owner verification", async () => {
+  it("writes the full rule model only after least-privilege owner verification", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
       [
         {
-          tournament_id: "tour-1",
-          bracket_id: "bike-a",
-          updated_at: "2026-08-11T10:30:00.000Z",
+          configuration_version: "cfg-11111111111111111111111111111111",
+          candidate_snapshot_version: "snapshot-unbound",
+          updated_at: "2026-08-12T00:30:00.000Z",
         },
       ],
     ]);
@@ -114,7 +159,12 @@ describe("Neon Tournament configuration write repository", () => {
     expect(test.events[2]).toContain(
       "'dna.tournament_configuration'::regclass",
     );
-    expect(test.events[3]).toContain("dna.upsert_tournament_configuration");
+    expect(test.events[3]).toContain(
+      "dna.upsert_complete_tournament_configuration",
+    );
+    expect(test.events[3]).toContain('"Season 12"');
+    expect(test.events[3]).toContain('"top_x_finishes"');
+    expect(test.events[3]).not.toContain("client-version");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
@@ -130,10 +180,29 @@ describe("Neon Tournament configuration write repository", () => {
       ).rejects.toThrow(/owner scope denied|least-privilege owner isolation/);
       expect(
         test.events.some((event) =>
-          event.includes("dna.upsert_tournament_configuration"),
+          event.includes("dna.upsert_complete_tournament_configuration"),
         ),
       ).toBe(false);
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
     }
+  });
+
+  it("rolls back invalid server binding evidence", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [
+        {
+          configuration_version: "client-version",
+          candidate_snapshot_version: "snapshot-unbound",
+          updated_at: "2026-08-12T00:30:00.000Z",
+        },
+      ],
+    ]);
+
+    await expect(
+      repository(test).saveByOwner(authenticatedOwnerId, configuration),
+    ).rejects.toThrow("server configuration version is invalid");
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 });
