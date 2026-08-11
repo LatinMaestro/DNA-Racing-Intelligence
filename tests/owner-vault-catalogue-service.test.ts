@@ -39,9 +39,9 @@ describe("owner Vault catalogue service", () => {
       sex: "female",
       fNumber: 2,
     });
-    expect(() => normalizeOwnerVaultCatalogueFilters({ element: "Air" })).toThrow(
-      "Vault element filter is invalid.",
-    );
+    expect(() =>
+      normalizeOwnerVaultCatalogueFilters({ element: "Air" }),
+    ).toThrow("Vault element filter is invalid.");
   });
 
   it("does not query persistence until the owner identity is connected", async () => {
