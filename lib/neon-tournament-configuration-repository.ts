@@ -85,10 +85,7 @@ function verifyOwner(
     text(row.authenticated_owner_id, "authenticated owner") !==
       authenticatedOwnerId ||
     !bool(row.tournament_row_security_enabled, "Tournament RLS") ||
-    !bool(
-      row.tournament_force_row_security_enabled,
-      "Tournament forced RLS",
-    ) ||
+    !bool(row.tournament_force_row_security_enabled, "Tournament forced RLS") ||
     !bool(row.vault_row_security_enabled, "Vault RLS") ||
     !bool(row.vault_force_row_security_enabled, "Vault forced RLS") ||
     text(row.session_user_name, "session user") !== runtimeRole ||
