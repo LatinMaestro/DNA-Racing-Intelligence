@@ -138,6 +138,7 @@ describe("Neon Tournament configuration repository", () => {
           core_class: "Genesis",
           element: "Fire",
           f_number: 3,
+          core_details_active: true,
           me_eligible: false,
         },
         {
@@ -145,6 +146,7 @@ describe("Neon Tournament configuration repository", () => {
           core_class: "Morphed",
           element: "Water",
           f_number: 2,
+          core_details_active: true,
           me_eligible: true,
         },
       ],
@@ -276,6 +278,7 @@ describe("Neon Tournament configuration repository", () => {
           core_class: "Genesis",
           element: "Fire",
           f_number: 3,
+          core_details_active: true,
           me_eligible: false,
         },
       ],
