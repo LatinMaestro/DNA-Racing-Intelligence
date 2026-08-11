@@ -11,6 +11,7 @@ import {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_RUNTIME_ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/;
+const SAFE_CORE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,255}$/;
 
 const SET_OWNER_SCOPE_SQL = `
   SELECT set_config('app.owner_id', $1, true) AS owner_scope
@@ -50,7 +51,7 @@ const VERIFY_OWNER_ISOLATION_SQL = `
 
 const LIST_PROFILES_SQL = `
   SELECT *
-  FROM dna.list_core_performance_profiles($1::uuid, NULL::text, $2::integer)
+  FROM dna.list_core_performance_profiles($1::uuid, $2::text, $3::integer)
 `;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
@@ -129,6 +130,15 @@ function runtimeRole(value: string): string {
 function normalized(value: string | undefined): string | null {
   const result = value?.trim() ?? "";
   return result === "" ? null : result;
+}
+
+function coreId(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const normalized = value.trim();
+  if (!SAFE_CORE_ID_PATTERN.test(normalized)) {
+    throw new Error("coreId is invalid.");
+  }
+  return normalized;
 }
 
 function verifyOwnerIsolation(
@@ -243,11 +253,12 @@ export function createNeonCorePerformanceProfileRepository(
 
   return {
     status: "ready",
-    async listProfilesByOwner(authenticatedOwnerId) {
+    async listProfilesByOwner(authenticatedOwnerId, sourceCoreId = null) {
       const clerkOwner = authenticatedOwnerId.trim();
       if (clerkOwner === "") {
         throw new Error("authenticated owner is required.");
       }
+      const selectedCoreId = coreId(sourceCoreId);
       const session = await sessionFactory(url);
       let transactionStarted = false;
       try {
@@ -269,7 +280,8 @@ export function createNeonCorePerformanceProfileRepository(
         );
         const result = await session.client.query(LIST_PROFILES_SQL, [
           owner,
-          5_000,
+          selectedCoreId,
+          selectedCoreId === null ? 5_000 : 250,
         ]);
         const profiles = result.rows.map(profile);
         const lastImportedAt =
