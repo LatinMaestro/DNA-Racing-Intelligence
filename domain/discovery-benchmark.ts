@@ -1,4 +1,7 @@
-import type { DiscoveryProbeCandidate, ProbeMode } from "./discovery-probe-plan";
+import type {
+  DiscoveryProbeCandidate,
+  ProbeMode,
+} from "./discovery-probe-plan";
 
 export type DiscoveryExactDistanceBenchmarkEvidence = Readonly<{
   mode: ProbeMode;
@@ -67,7 +70,10 @@ function normalizeBenchmark(
       value.dataCurrentThrough,
       "Benchmark data current through",
     ),
-    raceEntryCount: positiveInteger(value.raceEntryCount, "Benchmark race entries"),
+    raceEntryCount: positiveInteger(
+      value.raceEntryCount,
+      "Benchmark race entries",
+    ),
     winningEntryCount: positiveInteger(
       value.winningEntryCount,
       "Benchmark winning entries",
@@ -100,7 +106,10 @@ function normalizeBenchmark(
       value.topThreeP75Milliseconds,
       "Benchmark top-three p75",
     ),
-    refreshedAt: canonicalTimestamp(value.refreshedAt, "Benchmark refreshed at"),
+    refreshedAt: canonicalTimestamp(
+      value.refreshedAt,
+      "Benchmark refreshed at",
+    ),
   };
 
   if (
@@ -108,7 +117,8 @@ function normalizeBenchmark(
     normalized.topThreeEntryCount > normalized.raceEntryCount ||
     normalized.winningP25Milliseconds > normalized.winningMedianMilliseconds ||
     normalized.winningMedianMilliseconds > normalized.winningP75Milliseconds ||
-    normalized.topThreeP25Milliseconds > normalized.topThreeMedianMilliseconds ||
+    normalized.topThreeP25Milliseconds >
+      normalized.topThreeMedianMilliseconds ||
     normalized.topThreeMedianMilliseconds > normalized.topThreeP75Milliseconds
   ) {
     throw new Error("Discovery benchmark evidence is inconsistent.");
