@@ -129,6 +129,13 @@ export function TournamentWorkspace({
                       {bracket.splitLabel}
                     </h3>
                     <p className="mt-2 text-xs text-[var(--muted)]">
+                      {label(bracket.mode)} ·{" "}
+                      {bracket.eligibleDistancesMetres
+                        .map((distance) => `${distance.toLocaleString("en-AU")} m`)
+                        .join(" · ")}{" "}
+                      · {label(bracket.discoveryRelevance)} Discovery relevance
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--muted)]">
                       Configuration {bracket.configurationVersion} · Candidate
                       snapshot {bracket.candidateSnapshotVersion}
                     </p>
