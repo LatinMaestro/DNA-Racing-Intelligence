@@ -29,11 +29,14 @@ describe("Discovery hypothesis governance", () => {
     "half_sibling",
     "offspring",
     "wider_lineage",
-  ] as const)("does not impose the population threshold on %s evidence", (relationship) => {
-    expect(
-      discoveryHypothesisIsEligible({ relationship, supportingRaceCount: 1 }),
-    ).toBe(true);
-  });
+  ] as const)(
+    "does not impose the population threshold on %s evidence",
+    (relationship) => {
+      expect(
+        discoveryHypothesisIsEligible({ relationship, supportingRaceCount: 1 }),
+      ).toBe(true);
+    },
+  );
 
   it("fails closed on malformed supporting counts", () => {
     for (const supportingRaceCount of [-1, 1.5, Number.NaN]) {
