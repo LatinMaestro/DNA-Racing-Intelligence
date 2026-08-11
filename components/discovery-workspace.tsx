@@ -227,7 +227,9 @@ export function DiscoveryWorkspace({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Direct time evidence</dt>
+                    <dt className="text-[var(--muted)]">
+                      Direct time evidence
+                    </dt>
                     <dd className="mt-1 font-semibold">
                       {directTimeSummary(candidate)}
                     </dd>
