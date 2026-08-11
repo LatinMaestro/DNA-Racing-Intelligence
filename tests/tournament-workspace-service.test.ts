@@ -116,6 +116,9 @@ describe("Tournament workspace service", () => {
         {
           configurationVersion: "config-v3",
           candidateSnapshotVersion: "snapshot-v9",
+          mode: "horse",
+          eligibleDistancesMetres: [1_200, 1_600],
+          discoveryRelevance: "eligible",
           leaderboardGroups: [
             {
               leaderboardGroupLabel: "Synthetic Group",
