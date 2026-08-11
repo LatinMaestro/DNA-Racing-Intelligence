@@ -98,7 +98,7 @@ describe("Discovery decision guidance", () => {
     (overrides, expectedGuidance, expectedReason) => {
       expect(guidance(candidate(overrides))).toEqual(
         expect.objectContaining({
-          guidance: expectedGuidance satisfies DiscoveryDecisionGuidance,
+          decisionGuidance: expectedGuidance satisfies DiscoveryDecisionGuidance,
           decisionReason: expectedReason satisfies DiscoveryDecisionReason,
           automaticEntryAllowed: false,
           automaticStopAllowed: false,
@@ -117,10 +117,10 @@ describe("Discovery decision guidance", () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        guidance: "continue_single_confirmation",
+        decisionGuidance: "continue_single_confirmation",
         decisionReason: "small_sample_needs_confirmation",
-        recommendedInitialProbeSize: 1,
-        actionable: true,
+        recommendedDecisionProbeSize: 1,
+        decisionActionable: true,
         automaticStopAllowed: false,
       }),
     );
@@ -142,10 +142,10 @@ describe("Discovery decision guidance", () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        guidance: "pause_conflicting_evidence",
+        decisionGuidance: "pause_conflicting_evidence",
         decisionReason: "weak_times_but_positive_star_signal",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
         automaticStopAllowed: false,
       }),
     );
@@ -154,7 +154,7 @@ describe("Discovery decision guidance", () => {
   it("does not stop when the exact-distance benchmark is unavailable", () => {
     expect(guidance(candidate(), [])).toEqual(
       expect.objectContaining({
-        guidance: "continue_targeted_probe",
+        decisionGuidance: "continue_targeted_probe",
         decisionReason: "benchmark_not_available",
         automaticStopAllowed: false,
       }),
@@ -170,10 +170,10 @@ describe("Discovery decision guidance", () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        guidance: "defer_stale_or_unresolved",
+        decisionGuidance: "defer_stale_or_unresolved",
         decisionReason: "evidence_stale_or_unresolved",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
       }),
     );
 
@@ -185,10 +185,10 @@ describe("Discovery decision guidance", () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        guidance: "review_minimum_sample",
+        decisionGuidance: "review_minimum_sample",
         decisionReason: "minimum_sample_reached",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
       }),
     );
   });
