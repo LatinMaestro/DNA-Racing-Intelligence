@@ -43,8 +43,8 @@ export function OwnerVaultStatus({
         </div>
       </dl>
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        This private registry is the current-state authority. It is maintained in
-        the website and is not inferred from historical races or a Vault CSV.
+        This private registry is the current-state authority. It is maintained
+        in the website and is not inferred from historical races or a Vault CSV.
       </p>
       <Link
         className="mt-4 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold"
