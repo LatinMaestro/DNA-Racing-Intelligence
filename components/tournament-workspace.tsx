@@ -141,6 +141,17 @@ export function TournamentWorkspace({
                       Configuration {bracket.configurationVersion} · Candidate
                       snapshot {bracket.candidateSnapshotVersion}
                     </p>
+                    {bracket.configurationAuthority ? (
+                      <p className="mt-2 text-xs text-[var(--muted)]">
+                        Rule authority ·{" "}
+                        {label(bracket.configurationAuthority.status)}
+                        {bracket.configurationAuthority.reasons.length > 0
+                          ? ` · ${bracket.configurationAuthority.reasons
+                              .map(label)
+                              .join(" · ")}`
+                          : ""}
+                      </p>
+                    ) : null}
                   </div>
                   <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
                     {bracket.qualificationMetricLabel}

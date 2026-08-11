@@ -3,6 +3,24 @@ import type { TournamentWorkspaceConnectionStatus } from "@/lib/tournament-works
 
 type SaveAction = (formData: FormData) => Promise<void>;
 
+function editableConfiguration(
+  configuration: NonNullable<
+    TournamentCandidateRankingResult["ruleConfiguration"]
+  >,
+): string {
+  const serverDerivedFields = new Set([
+    "configurationVersion",
+    "candidateSnapshotVersion",
+    "updatedAt",
+  ]);
+  const editable = Object.fromEntries(
+    Object.entries(configuration).filter(
+      ([field]) => !serverDerivedFields.has(field),
+    ),
+  );
+  return JSON.stringify(editable, null, 2);
+}
+
 const starterConfiguration = JSON.stringify(
   {
     tournamentId: "spring-cup-2026",
@@ -60,6 +78,9 @@ export function TournamentConfigurationForm({
   connectionStatus: TournamentWorkspaceConnectionStatus;
   saveAction: SaveAction;
 }>) {
+  const existingConfiguration = brackets.find(
+    (bracket) => bracket.ruleConfiguration !== undefined,
+  )?.ruleConfiguration;
   const hasExistingConfiguration = brackets.length > 0;
   const disabled = connectionStatus !== "read_model_connected";
 
@@ -94,7 +115,11 @@ export function TournamentConfigurationForm({
               aria-describedby="tournament-configuration-guidance"
               className="mt-2 min-h-[34rem] w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm"
               defaultValue={
-                hasExistingConfiguration ? "" : starterConfiguration
+                existingConfiguration === undefined
+                  ? hasExistingConfiguration
+                    ? ""
+                    : starterConfiguration
+                  : editableConfiguration(existingConfiguration)
               }
               name="ruleConfiguration"
               required
@@ -105,9 +130,11 @@ export function TournamentConfigurationForm({
             className="mt-3 text-sm leading-6 text-[var(--muted)]"
             id="tournament-configuration-guidance"
           >
-            {hasExistingConfiguration
-              ? "A configuration already exists. Paste its complete reviewed rule payload before replacing it; partial updates are rejected."
-              : "The starter is deliberately review-only. Replace every Unspecified or uncertain rule and add source evidence before relying on candidate output."}
+            {existingConfiguration !== undefined
+              ? "The complete stored rule is prefilled. Review the whole payload before replacing it; partial updates and server-derived version fields are rejected."
+              : hasExistingConfiguration
+                ? "A legacy configuration exists without a canonical rule payload. Paste its complete reviewed rule before replacing it; partial updates are rejected."
+                : "The starter is deliberately review-only. Replace every Unspecified or uncertain rule and add source evidence before relying on candidate output."}
           </p>
           <button
             className="mt-6 rounded-lg border border-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--muted)]"

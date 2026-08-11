@@ -6,6 +6,56 @@ import {
   type TournamentCandidateInput,
   type TournamentCandidateRankingInput,
 } from "@/domain/tournament-candidate-ranking";
+import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
+
+function canonicalRule(): TournamentRuleConfiguration {
+  return {
+    tournamentId: "season-12",
+    tournamentLabel: "Season 12",
+    seasonLabel: "Season 12",
+    qualificationStartsAt: "2026-08-01T00:00:00.000Z",
+    qualificationEndsAt: "2026-08-31T00:00:00.000Z",
+    bracketId: "horse-sprint",
+    splitLabel: "Horse Sprint Split",
+    mode: "horse",
+    eligibleDistancesMetres: [1_200, 1_600],
+    gateCount: 4,
+    entryFee: { amount: "2.5", asset: "ETH" },
+    raceFormat: "Four gates; best two results count",
+    eligibility: {
+      breeds: [],
+      classes: [],
+      elements: ["Fire"],
+      fNumbers: [],
+      fNumberRanges: [],
+      groups: [],
+    },
+    leaderboard: {
+      splitDimension: "element",
+      groups: [{ id: "fire", label: "Fire Group" }],
+      qualifyingRaceSemantics: "separate",
+    },
+    qualification: {
+      minimumRaceCount: 10,
+      target: { kind: "count", value: 5 },
+      rankingMetric: "points",
+      topFinishPosition: null,
+      pointsTable: { "1": "10" },
+      customScoringConfiguration: {},
+    },
+    discoveryRelevance: "priority",
+    evidence: {
+      status: "confirmed",
+      notes: "",
+      sourceEvidence: "Owner-reviewed rules",
+      provenance: { source: "owner" },
+    },
+    campaignAction: null,
+    configurationVersion: "config-v3",
+    candidateSnapshotVersion: "snapshot-v9",
+    updatedAt: "2026-07-31T12:00:00.000Z",
+  };
+}
 
 function candidate(
   coreId: string,
@@ -105,6 +155,36 @@ describe("tournament candidate ranking", () => {
       starUsedForOrdering: false,
       automaticEntryAllowed: false,
     });
+  });
+
+  it("binds canonical rule authority and rejects a drifted projection", () => {
+    const result = rankTournamentCandidates(
+      input([candidate("core", 2, { metricEvidenceLabel: "points" })], {
+        qualificationMetricLabel: "points",
+        ruleConfiguration: canonicalRule(),
+      }),
+    );
+    expect(result.configurationAuthority).toEqual({
+      status: "authoritative",
+      reasons: [],
+      actionableRecommendationAllowed: true,
+    });
+    expect(result.ruleConfiguration?.entryFee).toEqual({
+      amount: "2.5",
+      asset: "ETH",
+    });
+
+    expect(() =>
+      rankTournamentCandidates(
+        input([candidate("core", 2, { metricEvidenceLabel: "points" })], {
+          qualificationMetricLabel: "points",
+          ruleConfiguration: {
+            ...canonicalRule(),
+            configurationVersion: "config-drifted",
+          },
+        }),
+      ),
+    ).toThrow(/does not match the canonical rule configuration/);
   });
 
   it("matches Discovery relevance by explicit mode and exact distance", () => {
