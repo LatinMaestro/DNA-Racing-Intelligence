@@ -82,9 +82,10 @@ VALUES (
 );
 
 INSERT INTO dna.owner_vault_core (
-  owner_id, core_id, in_my_vault, me_eligible, version, created_at, updated_at
+  id, owner_id, core_id, in_my_vault, me_eligible, version, created_at, updated_at
 )
 VALUES (
+  '15000000-0000-4000-8000-000000000701',
   '15000000-0000-4000-8000-000000000001',
   '15000000-0000-4000-8000-000000000601',
   true,
