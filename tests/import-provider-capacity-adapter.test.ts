@@ -90,6 +90,34 @@ describe("import provider capacity adapter", () => {
     });
   });
 
+  it("accepts the current nine-file layout and normalizes repeated Race Merge families", async () => {
+    const ready = readyGate();
+    await expect(
+      ready.gate.assertWithinApprovedCapacity({
+        ownerId: OWNER_ID,
+        fileCount: 9,
+        totalByteLength: 392_487_223,
+        sourceFamilies: [
+          "race_merge",
+          "race_merge",
+          "race_merge",
+          "race_merge",
+          "race_merge",
+          "race_merge",
+          "race_merge",
+          "core_details",
+          "current_arena",
+        ],
+      }),
+    ).resolves.toBeUndefined();
+    expect(ready.measureUploadProjection).toHaveBeenCalledWith({
+      ownerId: OWNER_ID,
+      fileCount: 9,
+      totalByteLength: 392_487_223,
+      sourceFamilies: ["race_merge", "core_details", "current_arena"],
+    });
+  });
+
   it("rechecks capacity from the persisted preview before activation", async () => {
     const ready = readyGate();
     await expect(
