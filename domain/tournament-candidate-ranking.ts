@@ -262,8 +262,7 @@ export function rankTournamentCandidates(
       ruleConfiguration.discoveryRelevance !==
         tournamentConfiguration.discoveryRelevance ||
       ruleConfiguration.configurationVersion !== configurationVersion ||
-      ruleConfiguration.candidateSnapshotVersion !==
-        candidateSnapshotVersion ||
+      ruleConfiguration.candidateSnapshotVersion !== candidateSnapshotVersion ||
       ruleConfiguration.qualification.rankingMetric !==
         qualificationMetricLabel ||
       ruleConfiguration.eligibleDistancesMetres.length !==
