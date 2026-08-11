@@ -197,7 +197,7 @@ BEGIN
     p_expected_version + 1,
     p_requested_at
   )
-  ON CONFLICT (owner_id, core_id) DO UPDATE
+  ON CONFLICT ON CONSTRAINT owner_vault_core_owner_id_core_id_key DO UPDATE
   SET
     in_my_vault = EXCLUDED.in_my_vault,
     me_eligible = EXCLUDED.me_eligible,
