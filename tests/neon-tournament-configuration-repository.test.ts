@@ -31,7 +31,9 @@ function harness(sequence: readonly (readonly unknown[] | Error)[]) {
   let index = 0;
   const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
     const normalized = statement.replace(/\s+/g, " ").trim();
-    events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
+    events.push(
+      values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+    );
     if (["BEGIN READ ONLY", "COMMIT", "ROLLBACK"].includes(normalized)) {
       return { rows: [] };
     }
@@ -113,7 +115,9 @@ describe("Neon Tournament configuration repository", () => {
       lastImportedAt: null,
     });
     expect(test.events[0]).toBe("BEGIN READ ONLY");
-    expect(test.events[2]).toContain("'dna.tournament_configuration'::regclass");
+    expect(test.events[2]).toContain(
+      "'dna.tournament_configuration'::regclass",
+    );
     expect(test.events[3]).toContain("dna.list_tournament_configurations");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
