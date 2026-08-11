@@ -12,10 +12,12 @@ import {
   type DiscoveryProbeCandidateInput,
 } from "@/domain/discovery-probe-plan";
 import { deriveFreshness } from "@/domain/freshness";
+import { tournamentDiscoveryRelevanceForExactDistance } from "@/domain/tournament-candidate-ranking";
 import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
 import type { DiscoveryBenchmarkRepository } from "./neon-discovery-benchmark-repository";
 import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
+import type { TournamentCandidateRepository } from "./tournament-workspace-service";
 
 export type DiscoveryProbeRepository =
   | Readonly<{ status: "not_configured" }>
@@ -50,6 +52,7 @@ export function createDiscoveryProbeRepository(
     performanceRepository: CorePerformanceProfileRepository;
     lineageRepository: DiscoveryLineageHypothesisRepository;
     benchmarkRepository: DiscoveryBenchmarkRepository;
+    tournamentRepository: TournamentCandidateRepository;
   }>,
 ): DiscoveryProbeRepository {
   if (
@@ -65,27 +68,44 @@ export function createDiscoveryProbeRepository(
   const performanceRepository = input.performanceRepository;
   const lineageRepository = input.lineageRepository;
   const benchmarkRepository = input.benchmarkRepository;
+  const tournamentRepository = input.tournamentRepository;
   return {
     status: "ready",
     async listCandidateEvidenceByOwner(ownerId) {
-      const [ownedCores, performance, lineageHypotheses, benchmarks] =
-        await Promise.all([
-          vaultRepository.listCoresByOwner(ownerId, {
-            scope: "vault",
-            query: null,
-            element: null,
-            coreClass: null,
-            sex: null,
-            fNumber: null,
-          }),
-          performanceRepository.listProfilesByOwner(ownerId),
-          lineageRepository.listHypothesesByOwner(ownerId),
-          benchmarkRepository.listBenchmarksByOwner(ownerId),
-        ]);
+      const [
+        ownedCores,
+        performance,
+        lineageHypotheses,
+        benchmarks,
+        tournamentEvidence,
+      ] = await Promise.all([
+        vaultRepository.listCoresByOwner(ownerId, {
+          scope: "vault",
+          query: null,
+          element: null,
+          coreClass: null,
+          sex: null,
+          fNumber: null,
+        }),
+        performanceRepository.listProfilesByOwner(ownerId),
+        lineageRepository.listHypothesesByOwner(ownerId),
+        benchmarkRepository.listBenchmarksByOwner(ownerId),
+        tournamentRepository.status === "ready"
+          ? tournamentRepository.listCandidateEvidenceByOwner(ownerId)
+          : Promise.resolve({ brackets: [], lastImportedAt: null }),
+      ]);
       const ownedById = new Map(
         ownedCores
           .filter((core) => core.inMyVault)
           .map((core) => [core.sourceCoreId, core] as const),
+      );
+
+      const tournamentConfigurations = tournamentEvidence.brackets.map(
+        ({ mode, eligibleDistancesMetres, discoveryRelevance }) => ({
+          mode,
+          eligibleDistancesMetres,
+          discoveryRelevance,
+        }),
       );
 
       const directCandidates = performance.profiles
@@ -124,7 +144,11 @@ export function createDiscoveryProbeRepository(
             lineageRelationship: null,
             lineageResolved: true,
             lineageRaceCount: 0,
-            tournamentRelevance: "none",
+            tournamentRelevance: tournamentDiscoveryRelevanceForExactDistance(
+              tournamentConfigurations,
+              profile.mode,
+              profile.distance,
+            ),
             maidenState: core.meEligible ? "eligible" : "not_eligible",
             freshness: profile.freshness,
             dataCurrentThrough: profile.dataCurrentThrough,
@@ -149,7 +173,11 @@ export function createDiscoveryProbeRepository(
           lineageRelationship: hypothesis.lineageRelationship,
           lineageResolved: true,
           lineageRaceCount: hypothesis.lineageRaceCount,
-          tournamentRelevance: "none",
+          tournamentRelevance: tournamentDiscoveryRelevanceForExactDistance(
+            tournamentConfigurations,
+            hypothesis.mode,
+            hypothesis.distanceMetres,
+          ),
           maidenState: hypothesis.meEligible ? "eligible" : "not_eligible",
           freshness: "stale",
           dataCurrentThrough: hypothesis.dataCurrentThrough,

@@ -47,7 +47,7 @@ describe("Discovery workspace", () => {
             lineageRelationship: null,
             lineageResolved: true,
             lineageRaceCount: 0,
-            tournamentRelevance: "none",
+            tournamentRelevance: "priority",
             maidenState: "eligible",
             freshness: "current",
             dataCurrentThrough: "2026-07-20T00:00:00.000Z",
@@ -105,6 +105,8 @@ describe("Discovery workspace", () => {
     expect(html).toContain("1/3 (33%)");
     expect(html).toContain("descriptive historical distributions");
     expect(html).toContain("field-relative support, not an absolute rating");
+    expect(html).toContain("Priority");
+    expect(html).toContain("Tournament relevance");
     expect(html).toContain("Maiden Commitment Review Required");
     expect(html).toContain("Owned-core Discovery planner connected");
   });

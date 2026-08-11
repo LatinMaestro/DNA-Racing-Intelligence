@@ -257,6 +257,14 @@ export function DiscoveryWorkspace({
                     </dd>
                   </div>
                   <div>
+                    <dt className="text-[var(--muted)]">
+                      Tournament relevance
+                    </dt>
+                    <dd className="mt-1 font-semibold">
+                      {label(candidate.tournamentRelevance)}
+                    </dd>
+                  </div>
+                  <div>
                     <dt className="text-[var(--muted)]">Maiden state</dt>
                     <dd className="mt-1 font-semibold">
                       {label(candidate.maidenState)}

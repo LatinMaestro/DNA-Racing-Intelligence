@@ -8,6 +8,7 @@ import {
   createDiscoveryProbeRepository,
   loadDiscoveryWorkspacePageState,
 } from "@/lib/discovery-workspace-service";
+import { unavailableTournamentCandidateRepository } from "@/lib/tournament-workspace-service";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function DiscoveryPage() {
         ),
       benchmarkRepository:
         neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
+      tournamentRepository: unavailableTournamentCandidateRepository,
     }),
     now: new Date(),
   });

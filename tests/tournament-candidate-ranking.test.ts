@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   rankTournamentCandidates,
+  tournamentDiscoveryRelevanceForExactDistance,
   type TournamentCandidateInput,
   type TournamentCandidateRankingInput,
 } from "@/domain/tournament-candidate-ranking";
@@ -104,6 +105,52 @@ describe("tournament candidate ranking", () => {
       starUsedForOrdering: false,
       automaticEntryAllowed: false,
     });
+  });
+
+  it("matches Discovery relevance by explicit mode and exact distance", () => {
+    const configurations = [
+      input([], {
+        mode: "bike",
+        eligibleDistancesMetres: [1_200, 1_400],
+        discoveryRelevance: "eligible",
+      }),
+      input([], {
+        tournamentId: "priority-cup",
+        bracketId: "priority-split",
+        mode: "bike",
+        eligibleDistancesMetres: [1_400],
+        discoveryRelevance: "priority",
+      }),
+      input([], {
+        tournamentId: "horse-cup",
+        bracketId: "horse-split",
+        mode: "horse",
+        eligibleDistancesMetres: [1_600],
+        discoveryRelevance: "priority",
+      }),
+    ];
+
+    expect(
+      tournamentDiscoveryRelevanceForExactDistance(
+        configurations,
+        "bike",
+        1_200,
+      ),
+    ).toBe("eligible");
+    expect(
+      tournamentDiscoveryRelevanceForExactDistance(
+        configurations,
+        "bike",
+        1_400,
+      ),
+    ).toBe("priority");
+    expect(
+      tournamentDiscoveryRelevanceForExactDistance(
+        configurations,
+        "bike",
+        1_600,
+      ),
+    ).toBe("none");
   });
 
   it("rejects invalid or ambiguous Discovery configuration", () => {
