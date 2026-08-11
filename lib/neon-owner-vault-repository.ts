@@ -1,10 +1,10 @@
 import type {
+  OwnerVaultMutationFailureStatus,
   OwnerVaultMutationRepository,
   OwnerVaultMutationResult,
 } from "./owner-vault-action-service";
 import {
   createDefaultNeonImportPersistenceSession,
-  type NeonImportPersistenceClient,
   type NeonImportPersistenceSessionFactory,
 } from "./neon-import-persistence-driver";
 
@@ -189,7 +189,9 @@ function verifyOwnerIsolation(
   }
 }
 
-function mappedDatabaseFailure(error: unknown): OwnerVaultMutationResult["status"] | null {
+function mappedDatabaseFailure(
+  error: unknown,
+): OwnerVaultMutationFailureStatus | null {
   if (!(error instanceof Error)) return null;
   if (error.message.includes("Vault state changed; refresh before retrying")) {
     return "conflict";
@@ -206,35 +208,18 @@ function mappedDatabaseFailure(error: unknown): OwnerVaultMutationResult["status
   return null;
 }
 
-function placeholderResult(
-  status: Extract<
-    OwnerVaultMutationResult["status"],
-    "conflict" | "core_unavailable" | "idempotency_conflict" | "invalid_state"
-  >,
-  input: Readonly<{
-    sourceCoreId: string;
-    inMyVault: boolean;
-    meEligible: boolean;
-    expectedVersion: number;
-    requestedAt: string;
-  }>,
-): OwnerVaultMutationResult {
-  return {
-    status,
-    sourceCoreId: input.sourceCoreId,
-    inMyVault: input.inMyVault,
-    meEligible: input.meEligible,
-    version: Math.max(1, input.expectedVersion),
-    updatedAt: input.requestedAt,
-  };
+function failure(status: OwnerVaultMutationFailureStatus): OwnerVaultMutationResult {
+  return { status };
 }
 
-export function createNeonOwnerVaultMutationRepository(input: Readonly<{
-  databaseUrl: string;
-  databaseOwnerId: string;
-  runtimeRole: string;
-  sessionFactory?: NeonImportPersistenceSessionFactory;
-}>): OwnerVaultMutationRepository {
+export function createNeonOwnerVaultMutationRepository(
+  input: Readonly<{
+    databaseUrl: string;
+    databaseOwnerId: string;
+    runtimeRole: string;
+    sessionFactory?: NeonImportPersistenceSessionFactory;
+  }>,
+): OwnerVaultMutationRepository {
   const databaseUrl = input.databaseUrl.trim();
   if (databaseUrl === "") throw new Error("databaseUrl is required");
   const databaseOwnerId = requireOwnerId(input.databaseOwnerId);
@@ -268,14 +253,17 @@ export function createNeonOwnerVaultMutationRepository(input: Readonly<{
         if (coreResult.rows.length === 0) {
           await session.client.query("COMMIT");
           transactionStarted = false;
-          return placeholderResult("core_unavailable", mutation);
+          return failure("core_unavailable");
         }
         if (coreResult.rows.length !== 1) {
           throw new Error("Owner Vault durable Core ID is ambiguous.");
         }
         const core = record(coreResult.rows[0], "Vault core");
         const coreId = string(core.core_id, "core_id");
-        if (string(core.source_core_id, "source_core_id") !== mutation.sourceCoreId) {
+        if (
+          string(core.source_core_id, "source_core_id") !==
+          mutation.sourceCoreId
+        ) {
           throw new Error("Owner Vault durable Core ID mismatch.");
         }
 
@@ -314,7 +302,7 @@ export function createNeonOwnerVaultMutationRepository(input: Readonly<{
           if (mapped !== null) {
             await session.client.query("ROLLBACK");
             transactionStarted = false;
-            return placeholderResult(mapped, mutation);
+            return failure(mapped);
           }
           throw error;
         }
