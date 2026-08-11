@@ -5,9 +5,7 @@ import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-se
 
 export const dynamic = "force-dynamic";
 
-type VaultSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+type VaultSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function single(
   params: Record<string, string | string[] | undefined>,
