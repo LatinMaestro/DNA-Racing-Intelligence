@@ -36,20 +36,24 @@ function ownerEvidence(overrides: Record<string, unknown> = {}) {
 function queryHarness(sequence: readonly (readonly unknown[] | Error)[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
-    const normalized = statement.replace(/\s+/g, " ").trim();
-    events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (
-      ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
-        normalized,
-      )
-    ) {
-      return { rows: [] };
-    }
-    const next = sequence[index++] ?? [];
-    if (next instanceof Error) throw next;
-    return { rows: next };
-  });
+  const query = vi.fn(
+    async (statement: string, values?: readonly unknown[]) => {
+      const normalized = statement.replace(/\s+/g, " ").trim();
+      events.push(
+        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+      );
+      if (
+        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+          normalized,
+        )
+      ) {
+        return { rows: [] };
+      }
+      const next = sequence[index++] ?? [];
+      if (next instanceof Error) throw next;
+      return { rows: next };
+    },
+  );
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => {
     events.push("close");
