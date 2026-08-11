@@ -4,6 +4,8 @@ import {
   type DiscoveryProbeCandidateInput,
 } from "@/domain/discovery-probe-plan";
 import { deriveFreshness } from "@/domain/freshness";
+import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 
 export type DiscoveryProbeRepository =
   | Readonly<{ status: "not_configured" }>
@@ -30,6 +32,71 @@ export type DiscoveryWorkspacePageState = Readonly<{
 
 export const unavailableDiscoveryProbeRepository: DiscoveryProbeRepository =
   Object.freeze({ status: "not_configured" });
+
+export function createDiscoveryProbeRepository(
+  input: Readonly<{
+    vaultRepository: OwnerVaultCatalogueRepository;
+    performanceRepository: CorePerformanceProfileRepository;
+  }>,
+): DiscoveryProbeRepository {
+  if (
+    input.vaultRepository.status !== "ready" ||
+    input.performanceRepository.status !== "ready"
+  ) {
+    return unavailableDiscoveryProbeRepository;
+  }
+
+  const vaultRepository = input.vaultRepository;
+  const performanceRepository = input.performanceRepository;
+  return {
+    status: "ready",
+    async listCandidateEvidenceByOwner(ownerId) {
+      const [ownedCores, performance] = await Promise.all([
+        vaultRepository.listCoresByOwner(ownerId, {
+          scope: "vault",
+          query: null,
+          element: null,
+          coreClass: null,
+          sex: null,
+          fNumber: null,
+        }),
+        performanceRepository.listProfilesByOwner(ownerId),
+      ]);
+      const ownedById = new Map(
+        ownedCores
+          .filter((core) => core.inMyVault)
+          .map((core) => [core.sourceCoreId, core] as const),
+      );
+
+      const candidates = performance.profiles
+        .filter(
+          (profile) => ownedById.has(profile.coreId) && profile.raceCount < 10,
+        )
+        .map((profile): DiscoveryProbeCandidateInput => {
+          const core = ownedById.get(profile.coreId)!;
+          return {
+            coreId: profile.coreId,
+            coreName: core.displayName,
+            mode: profile.mode,
+            distanceMetres: profile.distance,
+            directRaceCount: profile.raceCount,
+            lineageRelationship: null,
+            lineageResolved: true,
+            lineageRaceCount: 0,
+            tournamentRelevance: "none",
+            maidenState: core.meEligible ? "eligible" : "not_eligible",
+            freshness: profile.freshness,
+            dataCurrentThrough: profile.dataCurrentThrough,
+          };
+        });
+
+      return {
+        candidates,
+        lastImportedAt: performance.lastImportedAt,
+      };
+    },
+  };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";

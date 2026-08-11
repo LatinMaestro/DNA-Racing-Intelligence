@@ -15,6 +15,7 @@ export type ProbeLineageRelationship =
 
 export type DiscoveryProbeCandidateInput = Readonly<{
   coreId: string;
+  coreName: string;
   mode: ProbeMode;
   distanceMetres: number;
   directRaceCount: number;
@@ -29,10 +30,16 @@ export type DiscoveryProbeCandidateInput = Readonly<{
 
 export type DiscoveryProbeCandidate = Readonly<{
   coreId: string;
+  coreName: string;
   mode: ProbeMode;
   distanceMetres: number;
   directRaceCount: number;
   observationsToMinimum: number;
+  recommendedInitialProbeSize: number;
+  guidance:
+    | "continue_targeted_probe"
+    | "review_minimum_sample"
+    | "defer_stale_or_unresolved";
   evidencePurpose:
     | "establish_direct_sample"
     | "complete_direct_sample"
@@ -45,7 +52,6 @@ export type DiscoveryProbeCandidate = Readonly<{
   freshness: DiscoveryProbeCandidateInput["freshness"];
   dataCurrentThrough: string | null;
   warnings: readonly (
-    | "GATE_C_NOT_PASSED"
     | "MAIDEN_COMMITMENT_REVIEW_REQUIRED"
     | "MAIDEN_STATE_UNRESOLVED"
     | "LINEAGE_UNRESOLVED"
@@ -54,7 +60,7 @@ export type DiscoveryProbeCandidate = Readonly<{
     | "DATA_STALE"
   )[];
   experimental: true;
-  actionable: false;
+  actionable: boolean;
   automaticEntryAllowed: false;
   automaticStopAllowed: false;
 }>;
@@ -85,6 +91,7 @@ function normalize(
   input: DiscoveryProbeCandidateInput,
 ): DiscoveryProbeCandidate {
   const coreId = required(input.coreId, "Core ID");
+  const coreName = required(input.coreName, "Core name");
   if (!probeModes.includes(input.mode))
     throw new Error("Probe mode is invalid.");
   if (
@@ -127,9 +134,7 @@ function normalize(
 
   const dataCurrentThrough = timestamp(input.dataCurrentThrough);
   const observationsToMinimum = Math.max(0, 10 - directRaceCount);
-  const warnings = new Set<DiscoveryProbeCandidate["warnings"][number]>([
-    "GATE_C_NOT_PASSED",
-  ]);
+  const warnings = new Set<DiscoveryProbeCandidate["warnings"][number]>();
   if (input.maidenState === "eligible") {
     warnings.add("MAIDEN_COMMITMENT_REVIEW_REQUIRED");
   }
@@ -152,13 +157,24 @@ function normalize(
   const strategic =
     input.tournamentRelevance === "priority" ||
     input.maidenState === "eligible";
+  const actionable = !unusable && observationsToMinimum > 0;
+  const recommendedInitialProbeSize = actionable
+    ? Math.min(3, observationsToMinimum)
+    : 0;
 
   return {
     coreId,
+    coreName,
     mode: input.mode,
     distanceMetres: input.distanceMetres,
     directRaceCount,
     observationsToMinimum,
+    recommendedInitialProbeSize,
+    guidance: unusable
+      ? "defer_stale_or_unresolved"
+      : observationsToMinimum === 0
+        ? "review_minimum_sample"
+        : "continue_targeted_probe",
     evidencePurpose:
       directRaceCount === 0
         ? "establish_direct_sample"
@@ -183,7 +199,7 @@ function normalize(
     dataCurrentThrough,
     warnings: [...warnings].sort(),
     experimental: true,
-    actionable: false,
+    actionable,
     automaticEntryAllowed: false,
     automaticStopAllowed: false,
   };
@@ -216,6 +232,7 @@ export function buildDiscoveryProbePlan(
       priority.get(left.reviewPriority)! -
         priority.get(right.reviewPriority)! ||
       left.observationsToMinimum - right.observationsToMinimum ||
+      left.coreName.localeCompare(right.coreName) ||
       left.coreId.localeCompare(right.coreId) ||
       probeModes.indexOf(left.mode) - probeModes.indexOf(right.mode) ||
       left.distanceMetres - right.distanceMetres,

@@ -10,6 +10,7 @@ function candidate(
 ): DiscoveryProbeCandidateInput {
   return {
     coreId: "core-a",
+    coreName: "Synthetic Core",
     mode: "bike",
     distanceMetres: 1400,
     directRaceCount: 4,
@@ -25,13 +26,14 @@ function candidate(
 }
 
 describe("discovery probe plan", () => {
-  it("orders strategic evidence gaps without issuing an entry action", () => {
+  it("orders strategic evidence gaps and recommends a bounded owner probe", () => {
     const plan = buildDiscoveryProbePlan([
       candidate({
         coreId: "ordinary",
+        coreName: "Ordinary",
         tournamentRelevance: "none",
       }),
-      candidate({ coreId: "priority" }),
+      candidate({ coreId: "priority", coreName: "Priority" }),
     ]);
 
     expect(plan.map(({ coreId }) => coreId)).toEqual(["priority", "ordinary"]);
@@ -39,41 +41,48 @@ describe("discovery probe plan", () => {
       expect.objectContaining({
         reviewPriority: "high",
         observationsToMinimum: 6,
-        actionable: false,
+        recommendedInitialProbeSize: 3,
+        guidance: "continue_targeted_probe",
+        actionable: true,
         automaticEntryAllowed: false,
         automaticStopAllowed: false,
       }),
     );
   });
 
-  it("keeps the ten-race minimum as a coverage target only", () => {
+  it("keeps the ten-race minimum as a review boundary only", () => {
     const [nine, ten] = buildDiscoveryProbePlan([
-      candidate({ coreId: "nine", directRaceCount: 9 }),
-      candidate({ coreId: "ten", directRaceCount: 10 }),
+      candidate({ coreId: "nine", coreName: "Nine", directRaceCount: 9 }),
+      candidate({ coreId: "ten", coreName: "Ten", directRaceCount: 10 }),
     ]);
 
     expect(nine).toEqual(
       expect.objectContaining({
         observationsToMinimum: 1,
+        recommendedInitialProbeSize: 1,
+        guidance: "continue_targeted_probe",
         evidencePurpose: "complete_direct_sample",
       }),
     );
     expect(ten).toEqual(
       expect.objectContaining({
         observationsToMinimum: 0,
+        recommendedInitialProbeSize: 0,
+        guidance: "review_minimum_sample",
         evidencePurpose: "validate_lineage_hypothesis",
+        actionable: false,
       }),
     );
   });
 
-  it("flags Maiden commitment for review without consuming eligibility", () => {
+  it("flags Maiden commitment context without blocking an ordinary-race probe", () => {
     const [result] = buildDiscoveryProbePlan([
       candidate({ maidenState: "eligible" }),
     ]);
 
     expect(result?.warnings).toContain("MAIDEN_COMMITMENT_REVIEW_REQUIRED");
     expect(result?.maidenState).toBe("eligible");
-    expect(result?.actionable).toBe(false);
+    expect(result?.actionable).toBe(true);
   });
 
   it("defers stale, unknown-cutoff and unresolved-Maiden evidence", () => {
@@ -88,6 +97,9 @@ describe("discovery probe plan", () => {
     expect(plan[0]).toEqual(
       expect.objectContaining({
         reviewPriority: "defer",
+        recommendedInitialProbeSize: 0,
+        guidance: "defer_stale_or_unresolved",
+        actionable: false,
         warnings: expect.arrayContaining([
           "DATA_CUTOFF_UNKNOWN",
           "DATA_STALE",
