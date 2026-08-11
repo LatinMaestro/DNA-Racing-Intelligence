@@ -1,0 +1,29 @@
+name: Temporary Tournament formatter diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "domain/tournament-configuration.ts"
+      - "tests/tournament-configuration.test.ts"
+      - ".github/workflows/temporary-tournament-format-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  formatter-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Print exact formatter patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx prettier --write domain/tournament-configuration.ts tests/tournament-configuration.test.ts
+          git diff -- domain/tournament-configuration.ts tests/tournament-configuration.test.ts
