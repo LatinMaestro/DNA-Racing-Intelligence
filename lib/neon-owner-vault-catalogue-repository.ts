@@ -122,7 +122,8 @@ function boolean(value: unknown, label: string): boolean {
 }
 
 function positiveInteger(value: unknown, label: string): number {
-  const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  const parsed =
+    typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
   if (!Number.isSafeInteger(parsed) || (parsed as number) <= 0) {
     throw new Error(`${label} must be a positive safe integer.`);
   }
@@ -130,7 +131,8 @@ function positiveInteger(value: unknown, label: string): number {
 }
 
 function nonNegativeInteger(value: unknown, label: string): number {
-  const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  const parsed =
+    typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
   if (!Number.isSafeInteger(parsed) || (parsed as number) < 0) {
     throw new Error(`${label} must be a non-negative safe integer.`);
   }
@@ -139,20 +141,23 @@ function nonNegativeInteger(value: unknown, label: string): number {
 
 function optionalTimestamp(value: unknown): string | null {
   if (value === null) return null;
-  const parsed = value instanceof Date ? value : new Date(text(value, "updated_at"));
+  const parsed =
+    value instanceof Date ? value : new Date(text(value, "updated_at"));
   if (Number.isNaN(parsed.getTime())) throw new Error("updated_at is invalid.");
   return parsed.toISOString();
 }
 
 function databaseOwnerId(value: string): string {
   const normalized = value.trim();
-  if (!UUID_PATTERN.test(normalized)) throw new Error("databaseOwnerId must be a UUID.");
+  if (!UUID_PATTERN.test(normalized))
+    throw new Error("databaseOwnerId must be a UUID.");
   return normalized;
 }
 
 function runtimeRole(value: string): string {
   const normalized = value.trim();
-  if (!SAFE_RUNTIME_ROLE_PATTERN.test(normalized)) throw new Error("runtimeRole is invalid.");
+  if (!SAFE_RUNTIME_ROLE_PATTERN.test(normalized))
+    throw new Error("runtimeRole is invalid.");
   return normalized;
 }
 
@@ -169,15 +174,24 @@ function verifyOwnerIsolation(
     runtimeRole: string;
   }>,
 ): void {
-  if (result.rows.length !== 1) throw new Error("Vault catalogue owner scope denied.");
+  if (result.rows.length !== 1)
+    throw new Error("Vault catalogue owner scope denied.");
   const row = object(result.rows[0], "Owner evidence");
   if (
-    text(row.database_owner_id, "database_owner_id") !== expected.databaseOwnerId ||
-    text(row.authenticated_owner_id, "authenticated_owner_id") !== expected.authenticatedOwnerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      expected.databaseOwnerId ||
+    text(row.authenticated_owner_id, "authenticated_owner_id") !==
+      expected.authenticatedOwnerId ||
     !boolean(row.core_row_security_enabled, "core_row_security_enabled") ||
-    !boolean(row.core_force_row_security_enabled, "core_force_row_security_enabled") ||
+    !boolean(
+      row.core_force_row_security_enabled,
+      "core_force_row_security_enabled",
+    ) ||
     !boolean(row.vault_row_security_enabled, "vault_row_security_enabled") ||
-    !boolean(row.vault_force_row_security_enabled, "vault_force_row_security_enabled")
+    !boolean(
+      row.vault_force_row_security_enabled,
+      "vault_force_row_security_enabled",
+    )
   ) {
     throw new Error("Vault catalogue requires forced owner isolation.");
   }
@@ -188,7 +202,10 @@ function verifyOwnerIsolation(
     boolean(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     boolean(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     boolean(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    boolean(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    boolean(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
     throw new Error("Vault catalogue runtime role is not least privileged.");
   }
@@ -227,22 +244,33 @@ export function createNeonOwnerVaultCatalogueRepository(
   if (url === "") throw new Error("databaseUrl is required.");
   const owner = databaseOwnerId(input.databaseOwnerId);
   const role = runtimeRole(input.runtimeRole);
-  const sessionFactory = input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
+  const sessionFactory =
+    input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 
   return {
     status: "ready",
     async listCoresByOwner(authenticatedOwnerId, filters) {
       const clerkOwner = authenticatedOwnerId.trim();
-      if (clerkOwner === "") throw new Error("authenticated owner is required.");
+      if (clerkOwner === "")
+        throw new Error("authenticated owner is required.");
       const session = await sessionFactory(url);
       let transactionStarted = false;
       try {
-        await session.client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+        await session.client.query(
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        );
         transactionStarted = true;
         await session.client.query(SET_OWNER_SCOPE_SQL, [owner]);
         verifyOwnerIsolation(
-          await session.client.query(VERIFY_OWNER_ISOLATION_SQL, [owner, clerkOwner]),
-          { databaseOwnerId: owner, authenticatedOwnerId: clerkOwner, runtimeRole: role },
+          await session.client.query(VERIFY_OWNER_ISOLATION_SQL, [
+            owner,
+            clerkOwner,
+          ]),
+          {
+            databaseOwnerId: owner,
+            authenticatedOwnerId: clerkOwner,
+            runtimeRole: role,
+          },
         );
         const limit = filters.scope === "vault" ? 500 : 50;
         const result = await session.client.query(LIST_CORES_SQL, [
@@ -278,7 +306,8 @@ export function neonOwnerVaultCatalogueRepositoryFromEnvironment(
   const url = normalized(environment.databaseUrl);
   const owner = normalized(environment.databaseOwnerId);
   const role = normalized(environment.runtimeRole);
-  if (url === null || owner === null || role === null) return { status: "not_configured" };
+  if (url === null || owner === null || role === null)
+    return { status: "not_configured" };
   return createNeonOwnerVaultCatalogueRepository({
     databaseUrl: url,
     databaseOwnerId: owner,
