@@ -208,7 +208,9 @@ function mappedDatabaseFailure(
   return null;
 }
 
-function failure(status: OwnerVaultMutationFailureStatus): OwnerVaultMutationResult {
+function failure(
+  status: OwnerVaultMutationFailureStatus,
+): OwnerVaultMutationResult {
   return { status };
 }
 
