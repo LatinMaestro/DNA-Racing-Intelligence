@@ -41,7 +41,9 @@ export default async function DiscoveryPage() {
       benchmarkRepository:
         neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
       tournamentRepository:
-        neonTournamentConfigurationRepositoryFromEnvironment(databaseEnvironment),
+        neonTournamentConfigurationRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
     }),
     now: new Date(),
   });
