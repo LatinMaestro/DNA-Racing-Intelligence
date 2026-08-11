@@ -28,7 +28,9 @@ export default async function DiscoveryPage() {
       vaultRepository:
         neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
       performanceRepository:
-        neonCorePerformanceProfileRepositoryFromEnvironment(databaseEnvironment),
+        neonCorePerformanceProfileRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
     }),
     now: new Date(),
   });
