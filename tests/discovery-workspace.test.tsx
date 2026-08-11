@@ -87,8 +87,12 @@ describe("Discovery workspace", () => {
     expect(html).toContain("Winning Range benchmark");
     expect(html).toContain("Best 94.125 s · Median 95.500 s");
     expect(html).toContain("Mean 95.750 s · σ 0.825 s");
-    expect(html).toContain("Median 94.500 s · 75th percentile 95.000 s · 30 winners");
-    expect(html).toContain("Median 96.000 s · 75th percentile 97.500 s · 80 top-three results");
+    expect(html).toContain(
+      "Median 94.500 s · 75th percentile 95.000 s · 30 winners",
+    );
+    expect(html).toContain(
+      "Median 96.000 s · 75th percentile 97.500 s · 80 top-three results",
+    );
     expect(html).toContain("120 exact-distance historical entries");
     expect(html).toContain("1/2 (50%) · 3 Gold-eligible races");
     expect(html).toContain("1/3 (33%)");
