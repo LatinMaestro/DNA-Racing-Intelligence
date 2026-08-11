@@ -1,0 +1,60 @@
+name: Tournament configuration write migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0022_tournament_configuration_write.*.sql"
+      - ".github/workflows/tournament-configuration-write-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tournament-configuration-write-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in database/migrations/000{1..9}_*.up.sql database/migrations/001{0..9}_*.up.sql database/migrations/0020_*.up.sql database/migrations/0021_*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Apply Tournament configuration write migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0022_tournament_configuration_write.up.sql
+      - name: Run Tournament configuration write smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0022_tournament_configuration_write.smoke.sql
+      - name: Reverse Tournament configuration write migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0022_tournament_configuration_write.down.sql
+      - name: Verify Tournament configuration write removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'upsert_tournament_configuration'
+          ) THEN RAISE EXCEPTION 'Tournament configuration write function still exists';
+          END IF; END \$\$;"
