@@ -67,7 +67,7 @@ BEGIN
     RAISE EXCEPTION 'Vault catalogue F-number filter is invalid';
   END IF;
 
-  IF p_scope NOT IN ('vault', 'catalogue') THEN
+  IF p_scope IS NULL OR p_scope NOT IN ('vault', 'catalogue') THEN
     RAISE EXCEPTION 'Vault catalogue scope is invalid';
   END IF;
 
