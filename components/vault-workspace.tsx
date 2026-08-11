@@ -21,10 +21,6 @@ const connectionCopy = {
   },
 } as const;
 
-function selected(value: string | null, candidate: string) {
-  return value === candidate;
-}
-
 function FilterForm({ filters }: Readonly<{ filters: OwnerVaultCatalogueFilters }>) {
   return (
     <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-6" method="get">
