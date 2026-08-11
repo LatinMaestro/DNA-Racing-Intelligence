@@ -1,0 +1,69 @@
+name: Retire legacy Tournament SQL migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0026_retire_legacy_tournament_sql.*.sql"
+      - ".github/workflows/retire-legacy-tournament-sql-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  retire-legacy-tournament-sql-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0026_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Retire legacy Tournament SQL APIs
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.up.sql
+      - name: Verify legacy APIs are retired
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.smoke.sql
+      - name: Reverse legacy Tournament SQL retirement
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.down.sql
+      - name: Verify reversal restored legacy APIs
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.rollback.sql
+      - name: Reapply legacy Tournament SQL retirement
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.up.sql
+      - name: Verify final retired state
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0026_retire_legacy_tournament_sql.smoke.sql
