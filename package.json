@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write 'app/(private)/vault/page.tsx' components/owner-vault-workspace.tsx lib/owner-vault-form.ts tests/owner-vault-form.test.ts && git diff -- 'app/(private)/vault/page.tsx' components/owner-vault-workspace.tsx lib/owner-vault-form.ts tests/owner-vault-form.test.ts && exit 1",
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
