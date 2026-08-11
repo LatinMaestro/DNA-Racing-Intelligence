@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -94,6 +95,8 @@ describe("Search Core service", () => {
         repository: { status: "not_configured" },
         query: "Seven",
       }),
-    ).resolves.toMatchObject({ connectionStatus: "persistence_not_configured" });
+    ).resolves.toMatchObject({
+      connectionStatus: "persistence_not_configured",
+    });
   });
 });
