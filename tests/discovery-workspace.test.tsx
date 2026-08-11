@@ -18,7 +18,7 @@ describe("Discovery workspace", () => {
     expect(html).not.toContain("Recommended core");
   });
 
-  it("renders bounded owner probe guidance for an owned core", () => {
+  it("renders bounded owner probe guidance with direct time and star evidence", () => {
     const candidates = buildDiscoveryProbePlan([
       {
         coreId: "synthetic-core",
@@ -26,6 +26,20 @@ describe("Discovery workspace", () => {
         mode: "horse",
         distanceMetres: 1_600,
         directRaceCount: 4,
+        directTimeEvidence: {
+          bestMilliseconds: 94_125,
+          medianMilliseconds: 95_500,
+          meanMilliseconds: 95_750,
+          standardDeviationMilliseconds: 825,
+        },
+        starEvidence: {
+          completeStarDataRaceCount: 3,
+          goldEligibleRaceCount: 3,
+          goldAssignmentOpportunityCount: 2,
+          goldReceivedCount: 1,
+          blueAssignmentOpportunityCount: 3,
+          blueReceivedCount: 1,
+        },
         lineageRelationship: null,
         lineageResolved: true,
         lineageRaceCount: 0,
@@ -49,6 +63,12 @@ describe("Discovery workspace", () => {
     expect(html).toContain("3 races");
     expect(html).toContain("Continue Targeted Probe");
     expect(html).toContain("Direct imported results");
+    expect(html).toContain("Moderate confidence");
+    expect(html).toContain("Best 94.125 s · Median 95.500 s");
+    expect(html).toContain("Mean 95.750 s · σ 0.825 s");
+    expect(html).toContain("1/2 (50%) · 3 Gold-eligible races");
+    expect(html).toContain("1/3 (33%)");
+    expect(html).toContain("field-relative support, not an absolute rating");
     expect(html).toContain("Maiden Commitment Review Required");
     expect(html).toContain("Owned-core Discovery planner connected");
   });
@@ -88,6 +108,8 @@ describe("Discovery workspace", () => {
 
       expect(html).toContain("0 races");
       expect(html).toContain(`${expectedLabel} · 18 lineage races`);
+      expect(html).toContain("Low confidence");
+      expect(html).toContain("Not yet available");
       expect(html).toContain("3 races");
       expect(html).toContain("Lineage or population evidence");
     },
