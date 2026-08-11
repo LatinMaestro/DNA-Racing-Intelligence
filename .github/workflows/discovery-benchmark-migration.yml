@@ -1,0 +1,68 @@
+name: Discovery benchmark migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0020_discovery_exact_distance_benchmarks.*.sql"
+      - ".github/workflows/discovery-benchmark-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in database/migrations/000{1..9}_*.up.sql database/migrations/001{0..9}_*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Apply Discovery benchmark migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0020_discovery_exact_distance_benchmarks.up.sql
+      - name: Run Discovery benchmark smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0020_discovery_exact_distance_benchmarks.smoke.sql
+      - name: Reverse Discovery benchmark migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0020_discovery_exact_distance_benchmarks.down.sql
+      - name: Verify Discovery benchmark removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'refresh_discovery_exact_distance_benchmarks',
+          'list_discovery_exact_distance_benchmarks'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname = 'discovery_exact_distance_benchmark'
+          ) THEN RAISE EXCEPTION 'Discovery benchmark objects still exist';
+          END IF; END \$\$;"
