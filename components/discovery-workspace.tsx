@@ -239,15 +239,15 @@ export function DiscoveryWorkspace({
                       Recommended next probe
                     </dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.recommendedInitialProbeSize === 0
+                      {candidate.recommendedDecisionProbeSize === 0
                         ? "No probe recommended"
-                        : `${candidate.recommendedInitialProbeSize} race${candidate.recommendedInitialProbeSize === 1 ? "" : "s"}`}
+                        : `${candidate.recommendedDecisionProbeSize} race${candidate.recommendedDecisionProbeSize === 1 ? "" : "s"}`}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">Guidance</dt>
                     <dd className="mt-1 font-semibold">
-                      {label(candidate.guidance)}
+                      {label(candidate.decisionGuidance)}
                     </dd>
                   </div>
                   <div className="sm:col-span-2">
