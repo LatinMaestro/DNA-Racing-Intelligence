@@ -1,0 +1,28 @@
+name: Temporary format diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "lib/neon-tournament-configuration-repository.ts"
+      - "tests/neon-tournament-configuration-repository.test.ts"
+      - ".github/workflows/temporary-format-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Print exact formatter diff
+        shell: bash
+        run: |
+          npx prettier --write lib/neon-tournament-configuration-repository.ts tests/neon-tournament-configuration-repository.test.ts
+          git diff -- lib/neon-tournament-configuration-repository.ts tests/neon-tournament-configuration-repository.test.ts
+          test -z "$(git status --short -- lib/neon-tournament-configuration-repository.ts tests/neon-tournament-configuration-repository.test.ts)"
