@@ -1,4 +1,4 @@
-import type { DiscoveryProbeCandidate } from "@/domain/discovery-probe-plan";
+import type { DiscoveryBenchmarkedCandidate } from "@/domain/discovery-benchmark";
 import type { DiscoveryWorkspaceConnectionStatus } from "@/lib/discovery-workspace-service";
 
 const connectionCopy: Record<
@@ -13,12 +13,12 @@ const connectionCopy: Record<
   persistence_not_configured: {
     heading: "Discovery read model not connected",
     detail:
-      "Owner verification is available, but the manual Vault, performance and lineage repositories are not configured. No raw history is scanned on this page.",
+      "Owner verification is available, but the manual Vault, performance, lineage and benchmark repositories are not configured. No raw history is scanned on this page.",
   },
   read_model_connected: {
     heading: "Owned-core Discovery planner connected",
     detail:
-      "Candidates come only from active My Vault cores and imported historical evidence in the approved order: direct results, close family, wider lineage, then matched population patterns. Recommendations remain advisory and never enter races automatically.",
+      "Candidates come only from active My Vault cores and imported historical evidence in the approved order: direct results, close family, wider lineage, then matched population patterns. Exact-distance historical winner and top-three distributions provide comparison context. Recommendations remain advisory and never enter races automatically.",
   },
 };
 
@@ -53,19 +53,19 @@ function ratio(numerator: number, denominator: number): string {
   return `${numerator}/${denominator} (${rate}%)`;
 }
 
-function directTimeSummary(candidate: DiscoveryProbeCandidate): string {
+function directTimeSummary(candidate: DiscoveryBenchmarkedCandidate): string {
   const evidence = candidate.directTimeEvidence;
   if (evidence === null) return "Not yet available";
   return `Best ${elapsed(evidence.bestMilliseconds)} · Median ${elapsed(evidence.medianMilliseconds)}`;
 }
 
-function consistencySummary(candidate: DiscoveryProbeCandidate): string {
+function consistencySummary(candidate: DiscoveryBenchmarkedCandidate): string {
   const evidence = candidate.directTimeEvidence;
   if (evidence === null) return "Not yet available";
   return `Mean ${elapsed(evidence.meanMilliseconds)} · σ ${elapsed(evidence.standardDeviationMilliseconds)}`;
 }
 
-function goldSummary(candidate: DiscoveryProbeCandidate): string {
+function goldSummary(candidate: DiscoveryBenchmarkedCandidate): string {
   const evidence = candidate.starEvidence;
   if (evidence === null) return "No usable direct star profile";
   const received = ratio(
@@ -75,7 +75,7 @@ function goldSummary(candidate: DiscoveryProbeCandidate): string {
   return `${received} · ${evidence.goldEligibleRaceCount} Gold-eligible races`;
 }
 
-function blueSummary(candidate: DiscoveryProbeCandidate): string {
+function blueSummary(candidate: DiscoveryBenchmarkedCandidate): string {
   const evidence = candidate.starEvidence;
   if (evidence === null) return "No usable direct star profile";
   return ratio(
@@ -84,12 +84,28 @@ function blueSummary(candidate: DiscoveryProbeCandidate): string {
   );
 }
 
+function winningBenchmarkSummary(
+  candidate: DiscoveryBenchmarkedCandidate,
+): string {
+  const benchmark = candidate.benchmarkEvidence;
+  if (benchmark === null) return "Not available for this exact distance";
+  return `Median ${elapsed(benchmark.winningMedianMilliseconds)} · 75th percentile ${elapsed(benchmark.winningP75Milliseconds)} · ${benchmark.winningEntryCount.toLocaleString("en-AU")} winners`;
+}
+
+function topThreeBenchmarkSummary(
+  candidate: DiscoveryBenchmarkedCandidate,
+): string {
+  const benchmark = candidate.benchmarkEvidence;
+  if (benchmark === null) return "Not available for this exact distance";
+  return `Median ${elapsed(benchmark.topThreeMedianMilliseconds)} · 75th percentile ${elapsed(benchmark.topThreeP75Milliseconds)} · ${benchmark.topThreeEntryCount.toLocaleString("en-AU")} top-three results`;
+}
+
 export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
   connectionStatus,
 }: Readonly<{
-  candidates: readonly DiscoveryProbeCandidate[];
+  candidates: readonly DiscoveryBenchmarkedCandidate[];
   lastImportedAt: string | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
 }>) {
@@ -176,6 +192,9 @@ export function DiscoveryWorkspace({
                     <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
                       {label(candidate.confidence)} confidence
                     </span>
+                    <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                      {label(candidate.benchmarkAssessment)} benchmark
+                    </span>
                   </div>
                 </div>
 
@@ -241,6 +260,18 @@ export function DiscoveryWorkspace({
                     </dd>
                   </div>
                   <div>
+                    <dt className="text-[var(--muted)]">Winner benchmark</dt>
+                    <dd className="mt-1 font-semibold">
+                      {winningBenchmarkSummary(candidate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">Top-three benchmark</dt>
+                    <dd className="mt-1 font-semibold">
+                      {topThreeBenchmarkSummary(candidate)}
+                    </dd>
+                  </div>
+                  <div>
                     <dt className="text-[var(--muted)]">Gold support</dt>
                     <dd className="mt-1 font-semibold">
                       {goldSummary(candidate)}
@@ -260,11 +291,26 @@ export function DiscoveryWorkspace({
                     {timestamp(candidate.dataCurrentThrough)} ·{" "}
                     {label(candidate.freshness)}
                   </p>
+                  {candidate.benchmarkEvidence === null ? null : (
+                    <p className="mt-1">
+                      Benchmark current through{" "}
+                      {timestamp(candidate.benchmarkEvidence.dataCurrentThrough)}
+                      {" · "}
+                      {candidate.benchmarkEvidence.raceEntryCount.toLocaleString(
+                        "en-AU",
+                      )}{" "}
+                      exact-distance historical entries
+                    </p>
+                  )}
                   {candidate.warnings.length > 0 ? (
                     <p className="mt-1">
                       {candidate.warnings.map(label).join(" · ")}
                     </p>
                   ) : null}
+                  <p className="mt-2">
+                    Benchmark ranges are descriptive historical distributions,
+                    not guaranteed targets. Lower elapsed time remains better.
+                  </p>
                   <p className="mt-2">
                     Gold uses eligible assignment opportunities only. Blue uses
                     its recorded assignment opportunities. Stars are
