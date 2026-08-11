@@ -155,7 +155,7 @@ describe("import file preparation client", () => {
     expect(createSha256).not.toHaveBeenCalled();
   });
 
-  it("rejects the retired Current Vault source and more than eight files before reading", async () => {
+  it("rejects the retired Current Vault source and batches above the bounded maximum before reading", async () => {
     const hash = hasher();
     const createSha256 = vi.fn(() => hash.value);
 
@@ -169,7 +169,7 @@ describe("import file preparation client", () => {
 
     await expect(
       prepareImportUploadFiles({
-        selections: Array.from({ length: 9 }, (_, index) =>
+        selections: Array.from({ length: 25 }, (_, index) =>
           selection({
             clientFileId: `race-${index + 1}`,
             originalFileName: `synthetic-race-${index + 1}.csv`,
@@ -178,7 +178,7 @@ describe("import file preparation client", () => {
         chunkByteLength: CHUNK_BYTES,
         createSha256,
       }),
-    ).rejects.toThrow("between 1 and 8 selections");
+    ).rejects.toThrow("between 1 and 24 selections");
     expect(createSha256).not.toHaveBeenCalled();
   });
 
