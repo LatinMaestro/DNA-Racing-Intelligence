@@ -1,4 +1,8 @@
 import { FreshnessStatus } from "@/components/freshness-status";
+import { OwnerVaultStatus } from "@/components/owner-vault-status";
+import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
 const readiness = [
   [
@@ -15,7 +19,24 @@ const readiness = [
   ],
 ] as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const authenticatedOwnerId = await authenticatedClerkOwnerId({
+    environment: {
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    },
+  });
+  const vaultState = await loadOwnerVaultCataloguePageState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: neonOwnerVaultCatalogueRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+    }),
+    filters: { scope: "vault" },
+  });
+
   return (
     <div className="space-y-8">
       <header className="max-w-4xl">
@@ -31,9 +52,10 @@ export default function DashboardPage() {
           are connected.
         </p>
       </header>
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <OwnerVaultStatus state={vaultState} />
+        <FreshnessStatus source="Core" />
         <FreshnessStatus source="Race" />
-        <FreshnessStatus source="Vault" />
         <FreshnessStatus source="Arena" />
       </div>
       <section
