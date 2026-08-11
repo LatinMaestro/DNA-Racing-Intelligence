@@ -21,11 +21,11 @@ Retire Current Vault CSV from the normal import pipeline.
 
 Recurring imported game-data files:
 
-- six sequential Race Merge exports;
+- the growing sequential Race Merge export series (currently seven files);
 - one Core Details export, historically/legacy named Bike Details; and
 - one Current Arena export.
 
-This changes the normal private import workload from nine files/four source families to eight files/three source families. Historical Current Vault profiling remains useful only as prior evidence and is not an acceptance requirement for future imports.
+The recurring import has three source families and a variable file count because DNA starts a new Race Merge export when the current file reaches its record limit. The current supplied set is seven Race Merge files plus Core Details and Current Arena. Historical Current Vault profiling remains useful only as prior evidence and is not an acceptance requirement for future imports.
 
 The owner will manually establish the initial approximately 200 Vault cores; do not build a one-time Current Vault CSV seed.
 
