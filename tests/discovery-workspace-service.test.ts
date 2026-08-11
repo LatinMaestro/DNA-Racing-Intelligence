@@ -308,7 +308,8 @@ describe("Discovery workspace service", () => {
     });
 
     expect(repository.status).toBe("ready");
-    if (repository.status !== "ready") throw new Error("repository unavailable");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
 
     await expect(
       repository.listCandidateEvidenceByOwner("owner"),
@@ -327,5 +328,4 @@ describe("Discovery workspace service", () => {
       ],
     });
   });
-
 });
