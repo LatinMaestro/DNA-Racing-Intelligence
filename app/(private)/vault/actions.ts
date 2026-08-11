@@ -1,0 +1,36 @@
+"use server";
+
+import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { neonOwnerVaultMutationRepositoryFromEnvironment } from "@/lib/neon-owner-vault-repository";
+import { updateOwnerVaultCore } from "@/lib/owner-vault-action-service";
+
+function repository() {
+  return neonOwnerVaultMutationRepositoryFromEnvironment({
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  });
+}
+
+export async function updateVaultCoreAction(
+  input: Readonly<{
+    sourceCoreId: string;
+    inMyVault: boolean;
+    meEligible: boolean;
+    expectedVersion: number;
+    idempotencyKey: string;
+  }>,
+) {
+  return updateOwnerVaultCore(input, {
+    resolveAuthenticatedOwnerId: () =>
+      authenticatedClerkOwnerId({
+        environment: {
+          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+          secretKey: process.env.CLERK_SECRET_KEY,
+        },
+      }),
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: repository(),
+    now: () => new Date(),
+  });
+}
