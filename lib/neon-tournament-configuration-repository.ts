@@ -37,9 +37,15 @@ const LIST_ACTIVE_VAULT_CORES_SQL = `
     core.core_class,
     core.element,
     core.f_number,
+    EXISTS (
+      SELECT 1
+      FROM dna.active_core_details active_core
+      WHERE active_core.owner_id = core.owner_id
+        AND active_core.id = core.id
+    ) AS core_details_active,
     vault.me_eligible
   FROM dna.owner_vault_core vault
-  JOIN dna.active_core_details core
+  JOIN dna.core core
     ON core.owner_id = vault.owner_id
     AND core.id = vault.core_id
   WHERE vault.owner_id = $1::uuid
@@ -259,6 +265,10 @@ export function createNeonTournamentConfigurationRepository(
             coreClass: text(row.core_class, "Tournament Vault Core class"),
             element: text(row.element, "Tournament Vault Core element"),
             fNumber: integer(row.f_number, "Tournament Vault Core F-number"),
+            coreDetailsActive: bool(
+              row.core_details_active,
+              "Tournament Vault Core Details active state",
+            ),
             meEligible,
           };
         });
@@ -492,10 +502,16 @@ export function createNeonTournamentConfigurationRepository(
               candidateSnapshotVersion,
               ruleConfiguration,
               candidates: activeVaultCores.map((core) => {
-                const eligibility = projectTournamentCandidateEligibility(
-                  ruleConfiguration,
-                  core,
-                );
+                const eligibility = core.coreDetailsActive
+                  ? projectTournamentCandidateEligibility(
+                      ruleConfiguration,
+                      core,
+                    )
+                  : {
+                      eligibility: "review_required" as const,
+                      leaderboardGroupId: "unassigned",
+                      leaderboardGroupLabel: "Eligibility review required",
+                    };
                 const matchingCutoffs =
                   ruleConfiguration.eligibleDistancesMetres
                     .map((distance) =>
