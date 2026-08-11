@@ -173,6 +173,28 @@ describe("Tournament rule configuration", () => {
     });
   });
 
+  it("rejects safe schema placeholders as authoritative rules", () => {
+    expect(
+      assessTournamentConfigurationAuthority(
+        configuration({
+          seasonLabel: "Unspecified",
+          entryFee: { amount: "0", asset: "Unspecified" },
+          raceFormat: "Unspecified",
+          candidateSnapshotVersion: "snapshot-unbound",
+        }),
+      ),
+    ).toMatchObject({
+      status: "review_required",
+      reasons: [
+        "CANDIDATE_SNAPSHOT_UNBOUND",
+        "ENTRY_FEE_RULE_INCOMPLETE",
+        "RACE_FORMAT_RULE_INCOMPLETE",
+        "SEASON_RULE_INCOMPLETE",
+      ],
+      actionableRecommendationAllowed: false,
+    });
+  });
+
   it("keeps free-text campaign actions review-only until bound", () => {
     const result = assessTournamentConfigurationAuthority(
       configuration({
