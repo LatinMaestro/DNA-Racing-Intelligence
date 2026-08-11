@@ -1,4 +1,6 @@
-import type {\n  CorePerformanceProfileRepository,\n} from "./core-intelligence-workspace-service";
+import type {
+  CorePerformanceProfileRepository,
+} from "./core-intelligence-workspace-service";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -97,7 +99,10 @@ function roundMetric(value: unknown, label: string): number {
   return Math.round(number(value, label) * 1_000) / 1_000;
 }
 
-function jsonObject(\n  value: unknown,\n  label: string,\n): Record<string, unknown> | null {
+function jsonObject(
+  value: unknown,
+  label: string,
+): Record<string, unknown> | null {
   if (value === null) return null;
   const parsed = typeof value === "string" ? JSON.parse(value) : value;
   return record(parsed, label);
@@ -156,7 +161,10 @@ function verifyOwnerIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(\n      row.runtime_is_neon_superuser_member,\n      "runtime_is_neon_superuser_member",\n    )
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
     throw new Error("Core Intelligence runtime role is not least privileged.");
   }
@@ -237,7 +245,9 @@ export function createNeonCorePerformanceProfileRepository(
     status: "ready",
     async listProfilesByOwner(authenticatedOwnerId) {
       const clerkOwner = authenticatedOwnerId.trim();
-      if (clerkOwner === "") {\n        throw new Error("authenticated owner is required.");\n      }
+      if (clerkOwner === "") {
+        throw new Error("authenticated owner is required.");
+      }
       const session = await sessionFactory(url);
       let transactionStarted = false;
       try {
