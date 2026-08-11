@@ -46,9 +46,7 @@ export type OwnerVaultCatalogueRepository =
 
 export type OwnerVaultCataloguePageState = Readonly<{
   connectionStatus:
-    | "identity_not_connected"
-    | "persistence_not_configured"
-    | "connected";
+    "identity_not_connected" | "persistence_not_configured" | "connected";
   filters: OwnerVaultCatalogueFilters;
   cores: readonly OwnerVaultCatalogueCore[];
 }>;
@@ -58,16 +56,19 @@ const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 function ownerId(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
   if (normalized === "") return null;
-  if (!SAFE_OWNER_ID.test(normalized)) throw new Error("Vault owner identity is invalid.");
+  if (!SAFE_OWNER_ID.test(normalized))
+    throw new Error("Vault owner identity is invalid.");
   return normalized;
 }
 
 function query(value: unknown): string | null {
   if (value === null || value === undefined) return null;
-  if (typeof value !== "string") throw new Error("Vault search query is invalid.");
+  if (typeof value !== "string")
+    throw new Error("Vault search query is invalid.");
   const normalized = value.trim();
   if (normalized === "") return null;
-  if (normalized.length > 128) throw new Error("Vault search query is too long.");
+  if (normalized.length > 128)
+    throw new Error("Vault search query is too long.");
   return normalized;
 }
 
@@ -85,7 +86,8 @@ function enumValue<T extends readonly string[]>(
 
 function fNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
-  const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  const parsed =
+    typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
   if (!Number.isSafeInteger(parsed) || (parsed as number) <= 0) {
     throw new Error("Vault F-number filter is invalid.");
   }
@@ -137,12 +139,17 @@ function validateCore(value: OwnerVaultCatalogueCore): OwnerVaultCatalogueCore {
   }
   if (value.updatedAt !== null) {
     const parsed = new Date(value.updatedAt);
-    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value.updatedAt) {
+    if (
+      Number.isNaN(parsed.getTime()) ||
+      parsed.toISOString() !== value.updatedAt
+    ) {
       throw new Error("Vault catalogue timestamp is invalid.");
     }
   }
   if (value.version === 0 && value.updatedAt !== null) {
-    throw new Error("Unedited Vault catalogue core cannot have an update timestamp.");
+    throw new Error(
+      "Unedited Vault catalogue core cannot have an update timestamp.",
+    );
   }
   return value;
 }
@@ -172,20 +179,27 @@ export async function loadOwnerVaultCataloguePageState(
     throw new Error("Vault catalogue access denied.");
   }
   if (input.repository.status === "not_configured") {
-    return { connectionStatus: "persistence_not_configured", filters, cores: [] };
+    return {
+      connectionStatus: "persistence_not_configured",
+      filters,
+      cores: [],
+    };
   }
   if (typeof input.repository.listCoresByOwner !== "function") {
     throw new Error("Vault catalogue repository is invalid.");
   }
-  const cores = (await input.repository.listCoresByOwner(authenticatedOwnerId, filters)).map(
-    validateCore,
-  );
+  const cores = (
+    await input.repository.listCoresByOwner(authenticatedOwnerId, filters)
+  ).map(validateCore);
   const seen = new Set<string>();
   for (const core of cores) {
-    if (seen.has(core.sourceCoreId)) throw new Error("Vault catalogue contains a duplicate core.");
+    if (seen.has(core.sourceCoreId))
+      throw new Error("Vault catalogue contains a duplicate core.");
     seen.add(core.sourceCoreId);
     if (filters.scope === "vault" && !core.inMyVault) {
-      throw new Error("Vault catalogue returned an inactive core for My Vault.");
+      throw new Error(
+        "Vault catalogue returned an inactive core for My Vault.",
+      );
     }
   }
   return { connectionStatus: "connected", filters, cores };
