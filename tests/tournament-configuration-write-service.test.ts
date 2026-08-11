@@ -15,7 +15,7 @@ function validPayload() {
     bracketId: "bike-a",
     splitLabel: "Bike A",
     mode: "bike",
-    eligibleDistancesMetres: [1600, 1200, 1600, 1400],
+    eligibleDistancesMetres: [1600, 1200, 1400],
     gateCount: 8,
     entryFee: { amount: "0.0100", asset: "USD" },
     raceFormat: "Paid qualification",
