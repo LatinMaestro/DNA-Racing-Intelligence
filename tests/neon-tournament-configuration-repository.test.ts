@@ -130,11 +130,34 @@ describe("Neon Tournament configuration repository", () => {
         { source_core_id: "core-2", me_eligible: false },
         { source_core_id: "core-7", me_eligible: true },
       ],
+      [
+        {
+          core_id: "core-2",
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-30T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+        },
+        {
+          core_id: "core-2",
+          mode: "bike",
+          distance: 1400,
+          data_current_through: "2026-07-20T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+        },
+        {
+          core_id: "core-7",
+          mode: "bike",
+          distance: 1400,
+          data_current_through: "2026-07-25T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+        },
+      ],
     ]);
 
     const result =
       await repository(test).listCandidateEvidenceByOwner(authenticatedOwnerId);
-    expect(result.lastImportedAt).toBeNull();
+    expect(result.lastImportedAt).toBe("2026-08-01T03:00:00.000Z");
     expect(result.brackets).toHaveLength(1);
     expect(result.brackets[0]).toMatchObject({
       tournamentId: "tour-1",
@@ -190,6 +213,8 @@ describe("Neon Tournament configuration repository", () => {
           leaderboardGroupId: "unassigned",
           eligibility: "review_required",
           maidenState: "not_eligible",
+          dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+          lastImported: "2026-08-01T03:00:00.000Z",
           freshness: "unknown",
         },
         {
@@ -198,6 +223,8 @@ describe("Neon Tournament configuration repository", () => {
           eligibility: "review_required",
           maidenState: "eligible",
           maidenModeDisposition: "unresolved",
+          dataCurrentThrough: "2026-07-25T00:00:00.000Z",
+          lastImported: "2026-08-01T03:00:00.000Z",
           freshness: "unknown",
         },
       ],
@@ -211,7 +238,40 @@ describe("Neon Tournament configuration repository", () => {
     );
     expect(test.events[4]).toContain("dna.owner_vault_core");
     expect(test.events[4]).toContain("vault.in_my_vault");
+    expect(test.events[5]).toContain("dna.list_core_performance_profiles");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("rejects inconsistent profile import evidence instead of publishing freshness", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [completeConfigurationRow()],
+      [{ source_core_id: "core-2", me_eligible: false }],
+      [
+        {
+          core_id: "core-2",
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-30T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+        },
+        {
+          core_id: "core-2",
+          mode: "bike",
+          distance: 1400,
+          data_current_through: "2026-07-20T00:00:00.000Z",
+          last_imported_at: "2026-08-02T03:00:00.000Z",
+        },
+      ],
+    ]);
+
+    await expect(
+      repository(test).listCandidateEvidenceByOwner(authenticatedOwnerId),
+    ).rejects.toThrow(
+      "Tournament performance import evidence is inconsistent.",
+    );
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
   it("rejects non-owner or privileged runtime evidence before reading configuration", async () => {
