@@ -13,12 +13,12 @@ const connectionCopy: Record<
   persistence_not_configured: {
     heading: "Discovery read model not connected",
     detail:
-      "Owner verification is available, but the manual Vault and compact performance repositories are not configured. No raw history is scanned on this page.",
+      "Owner verification is available, but the manual Vault, performance and lineage repositories are not configured. No raw history is scanned on this page.",
   },
   read_model_connected: {
     heading: "Owned-core Discovery planner connected",
     detail:
-      "Candidates come only from active My Vault cores and imported historical performance. Recommendations are advisory and never enter races automatically.",
+      "Candidates come only from active My Vault cores, imported historical performance and validated parent or grandparent evidence. Recommendations remain advisory and never enter races automatically.",
   },
 };
 
@@ -97,14 +97,11 @@ export function DiscoveryWorkspace({
 
         {candidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">
-              No current under-tested candidates
-            </h3>
+            <h3 className="font-semibold">No current Discovery candidates</h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-              This view currently covers owned exact-distance combinations that
-              already have imported race evidence. Zero-race and lineage-led
-              hypotheses remain a later Discovery slice and are not inferred
-              here.
+              No under-tested direct sample or validated parent/grandparent
+              hypothesis is currently available. Wider sibling, offspring and
+              population hypotheses remain outside this slice.
             </p>
           </div>
         ) : (
@@ -176,7 +173,9 @@ export function DiscoveryWorkspace({
                   <div>
                     <dt className="text-[var(--muted)]">Evidence basis</dt>
                     <dd className="mt-1 font-semibold">
-                      Direct imported results
+                      {candidate.lineageRelationship === null
+                        ? "Direct imported results"
+                        : `${label(candidate.lineageRelationship)} hypothesis · ${candidate.lineageRaceCount.toLocaleString("en-AU")} lineage races`}
                     </dd>
                   </div>
                 </dl>
@@ -193,8 +192,8 @@ export function DiscoveryWorkspace({
                     </p>
                   ) : null}
                   <p className="mt-2">
-                    Reassess after the probe. Do not automatically run all races
-                    to 10 and do not treat 10 races as proof.
+                    Reassess after the probe. Lineage nominates a test only; it
+                    does not replace direct evidence or prove performance.
                   </p>
                 </div>
               </article>
