@@ -80,11 +80,13 @@ function harness(sequence: readonly (readonly unknown[] | Error)[]) {
       events.push(
         values ? `${normalized}|${JSON.stringify(values)}` : normalized,
       );
-      if ([
+      if (
+        [
           "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
           "COMMIT",
           "ROLLBACK",
-        ].includes(normalized)) {
+        ].includes(normalized)
+      ) {
         return { rows: [] };
       }
       const next = sequence[index++] ?? [];
