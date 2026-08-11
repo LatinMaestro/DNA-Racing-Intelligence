@@ -48,7 +48,6 @@ second as `distance_metres / elapsed_time_seconds`; reject values that cannot be
 represented at the chosen integer-millisecond boundary rather than silently
 rounding them.
 
-
 - core IDs;
 - names and casing;
 - mode;
