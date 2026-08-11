@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/neon-owner-vault-repository.ts lib/owner-vault-action-service.ts tests/neon-owner-vault-repository.test.ts && git diff -- lib/neon-owner-vault-repository.ts lib/owner-vault-action-service.ts tests/neon-owner-vault-repository.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
