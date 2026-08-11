@@ -1,3 +1,7 @@
+import type {
+  CorePerformanceProfile,
+  RaceMode,
+} from "@/domain/core-performance";
 import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
 import {
   createDefaultNeonImportPersistenceSession,
@@ -168,17 +172,18 @@ function verifyOwnerIsolation(
   }
 }
 
-function profile(rowValue: unknown): Record<string, unknown> {
+function profile(rowValue: unknown): CorePerformanceProfile {
   const row = record(rowValue, "Core Intelligence profile");
   return {
     coreId: text(row.core_id, "core_id"),
-    mode: text(row.mode, "mode"),
+    mode: text(row.mode, "mode") as RaceMode,
     distance: integer(row.distance, "distance"),
     dataCurrentThrough: timestamp(
       row.data_current_through,
       "data_current_through",
     ),
     raceCount: integer(row.race_count, "race_count"),
+    freshness: "stale",
     sampleStatus:
       integer(row.race_count, "race_count") >= 10
         ? "minimally_analytical"
@@ -213,7 +218,10 @@ function profile(rowValue: unknown): Record<string, unknown> {
         "median_metres_per_second",
       ),
     },
-    starProfile: jsonObject(row.star_profile, "star_profile"),
+    starProfile: jsonObject(
+      row.star_profile,
+      "star_profile",
+    ) as CorePerformanceProfile["starProfile"],
     analyticalStatus: "experimental",
   };
 }
