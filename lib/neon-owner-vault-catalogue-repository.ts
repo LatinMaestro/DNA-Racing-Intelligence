@@ -57,41 +57,26 @@ const VERIFY_OWNER_ISOLATION_SQL = `
 
 const LIST_CORES_SQL = `
   SELECT
-    core.source_core_id,
-    core.display_name,
-    core.core_class,
-    core.element,
-    core.f_number,
-    core.sex,
-    COALESCE(vault.in_my_vault, false) AS in_my_vault,
-    COALESCE(vault.me_eligible, false) AS me_eligible,
-    COALESCE(vault.version, 0)::bigint AS version,
-    vault.updated_at
-  FROM dna.active_core_details core
-  LEFT JOIN dna.owner_vault_core vault
-    ON vault.owner_id = core.owner_id
-    AND vault.core_id = core.id
-  WHERE
-    core.owner_id = $1::uuid
-    AND (
-      $2::text IS NULL
-      OR position(lower($2::text) in lower(core.source_core_id)) > 0
-      OR position(lower($2::text) in lower(core.display_name)) > 0
-    )
-    AND ($3::text IS NULL OR core.element = $3::text)
-    AND ($4::text IS NULL OR core.core_class = $4::text)
-    AND ($5::text IS NULL OR core.sex = $5::text)
-    AND ($6::integer IS NULL OR core.f_number = $6::integer)
-    AND ($7::text <> 'vault' OR COALESCE(vault.in_my_vault, false))
-  ORDER BY
-    CASE
-      WHEN $2::text IS NOT NULL AND core.source_core_id = $2::text THEN 0
-      WHEN $2::text IS NOT NULL AND lower(core.display_name) = lower($2::text) THEN 1
-      ELSE 2
-    END,
-    lower(core.display_name),
-    core.source_core_id
-  LIMIT $8::integer
+    source_core_id,
+    display_name,
+    core_class,
+    element,
+    f_number,
+    sex,
+    in_my_vault,
+    me_eligible,
+    version,
+    updated_at
+  FROM dna.search_owner_vault_catalogue(
+    $1::uuid,
+    $2::text,
+    $3::text,
+    $4::text,
+    $5::text,
+    $6::integer,
+    $7::text,
+    $8::integer
+  )
 `;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
