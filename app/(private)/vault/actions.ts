@@ -42,7 +42,9 @@ export async function updateVaultCoreAction(
   return updateOwnerVaultCore(input, dependencies());
 }
 
-export async function updateVaultCoreFormAction(formData: FormData): Promise<void> {
+export async function updateVaultCoreFormAction(
+  formData: FormData,
+): Promise<void> {
   let input;
   try {
     input = parseOwnerVaultMutationFormData(formData);
