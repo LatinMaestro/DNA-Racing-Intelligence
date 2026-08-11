@@ -219,7 +219,7 @@
 - Quarantine every ready row for an event when event time, mode, exact distance or gate count conflict within a batch or with a previously accepted event. Never silently overwrite the accepted event identity.
 - Use deterministic owner/event and owner/event/core identities with exact-replay idempotence, immutable batch provenance and optional links to authoritative Core Details IDs.
 - Continue deriving Gold eligibility only from `gate_count > 3` while preserving ineligible source Gold assignments and warnings.
-- Preserve exact elapsed-time and economic source values for audit, but leave normalized milliseconds, speed and race-derived economic transactions unavailable until their source semantics are validated.
+- Preserve exact elapsed-time and economic source values for audit. Elapsed-time seconds are owner-confirmed and may be normalized to integer milliseconds and metres-per-second speed; race-derived economic transactions remain subject to their separate validated semantics.
 - Rollback deselects the rolled-back batch's provenance and deactivates only materialized facts without another selected, non-rolled-back contribution.
 - Verify migration apply, normalized-fact completeness, conflict quarantine, replay, provenance, rollback, owner isolation, privilege revocation and full reversal using synthetic PostgreSQL 16 CI. Neon, private uploads and Production remain unchanged and gated.
 
@@ -351,7 +351,7 @@
 ## 2026-07-23 — Phase 2 core performance contract
 
 - Begin Phase 2 repository work while the first full private hosted import remains separately gated by Preview provider configuration and capacity evidence.
-- Accept performance observations only after elapsed time has been normalized to a positive integer millisecond value; do not guess the legacy source unit inside the analytical profile.
+- Accept performance observations after converting the owner-confirmed source seconds to positive integer milliseconds using `seconds * 1000`; reject non-integral millisecond results rather than guessing or silently rounding.
 - Key every profile by authoritative core ID, mode and exact distance. Bike, Car and Horse evidence and different exact distances never merge.
 - Keep fewer than 10 races hypothesis-only and label 10 or more minimally analytical rather than proven.
 - Expose best, median, mean, trimmed mean, population standard deviation, interquartile range and derived speed with transparent formulas and higher-speed/lower-time direction.
@@ -362,7 +362,7 @@
 ## 2026-07-23 — Race distance unit
 
 - The repository owner confirms that race distance values are measured in metres.
-- Phase 2 derived speed may therefore be labelled in metres per second after elapsed time is validated and normalized to milliseconds.
+- Phase 2 derived speed is labelled in metres per second because distance is metres and elapsed time is owner-confirmed seconds.
 
 ## 2026-07-23 — Phase 2 Core Intelligence workspace
 
@@ -1068,3 +1068,10 @@
   as the current operating state.
 - Production database schema/data, private object storage, queue providers and
   real private-data imports remain separately approval-gated and unchanged.
+
+## 11 August 2026 — Race elapsed-time source unit confirmed
+
+- The owner confirmed that Race Merge distance values are metres and elapsed-time values are seconds; for example, `52.500` means 52.500 seconds.
+- Normalize elapsed time with `elapsed_time_milliseconds = elapsed_time_seconds * 1000` and derive speed with `distance_metres / elapsed_time_seconds`.
+- Preserve the exact source decimal for provenance. The current integer-millisecond application boundary rejects sub-millisecond precision instead of silently rounding.
+- Use these semantics consistently in compact Core Intelligence profiles, Search Core, Discovery and future race-profile materialization. The earlier elapsed-time-unit-unconfirmed limitation is retired.
