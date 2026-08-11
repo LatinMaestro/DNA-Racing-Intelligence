@@ -237,6 +237,115 @@ describe("Discovery workspace service", () => {
       }),
     ).rejects.toThrow("repository status");
   });
+  it("derives Tournament relevance only from explicit exact-mode configuration", async () => {
+    const repository = createDiscoveryProbeRepository({
+      vaultRepository: {
+        status: "ready",
+        listCoresByOwner: async () => [
+          {
+            sourceCoreId: "owned-core",
+            displayName: "Owned Core",
+            coreClass: "Genesis",
+            element: "Fire",
+            fNumber: 1,
+            sex: "female",
+            inMyVault: true,
+            meEligible: false,
+            version: 1,
+            updatedAt: null,
+          },
+        ],
+      },
+      performanceRepository: {
+        status: "ready",
+        listProfilesByOwner: async () => ({
+          profiles: [],
+          lastImportedAt: null,
+        }),
+      },
+      lineageRepository: {
+        status: "ready",
+        listHypothesesByOwner: async () =>
+          [1_200, 1_400, 1_600].map((distanceMetres) => ({
+            coreId: "owned-core",
+            coreName: "Owned Core",
+            meEligible: false,
+            mode: "bike" as const,
+            distanceMetres,
+            lineageRelationship: "parent" as const,
+            lineageRaceCount: 10,
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            lastImportedAt: "2026-07-20T01:00:00.000Z",
+          })),
+      },
+      benchmarkRepository: {
+        status: "ready",
+        listBenchmarksByOwner: async () => [],
+      },
+      tournamentRepository: {
+        status: "ready",
+        listCandidateEvidenceByOwner: async () => ({
+          brackets: [
+            {
+              tournamentId: "bike-cup",
+              tournamentLabel: "Bike Cup",
+              bracketId: "bike-sprint",
+              splitLabel: "Bike Sprint",
+              mode: "bike",
+              eligibleDistancesMetres: [1_200],
+              discoveryRelevance: "priority",
+              qualificationMetricLabel: "Points",
+              configurationVersion: "config-v1",
+              candidateSnapshotVersion: "snapshot-v1",
+              candidates: [],
+            },
+            {
+              tournamentId: "bike-series",
+              tournamentLabel: "Bike Series",
+              bracketId: "bike-middle",
+              splitLabel: "Bike Middle",
+              mode: "bike",
+              eligibleDistancesMetres: [1_400],
+              discoveryRelevance: "eligible",
+              qualificationMetricLabel: "Points",
+              configurationVersion: "config-v1",
+              candidateSnapshotVersion: "snapshot-v1",
+              candidates: [],
+            },
+            {
+              tournamentId: "horse-cup",
+              tournamentLabel: "Horse Cup",
+              bracketId: "horse-distance",
+              splitLabel: "Horse Distance",
+              mode: "horse",
+              eligibleDistancesMetres: [1_600],
+              discoveryRelevance: "priority",
+              qualificationMetricLabel: "Points",
+              configurationVersion: "config-v1",
+              candidateSnapshotVersion: "snapshot-v1",
+              candidates: [],
+            },
+          ],
+          lastImportedAt: null,
+        }),
+      },
+    });
+
+    expect(repository.status).toBe("ready");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
+
+    await expect(
+      repository.listCandidateEvidenceByOwner("owner"),
+    ).resolves.toMatchObject({
+      candidates: [
+        { distanceMetres: 1_200, tournamentRelevance: "priority" },
+        { distanceMetres: 1_400, tournamentRelevance: "eligible" },
+        { distanceMetres: 1_600, tournamentRelevance: "none" },
+      ],
+    });
+  });
+
   it("filters only under-supported population hypotheses at the repository boundary", async () => {
     const repository = createDiscoveryProbeRepository({
       vaultRepository: {
@@ -305,6 +414,7 @@ describe("Discovery workspace service", () => {
         status: "ready",
         listBenchmarksByOwner: async () => [],
       },
+      tournamentRepository: { status: "not_configured" },
     });
 
     expect(repository.status).toBe("ready");
