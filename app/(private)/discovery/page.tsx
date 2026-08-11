@@ -1,6 +1,7 @@
 import { DiscoveryWorkspace } from "@/components/discovery-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
+import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import {
   createDiscoveryProbeRepository,
@@ -29,6 +30,10 @@ export default async function DiscoveryPage() {
         neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
       performanceRepository:
         neonCorePerformanceProfileRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
+      lineageRepository:
+        neonDiscoveryLineageHypothesisRepositoryFromEnvironment(
           databaseEnvironment,
         ),
     }),
