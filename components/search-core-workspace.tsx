@@ -108,8 +108,8 @@ function PerformanceProfile({
         </div>
       </dl>
       <p className="mt-4 text-xs text-[var(--muted)]">
-        Data current through {currentThrough}. Historical imported evidence only;
-        not live game state.
+        Data current through {currentThrough}. Historical imported evidence
+        only; not live game state.
       </p>
     </article>
   );
