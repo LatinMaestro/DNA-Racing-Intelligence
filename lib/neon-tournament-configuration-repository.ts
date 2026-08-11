@@ -498,26 +498,26 @@ export function createNeonTournamentConfigurationRepository(
                         candidate < earliest ? candidate : earliest,
                       );
                 return {
-                coreId: core.coreId,
-                leaderboardGroupId: "unassigned",
-                leaderboardGroupLabel: "Eligibility review required",
-                configurationVersion,
-                candidateSnapshotVersion,
-                eligibility: "review_required",
-                metricStatus: "unavailable",
-                metricRank: null,
-                metricEvidenceLabel: null,
-                timeEvidence: "unknown",
-                historicalStarSupport: "unavailable",
-                evidenceConfidence: "unknown",
-                maidenState: core.meEligible ? "eligible" : "not_eligible",
-                maidenModeDisposition: core.meEligible
-                  ? "unresolved"
-                  : "not_applicable",
-                dataCurrentThrough,
-                lastImported: lastImportedAt,
-                freshness: "unknown",
-              };
+                  coreId: core.coreId,
+                  leaderboardGroupId: "unassigned",
+                  leaderboardGroupLabel: "Eligibility review required",
+                  configurationVersion,
+                  candidateSnapshotVersion,
+                  eligibility: "review_required",
+                  metricStatus: "unavailable",
+                  metricRank: null,
+                  metricEvidenceLabel: null,
+                  timeEvidence: "unknown",
+                  historicalStarSupport: "unavailable",
+                  evidenceConfidence: "unknown",
+                  maidenState: core.meEligible ? "eligible" : "not_eligible",
+                  maidenModeDisposition: core.meEligible
+                    ? "unresolved"
+                    : "not_applicable",
+                  dataCurrentThrough,
+                  lastImported: lastImportedAt,
+                  freshness: "unknown",
+                };
               }),
             };
           },
