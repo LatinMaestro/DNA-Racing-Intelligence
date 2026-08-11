@@ -61,7 +61,7 @@ BEGIN
     p_candidate_snapshot_version,
     p_updated_at
   )
-  ON CONFLICT (owner_id, tournament_id, bracket_id)
+  ON CONFLICT ON CONSTRAINT tournament_configuration_pkey
   DO UPDATE SET
     tournament_label = EXCLUDED.tournament_label,
     split_label = EXCLUDED.split_label,
