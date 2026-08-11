@@ -29,7 +29,7 @@ const VERIFY_OWNER_SQL = `
   JOIN pg_catalog.pg_roles role ON role.rolname = session_user
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 `;
-const LIST_CONFIGURATIONS_SQL = `SELECT * FROM dna.list_complete_tournament_configurations($1::uuid)`;
+const LIST_CONFIGURATIONS_SQL = `SELECT * FROM dna.list_bound_tournament_configurations($1::uuid)`;
 const LIST_ACTIVE_VAULT_CORES_SQL = `
   SELECT core.source_core_id, vault.me_eligible
   FROM dna.owner_vault_core vault
@@ -223,7 +223,9 @@ export function createNeonTournamentConfigurationRepository(
       const authenticatedOwnerId = text(ownerId, "ownerId");
       const session = await sessionFactory(databaseUrl);
       try {
-        await session.client.query("BEGIN READ ONLY");
+        await session.client.query(
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        );
         await session.client.query(SET_OWNER_SCOPE_SQL, [databaseOwnerId]);
         verifyOwner(
           await session.client.query(VERIFY_OWNER_SQL, [
