@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DiscoveryWorkspace } from "@/components/discovery-workspace";
 import { attachDiscoveryBenchmarks } from "@/domain/discovery-benchmark";
+import { deriveDiscoveryDecisionGuidance } from "@/domain/discovery-decision-guidance";
 import { buildDiscoveryProbePlan } from "@/domain/discovery-probe-plan";
 
 describe("Discovery workspace", () => {
@@ -20,7 +21,8 @@ describe("Discovery workspace", () => {
   });
 
   it("renders bounded owner probe guidance with direct, star and benchmark evidence", () => {
-    const candidates = attachDiscoveryBenchmarks(
+    const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
       buildDiscoveryProbePlan([
         {
           coreId: "synthetic-core",
@@ -68,6 +70,7 @@ describe("Discovery workspace", () => {
           refreshedAt: "2026-07-20T01:00:00.000Z",
         },
       ],
+      ),
     );
     const html = renderToStaticMarkup(
       <DiscoveryWorkspace
@@ -111,7 +114,8 @@ describe("Discovery workspace", () => {
   ] as const)(
     "labels zero-race %s evidence without treating lineage as direct evidence",
     (lineageRelationship, expectedLabel) => {
-      const candidates = attachDiscoveryBenchmarks(
+      const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
         buildDiscoveryProbePlan([
           {
             coreId: "untested-core",
@@ -129,6 +133,7 @@ describe("Discovery workspace", () => {
           },
         ]),
         [],
+        ),
       );
       const html = renderToStaticMarkup(
         <DiscoveryWorkspace
@@ -148,7 +153,8 @@ describe("Discovery workspace", () => {
   );
 
   it("labels population evidence as supporting races rather than lineage", () => {
-    const candidates = attachDiscoveryBenchmarks(
+    const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
       buildDiscoveryProbePlan([
         {
           coreId: "population-core",
@@ -166,6 +172,7 @@ describe("Discovery workspace", () => {
         },
       ]),
       [],
+      ),
     );
     const html = renderToStaticMarkup(
       <DiscoveryWorkspace
