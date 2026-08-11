@@ -134,18 +134,12 @@ function normalizeDirectTimeEvidence(
     throw new Error("Direct time evidence requires direct races.");
   }
   const normalized = {
-    bestMilliseconds: positiveFinite(
-      value.bestMilliseconds,
-      "Direct best time",
-    ),
+    bestMilliseconds: positiveFinite(value.bestMilliseconds, "Direct best time"),
     medianMilliseconds: positiveFinite(
       value.medianMilliseconds,
       "Direct median time",
     ),
-    meanMilliseconds: positiveFinite(
-      value.meanMilliseconds,
-      "Direct mean time",
-    ),
+    meanMilliseconds: positiveFinite(value.meanMilliseconds, "Direct mean time"),
     standardDeviationMilliseconds: nonNegativeFinite(
       value.standardDeviationMilliseconds,
       "Direct time standard deviation",
@@ -189,7 +183,9 @@ function normalizeStarEvidence(
     blueReceivedCount: count(value.blueReceivedCount, "Blue received count"),
   };
   if (
-    Object.values(normalized).some((candidate) => candidate > directRaceCount) ||
+    Object.values(normalized).some(
+      (candidate) => candidate > directRaceCount,
+    ) ||
     normalized.goldAssignmentOpportunityCount >
       normalized.goldEligibleRaceCount ||
     normalized.goldReceivedCount >
