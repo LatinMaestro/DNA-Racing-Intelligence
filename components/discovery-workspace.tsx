@@ -53,6 +53,37 @@ function ratio(numerator: number, denominator: number): string {
   return `${numerator}/${denominator} (${rate}%)`;
 }
 
+function directTimeSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.directTimeEvidence;
+  if (evidence === null) return "Not yet available";
+  return `Best ${elapsed(evidence.bestMilliseconds)} · Median ${elapsed(evidence.medianMilliseconds)}`;
+}
+
+function consistencySummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.directTimeEvidence;
+  if (evidence === null) return "Not yet available";
+  return `Mean ${elapsed(evidence.meanMilliseconds)} · σ ${elapsed(evidence.standardDeviationMilliseconds)}`;
+}
+
+function goldSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.starEvidence;
+  if (evidence === null) return "No usable direct star profile";
+  const received = ratio(
+    evidence.goldReceivedCount,
+    evidence.goldAssignmentOpportunityCount,
+  );
+  return `${received} · ${evidence.goldEligibleRaceCount} Gold-eligible races`;
+}
+
+function blueSummary(candidate: DiscoveryProbeCandidate): string {
+  const evidence = candidate.starEvidence;
+  if (evidence === null) return "No usable direct star profile";
+  return ratio(
+    evidence.blueReceivedCount,
+    evidence.blueAssignmentOpportunityCount,
+  );
+}
+
 export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
@@ -198,36 +229,25 @@ export function DiscoveryWorkspace({
                   <div>
                     <dt className="text-[var(--muted)]">Direct time evidence</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.directTimeEvidence === null
-                        ? "Not yet available"
-                        : `Best ${elapsed(candidate.directTimeEvidence.bestMilliseconds)} · Median ${elapsed(candidate.directTimeEvidence.medianMilliseconds)}`}
+                      {directTimeSummary(candidate)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">Time consistency</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.directTimeEvidence === null
-                        ? "Not yet available"
-                        : `Mean ${elapsed(candidate.directTimeEvidence.meanMilliseconds)} · σ ${elapsed(candidate.directTimeEvidence.standardDeviationMilliseconds)}`}
+                      {consistencySummary(candidate)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">Gold support</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.starEvidence === null
-                        ? "No usable direct star profile"
-                        : `${ratio(candidate.starEvidence.goldReceivedCount, candidate.starEvidence.goldAssignmentOpportunityCount)} · ${candidate.starEvidence.goldEligibleRaceCount} Gold-eligible races`}
+                      {goldSummary(candidate)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">Blue support</dt>
                     <dd className="mt-1 font-semibold">
-                      {candidate.starEvidence === null
-                        ? "No usable direct star profile"
-                        : ratio(
-                            candidate.starEvidence.blueReceivedCount,
-                            candidate.starEvidence.blueAssignmentOpportunityCount,
-                          )}
+                      {blueSummary(candidate)}
                     </dd>
                   </div>
                 </dl>
