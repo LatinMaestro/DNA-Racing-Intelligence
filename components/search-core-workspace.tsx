@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import Link from "next/link";
 
 import type { SearchCorePageState } from "@/lib/search-core-service";
@@ -57,7 +58,9 @@ export function SearchCoreWorkspace({
 
       {!connected ? (
         <section className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6">
-          <h2 className="text-lg font-semibold">Core catalogue not connected</h2>
+          <h2 className="text-lg font-semibold">
+            Core catalogue not connected
+          </h2>
           <p className="mt-3 text-[var(--muted)]">
             {state.connectionStatus === "identity_not_connected"
               ? "The signed-in identity is not connected to the private owner allowlist."
@@ -181,9 +184,9 @@ export function SearchCoreWorkspace({
           <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <h3 className="font-semibold">Racing statistics</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              The Core Details identity is available now. The compact
-              Core Intelligence performance repository is not yet connected to
-              this route, so Bike, Car, Horse and exact-distance statistics are
+              The Core Details identity is available now. The compact Core
+              Intelligence performance repository is not yet connected to this
+              route, so Bike, Car, Horse and exact-distance statistics are
               deliberately shown as unavailable rather than inferred or scanned
               from raw multi-million-row history on this request.
             </p>
