@@ -5,69 +5,120 @@ import {
   saveTournamentConfiguration,
 } from "../lib/tournament-configuration-write-service";
 
-function validFormData() {
+function validPayload() {
+  return {
+    tournamentId: "spring-cup-2026",
+    tournamentLabel: "Spring Cup",
+    seasonLabel: "Season 12",
+    qualificationStartsAt: "2026-09-01T00:00:00.000Z",
+    qualificationEndsAt: "2026-09-07T23:59:59.000Z",
+    bracketId: "bike-a",
+    splitLabel: "Bike A",
+    mode: "bike",
+    eligibleDistancesMetres: [1600, 1200, 1600, 1400],
+    gateCount: 8,
+    entryFee: { amount: "0.0100", asset: "USD" },
+    raceFormat: "Paid qualification",
+    eligibility: {
+      breeds: ["Genesis", "Elite"],
+      classes: ["Bike"],
+      elements: ["Metal", "Fire"],
+      fNumbers: [3, 1, 2],
+      fNumberRanges: [{ minimum: 4, maximum: 6 }],
+      groups: [
+        {
+          id: "fire-metal",
+          label: "Fire + Metal",
+          breeds: [],
+          classes: ["Bike"],
+          elements: ["Metal", "Fire"],
+          fNumbers: [3, 1, 2],
+          fNumberRanges: [],
+        },
+      ],
+    },
+    leaderboard: {
+      splitDimension: "element_group",
+      groups: [{ id: "fire-metal", label: "Fire + Metal" }],
+      qualifyingRaceSemantics: "shared",
+    },
+    qualification: {
+      minimumRaceCount: 5,
+      target: { kind: "percentage", value: "10.000" },
+      rankingMetric: "top_x_finishes",
+      topFinishPosition: 3,
+      pointsTable: { "3": "3.0", "1": "10", "2": "6" },
+      customScoringConfiguration: {},
+    },
+    discoveryRelevance: "priority",
+    evidence: {
+      status: "confirmed",
+      notes: "Confirmed owner-entered rules.",
+      sourceEvidence: "Rules screenshot.",
+      provenance: { source: "owner_entry", version: "rules-v1" },
+    },
+    campaignAction: {
+      kind: "configured",
+      action: "Review candidates",
+      ownerAcknowledgedAt: "2026-08-12T00:00:00.000Z",
+      evidence: "Owner acknowledgement.",
+    },
+  };
+}
+
+function formData(payload: Record<string, unknown> = validPayload()) {
   const formData = new FormData();
-  formData.set("tournamentId", "spring-cup-2026");
-  formData.set("tournamentLabel", "Spring Cup");
-  formData.set("bracketId", "bike-a");
-  formData.set("splitLabel", "Bike A");
-  formData.set("mode", "bike");
-  formData.set("eligibleDistancesMetres", "1600, 1200, 1600, 1400");
-  formData.set("discoveryRelevance", "priority");
-  formData.set("qualificationMetricLabel", "Qualification points");
-  formData.set("configurationVersion", "config-2");
-  formData.set("candidateSnapshotVersion", "snapshot-3");
+  formData.set("ruleConfiguration", JSON.stringify(payload));
   return formData;
 }
 
 describe("Tournament configuration write service", () => {
-  it("normalizes a valid owner configuration form", () => {
-    expect(
-      parseTournamentConfigurationFormData(
-        validFormData(),
-        "2026-08-11T10:30:00.000Z",
-      ),
-    ).toEqual({
+  it("normalizes the complete rule model without accepting server metadata", () => {
+    const configuration = parseTournamentConfigurationFormData(formData());
+    expect(configuration).toMatchObject({
       tournamentId: "spring-cup-2026",
-      tournamentLabel: "Spring Cup",
-      bracketId: "bike-a",
-      splitLabel: "Bike A",
-      mode: "bike",
+      seasonLabel: "Season 12",
       eligibleDistancesMetres: [1200, 1400, 1600],
+      gateCount: 8,
+      entryFee: { amount: "0.01", asset: "USD" },
+      eligibility: {
+        elements: ["Fire", "Metal"],
+        fNumbers: [1, 2, 3],
+      },
+      qualification: {
+        target: { kind: "percentage", value: "10" },
+        rankingMetric: "top_x_finishes",
+      },
       discoveryRelevance: "priority",
-      qualificationMetricLabel: "Qualification points",
-      configurationVersion: "config-2",
-      candidateSnapshotVersion: "snapshot-3",
-      updatedAt: "2026-08-11T10:30:00.000Z",
     });
+    expect(configuration).not.toHaveProperty("configurationVersion");
+    expect(configuration).not.toHaveProperty("candidateSnapshotVersion");
+    expect(configuration).not.toHaveProperty("updatedAt");
   });
 
-  it("rejects invalid mode and invalid distance evidence", () => {
-    const invalidMode = validFormData();
-    invalidMode.set("mode", "spaceship");
-    expect(() =>
-      parseTournamentConfigurationFormData(
-        invalidMode,
-        "2026-08-11T10:30:00.000Z",
-      ),
-    ).toThrow("Mode is invalid");
+  it("rejects malformed, incomplete, or client-versioned payloads", () => {
+    const malformed = new FormData();
+    malformed.set("ruleConfiguration", "{");
+    expect(() => parseTournamentConfigurationFormData(malformed)).toThrow(
+      "valid JSON",
+    );
 
-    const invalidDistance = validFormData();
-    invalidDistance.set("eligibleDistancesMetres", "1200, nope");
     expect(() =>
       parseTournamentConfigurationFormData(
-        invalidDistance,
-        "2026-08-11T10:30:00.000Z",
+        formData({ ...validPayload(), mode: "spaceship" }),
       ),
-    ).toThrow("Eligible distances are invalid");
+    ).toThrow("mode is invalid");
+
+    expect(() =>
+      parseTournamentConfigurationFormData(
+        formData({ ...validPayload(), configurationVersion: "client-v1" }),
+      ),
+    ).toThrow("cannot set server field configurationVersion");
   });
 
   it("requires exact owner identity before invoking persistence", async () => {
     const saveByOwner = vi.fn(async () => undefined);
-    const configuration = parseTournamentConfigurationFormData(
-      validFormData(),
-      "2026-08-11T10:30:00.000Z",
-    );
+    const configuration = parseTournamentConfigurationFormData(formData());
 
     await expect(
       saveTournamentConfiguration({
