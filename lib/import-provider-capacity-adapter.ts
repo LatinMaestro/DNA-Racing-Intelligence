@@ -283,10 +283,7 @@ function validateUploadCapacityRequest(
     }
     sourceFamilySet.add(family);
   }
-  if (
-    sourceFamilySet.size === 0 ||
-    sourceFamilySet.size !== request.sourceFamilies.length
-  ) {
+  if (sourceFamilySet.size === 0) {
     throw new Error("sourceFamilies is invalid");
   }
   return {
