@@ -30,7 +30,9 @@ export function OwnerVaultStatus({
         <div>
           <dt className="text-[var(--muted)]">Active cores</dt>
           <dd className="mt-1 font-medium">
-            {connected ? state.cores.length.toLocaleString("en-AU") : "Not available"}
+            {connected
+              ? state.cores.length.toLocaleString("en-AU")
+              : "Not available"}
           </dd>
         </div>
         <div>
