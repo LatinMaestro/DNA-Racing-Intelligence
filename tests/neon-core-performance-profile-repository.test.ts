@@ -101,7 +101,7 @@ describe("Neon Core Intelligence profile repository", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it("reads bounded compact owner-Vault profiles with normalized units", async () => {
+  it("reads bounded compact owner profiles with normalized units", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
@@ -134,9 +134,21 @@ describe("Neon Core Intelligence profile repository", () => {
     const readCall = test.calls.find((call) =>
       call.statement.includes("dna.list_core_performance_profiles"),
     );
-    expect(readCall?.values).toEqual([databaseOwnerId, 5000]);
-    expect(readCall?.statement).toContain("NULL::text");
+    expect(readCall?.values).toEqual([databaseOwnerId, null, 5000]);
     expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("bounds an exact Core lookup without scanning the full profile set", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [profileRow],
+    ]);
+    await ready(test).listProfilesByOwner(clerkOwnerId, "core-7");
+    const readCall = test.calls.find((call) =>
+      call.statement.includes("dna.list_core_performance_profiles"),
+    );
+    expect(readCall?.values).toEqual([databaseOwnerId, "core-7", 250]);
   });
 
   it("fails closed before profile access for unsafe isolation or privileges", async () => {

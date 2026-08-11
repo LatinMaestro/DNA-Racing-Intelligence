@@ -17,6 +17,7 @@ export type CorePerformanceProfileRepository =
       status: "ready";
       listProfilesByOwner: (
         ownerId: string,
+        coreId?: string | null,
       ) => Promise<CorePerformanceProjection>;
     }>;
 
