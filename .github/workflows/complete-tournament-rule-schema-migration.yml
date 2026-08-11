@@ -1,0 +1,67 @@
+name: Complete Tournament rule schema migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0024_complete_tournament_rule_schema.*.sql"
+      - ".github/workflows/complete-tournament-rule-schema-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  complete-tournament-rule-schema-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0024_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Apply complete Tournament rule schema migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0024_complete_tournament_rule_schema.up.sql
+      - name: Run complete Tournament rule schema smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0024_complete_tournament_rule_schema.smoke.sql
+      - name: Reverse complete Tournament rule schema migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0024_complete_tournament_rule_schema.down.sql
+      - name: Verify complete Tournament rule columns were removed
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'dna'
+          AND table_name = 'tournament_configuration'
+          AND column_name = 'season_label'
+          ) THEN RAISE EXCEPTION 'complete Tournament rule columns remain';
+          END IF; END \$\$;"
