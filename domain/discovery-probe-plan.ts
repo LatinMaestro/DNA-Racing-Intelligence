@@ -13,12 +13,30 @@ export const probeLineageRelationships = [
 export type ProbeLineageRelationship =
   (typeof probeLineageRelationships)[number];
 
+export type DiscoveryDirectTimeEvidence = Readonly<{
+  bestMilliseconds: number;
+  medianMilliseconds: number;
+  meanMilliseconds: number;
+  standardDeviationMilliseconds: number;
+}>;
+
+export type DiscoveryStarEvidence = Readonly<{
+  completeStarDataRaceCount: number;
+  goldEligibleRaceCount: number;
+  goldAssignmentOpportunityCount: number;
+  goldReceivedCount: number;
+  blueAssignmentOpportunityCount: number;
+  blueReceivedCount: number;
+}>;
+
 export type DiscoveryProbeCandidateInput = Readonly<{
   coreId: string;
   coreName: string;
   mode: ProbeMode;
   distanceMetres: number;
   directRaceCount: number;
+  directTimeEvidence?: DiscoveryDirectTimeEvidence | null;
+  starEvidence?: DiscoveryStarEvidence | null;
   lineageRelationship: ProbeLineageRelationship | null;
   lineageResolved: boolean;
   lineageRaceCount: number;
@@ -34,6 +52,9 @@ export type DiscoveryProbeCandidate = Readonly<{
   mode: ProbeMode;
   distanceMetres: number;
   directRaceCount: number;
+  directTimeEvidence: DiscoveryDirectTimeEvidence | null;
+  starEvidence: DiscoveryStarEvidence | null;
+  confidence: "low" | "moderate" | "high";
   observationsToMinimum: number;
   recommendedInitialProbeSize: number;
   guidance:
@@ -57,6 +78,8 @@ export type DiscoveryProbeCandidate = Readonly<{
     | "MAIDEN_STATE_UNRESOLVED"
     | "LINEAGE_UNRESOLVED"
     | "LINEAGE_SAMPLE_UNAVAILABLE"
+    | "DIRECT_TIME_EVIDENCE_UNAVAILABLE"
+    | "STAR_EVIDENCE_UNAVAILABLE"
     | "DATA_CUTOFF_UNKNOWN"
     | "DATA_STALE"
   )[];
@@ -79,6 +102,20 @@ function count(value: number, label: string): number {
   return value;
 }
 
+function positiveFinite(value: number, label: string): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${label} must be positive and finite.`);
+  }
+  return value;
+}
+
+function nonNegativeFinite(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be non-negative and finite.`);
+  }
+  return value;
+}
+
 function timestamp(value: string | null): string | null {
   if (value === null) return null;
   const parsed = Date.parse(value);
@@ -86,6 +123,109 @@ function timestamp(value: string | null): string | null {
     throw new Error("Data current through must be valid.");
   }
   return new Date(parsed).toISOString();
+}
+
+function normalizeDirectTimeEvidence(
+  value: DiscoveryDirectTimeEvidence | null | undefined,
+  directRaceCount: number,
+): DiscoveryDirectTimeEvidence | null {
+  if (value === null || value === undefined) return null;
+  if (directRaceCount === 0) {
+    throw new Error("Direct time evidence requires direct races.");
+  }
+  const normalized = {
+    bestMilliseconds: positiveFinite(
+      value.bestMilliseconds,
+      "Direct best time",
+    ),
+    medianMilliseconds: positiveFinite(
+      value.medianMilliseconds,
+      "Direct median time",
+    ),
+    meanMilliseconds: positiveFinite(
+      value.meanMilliseconds,
+      "Direct mean time",
+    ),
+    standardDeviationMilliseconds: nonNegativeFinite(
+      value.standardDeviationMilliseconds,
+      "Direct time standard deviation",
+    ),
+  };
+  if (
+    normalized.bestMilliseconds > normalized.medianMilliseconds ||
+    normalized.bestMilliseconds > normalized.meanMilliseconds
+  ) {
+    throw new Error("Direct time evidence is inconsistent.");
+  }
+  return normalized;
+}
+
+function normalizeStarEvidence(
+  value: DiscoveryStarEvidence | null | undefined,
+  directRaceCount: number,
+): DiscoveryStarEvidence | null {
+  if (value === null || value === undefined) return null;
+  if (directRaceCount === 0) {
+    throw new Error("Star evidence requires direct races.");
+  }
+  const normalized: DiscoveryStarEvidence = {
+    completeStarDataRaceCount: count(
+      value.completeStarDataRaceCount,
+      "Complete star-data race count",
+    ),
+    goldEligibleRaceCount: count(
+      value.goldEligibleRaceCount,
+      "Gold-eligible race count",
+    ),
+    goldAssignmentOpportunityCount: count(
+      value.goldAssignmentOpportunityCount,
+      "Gold assignment opportunity count",
+    ),
+    goldReceivedCount: count(value.goldReceivedCount, "Gold received count"),
+    blueAssignmentOpportunityCount: count(
+      value.blueAssignmentOpportunityCount,
+      "Blue assignment opportunity count",
+    ),
+    blueReceivedCount: count(value.blueReceivedCount, "Blue received count"),
+  };
+  if (
+    Object.values(normalized).some((candidate) => candidate > directRaceCount) ||
+    normalized.goldAssignmentOpportunityCount >
+      normalized.goldEligibleRaceCount ||
+    normalized.goldReceivedCount >
+      normalized.goldAssignmentOpportunityCount ||
+    normalized.blueReceivedCount >
+      normalized.blueAssignmentOpportunityCount
+  ) {
+    throw new Error("Star evidence is inconsistent with the direct sample.");
+  }
+  return normalized;
+}
+
+function confidenceFor(input: Readonly<{
+  directRaceCount: number;
+  directTimeEvidence: DiscoveryDirectTimeEvidence | null;
+  starEvidence: DiscoveryStarEvidence | null;
+  freshness: DiscoveryProbeCandidateInput["freshness"];
+  unusable: boolean;
+}>): DiscoveryProbeCandidate["confidence"] {
+  if (input.unusable || input.directRaceCount === 0) return "low";
+  const starCoverage =
+    input.starEvidence === null
+      ? 0
+      : input.starEvidence.completeStarDataRaceCount / input.directRaceCount;
+  if (
+    input.directRaceCount >= 10 &&
+    input.directTimeEvidence !== null &&
+    starCoverage >= 0.5 &&
+    input.freshness === "current"
+  ) {
+    return "high";
+  }
+  if (input.directRaceCount >= 4 && input.directTimeEvidence !== null) {
+    return "moderate";
+  }
+  return "low";
 }
 
 function normalize(
@@ -125,6 +265,14 @@ function normalize(
   }
 
   const directRaceCount = count(input.directRaceCount, "Direct race count");
+  const directTimeEvidence = normalizeDirectTimeEvidence(
+    input.directTimeEvidence,
+    directRaceCount,
+  );
+  const starEvidence = normalizeStarEvidence(
+    input.starEvidence,
+    directRaceCount,
+  );
   const lineageRaceCount = count(input.lineageRaceCount, "Lineage race count");
   if (input.lineageRelationship === null && lineageRaceCount !== 0) {
     throw new Error("Lineage race count requires a lineage relationship.");
@@ -145,6 +293,12 @@ function normalize(
   if (!input.lineageResolved) warnings.add("LINEAGE_UNRESOLVED");
   if (input.lineageRelationship !== null && lineageRaceCount === 0) {
     warnings.add("LINEAGE_SAMPLE_UNAVAILABLE");
+  }
+  if (directRaceCount > 0 && directTimeEvidence === null) {
+    warnings.add("DIRECT_TIME_EVIDENCE_UNAVAILABLE");
+  }
+  if (directRaceCount > 0 && starEvidence === null) {
+    warnings.add("STAR_EVIDENCE_UNAVAILABLE");
   }
   if (dataCurrentThrough === null || input.freshness === "unknown") {
     warnings.add("DATA_CUTOFF_UNKNOWN");
@@ -169,6 +323,15 @@ function normalize(
     mode: input.mode,
     distanceMetres: input.distanceMetres,
     directRaceCount,
+    directTimeEvidence,
+    starEvidence,
+    confidence: confidenceFor({
+      directRaceCount,
+      directTimeEvidence,
+      starEvidence,
+      freshness: input.freshness,
+      unusable,
+    }),
     observationsToMinimum,
     recommendedInitialProbeSize,
     guidance: unusable
