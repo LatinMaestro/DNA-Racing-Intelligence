@@ -42,17 +42,16 @@ export async function updateVaultCoreAction(
   return updateOwnerVaultCore(input, dependencies());
 }
 
-export async function updateVaultCoreFormAction(formData: FormData) {
+export async function updateVaultCoreFormAction(formData: FormData): Promise<void> {
   let input;
   try {
     input = parseOwnerVaultMutationFormData(formData);
   } catch {
-    return { status: "invalid_request" as const };
+    return;
   }
 
   const result = await updateOwnerVaultCore(input, dependencies());
   if (result.status === "updated") {
     revalidatePath("/vault");
   }
-  return result;
 }
