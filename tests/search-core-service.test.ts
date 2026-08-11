@@ -21,7 +21,7 @@ const core = {
 };
 
 describe("Search Core service", () => {
-  it("does not expose catalogue rows before a search", async () => {
+  it("does not query or expose catalogue rows before a search", async () => {
     const listCoresByOwner = vi.fn(async () => [core]);
     const repository: OwnerVaultCatalogueRepository = {
       status: "ready",
@@ -39,6 +39,7 @@ describe("Search Core service", () => {
       selectedCore: null,
       performanceStatus: "not_connected",
     } satisfies Partial<SearchCorePageState>);
+    expect(listCoresByOwner).not.toHaveBeenCalled();
   });
 
   it("searches the game-wide Core Details catalogue rather than My Vault only", async () => {
