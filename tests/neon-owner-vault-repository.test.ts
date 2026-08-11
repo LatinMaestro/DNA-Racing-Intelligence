@@ -39,7 +39,11 @@ function queryHarness(sequence: readonly (readonly unknown[] | Error)[]) {
   const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
     const normalized = statement.replace(/\s+/g, " ").trim();
     events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(normalized)) {
+    if (
+      ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+        normalized,
+      )
+    ) {
       return { rows: [] };
     }
     const next = sequence[index++] ?? [];
@@ -139,11 +143,12 @@ describe("Neon owner Vault repository", () => {
       [ownerEvidence()],
       [],
     ]);
-    await expect(repository(test).setCoreState(mutation())).resolves.toMatchObject({
+    await expect(repository(test).setCoreState(mutation())).resolves.toEqual({
       status: "core_unavailable",
-      sourceCoreId: "core-1",
     });
-    expect(test.events.some((event) => event.includes("set_owner_vault_core"))).toBe(false);
+    expect(
+      test.events.some((event) => event.includes("set_owner_vault_core")),
+    ).toBe(false);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
@@ -152,10 +157,17 @@ describe("Neon owner Vault repository", () => {
       ownerEvidence({ vault_force_row_security_enabled: false }),
       ownerEvidence({ runtime_bypasses_rls: true }),
     ]) {
-      const test = queryHarness([[{ owner_scope: databaseOwnerId }], [evidence]]);
-      await expect(repository(test).setCoreState(mutation())).rejects.toThrow(/forced owner RLS|least privileged/);
+      const test = queryHarness([
+        [{ owner_scope: databaseOwnerId }],
+        [evidence],
+      ]);
+      await expect(repository(test).setCoreState(mutation())).rejects.toThrow(
+        /forced owner RLS|least privileged/,
+      );
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
-      expect(test.events.some((event) => event.includes("FROM dna.core core"))).toBe(false);
+      expect(
+        test.events.some((event) => event.includes("FROM dna.core core")),
+      ).toBe(false);
     }
   });
 
@@ -166,9 +178,8 @@ describe("Neon owner Vault repository", () => {
       [{ core_id: coreId, source_core_id: "core-1" }],
       new Error("Vault state changed; refresh before retrying"),
     ]);
-    await expect(repository(test).setCoreState(mutation())).resolves.toMatchObject({
+    await expect(repository(test).setCoreState(mutation())).resolves.toEqual({
       status: "conflict",
-      sourceCoreId: "core-1",
     });
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
