@@ -26,9 +26,13 @@ export type DiscoveryDecisionCandidate = DiscoveryBenchmarkedCandidate &
     decisionActionable: boolean;
   }>;
 
-function hasPositiveStarSignal(candidate: DiscoveryBenchmarkedCandidate): boolean {
+function hasPositiveStarSignal(
+  candidate: DiscoveryBenchmarkedCandidate,
+): boolean {
   const star = candidate.starEvidence;
-  return star !== null && (star.goldReceivedCount > 0 || star.blueReceivedCount > 0);
+  return (
+    star !== null && (star.goldReceivedCount > 0 || star.blueReceivedCount > 0)
+  );
 }
 
 export function deriveDiscoveryDecisionGuidance(
@@ -90,7 +94,10 @@ export function deriveDiscoveryDecisionGuidance(
         ...candidate,
         decisionGuidance: "continue_single_confirmation",
         decisionReason: "small_sample_needs_confirmation",
-        recommendedDecisionProbeSize: Math.min(1, candidate.observationsToMinimum),
+        recommendedDecisionProbeSize: Math.min(
+          1,
+          candidate.observationsToMinimum,
+        ),
         decisionActionable: true,
       };
     }
