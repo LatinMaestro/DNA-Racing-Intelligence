@@ -8,10 +8,16 @@ function editableConfiguration(
     TournamentCandidateRankingResult["ruleConfiguration"]
   >,
 ): string {
-  const editable: Partial<typeof configuration> = { ...configuration };
-  delete editable.configurationVersion;
-  delete editable.candidateSnapshotVersion;
-  delete editable.updatedAt;
+  const serverDerivedFields = new Set([
+    "configurationVersion",
+    "candidateSnapshotVersion",
+    "updatedAt",
+  ]);
+  const editable = Object.fromEntries(
+    Object.entries(configuration).filter(
+      ([field]) => !serverDerivedFields.has(field),
+    ),
+  );
   return JSON.stringify(editable, null, 2);
 }
 
