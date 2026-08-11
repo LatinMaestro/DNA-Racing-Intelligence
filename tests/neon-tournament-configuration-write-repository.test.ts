@@ -36,11 +36,9 @@ function harness(sequence: readonly (readonly unknown[] | Error)[]) {
         values ? `${normalized}|${JSON.stringify(values)}` : normalized,
       );
       if (
-        [
-          "BEGIN ISOLATION LEVEL SERIALIZABLE",
-          "COMMIT",
-          "ROLLBACK",
-        ].includes(normalized)
+        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+          normalized,
+        )
       ) {
         return { rows: [] };
       }
@@ -113,7 +111,9 @@ describe("Neon Tournament configuration write repository", () => {
       repository(test).saveByOwner(authenticatedOwnerId, configuration),
     ).resolves.toBeUndefined();
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE");
-    expect(test.events[2]).toContain("'dna.tournament_configuration'::regclass");
+    expect(test.events[2]).toContain(
+      "'dna.tournament_configuration'::regclass",
+    );
     expect(test.events[3]).toContain("dna.upsert_tournament_configuration");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
