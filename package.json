@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write components/search-core-workspace.tsx lib/search-core-service.ts tests/search-core-service.test.ts && git diff -- components/search-core-workspace.tsx lib/search-core-service.ts tests/search-core-service.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
