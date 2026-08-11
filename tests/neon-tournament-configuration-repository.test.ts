@@ -133,8 +133,20 @@ describe("Neon Tournament configuration repository", () => {
       [ownerEvidence()],
       [completeConfigurationRow()],
       [
-        { source_core_id: "core-2", me_eligible: false },
-        { source_core_id: "core-7", me_eligible: true },
+        {
+          source_core_id: "core-2",
+          core_class: "Genesis",
+          element: "Fire",
+          f_number: 3,
+          me_eligible: false,
+        },
+        {
+          source_core_id: "core-7",
+          core_class: "Morphed",
+          element: "Water",
+          f_number: 2,
+          me_eligible: true,
+        },
       ],
       [
         {
@@ -216,8 +228,9 @@ describe("Neon Tournament configuration repository", () => {
       candidates: [
         {
           coreId: "core-2",
-          leaderboardGroupId: "unassigned",
-          eligibility: "review_required",
+          leaderboardGroupId: "fire",
+          leaderboardGroupLabel: "Fire",
+          eligibility: "eligible",
           maidenState: "not_eligible",
           dataCurrentThrough: "2026-07-20T00:00:00.000Z",
           lastImported: "2026-08-01T03:00:00.000Z",
@@ -225,8 +238,9 @@ describe("Neon Tournament configuration repository", () => {
         },
         {
           coreId: "core-7",
-          leaderboardGroupId: "unassigned",
-          eligibility: "review_required",
+          leaderboardGroupId: "ineligible",
+          leaderboardGroupLabel: "Ineligible for configured bracket",
+          eligibility: "ineligible",
           maidenState: "eligible",
           maidenModeDisposition: "unresolved",
           dataCurrentThrough: "2026-07-25T00:00:00.000Z",
@@ -245,6 +259,7 @@ describe("Neon Tournament configuration repository", () => {
       "dna.list_bound_tournament_configurations",
     );
     expect(test.events[4]).toContain("dna.owner_vault_core");
+    expect(test.events[4]).toContain("dna.active_core_details");
     expect(test.events[4]).toContain("vault.in_my_vault");
     expect(test.events[5]).toContain("dna.list_core_performance_profiles");
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
@@ -255,7 +270,15 @@ describe("Neon Tournament configuration repository", () => {
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
       [completeConfigurationRow()],
-      [{ source_core_id: "core-2", me_eligible: false }],
+      [
+        {
+          source_core_id: "core-2",
+          core_class: "Genesis",
+          element: "Fire",
+          f_number: 3,
+          me_eligible: false,
+        },
+      ],
       [
         {
           core_id: "core-2",
