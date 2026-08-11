@@ -79,21 +79,21 @@ export function createDiscoveryProbeRepository(
         benchmarks,
         tournamentEvidence,
       ] = await Promise.all([
-          vaultRepository.listCoresByOwner(ownerId, {
-            scope: "vault",
-            query: null,
-            element: null,
-            coreClass: null,
-            sex: null,
-            fNumber: null,
-          }),
-          performanceRepository.listProfilesByOwner(ownerId),
-          lineageRepository.listHypothesesByOwner(ownerId),
-          benchmarkRepository.listBenchmarksByOwner(ownerId),
-          tournamentRepository.status === "ready"
-            ? tournamentRepository.listCandidateEvidenceByOwner(ownerId)
-            : Promise.resolve({ brackets: [], lastImportedAt: null }),
-        ]);
+        vaultRepository.listCoresByOwner(ownerId, {
+          scope: "vault",
+          query: null,
+          element: null,
+          coreClass: null,
+          sex: null,
+          fNumber: null,
+        }),
+        performanceRepository.listProfilesByOwner(ownerId),
+        lineageRepository.listHypothesesByOwner(ownerId),
+        benchmarkRepository.listBenchmarksByOwner(ownerId),
+        tournamentRepository.status === "ready"
+          ? tournamentRepository.listCandidateEvidenceByOwner(ownerId)
+          : Promise.resolve({ brackets: [], lastImportedAt: null }),
+      ]);
       const ownedById = new Map(
         ownedCores
           .filter((core) => core.inMyVault)
@@ -144,12 +144,11 @@ export function createDiscoveryProbeRepository(
             lineageRelationship: null,
             lineageResolved: true,
             lineageRaceCount: 0,
-            tournamentRelevance:
-              tournamentDiscoveryRelevanceForExactDistance(
-                tournamentConfigurations,
-                profile.mode,
-                profile.distance,
-              ),
+            tournamentRelevance: tournamentDiscoveryRelevanceForExactDistance(
+              tournamentConfigurations,
+              profile.mode,
+              profile.distance,
+            ),
             maidenState: core.meEligible ? "eligible" : "not_eligible",
             freshness: profile.freshness,
             dataCurrentThrough: profile.dataCurrentThrough,
@@ -174,12 +173,11 @@ export function createDiscoveryProbeRepository(
           lineageRelationship: hypothesis.lineageRelationship,
           lineageResolved: true,
           lineageRaceCount: hypothesis.lineageRaceCount,
-          tournamentRelevance:
-            tournamentDiscoveryRelevanceForExactDistance(
-              tournamentConfigurations,
-              hypothesis.mode,
-              hypothesis.distanceMetres,
-            ),
+          tournamentRelevance: tournamentDiscoveryRelevanceForExactDistance(
+            tournamentConfigurations,
+            hypothesis.mode,
+            hypothesis.distanceMetres,
+          ),
           maidenState: hypothesis.meEligible ? "eligible" : "not_eligible",
           freshness: "stale",
           dataCurrentThrough: hypothesis.dataCurrentThrough,
