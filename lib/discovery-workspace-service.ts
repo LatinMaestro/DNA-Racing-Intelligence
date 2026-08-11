@@ -5,6 +5,7 @@ import {
 } from "@/domain/discovery-probe-plan";
 import { deriveFreshness } from "@/domain/freshness";
 import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 
 export type DiscoveryProbeRepository =
@@ -37,21 +38,24 @@ export function createDiscoveryProbeRepository(
   input: Readonly<{
     vaultRepository: OwnerVaultCatalogueRepository;
     performanceRepository: CorePerformanceProfileRepository;
+    lineageRepository: DiscoveryLineageHypothesisRepository;
   }>,
 ): DiscoveryProbeRepository {
   if (
     input.vaultRepository.status !== "ready" ||
-    input.performanceRepository.status !== "ready"
+    input.performanceRepository.status !== "ready" ||
+    input.lineageRepository.status !== "ready"
   ) {
     return unavailableDiscoveryProbeRepository;
   }
 
   const vaultRepository = input.vaultRepository;
   const performanceRepository = input.performanceRepository;
+  const lineageRepository = input.lineageRepository;
   return {
     status: "ready",
     async listCandidateEvidenceByOwner(ownerId) {
-      const [ownedCores, performance] = await Promise.all([
+      const [ownedCores, performance, lineageHypotheses] = await Promise.all([
         vaultRepository.listCoresByOwner(ownerId, {
           scope: "vault",
           query: null,
@@ -61,6 +65,7 @@ export function createDiscoveryProbeRepository(
           fNumber: null,
         }),
         performanceRepository.listProfilesByOwner(ownerId),
+        lineageRepository.listHypothesesByOwner(ownerId),
       ]);
       const ownedById = new Map(
         ownedCores
@@ -68,7 +73,7 @@ export function createDiscoveryProbeRepository(
           .map((core) => [core.sourceCoreId, core] as const),
       );
 
-      const candidates = performance.profiles
+      const directCandidates = performance.profiles
         .filter(
           (profile) => ownedById.has(profile.coreId) && profile.raceCount < 10,
         )
@@ -90,9 +95,37 @@ export function createDiscoveryProbeRepository(
           };
         });
 
+      const lineageCandidates = lineageHypotheses.map(
+        (hypothesis): DiscoveryProbeCandidateInput => ({
+          coreId: hypothesis.coreId,
+          coreName: hypothesis.coreName,
+          mode: hypothesis.mode,
+          distanceMetres: hypothesis.distanceMetres,
+          directRaceCount: 0,
+          lineageRelationship: hypothesis.lineageRelationship,
+          lineageResolved: true,
+          lineageRaceCount: hypothesis.lineageRaceCount,
+          tournamentRelevance: "none",
+          maidenState: hypothesis.meEligible ? "eligible" : "not_eligible",
+          freshness: "stale",
+          dataCurrentThrough: hypothesis.dataCurrentThrough,
+        }),
+      );
+
+      const importTimestamps = [
+        performance.lastImportedAt,
+        ...lineageHypotheses.map((hypothesis) => hypothesis.lastImportedAt),
+      ].filter((value): value is string => value !== null);
+      const lastImportedAt =
+        importTimestamps.length === 0
+          ? null
+          : importTimestamps.reduce((latest, value) =>
+              Date.parse(value) > Date.parse(latest) ? value : latest,
+            );
+
       return {
-        candidates,
-        lastImportedAt: performance.lastImportedAt,
+        candidates: [...directCandidates, ...lineageCandidates],
+        lastImportedAt,
       };
     },
   };
