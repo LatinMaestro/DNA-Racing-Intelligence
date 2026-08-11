@@ -132,8 +132,7 @@ export function TournamentWorkspace({
                       {label(bracket.mode)} ·{" "}
                       {bracket.eligibleDistancesMetres
                         .map(
-                          (distance) =>
-                            `${distance.toLocaleString("en-AU")} m`,
+                          (distance) => `${distance.toLocaleString("en-AU")} m`,
                         )
                         .join(" · ")}{" "}
                       · {label(bracket.discoveryRelevance)} Discovery relevance
