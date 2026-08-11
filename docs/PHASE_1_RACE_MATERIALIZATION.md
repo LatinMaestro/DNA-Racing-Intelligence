@@ -55,13 +55,17 @@ class and source timestamp values remain attached to `race_entry_source` for
 private audit. Routine logs continue to expose counts and stable issue codes
 only.
 
-## Deliberately deferred semantics
+## Confirmed elapsed-time semantics
 
-The supplied elapsed-time unit has not yet been confirmed. The exact source
-decimal is therefore retained while `elapsed_time_milliseconds` and
-`speed_microunits` remain null. No unit conversion is guessed.
+Race distances are metres and the exact positive elapsed-time source decimal is
+seconds. Materialization preserves that source decimal, derives
+`elapsed_time_milliseconds = elapsed_time_seconds * 1000`, and derives speed in
+metres per second as `distance_metres / elapsed_time_seconds`. The integer
+millisecond boundary rejects source precision that cannot be represented exactly
+instead of silently rounding it. Compact Core Intelligence profiles are rebuilt
+from active, owner-scoped accepted facts.
 
-Race fee, payout, prize and asset semantics also remain unvalidated.
+Race fee, payout, prize and asset semantics remain separately validated.
 Materialized entries retain `economic_data_status = unvalidated`, and this
 migration cannot create an `economic_transaction`. Gate B still requires
 representative-data validation before race-derived accounting.
@@ -93,7 +97,7 @@ PostgreSQL 16 CI verifies:
 - typed normalized staging and manifest completeness;
 - whole-event conflict quarantine within and across batches;
 - deterministic event, entry and known-core materialization;
-- raw source provenance retention without elapsed-time or economic inference;
+- raw seconds provenance plus exact millisecond and metres-per-second derivation;
 - preservation of ineligible source Gold with derived eligibility;
 - exact replay without duplicate versions, entries or provenance;
 - cumulative activation and rollback to the prior active fact set;
