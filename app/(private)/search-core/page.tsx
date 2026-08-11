@@ -35,9 +35,8 @@ export default async function SearchCorePage({
   const state = await loadSearchCorePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: neonOwnerVaultCatalogueRepositoryFromEnvironment(
-      databaseEnvironment,
-    ),
+    repository:
+      neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
     performanceRepository:
       neonCorePerformanceProfileRepositoryFromEnvironment(databaseEnvironment),
     now: new Date(),
