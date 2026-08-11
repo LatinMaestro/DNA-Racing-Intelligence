@@ -1,9 +1,84 @@
 import Link from "next/link";
 
+import type { CorePerformanceProfile } from "@/domain/core-performance";
 import type { SearchCorePageState } from "@/lib/search-core-service";
 
 function label(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function seconds(milliseconds: number): string {
+  return `${(milliseconds / 1_000).toFixed(3)} s`;
+}
+
+function percentage(numerator: number, denominator: number): string {
+  if (denominator === 0) return "—";
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
+function PerformanceProfile({
+  profile,
+}: Readonly<{ profile: CorePerformanceProfile }>) {
+  const stars = profile.starProfile;
+  return (
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="font-semibold">
+            {label(profile.mode)} · {profile.distance.toLocaleString("en-AU")} m
+          </h4>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {profile.raceCount.toLocaleString("en-AU")} races · {label(profile.freshness)} · {profile.sampleStatus === "minimally_analytical" ? "10+ race minimum reached" : "Hypothesis only"}
+          </p>
+        </div>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        <div>
+          <dt className="text-[var(--muted)]">Best time</dt>
+          <dd className="font-semibold">{seconds(profile.elapsedTime.bestMilliseconds)}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Median time</dt>
+          <dd className="font-semibold">{seconds(profile.elapsedTime.medianMilliseconds)}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Average time</dt>
+          <dd className="font-semibold">{seconds(profile.elapsedTime.meanMilliseconds)}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Best speed</dt>
+          <dd className="font-semibold">{profile.speed.bestMetresPerSecond.toFixed(3)} m/s</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Median speed</dt>
+          <dd className="font-semibold">{profile.speed.medianMetresPerSecond.toFixed(3)} m/s</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Time variation</dt>
+          <dd className="font-semibold">σ {seconds(profile.elapsedTime.standardDeviationMilliseconds)}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Gold star</dt>
+          <dd className="font-semibold">
+            {stars === null
+              ? "—"
+              : `${percentage(stars.goldReceivedRate.numerator, stars.goldReceivedRate.denominator)} (${stars.goldReceivedRate.numerator}/${stars.goldReceivedRate.denominator} eligible opportunities)`}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Blue star</dt>
+          <dd className="font-semibold">
+            {stars === null
+              ? "—"
+              : `${percentage(stars.blueReceivedRate.numerator, stars.blueReceivedRate.denominator)} (${stars.blueReceivedRate.numerator}/${stars.blueReceivedRate.denominator} opportunities)`}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-4 text-xs text-[var(--muted)]">
+        Data current through {new Date(profile.dataCurrentThrough).toLocaleString("en-AU")}. Historical imported evidence only; not live game state.
+      </p>
+    </article>
+  );
 }
 
 export function SearchCoreWorkspace({
@@ -180,15 +255,26 @@ export function SearchCoreWorkspace({
               </dd>
             </div>
           </dl>
-          <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <div className="mt-6">
             <h3 className="font-semibold">Racing statistics</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              The Core Details identity is available now. The compact Core
-              Intelligence performance repository is not yet connected to this
-              route, so Bike, Car, Horse and exact-distance statistics are
-              deliberately shown as unavailable rather than inferred or scanned
-              from raw multi-million-row history on this request.
-            </p>
+            {state.performanceStatus !== "connected" ? (
+              <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+                Historical performance profiles are not configured for this environment.
+              </p>
+            ) : state.performanceProfiles.length === 0 ? (
+              <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+                No accepted exact-distance race profile is available for this core yet.
+              </p>
+            ) : (
+              <div className="mt-3 grid gap-3">
+                {state.performanceProfiles.map((profile) => (
+                  <PerformanceProfile
+                    key={`${profile.mode}:${profile.distance}`}
+                    profile={profile}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       ) : null}
