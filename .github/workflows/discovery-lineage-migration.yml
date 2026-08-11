@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "database/migrations/0016_discovery_lineage_hypotheses.*.sql"
+      - "database/migrations/0017_discovery_extended_lineage.*.sql"
       - ".github/workflows/discovery-lineage-migration.yml"
 
 permissions:
@@ -42,11 +43,27 @@ jobs:
           for migration in database/migrations/000{1..9}_*.up.sql database/migrations/001{0..5}_*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Apply Discovery lineage hypotheses migration
+      - name: Apply base Discovery lineage migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0016_discovery_lineage_hypotheses.up.sql
-      - name: Run Discovery lineage hypotheses smoke test
+      - name: Run base Discovery lineage smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0016_discovery_lineage_hypotheses.smoke.sql
-      - name: Reverse Discovery lineage hypotheses migration
+      - name: Apply extended Discovery lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.up.sql
+      - name: Run extended Discovery lineage smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.smoke.sql
+      - name: Reverse extended Discovery lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0017_discovery_extended_lineage.down.sql
+      - name: Verify base function restored
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ DECLARE definition text; BEGIN
+          SELECT pg_get_functiondef(proc.oid) INTO definition
+          FROM pg_proc proc JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna' AND proc.proname = 'list_discovery_lineage_hypotheses';
+          IF definition IS NULL OR position('full_sibling' IN definition) > 0 OR position('offspring' IN definition) > 0
+          THEN RAISE EXCEPTION 'Base Discovery lineage function was not restored'; END IF;
+          END \$\$;"
+      - name: Reverse base Discovery lineage migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0016_discovery_lineage_hypotheses.down.sql
       - name: Verify Discovery lineage function removal
         run: >-
