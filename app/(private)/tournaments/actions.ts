@@ -26,11 +26,7 @@ export async function saveTournamentConfigurationAction(
       secretKey: process.env.CLERK_SECRET_KEY,
     },
   });
-  const updatedAt = new Date().toISOString();
-  const configuration = parseTournamentConfigurationFormData(
-    formData,
-    updatedAt,
-  );
+  const configuration = parseTournamentConfigurationFormData(formData);
 
   await saveTournamentConfiguration({
     authenticatedOwnerId,
