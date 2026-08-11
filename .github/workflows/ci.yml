@@ -119,6 +119,31 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.up.sql
       - name: Run owner Vault catalogue read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.smoke.sql
+      - name: Apply Core performance profile migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.up.sql
+      - name: Run Core performance profile smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.smoke.sql
+      - name: Reverse Core performance profile migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.down.sql
+      - name: Verify Core performance profile removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'elapsed_seconds_to_milliseconds',
+          'refresh_core_performance_profiles',
+          'list_core_performance_profiles'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname = 'core_performance_profile'
+          ) THEN RAISE EXCEPTION 'Core performance profile objects still exist';
+          END IF; END \$\$;"
       - name: Reverse owner Vault catalogue read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.down.sql
       - name: Verify owner Vault catalogue read removal
