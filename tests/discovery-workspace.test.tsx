@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DiscoveryWorkspace } from "@/components/discovery-workspace";
 import { attachDiscoveryBenchmarks } from "@/domain/discovery-benchmark";
+import { deriveDiscoveryDecisionGuidance } from "@/domain/discovery-decision-guidance";
 import { buildDiscoveryProbePlan } from "@/domain/discovery-probe-plan";
 
 describe("Discovery workspace", () => {
@@ -20,54 +21,56 @@ describe("Discovery workspace", () => {
   });
 
   it("renders bounded owner probe guidance with direct, star and benchmark evidence", () => {
-    const candidates = attachDiscoveryBenchmarks(
-      buildDiscoveryProbePlan([
-        {
-          coreId: "synthetic-core",
-          coreName: "Synthetic Core",
-          mode: "horse",
-          distanceMetres: 1_600,
-          directRaceCount: 4,
-          directTimeEvidence: {
-            bestMilliseconds: 94_125,
-            medianMilliseconds: 95_500,
-            meanMilliseconds: 95_750,
-            standardDeviationMilliseconds: 825,
+    const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
+        buildDiscoveryProbePlan([
+          {
+            coreId: "synthetic-core",
+            coreName: "Synthetic Core",
+            mode: "horse",
+            distanceMetres: 1_600,
+            directRaceCount: 4,
+            directTimeEvidence: {
+              bestMilliseconds: 94_125,
+              medianMilliseconds: 95_500,
+              meanMilliseconds: 95_750,
+              standardDeviationMilliseconds: 825,
+            },
+            starEvidence: {
+              completeStarDataRaceCount: 3,
+              goldEligibleRaceCount: 3,
+              goldAssignmentOpportunityCount: 2,
+              goldReceivedCount: 1,
+              blueAssignmentOpportunityCount: 3,
+              blueReceivedCount: 1,
+            },
+            lineageRelationship: null,
+            lineageResolved: true,
+            lineageRaceCount: 0,
+            tournamentRelevance: "none",
+            maidenState: "eligible",
+            freshness: "current",
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
           },
-          starEvidence: {
-            completeStarDataRaceCount: 3,
-            goldEligibleRaceCount: 3,
-            goldAssignmentOpportunityCount: 2,
-            goldReceivedCount: 1,
-            blueAssignmentOpportunityCount: 3,
-            blueReceivedCount: 1,
+        ]),
+        [
+          {
+            mode: "horse",
+            distanceMetres: 1_600,
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            raceEntryCount: 120,
+            winningEntryCount: 30,
+            topThreeEntryCount: 80,
+            winningP25Milliseconds: 93_000,
+            winningMedianMilliseconds: 94_500,
+            winningP75Milliseconds: 95_000,
+            topThreeP25Milliseconds: 94_000,
+            topThreeMedianMilliseconds: 96_000,
+            topThreeP75Milliseconds: 97_500,
+            refreshedAt: "2026-07-20T01:00:00.000Z",
           },
-          lineageRelationship: null,
-          lineageResolved: true,
-          lineageRaceCount: 0,
-          tournamentRelevance: "none",
-          maidenState: "eligible",
-          freshness: "current",
-          dataCurrentThrough: "2026-07-20T00:00:00.000Z",
-        },
-      ]),
-      [
-        {
-          mode: "horse",
-          distanceMetres: 1_600,
-          dataCurrentThrough: "2026-07-20T00:00:00.000Z",
-          raceEntryCount: 120,
-          winningEntryCount: 30,
-          topThreeEntryCount: 80,
-          winningP25Milliseconds: 93_000,
-          winningMedianMilliseconds: 94_500,
-          winningP75Milliseconds: 95_000,
-          topThreeP25Milliseconds: 94_000,
-          topThreeMedianMilliseconds: 96_000,
-          topThreeP75Milliseconds: 97_500,
-          refreshedAt: "2026-07-20T01:00:00.000Z",
-        },
-      ],
+        ],
+      ),
     );
     const html = renderToStaticMarkup(
       <DiscoveryWorkspace
@@ -82,6 +85,10 @@ describe("Discovery workspace", () => {
     expect(html).toContain("Core ID synthetic-core");
     expect(html).toContain("3 races");
     expect(html).toContain("Continue Targeted Probe");
+    expect(html).toContain(
+      "Direct time reaches the historical winner range; continue a bounded exact-distance probe.",
+    );
+    expect(html).toContain("never stops the core automatically");
     expect(html).toContain("Direct imported results");
     expect(html).toContain("Moderate confidence");
     expect(html).toContain("Winning Range benchmark");
@@ -111,24 +118,26 @@ describe("Discovery workspace", () => {
   ] as const)(
     "labels zero-race %s evidence without treating lineage as direct evidence",
     (lineageRelationship, expectedLabel) => {
-      const candidates = attachDiscoveryBenchmarks(
-        buildDiscoveryProbePlan([
-          {
-            coreId: "untested-core",
-            coreName: "Untested Core",
-            mode: "bike",
-            distanceMetres: 1_400,
-            directRaceCount: 0,
-            lineageRelationship,
-            lineageResolved: true,
-            lineageRaceCount: 18,
-            tournamentRelevance: "none",
-            maidenState: "not_eligible",
-            freshness: "current",
-            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
-          },
-        ]),
-        [],
+      const candidates = deriveDiscoveryDecisionGuidance(
+        attachDiscoveryBenchmarks(
+          buildDiscoveryProbePlan([
+            {
+              coreId: "untested-core",
+              coreName: "Untested Core",
+              mode: "bike",
+              distanceMetres: 1_400,
+              directRaceCount: 0,
+              lineageRelationship,
+              lineageResolved: true,
+              lineageRaceCount: 18,
+              tournamentRelevance: "none",
+              maidenState: "not_eligible",
+              freshness: "current",
+              dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+            },
+          ]),
+          [],
+        ),
       );
       const html = renderToStaticMarkup(
         <DiscoveryWorkspace
@@ -148,24 +157,26 @@ describe("Discovery workspace", () => {
   );
 
   it("labels population evidence as supporting races rather than lineage", () => {
-    const candidates = attachDiscoveryBenchmarks(
-      buildDiscoveryProbePlan([
-        {
-          coreId: "population-core",
-          coreName: "Population Core",
-          mode: "car",
-          distanceMetres: 1_800,
-          directRaceCount: 0,
-          lineageRelationship: "population_pattern",
-          lineageResolved: true,
-          lineageRaceCount: 42,
-          tournamentRelevance: "none",
-          maidenState: "not_eligible",
-          freshness: "current",
-          dataCurrentThrough: "2026-07-20T00:00:00.000Z",
-        },
-      ]),
-      [],
+    const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
+        buildDiscoveryProbePlan([
+          {
+            coreId: "population-core",
+            coreName: "Population Core",
+            mode: "car",
+            distanceMetres: 1_800,
+            directRaceCount: 0,
+            lineageRelationship: "population_pattern",
+            lineageResolved: true,
+            lineageRaceCount: 42,
+            tournamentRelevance: "none",
+            maidenState: "not_eligible",
+            freshness: "current",
+            dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+          },
+        ]),
+        [],
+      ),
     );
     const html = renderToStaticMarkup(
       <DiscoveryWorkspace

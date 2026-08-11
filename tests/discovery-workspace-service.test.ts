@@ -126,6 +126,8 @@ describe("Discovery workspace service", () => {
           freshness: "current",
           actionable: true,
           benchmarkAssessment: "winning_range",
+          decisionGuidance: "continue_targeted_probe",
+          decisionReason: "competitive_winner_range",
           benchmarkEvidence: {
             winningMedianMilliseconds: 50_000,
             topThreeMedianMilliseconds: 52_500,
