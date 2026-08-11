@@ -177,17 +177,19 @@ export async function updateOwnerVaultCore(
       requestedAt: canonicalNow(dependencies.now()),
     });
 
-    if (state.status === "conflict") return { status: "conflict" };
-    if (state.status === "core_unavailable") {
-      return { status: "core_unavailable" };
+    switch (state.status) {
+      case "conflict":
+        return { status: "conflict" };
+      case "core_unavailable":
+        return { status: "core_unavailable" };
+      case "idempotency_conflict":
+        return { status: "idempotency_conflict" };
+      case "invalid_state":
+        return { status: "invalid_request" };
+      case "applied":
+      case "replayed":
+        return { status: "updated", state };
     }
-    if (state.status === "idempotency_conflict") {
-      return { status: "idempotency_conflict" };
-    }
-    if (state.status === "invalid_state") {
-      return { status: "invalid_request" };
-    }
-    return { status: "updated", state };
   } catch {
     return { status: "persistence_unavailable" };
   }
