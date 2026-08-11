@@ -28,41 +28,62 @@ function PerformanceProfile({
             {label(profile.mode)} · {profile.distance.toLocaleString("en-AU")} m
           </h4>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            {profile.raceCount.toLocaleString("en-AU")} races · {label(profile.freshness)} · {profile.sampleStatus === "minimally_analytical" ? "10+ race minimum reached" : "Hypothesis only"}
+            {profile.raceCount.toLocaleString("en-AU")} races ·{" "}
+            {label(profile.freshness)} ·{" "}
+            {profile.sampleStatus === "minimally_analytical"
+              ? "10+ race minimum reached"
+              : "Hypothesis only"}
           </p>
         </div>
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
         <div>
           <dt className="text-[var(--muted)]">Best time</dt>
-          <dd className="font-semibold">{seconds(profile.elapsedTime.bestMilliseconds)}</dd>
+          <dd className="font-semibold">
+            {seconds(profile.elapsedTime.bestMilliseconds)}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Median time</dt>
-          <dd className="font-semibold">{seconds(profile.elapsedTime.medianMilliseconds)}</dd>
+          <dd className="font-semibold">
+            {seconds(profile.elapsedTime.medianMilliseconds)}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Average time</dt>
-          <dd className="font-semibold">{seconds(profile.elapsedTime.meanMilliseconds)}</dd>
+          <dd className="font-semibold">
+            {seconds(profile.elapsedTime.meanMilliseconds)}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Best speed</dt>
-          <dd className="font-semibold">{profile.speed.bestMetresPerSecond.toFixed(3)} m/s</dd>
+          <dd className="font-semibold">
+            {profile.speed.bestMetresPerSecond.toFixed(3)} m/s
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Median speed</dt>
-          <dd className="font-semibold">{profile.speed.medianMetresPerSecond.toFixed(3)} m/s</dd>
+          <dd className="font-semibold">
+            {profile.speed.medianMetresPerSecond.toFixed(3)} m/s
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Time variation</dt>
-          <dd className="font-semibold">σ {seconds(profile.elapsedTime.standardDeviationMilliseconds)}</dd>
+          <dd className="font-semibold">
+            σ {seconds(profile.elapsedTime.standardDeviationMilliseconds)}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Gold star</dt>
           <dd className="font-semibold">
             {stars === null
               ? "—"
-              : `${percentage(stars.goldReceivedRate.numerator, stars.goldReceivedRate.denominator)} (${stars.goldReceivedRate.numerator}/${stars.goldReceivedRate.denominator} eligible opportunities)`}
+              : `${percentage(
+                  stars.goldReceivedRate.numerator,
+                  stars.goldReceivedRate.denominator,
+                )} (${stars.goldReceivedRate.numerator}/${
+                  stars.goldReceivedRate.denominator
+                } eligible opportunities)`}
           </dd>
         </div>
         <div>
@@ -70,12 +91,19 @@ function PerformanceProfile({
           <dd className="font-semibold">
             {stars === null
               ? "—"
-              : `${percentage(stars.blueReceivedRate.numerator, stars.blueReceivedRate.denominator)} (${stars.blueReceivedRate.numerator}/${stars.blueReceivedRate.denominator} opportunities)`}
+              : `${percentage(
+                  stars.blueReceivedRate.numerator,
+                  stars.blueReceivedRate.denominator,
+                )} (${stars.blueReceivedRate.numerator}/${
+                  stars.blueReceivedRate.denominator
+                } opportunities)`}
           </dd>
         </div>
       </dl>
       <p className="mt-4 text-xs text-[var(--muted)]">
-        Data current through {new Date(profile.dataCurrentThrough).toLocaleString("en-AU")}. Historical imported evidence only; not live game state.
+        Data current through{" "}
+        {new Date(profile.dataCurrentThrough).toLocaleString("en-AU")}. Historical
+        imported evidence only; not live game state.
       </p>
     </article>
   );
@@ -204,7 +232,9 @@ export function SearchCoreWorkspace({
                   </dl>
                   <Link
                     className="mt-5 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold"
-                    href={`/search-core?q=${encodeURIComponent(state.query ?? core.sourceCoreId)}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                    href={`/search-core?q=${encodeURIComponent(
+                      state.query ?? core.sourceCoreId,
+                    )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
                   >
                     View core
                   </Link>
@@ -259,11 +289,13 @@ export function SearchCoreWorkspace({
             <h3 className="font-semibold">Racing statistics</h3>
             {state.performanceStatus !== "connected" ? (
               <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
-                Historical performance profiles are not configured for this environment.
+                Historical performance profiles are not configured for this
+                environment.
               </p>
             ) : state.performanceProfiles.length === 0 ? (
               <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
-                No accepted exact-distance race profile is available for this core yet.
+                No accepted exact-distance race profile is available for this
+                core yet.
               </p>
             ) : (
               <div className="mt-3 grid gap-3">
