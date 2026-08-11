@@ -80,7 +80,11 @@ function harness(sequence: readonly (readonly unknown[] | Error)[]) {
       events.push(
         values ? `${normalized}|${JSON.stringify(values)}` : normalized,
       );
-      if (["BEGIN READ ONLY", "COMMIT", "ROLLBACK"].includes(normalized)) {
+      if ([
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+          "COMMIT",
+          "ROLLBACK",
+        ].includes(normalized)) {
         return { rows: [] };
       }
       const next = sequence[index++] ?? [];
@@ -229,12 +233,14 @@ describe("Neon Tournament configuration repository", () => {
         },
       ],
     });
-    expect(test.events[0]).toBe("BEGIN READ ONLY");
+    expect(test.events[0]).toBe(
+      "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    );
     expect(test.events[2]).toContain(
       "'dna.tournament_configuration'::regclass",
     );
     expect(test.events[3]).toContain(
-      "dna.list_complete_tournament_configurations",
+      "dna.list_bound_tournament_configurations",
     );
     expect(test.events[4]).toContain("dna.owner_vault_core");
     expect(test.events[4]).toContain("vault.in_my_vault");
@@ -287,7 +293,7 @@ describe("Neon Tournament configuration repository", () => {
       ).rejects.toThrow(/owner scope denied|least-privilege owner isolation/);
       expect(
         test.events.some((event) =>
-          event.includes("dna.list_complete_tournament_configurations"),
+          event.includes("dna.list_bound_tournament_configurations"),
         ),
       ).toBe(false);
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
