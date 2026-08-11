@@ -1,4 +1,7 @@
-import type { ProbeLineageRelationship, ProbeMode } from "@/domain/discovery-probe-plan";
+import type {
+  ProbeLineageRelationship,
+  ProbeMode,
+} from "@/domain/discovery-probe-plan";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -10,7 +13,10 @@ export type DiscoveryLineageHypothesis = Readonly<{
   meEligible: boolean;
   mode: ProbeMode;
   distanceMetres: number;
-  lineageRelationship: Extract<ProbeLineageRelationship, "parent" | "grandparent">;
+  lineageRelationship: Extract<
+    ProbeLineageRelationship,
+    "parent" | "grandparent"
+  >;
   lineageRaceCount: number;
   dataCurrentThrough: string;
   lastImportedAt: string | null;
@@ -52,7 +58,8 @@ function row(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 function text(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.trim() === "") throw new Error(`${label} is invalid.`);
+  if (typeof value !== "string" || value.trim() === "")
+    throw new Error(`${label} is invalid.`);
   return value;
 }
 function bool(value: unknown, label: string): boolean {
@@ -61,7 +68,8 @@ function bool(value: unknown, label: string): boolean {
 }
 function integer(value: unknown, label: string): number {
   const parsed = typeof value === "string" ? Number(value) : value;
-  if (!Number.isSafeInteger(parsed) || (parsed as number) <= 0) throw new Error(`${label} is invalid.`);
+  if (!Number.isSafeInteger(parsed) || (parsed as number) <= 0)
+    throw new Error(`${label} is invalid.`);
   return parsed as number;
 }
 function timestamp(value: unknown, label: string): string {
@@ -77,36 +85,51 @@ function normalized(value: string | undefined): string | null {
   return result === "" ? null : result;
 }
 
-export function createNeonDiscoveryLineageHypothesisRepository(input: Readonly<{
-  databaseUrl: string;
-  databaseOwnerId: string;
-  runtimeRole: string;
-  sessionFactory?: NeonImportPersistenceSessionFactory;
-}>): DiscoveryLineageHypothesisRepository {
+export function createNeonDiscoveryLineageHypothesisRepository(
+  input: Readonly<{
+    databaseUrl: string;
+    databaseOwnerId: string;
+    runtimeRole: string;
+    sessionFactory?: NeonImportPersistenceSessionFactory;
+  }>,
+): DiscoveryLineageHypothesisRepository {
   const url = input.databaseUrl.trim();
   const owner = input.databaseOwnerId.trim();
   const role = input.runtimeRole.trim();
-  if (url === "" || !UUID_PATTERN.test(owner) || !SAFE_RUNTIME_ROLE_PATTERN.test(role)) {
+  if (
+    url === "" ||
+    !UUID_PATTERN.test(owner) ||
+    !SAFE_RUNTIME_ROLE_PATTERN.test(role)
+  ) {
     throw new Error("Discovery lineage repository configuration is invalid.");
   }
-  const sessionFactory = input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
+  const sessionFactory =
+    input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
   return {
     status: "ready",
     async listHypothesesByOwner(authenticatedOwnerId) {
       const clerkOwner = authenticatedOwnerId.trim();
-      if (clerkOwner === "") throw new Error("authenticated owner is required.");
+      if (clerkOwner === "")
+        throw new Error("authenticated owner is required.");
       const session = await sessionFactory(url);
       let transactionStarted = false;
       try {
-        await session.client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+        await session.client.query(
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        );
         transactionStarted = true;
         await session.client.query(SET_OWNER_SCOPE_SQL, [owner]);
-        const ownerResult = (await session.client.query(VERIFY_OWNER_SQL, [owner, clerkOwner])) as QueryResult;
-        if (ownerResult.rows.length !== 1) throw new Error("Discovery lineage owner scope denied.");
+        const ownerResult = (await session.client.query(VERIFY_OWNER_SQL, [
+          owner,
+          clerkOwner,
+        ])) as QueryResult;
+        if (ownerResult.rows.length !== 1)
+          throw new Error("Discovery lineage owner scope denied.");
         const ownerRow = row(ownerResult.rows[0]);
         if (
           text(ownerRow.database_owner_id, "database_owner_id") !== owner ||
-          text(ownerRow.authenticated_owner_id, "authenticated_owner_id") !== clerkOwner ||
+          text(ownerRow.authenticated_owner_id, "authenticated_owner_id") !==
+            clerkOwner ||
           text(ownerRow.session_user_name, "session_user_name") !== role ||
           text(ownerRow.current_user_name, "current_user_name") !== role ||
           bool(ownerRow.runtime_is_superuser, "runtime_is_superuser") ||
@@ -114,31 +137,49 @@ export function createNeonDiscoveryLineageHypothesisRepository(input: Readonly<{
         ) {
           throw new Error("Discovery lineage runtime owner isolation failed.");
         }
-        const result = (await session.client.query(LIST_SQL, [owner, 500])) as QueryResult;
-        const hypotheses = result.rows.map((value): DiscoveryLineageHypothesis => {
-          const record = row(value);
-          const mode = text(record.mode, "mode");
-          const relationship = text(record.lineage_relationship, "lineage_relationship");
-          if (!["bike", "car", "horse"].includes(mode) || !["parent", "grandparent"].includes(relationship)) {
-            throw new Error("Discovery lineage evidence enum is invalid.");
-          }
-          return {
-            coreId: text(record.core_id, "core_id"),
-            coreName: text(record.core_name, "core_name"),
-            meEligible: bool(record.me_eligible, "me_eligible"),
-            mode: mode as ProbeMode,
-            distanceMetres: integer(record.distance, "distance"),
-            lineageRelationship: relationship as "parent" | "grandparent",
-            lineageRaceCount: integer(record.lineage_race_count, "lineage_race_count"),
-            dataCurrentThrough: timestamp(record.data_current_through, "data_current_through"),
-            lastImportedAt: optionalTimestamp(record.last_imported_at),
-          };
-        });
+        const result = (await session.client.query(LIST_SQL, [
+          owner,
+          500,
+        ])) as QueryResult;
+        const hypotheses = result.rows.map(
+          (value): DiscoveryLineageHypothesis => {
+            const record = row(value);
+            const mode = text(record.mode, "mode");
+            const relationship = text(
+              record.lineage_relationship,
+              "lineage_relationship",
+            );
+            if (
+              !["bike", "car", "horse"].includes(mode) ||
+              !["parent", "grandparent"].includes(relationship)
+            ) {
+              throw new Error("Discovery lineage evidence enum is invalid.");
+            }
+            return {
+              coreId: text(record.core_id, "core_id"),
+              coreName: text(record.core_name, "core_name"),
+              meEligible: bool(record.me_eligible, "me_eligible"),
+              mode: mode as ProbeMode,
+              distanceMetres: integer(record.distance, "distance"),
+              lineageRelationship: relationship as "parent" | "grandparent",
+              lineageRaceCount: integer(
+                record.lineage_race_count,
+                "lineage_race_count",
+              ),
+              dataCurrentThrough: timestamp(
+                record.data_current_through,
+                "data_current_through",
+              ),
+              lastImportedAt: optionalTimestamp(record.last_imported_at),
+            };
+          },
+        );
         await session.client.query("COMMIT");
         transactionStarted = false;
         return hypotheses;
       } catch (error) {
-        if (transactionStarted) await session.client.query("ROLLBACK").catch(() => undefined);
+        if (transactionStarted)
+          await session.client.query("ROLLBACK").catch(() => undefined);
         throw error;
       } finally {
         await session.close();
@@ -158,7 +199,8 @@ export function neonDiscoveryLineageHypothesisRepositoryFromEnvironment(
   const url = normalized(environment.databaseUrl);
   const owner = normalized(environment.databaseOwnerId);
   const role = normalized(environment.runtimeRole);
-  if (url === null || owner === null || role === null) return { status: "not_configured" };
+  if (url === null || owner === null || role === null)
+    return { status: "not_configured" };
   return createNeonDiscoveryLineageHypothesisRepository({
     databaseUrl: url,
     databaseOwnerId: owner,
