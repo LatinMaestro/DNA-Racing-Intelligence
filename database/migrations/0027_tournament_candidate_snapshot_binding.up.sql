@@ -29,7 +29,7 @@ BEGIN
     RAISE EXCEPTION 'Tournament configuration version is invalid';
   END IF;
 
-  SELECT version.*, batch.import_completed_at
+  SELECT version, batch.import_completed_at
   INTO v_race_version, v_import_completed_at
   FROM dna.dataset_version version
   JOIN dna.import_batch batch
