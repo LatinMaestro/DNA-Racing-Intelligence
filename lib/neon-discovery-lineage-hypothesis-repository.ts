@@ -7,16 +7,18 @@ import {
   type NeonImportPersistenceSessionFactory,
 } from "./neon-import-persistence-driver";
 
+type SupportedDiscoveryLineageRelationship = Extract<
+  ProbeLineageRelationship,
+  "parent" | "grandparent" | "full_sibling" | "half_sibling" | "offspring"
+>;
+
 export type DiscoveryLineageHypothesis = Readonly<{
   coreId: string;
   coreName: string;
   meEligible: boolean;
   mode: ProbeMode;
   distanceMetres: number;
-  lineageRelationship: Extract<
-    ProbeLineageRelationship,
-    "parent" | "grandparent"
-  >;
+  lineageRelationship: SupportedDiscoveryLineageRelationship;
   lineageRaceCount: number;
   dataCurrentThrough: string;
   lastImportedAt: string | null;
@@ -34,6 +36,13 @@ export type DiscoveryLineageHypothesisRepository =
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_RUNTIME_ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/;
+const SUPPORTED_RELATIONSHIPS = [
+  "parent",
+  "grandparent",
+  "full_sibling",
+  "half_sibling",
+  "offspring",
+] as const satisfies readonly SupportedDiscoveryLineageRelationship[];
 const SET_OWNER_SCOPE_SQL = `SELECT set_config('app.owner_id', $1, true) AS owner_scope`;
 const VERIFY_OWNER_SQL = `
   SELECT
@@ -83,6 +92,14 @@ function optionalTimestamp(value: unknown): string | null {
 function normalized(value: string | undefined): string | null {
   const result = value?.trim() ?? "";
   return result === "" ? null : result;
+}
+function supportedRelationship(
+  value: string,
+): SupportedDiscoveryLineageRelationship {
+  if (!(SUPPORTED_RELATIONSHIPS as readonly string[]).includes(value)) {
+    throw new Error("Discovery lineage evidence enum is invalid.");
+  }
+  return value as SupportedDiscoveryLineageRelationship;
 }
 
 export function createNeonDiscoveryLineageHypothesisRepository(
@@ -145,14 +162,10 @@ export function createNeonDiscoveryLineageHypothesisRepository(
           (value): DiscoveryLineageHypothesis => {
             const record = row(value);
             const mode = text(record.mode, "mode");
-            const relationship = text(
-              record.lineage_relationship,
-              "lineage_relationship",
+            const relationship = supportedRelationship(
+              text(record.lineage_relationship, "lineage_relationship"),
             );
-            if (
-              !["bike", "car", "horse"].includes(mode) ||
-              !["parent", "grandparent"].includes(relationship)
-            ) {
+            if (!["bike", "car", "horse"].includes(mode)) {
               throw new Error("Discovery lineage evidence enum is invalid.");
             }
             return {
@@ -161,7 +174,7 @@ export function createNeonDiscoveryLineageHypothesisRepository(
               meEligible: bool(record.me_eligible, "me_eligible"),
               mode: mode as ProbeMode,
               distanceMetres: integer(record.distance, "distance"),
-              lineageRelationship: relationship as "parent" | "grandparent",
+              lineageRelationship: relationship,
               lineageRaceCount: integer(
                 record.lineage_race_count,
                 "lineage_race_count",
