@@ -62,10 +62,13 @@ function verifyOwner(
   authenticatedOwnerId: string,
   runtimeRole: string,
 ): void {
-  if (result.rows.length !== 1) throw new Error("Tournament configuration owner scope denied.");
+  if (result.rows.length !== 1) {
+    throw new Error("Tournament configuration owner scope denied.");
+  }
   const row = record(result.rows[0]);
   if (
-    text(row.authenticated_owner_id, "authenticated owner") !== authenticatedOwnerId ||
+    text(row.authenticated_owner_id, "authenticated owner") !==
+      authenticatedOwnerId ||
     !bool(row.row_security_enabled, "Tournament RLS") ||
     !bool(row.force_row_security_enabled, "Tournament forced RLS") ||
     text(row.session_user_name, "session user") !== runtimeRole ||
@@ -73,7 +76,9 @@ function verifyOwner(
     bool(row.runtime_is_superuser, "runtime superuser") ||
     bool(row.runtime_bypasses_rls, "runtime bypass RLS")
   ) {
-    throw new Error("Tournament configuration repository requires least-privilege owner isolation.");
+    throw new Error(
+      "Tournament configuration repository requires least-privilege owner isolation.",
+    );
   }
 }
 
@@ -84,24 +89,35 @@ function distances(value: unknown): readonly number[] {
   const parsed = value.map((item) =>
     typeof item === "string" && /^\d+$/.test(item) ? Number(item) : item,
   );
-  if (parsed.some((item) => !Number.isSafeInteger(item) || (item as number) <= 0)) {
+  if (
+    parsed.some(
+      (item) => !Number.isSafeInteger(item) || (item as number) <= 0,
+    )
+  ) {
     throw new Error("Tournament eligible distances are invalid.");
   }
   return parsed as number[];
 }
 
-export function createNeonTournamentConfigurationRepository(input: Readonly<{
-  databaseUrl: string;
-  databaseOwnerId: string;
-  runtimeRole: string;
-  sessionFactory?: NeonImportPersistenceSessionFactory;
-}>): TournamentCandidateRepository {
+export function createNeonTournamentConfigurationRepository(
+  input: Readonly<{
+    databaseUrl: string;
+    databaseOwnerId: string;
+    runtimeRole: string;
+    sessionFactory?: NeonImportPersistenceSessionFactory;
+  }>,
+): TournamentCandidateRepository {
   const databaseUrl = text(input.databaseUrl, "databaseUrl");
   const databaseOwnerId = text(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = text(input.runtimeRole, "runtimeRole");
-  if (!UUID_PATTERN.test(databaseOwnerId)) throw new Error("databaseOwnerId must be a UUID.");
-  if (!SAFE_RUNTIME_ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid.");
-  const sessionFactory = input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
+  if (!UUID_PATTERN.test(databaseOwnerId)) {
+    throw new Error("databaseOwnerId must be a UUID.");
+  }
+  if (!SAFE_RUNTIME_ROLE_PATTERN.test(runtimeRole)) {
+    throw new Error("runtimeRole is invalid.");
+  }
+  const sessionFactory =
+    input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 
   return {
     status: "ready",
@@ -112,31 +128,60 @@ export function createNeonTournamentConfigurationRepository(input: Readonly<{
         await session.client.query("BEGIN READ ONLY");
         await session.client.query(SET_OWNER_SCOPE_SQL, [databaseOwnerId]);
         verifyOwner(
-          await session.client.query(VERIFY_OWNER_SQL, [databaseOwnerId, authenticatedOwnerId]),
+          await session.client.query(VERIFY_OWNER_SQL, [
+            databaseOwnerId,
+            authenticatedOwnerId,
+          ]),
           authenticatedOwnerId,
           runtimeRole,
         );
-        const result = await session.client.query(LIST_CONFIGURATIONS_SQL, [databaseOwnerId]);
-        const brackets: TournamentCandidateRankingInput[] = result.rows.map((value) => {
-          const row = record(value);
-          const mode = text(row.mode, "Tournament mode");
-          const relevance = text(row.discovery_relevance, "Tournament Discovery relevance");
-          if (!["bike", "car", "horse"].includes(mode)) throw new Error("Tournament mode is invalid.");
-          if (!["eligible", "priority"].includes(relevance)) throw new Error("Tournament Discovery relevance is invalid.");
-          return {
-            tournamentId: text(row.tournament_id, "Tournament ID"),
-            tournamentLabel: text(row.tournament_label, "Tournament label"),
-            bracketId: text(row.bracket_id, "Bracket ID"),
-            splitLabel: text(row.split_label, "Split label"),
-            mode: mode as TournamentCandidateRankingInput["mode"],
-            eligibleDistancesMetres: distances(row.eligible_distances_metres),
-            discoveryRelevance: relevance as TournamentCandidateRankingInput["discoveryRelevance"],
-            qualificationMetricLabel: text(row.qualification_metric_label, "Qualification metric label"),
-            configurationVersion: text(row.configuration_version, "Configuration version"),
-            candidateSnapshotVersion: text(row.candidate_snapshot_version, "Candidate snapshot version"),
-            candidates: [],
-          };
-        });
+        const result = await session.client.query(LIST_CONFIGURATIONS_SQL, [
+          databaseOwnerId,
+        ]);
+        const brackets: TournamentCandidateRankingInput[] = result.rows.map(
+          (value) => {
+            const row = record(value);
+            const mode = text(row.mode, "Tournament mode");
+            const relevance = text(
+              row.discovery_relevance,
+              "Tournament Discovery relevance",
+            );
+            if (!["bike", "car", "horse"].includes(mode)) {
+              throw new Error("Tournament mode is invalid.");
+            }
+            if (!["eligible", "priority"].includes(relevance)) {
+              throw new Error("Tournament Discovery relevance is invalid.");
+            }
+            return {
+              tournamentId: text(row.tournament_id, "Tournament ID"),
+              tournamentLabel: text(
+                row.tournament_label,
+                "Tournament label",
+              ),
+              bracketId: text(row.bracket_id, "Bracket ID"),
+              splitLabel: text(row.split_label, "Split label"),
+              mode: mode as TournamentCandidateRankingInput["mode"],
+              eligibleDistancesMetres: distances(
+                row.eligible_distances_metres,
+              ),
+              discoveryRelevance:
+                relevance as TournamentCandidateRankingInput["discoveryRelevance"],
+              qualificationMetricLabel: text(
+                row.qualification_metric_label,
+                "Qualification metric label",
+              ),
+              configurationVersion: text(
+                row.configuration_version,
+                "Configuration version",
+              ),
+              candidateSnapshotVersion: text(
+                row.candidate_snapshot_version,
+                "Candidate snapshot version",
+              ),
+              candidates: [],
+            };
+          },
+        );
         await session.client.query("COMMIT");
         return { brackets, lastImportedAt: null };
       } catch (error) {
