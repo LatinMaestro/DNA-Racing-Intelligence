@@ -40,6 +40,10 @@ const LIST_ACTIVE_VAULT_CORES_SQL = `
     AND vault.in_my_vault
   ORDER BY core.source_core_id
 `;
+const LIST_PERFORMANCE_PROFILES_SQL = `
+  SELECT *
+  FROM dna.list_core_performance_profiles($1::uuid, NULL::text, 5000::integer)
+`;
 
 type Environment = Readonly<{
   databaseUrl: string | undefined;
@@ -185,6 +189,14 @@ function integerArray(value: unknown, label: string): readonly number[] {
   return value.map((item) => integer(item, label));
 }
 
+function performanceEvidenceKey(
+  coreId: string,
+  mode: string,
+  distance: number,
+): string {
+  return JSON.stringify([coreId, mode, distance]);
+}
+
 export function createNeonTournamentConfigurationRepository(
   input: Readonly<{
     databaseUrl: string;
@@ -239,6 +251,54 @@ export function createNeonTournamentConfigurationRepository(
             meEligible,
           };
         });
+        const performanceResult = await session.client.query(
+          LIST_PERFORMANCE_PROFILES_SQL,
+          [databaseOwnerId],
+        );
+        const performanceEvidence = new Map<string, string>();
+        let lastImportedAt: string | null = null;
+        for (const value of performanceResult.rows) {
+          const row = record(value);
+          const coreId = text(row.core_id, "Tournament performance Core ID");
+          const mode = text(row.mode, "Tournament performance mode");
+          if (!["bike", "car", "horse"].includes(mode)) {
+            throw new Error("Tournament performance mode is invalid.");
+          }
+          const distance = integer(
+            row.distance,
+            "Tournament performance distance",
+          );
+          if (distance <= 0) {
+            throw new Error("Tournament performance distance is invalid.");
+          }
+          const dataCurrentThrough = timestamp(
+            row.data_current_through,
+            "Tournament performance data current through",
+          );
+          const importedAt = optionalTimestamp(
+            row.last_imported_at,
+            "Tournament performance last imported",
+          );
+          if (importedAt === null) {
+            throw new Error("Tournament performance import evidence is missing.");
+          }
+          if (dataCurrentThrough > importedAt) {
+            throw new Error(
+              "Tournament performance cutoff cannot follow its import.",
+            );
+          }
+          if (lastImportedAt !== null && lastImportedAt !== importedAt) {
+            throw new Error(
+              "Tournament performance import evidence is inconsistent.",
+            );
+          }
+          lastImportedAt = importedAt;
+          const key = performanceEvidenceKey(coreId, mode, distance);
+          if (performanceEvidence.has(key)) {
+            throw new Error("Tournament performance evidence is duplicated.");
+          }
+          performanceEvidence.set(key, dataCurrentThrough);
+        }
         const brackets: TournamentCandidateRankingInput[] = result.rows.map(
           (value) => {
             const row = record(value);
@@ -418,7 +478,26 @@ export function createNeonTournamentConfigurationRepository(
               configurationVersion,
               candidateSnapshotVersion,
               ruleConfiguration,
-              candidates: activeVaultCores.map((core) => ({
+              candidates: activeVaultCores.map((core) => {
+                const matchingCutoffs =
+                  ruleConfiguration.eligibleDistancesMetres
+                    .map((distance) =>
+                      performanceEvidence.get(
+                        performanceEvidenceKey(
+                          core.coreId,
+                          ruleConfiguration.mode,
+                          distance,
+                        ),
+                      ),
+                    )
+                    .filter((value): value is string => value !== undefined);
+                const dataCurrentThrough =
+                  matchingCutoffs.length === 0
+                    ? null
+                    : matchingCutoffs.reduce((earliest, candidate) =>
+                        candidate < earliest ? candidate : earliest,
+                      );
+                return {
                 coreId: core.coreId,
                 leaderboardGroupId: "unassigned",
                 leaderboardGroupLabel: "Eligibility review required",
@@ -435,15 +514,16 @@ export function createNeonTournamentConfigurationRepository(
                 maidenModeDisposition: core.meEligible
                   ? "unresolved"
                   : "not_applicable",
-                dataCurrentThrough: null,
-                lastImported: null,
+                dataCurrentThrough,
+                lastImported: lastImportedAt,
                 freshness: "unknown",
-              })),
+              };
+              }),
             };
           },
         );
         await session.client.query("COMMIT");
-        return { brackets, lastImportedAt: null };
+        return { brackets, lastImportedAt };
       } catch (error) {
         await session.client.query("ROLLBACK").catch(() => undefined);
         throw error;
