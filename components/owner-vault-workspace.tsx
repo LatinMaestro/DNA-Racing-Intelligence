@@ -255,8 +255,16 @@ export function OwnerVaultWorkspace({
                       <>
                         {mutationForm(core, "remove", "Remove from My Vault")}
                         {core.meEligible
-                          ? mutationForm(core, "me_off", "ME: Eligible · turn off")
-                          : mutationForm(core, "me_on", "ME: Not eligible · turn on")}
+                          ? mutationForm(
+                              core,
+                              "me_off",
+                              "ME: Eligible · turn off",
+                            )
+                          : mutationForm(
+                              core,
+                              "me_on",
+                              "ME: Not eligible · turn on",
+                            )}
                       </>
                     ) : (
                       mutationForm(core, "add", "Add to My Vault")
