@@ -20,16 +20,19 @@ describe("owner Vault form parser", () => {
     ["remove", false, false],
     ["me_on", true, true],
     ["me_off", true, false],
-  ] as const)("derives the server-owned %s state", (operation, inMyVault, meEligible) => {
-    const parsed = parseOwnerVaultMutationFormData(form(operation));
-    expect(parsed).toMatchObject({
-      sourceCoreId: "core-7",
-      expectedVersion: 3,
-      inMyVault,
-      meEligible,
-    });
-    expect(parsed.idempotencyKey).toMatch(/^vault:[a-f0-9]{64}$/);
-  });
+  ] as const)(
+    "derives the server-owned %s state",
+    (operation, inMyVault, meEligible) => {
+      const parsed = parseOwnerVaultMutationFormData(form(operation));
+      expect(parsed).toMatchObject({
+        sourceCoreId: "core-7",
+        expectedVersion: 3,
+        inMyVault,
+        meEligible,
+      });
+      expect(parsed.idempotencyKey).toMatch(/^vault:[a-f0-9]{64}$/);
+    },
+  );
 
   it("produces the same idempotency key for an exact retry", () => {
     expect(parseOwnerVaultMutationFormData(form("me_on"))).toEqual(
@@ -37,13 +40,12 @@ describe("owner Vault form parser", () => {
     );
   });
 
-  it.each([
-    form("unsupported"),
-    form("add", ""),
-    form("add", "core-7", "-1"),
-  ])("rejects malformed or unsupported form state", (input) => {
-    expect(() => parseOwnerVaultMutationFormData(input)).toThrow();
-  });
+  it.each([form("unsupported"), form("add", ""), form("add", "core-7", "-1")])(
+    "rejects malformed or unsupported form state",
+    (input) => {
+      expect(() => parseOwnerVaultMutationFormData(input)).toThrow();
+    },
+  );
 
   it("rejects duplicate form controls instead of selecting one", () => {
     const input = form("add");
