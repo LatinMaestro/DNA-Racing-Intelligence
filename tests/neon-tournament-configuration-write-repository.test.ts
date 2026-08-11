@@ -145,8 +145,7 @@ describe("Neon Tournament configuration write repository", () => {
       [ownerEvidence()],
       [
         {
-          configuration_version:
-            "cfg-11111111111111111111111111111111",
+          configuration_version: "cfg-11111111111111111111111111111111",
           candidate_snapshot_version: "snapshot-unbound",
           updated_at: "2026-08-12T00:30:00.000Z",
         },
