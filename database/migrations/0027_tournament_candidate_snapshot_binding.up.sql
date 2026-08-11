@@ -29,8 +29,8 @@ BEGIN
     RAISE EXCEPTION 'Tournament configuration version is invalid';
   END IF;
 
-  SELECT version, batch.import_completed_at
-  INTO v_race_version, v_import_completed_at
+  SELECT version.*
+  INTO v_race_version
   FROM dna.dataset_version version
   JOIN dna.import_batch batch
     ON batch.owner_id = version.owner_id
@@ -53,6 +53,18 @@ BEGIN
     );
 
   IF NOT FOUND THEN
+    RETURN 'snapshot-unbound';
+  END IF;
+
+  SELECT batch.import_completed_at
+  INTO v_import_completed_at
+  FROM dna.import_batch batch
+  WHERE batch.owner_id = p_owner_id
+    AND batch.id = v_race_version.import_batch_id
+    AND batch.source_type = 'race_merge'
+    AND batch.status = 'accepted';
+
+  IF v_import_completed_at IS NULL THEN
     RETURN 'snapshot-unbound';
   END IF;
 
