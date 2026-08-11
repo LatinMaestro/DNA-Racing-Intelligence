@@ -47,6 +47,7 @@ export type DiscoveryProbeCandidate = Readonly<{
     | "no_probe_gap";
   reviewPriority: "high" | "medium" | "low" | "defer";
   lineageRelationship: ProbeLineageRelationship | null;
+  lineageRaceCount: number;
   tournamentRelevance: DiscoveryProbeCandidateInput["tournamentRelevance"];
   maidenState: DiscoveryProbeCandidateInput["maidenState"];
   freshness: DiscoveryProbeCandidateInput["freshness"];
@@ -193,6 +194,7 @@ function normalize(
             ? "medium"
             : "low",
     lineageRelationship: input.lineageRelationship,
+    lineageRaceCount,
     tournamentRelevance: input.tournamentRelevance,
     maidenState: input.maidenState,
     freshness: input.freshness,
