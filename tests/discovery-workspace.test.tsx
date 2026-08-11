@@ -85,6 +85,10 @@ describe("Discovery workspace", () => {
     expect(html).toContain("Core ID synthetic-core");
     expect(html).toContain("3 races");
     expect(html).toContain("Continue Targeted Probe");
+    expect(html).toContain(
+      "Direct time reaches the historical winner range; continue a bounded exact-distance probe.",
+    );
+    expect(html).toContain("never stops the core automatically");
     expect(html).toContain("Direct imported results");
     expect(html).toContain("Moderate confidence");
     expect(html).toContain("Winning Range benchmark");
