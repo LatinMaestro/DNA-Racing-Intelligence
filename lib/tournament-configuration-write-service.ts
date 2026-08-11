@@ -32,7 +32,11 @@ const RELEVANCE = new Set<TournamentDiscoveryRelevance>([
   "priority",
 ]);
 
-function text(value: FormDataEntryValue | null, label: string, max = 160): string {
+function text(
+  value: FormDataEntryValue | null,
+  label: string,
+  max = 160,
+): string {
   if (typeof value !== "string") throw new Error(`${label} is required.`);
   const normalized = value.trim();
   if (normalized === "" || normalized.length > max) {
@@ -102,8 +106,7 @@ export function parseTournamentConfigurationFormData(
     splitLabel: text(formData.get("splitLabel"), "Split label"),
     mode: mode as TournamentConfigurationMode,
     eligibleDistancesMetres: distances(formData.get("eligibleDistancesMetres")),
-    discoveryRelevance:
-      discoveryRelevance as TournamentDiscoveryRelevance,
+    discoveryRelevance: discoveryRelevance as TournamentDiscoveryRelevance,
     qualificationMetricLabel: text(
       formData.get("qualificationMetricLabel"),
       "Qualification metric label",
@@ -120,12 +123,14 @@ export function parseTournamentConfigurationFormData(
   };
 }
 
-export async function saveTournamentConfiguration(input: Readonly<{
-  authenticatedOwnerId: string | null;
-  configuredOwnerId: string | null;
-  repository: TournamentConfigurationWriteRepository;
-  configuration: TournamentConfigurationWrite;
-}>): Promise<void> {
+export async function saveTournamentConfiguration(
+  input: Readonly<{
+    authenticatedOwnerId: string | null;
+    configuredOwnerId: string | null;
+    repository: TournamentConfigurationWriteRepository;
+    configuration: TournamentConfigurationWrite;
+  }>,
+): Promise<void> {
   const authenticatedOwnerId = normalizedIdentity(input.authenticatedOwnerId);
   const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) {
@@ -135,7 +140,9 @@ export async function saveTournamentConfiguration(input: Readonly<{
     throw new Error("Tournament configuration write denied.");
   }
   if (input.repository.status !== "ready") {
-    throw new Error("Tournament configuration write repository is not configured.");
+    throw new Error(
+      "Tournament configuration write repository is not configured.",
+    );
   }
   await input.repository.saveByOwner(authenticatedOwnerId, input.configuration);
 }
