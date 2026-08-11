@@ -34,7 +34,7 @@ For each core × mode × distance calculate:
 - star-data sample size and coverage;
 - data-current-through timestamp.
 
-Normalize elapsed-time metrics so higher displayed scores always mean better performance.
+Race distances are measured in metres and Race Merge elapsed-time values are seconds. Preserve the exact source decimal, derive integer milliseconds as `elapsed_time_seconds * 1000`, and derive speed in metres per second as `distance_metres / elapsed_time_seconds`. Lower elapsed time and higher speed remain the better directions; never reinterpret the source seconds as milliseconds.
 
 ## Finish-position weighting
 
