@@ -1,0 +1,26 @@
+name: Discovery lineage format diagnostic
+
+on:
+  push:
+    branches:
+      - agent/discovery-lineage-hypotheses
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Print exact Prettier diff
+        shell: bash
+        run: |
+          npx prettier --write lib/neon-discovery-lineage-hypothesis-repository.ts
+          git diff -- lib/neon-discovery-lineage-hypothesis-repository.ts
+          exit 1
