@@ -1,4 +1,10 @@
 import type { FreshnessState } from "@/domain/freshness";
+import {
+  assessTournamentConfigurationAuthority,
+  normalizeTournamentRuleConfiguration,
+  type TournamentConfigurationAuthority,
+  type TournamentRuleConfiguration,
+} from "@/domain/tournament-configuration";
 
 export type CandidateFreshness = FreshnessState;
 
@@ -41,6 +47,7 @@ export type TournamentCandidateRankingInput = Readonly<{
   qualificationMetricLabel: string;
   configurationVersion: string;
   candidateSnapshotVersion: string;
+  ruleConfiguration?: TournamentRuleConfiguration;
   candidates: readonly TournamentCandidateInput[];
 }>;
 
@@ -101,6 +108,8 @@ export type TournamentCandidateRankingResult = Readonly<{
   qualificationMetricLabel: string;
   configurationVersion: string;
   candidateSnapshotVersion: string;
+  ruleConfiguration?: TournamentRuleConfiguration;
+  configurationAuthority?: TournamentConfigurationAuthority;
   leaderboardGroups: readonly TournamentLeaderboardGroup[];
   orderingAuthority: "configured_qualification_metric";
   historicalStarsRole: "supporting_rationale_only";
@@ -239,6 +248,39 @@ export function rankTournamentCandidates(
     input.candidateSnapshotVersion,
     "Candidate snapshot version",
   );
+  const ruleConfiguration =
+    input.ruleConfiguration === undefined
+      ? undefined
+      : normalizeTournamentRuleConfiguration(input.ruleConfiguration);
+  if (
+    ruleConfiguration !== undefined &&
+    (ruleConfiguration.tournamentId !== tournamentId ||
+      ruleConfiguration.tournamentLabel !== tournamentLabel ||
+      ruleConfiguration.bracketId !== bracketId ||
+      ruleConfiguration.splitLabel !== splitLabel ||
+      ruleConfiguration.mode !== tournamentConfiguration.mode ||
+      ruleConfiguration.discoveryRelevance !==
+        tournamentConfiguration.discoveryRelevance ||
+      ruleConfiguration.configurationVersion !== configurationVersion ||
+      ruleConfiguration.candidateSnapshotVersion !==
+        candidateSnapshotVersion ||
+      ruleConfiguration.qualification.rankingMetric !==
+        qualificationMetricLabel ||
+      ruleConfiguration.eligibleDistancesMetres.length !==
+        tournamentConfiguration.eligibleDistancesMetres.length ||
+      ruleConfiguration.eligibleDistancesMetres.some(
+        (distance, index) =>
+          distance !== tournamentConfiguration.eligibleDistancesMetres[index],
+      ))
+  ) {
+    throw new Error(
+      "Tournament ranking projection does not match the canonical rule configuration.",
+    );
+  }
+  const configurationAuthority =
+    ruleConfiguration === undefined
+      ? undefined
+      : assessTournamentConfigurationAuthority(ruleConfiguration);
 
   const groupLabels = new Map<string, string>();
   const labelGroups = new Map<string, string>();
@@ -480,6 +522,9 @@ export function rankTournamentCandidates(
     qualificationMetricLabel,
     configurationVersion,
     candidateSnapshotVersion,
+    ...(ruleConfiguration === undefined
+      ? {}
+      : { ruleConfiguration, configurationAuthority }),
     leaderboardGroups: [...groups.entries()]
       .map(([leaderboardGroupId, candidates]) => ({
         leaderboardGroupId,
