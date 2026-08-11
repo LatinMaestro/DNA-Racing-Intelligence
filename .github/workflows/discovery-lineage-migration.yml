@@ -6,6 +6,7 @@ on:
       - "database/migrations/0016_discovery_lineage_hypotheses.*.sql"
       - "database/migrations/0017_discovery_extended_lineage.*.sql"
       - "database/migrations/0018_discovery_wider_lineage.*.sql"
+      - "database/migrations/0019_discovery_population_patterns.*.sql"
       - ".github/workflows/discovery-lineage-migration.yml"
 
 permissions:
@@ -56,6 +57,22 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.up.sql
       - name: Run wider-lineage Discovery smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.smoke.sql
+      - name: Apply population-pattern Discovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.up.sql
+      - name: Run population-pattern Discovery smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.smoke.sql
+      - name: Reverse population-pattern Discovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.down.sql
+      - name: Verify wider-lineage function restored
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ DECLARE definition text; BEGIN
+          SELECT pg_get_functiondef(proc.oid) INTO definition
+          FROM pg_proc proc JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna' AND proc.proname = 'list_discovery_lineage_hypotheses';
+          IF definition IS NULL OR position('wider_lineage' IN definition) = 0 OR position('population_pattern' IN definition) > 0
+          THEN RAISE EXCEPTION 'Wider-lineage Discovery function was not restored'; END IF;
+          END \$\$;"
       - name: Reverse wider-lineage Discovery migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0018_discovery_wider_lineage.down.sql
       - name: Verify extended function restored

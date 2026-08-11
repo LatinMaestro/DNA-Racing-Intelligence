@@ -15,6 +15,7 @@ type SupportedDiscoveryLineageRelationship = Extract<
   | "half_sibling"
   | "offspring"
   | "wider_lineage"
+  | "population_pattern"
 >;
 
 export type DiscoveryLineageHypothesis = Readonly<{
@@ -48,6 +49,7 @@ const SUPPORTED_RELATIONSHIPS = [
   "half_sibling",
   "offspring",
   "wider_lineage",
+  "population_pattern",
 ] as const satisfies readonly SupportedDiscoveryLineageRelationship[];
 const SET_OWNER_SCOPE_SQL = `SELECT set_config('app.owner_id', $1, true) AS owner_scope`;
 const VERIFY_OWNER_SQL = `

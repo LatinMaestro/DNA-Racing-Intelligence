@@ -18,7 +18,7 @@ const connectionCopy: Record<
   read_model_connected: {
     heading: "Owned-core Discovery planner connected",
     detail:
-      "Candidates come only from active My Vault cores, imported historical performance and validated lineage evidence in the approved priority order, from close family through wider lineage. Recommendations remain advisory and never enter races automatically.",
+      "Candidates come only from active My Vault cores and imported historical evidence in the approved order: direct results, close family, wider lineage, then matched population patterns. Recommendations remain advisory and never enter races automatically.",
   },
 };
 
@@ -99,9 +99,9 @@ export function DiscoveryWorkspace({
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
             <h3 className="font-semibold">No current Discovery candidates</h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-              No under-tested direct sample or validated close-family or wider
-              lineage hypothesis is currently available. Population-pattern
-              evidence remains outside this slice.
+              No under-tested direct sample, validated lineage hypothesis or
+              matched class, element and F-number population pattern is
+              currently available.
             </p>
           </div>
         ) : (
@@ -175,7 +175,9 @@ export function DiscoveryWorkspace({
                     <dd className="mt-1 font-semibold">
                       {candidate.lineageRelationship === null
                         ? "Direct imported results"
-                        : `${label(candidate.lineageRelationship)} hypothesis · ${candidate.lineageRaceCount.toLocaleString("en-AU")} lineage races`}
+                        : candidate.lineageRelationship === "population_pattern"
+                          ? `Population Pattern hypothesis · ${candidate.lineageRaceCount.toLocaleString("en-AU")} supporting races`
+                          : `${label(candidate.lineageRelationship)} hypothesis · ${candidate.lineageRaceCount.toLocaleString("en-AU")} lineage races`}
                     </dd>
                   </div>
                 </dl>
@@ -192,8 +194,9 @@ export function DiscoveryWorkspace({
                     </p>
                   ) : null}
                   <p className="mt-2">
-                    Reassess after the probe. Lineage nominates a test only; it
-                    does not replace direct evidence or prove performance.
+                    Reassess after the probe. Lineage or population evidence
+                    nominates a test only; it does not replace direct evidence
+                    or prove performance.
                   </p>
                 </div>
               </article>

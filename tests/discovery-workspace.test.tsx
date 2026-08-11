@@ -89,7 +89,38 @@ describe("Discovery workspace", () => {
       expect(html).toContain("0 races");
       expect(html).toContain(`${expectedLabel} · 18 lineage races`);
       expect(html).toContain("3 races");
-      expect(html).toContain("Lineage nominates a test only");
+      expect(html).toContain("Lineage or population evidence");
     },
   );
+
+  it("labels population evidence as supporting races rather than lineage", () => {
+    const candidates = buildDiscoveryProbePlan([
+      {
+        coreId: "population-core",
+        coreName: "Population Core",
+        mode: "car",
+        distanceMetres: 1_800,
+        directRaceCount: 0,
+        lineageRelationship: "population_pattern",
+        lineageResolved: true,
+        lineageRaceCount: 42,
+        tournamentRelevance: "none",
+        maidenState: "not_eligible",
+        freshness: "current",
+        dataCurrentThrough: "2026-07-20T00:00:00.000Z",
+      },
+    ]);
+    const html = renderToStaticMarkup(
+      <DiscoveryWorkspace
+        candidates={candidates}
+        connectionStatus="read_model_connected"
+        lastImportedAt="2026-07-20T01:00:00.000Z"
+      />,
+    );
+
+    expect(html).toContain("Population Pattern hypothesis · 42 supporting races");
+    expect(html).not.toContain("42 lineage races");
+    expect(html).toContain("3 races");
+    expect(html).toContain("Lineage or population evidence");
+  });
 });
