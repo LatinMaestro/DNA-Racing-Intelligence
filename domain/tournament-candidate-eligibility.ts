@@ -26,7 +26,10 @@ function key(value: string): string {
 }
 
 function stringMatches(values: readonly string[], candidate: string): boolean {
-  return values.length === 0 || values.some((value) => key(value) === key(candidate));
+  return (
+    values.length === 0 ||
+    values.some((value) => key(value) === key(candidate))
+  );
 }
 
 function fNumberMatches(
@@ -69,11 +72,17 @@ function configuredGroupMatchesValue(
   alternatives: readonly string[] = [],
 ): boolean {
   const candidates = [value, ...alternatives].map(key);
-  return candidates.includes(key(group.id)) || candidates.includes(key(group.label));
+  return (
+    candidates.includes(key(group.id)) ||
+    candidates.includes(key(group.label))
+  );
 }
 
 export function projectTournamentCandidateEligibility(
-  rule: Pick<TournamentRuleConfiguration, "bracketId" | "splitLabel" | "eligibility" | "leaderboard">,
+  rule: Pick<
+    TournamentRuleConfiguration,
+    "bracketId" | "splitLabel" | "eligibility" | "leaderboard"
+  >,
   core: TournamentCandidateCoreIdentity,
 ): TournamentCandidateEligibilityProjection {
   if (
@@ -156,7 +165,9 @@ export function projectTournamentCandidateEligibility(
   const value =
     splitDimension === "element"
       ? core.element
-      : ["breed", "class", "breed/class", "breed_class"].includes(splitDimension)
+      : ["breed", "class", "breed/class", "breed_class"].includes(
+            splitDimension,
+          )
         ? core.coreClass
         : ["f", "f-number", "f_number", "fnumber"].includes(splitDimension)
           ? String(core.fNumber)
