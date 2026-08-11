@@ -1,8 +1,11 @@
 import {
   attachDiscoveryBenchmarks,
-  type DiscoveryBenchmarkedCandidate,
   type DiscoveryExactDistanceBenchmarkEvidence,
 } from "@/domain/discovery-benchmark";
+import {
+  deriveDiscoveryDecisionGuidance,
+  type DiscoveryDecisionCandidate,
+} from "@/domain/discovery-decision-guidance";
 import {
   buildDiscoveryProbePlan,
   type DiscoveryProbeCandidateInput,
@@ -32,7 +35,7 @@ export type DiscoveryWorkspaceConnectionStatus =
   | "read_model_connected";
 
 export type DiscoveryWorkspacePageState = Readonly<{
-  candidates: readonly DiscoveryBenchmarkedCandidate[];
+  candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
 }>;
@@ -289,8 +292,12 @@ export async function loadDiscoveryWorkspacePageState(
   const probePlan = buildDiscoveryProbePlan(
     normalizeFreshness(evidence.candidates, lastImportedAt, now),
   );
+  const benchmarkedPlan = attachDiscoveryBenchmarks(
+    probePlan,
+    evidence.benchmarks,
+  );
   return {
-    candidates: attachDiscoveryBenchmarks(probePlan, evidence.benchmarks),
+    candidates: deriveDiscoveryDecisionGuidance(benchmarkedPlan),
     lastImportedAt,
     connectionStatus: "read_model_connected",
   };
