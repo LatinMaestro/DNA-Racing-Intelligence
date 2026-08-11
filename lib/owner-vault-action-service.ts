@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
 
 export type OwnerVaultMutationFailureStatus =
-  | "conflict"
-  | "core_unavailable"
-  | "idempotency_conflict"
-  | "invalid_state";
+  "conflict" | "core_unavailable" | "idempotency_conflict" | "invalid_state";
 
 export type OwnerVaultMutationResult =
   | Readonly<{
@@ -21,22 +18,27 @@ export type OwnerVaultMutationRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      setCoreState: (input: Readonly<{
-        ownerId: string;
-        sourceCoreId: string;
-        inMyVault: boolean;
-        meEligible: boolean;
-        expectedVersion: number;
-        idempotencyKey: string;
-        requestFingerprintSha256: string;
-        requestedAt: string;
-      }>) => Promise<OwnerVaultMutationResult>;
+      setCoreState: (
+        input: Readonly<{
+          ownerId: string;
+          sourceCoreId: string;
+          inMyVault: boolean;
+          meEligible: boolean;
+          expectedVersion: number;
+          idempotencyKey: string;
+          requestFingerprintSha256: string;
+          requestedAt: string;
+        }>,
+      ) => Promise<OwnerVaultMutationResult>;
     }>;
 
 export type OwnerVaultActionResult =
   | Readonly<{
       status: "updated";
-      state: Extract<OwnerVaultMutationResult, { status: "applied" | "replayed" }>;
+      state: Extract<
+        OwnerVaultMutationResult,
+        { status: "applied" | "replayed" }
+      >;
     }>
   | Readonly<{
       status:
