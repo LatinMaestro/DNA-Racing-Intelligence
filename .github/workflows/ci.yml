@@ -115,6 +115,22 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.up.sql
       - name: Run owner Vault registry smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.smoke.sql
+      - name: Apply owner Vault catalogue read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.up.sql
+      - name: Run owner Vault catalogue read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.smoke.sql
+      - name: Reverse owner Vault catalogue read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0014_owner_vault_catalogue_read.down.sql
+      - name: Verify owner Vault catalogue read removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname = 'search_owner_vault_catalogue'
+          ) THEN RAISE EXCEPTION 'owner Vault catalogue search still exists';
+          END IF; END \$\$;"
       - name: Reverse owner Vault registry migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0013_owner_vault_registry.down.sql
       - name: Verify owner Vault registry removal
