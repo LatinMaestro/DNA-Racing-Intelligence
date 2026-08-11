@@ -1,6 +1,7 @@
 import { DiscoveryWorkspace } from "@/components/discovery-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
+import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import {
@@ -36,6 +37,8 @@ export default async function DiscoveryPage() {
         neonDiscoveryLineageHypothesisRepositoryFromEnvironment(
           databaseEnvironment,
         ),
+      benchmarkRepository:
+        neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
     }),
     now: new Date(),
   });
