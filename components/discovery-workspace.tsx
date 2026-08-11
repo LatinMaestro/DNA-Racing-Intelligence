@@ -294,7 +294,9 @@ export function DiscoveryWorkspace({
                   {candidate.benchmarkEvidence === null ? null : (
                     <p className="mt-1">
                       Benchmark current through{" "}
-                      {timestamp(candidate.benchmarkEvidence.dataCurrentThrough)}
+                      {timestamp(
+                        candidate.benchmarkEvidence.dataCurrentThrough,
+                      )}
                       {" · "}
                       {candidate.benchmarkEvidence.raceEntryCount.toLocaleString(
                         "en-AU",
