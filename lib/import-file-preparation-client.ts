@@ -86,7 +86,7 @@ function validateSelections(
     selections.length === 0 ||
     selections.length > maxImportUploadFilesPerBatch
   ) {
-    throw new Error("files must contain between 1 and 8 selections");
+    throw new Error(`files must contain between 1 and ${maxImportUploadFilesPerBatch} selections`);
   }
   const clientFileIds = new Set<string>();
   const replacementFamilies = new Set<ImportUploadSourceFamily>();
