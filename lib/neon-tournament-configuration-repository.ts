@@ -1,3 +1,4 @@
+import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
 import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
 import type { TournamentCandidateRepository } from "@/lib/tournament-workspace-service";
@@ -31,7 +32,18 @@ const VERIFY_OWNER_SQL = `
 `;
 const LIST_CONFIGURATIONS_SQL = `SELECT * FROM dna.list_bound_tournament_configurations($1::uuid)`;
 const LIST_ACTIVE_VAULT_CORES_SQL = `
-  SELECT core.source_core_id, vault.me_eligible
+  SELECT
+    core.source_core_id,
+    core.core_class,
+    core.element,
+    core.f_number,
+    EXISTS (
+      SELECT 1
+      FROM dna.active_core_details active_core
+      WHERE active_core.owner_id = core.owner_id
+        AND active_core.id = core.id
+    ) AS core_details_active,
+    vault.me_eligible
   FROM dna.owner_vault_core vault
   JOIN dna.core core
     ON core.owner_id = vault.owner_id
@@ -250,6 +262,13 @@ export function createNeonTournamentConfigurationRepository(
           }
           return {
             coreId: text(row.source_core_id, "Tournament Vault Core ID"),
+            coreClass: text(row.core_class, "Tournament Vault Core class"),
+            element: text(row.element, "Tournament Vault Core element"),
+            fNumber: integer(row.f_number, "Tournament Vault Core F-number"),
+            coreDetailsActive: bool(
+              row.core_details_active,
+              "Tournament Vault Core Details active state",
+            ),
             meEligible,
           };
         });
@@ -483,6 +502,16 @@ export function createNeonTournamentConfigurationRepository(
               candidateSnapshotVersion,
               ruleConfiguration,
               candidates: activeVaultCores.map((core) => {
+                const eligibility = core.coreDetailsActive
+                  ? projectTournamentCandidateEligibility(
+                      ruleConfiguration,
+                      core,
+                    )
+                  : {
+                      eligibility: "review_required" as const,
+                      leaderboardGroupId: "unassigned",
+                      leaderboardGroupLabel: "Eligibility review required",
+                    };
                 const matchingCutoffs =
                   ruleConfiguration.eligibleDistancesMetres
                     .map((distance) =>
@@ -503,11 +532,9 @@ export function createNeonTournamentConfigurationRepository(
                       );
                 return {
                   coreId: core.coreId,
-                  leaderboardGroupId: "unassigned",
-                  leaderboardGroupLabel: "Eligibility review required",
+                  ...eligibility,
                   configurationVersion,
                   candidateSnapshotVersion,
-                  eligibility: "review_required",
                   metricStatus: "unavailable",
                   metricRank: null,
                   metricEvidenceLabel: null,
