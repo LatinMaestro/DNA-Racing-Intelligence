@@ -64,9 +64,10 @@ export function DiscoveryWorkspace({
           Discovery
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Prioritise efficient testing of active My Vault cores. Ten exact-distance
-          races is the minimum analytical boundary, not proof of quality, and the
-          initial probe is deliberately smaller than the full remaining sample.
+          Prioritise efficient testing of active My Vault cores. Ten
+          exact-distance races is the minimum analytical boundary, not proof of
+          quality, and the initial probe is deliberately smaller than the full
+          remaining sample.
         </p>
       </header>
 
@@ -96,11 +97,14 @@ export function DiscoveryWorkspace({
 
         {candidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">No current under-tested candidates</h3>
+            <h3 className="font-semibold">
+              No current under-tested candidates
+            </h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
               This view currently covers owned exact-distance combinations that
               already have imported race evidence. Zero-race and lineage-led
-              hypotheses remain a later Discovery slice and are not inferred here.
+              hypotheses remain a later Discovery slice and are not inferred
+              here.
             </p>
           </div>
         ) : (
@@ -134,7 +138,9 @@ export function DiscoveryWorkspace({
 
                 <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-[var(--muted)]">Current exact-distance sample</dt>
+                    <dt className="text-[var(--muted)]">
+                      Current exact-distance sample
+                    </dt>
                     <dd className="mt-1 font-semibold">
                       {candidate.directRaceCount.toLocaleString("en-AU")} races
                     </dd>
@@ -146,7 +152,9 @@ export function DiscoveryWorkspace({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Recommended next probe</dt>
+                    <dt className="text-[var(--muted)]">
+                      Recommended next probe
+                    </dt>
                     <dd className="mt-1 font-semibold">
                       {candidate.recommendedInitialProbeSize === 0
                         ? "No probe recommended"
@@ -175,7 +183,8 @@ export function DiscoveryWorkspace({
 
                 <div className="mt-5 border-t border-[var(--border)] pt-4 text-sm text-[var(--muted)]">
                   <p>
-                    Data current through {timestamp(candidate.dataCurrentThrough)} ·{" "}
+                    Data current through{" "}
+                    {timestamp(candidate.dataCurrentThrough)} ·{" "}
                     {label(candidate.freshness)}
                   </p>
                   {candidate.warnings.length > 0 ? (
@@ -184,8 +193,8 @@ export function DiscoveryWorkspace({
                     </p>
                   ) : null}
                   <p className="mt-2">
-                    Reassess after the probe. Do not automatically run all races to
-                    10 and do not treat 10 races as proof.
+                    Reassess after the probe. Do not automatically run all races
+                    to 10 and do not treat 10 races as proof.
                   </p>
                 </div>
               </article>
