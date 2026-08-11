@@ -1,3 +1,5 @@
+import { saveTournamentConfigurationAction } from "@/app/(private)/tournaments/actions";
+import { TournamentConfigurationForm } from "@/components/tournament-configuration-form";
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
@@ -26,10 +28,17 @@ export default async function TournamentsPage() {
   });
 
   return (
-    <TournamentWorkspace
-      brackets={state.brackets}
-      connectionStatus={state.connectionStatus}
-      lastImportedAt={state.lastImportedAt}
-    />
+    <div className="space-y-8">
+      <TournamentConfigurationForm
+        brackets={state.brackets}
+        connectionStatus={state.connectionStatus}
+        saveAction={saveTournamentConfigurationAction}
+      />
+      <TournamentWorkspace
+        brackets={state.brackets}
+        connectionStatus={state.connectionStatus}
+        lastImportedAt={state.lastImportedAt}
+      />
+    </div>
   );
 }
