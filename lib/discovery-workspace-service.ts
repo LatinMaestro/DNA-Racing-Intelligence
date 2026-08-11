@@ -70,8 +70,7 @@ export function createDiscoveryProbeRepository(
 
       const candidates = performance.profiles
         .filter(
-          (profile) =>
-            ownedById.has(profile.coreId) && profile.raceCount < 10,
+          (profile) => ownedById.has(profile.coreId) && profile.raceCount < 10,
         )
         .map((profile): DiscoveryProbeCandidateInput => {
           const core = ownedById.get(profile.coreId)!;
