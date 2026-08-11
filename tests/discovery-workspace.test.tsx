@@ -118,7 +118,9 @@ describe("Discovery workspace", () => {
       />,
     );
 
-    expect(html).toContain("Population Pattern hypothesis · 42 supporting races");
+    expect(html).toContain(
+      "Population Pattern hypothesis · 42 supporting races",
+    );
     expect(html).not.toContain("42 lineage races");
     expect(html).toContain("3 races");
     expect(html).toContain("Lineage or population evidence");
