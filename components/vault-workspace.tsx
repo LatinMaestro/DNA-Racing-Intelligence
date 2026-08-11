@@ -1,148 +1,178 @@
 import type {
-  CurrentVaultRegistry,
-  MaidenState,
-} from "@/domain/vault-registry";
-import type { VaultWorkspaceConnectionStatus } from "@/lib/vault-workspace-service";
+  OwnerVaultCatalogueFilters,
+  OwnerVaultCataloguePageState,
+} from "@/lib/owner-vault-catalogue-service";
 
-const connectionCopy: Record<
-  VaultWorkspaceConnectionStatus,
-  Readonly<{ heading: string; detail: string; action: string }>
-> = {
+const connectionCopy = {
   identity_not_connected: {
     heading: "Owner identity not connected",
     detail:
-      "The private Vault remains unavailable until the signed-in owner is verified against the server-side allowlist.",
-    action: "Vault edits unavailable",
+      "Sign in with the authorised owner account to view or maintain the private Vault.",
   },
   persistence_not_configured: {
     heading: "Private Vault storage not connected",
     detail:
-      "Owner verification is available, but the Preview-only Vault repository is not configured. No ownership or Maiden state can be changed.",
-    action: "Vault edits unavailable",
+      "The owner account is recognised, but the private database runtime is not configured yet.",
   },
-  read_model_connected: {
-    heading: "Historical Vault snapshot connected",
+  connected: {
+    heading: "Private Vault connected",
     detail:
-      "The current accepted owner-scoped snapshot and auditable manual overlays are available. Imported ownership remains historical, not live game state.",
-    action: "Vault edits pending",
+      "Current ownership and Maiden Eligibility are maintained here against durable Core Details IDs.",
   },
-};
+} as const;
 
-const maidenLabels: Record<MaidenState, string> = {
-  eligible: "ME eligible",
-  not_eligible: "Not ME eligible",
-  unknown: "ME unknown",
-  invalid: "ME evidence invalid",
-};
+function selected(value: string | null, candidate: string) {
+  return value === candidate;
+}
 
-const timestampFormatter = new Intl.DateTimeFormat("en-AU", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
-
-function Timestamp({ value }: Readonly<{ value: string | null }>) {
-  if (value === null) return <>Not available</>;
+function FilterForm({ filters }: Readonly<{ filters: OwnerVaultCatalogueFilters }>) {
   return (
-    <time dateTime={value}>
-      {timestampFormatter.format(new Date(value))} UTC
-    </time>
+    <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-6" method="get">
+      <input name="scope" type="hidden" value="vault" />
+      <label className="xl:col-span-2">
+        <span className="text-sm font-medium">Core name or ID</span>
+        <input
+          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          defaultValue={filters.query ?? ""}
+          maxLength={128}
+          name="query"
+          placeholder="Search My Vault"
+          type="search"
+        />
+      </label>
+      <label>
+        <span className="text-sm font-medium">Element</span>
+        <select
+          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          defaultValue={filters.element ?? ""}
+          name="element"
+        >
+          <option value="">All</option>
+          {(["Metal", "Fire", "Earth", "Water"] as const).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span className="text-sm font-medium">Breed / class</span>
+        <select
+          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          defaultValue={filters.coreClass ?? ""}
+          name="coreClass"
+        >
+          <option value="">All</option>
+          {(["Genesis", "Morphed", "Freak", "X-Class"] as const).map(
+            (value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ),
+          )}
+        </select>
+      </label>
+      <label>
+        <span className="text-sm font-medium">Sex</span>
+        <select
+          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          defaultValue={filters.sex ?? ""}
+          name="sex"
+        >
+          <option value="">All</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+      </label>
+      <label>
+        <span className="text-sm font-medium">F-number</span>
+        <input
+          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          defaultValue={filters.fNumber ?? ""}
+          min={1}
+          name="fNumber"
+          type="number"
+        />
+      </label>
+      <div className="flex items-end gap-3 md:col-span-2 xl:col-span-6">
+        <button
+          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+          type="submit"
+        >
+          Apply filters
+        </button>
+        <a
+          className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold"
+          href="/vault"
+        >
+          Clear
+        </a>
+      </div>
+    </form>
   );
 }
 
-function totalByMaiden(
-  registry: CurrentVaultRegistry,
-  maidenState: MaidenState,
-): number {
-  return registry.cores.filter((core) => core.maidenState === maidenState)
-    .length;
-}
-
 export function VaultWorkspace({
-  registry,
-  connectionStatus,
-}: Readonly<{
-  registry: CurrentVaultRegistry;
-  connectionStatus: VaultWorkspaceConnectionStatus;
-}>) {
-  const connection = connectionCopy[connectionStatus];
-  const missingProfileCount = registry.cores.filter(
-    ({ profileStatus }) => profileStatus === "missing_core_details",
-  ).length;
-  const summaries = [
-    ["Active owned cores", registry.cores.length.toLocaleString("en-AU")],
-    [
-      "ME eligible",
-      totalByMaiden(registry, "eligible").toLocaleString("en-AU"),
-    ],
-    [
-      "Identity review",
-      registry.unresolvedIdentityCount.toLocaleString("en-AU"),
-    ],
-    ["Missing Core Details", missingProfileCount.toLocaleString("en-AU")],
-  ] as const;
+  state,
+}: Readonly<{ state: OwnerVaultCataloguePageState }>) {
+  const connection = connectionCopy[state.connectionStatus];
+  const meEligibleCount = state.cores.filter((core) => core.meEligible).length;
 
   return (
     <div className="space-y-8">
       <header className="max-w-4xl">
-        <p className="text-sm font-semibold text-[var(--accent)]">
-          Phase 2 Vault control
-        </p>
+        <p className="text-sm font-semibold text-[var(--accent)]">Private owner Vault</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Current Vault
+          My Vault
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Confirmed durable-ID ownership, separate Maiden eligibility and
-          historical snapshot freshness. Proposed identity matches never create
-          personal profiles, economics or recommendations.
+          Search the accepted Core Details catalogue and maintain current private
+          ownership separately from imported race history. Race results never
+          infer whether a core is currently owned.
         </p>
       </header>
 
       <section
         aria-labelledby="vault-connection"
-        className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
       >
         <h2 className="text-lg font-semibold" id="vault-connection">
           {connection.heading}
         </h2>
-        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
           {connection.detail}
         </p>
-        <button
-          className="mt-5 cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
-          disabled
-          type="button"
-        >
-          {connection.action}
-        </button>
+      </section>
+
+      <section
+        aria-labelledby="vault-filters"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <h2 className="text-lg font-semibold" id="vault-filters">
+          Find owned cores
+        </h2>
+        <div className="mt-4">
+          <FilterForm filters={state.filters} />
+        </div>
       </section>
 
       <section aria-labelledby="vault-summary">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold" id="vault-summary">
-              Historical Vault summary
-            </h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Data current through{" "}
-              <Timestamp value={registry.dataCurrentThrough} /> · Last imported{" "}
-              <Timestamp value={registry.lastImportedAt} /> ·{" "}
-              {registry.freshness}
-            </p>
+        <h2 className="text-xl font-semibold" id="vault-summary">
+          Current Vault
+        </h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+            <dt className="text-sm text-[var(--muted)]">Matching owned cores</dt>
+            <dd className="mt-2 text-2xl font-semibold tabular-nums">
+              {state.cores.length.toLocaleString("en-AU")}
+            </dd>
           </div>
-        </div>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {summaries.map(([label, value]) => (
-            <div
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
-              key={label}
-            >
-              <dt className="text-sm text-[var(--muted)]">{label}</dt>
-              <dd className="mt-2 text-2xl font-semibold tabular-nums">
-                {value}
-              </dd>
-            </div>
-          ))}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+            <dt className="text-sm text-[var(--muted)]">ME eligible</dt>
+            <dd className="mt-2 text-2xl font-semibold tabular-nums">
+              {meEligibleCount.toLocaleString("en-AU")}
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -153,32 +183,31 @@ export function VaultWorkspace({
         <h2 className="text-lg font-semibold" id="owned-core-registry">
           Owned-core registry
         </h2>
-        {registry.cores.length === 0 ? (
+        {state.cores.length === 0 ? (
           <p className="mt-4 leading-7 text-[var(--muted)]">
-            No accepted Current Vault evidence is connected. Missing ownership
-            is unavailable evidence, not a zero-value Vault or a negative core
-            assessment.
+            No owned cores match these filters. Use Search Core when you want to
+            inspect a game-wide core that is not currently in My Vault.
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-[var(--border)]">
-            {registry.cores.map((core) => (
-              <li
-                className="flex flex-wrap items-center justify-between gap-3 py-4"
-                key={core.coreId}
-              >
+            {state.cores.map((core) => (
+              <li className="grid gap-3 py-4 md:grid-cols-[1fr_auto]" key={core.sourceCoreId}>
                 <div>
-                  <p className="font-mono text-sm font-medium">{core.coreId}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {core.ownershipSource} ownership · {core.maidenSource}
+                  <p className="font-semibold">{core.displayName}</p>
+                  <p className="mt-1 font-mono text-sm text-[var(--muted)]">
+                    {core.sourceCoreId}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    {core.element} · {core.coreClass} · {core.sex} · F{core.fNumber}
                   </p>
                 </div>
-                <div className="text-right text-sm">
-                  <p className="font-medium">
-                    {maidenLabels[core.maidenState]}
-                  </p>
-                  <p className="mt-1 text-[var(--muted)]">
-                    {core.profileStatus.replaceAll("_", " ")}
-                  </p>
+                <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                  <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+                    In My Vault
+                  </span>
+                  <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+                    {core.meEligible ? "ME eligible" : "Not ME eligible"}
+                  </span>
                 </div>
               </li>
             ))}
@@ -187,9 +216,8 @@ export function VaultWorkspace({
       </section>
 
       <p className="text-sm leading-6 text-[var(--muted)]">
-        Maiden eligibility is a one-use strategic state. This workspace does not
-        recommend committing a core to a Maiden, and imported Vault evidence
-        does not represent live game availability.
+        Maiden Eligibility is private current state and only applies to an active
+        owned core. It remains separate from ownership and historical race evidence.
       </p>
     </div>
   );
