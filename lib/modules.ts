@@ -11,6 +11,11 @@ export const modules = [
     shortDescription: "Owned cores and lineage",
   },
   {
+    href: "/search-core",
+    label: "Search Core",
+    shortDescription: "Game-wide core research",
+  },
+  {
     href: "/core-intelligence",
     label: "Core Intelligence",
     shortDescription: "Mode and distance evidence",
