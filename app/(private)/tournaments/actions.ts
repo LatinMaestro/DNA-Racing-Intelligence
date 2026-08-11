@@ -35,10 +35,9 @@ export async function saveTournamentConfigurationAction(
   await saveTournamentConfiguration({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository:
-      neonTournamentConfigurationWriteRepositoryFromEnvironment(
-        databaseEnvironment(),
-      ),
+    repository: neonTournamentConfigurationWriteRepositoryFromEnvironment(
+      databaseEnvironment(),
+    ),
     configuration,
   });
 
