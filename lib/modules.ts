@@ -8,7 +8,12 @@ export const modules = [
   {
     href: "/vault",
     label: "Vault",
-    shortDescription: "Owned cores and lineage",
+    shortDescription: "Owned cores and Maiden state",
+  },
+  {
+    href: "/search-core",
+    label: "Search Core",
+    shortDescription: "Game-wide core lookup",
   },
   {
     href: "/core-intelligence",
