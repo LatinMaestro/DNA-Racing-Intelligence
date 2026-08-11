@@ -8,6 +8,11 @@ import {
 } from "../lib/owner-vault-action-service";
 
 const ownerId = "user_owner";
+type ReadyRepository = Extract<
+  OwnerVaultMutationRepository,
+  { status: "ready" }
+>;
+type SetCoreStateInput = Parameters<ReadyRepository["setCoreState"]>[0];
 
 function dependencies(repository: OwnerVaultMutationRepository) {
   return {
@@ -94,7 +99,7 @@ describe("owner Vault action service", () => {
   });
 
   it("binds an authenticated mutation to a deterministic request fingerprint", async () => {
-    const setCoreState = vi.fn(async (input) => ({
+    const setCoreState = vi.fn(async (input: SetCoreStateInput) => ({
       status: "applied" as const,
       sourceCoreId: input.sourceCoreId,
       inMyVault: input.inMyVault,
@@ -143,31 +148,27 @@ describe("owner Vault action service", () => {
     ["core_unavailable", "core_unavailable"],
     ["idempotency_conflict", "idempotency_conflict"],
     ["invalid_state", "invalid_request"],
-  ] as const)("maps %s without exposing provider details", async (repositoryStatus, actionStatus) => {
-    const repository: OwnerVaultMutationRepository = {
-      status: "ready",
-      setCoreState: async () => ({
-        status: repositoryStatus,
-        sourceCoreId: "core-1",
-        inMyVault: true,
-        meEligible: false,
-        version: 1,
-        updatedAt: "2026-08-11T01:00:00.000Z",
-      }),
-    };
-    await expect(
-      updateOwnerVaultCore(
-        {
-          sourceCoreId: "core-1",
-          inMyVault: true,
-          meEligible: false,
-          expectedVersion: 0,
-          idempotencyKey: "vault-map",
-        },
-        dependencies(repository),
-      ),
-    ).resolves.toEqual({ status: actionStatus });
-  });
+  ] as const)(
+    "maps %s without exposing provider details",
+    async (repositoryStatus, actionStatus) => {
+      const repository: OwnerVaultMutationRepository = {
+        status: "ready",
+        setCoreState: async () => ({ status: repositoryStatus }),
+      };
+      await expect(
+        updateOwnerVaultCore(
+          {
+            sourceCoreId: "core-1",
+            inMyVault: true,
+            meEligible: false,
+            expectedVersion: 0,
+            idempotencyKey: "vault-map",
+          },
+          dependencies(repository),
+        ),
+      ).resolves.toEqual({ status: actionStatus });
+    },
+  );
 
   it("returns a fixed unavailable state for unexpected persistence failures", async () => {
     const repository: OwnerVaultMutationRepository = {
