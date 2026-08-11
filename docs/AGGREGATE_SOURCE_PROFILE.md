@@ -2,126 +2,117 @@
 
 ## Purpose and evidence boundary
 
-This document records privacy-safe aggregate observations from the repository owner's
-private source exports. It establishes import and product behaviour without placing
-the source files or user-specific records in Git.
+This document records aggregate observations from the owner's real DNA Racing source
+exports. It establishes import and product behaviour without placing large raw files,
+individual source rows or owner-specific records in Git.
 
-Only aggregate counts and owner-confirmed rules are permitted here. Do not commit:
+The source data and ownership information are publicly observable game data. Repository
+exclusion is therefore a storage, reproducibility and data-governance decision rather
+than a confidentiality claim. Infrastructure credentials remain secret.
 
-- raw or transformed source files;
-- source filenames or private checksums;
-- core names or durable core identifiers;
-- individual source records;
-- fee, prize, arena or other monetary values; or
-- user-specific derived profiles, recommendations, ledgers or exports.
+## Inspected source set — 11 August 2026
 
-Synthetic fixtures remain mandatory for repository tests.
+The full streaming scan covered ten CSV files and 392,495,130 source bytes:
 
-## Authoritative source families
+- seven sequential Race Merge segments;
+- one Core Details export (legacy filename: Bike Details);
+- one Current Arena export; and
+- one Current Vault spreadsheet used only as a temporary ownership reference.
 
-The inspected private source set contains nine exports across four source families:
+The recurring import set is the first nine files: 392,487,223 bytes. Current Vault is
+not a production import source; My Vault remains a durable Core-ID registry.
 
-| Source family            | Export count | Import treatment                                                                                  |
-| ------------------------ | -----------: | ------------------------------------------------------------------------------------------------- |
-| Race Merge history       |            6 | Append sequential history, retain accepted prior facts and deduplicate exact boundary overlap     |
-| Core Details and lineage |            1 | Versioned upsert by authoritative durable core ID                                                 |
-| Current Vault            |            1 | Replace the current owned-core snapshot while retaining historical snapshot provenance            |
-| Current Arena            |            1 | Replace the current listing snapshot while retaining historical snapshot provenance and freshness |
+No raw export was committed to Git.
 
-The legacy Bike-labelled details source is cross-mode Core Details. Its legacy
-`bikeid` field maps to the authoritative durable core ID; it is not Bike-only
-identity data.
+## Race Merge aggregate profile
 
-## Privacy-safe aggregate profile
+All seven Race Merge segments have the same 20-column header:
 
-### Race history
+`event_id,event_datetime,rstart_time,rmode,rclass,rcb,token_id,name,gate,rgate_count,gold_star,blue_star,pos,time,rformat,rpayout,rfee,prize,toke_curr,r_tags`
 
-- 2,536,710 race-entry records cover 695,901 events.
-- 16,992 distinct durable core IDs appear in race history.
-- The six exports are sequential rather than cumulative.
-- Adjacent exports overlap at 13 boundary events.
-- Those boundary events contain 67 exact duplicate entry records.
-- No conflicting entry was observed in the inspected overlap.
-- The importer must nevertheless quarantine any future conflicting overlap rather
-  than overwriting an accepted fact.
+Observed across the seven segments:
 
-### Core Details and lineage
+- 2,691,579 entry rows;
+- 746,648 unique events;
+- 17,526 unique raced Core IDs;
+- race-start coverage from `2024-07-06T19:41:00.482Z` through
+  `2026-08-11T04:58:34.176Z`;
+- 1,581,160 bike entries, 489,407 car entries and 621,012 horse entries;
+- distances from 900 m through 2,300 m, in 100 m steps;
+- positive elapsed times from 44.710 seconds to 147.728 seconds;
+- currencies `DEZ` (2,542,325 rows), `ETH` (148,256) and the known historical
+  `BGC` exception (998);
+- 25 fee values expressed in scientific notation and no scientific-notation prizes;
+- zero malformed-width rows, zero within-file duplicate `event_id + token_id` rows
+  and 13 cross-segment overlapping event IDs covering 67 entry rows.
 
-- Core Details contains 18,127 unique durable core IDs.
-- 14,181 cores have both recorded parents.
-- 3,946 cores are founder or no-parent records in the supplied export.
-- Every recorded parent ID resolves within the supplied Core Details set.
-- Recorded parent-name provenance agrees with the referenced parent IDs.
-- Fifteen exact core names are reused by more than one durable ID.
+The importer must deduplicate segment overlap on durable race-entry identity. It must
+accept all sequential Race Merge segments rather than assuming a permanent file count.
 
-Durable IDs are authoritative. A name must never create or change lineage,
-ownership or economic attribution by itself.
+`rgate_count` describes the configured race field, not a guaranteed exported row
+count: 139,537 events had fewer exported rows than the declared field and seven had
+more. Row-count equality is therefore not a valid completeness invariant; the seven
+overfilled cases remain anomaly/review candidates.
 
-### Current Vault
+Gold and Blue star columns contained only case variants of `true` and `false`, with
+no missing values. No event had multiple Gold or Blue stars, and no Gold star appeared
+in a field of three gates or fewer.
 
-- The current snapshot contains 195 owner-confirmed owned cores.
-- 68 are marked Maiden Eligible.
-- 127 are marked not Maiden Eligible.
-- `me=true` means Maiden tournament eligible; it is not an ownership filter.
-- All 195 current rows resolve deterministically to Core Details and agree with the
-  supplied identity attributes.
-- All 195 have imported race history.
-- 166 owned cores have recorded parents and 29 are founder or no-parent records.
+Race names are display metadata, not identity: 138,260 race rows had no name and 4,542
+race rows disagreed with the current Core Details name for the same ID.
 
-The current snapshot therefore requires no manual identity decision. Future
-unmatched, inconsistent or genuinely ambiguous rows must still fail closed into
-review rather than being guessed.
+## Core Details aggregate profile
 
-### Coverage gaps
+The Core Details schema is:
 
-| Coverage check                              | Matched | Source total | Explicit gap |
-| ------------------------------------------- | ------: | -----------: | -----------: |
-| Raced core IDs present in Core Details      |  14,830 |       16,992 |        2,162 |
-| Current Arena IDs present in Core Details   |     791 |          792 |            1 |
-| Current Arena IDs with race history         |     770 |          792 |           22 |
-| Current owned cores present in Core Details |     195 |          195 |            0 |
-| Current owned cores with race history       |     195 |          195 |            0 |
+`bikeid,core_name,core_type,gender,f_no,element,color,father_name,father_id,mother_name,mother_id`
 
-The 2,162 raced IDs absent from the supplied Core Details export remain valid
-performance evidence but must show attributes and lineage as unavailable. The 22
-Arena IDs without race history require an explicit no-imported-racing-history
-state. A later Core Details export may close coverage gaps by durable ID without
-deleting accepted history.
+Observed:
 
-## Historical BGC race exception
+- 18,513 rows and 18,513 unique Core IDs;
+- 14,567 rows with both parents and 3,946 with neither parent;
+- no one-parent rows, self-parent rows or unresolved parent IDs;
+- parent names agreed with the referenced parent IDs;
+- 17 normalized names were reused by more than one Core ID; and
+- 2,147 historical raced Core IDs were absent from the current Core Details snapshot.
 
-The inspected race history contains 998 entries across 467 events whose race asset
-is BGC. The repository owner confirms these are exceptional historical races and
-must be treated as free-entry, no-payout races for accounting.
+Durable Core ID is authoritative for history, lineage and ownership. Name matching is
+never sufficient as the persistent key.
 
-For every Race Merge entry whose race asset is BGC:
+## Current Arena aggregate profile
 
-- retain the race, mode, distance, gate, core, elapsed-time, position and star
-  evidence;
-- preserve source provenance only within the approved private data boundary;
-- set the effective economic entry fee and payout to zero;
-- create no race-derived ETH, DEZ or BGC ledger transaction;
-- exclude the source fee and prize from every fee, payout, profit, loss,
-  tournament-campaign and economic-completeness total; and
-- do not create an economic review item merely because the historical race asset
-  is BGC.
+The Current Arena schema is `token_id,price_usd`.
 
-This exception does not change the separate BGC ledger for genuine manually
-recorded breeding costs, arena spending, burn credits or other non-race BGC
-activity.
+Observed:
 
-## Downstream requirements
+- 1,474 rows and 1,474 unique Core IDs;
+- no duplicate IDs;
+- all prices were valid, from USD 1 through USD 120; and
+- one Arena ID was absent from the current Core Details snapshot.
 
-- Race Merge imports must accept sequential additions, exact replay and small
-  boundary overlap idempotently.
-- Current Vault and Current Arena remain replacement historical snapshots, never
-  live state.
-- Core Details and lineage must use durable IDs and retain partial-profile states.
-- Ownership applies to every accepted current-Vault row; ME remains a separate
-  eligible/not-eligible state.
-- The current Vault snapshot may be resolved deterministically, while future
-  unresolved identities remain review-required.
-- Analytical validation may use the private exports only within approved hosted
-  processing boundaries. Git may retain aggregate evidence only.
-- Production remains disabled and the first persistent private hosted import
-  remains subject to Gate B.
+## Current Vault reference profile
+
+The reference spreadsheet schema is
+`core_name,f_no,core_type,element,gender,me`.
+
+Observed:
+
+- 195 rows;
+- 68 `ME = TRUE` and 127 `ME = FALSE`;
+- 193 unique deterministic matches to current Core Details; and
+- two ambiguous name matches caused by reused Core names, with no unmatched rows or
+  attribute mismatches.
+
+That ambiguity confirms why the spreadsheet is reference-only and why My Vault must be
+maintained by durable Core ID.
+
+## Import and hosting consequences
+
+The real schemas match the current source-family registry and adapter aliases. Existing
+encoding, boolean and decimal handling covers the observed values.
+
+The current recurring payload is about 392.5 MB before normalization. A hosted Preview
+import therefore requires a measured provider-capacity projection, configured upload
+completion and activation actions, and a proven rollback/recovery path. Until those
+gates pass with synthetic Preview data, the real exports remain out of hosted Preview
+and Production.

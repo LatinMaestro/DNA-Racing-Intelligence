@@ -6,7 +6,7 @@ export const importUploadSourceFamilies = [
   "current_arena",
 ] as const;
 
-export const maxImportUploadFilesPerBatch = 8;
+export const maxImportUploadFilesPerBatch = 24;
 
 export type ImportUploadSourceFamily =
   (typeof importUploadSourceFamilies)[number];
@@ -199,7 +199,9 @@ function validateCandidates(
     candidates.length === 0 ||
     candidates.length > maxImportUploadFilesPerBatch
   ) {
-    throw new Error("files must contain between 1 and 8 candidates");
+    throw new Error(
+      `files must contain between 1 and ${maxImportUploadFilesPerBatch} candidates`,
+    );
   }
   const validated = candidates.map(validateCandidate);
   const clientFileIds = new Set<string>();
