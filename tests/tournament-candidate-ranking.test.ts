@@ -38,7 +38,7 @@ function canonicalRule(): TournamentRuleConfiguration {
     qualification: {
       minimumRaceCount: 10,
       target: { kind: "count", value: 5 },
-      rankingMetric: "Qualification points" as TournamentRuleConfiguration["qualification"]["rankingMetric"],
+      rankingMetric: "points",
       topFinishPosition: null,
       pointsTable: { "1": "10" },
       customScoringConfiguration: {},
@@ -159,7 +159,10 @@ describe("tournament candidate ranking", () => {
 
   it("binds canonical rule authority and rejects a drifted projection", () => {
     const result = rankTournamentCandidates(
-      input([candidate("core", 2)], { ruleConfiguration: canonicalRule() }),
+      input([candidate("core", 2, { metricEvidenceLabel: "points" })], {
+        qualificationMetricLabel: "points",
+        ruleConfiguration: canonicalRule(),
+      }),
     );
     expect(result.configurationAuthority).toEqual({
       status: "authoritative",
@@ -173,7 +176,8 @@ describe("tournament candidate ranking", () => {
 
     expect(() =>
       rankTournamentCandidates(
-        input([candidate("core", 2)], {
+        input([candidate("core", 2, { metricEvidenceLabel: "points" })], {
+          qualificationMetricLabel: "points",
           ruleConfiguration: {
             ...canonicalRule(),
             configurationVersion: "config-drifted",
