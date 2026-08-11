@@ -130,7 +130,7 @@ describe("Neon owner Vault catalogue repository", () => {
       },
     ]);
     const listCall = test.calls.find((call) =>
-      call.statement.includes("FROM dna.active_core_details"),
+      call.statement.includes("FROM dna.search_owner_vault_catalogue("),
     );
     expect(listCall?.values).toEqual([
       databaseOwnerId,
@@ -142,7 +142,7 @@ describe("Neon owner Vault catalogue repository", () => {
       "catalogue",
       50,
     ]);
-    expect(listCall?.statement).toContain("position(lower($2::text)");
+    expect(listCall?.statement).toContain("$8::integer");
     expect(test.close).toHaveBeenCalledOnce();
   });
 
@@ -158,7 +158,7 @@ describe("Neon owner Vault catalogue repository", () => {
       query: null,
     });
     const listCall = test.calls.find((call) =>
-      call.statement.includes("FROM dna.active_core_details"),
+      call.statement.includes("FROM dna.search_owner_vault_catalogue("),
     );
     expect(listCall?.values?.[7]).toBe(500);
   });
@@ -174,7 +174,7 @@ describe("Neon owner Vault catalogue repository", () => {
       ).rejects.toThrow(/forced owner isolation|least privileged/);
       expect(
         test.calls.some((call) =>
-          call.statement.includes("FROM dna.active_core_details"),
+          call.statement.includes("FROM dna.search_owner_vault_catalogue("),
         ),
       ).toBe(false);
     }
