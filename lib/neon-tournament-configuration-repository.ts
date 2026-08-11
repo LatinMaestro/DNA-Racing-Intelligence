@@ -12,18 +12,33 @@ const SAFE_RUNTIME_ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/;
 const SET_OWNER_SCOPE_SQL = `SELECT set_config('app.owner_id', $1, true) AS owner_scope`;
 const VERIFY_OWNER_SQL = `
   SELECT owner.clerk_user_id AS authenticated_owner_id,
-    table_meta.relrowsecurity AS row_security_enabled,
-    table_meta.relforcerowsecurity AS force_row_security_enabled,
+    tournament_table.relrowsecurity AS tournament_row_security_enabled,
+    tournament_table.relforcerowsecurity AS tournament_force_row_security_enabled,
+    vault_table.relrowsecurity AS vault_row_security_enabled,
+    vault_table.relforcerowsecurity AS vault_force_row_security_enabled,
     session_user::text AS session_user_name,
     current_user::text AS current_user_name,
     role.rolsuper AS runtime_is_superuser,
     role.rolbypassrls AS runtime_bypasses_rls
   FROM dna.app_owner owner
-  JOIN pg_catalog.pg_class table_meta ON table_meta.oid = 'dna.tournament_configuration'::regclass
+  JOIN pg_catalog.pg_class tournament_table
+    ON tournament_table.oid = 'dna.tournament_configuration'::regclass
+  JOIN pg_catalog.pg_class vault_table
+    ON vault_table.oid = 'dna.owner_vault_core'::regclass
   JOIN pg_catalog.pg_roles role ON role.rolname = session_user
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 `;
 const LIST_CONFIGURATIONS_SQL = `SELECT * FROM dna.list_tournament_configurations($1::uuid)`;
+const LIST_ACTIVE_VAULT_CORES_SQL = `
+  SELECT core.source_core_id, vault.me_eligible
+  FROM dna.owner_vault_core vault
+  JOIN dna.core core
+    ON core.owner_id = vault.owner_id
+    AND core.id = vault.core_id
+  WHERE vault.owner_id = $1::uuid
+    AND vault.in_my_vault
+  ORDER BY core.source_core_id
+`;
 
 type Environment = Readonly<{
   databaseUrl: string | undefined;
@@ -69,8 +84,13 @@ function verifyOwner(
   if (
     text(row.authenticated_owner_id, "authenticated owner") !==
       authenticatedOwnerId ||
-    !bool(row.row_security_enabled, "Tournament RLS") ||
-    !bool(row.force_row_security_enabled, "Tournament forced RLS") ||
+    !bool(row.tournament_row_security_enabled, "Tournament RLS") ||
+    !bool(
+      row.tournament_force_row_security_enabled,
+      "Tournament forced RLS",
+    ) ||
+    !bool(row.vault_row_security_enabled, "Vault RLS") ||
+    !bool(row.vault_force_row_security_enabled, "Vault forced RLS") ||
     text(row.session_user_name, "session user") !== runtimeRole ||
     text(row.current_user_name, "current user") !== runtimeRole ||
     bool(row.runtime_is_superuser, "runtime superuser") ||
@@ -136,6 +156,21 @@ export function createNeonTournamentConfigurationRepository(
         const result = await session.client.query(LIST_CONFIGURATIONS_SQL, [
           databaseOwnerId,
         ]);
+        const vaultResult = await session.client.query(
+          LIST_ACTIVE_VAULT_CORES_SQL,
+          [databaseOwnerId],
+        );
+        const activeVaultCores = vaultResult.rows.map((value) => {
+          const row = record(value);
+          const meEligible = row.me_eligible;
+          if (typeof meEligible !== "boolean") {
+            throw new Error("Tournament Vault ME eligibility is invalid.");
+          }
+          return {
+            coreId: text(row.source_core_id, "Tournament Vault Core ID"),
+            meEligible,
+          };
+        });
         const brackets: TournamentCandidateRankingInput[] = result.rows.map(
           (value) => {
             const row = record(value);
@@ -171,7 +206,33 @@ export function createNeonTournamentConfigurationRepository(
                 row.candidate_snapshot_version,
                 "Candidate snapshot version",
               ),
-              candidates: [],
+              candidates: activeVaultCores.map((core) => ({
+                coreId: core.coreId,
+                leaderboardGroupId: "unassigned",
+                leaderboardGroupLabel: "Eligibility review required",
+                configurationVersion: text(
+                  row.configuration_version,
+                  "Configuration version",
+                ),
+                candidateSnapshotVersion: text(
+                  row.candidate_snapshot_version,
+                  "Candidate snapshot version",
+                ),
+                eligibility: "review_required",
+                metricStatus: "unavailable",
+                metricRank: null,
+                metricEvidenceLabel: null,
+                timeEvidence: "unknown",
+                historicalStarSupport: "unavailable",
+                evidenceConfidence: "unknown",
+                maidenState: core.meEligible ? "eligible" : "not_eligible",
+                maidenModeDisposition: core.meEligible
+                  ? "unresolved"
+                  : "not_applicable",
+                dataCurrentThrough: null,
+                lastImported: null,
+                freshness: "unknown",
+              })),
             };
           },
         );
