@@ -17,18 +17,18 @@ The upload feature is an approved implementation contract. It remains unavailabl
 
 ## What to upload
 
-| Source family            | When to upload                                                                                                       | Update treatment                                                                                                                                                                            |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Race Merge               | Add every new sequential export. Several files may be uploaded together. Re-uploading an earlier file is safe.       | Append accepted entries in event-time order, retain prior history, ignore exact replay and boundary duplicates, quarantine conflicting facts and refresh only affected aggregates.          |
-| Core Details and lineage | Upload the latest export whenever DNA publishes meaningful identity, attribute, parentage or new-core updates.       | Versioned upsert by authoritative durable core ID. Omitted older cores are not silently deleted, and parent relationships are never inferred from names.                                    |
-| Current Vault            | Upload whenever current ownership or Maiden eligibility changes, or whenever a newer complete snapshot is available. | Replace the current owned-core snapshot while retaining earlier snapshots and rollback provenance. Every accepted row is owned; the Maiden field is a separate eligible/not-eligible state. |
-| Current Arena            | Upload before relying on current external breeding options and whenever a newer listing snapshot is available.       | Replace the current listing snapshot while retaining earlier snapshots. Listings absent from the accepted replacement are no longer current; freshness and expiry warnings remain visible.  |
+| Source family            | When to upload                                                                                                                                                        | Update treatment                                                                                                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Race Merge               | Add every new sequential export. Several files may be uploaded together. Re-uploading an earlier file is safe.                                                        | Append accepted entries in event-time order, retain prior history, ignore exact replay and boundary duplicates, quarantine conflicting facts and refresh only affected aggregates.         |
+| Core Details and lineage | Upload the latest export whenever DNA publishes meaningful identity, attribute, parentage or new-core updates.                                                        | Versioned upsert by authoritative durable core ID. Omitted older cores are not silently deleted, and parent relationships are never inferred from names.                                   |
+| My Vault                 | Maintain ownership and Maiden eligibility directly in the authenticated Vault workspace. The retired Current Vault spreadsheet is reference-only and is not uploaded. | Owner-maintained state keyed to durable Core ID; removing an active core retains its historical racing, lineage, lifecycle, breeding and economic evidence.                                |
+| Current Arena            | Upload before relying on current external breeding options and whenever a newer listing snapshot is available.                                                        | Replace the current listing snapshot while retaining earlier snapshots. Listings absent from the accepted replacement are no longer current; freshness and expiry warnings remain visible. |
 
 Race Merge is the only source family that normally grows by adding more files. Core Details is cumulative/upserted, while Vault and Arena are current replacement snapshots.
 
 ## Upload and preview experience
 
-The owner may upload the four source families individually or together. The workspace detects the file family from its headers, while allowing an explicit source choice only when the headers also match.
+The owner may upload the three imported source families individually or together. The number of Race Merge files is variable because the series grows over time. The workspace detects the file family from its headers, while allowing an explicit source choice only when the headers also match.
 
 Before any active dataset changes, the preview shows:
 
@@ -38,7 +38,7 @@ Before any active dataset changes, the preview shows:
 - event or snapshot date coverage where available;
 - new, exact-duplicate, conflicting, rejected and warning counts;
 - the active dataset version that would be superseded;
-- Vault durable-ID resolution and Maiden-state counts;
+- current My Vault and Maiden-state impact, without treating the retired Current Vault spreadsheet as an import source;
 - Core Details and lineage coverage changes;
 - Arena identity/history coverage and freshness;
 - historical BGC race rows that will retain performance evidence with zero effective fee and payout;
@@ -91,7 +91,7 @@ The website must not silently present refreshed recommendations until the requir
 The owner can inspect import history and:
 
 - roll back one accepted source version with a recorded reason;
-- restore the prior Vault or Arena snapshot;
+- restore the prior Arena snapshot; owner-maintained Vault changes use their guarded versioned mutation history;
 - review and resolve genuine identity or conflict issues;
 - retry aggregate processing without re-uploading the source file; and
 - re-upload a corrected export safely.
@@ -111,7 +111,7 @@ This is a private, single-user analytical website. Source selection and field re
 - Redaction applies to Git, automated logs, public surfaces and synthetic fixtures. It must not reduce the data available to authenticated owner workflows or private analytical processing.
 - Real exports and derived user-specific records remain outside Git because Git is source-code history, not the private website data store.
 
-The fact that DNA Racing publishes the source exports does not change the access-control design: the website, raw uploads, database, derived recommendations and owner-specific Vault Performance records remain private.
+DNA Racing source exports and observable game ownership are public game data, not confidential records. Authentication and ordinary infrastructure security remain required to prevent unauthorised writes, protect service credentials and keep the single-owner application reliable.
 
 ## Source changes
 
@@ -127,8 +127,8 @@ The implemented workflow is complete when synthetic and hosted Preview evidence 
 - sequential Race Merge additions and older backfills are idempotent;
 - conflicting Race Merge facts cannot overwrite accepted history;
 - Core Details upserts preserve durable identity and lineage provenance;
-- Vault and Arena replacements retain historical snapshots and rollback;
-- Windows-1252 Vault input is accepted;
+- Arena replacements retain historical snapshots and rollback, while owner-maintained Vault changes retain versioned history;
+- the retired Current Vault spreadsheet is rejected as an import source;
 - owner-authenticated error review can show useful exact details without logging them;
 - all analytically relevant source fields remain available inside the private data boundary;
 - aggregate refresh and freshness states are accurate;
