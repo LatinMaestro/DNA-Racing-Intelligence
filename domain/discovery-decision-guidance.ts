@@ -18,15 +18,12 @@ export type DiscoveryDecisionReason =
   | "minimum_sample_reached"
   | "evidence_stale_or_unresolved";
 
-export type DiscoveryDecisionCandidate = Omit<
-  DiscoveryBenchmarkedCandidate,
-  "guidance" | "recommendedInitialProbeSize" | "actionable"
-> &
+export type DiscoveryDecisionCandidate = DiscoveryBenchmarkedCandidate &
   Readonly<{
-    guidance: DiscoveryDecisionGuidance;
+    decisionGuidance: DiscoveryDecisionGuidance;
     decisionReason: DiscoveryDecisionReason;
-    recommendedInitialProbeSize: number;
-    actionable: boolean;
+    recommendedDecisionProbeSize: number;
+    decisionActionable: boolean;
   }>;
 
 function hasPositiveStarSignal(candidate: DiscoveryBenchmarkedCandidate): boolean {
@@ -41,73 +38,79 @@ export function deriveDiscoveryDecisionGuidance(
     if (candidate.guidance === "defer_stale_or_unresolved") {
       return {
         ...candidate,
-        guidance: "defer_stale_or_unresolved",
+        decisionGuidance: "defer_stale_or_unresolved",
         decisionReason: "evidence_stale_or_unresolved",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
       };
     }
 
     if (candidate.observationsToMinimum === 0) {
       return {
         ...candidate,
-        guidance: "review_minimum_sample",
+        decisionGuidance: "review_minimum_sample",
         decisionReason: "minimum_sample_reached",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
       };
     }
 
     if (candidate.benchmarkAssessment === "winning_range") {
       return {
         ...candidate,
-        guidance: "continue_targeted_probe",
+        decisionGuidance: "continue_targeted_probe",
         decisionReason: "competitive_winner_range",
+        recommendedDecisionProbeSize: candidate.recommendedInitialProbeSize,
+        decisionActionable: candidate.actionable,
       };
     }
 
     if (candidate.benchmarkAssessment === "top_three_range") {
       return {
         ...candidate,
-        guidance: "continue_targeted_probe",
+        decisionGuidance: "continue_targeted_probe",
         decisionReason: "competitive_top_three_range",
+        recommendedDecisionProbeSize: candidate.recommendedInitialProbeSize,
+        decisionActionable: candidate.actionable,
       };
     }
 
     if (candidate.benchmarkAssessment === "not_available") {
       return {
         ...candidate,
-        guidance: "continue_targeted_probe",
+        decisionGuidance: "continue_targeted_probe",
         decisionReason: "benchmark_not_available",
+        recommendedDecisionProbeSize: candidate.recommendedInitialProbeSize,
+        decisionActionable: candidate.actionable,
       };
     }
 
     if (candidate.directRaceCount < 4) {
       return {
         ...candidate,
-        guidance: "continue_single_confirmation",
+        decisionGuidance: "continue_single_confirmation",
         decisionReason: "small_sample_needs_confirmation",
-        recommendedInitialProbeSize: Math.min(1, candidate.observationsToMinimum),
-        actionable: true,
+        recommendedDecisionProbeSize: Math.min(1, candidate.observationsToMinimum),
+        decisionActionable: true,
       };
     }
 
     if (hasPositiveStarSignal(candidate)) {
       return {
         ...candidate,
-        guidance: "pause_conflicting_evidence",
+        decisionGuidance: "pause_conflicting_evidence",
         decisionReason: "weak_times_but_positive_star_signal",
-        recommendedInitialProbeSize: 0,
-        actionable: false,
+        recommendedDecisionProbeSize: 0,
+        decisionActionable: false,
       };
     }
 
     return {
       ...candidate,
-      guidance: "stop_prioritising_this_cell",
+      decisionGuidance: "stop_prioritising_this_cell",
       decisionReason: "weak_times_without_positive_star_signal",
-      recommendedInitialProbeSize: 0,
-      actionable: false,
+      recommendedDecisionProbeSize: 0,
+      decisionActionable: false,
     };
   });
 }
