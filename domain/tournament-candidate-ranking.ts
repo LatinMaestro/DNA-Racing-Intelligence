@@ -2,6 +2,10 @@ import type { FreshnessState } from "@/domain/freshness";
 
 export type CandidateFreshness = FreshnessState;
 
+export const tournamentModes = ["bike", "car", "horse"] as const;
+export type TournamentMode = (typeof tournamentModes)[number];
+export type TournamentDiscoveryRelevance = "eligible" | "priority";
+
 export type TournamentCandidateInput = Readonly<{
   coreId: string;
   leaderboardGroupId: string;
@@ -31,6 +35,9 @@ export type TournamentCandidateRankingInput = Readonly<{
   tournamentLabel: string;
   bracketId: string;
   splitLabel: string;
+  mode: TournamentMode;
+  eligibleDistancesMetres: readonly number[];
+  discoveryRelevance: TournamentDiscoveryRelevance;
   qualificationMetricLabel: string;
   configurationVersion: string;
   candidateSnapshotVersion: string;
@@ -88,6 +95,9 @@ export type TournamentCandidateRankingResult = Readonly<{
   tournamentLabel: string;
   bracketId: string;
   splitLabel: string;
+  mode: TournamentMode;
+  eligibleDistancesMetres: readonly number[];
+  discoveryRelevance: TournamentDiscoveryRelevance;
   qualificationMetricLabel: string;
   configurationVersion: string;
   candidateSnapshotVersion: string;
@@ -127,6 +137,45 @@ function canonicalTimestamp(
   return value;
 }
 
+function normalizeTournamentConfiguration(
+  input: Pick<
+    TournamentCandidateRankingInput,
+    "mode" | "eligibleDistancesMetres" | "discoveryRelevance"
+  >,
+): Readonly<{
+  mode: TournamentMode;
+  eligibleDistancesMetres: readonly number[];
+  discoveryRelevance: TournamentDiscoveryRelevance;
+}> {
+  if (!tournamentModes.includes(input.mode)) {
+    throw new Error("Tournament mode is invalid.");
+  }
+  if (
+    !Array.isArray(input.eligibleDistancesMetres) ||
+    input.eligibleDistancesMetres.length === 0 ||
+    input.eligibleDistancesMetres.some(
+      (distance) => !Number.isSafeInteger(distance) || distance <= 0,
+    )
+  ) {
+    throw new Error(
+      "Tournament eligible distances must be positive integer metres.",
+    );
+  }
+  if (new Set(input.eligibleDistancesMetres).size !== input.eligibleDistancesMetres.length) {
+    throw new Error("Tournament eligible distances must be unique.");
+  }
+  if (!["eligible", "priority"].includes(input.discoveryRelevance)) {
+    throw new Error("Tournament Discovery relevance is invalid.");
+  }
+  return {
+    mode: input.mode,
+    eligibleDistancesMetres: [...input.eligibleDistancesMetres].sort(
+      (left, right) => left - right,
+    ),
+    discoveryRelevance: input.discoveryRelevance,
+  };
+}
+
 function positiveRank(value: number | null): number | null {
   if (value === null) return null;
   if (!Number.isSafeInteger(value) || value <= 0) {
@@ -142,6 +191,7 @@ export function rankTournamentCandidates(
   const tournamentLabel = required(input.tournamentLabel, "Tournament label");
   const bracketId = required(input.bracketId, "Bracket ID");
   const splitLabel = required(input.splitLabel, "Split label");
+  const tournamentConfiguration = normalizeTournamentConfiguration(input);
   const qualificationMetricLabel = required(
     input.qualificationMetricLabel,
     "Qualification metric label",
@@ -391,6 +441,7 @@ export function rankTournamentCandidates(
     tournamentLabel,
     bracketId,
     splitLabel,
+    ...tournamentConfiguration,
     qualificationMetricLabel,
     configurationVersion,
     candidateSnapshotVersion,
