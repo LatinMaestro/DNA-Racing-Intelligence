@@ -1,3 +1,6 @@
+import type { CorePerformanceProfile } from "@/domain/core-performance";
+import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import { loadCoreIntelligencePageState } from "./core-intelligence-workspace-service";
 import type {
   OwnerVaultCatalogueCore,
   OwnerVaultCatalogueRepository,
@@ -10,7 +13,9 @@ export type SearchCorePageState = Readonly<{
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
-  performanceStatus: "not_connected";
+  performanceStatus: "not_connected" | "connected";
+  performanceProfiles: readonly CorePerformanceProfile[];
+  performanceLastImportedAt: string | null;
 }>;
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -66,11 +71,19 @@ function connectionStatus(
     : "persistence_not_configured";
 }
 
+const noPerformance = Object.freeze({
+  performanceStatus: "not_connected" as const,
+  performanceProfiles: [] as readonly CorePerformanceProfile[],
+  performanceLastImportedAt: null,
+});
+
 export async function loadSearchCorePageState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: OwnerVaultCatalogueRepository;
+    performanceRepository: CorePerformanceProfileRepository;
+    now: Date;
     query?: unknown;
     selectedCoreId?: unknown;
   }>,
@@ -85,7 +98,7 @@ export async function loadSearchCorePageState(
       query,
       results: [],
       selectedCore: null,
-      performanceStatus: "not_connected",
+      ...noPerformance,
     };
   }
   if (status !== "connected") {
@@ -94,7 +107,7 @@ export async function loadSearchCorePageState(
       query,
       results: [],
       selectedCore: null,
-      performanceStatus: "not_connected",
+      ...noPerformance,
     };
   }
 
@@ -122,11 +135,45 @@ export async function loadSearchCorePageState(
     }
   }
 
+  if (selectedCore === null || input.performanceRepository.status !== "ready") {
+    return {
+      connectionStatus: catalogue.connectionStatus,
+      query,
+      results: catalogue.cores,
+      selectedCore,
+      ...noPerformance,
+    };
+  }
+
+  const scopedPerformanceRepository: CorePerformanceProfileRepository = {
+    status: "ready",
+    listProfilesByOwner: (authenticatedOwnerId) =>
+      input.performanceRepository.status === "ready"
+        ? input.performanceRepository.listProfilesByOwner(
+            authenticatedOwnerId,
+            selectedCore.sourceCoreId,
+          )
+        : Promise.reject(new Error("Search Core performance is unavailable.")),
+  };
+  const performance = await loadCoreIntelligencePageState({
+    authenticatedOwnerId: input.authenticatedOwnerId,
+    configuredOwnerId: input.configuredOwnerId,
+    repository: scopedPerformanceRepository,
+    now: input.now,
+  });
+
   return {
     connectionStatus: catalogue.connectionStatus,
     query,
     results: catalogue.cores,
     selectedCore,
-    performanceStatus: "not_connected",
+    performanceStatus:
+      performance.connectionStatus === "read_model_connected"
+        ? "connected"
+        : "not_connected",
+    performanceProfiles: performance.profiles.filter(
+      (profile) => profile.coreId === selectedCore.sourceCoreId,
+    ),
+    performanceLastImportedAt: performance.lastImportedAt,
   };
 }
