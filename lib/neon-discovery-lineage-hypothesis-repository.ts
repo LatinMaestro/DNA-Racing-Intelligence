@@ -93,7 +93,9 @@ function normalized(value: string | undefined): string | null {
   const result = value?.trim() ?? "";
   return result === "" ? null : result;
 }
-function supportedRelationship(value: string): SupportedDiscoveryLineageRelationship {
+function supportedRelationship(
+  value: string,
+): SupportedDiscoveryLineageRelationship {
   if (!(SUPPORTED_RELATIONSHIPS as readonly string[]).includes(value)) {
     throw new Error("Discovery lineage evidence enum is invalid.");
   }
