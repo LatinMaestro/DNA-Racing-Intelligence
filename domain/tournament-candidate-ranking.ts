@@ -161,7 +161,10 @@ function normalizeTournamentConfiguration(
       "Tournament eligible distances must be positive integer metres.",
     );
   }
-  if (new Set(input.eligibleDistancesMetres).size !== input.eligibleDistancesMetres.length) {
+  if (
+    new Set(input.eligibleDistancesMetres).size !==
+    input.eligibleDistancesMetres.length
+  ) {
     throw new Error("Tournament eligible distances must be unique.");
   }
   if (!["eligible", "priority"].includes(input.discoveryRelevance)) {
