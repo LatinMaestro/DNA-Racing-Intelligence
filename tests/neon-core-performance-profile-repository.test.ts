@@ -101,7 +101,7 @@ describe("Neon Core Intelligence profile repository", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it("reads bounded compact owner-Vault profiles with normalized units", async () => {
+  it(\n    "reads bounded compact owner-Vault profiles with normalized units",\n    async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
