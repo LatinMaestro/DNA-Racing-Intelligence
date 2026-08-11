@@ -10,7 +10,9 @@ VALUES
 INSERT INTO dna.import_batch (
   id, owner_id, source_type, source_filename, checksum_sha256,
   detected_encoding, schema_version, status, uploaded_at,
-  import_completed_at, source_rows, accepted_rows, rejected_rows, warning_rows
+  import_completed_at, minimum_accepted_event_at, maximum_accepted_event_at,
+  dataset_current_through_after_import, source_rows, accepted_rows,
+  rejected_rows, warning_rows
 )
 VALUES (
   '15000000-0000-4000-8000-000000000101',
@@ -23,6 +25,9 @@ VALUES (
   'accepted',
   '2026-08-11T00:00:00Z',
   '2026-08-11T00:05:00Z',
+  '2026-08-11T00:01:00Z',
+  '2026-08-11T00:02:00Z',
+  '2026-08-11T00:02:00Z',
   2, 2, 0, 0
 );
 
