@@ -34,21 +34,25 @@ function ownerEvidence(overrides: Record<string, unknown> = {}) {
 
 function harness(sequence: readonly (readonly unknown[] | Error)[]) {
   let index = 0;
-  const calls: { statement: string; values: readonly unknown[] | undefined }[] = [];
-  const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
-    const normalized = statement.replace(/\s+/g, " ").trim();
-    calls.push({ statement: normalized, values });
-    if (
-      normalized === "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY" ||
-      normalized === "COMMIT" ||
-      normalized === "ROLLBACK"
-    ) {
-      return { rows: [] };
-    }
-    const next = sequence[index++] ?? [];
-    if (next instanceof Error) throw next;
-    return { rows: next };
-  });
+  const calls: { statement: string; values: readonly unknown[] | undefined }[] =
+    [];
+  const query = vi.fn(
+    async (statement: string, values?: readonly unknown[]) => {
+      const normalized = statement.replace(/\s+/g, " ").trim();
+      calls.push({ statement: normalized, values });
+      if (
+        normalized ===
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY" ||
+        normalized === "COMMIT" ||
+        normalized === "ROLLBACK"
+      ) {
+        return { rows: [] };
+      }
+      const next = sequence[index++] ?? [];
+      if (next instanceof Error) throw next;
+      return { rows: next };
+    },
+  );
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => undefined);
   const factory = vi.fn(async () => ({ client, close }));
@@ -109,7 +113,9 @@ describe("Neon owner Vault catalogue repository", () => {
         },
       ],
     ]);
-    await expect(ready(test).listCoresByOwner(clerkOwnerId, filters)).resolves.toEqual([
+    await expect(
+      ready(test).listCoresByOwner(clerkOwnerId, filters),
+    ).resolves.toEqual([
       {
         sourceCoreId: "core-7",
         displayName: "Seven",
@@ -123,7 +129,9 @@ describe("Neon owner Vault catalogue repository", () => {
         updatedAt: "2026-08-11T01:00:00.000Z",
       },
     ]);
-    const listCall = test.calls.find((call) => call.statement.includes("FROM dna.active_core_details"));
+    const listCall = test.calls.find((call) =>
+      call.statement.includes("FROM dna.active_core_details"),
+    );
     expect(listCall?.values).toEqual([
       databaseOwnerId,
       "seven",
@@ -139,13 +147,19 @@ describe("Neon owner Vault catalogue repository", () => {
   });
 
   it("uses the larger bounded result for the active Vault list", async () => {
-    const test = harness([[{ owner_scope: databaseOwnerId }], [ownerEvidence()], []]);
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [],
+    ]);
     await ready(test).listCoresByOwner(clerkOwnerId, {
       ...filters,
       scope: "vault",
       query: null,
     });
-    const listCall = test.calls.find((call) => call.statement.includes("FROM dna.active_core_details"));
+    const listCall = test.calls.find((call) =>
+      call.statement.includes("FROM dna.active_core_details"),
+    );
     expect(listCall?.values?.[7]).toBe(500);
   });
 
@@ -155,10 +169,14 @@ describe("Neon owner Vault catalogue repository", () => {
       ownerEvidence({ runtime_can_create_roles: true }),
     ]) {
       const test = harness([[{ owner_scope: databaseOwnerId }], [evidence]]);
-      await expect(ready(test).listCoresByOwner(clerkOwnerId, filters)).rejects.toThrow(
-        /forced owner isolation|least privileged/,
-      );
-      expect(test.calls.some((call) => call.statement.includes("FROM dna.active_core_details"))).toBe(false);
+      await expect(
+        ready(test).listCoresByOwner(clerkOwnerId, filters),
+      ).rejects.toThrow(/forced owner isolation|least privileged/);
+      expect(
+        test.calls.some((call) =>
+          call.statement.includes("FROM dna.active_core_details"),
+        ),
+      ).toBe(false);
     }
   });
 });
