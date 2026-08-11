@@ -284,10 +284,7 @@ export function createNeonTournamentConfigurationRepository(
             }
             const ruleConfiguration: TournamentRuleConfiguration = {
               tournamentId: text(row.tournament_id, "Tournament ID"),
-              tournamentLabel: text(
-                row.tournament_label,
-                "Tournament label",
-              ),
+              tournamentLabel: text(row.tournament_label, "Tournament label"),
               seasonLabel: text(row.season_label, "Tournament season"),
               qualificationStartsAt: optionalTimestamp(
                 row.qualification_starts_at,
@@ -300,19 +297,14 @@ export function createNeonTournamentConfigurationRepository(
               bracketId: text(row.bracket_id, "Bracket ID"),
               splitLabel: text(row.split_label, "Split label"),
               mode: mode as TournamentRuleConfiguration["mode"],
-              eligibleDistancesMetres: distances(
-                row.eligible_distances_metres,
-              ),
+              eligibleDistancesMetres: distances(row.eligible_distances_metres),
               gateCount: integer(row.gate_count, "Tournament gate count"),
               entryFee: {
                 amount: decimal(
                   row.entry_fee_amount,
                   "Tournament entry fee amount",
                 ),
-                asset: text(
-                  row.entry_fee_asset,
-                  "Tournament entry fee asset",
-                ),
+                asset: text(row.entry_fee_asset, "Tournament entry fee asset"),
               },
               raceFormat: text(row.race_format, "Tournament race format"),
               eligibility: {
@@ -389,10 +381,8 @@ export function createNeonTournamentConfigurationRepository(
                   row.rule_evidence_status,
                   "Tournament rule evidence status",
                 ) as TournamentRuleConfiguration["evidence"]["status"],
-                notes: optionalText(
-                  row.rule_notes,
-                  "Tournament rule notes",
-                ) ?? "",
+                notes:
+                  optionalText(row.rule_notes, "Tournament rule notes") ?? "",
                 sourceEvidence:
                   optionalText(
                     row.source_evidence,
