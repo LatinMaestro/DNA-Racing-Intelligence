@@ -117,7 +117,8 @@ function distances(value: unknown): readonly number[] {
 
 function optionalText(value: unknown, label: string): string | null {
   if (value === null) return null;
-  return text(value, label);
+  if (typeof value !== "string") throw new Error(`${label} is invalid.`);
+  return value.trim();
 }
 
 function integer(value: unknown, label: string): number {
