@@ -60,6 +60,26 @@ BEGIN
 END
 $bound$;
 
+UPDATE dna.tournament_configuration
+SET candidate_snapshot_version = 'snapshot-33333333333333333333333333333333'
+WHERE owner_id = '31000000-0000-4000-8000-000000000001'
+  AND tournament_id = 'campaign-cup' AND bracket_id = 'bike-a';
+
+DO $readable_drift$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM dna.tournament_configuration
+    WHERE owner_id = '31000000-0000-4000-8000-000000000001'
+      AND campaign_action ->> 'candidateSnapshotVersion' =
+        'snapshot-11111111111111111111111111111111'
+      AND candidate_snapshot_version =
+        'snapshot-33333333333333333333333333333333'
+  ) THEN
+    RAISE EXCEPTION 'stale campaign binding did not remain readable';
+  END IF;
+END
+$readable_drift$;
+
 DO $stale_snapshot$
 BEGIN
   BEGIN
