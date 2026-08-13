@@ -84,10 +84,7 @@ describe("Tournament evidence authority", () => {
     );
 
     expect([...result]).toEqual([
-      [
-        "strong",
-        { timeEvidence: "strong", evidenceConfidence: "medium" },
-      ],
+      ["strong", { timeEvidence: "strong", evidenceConfidence: "medium" }],
       [
         "competitive",
         { timeEvidence: "competitive", evidenceConfidence: "medium" },
@@ -164,10 +161,7 @@ describe("Tournament evidence authority", () => {
       projectTournamentEvidenceAuthority(
         rule(),
         candidates.slice(0, 1),
-        [
-          profile("strong", 59_000, 60_000),
-          profile("strong", 59_000, 60_000),
-        ],
+        [profile("strong", 59_000, 60_000), profile("strong", 59_000, 60_000)],
         [benchmark()],
       ),
     ).toThrow("profile is duplicated");
