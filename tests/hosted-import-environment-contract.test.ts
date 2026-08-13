@@ -1,0 +1,61 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, it } from "vitest";
+
+function environmentKeys(source: string): Set<string> {
+  return new Set(
+    [...source.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]),
+  );
+}
+
+describe("hosted import environment contract", () => {
+  const example = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
+  const importActions = readFileSync(
+    new URL("../app/(private)/imports/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const documentedKeys = environmentKeys(example);
+  const actionKeys = new Set(
+    [...importActions.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map(
+      (match) => match[1],
+    ),
+  );
+
+  it("documents every hosted import action variable", () => {
+    expect([...actionKeys].sort()).toEqual(
+      [...actionKeys].filter((key) => documentedKeys.has(key)).sort(),
+    );
+  });
+
+  it("documents the runtime identity and provider stop-before-limit boundary", () => {
+    expect(documentedKeys).toEqual(
+      expect.objectContaining(
+        new Set([
+          "DATABASE_URL",
+          "DNA_DATABASE_OWNER_ID",
+          "DNA_DATABASE_RUNTIME_ROLE",
+          "CLOUDFLARE_ACCOUNT_ID",
+          "CLOUDFLARE_API_TOKEN",
+          "DNA_R2_BUCKET_NAME",
+          "DNA_R2_ACCESS_KEY_ID",
+          "DNA_R2_SECRET_ACCESS_KEY",
+          "DNA_IMPORT_QUEUE_ID",
+          "DNA_IMPORT_LIMIT_R2_STORAGE_BYTES",
+          "DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS",
+          "DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS",
+          "DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES",
+          "DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES",
+          "DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS",
+          "DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS",
+        ]),
+      ),
+    );
+  });
+
+  it("does not advertise the retired generic R2 aliases", () => {
+    expect(documentedKeys.has("R2_ACCOUNT_ID")).toBe(false);
+    expect(documentedKeys.has("R2_ACCESS_KEY_ID")).toBe(false);
+    expect(documentedKeys.has("R2_SECRET_ACCESS_KEY")).toBe(false);
+    expect(documentedKeys.has("R2_PRIVATE_BUCKET")).toBe(false);
+  });
+});
