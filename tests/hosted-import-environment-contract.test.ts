@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-function capturedValues(
-  source: string,
-  expression: RegExp,
-): Set<string> {
+function capturedValues(source: string, expression: RegExp): Set<string> {
   return new Set(
     [...source.matchAll(expression)].flatMap((match) =>
       match[1] === undefined ? [] : [match[1]],
