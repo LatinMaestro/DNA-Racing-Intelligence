@@ -169,18 +169,14 @@ export function projectTournamentEvidenceAuthority(
     if (
       benchmark.winningEntryCount > benchmark.topThreeEntryCount ||
       benchmark.topThreeEntryCount > benchmark.raceEntryCount ||
-      benchmark.winningMedianMilliseconds >
-        benchmark.winningP75Milliseconds ||
+      benchmark.winningMedianMilliseconds > benchmark.winningP75Milliseconds ||
       benchmark.topThreeMedianMilliseconds >
         benchmark.topThreeP75Milliseconds ||
       benchmark.dataCurrentThrough > benchmark.refreshedAt
     ) {
       throw new Error("Tournament evidence benchmark is inconsistent.");
     }
-    const evidenceKey = benchmarkKey(
-      benchmark.mode,
-      benchmark.distanceMetres,
-    );
+    const evidenceKey = benchmarkKey(benchmark.mode, benchmark.distanceMetres);
     if (benchmarksByKey.has(evidenceKey)) {
       throw new Error("Tournament evidence benchmark is duplicated.");
     }
