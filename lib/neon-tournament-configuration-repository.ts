@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
 import { projectTournamentQualificationMetrics } from "@/domain/tournament-qualification-metric";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
@@ -533,10 +534,7 @@ export function createNeonTournamentConfigurationRepository(
             const candidateEligibility = activeVaultCores.map((core) => ({
               core,
               eligibility: core.coreDetailsActive
-                ? projectTournamentCandidateEligibility(
-                    ruleConfiguration,
-                    core,
-                  )
+                ? projectTournamentCandidateEligibility(ruleConfiguration, core)
                 : {
                     eligibility: "review_required" as const,
                     leaderboardGroupId: "unassigned",
