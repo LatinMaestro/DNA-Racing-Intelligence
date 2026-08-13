@@ -54,6 +54,8 @@ export type TournamentCampaignAction =
       action: string;
       ownerAcknowledgedAt: string;
       evidence: string;
+      configurationVersion: string;
+      candidateSnapshotVersion: string;
     }>
   | Readonly<{
       kind: "review_only_free_text";
@@ -111,6 +113,7 @@ export type TournamentRuleConfiguration = Readonly<{
 }>;
 
 export type TournamentConfigurationReviewReason =
+  | "CAMPAIGN_ACTION_BINDING_DRIFT"
   | "CANDIDATE_SNAPSHOT_UNBOUND"
   | "CUSTOM_SCORING_CONFIGURATION_MISSING"
   | "ENTRY_FEE_RULE_INCOMPLETE"
@@ -416,6 +419,14 @@ export function normalizeTournamentRuleConfiguration(
               "Campaign action evidence",
               2_000,
             ),
+            configurationVersion: version(
+              input.campaignAction.configurationVersion,
+              "Campaign action configuration version",
+            ),
+            candidateSnapshotVersion: version(
+              input.campaignAction.candidateSnapshotVersion,
+              "Campaign action candidate snapshot version",
+            ),
           }
         : input.campaignAction.kind === "review_only_free_text"
           ? {
@@ -582,6 +593,15 @@ export function assessTournamentConfigurationAuthority(
     configuration.candidateSnapshotVersion === "snapshot-unbound"
   ) {
     reasons.add("CANDIDATE_SNAPSHOT_UNBOUND");
+  }
+  if (
+    configuration.campaignAction?.kind === "configured" &&
+    (configuration.campaignAction.configurationVersion !==
+      configuration.configurationVersion ||
+      configuration.campaignAction.candidateSnapshotVersion !==
+        configuration.candidateSnapshotVersion)
+  ) {
+    reasons.add("CAMPAIGN_ACTION_BINDING_DRIFT");
   }
   if (configuration.campaignAction?.kind === "review_only_free_text") {
     reasons.add("FREE_TEXT_CAMPAIGN_ACTION");
