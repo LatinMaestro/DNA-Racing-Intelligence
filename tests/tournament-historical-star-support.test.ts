@@ -160,3 +160,4 @@ describe("Tournament historical star support", () => {
     ).toThrow("profile is inconsistent");
   });
 });
+
