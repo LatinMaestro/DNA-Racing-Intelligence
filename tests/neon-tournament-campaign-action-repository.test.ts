@@ -56,7 +56,9 @@ function harness(sequence: readonly (readonly unknown[] | Error)[]) {
     },
   );
   const client: NeonImportPersistenceClient = { query };
-  const close = vi.fn(async () => events.push("close"));
+  const close = vi.fn(async () => {
+    events.push("close");
+  });
   const sessionFactory = vi.fn(async () => ({ client, close }));
   return {
     events,
