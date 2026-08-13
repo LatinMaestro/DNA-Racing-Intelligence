@@ -57,7 +57,6 @@ function profile(
     blueReceivedCount: 1,
     blueNegativeOpportunityCount: 9,
     blueExcludedAnomalyCount: 0,
-    refreshedAt: "2026-08-02T00:00:00.000Z",
     ...overrides,
   };
 }
