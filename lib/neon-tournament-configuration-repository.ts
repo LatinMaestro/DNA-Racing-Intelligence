@@ -1,4 +1,3 @@
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
 import { projectTournamentQualificationMetrics } from "@/domain/tournament-qualification-metric";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
