@@ -1,0 +1,58 @@
+name: Tournament campaign action binding migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0031_tournament_campaign_action_binding.*.sql"
+      - ".github/workflows/tournament-campaign-action-binding-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tournament-campaign-action-binding-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0031_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Apply campaign action binding migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0031_tournament_campaign_action_binding.up.sql
+      - name: Run campaign action binding smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0031_tournament_campaign_action_binding.smoke.sql
+      - name: Reverse campaign action binding migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0031_tournament_campaign_action_binding.down.sql
+      - name: Verify prior behavior was restored
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF to_regprocedure(
+          'dna.acknowledge_tournament_campaign_action(uuid,text,text,text,text,text,text)'
+          ) IS NOT NULL OR pg_get_functiondef(to_regprocedure(
+          'dna.upsert_complete_tournament_configuration(uuid,text,text,text,timestamptz,timestamptz,text,text,text,integer[],integer,numeric,text,text,text[],text[],text[],integer[],jsonb,jsonb,text,jsonb,integer,integer,numeric,text,integer,jsonb,jsonb,text,text,text,text,text,jsonb,jsonb)'
+          )) NOT LIKE '%campaignAction%' THEN
+          RAISE EXCEPTION 'prior Tournament campaign behavior was not restored';
+          END IF; END \$\$;"

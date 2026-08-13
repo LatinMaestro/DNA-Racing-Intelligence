@@ -58,10 +58,10 @@ function validPayload() {
       provenance: { source: "owner_entry", version: "rules-v1" },
     },
     campaignAction: {
-      kind: "configured",
+      kind: "review_only_free_text",
       action: "Review candidates",
-      ownerAcknowledgedAt: "2026-08-12T00:00:00.000Z",
-      evidence: "Owner acknowledgement.",
+      ownerAcknowledgedAt: null,
+      evidence: null,
     },
   };
 }
@@ -114,6 +114,23 @@ describe("Tournament configuration write service", () => {
         formData({ ...validPayload(), configurationVersion: "client-v1" }),
       ),
     ).toThrow("cannot set server field configurationVersion");
+
+    expect(() =>
+      parseTournamentConfigurationFormData(
+        formData({
+          ...validPayload(),
+          campaignAction: {
+            kind: "configured",
+            action: "Review candidates",
+            ownerAcknowledgedAt: "2026-08-12T00:00:00.000Z",
+            evidence: "Owner acknowledgement.",
+            configurationVersion: "cfg-11111111111111111111111111111111",
+            candidateSnapshotVersion:
+              "snapshot-11111111111111111111111111111111",
+          },
+        }),
+      ),
+    ).toThrow("must use the owner acknowledgement action");
   });
 
   it("requires exact owner identity before invoking persistence", async () => {

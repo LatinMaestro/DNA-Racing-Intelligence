@@ -121,10 +121,10 @@ const configuration = {
     provenance: { source: "owner_entry" },
   },
   campaignAction: {
-    kind: "configured" as const,
+    kind: "review_only_free_text" as const,
     action: "Review candidates",
-    ownerAcknowledgedAt: "2026-08-12T00:00:00.000Z",
-    evidence: "Owner acknowledgement.",
+    ownerAcknowledgedAt: null,
+    evidence: null,
   },
 };
 

@@ -65,6 +65,8 @@ function configuration(
       action: "Review the strongest eligible candidates.",
       ownerAcknowledgedAt: "2026-08-11T10:00:00.000Z",
       evidence: "Bound to the confirmed rule entry.",
+      configurationVersion: "rules-v1",
+      candidateSnapshotVersion: "snapshot-v3",
     },
     configurationVersion: "rules-v1",
     candidateSnapshotVersion: "snapshot-v3",
@@ -163,6 +165,7 @@ describe("Tournament rule configuration", () => {
     ).toEqual({
       status: "review_required",
       reasons: [
+        "CAMPAIGN_ACTION_BINDING_DRIFT",
         "CANDIDATE_SNAPSHOT_UNBOUND",
         "LEADERBOARD_GROUPS_MISSING",
         "QUALIFICATION_WINDOW_INCOMPLETE",
@@ -186,6 +189,7 @@ describe("Tournament rule configuration", () => {
     ).toMatchObject({
       status: "review_required",
       reasons: [
+        "CAMPAIGN_ACTION_BINDING_DRIFT",
         "CANDIDATE_SNAPSHOT_UNBOUND",
         "ENTRY_FEE_RULE_INCOMPLETE",
         "RACE_FORMAT_RULE_INCOMPLETE",
@@ -210,6 +214,27 @@ describe("Tournament rule configuration", () => {
       status: "review_required",
       actionableRecommendationAllowed: false,
       reasons: ["FREE_TEXT_CAMPAIGN_ACTION", "OWNER_ACKNOWLEDGEMENT_MISSING"],
+    });
+  });
+
+  it("fails closed when a configured action is bound to older evidence", () => {
+    expect(
+      assessTournamentConfigurationAuthority(
+        configuration({
+          campaignAction: {
+            kind: "configured",
+            action: "Review candidates",
+            ownerAcknowledgedAt: "2026-08-11T10:00:00.000Z",
+            evidence: "Owner-reviewed evidence.",
+            configurationVersion: "rules-v0",
+            candidateSnapshotVersion: "snapshot-v2",
+          },
+        }),
+      ),
+    ).toMatchObject({
+      status: "review_required",
+      actionableRecommendationAllowed: false,
+      reasons: ["CAMPAIGN_ACTION_BINDING_DRIFT"],
     });
   });
 
@@ -238,6 +263,8 @@ describe("Tournament rule configuration", () => {
             action: "Continue",
             ownerAcknowledgedAt: null as unknown as string,
             evidence: "Owner-confirmed evidence.",
+            configurationVersion: "rules-v1",
+            candidateSnapshotVersion: "snapshot-v3",
           },
         }),
       ),

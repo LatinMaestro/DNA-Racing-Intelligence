@@ -1,5 +1,11 @@
-import { saveTournamentConfigurationAction } from "@/app/(private)/tournaments/actions";
-import { TournamentConfigurationForm } from "@/components/tournament-configuration-form";
+import {
+  acknowledgeTournamentCampaignAction,
+  saveTournamentConfigurationAction,
+} from "@/app/(private)/tournaments/actions";
+import {
+  TournamentCampaignActionForm,
+  TournamentConfigurationForm,
+} from "@/components/tournament-configuration-form";
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
@@ -33,6 +39,11 @@ export default async function TournamentsPage() {
         brackets={state.brackets}
         connectionStatus={state.connectionStatus}
         saveAction={saveTournamentConfigurationAction}
+      />
+      <TournamentCampaignActionForm
+        acknowledgementAction={acknowledgeTournamentCampaignAction}
+        brackets={state.brackets}
+        connectionStatus={state.connectionStatus}
       />
       <TournamentWorkspace
         brackets={state.brackets}

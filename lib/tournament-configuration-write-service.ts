@@ -66,6 +66,11 @@ export function parseTournamentConfigurationFormData(
     candidateSnapshotVersion: null,
     updatedAt: "1970-01-01T00:00:00.000Z",
   } as TournamentRuleConfiguration);
+  if (normalized.campaignAction?.kind === "configured") {
+    throw new Error(
+      "Configured campaign actions must use the owner acknowledgement action.",
+    );
+  }
   const {
     configurationVersion,
     candidateSnapshotVersion,
