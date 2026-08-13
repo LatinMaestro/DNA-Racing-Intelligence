@@ -24,7 +24,6 @@ export type TournamentStarProfile = Readonly<{
   blueReceivedCount: number;
   blueNegativeOpportunityCount: number;
   blueExcludedAnomalyCount: number;
-  refreshedAt: string;
 }>;
 
 export type TournamentHistoricalStarSupport =
@@ -147,10 +146,6 @@ export function projectTournamentHistoricalStarSupport(
         input.blueExcludedAnomalyCount,
         "Tournament Blue anomaly count",
       ),
-      refreshedAt: timestamp(
-        input.refreshedAt,
-        "Tournament star profile refresh",
-      ),
     };
     if (
       profile.completeStarDataRaceCount +
@@ -163,8 +158,7 @@ export function projectTournamentHistoricalStarSupport(
       profile.blueReceivedCount + profile.blueNegativeOpportunityCount !==
         profile.blueAssignmentOpportunityCount ||
       profile.goldAssignmentOpportunityCount > profile.raceCount ||
-      profile.blueAssignmentOpportunityCount > profile.raceCount ||
-      profile.dataCurrentThrough > profile.refreshedAt
+      profile.blueAssignmentOpportunityCount > profile.raceCount
     ) {
       throw new Error("Tournament star profile is inconsistent.");
     }
