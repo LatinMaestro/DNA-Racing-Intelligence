@@ -36,11 +36,7 @@ export function parseTournamentCampaignActionFormData(
 ): TournamentCampaignActionAcknowledgement {
   const tournamentId = required(formData, "tournamentId", 100);
   const bracketId = required(formData, "bracketId", 100);
-  const configurationVersion = required(
-    formData,
-    "configurationVersion",
-    128,
-  );
+  const configurationVersion = required(formData, "configurationVersion", 128);
   const candidateSnapshotVersion = required(
     formData,
     "candidateSnapshotVersion",
@@ -81,7 +77,9 @@ export async function saveTournamentCampaignAction(
   const authenticatedOwnerId = identity(input.authenticatedOwnerId);
   const configuredOwnerId = identity(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) {
-    throw new Error("Tournament campaign action owner identity is unavailable.");
+    throw new Error(
+      "Tournament campaign action owner identity is unavailable.",
+    );
   }
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Tournament campaign action write denied.");
