@@ -16,11 +16,16 @@ ALTER TABLE dna.tournament_configuration
         OR (
           nullif(btrim(campaign_action ->> 'ownerAcknowledgedAt'), '') IS NOT NULL
           AND nullif(btrim(campaign_action ->> 'evidence'), '') IS NOT NULL
-          AND campaign_action ->> 'configurationVersion' =
-            configuration_version
-          AND campaign_action ->> 'candidateSnapshotVersion' =
-            candidate_snapshot_version
-          AND candidate_snapshot_version <> 'snapshot-unbound'
+          AND nullif(
+            btrim(campaign_action ->> 'configurationVersion'),
+            ''
+          ) IS NOT NULL
+          AND nullif(
+            btrim(campaign_action ->> 'candidateSnapshotVersion'),
+            ''
+          ) IS NOT NULL
+          AND campaign_action ->> 'candidateSnapshotVersion'
+            <> 'snapshot-unbound'
         )
       )
     )
@@ -82,6 +87,11 @@ DECLARE
 BEGIN
   IF v_owner_id IS NULL OR p_owner_id <> v_owner_id THEN
     RAISE EXCEPTION 'owner-scoped complete Tournament configuration write denied';
+  END IF;
+
+  IF p_campaign_action ->> 'kind' = 'configured' THEN
+    RAISE EXCEPTION
+      'configured Tournament campaign actions require exact acknowledgement';
   END IF;
 
   v_configuration_payload := jsonb_build_object(
