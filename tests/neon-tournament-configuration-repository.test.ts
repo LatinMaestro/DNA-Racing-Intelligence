@@ -391,7 +391,7 @@ describe("Neon Tournament configuration repository", () => {
         status: "complete",
         rank: 1,
         label: "fastest_single_time",
-        time: "competitive",
+        time: "strong",
         confidence: "medium",
       },
       {
@@ -399,7 +399,7 @@ describe("Neon Tournament configuration repository", () => {
         status: "complete",
         rank: 1,
         label: "fastest_single_time",
-        time: "competitive",
+        time: "strong",
         confidence: "medium",
       },
       {
