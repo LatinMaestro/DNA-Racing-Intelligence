@@ -328,6 +328,24 @@ describe("tournament candidate ranking", () => {
     });
   });
 
+  it("holds partial metric evidence without inventing a rank", () => {
+    const result = rankTournamentCandidates(
+      input([
+        candidate("partial", null, {
+          metricStatus: "partial",
+          metricEvidenceLabel: "Qualification points",
+        }),
+      ]),
+    );
+
+    expect(result.leaderboardGroups[0]?.candidates[0]).toMatchObject({
+      configuredMetricRank: null,
+      groupReviewRank: null,
+      disposition: "hold",
+      warnings: expect.arrayContaining(["METRIC_EVIDENCE_PARTIAL"]),
+    });
+  });
+
   it("keeps unavailable and ineligible evidence out of review ordering", () => {
     const result = rankTournamentCandidates(
       input([

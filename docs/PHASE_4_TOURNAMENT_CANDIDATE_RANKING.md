@@ -10,6 +10,14 @@ configuration version and candidate-snapshot version. Candidate evidence must
 match both versions and use a consistent ID-to-label mapping. Inconsistent
 bindings or labels fail closed.
 
+For a single configured exact distance, persisted performance profiles can
+compute `fastest_single_time`, `median_time` and `average_time` once the
+configured minimum race count is met. Those values are ranked with competition
+ranks inside each leaderboard group, so exact ties remain tied. Multiple-distance
+time comparisons, insufficient samples, missing profiles and result-based or
+custom metrics remain unranked and fail closed until matching qualifying-event
+evidence exists.
+
 Eligibility, evidence completeness, primary time evidence, confidence,
 server-derived freshness and Maiden opportunity cost can hold a candidate out
 of review ordering. Historical Gold/Blue evidence is supporting rationale only.

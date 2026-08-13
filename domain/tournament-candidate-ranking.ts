@@ -373,14 +373,25 @@ export function rankTournamentCandidates(
           "Unavailable metric evidence cannot carry a rank or label.",
         );
       }
-    } else if (
-      metricRank === null ||
-      required(candidate.metricEvidenceLabel ?? "", "Metric evidence label") !==
-        qualificationMetricLabel
-    ) {
-      throw new Error(
-        "Available metric evidence must match the configured metric.",
-      );
+    } else {
+      if (
+        required(
+          candidate.metricEvidenceLabel ?? "",
+          "Metric evidence label",
+        ) !== qualificationMetricLabel
+      ) {
+        throw new Error(
+          "Available metric evidence must match the configured metric.",
+        );
+      }
+      if (
+        (candidate.metricStatus === "complete" && metricRank === null) ||
+        (candidate.metricStatus === "partial" && metricRank !== null)
+      ) {
+        throw new Error(
+          "Only complete metric evidence can carry a configured rank.",
+        );
+      }
     }
     if (
       candidate.maidenModeDisposition === "preserve_for_stronger_mode" &&
