@@ -1,5 +1,6 @@
 import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
 import { projectTournamentEvidenceAuthority } from "@/domain/tournament-evidence-authority";
+import { projectTournamentHistoricalStarSupport } from "@/domain/tournament-historical-star-support";
 import { projectTournamentQualificationMetrics } from "@/domain/tournament-qualification-metric";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
 import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
@@ -304,6 +305,28 @@ export function createNeonTournamentConfigurationRepository(
             meanMilliseconds: number;
           }>
         >();
+        const starEvidence = new Map<
+          string,
+          Readonly<{
+            coreId: string;
+            mode: string;
+            distanceMetres: number;
+            dataCurrentThrough: string;
+            raceCount: number;
+            completeStarDataRaceCount: number;
+            partialStarDataRaceCount: number;
+            missingStarDataRaceCount: number;
+            invalidStarDataRaceCount: number;
+            goldAssignmentOpportunityCount: number;
+            goldReceivedCount: number;
+            goldNegativeOpportunityCount: number;
+            goldExcludedAnomalyCount: number;
+            blueAssignmentOpportunityCount: number;
+            blueReceivedCount: number;
+            blueNegativeOpportunityCount: number;
+            blueExcludedAnomalyCount: number;
+          }>
+        >();
         let lastImportedAt: string | null = null;
         for (const value of performanceResult.rows) {
           const row = record(value);
@@ -369,6 +392,96 @@ export function createNeonTournamentConfigurationRepository(
               "Tournament performance average time",
             ),
           });
+          if (row.star_profile !== null) {
+            const star = jsonRecord(
+              row.star_profile,
+              "Tournament historical star profile",
+            );
+            const starCoreId = text(
+              star.coreId,
+              "Tournament star profile Core ID",
+            );
+            const starMode = text(star.mode, "Tournament star profile mode");
+            const starDistance = integer(
+              star.distance,
+              "Tournament star profile distance",
+            );
+            const starKey = performanceEvidenceKey(
+              starCoreId,
+              starMode,
+              starDistance,
+            );
+            if (
+              starKey !== key ||
+              starEvidence.has(starKey) ||
+              !["bike", "car", "horse"].includes(starMode)
+            ) {
+              throw new Error(
+                "Tournament historical star profile is inconsistent.",
+              );
+            }
+            starEvidence.set(starKey, {
+              coreId: starCoreId,
+              mode: starMode,
+              distanceMetres: starDistance,
+              dataCurrentThrough: timestamp(
+                star.dataCurrentThrough,
+                "Tournament star profile cutoff",
+              ),
+              raceCount: integer(
+                star.raceCount,
+                "Tournament star profile race count",
+              ),
+              completeStarDataRaceCount: integer(
+                star.completeStarDataRaceCount,
+                "Tournament complete star-data count",
+              ),
+              partialStarDataRaceCount: integer(
+                star.partialStarDataRaceCount,
+                "Tournament partial star-data count",
+              ),
+              missingStarDataRaceCount: integer(
+                star.missingStarDataRaceCount,
+                "Tournament missing star-data count",
+              ),
+              invalidStarDataRaceCount: integer(
+                star.invalidStarDataRaceCount,
+                "Tournament invalid star-data count",
+              ),
+              goldAssignmentOpportunityCount: integer(
+                star.goldAssignmentOpportunityCount,
+                "Tournament Gold opportunity count",
+              ),
+              goldReceivedCount: integer(
+                star.goldReceivedCount,
+                "Tournament Gold received count",
+              ),
+              goldNegativeOpportunityCount: integer(
+                star.goldNegativeOpportunityCount,
+                "Tournament Gold negative-opportunity count",
+              ),
+              goldExcludedAnomalyCount: integer(
+                star.goldExcludedAnomalyCount,
+                "Tournament Gold anomaly count",
+              ),
+              blueAssignmentOpportunityCount: integer(
+                star.blueAssignmentOpportunityCount,
+                "Tournament Blue opportunity count",
+              ),
+              blueReceivedCount: integer(
+                star.blueReceivedCount,
+                "Tournament Blue received count",
+              ),
+              blueNegativeOpportunityCount: integer(
+                star.blueNegativeOpportunityCount,
+                "Tournament Blue negative-opportunity count",
+              ),
+              blueExcludedAnomalyCount: integer(
+                star.blueExcludedAnomalyCount,
+                "Tournament Blue anomaly count",
+              ),
+            });
+          }
         }
         const benchmarkResult = await session.client.query(
           LIST_EXACT_DISTANCE_BENCHMARKS_SQL,
@@ -626,6 +739,24 @@ export function createNeonTournamentConfigurationRepository(
               [...performanceEvidence.values()],
               exactDistanceBenchmarks,
             );
+            const historicalStarSupport =
+              projectTournamentHistoricalStarSupport(
+                ruleConfiguration,
+                candidateEligibility.map(({ core, eligibility }) => {
+                  const authority = evidenceAuthority.get(core.coreId);
+                  if (authority === undefined) {
+                    throw new Error(
+                      "Tournament evidence authority omitted a Vault candidate.",
+                    );
+                  }
+                  return {
+                    coreId: core.coreId,
+                    eligibility: eligibility.eligibility,
+                    timeEvidence: authority.timeEvidence,
+                  };
+                }),
+                [...starEvidence.values()],
+              );
             return {
               tournamentId: ruleConfiguration.tournamentId,
               tournamentLabel: ruleConfiguration.tournamentLabel,
@@ -662,7 +793,12 @@ export function createNeonTournamentConfigurationRepository(
                       );
                 const metric = metricProjection.get(core.coreId);
                 const authority = evidenceAuthority.get(core.coreId);
-                if (metric === undefined || authority === undefined) {
+                const starSupport = historicalStarSupport.get(core.coreId);
+                if (
+                  metric === undefined ||
+                  authority === undefined ||
+                  starSupport === undefined
+                ) {
                   throw new Error(
                     "Tournament evidence projection omitted a Vault candidate.",
                   );
@@ -674,7 +810,7 @@ export function createNeonTournamentConfigurationRepository(
                   candidateSnapshotVersion,
                   ...metric,
                   ...authority,
-                  historicalStarSupport: "unavailable",
+                  historicalStarSupport: starSupport,
                   maidenState: core.meEligible ? "eligible" : "not_eligible",
                   maidenModeDisposition: core.meEligible
                     ? "unresolved"
