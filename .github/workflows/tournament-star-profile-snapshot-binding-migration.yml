@@ -79,3 +79,4 @@ jobs:
           )) LIKE '%benchmarkRefreshedAt%' THEN
           RAISE EXCEPTION 'Tournament benchmark snapshot binding remains';
           END IF; END \$\$;"
+
