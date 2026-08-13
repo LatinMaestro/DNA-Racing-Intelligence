@@ -661,9 +661,10 @@ export function createNeonTournamentConfigurationRepository(
                         candidate < earliest ? candidate : earliest,
                       );
                 const metric = metricProjection.get(core.coreId);
-                if (metric === undefined) {
+                const authority = evidenceAuthority.get(core.coreId);
+                if (metric === undefined || authority === undefined) {
                   throw new Error(
-                    "Tournament metric projection omitted a Vault candidate.",
+                    "Tournament evidence projection omitted a Vault candidate.",
                   );
                 }
                 return {
@@ -672,7 +673,7 @@ export function createNeonTournamentConfigurationRepository(
                   configurationVersion,
                   candidateSnapshotVersion,
                   ...metric,
-                  ...evidenceAuthority.get(core.coreId)!,
+                  ...authority,
                   historicalStarSupport: "unavailable",
                   maidenState: core.meEligible ? "eligible" : "not_eligible",
                   maidenModeDisposition: core.meEligible
