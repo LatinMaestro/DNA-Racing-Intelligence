@@ -392,7 +392,10 @@ export function createNeonTournamentConfigurationRepository(
               "Tournament performance average time",
             ),
           });
-          if (row.star_profile !== null) {
+          if (
+            row.star_profile !== null &&
+            row.star_profile !== undefined
+          ) {
             const star = jsonRecord(
               row.star_profile,
               "Tournament historical star profile",
