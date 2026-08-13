@@ -2,9 +2,14 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-function environmentKeys(source: string): Set<string> {
+function capturedValues(
+  source: string,
+  expression: RegExp,
+): Set<string> {
   return new Set(
-    [...source.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]),
+    [...source.matchAll(expression)].flatMap((match) =>
+      match[1] === undefined ? [] : [match[1]],
+    ),
   );
 }
 
@@ -17,11 +22,10 @@ describe("hosted import environment contract", () => {
     new URL("../app/(private)/imports/actions.ts", import.meta.url),
     "utf8",
   );
-  const documentedKeys = environmentKeys(example);
-  const actionKeys = new Set(
-    [...importActions.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map(
-      (match) => match[1],
-    ),
+  const documentedKeys = capturedValues(example, /^([A-Z][A-Z0-9_]*)=/gm);
+  const actionKeys = capturedValues(
+    importActions,
+    /process\.env\.([A-Z][A-Z0-9_]*)/g,
   );
 
   it("documents every hosted import action variable", () => {
