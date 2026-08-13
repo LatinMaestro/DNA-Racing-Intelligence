@@ -279,6 +279,114 @@ describe("Neon Tournament configuration repository", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
+  it("computes exact-distance time ranks within a configured leaderboard group", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [
+        {
+          ...completeConfigurationRow(),
+          eligible_distances_metres: [1200],
+          ranking_metric: "fastest_single_time",
+          points_table: {},
+        },
+      ],
+      [
+        {
+          source_core_id: "core-1",
+          core_class: "Genesis",
+          element: "Fire",
+          f_number: 1,
+          core_details_active: true,
+          me_eligible: false,
+        },
+        {
+          source_core_id: "core-2",
+          core_class: "Genesis",
+          element: "Fire",
+          f_number: 2,
+          core_details_active: true,
+          me_eligible: false,
+        },
+        {
+          source_core_id: "core-3",
+          core_class: "Genesis",
+          element: "Fire",
+          f_number: 3,
+          core_details_active: true,
+          me_eligible: false,
+        },
+      ],
+      [
+        {
+          core_id: "core-1",
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-30T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+          race_count: 10,
+          best_milliseconds: "60000",
+          median_milliseconds: "61000",
+          mean_milliseconds: "62000",
+        },
+        {
+          core_id: "core-2",
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-30T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+          race_count: 12,
+          best_milliseconds: "60000",
+          median_milliseconds: "61500",
+          mean_milliseconds: "62500",
+        },
+        {
+          core_id: "core-3",
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-30T00:00:00.000Z",
+          last_imported_at: "2026-08-01T03:00:00.000Z",
+          race_count: 4,
+          best_milliseconds: "59000",
+          median_milliseconds: "60500",
+          mean_milliseconds: "61500",
+        },
+      ],
+    ]);
+
+    const result =
+      await repository(test).listCandidateEvidenceByOwner(authenticatedOwnerId);
+
+    expect(
+      result.brackets[0]?.candidates.map((candidate) => ({
+        coreId: candidate.coreId,
+        status: candidate.metricStatus,
+        rank: candidate.metricRank,
+        label: candidate.metricEvidenceLabel,
+      })),
+    ).toEqual([
+      {
+        coreId: "core-1",
+        status: "complete",
+        rank: 1,
+        label: "fastest_single_time",
+      },
+      {
+        coreId: "core-2",
+        status: "complete",
+        rank: 1,
+        label: "fastest_single_time",
+      },
+      {
+        coreId: "core-3",
+        status: "partial",
+        rank: null,
+        label: "fastest_single_time",
+      },
+    ]);
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
   it("rejects inconsistent profile import evidence instead of publishing freshness", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
