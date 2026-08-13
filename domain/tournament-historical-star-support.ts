@@ -27,10 +27,7 @@ export type TournamentStarProfile = Readonly<{
 }>;
 
 export type TournamentHistoricalStarSupport =
-  | "supports"
-  | "neutral"
-  | "conflicts"
-  | "unavailable";
+  "supports" | "neutral" | "conflicts" | "unavailable";
 
 function required(value: string, label: string): string {
   if (typeof value !== "string" || value.trim() === "") {
@@ -187,7 +184,10 @@ export function projectTournamentHistoricalStarSupport(
   const result = new Map<string, TournamentHistoricalStarSupport>();
 
   for (const candidate of candidates) {
-    const coreId = required(candidate.coreId, "Tournament star candidate Core ID");
+    const coreId = required(
+      candidate.coreId,
+      "Tournament star candidate Core ID",
+    );
     if (candidate.eligibility !== "eligible" || exactDistance === null) {
       result.set(coreId, "unavailable");
       continue;
@@ -229,4 +229,3 @@ export function projectTournamentHistoricalStarSupport(
 
   return result;
 }
-
