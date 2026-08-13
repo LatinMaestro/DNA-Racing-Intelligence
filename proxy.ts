@@ -31,11 +31,13 @@ function configuredOwnerId(value: string | undefined): string | null {
   return normalized;
 }
 
-export function resolveProxyOwnerAccess(input: Readonly<{
-  isAuthenticated: unknown;
-  userId: unknown;
-  configuredOwnerId: string | undefined;
-}>): ProxyOwnerAccessDecision {
+export function resolveProxyOwnerAccess(
+  input: Readonly<{
+    isAuthenticated: unknown;
+    userId: unknown;
+    configuredOwnerId: string | undefined;
+  }>,
+): ProxyOwnerAccessDecision {
   const ownerId = configuredOwnerId(input.configuredOwnerId);
   if (ownerId === null) return "not_found";
   if (input.isAuthenticated !== true) return "sign_in_required";
