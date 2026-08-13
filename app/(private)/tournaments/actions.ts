@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { neonTournamentCampaignActionRepositoryFromEnvironment } from "@/lib/neon-tournament-campaign-action-repository";
+import {
+  parseTournamentCampaignActionFormData,
+  saveTournamentCampaignAction,
+} from "@/lib/tournament-campaign-action-write-service";
 import { neonTournamentConfigurationWriteRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-write-repository";
 import {
   parseTournamentConfigurationFormData,
@@ -39,4 +44,24 @@ export async function saveTournamentConfigurationAction(
 
   revalidatePath("/tournaments");
   revalidatePath("/discovery");
+}
+
+export async function acknowledgeTournamentCampaignAction(
+  formData: FormData,
+): Promise<void> {
+  const authenticatedOwnerId = await authenticatedClerkOwnerId({
+    environment: {
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    },
+  });
+  await saveTournamentCampaignAction({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: neonTournamentCampaignActionRepositoryFromEnvironment(
+      databaseEnvironment(),
+    ),
+    acknowledgement: parseTournamentCampaignActionFormData(formData),
+  });
+  revalidatePath("/tournaments");
 }
