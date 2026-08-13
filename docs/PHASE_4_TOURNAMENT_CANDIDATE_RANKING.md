@@ -18,6 +18,15 @@ time comparisons, insufficient samples, missing profiles and result-based or
 custom metrics remain unranked and fail closed until matching qualifying-event
 evidence exists.
 
+Time-evidence authority uses the persisted population outcome benchmark for the
+same mode and one exact configured distance. A candidate is `strong` when its
+best time reaches the historical winning p75 or its median reaches the historical
+winning median; it is `competitive` at the corresponding top-three boundaries
+and `weak` outside them. Missing benchmarks, missing exact-distance profiles and
+multiple-distance configurations remain unknown. Confidence is deliberately
+capped at `medium` until calibration: a comparable profile below the configured
+race minimum is low confidence, while missing direct evidence is unknown.
+
 Eligibility, evidence completeness, primary time evidence, confidence,
 server-derived freshness and Maiden opportunity cost can hold a candidate out
 of review ordering. Historical Gold/Blue evidence is supporting rationale only.
