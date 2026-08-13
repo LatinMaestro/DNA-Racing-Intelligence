@@ -55,4 +55,3 @@ until Gate C. Final Maiden entry recommendations separately require Gate D.
 
 Validation uses synthetic fixtures only. No persistence, provider, private-data,
 deployment or Production state is changed.
-
