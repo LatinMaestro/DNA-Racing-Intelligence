@@ -165,6 +165,7 @@ describe("Tournament rule configuration", () => {
     ).toEqual({
       status: "review_required",
       reasons: [
+        "CAMPAIGN_ACTION_BINDING_DRIFT",
         "CANDIDATE_SNAPSHOT_UNBOUND",
         "LEADERBOARD_GROUPS_MISSING",
         "QUALIFICATION_WINDOW_INCOMPLETE",
@@ -188,6 +189,7 @@ describe("Tournament rule configuration", () => {
     ).toMatchObject({
       status: "review_required",
       reasons: [
+        "CAMPAIGN_ACTION_BINDING_DRIFT",
         "CANDIDATE_SNAPSHOT_UNBOUND",
         "ENTRY_FEE_RULE_INCOMPLETE",
         "RACE_FORMAT_RULE_INCOMPLETE",
