@@ -169,6 +169,10 @@ export function projectTournamentEvidenceAuthority(
     if (
       benchmark.winningEntryCount > benchmark.topThreeEntryCount ||
       benchmark.topThreeEntryCount > benchmark.raceEntryCount ||
+      benchmark.winningMedianMilliseconds >
+        benchmark.winningP75Milliseconds ||
+      benchmark.topThreeMedianMilliseconds >
+        benchmark.topThreeP75Milliseconds ||
       benchmark.dataCurrentThrough > benchmark.refreshedAt
     ) {
       throw new Error("Tournament evidence benchmark is inconsistent.");
