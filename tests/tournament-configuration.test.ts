@@ -65,6 +65,8 @@ function configuration(
       action: "Review the strongest eligible candidates.",
       ownerAcknowledgedAt: "2026-08-11T10:00:00.000Z",
       evidence: "Bound to the confirmed rule entry.",
+      configurationVersion: "rules-v1",
+      candidateSnapshotVersion: "snapshot-v3",
     },
     configurationVersion: "rules-v1",
     candidateSnapshotVersion: "snapshot-v3",
@@ -213,6 +215,27 @@ describe("Tournament rule configuration", () => {
     });
   });
 
+  it("fails closed when a configured action is bound to older evidence", () => {
+    expect(
+      assessTournamentConfigurationAuthority(
+        configuration({
+          campaignAction: {
+            kind: "configured",
+            action: "Review candidates",
+            ownerAcknowledgedAt: "2026-08-11T10:00:00.000Z",
+            evidence: "Owner-reviewed evidence.",
+            configurationVersion: "rules-v0",
+            candidateSnapshotVersion: "snapshot-v2",
+          },
+        }),
+      ),
+    ).toMatchObject({
+      status: "review_required",
+      actionableRecommendationAllowed: false,
+      reasons: ["CAMPAIGN_ACTION_BINDING_DRIFT"],
+    });
+  });
+
   it("allows an authoritative confirmed configuration", () => {
     expect(assessTournamentConfigurationAuthority(configuration())).toEqual({
       status: "authoritative",
@@ -238,6 +261,8 @@ describe("Tournament rule configuration", () => {
             action: "Continue",
             ownerAcknowledgedAt: null as unknown as string,
             evidence: "Owner-confirmed evidence.",
+            configurationVersion: "rules-v1",
+            candidateSnapshotVersion: "snapshot-v3",
           },
         }),
       ),
