@@ -185,6 +185,7 @@ describe("Neon Tournament configuration repository", () => {
           mean_milliseconds: "62000",
         },
       ],
+      [],
     ]);
 
     const result =
@@ -276,6 +277,9 @@ describe("Neon Tournament configuration repository", () => {
     expect(test.events[4]).toContain("dna.active_core_details");
     expect(test.events[4]).toContain("vault.in_my_vault");
     expect(test.events[5]).toContain("dna.list_core_performance_profiles");
+    expect(test.events[6]).toContain(
+      "dna.list_discovery_exact_distance_benchmarks",
+    );
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
@@ -352,6 +356,21 @@ describe("Neon Tournament configuration repository", () => {
           mean_milliseconds: "61500",
         },
       ],
+      [
+        {
+          mode: "bike",
+          distance: 1200,
+          data_current_through: "2026-07-31T00:00:00.000Z",
+          race_entry_count: 1000,
+          winning_entry_count: 100,
+          top_three_entry_count: 300,
+          winning_p75_milliseconds: "60000",
+          winning_median_milliseconds: "59000",
+          top_three_p75_milliseconds: "63000",
+          top_three_median_milliseconds: "62000",
+          refreshed_at: "2026-08-01T03:00:00.000Z",
+        },
+      ],
     ]);
 
     const result =
@@ -363,6 +382,8 @@ describe("Neon Tournament configuration repository", () => {
         status: candidate.metricStatus,
         rank: candidate.metricRank,
         label: candidate.metricEvidenceLabel,
+        time: candidate.timeEvidence,
+        confidence: candidate.evidenceConfidence,
       })),
     ).toEqual([
       {
@@ -370,18 +391,24 @@ describe("Neon Tournament configuration repository", () => {
         status: "complete",
         rank: 1,
         label: "fastest_single_time",
+        time: "strong",
+        confidence: "medium",
       },
       {
         coreId: "core-2",
         status: "complete",
         rank: 1,
         label: "fastest_single_time",
+        time: "strong",
+        confidence: "medium",
       },
       {
         coreId: "core-3",
         status: "partial",
         rank: null,
         label: "fastest_single_time",
+        time: "strong",
+        confidence: "low",
       },
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);

@@ -1,4 +1,5 @@
 import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
+import { projectTournamentEvidenceAuthority } from "@/domain/tournament-evidence-authority";
 import { projectTournamentQualificationMetrics } from "@/domain/tournament-qualification-metric";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
 import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
@@ -56,6 +57,10 @@ const LIST_ACTIVE_VAULT_CORES_SQL = `
 const LIST_PERFORMANCE_PROFILES_SQL = `
   SELECT *
   FROM dna.list_core_performance_profiles($1::uuid, NULL::text, 5000::integer)
+`;
+const LIST_EXACT_DISTANCE_BENCHMARKS_SQL = `
+  SELECT *
+  FROM dna.list_discovery_exact_distance_benchmarks($1::uuid, 5000::integer)
 `;
 
 type Environment = Readonly<{
@@ -365,6 +370,69 @@ export function createNeonTournamentConfigurationRepository(
             ),
           });
         }
+        const benchmarkResult = await session.client.query(
+          LIST_EXACT_DISTANCE_BENCHMARKS_SQL,
+          [databaseOwnerId],
+        );
+        const exactDistanceBenchmarks = benchmarkResult.rows.map((value) => {
+          const row = record(value);
+          const mode = text(row.mode, "Tournament benchmark mode");
+          if (!["bike", "car", "horse"].includes(mode)) {
+            throw new Error("Tournament benchmark mode is invalid.");
+          }
+          const benchmark = {
+            mode,
+            distanceMetres: integer(
+              row.distance,
+              "Tournament benchmark distance",
+            ),
+            dataCurrentThrough: timestamp(
+              row.data_current_through,
+              "Tournament benchmark cutoff",
+            ),
+            raceEntryCount: integer(
+              row.race_entry_count,
+              "Tournament benchmark race entries",
+            ),
+            winningEntryCount: integer(
+              row.winning_entry_count,
+              "Tournament benchmark winning entries",
+            ),
+            topThreeEntryCount: integer(
+              row.top_three_entry_count,
+              "Tournament benchmark top-three entries",
+            ),
+            winningP75Milliseconds: positiveNumber(
+              row.winning_p75_milliseconds,
+              "Tournament benchmark winning p75",
+            ),
+            winningMedianMilliseconds: positiveNumber(
+              row.winning_median_milliseconds,
+              "Tournament benchmark winning median",
+            ),
+            topThreeP75Milliseconds: positiveNumber(
+              row.top_three_p75_milliseconds,
+              "Tournament benchmark top-three p75",
+            ),
+            topThreeMedianMilliseconds: positiveNumber(
+              row.top_three_median_milliseconds,
+              "Tournament benchmark top-three median",
+            ),
+            refreshedAt: timestamp(
+              row.refreshed_at,
+              "Tournament benchmark refresh",
+            ),
+          };
+          if (
+            benchmark.distanceMetres <= 0 ||
+            benchmark.raceEntryCount <= 0 ||
+            benchmark.winningEntryCount <= 0 ||
+            benchmark.topThreeEntryCount <= 0
+          ) {
+            throw new Error("Tournament benchmark evidence is invalid.");
+          }
+          return benchmark;
+        });
         const brackets: TournamentCandidateRankingInput[] = result.rows.map(
           (value) => {
             const row = record(value);
@@ -549,6 +617,15 @@ export function createNeonTournamentConfigurationRepository(
               })),
               [...performanceEvidence.values()],
             );
+            const evidenceAuthority = projectTournamentEvidenceAuthority(
+              ruleConfiguration,
+              candidateEligibility.map(({ core, eligibility }) => ({
+                coreId: core.coreId,
+                eligibility: eligibility.eligibility,
+              })),
+              [...performanceEvidence.values()],
+              exactDistanceBenchmarks,
+            );
             return {
               tournamentId: ruleConfiguration.tournamentId,
               tournamentLabel: ruleConfiguration.tournamentLabel,
@@ -584,9 +661,10 @@ export function createNeonTournamentConfigurationRepository(
                         candidate < earliest ? candidate : earliest,
                       );
                 const metric = metricProjection.get(core.coreId);
-                if (metric === undefined) {
+                const authority = evidenceAuthority.get(core.coreId);
+                if (metric === undefined || authority === undefined) {
                   throw new Error(
-                    "Tournament metric projection omitted a Vault candidate.",
+                    "Tournament evidence projection omitted a Vault candidate.",
                   );
                 }
                 return {
@@ -595,9 +673,8 @@ export function createNeonTournamentConfigurationRepository(
                   configurationVersion,
                   candidateSnapshotVersion,
                   ...metric,
-                  timeEvidence: "unknown",
+                  ...authority,
                   historicalStarSupport: "unavailable",
-                  evidenceConfidence: "unknown",
                   maidenState: core.meEligible ? "eligible" : "not_eligible",
                   maidenModeDisposition: core.meEligible
                     ? "unresolved"
