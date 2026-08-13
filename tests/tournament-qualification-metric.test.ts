@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { describe, expect, it } from "vitest";
 
 import {
@@ -139,10 +140,7 @@ describe("Tournament qualification metric projection", () => {
   it("fails closed for missing, ineligible and unsupported evidence", () => {
     const result = projectTournamentQualificationMetrics(
       rule("points"),
-      [
-        candidates[0]!,
-        { ...candidates[1]!, eligibility: "ineligible" },
-      ],
+      [candidates[0]!, { ...candidates[1]!, eligibility: "ineligible" }],
       [profile("fire-a", 60_000), profile("fire-b", 59_000)],
     );
     expect([...result.values()]).toEqual([
