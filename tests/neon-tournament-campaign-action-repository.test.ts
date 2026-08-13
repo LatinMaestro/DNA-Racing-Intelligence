@@ -37,16 +37,24 @@ function ownerEvidence(overrides: Record<string, unknown> = {}) {
 function harness(sequence: readonly (readonly unknown[] | Error)[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
-    const normalized = statement.replace(/\s+/g, " ").trim();
-    events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(normalized)) {
-      return { rows: [] };
-    }
-    const next = sequence[index++] ?? [];
-    if (next instanceof Error) throw next;
-    return { rows: next };
-  });
+  const query = vi.fn(
+    async (statement: string, values?: readonly unknown[]) => {
+      const normalized = statement.replace(/\s+/g, " ").trim();
+      events.push(
+        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+      );
+      if (
+        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+          normalized,
+        )
+      ) {
+        return { rows: [] };
+      }
+      const next = sequence[index++] ?? [];
+      if (next instanceof Error) throw next;
+      return { rows: next };
+    },
+  );
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => events.push("close"));
   const sessionFactory = vi.fn(async () => ({ client, close }));
@@ -71,11 +79,13 @@ describe("Neon Tournament campaign action repository", () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
-      [{
-        configuration_version: acknowledgement.configurationVersion,
-        candidate_snapshot_version: acknowledgement.candidateSnapshotVersion,
-        owner_acknowledged_at: "2026-08-13T00:00:00.000Z",
-      }],
+      [
+        {
+          configuration_version: acknowledgement.configurationVersion,
+          candidate_snapshot_version: acknowledgement.candidateSnapshotVersion,
+          owner_acknowledged_at: "2026-08-13T00:00:00.000Z",
+        },
+      ],
     ]);
     const repository = createNeonTournamentCampaignActionRepository({
       databaseUrl: "postgresql://private.example/dna",
@@ -96,14 +106,20 @@ describe("Neon Tournament campaign action repository", () => {
 
   it("rolls back privileged identity or returned binding drift", async () => {
     for (const sequence of [
-      [[{ owner_scope: databaseOwnerId }], [ownerEvidence({ runtime_bypasses_rls: true })]],
+      [
+        [{ owner_scope: databaseOwnerId }],
+        [ownerEvidence({ runtime_bypasses_rls: true })],
+      ],
       [
         [{ owner_scope: databaseOwnerId }],
         [ownerEvidence()],
-        [{
-          configuration_version: acknowledgement.configurationVersion,
-          candidate_snapshot_version: "snapshot-33333333333333333333333333333333",
-        }],
+        [
+          {
+            configuration_version: acknowledgement.configurationVersion,
+            candidate_snapshot_version:
+              "snapshot-33333333333333333333333333333333",
+          },
+        ],
       ],
     ] as const) {
       const test = harness(sequence);
@@ -113,7 +129,8 @@ describe("Neon Tournament campaign action repository", () => {
         runtimeRole,
         sessionFactory: test.sessionFactory,
       });
-      if (repository.status !== "ready") throw new Error("repository not ready");
+      if (repository.status !== "ready")
+        throw new Error("repository not ready");
       await expect(
         repository.acknowledgeByOwner(authenticatedOwnerId, acknowledgement),
       ).rejects.toThrow(/least-privilege|binding drifted/);
