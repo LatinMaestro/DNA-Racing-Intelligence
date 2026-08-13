@@ -159,7 +159,6 @@ export function TournamentConfigurationForm({
   );
 }
 
-
 export function TournamentCampaignActionForm({
   brackets,
   connectionStatus,
@@ -205,13 +204,27 @@ export function TournamentCampaignActionForm({
               <p className="font-semibold">
                 {configuration.tournamentLabel} — {configuration.splitLabel}
               </p>
-              <input name="tournamentId" type="hidden" value={configuration.tournamentId} />
-              <input name="bracketId" type="hidden" value={configuration.bracketId} />
-              <input name="configurationVersion" type="hidden" value={configuration.configurationVersion} />
+              <input
+                name="tournamentId"
+                type="hidden"
+                value={configuration.tournamentId}
+              />
+              <input
+                name="bracketId"
+                type="hidden"
+                value={configuration.bracketId}
+              />
+              <input
+                name="configurationVersion"
+                type="hidden"
+                value={configuration.configurationVersion}
+              />
               <input
                 name="candidateSnapshotVersion"
                 type="hidden"
-                value={configuration.candidateSnapshotVersion ?? "snapshot-unbound"}
+                value={
+                  configuration.candidateSnapshotVersion ?? "snapshot-unbound"
+                }
               />
               <label className="mt-4 block text-sm font-medium">
                 Reviewed guidance
@@ -242,7 +255,8 @@ export function TournamentCampaignActionForm({
               </button>
               {unbound ? (
                 <p className="mt-3 text-sm text-[var(--muted)]">
-                  A current candidate snapshot is required before acknowledgement.
+                  A current candidate snapshot is required before
+                  acknowledgement.
                 </p>
               ) : null}
             </form>
