@@ -32,6 +32,19 @@ server-derived freshness and Maiden opportunity cost can hold a candidate out
 of review ordering. Historical Gold/Blue evidence is supporting rationale only.
 It cannot improve a configured metric rank or override weak time evidence.
 
+For one exact configured distance, persisted star profiles provide supporting
+rationale from auditable Gold/Blue assignment-opportunity counts. Repeated
+received stars support the time hypothesis; repeated zero-received evidence over
+at least the configured race minimum conflicts with strong/competitive time
+evidence, while repeated stars conflict with weak time evidence. Isolated
+no-star evidence remains neutral. Missing, anomalous, ineligible or
+multiple-distance evidence remains unavailable. Star support never changes the
+configured metric rank, and any conflict holds the candidate for review.
+
+Candidate snapshots bind the complete owner star-profile cache count and refresh
+timestamp to the active aggregate-complete Race Merge version. Missing, stale or
+mixed-refresh star aggregates therefore fail closed as snapshot-unbound.
+
 A Maiden-eligible core reserved for a stronger credible mode is labelled
 `preserve ME`, even when it ranks strongly in another split. Unresolved
 cross-mode Maiden evidence also remains held for review.
