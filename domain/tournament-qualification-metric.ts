@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import type {
   TournamentRankingMetric,
   TournamentRuleConfiguration,
@@ -74,7 +75,10 @@ export function projectTournamentQualificationMetrics(
 
   const profilesByKey = new Map<string, TournamentMetricProfile>();
   for (const profile of profiles) {
-    const coreId = required(profile.coreId, "Tournament metric profile Core ID");
+    const coreId = required(
+      profile.coreId,
+      "Tournament metric profile Core ID",
+    );
     const mode = required(profile.mode, "Tournament metric profile mode");
     const distanceMetres = positiveInteger(
       profile.distanceMetres,
@@ -184,7 +188,10 @@ export function projectTournamentQualificationMetrics(
       continue;
     }
     const group = groups.get(candidate.leaderboardGroupId) ?? [];
-    group.push({ coreId: candidate.coreId, metricValue: projection.metricValue });
+    group.push({
+      coreId: candidate.coreId,
+      metricValue: projection.metricValue,
+    });
     groups.set(candidate.leaderboardGroupId, group);
   }
 
