@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import type { FreshnessState } from "@/domain/freshness";
 import {
   assessTournamentConfigurationAuthority,
@@ -375,8 +376,10 @@ export function rankTournamentCandidates(
       }
     } else {
       if (
-        required(candidate.metricEvidenceLabel ?? "", "Metric evidence label") !==
-        qualificationMetricLabel
+        required(
+          candidate.metricEvidenceLabel ?? "",
+          "Metric evidence label",
+        ) !== qualificationMetricLabel
       ) {
         throw new Error(
           "Available metric evidence must match the configured metric.",
