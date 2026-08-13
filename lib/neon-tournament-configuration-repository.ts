@@ -1,4 +1,5 @@
 import { projectTournamentCandidateEligibility } from "@/domain/tournament-candidate-eligibility";
+import { projectTournamentQualificationMetrics } from "@/domain/tournament-qualification-metric";
 import type { TournamentCandidateRankingInput } from "@/domain/tournament-candidate-ranking";
 import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
 import type { TournamentCandidateRepository } from "@/lib/tournament-workspace-service";
@@ -158,6 +159,15 @@ function decimal(value: unknown, label: string): string {
   return String(value);
 }
 
+function positiveNumber(value: unknown, label: string): number {
+  const parsed =
+    typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  if (typeof parsed !== "number" || !Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return parsed;
+}
+
 function timestamp(value: unknown, label: string): string {
   const parsed = value instanceof Date ? value : new Date(text(value, label));
   if (Number.isNaN(parsed.getTime())) throw new Error(`${label} is invalid.`);
@@ -276,7 +286,19 @@ export function createNeonTournamentConfigurationRepository(
           LIST_PERFORMANCE_PROFILES_SQL,
           [databaseOwnerId],
         );
-        const performanceEvidence = new Map<string, string>();
+        const performanceEvidence = new Map<
+          string,
+          Readonly<{
+            coreId: string;
+            mode: string;
+            distanceMetres: number;
+            dataCurrentThrough: string;
+            raceCount: number;
+            bestMilliseconds: number;
+            medianMilliseconds: number;
+            meanMilliseconds: number;
+          }>
+        >();
         let lastImportedAt: string | null = null;
         for (const value of performanceResult.rows) {
           const row = record(value);
@@ -320,7 +342,28 @@ export function createNeonTournamentConfigurationRepository(
           if (performanceEvidence.has(key)) {
             throw new Error("Tournament performance evidence is duplicated.");
           }
-          performanceEvidence.set(key, dataCurrentThrough);
+          performanceEvidence.set(key, {
+            coreId,
+            mode,
+            distanceMetres: distance,
+            dataCurrentThrough,
+            raceCount: integer(
+              row.race_count,
+              "Tournament performance race count",
+            ),
+            bestMilliseconds: positiveNumber(
+              row.best_milliseconds,
+              "Tournament performance best time",
+            ),
+            medianMilliseconds: positiveNumber(
+              row.median_milliseconds,
+              "Tournament performance median time",
+            ),
+            meanMilliseconds: positiveNumber(
+              row.mean_milliseconds,
+              "Tournament performance average time",
+            ),
+          });
         }
         const brackets: TournamentCandidateRankingInput[] = result.rows.map(
           (value) => {
@@ -487,6 +530,28 @@ export function createNeonTournamentConfigurationRepository(
               candidateSnapshotVersion,
               updatedAt: timestamp(row.updated_at, "Tournament updated at"),
             };
+            const candidateEligibility = activeVaultCores.map((core) => ({
+              core,
+              eligibility: core.coreDetailsActive
+                ? projectTournamentCandidateEligibility(
+                    ruleConfiguration,
+                    core,
+                  )
+                : {
+                    eligibility: "review_required" as const,
+                    leaderboardGroupId: "unassigned",
+                    leaderboardGroupLabel: "Eligibility review required",
+                  },
+            }));
+            const metricProjection = projectTournamentQualificationMetrics(
+              ruleConfiguration,
+              candidateEligibility.map(({ core, eligibility }) => ({
+                coreId: core.coreId,
+                leaderboardGroupId: eligibility.leaderboardGroupId,
+                eligibility: eligibility.eligibility,
+              })),
+              [...performanceEvidence.values()],
+            );
             return {
               tournamentId: ruleConfiguration.tournamentId,
               tournamentLabel: ruleConfiguration.tournamentLabel,
@@ -501,17 +566,7 @@ export function createNeonTournamentConfigurationRepository(
               configurationVersion,
               candidateSnapshotVersion,
               ruleConfiguration,
-              candidates: activeVaultCores.map((core) => {
-                const eligibility = core.coreDetailsActive
-                  ? projectTournamentCandidateEligibility(
-                      ruleConfiguration,
-                      core,
-                    )
-                  : {
-                      eligibility: "review_required" as const,
-                      leaderboardGroupId: "unassigned",
-                      leaderboardGroupLabel: "Eligibility review required",
-                    };
+              candidates: candidateEligibility.map(({ core, eligibility }) => {
                 const matchingCutoffs =
                   ruleConfiguration.eligibleDistancesMetres
                     .map((distance) =>
@@ -523,6 +578,7 @@ export function createNeonTournamentConfigurationRepository(
                         ),
                       ),
                     )
+                    .map((value) => value?.dataCurrentThrough)
                     .filter((value): value is string => value !== undefined);
                 const dataCurrentThrough =
                   matchingCutoffs.length === 0
@@ -530,14 +586,18 @@ export function createNeonTournamentConfigurationRepository(
                     : matchingCutoffs.reduce((earliest, candidate) =>
                         candidate < earliest ? candidate : earliest,
                       );
+                const metric = metricProjection.get(core.coreId);
+                if (metric === undefined) {
+                  throw new Error(
+                    "Tournament metric projection omitted a Vault candidate.",
+                  );
+                }
                 return {
                   coreId: core.coreId,
                   ...eligibility,
                   configurationVersion,
                   candidateSnapshotVersion,
-                  metricStatus: "unavailable",
-                  metricRank: null,
-                  metricEvidenceLabel: null,
+                  ...metric,
                   timeEvidence: "unknown",
                   historicalStarSupport: "unavailable",
                   evidenceConfidence: "unknown",
