@@ -856,3 +856,4 @@ export function neonTournamentConfigurationRepositoryFromEnvironment(
     ...(sessionFactory ? { sessionFactory } : {}),
   });
 }
+
