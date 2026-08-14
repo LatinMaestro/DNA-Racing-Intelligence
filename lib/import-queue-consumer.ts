@@ -8,7 +8,10 @@ const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 
 export type ImportQueueConsumerDecision =
-  | Readonly<{ disposition: "acknowledge"; reason: "completed" | "not_found" }>
+  | Readonly<{
+      disposition: "acknowledge";
+      reason: "completed" | "not_found";
+    }>
   | Readonly<{ disposition: "retry"; reason: "not_configured" }>
   | Readonly<{
       disposition: "retry";
@@ -23,7 +26,10 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function exactKeys(value: Record<string, unknown>, expected: readonly string[]): void {
+function exactKeys(
+  value: Record<string, unknown>,
+  expected: readonly string[],
+): void {
   const actual = Object.keys(value).sort();
   const required = [...expected].sort();
   if (
