@@ -124,7 +124,7 @@ function stagingSink(): ImportPreviewStagingSink {
       uploadManifestFingerprintSha256: input.uploadManifestFingerprintSha256,
       fileCount: input.objects.length,
       sourceFamilyCount: new Set(
-        input.objects.map((object) => object.sourceFamily),
+        input.objects.map(\n          (object: { sourceFamily: string }) => object.sourceFamily,\n        ),
       ).size,
       blockingIssueCount: 0,
       confirmable: true,
