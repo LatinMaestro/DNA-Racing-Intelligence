@@ -121,8 +121,7 @@ function stagingSink(): ImportPreviewStagingSink {
     completePreview: vi.fn(async (input) => ({
       previewId: "preview-1",
       previewFingerprintSha256: "d".repeat(64),
-      uploadManifestFingerprintSha256:
-        input.uploadManifestFingerprintSha256,
+      uploadManifestFingerprintSha256: input.uploadManifestFingerprintSha256,
       fileCount: input.objects.length,
       sourceFamilyCount: new Set(
         input.objects.map((object) => object.sourceFamily),
@@ -157,34 +156,40 @@ describe("hosted import Preview worker runtime", () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
-      [{
-        status: "claimed",
-        authenticated_owner_id: ownerId,
-        upload_batch_id: uploadBatchId,
-        upload_request_fingerprint_sha256: requestFingerprint,
-        upload_manifest_fingerprint_sha256: manifestFingerprint,
-        retry_after: null,
-        preview_id: null,
-        preview_fingerprint_sha256: null,
-        confirmable: null,
-        files: [{
-          uploadFileId,
-          objectId: uploadFileId,
-          sourceFamily: "race_merge",
-          expectedByteLength: 3,
-          expectedSha256: objectFingerprint,
-        }],
-      }],
+      [
+        {
+          status: "claimed",
+          authenticated_owner_id: ownerId,
+          upload_batch_id: uploadBatchId,
+          upload_request_fingerprint_sha256: requestFingerprint,
+          upload_manifest_fingerprint_sha256: manifestFingerprint,
+          retry_after: null,
+          preview_id: null,
+          preview_fingerprint_sha256: null,
+          confirmable: null,
+          files: [
+            {
+              uploadFileId,
+              objectId: uploadFileId,
+              sourceFamily: "race_merge",
+              expectedByteLength: 3,
+              expectedSha256: objectFingerprint,
+            },
+          ],
+        },
+      ],
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
-      [{
-        disposition: "created",
-        upload_request_fingerprint_sha256: requestFingerprint,
-        upload_manifest_fingerprint_sha256: manifestFingerprint,
-        preview_id: "preview-1",
-        preview_fingerprint_sha256: "d".repeat(64),
-        confirmable: true,
-      }],
+      [
+        {
+          disposition: "created",
+          upload_request_fingerprint_sha256: requestFingerprint,
+          upload_manifest_fingerprint_sha256: manifestFingerprint,
+          preview_id: "preview-1",
+          preview_fingerprint_sha256: "d".repeat(64),
+          confirmable: true,
+        },
+      ],
     ]);
     const sink = stagingSink();
     const runtime = hostedImportPreviewWorkerRuntime({
@@ -221,18 +226,20 @@ describe("hosted import Preview worker runtime", () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
-      [{
-        status: "leased_elsewhere",
-        authenticated_owner_id: null,
-        upload_batch_id: uploadBatchId,
-        upload_request_fingerprint_sha256: requestFingerprint,
-        upload_manifest_fingerprint_sha256: manifestFingerprint,
-        retry_after: "2026-08-14T02:05:00.000Z",
-        preview_id: null,
-        preview_fingerprint_sha256: null,
-        confirmable: null,
-        files: [],
-      }],
+      [
+        {
+          status: "leased_elsewhere",
+          authenticated_owner_id: null,
+          upload_batch_id: uploadBatchId,
+          upload_request_fingerprint_sha256: requestFingerprint,
+          upload_manifest_fingerprint_sha256: manifestFingerprint,
+          retry_after: "2026-08-14T02:05:00.000Z",
+          preview_id: null,
+          preview_fingerprint_sha256: null,
+          confirmable: null,
+          files: [],
+        },
+      ],
     ]);
     const sink = stagingSink();
     const runtime = hostedImportPreviewWorkerRuntime({
