@@ -44,6 +44,18 @@ function safeInteger(value: unknown): number {
   return value as number;
 }
 
+function optionalQueueName(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new Error("Cloudflare queue response is invalid.");
+  }
+  const normalized = value.trim();
+  if (!QUEUE_NAME_PATTERN.test(normalized)) {
+    throw new Error("Cloudflare queue response is invalid.");
+  }
+  return normalized;
+}
+
 export function createCloudflareImportQueuePort(
   configuration: CloudflareImportQueuePortConfiguration,
 ): CloudflareImportQueuePort {
@@ -106,6 +118,10 @@ export function createCloudflareImportQueuePort(
             consumerSettings === null
               ? 0
               : safeInteger(consumerSettings.max_retries),
+          deadLetterQueueName:
+            consumer === null
+              ? null
+              : optionalQueueName(consumer.dead_letter_queue),
         };
       } catch {
         throw new Error("Cloudflare queue readiness check failed.");
