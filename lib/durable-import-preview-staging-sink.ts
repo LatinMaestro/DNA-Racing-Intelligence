@@ -312,11 +312,14 @@ export function createDurableImportPreviewStagingSink(input: {
         await transaction.stageSchema(schema);
         if (schema.status !== "ready")
           throw new Error("CSV schema is not ready");
-        decoder = new TextDecoder(
+        const initializedDecoder = new TextDecoder(
           schema.encoding === "windows_1252" ? "windows-1252" : "utf-8",
           { fatal: true },
         );
-        csv = new CsvRecordDecoder(emit);
+        const initializedCsv = new CsvRecordDecoder(emit);
+        decoder = initializedDecoder;
+        csv = initializedCsv;
+        return { decoder: initializedDecoder, csv: initializedCsv };
       };
 
       return {
@@ -343,15 +346,12 @@ export function createDurableImportPreviewStagingSink(input: {
             if (headerBytes.byteLength > maximumHeaderBytes) {
               throw new Error("CSV header exceeds configured capacity");
             }
-            await initialize(headerBytes);
+            const initialized = await initialize(headerBytes);
             const remainder = combined.slice(newline + terminatorLength);
-            const activeDecoder = decoder;
-            const activeCsv = csv;
-            if (activeDecoder === null || activeCsv === null) {
-              throw new Error("CSV decoder initialization failed");
-            }
             if (remainder.byteLength > 0) {
-              activeCsv.push(activeDecoder.decode(remainder, { stream: true }));
+              initialized.csv.push(
+                initialized.decoder.decode(remainder, { stream: true }),
+              );
             }
           } else {
             csv?.push(decoder.decode(chunk, { stream: true }));
