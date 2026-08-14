@@ -359,7 +359,9 @@ function reservedFiles(value: unknown): readonly ReservedImportUploadObject[] {
   });
 }
 
-function uploadCompletionClaim(row: Record<string, unknown>): UploadCompletionClaim {
+function uploadCompletionClaim(
+  row: Record<string, unknown>,
+): UploadCompletionClaim {
   const status = requiredString(row.status, "status");
   if (status === "not_found") return { status };
   const uploadRequestFingerprint = requiredString(
