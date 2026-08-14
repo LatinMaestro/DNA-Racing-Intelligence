@@ -1,0 +1,73 @@
+name: Import upload completion ledger migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0032_import_upload_completion_ledger.*.sql"
+      - ".github/workflows/import-upload-completion-ledger-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  import-upload-completion-ledger-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0032_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Apply upload completion ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0032_import_upload_completion_ledger.up.sql
+      - name: Run upload completion ledger smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0032_import_upload_completion_ledger.smoke.sql
+      - name: Reverse upload completion ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0032_import_upload_completion_ledger.down.sql
+      - name: Verify upload completion ledger removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'claim_import_upload_completion',
+          'reserve_import_preview_dispatch',
+          'mark_import_preview_dispatch_queued',
+          'mark_import_preview_dispatch_failed',
+          'record_import_upload_verification_failure'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'import_upload_completion',
+          'import_preview_dispatch',
+          'import_verified_upload_object'
+          )
+          ) THEN RAISE EXCEPTION 'upload completion ledger objects still exist';
+          END IF; END \$\$;"
