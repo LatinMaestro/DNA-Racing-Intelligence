@@ -136,9 +136,7 @@ export function createCloudflareImportQueueForOwner(input: {
     if (readinessPromise === null) {
       readinessPromise = created
         .readQueueEvidence({ queueName })
-        .then((evidence) =>
-          assertQueueEvidence(evidence, deadLetterQueueName),
-        );
+        .then((evidence) => assertQueueEvidence(evidence, deadLetterQueueName));
     }
     await readinessPromise;
     return created;
