@@ -20,7 +20,13 @@ function queueResult(overrides: Record<string, unknown> = {}) {
       queue_id: queueId,
       queue_name: queueName,
       consumers_total_count: 1,
-      consumers: [{ settings: { max_retries: 3 }, type: "worker" }],
+      consumers: [
+        {
+          settings: { max_retries: 3 },
+          dead_letter_queue: "dna-import-preview-dlq",
+          type: "worker",
+        },
+      ],
       settings: { delivery_paused: false },
       ...overrides,
     },
@@ -49,6 +55,7 @@ describe("Cloudflare import queue port", () => {
       paused: false,
       consumerConfigured: true,
       maxRetries: 3,
+      deadLetterQueueName: "dna-import-preview-dlq",
     });
     expect(fetcher).toHaveBeenCalledExactlyOnceWith(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/${queueId}`,
@@ -89,7 +96,22 @@ describe("Cloudflare import queue port", () => {
     [
       "missing consumer",
       { consumers_total_count: 0, consumers: [] },
-      { paused: false, consumerConfigured: false },
+      {
+        paused: false,
+        consumerConfigured: false,
+        deadLetterQueueName: null,
+      },
+    ],
+    [
+      "missing dead-letter queue",
+      {
+        consumers: [{ settings: { max_retries: 3 }, type: "worker" }],
+      },
+      {
+        paused: false,
+        consumerConfigured: true,
+        deadLetterQueueName: null,
+      },
     ],
   ])(
     "returns evidence that fails closed for %s",
