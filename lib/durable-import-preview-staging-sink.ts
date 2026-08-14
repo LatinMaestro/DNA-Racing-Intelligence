@@ -345,8 +345,14 @@ export function createDurableImportPreviewStagingSink(input: {
             }
             await initialize(headerBytes);
             const remainder = combined.slice(newline + terminatorLength);
-            if (remainder.byteLength > 0)
-              csv?.push(decoder.decode(remainder, { stream: true }));
+            const activeDecoder = decoder;
+            const activeCsv = csv;
+            if (activeDecoder === null || activeCsv === null) {
+              throw new Error("CSV decoder initialization failed");
+            }
+            if (remainder.byteLength > 0) {
+              activeCsv.push(activeDecoder.decode(remainder, { stream: true }));
+            }
           } else {
             csv?.push(decoder.decode(chunk, { stream: true }));
           }
