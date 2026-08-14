@@ -50,7 +50,10 @@ export type HostedImportPreviewWorkerRuntime =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      consume: (input: { body: unknown; now?: Date }) => Promise<ImportQueueConsumerDecision>;
+      consume: (input: {
+        body: unknown;
+        now?: Date;
+      }) => Promise<ImportQueueConsumerDecision>;
     }>;
 
 export const unavailableHostedImportPreviewWorkerRuntime: HostedImportPreviewWorkerRuntime =
@@ -93,7 +96,9 @@ export function hostedImportPreviewWorkerRuntime(input: {
   const leaseDurationMilliseconds = positiveInteger(
     input.environment.leaseDurationMilliseconds,
   );
-  const maximumBatchBytes = positiveInteger(input.environment.maximumBatchBytes);
+  const maximumBatchBytes = positiveInteger(
+    input.environment.maximumBatchBytes,
+  );
   const maximumObjectBytes = positiveInteger(
     input.environment.maximumObjectBytes,
   );
