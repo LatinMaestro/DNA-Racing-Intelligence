@@ -147,17 +147,11 @@ function files(value: unknown): readonly PreviewObjectReference[] {
       throw new Error(`files[${index}].sourceFamily is invalid`);
     }
     return {
-      uploadFileId: string(
-        row.uploadFileId,
-        `files[${index}].uploadFileId`,
-      ),
+      uploadFileId: string(row.uploadFileId, `files[${index}].uploadFileId`),
       objectId: string(row.objectId, `files[${index}].objectId`),
       sourceFamily,
       expectedByteLength,
-      expectedSha256: sha(
-        row.expectedSha256,
-        `files[${index}].expectedSha256`,
-      ),
+      expectedSha256: sha(row.expectedSha256, `files[${index}].expectedSha256`),
     };
   });
 }
@@ -218,13 +212,18 @@ function requireConfiguration(input: {
   if (!UUID_PATTERN.test(databaseOwnerId)) {
     throw new Error("databaseOwnerId must be a UUID");
   }
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
 function verifyIsolation(
   result: QueryResult,
-  input: { databaseOwnerId: string; ownerId: string | null; runtimeRole: string },
+  input: {
+    databaseOwnerId: string;
+    ownerId: string | null;
+    runtimeRole: string;
+  },
 ) {
   const row = oneRow(result, "owner isolation");
   if (
@@ -253,7 +252,10 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
     throw new Error("Private Preview runtime role is not least privileged.");
   }
