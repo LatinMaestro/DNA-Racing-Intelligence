@@ -14,9 +14,9 @@ const sha = (value: Uint8Array) =>
 
 function harness() {
   const stageSchema = vi.fn(async () => undefined);
-  const stageRows = vi.fn(
-    async (_rows: readonly DurablePreviewStagedRow[]) => undefined,
-  );
+  const stageRows = vi.fn(async (rows: readonly DurablePreviewStagedRow[]) => {
+    void rows;
+  });
   const commitVerified = vi.fn(async () => ({
     importBatchId: "import-batch-1",
     sourceRowCount: 2,
