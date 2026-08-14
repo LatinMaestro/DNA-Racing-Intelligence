@@ -287,11 +287,11 @@ BEGIN
 
   IF v_expected_count <> jsonb_array_length(p_files)
      OR v_expected_count <> (
-       SELECT count(DISTINCT value->>'uploadFileId')
+       SELECT count(DISTINCT value->>'upload_file_id')
        FROM jsonb_array_elements(p_files)
      )
      OR v_expected_count <> (
-       SELECT count(DISTINCT value->>'objectId')
+       SELECT count(DISTINCT value->>'object_id')
        FROM jsonb_array_elements(p_files)
      )
      OR EXISTS (
@@ -456,6 +456,13 @@ BEGIN
       RAISE EXCEPTION 'verified upload replay mismatch';
     END IF;
   END IF;
+
+  UPDATE dna.import_preview_dispatch dispatch
+  SET state = 'pending', queued_at = NULL,
+      failure_reason = NULL, failed_at = NULL, updated_at = now()
+  WHERE dispatch.owner_id = p_owner_id
+    AND dispatch.id = v_dispatch_id
+    AND dispatch.state = 'failed';
 
   UPDATE dna.import_upload_completion completion
   SET state = 'verified', verified_at = p_verified_at,
