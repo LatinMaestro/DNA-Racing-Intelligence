@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   cloudflareImportQueueConfigurationFromEnvironment,
   createCloudflareImportQueueForOwner,
+  type CloudflareImportQueueEvidence,
   type CloudflareImportQueueMessage,
   type CloudflareImportQueuePort,
 } from "../lib/cloudflare-import-queue-adapter";
@@ -11,11 +12,14 @@ const OWNER_ID = "owner-1";
 const FINGERPRINT = "a".repeat(64);
 
 function readyQueue() {
-  const readQueueEvidence = vi.fn(async () => ({
-    paused: false,
-    consumerConfigured: true,
-    maxRetries: 5,
-  }));
+  const readQueueEvidence = vi.fn(
+    async (): Promise<CloudflareImportQueueEvidence> => ({
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 5,
+      deadLetterQueueName: "dna-private-import-dlq",
+    }),
+  );
   const sendJson = vi.fn(
     async (input: { queueName: string; body: CloudflareImportQueueMessage }) =>
       void input,
@@ -24,7 +28,11 @@ function readyQueue() {
   const createPort = vi.fn(async () => port);
   const queue = createCloudflareImportQueueForOwner({
     ownerId: OWNER_ID,
-    configuration: { queueName: "dna-private-import", createPort },
+    configuration: {
+      queueName: "dna-private-import",
+      deadLetterQueueName: "dna-private-import-dlq",
+      createPort,
+    },
   });
   return { queue, createPort, readQueueEvidence, sendJson };
 }
@@ -108,10 +116,42 @@ describe("Cloudflare import queue adapter", () => {
   });
 
   it.each([
-    { paused: true, consumerConfigured: true, maxRetries: 5 },
-    { paused: false, consumerConfigured: false, maxRetries: 5 },
-    { paused: false, consumerConfigured: true, maxRetries: 0 },
-    { paused: false, consumerConfigured: true, maxRetries: 11 },
+    {
+      paused: true,
+      consumerConfigured: true,
+      maxRetries: 5,
+      deadLetterQueueName: "dna-private-import-dlq",
+    },
+    {
+      paused: false,
+      consumerConfigured: false,
+      maxRetries: 5,
+      deadLetterQueueName: "dna-private-import-dlq",
+    },
+    {
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 0,
+      deadLetterQueueName: "dna-private-import-dlq",
+    },
+    {
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 11,
+      deadLetterQueueName: "dna-private-import-dlq",
+    },
+    {
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 5,
+      deadLetterQueueName: null,
+    },
+    {
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 5,
+      deadLetterQueueName: "unexpected-dlq",
+    },
   ])("fails closed on unsafe queue evidence %#", async (evidence) => {
     const ready = readyQueue();
     ready.readQueueEvidence.mockResolvedValueOnce(evidence);
@@ -130,9 +170,41 @@ describe("Cloudflare import queue adapter", () => {
     expect(
       cloudflareImportQueueConfigurationFromEnvironment({
         queueName: undefined,
+        deadLetterQueueName: "dna-private-import-dlq",
         createPort,
       }),
     ).toBeNull();
+    expect(
+      cloudflareImportQueueConfigurationFromEnvironment({
+        queueName: "dna-private-import",
+        deadLetterQueueName: undefined,
+        createPort,
+      }),
+    ).toBeNull();
+    expect(
+      cloudflareImportQueueConfigurationFromEnvironment({
+        queueName: "dna-private-import",
+        deadLetterQueueName: "dna-private-import-dlq",
+        createPort,
+      }),
+    ).toEqual({
+      queueName: "dna-private-import",
+      deadLetterQueueName: "dna-private-import-dlq",
+      createPort,
+    });
     expect(createPort).not.toHaveBeenCalled();
+  });
+
+  it("rejects using the primary queue as its own dead-letter queue", () => {
+    expect(() =>
+      createCloudflareImportQueueForOwner({
+        ownerId: OWNER_ID,
+        configuration: {
+          queueName: "dna-private-import",
+          deadLetterQueueName: "dna-private-import",
+          createPort: vi.fn(),
+        },
+      }),
+    ).toThrow("must differ");
   });
 });

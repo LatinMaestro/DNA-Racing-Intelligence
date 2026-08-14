@@ -20,6 +20,7 @@ export type CloudflareImportQueueEvidence = Readonly<{
   paused: boolean;
   consumerConfigured: boolean;
   maxRetries: number;
+  deadLetterQueueName: string | null;
 }>;
 
 export type CloudflareImportQueuePort = Readonly<{
@@ -34,6 +35,7 @@ export type CloudflareImportQueuePort = Readonly<{
 
 export type CloudflareImportQueueConfiguration = Readonly<{
   queueName: string;
+  deadLetterQueueName: string;
   createPort: () =>
     CloudflareImportQueuePort | Promise<CloudflareImportQueuePort>;
 }>;
@@ -67,21 +69,25 @@ function requireSafeIdentifier(value: string, field: string): string {
   return normalized;
 }
 
-function requireQueueName(value: string): string {
+function requireQueueName(value: string, field = "queueName"): string {
   const normalized = value.trim();
   if (!QUEUE_NAME_PATTERN.test(normalized)) {
-    throw new Error("queueName is invalid");
+    throw new Error(`${field} is invalid`);
   }
   return normalized;
 }
 
-function assertQueueEvidence(evidence: CloudflareImportQueueEvidence): void {
+function assertQueueEvidence(
+  evidence: CloudflareImportQueueEvidence,
+  expectedDeadLetterQueueName: string,
+): void {
   if (
     evidence.paused !== false ||
     evidence.consumerConfigured !== true ||
     !Number.isSafeInteger(evidence.maxRetries) ||
     evidence.maxRetries < 1 ||
-    evidence.maxRetries > 10
+    evidence.maxRetries > 10 ||
+    evidence.deadLetterQueueName !== expectedDeadLetterQueueName
   ) {
     throw new Error("Cloudflare import queue readiness verification failed.");
   }
@@ -99,6 +105,13 @@ export function createCloudflareImportQueueForOwner(input: {
 }): CloudflareOwnerImportQueue {
   const ownerId = requireOwner(input.ownerId);
   const queueName = requireQueueName(input.configuration.queueName);
+  const deadLetterQueueName = requireQueueName(
+    input.configuration.deadLetterQueueName,
+    "deadLetterQueueName",
+  );
+  if (deadLetterQueueName === queueName) {
+    throw new Error("deadLetterQueueName must differ from queueName");
+  }
   let portPromise: Promise<CloudflareImportQueuePort> | null = null;
   let readinessPromise: Promise<void> | null = null;
 
@@ -123,7 +136,7 @@ export function createCloudflareImportQueueForOwner(input: {
     if (readinessPromise === null) {
       readinessPromise = created
         .readQueueEvidence({ queueName })
-        .then(assertQueueEvidence);
+        .then((evidence) => assertQueueEvidence(evidence, deadLetterQueueName));
     }
     await readinessPromise;
     return created;
@@ -177,10 +190,16 @@ export function createCloudflareImportQueueForOwner(input: {
 export function cloudflareImportQueueConfigurationFromEnvironment(
   input: Readonly<{
     queueName: string | undefined;
+    deadLetterQueueName: string | undefined;
     createPort: CloudflareImportQueueConfiguration["createPort"];
   }>,
 ): CloudflareImportQueueConfiguration | null {
   const queueName = input.queueName?.trim() ?? "";
-  if (queueName === "") return null;
-  return Object.freeze({ queueName, createPort: input.createPort });
+  const deadLetterQueueName = input.deadLetterQueueName?.trim() ?? "";
+  if (queueName === "" || deadLetterQueueName === "") return null;
+  return Object.freeze({
+    queueName,
+    deadLetterQueueName,
+    createPort: input.createPort,
+  });
 }
