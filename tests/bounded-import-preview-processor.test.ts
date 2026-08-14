@@ -155,7 +155,9 @@ describe("bounded import preview processor", () => {
 
   it("aborts the whole preview without finalizing when an object is missing", async () => {
     const test = harness();
-    test.files[1] = { ...test.files[1], objectId: "object-missing" };
+    const secondFile = test.files[1];
+    if (secondFile === undefined) throw new Error("fixture is incomplete");
+    test.files[1] = { ...secondFile, objectId: "object-missing" };
     await expect(test.processor.preparePreview(input(test))).rejects.toThrow(
       "object processing failed",
     );
