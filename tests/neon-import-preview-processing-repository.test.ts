@@ -39,18 +39,22 @@ function evidence(overrides: Record<string, unknown> = {}) {
 function harness(rows: readonly (readonly unknown[])[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
-    const normalized = statement.replace(/\s+/g, " ").trim();
-    events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (
-      normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE" ||
-      normalized === "COMMIT" ||
-      normalized === "ROLLBACK"
-    ) {
-      return { rows: [] };
-    }
-    return { rows: rows[index++] ?? [] };
-  });
+  const query = vi.fn(
+    async (statement: string, values?: readonly unknown[]) => {
+      const normalized = statement.replace(/\s+/g, " ").trim();
+      events.push(
+        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+      );
+      if (
+        normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE" ||
+        normalized === "COMMIT" ||
+        normalized === "ROLLBACK"
+      ) {
+        return { rows: [] };
+      }
+      return { rows: rows[index++] ?? [] };
+    },
+  );
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => events.push("close"));
   const sessionFactory = vi.fn(async () => ({ client, close }));
@@ -85,45 +89,53 @@ describe("Neon import Preview processing repository", () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [evidence()],
-      [{
-        status: "claimed",
-        authenticated_owner_id: ownerId,
-        upload_batch_id: uploadBatchId,
-        upload_request_fingerprint_sha256: requestFingerprint,
-        upload_manifest_fingerprint_sha256: manifestFingerprint,
-        retry_after: null,
-        preview_id: null,
-        preview_fingerprint_sha256: null,
-        confirmable: null,
-        files: [{
-          uploadFileId: "44444444-4444-4444-8444-444444444444",
-          objectId: "44444444-4444-4444-8444-444444444444",
-          sourceFamily: "race_merge",
-          expectedByteLength: 1024,
-          expectedSha256: "c".repeat(64),
-        }],
-      }],
+      [
+        {
+          status: "claimed",
+          authenticated_owner_id: ownerId,
+          upload_batch_id: uploadBatchId,
+          upload_request_fingerprint_sha256: requestFingerprint,
+          upload_manifest_fingerprint_sha256: manifestFingerprint,
+          retry_after: null,
+          preview_id: null,
+          preview_fingerprint_sha256: null,
+          confirmable: null,
+          files: [
+            {
+              uploadFileId: "44444444-4444-4444-8444-444444444444",
+              objectId: "44444444-4444-4444-8444-444444444444",
+              sourceFamily: "race_merge",
+              expectedByteLength: 1024,
+              expectedSha256: "c".repeat(64),
+            },
+          ],
+        },
+      ],
     ]);
 
-    await expect(repository(test).claimPreviewDispatch({
-      previewDispatchId: dispatchId,
-      workerId: "worker-1",
-      uploadRequestFingerprint: requestFingerprint,
-      claimedAt: "2026-08-14T01:20:00.000Z",
-      leaseExpiresAt: "2026-08-14T01:25:00.000Z",
-    })).resolves.toEqual({
+    await expect(
+      repository(test).claimPreviewDispatch({
+        previewDispatchId: dispatchId,
+        workerId: "worker-1",
+        uploadRequestFingerprint: requestFingerprint,
+        claimedAt: "2026-08-14T01:20:00.000Z",
+        leaseExpiresAt: "2026-08-14T01:25:00.000Z",
+      }),
+    ).resolves.toEqual({
       status: "claimed",
       ownerId,
       uploadBatchId,
       uploadRequestFingerprint: requestFingerprint,
       uploadManifestFingerprintSha256: manifestFingerprint,
-      files: [{
-        uploadFileId: "44444444-4444-4444-8444-444444444444",
-        objectId: "44444444-4444-4444-8444-444444444444",
-        sourceFamily: "race_merge",
-        expectedByteLength: 1024,
-        expectedSha256: "c".repeat(64),
-      }],
+      files: [
+        {
+          uploadFileId: "44444444-4444-4444-8444-444444444444",
+          objectId: "44444444-4444-4444-8444-444444444444",
+          sourceFamily: "race_merge",
+          expectedByteLength: 1024,
+          expectedSha256: "c".repeat(64),
+        },
+      ],
     });
     expect(test.query.mock.calls[2]?.[1]).toEqual([databaseOwnerId, null]);
     expect(test.events[3]).toContain("dna.claim_import_preview_dispatch");
@@ -134,29 +146,33 @@ describe("Neon import Preview processing repository", () => {
     const publication = harness([
       [{ owner_scope: databaseOwnerId }],
       [evidence()],
-      [{
-        disposition: "created",
-        upload_request_fingerprint_sha256: requestFingerprint,
-        upload_manifest_fingerprint_sha256: manifestFingerprint,
-        preview_id: "preview-1",
-        preview_fingerprint_sha256: "d".repeat(64),
-        confirmable: true,
-      }],
+      [
+        {
+          disposition: "created",
+          upload_request_fingerprint_sha256: requestFingerprint,
+          upload_manifest_fingerprint_sha256: manifestFingerprint,
+          preview_id: "preview-1",
+          preview_fingerprint_sha256: "d".repeat(64),
+          confirmable: true,
+        },
+      ],
     ]);
-    await expect(repository(publication).publishPreparedPreview({
-      ownerId,
-      uploadBatchId,
-      previewDispatchId: dispatchId,
-      uploadRequestFingerprint: requestFingerprint,
-      uploadManifestFingerprintSha256: manifestFingerprint,
-      previewId: "preview-1",
-      previewFingerprintSha256: "d".repeat(64),
-      fileCount: 1,
-      sourceFamilyCount: 1,
-      blockingIssueCount: 0,
-      confirmable: true,
-      completedAt: "2026-08-14T01:23:00.000Z",
-    })).resolves.toMatchObject({ disposition: "created", confirmable: true });
+    await expect(
+      repository(publication).publishPreparedPreview({
+        ownerId,
+        uploadBatchId,
+        previewDispatchId: dispatchId,
+        uploadRequestFingerprint: requestFingerprint,
+        uploadManifestFingerprintSha256: manifestFingerprint,
+        previewId: "preview-1",
+        previewFingerprintSha256: "d".repeat(64),
+        fileCount: 1,
+        sourceFamilyCount: 1,
+        blockingIssueCount: 0,
+        confirmable: true,
+        completedAt: "2026-08-14T01:23:00.000Z",
+      }),
+    ).resolves.toMatchObject({ disposition: "created", confirmable: true });
 
     const failure = harness([
       [{ owner_scope: databaseOwnerId }],
@@ -182,13 +198,15 @@ describe("Neon import Preview processing repository", () => {
       [{ owner_scope: databaseOwnerId }],
       [evidence({ runtime_is_superuser: true })],
     ]);
-    await expect(repository(test).claimPreviewDispatch({
-      previewDispatchId: dispatchId,
-      workerId: "worker-1",
-      uploadRequestFingerprint: requestFingerprint,
-      claimedAt: "2026-08-14T01:20:00.000Z",
-      leaseExpiresAt: "2026-08-14T01:25:00.000Z",
-    })).rejects.toThrow("not least privileged");
+    await expect(
+      repository(test).claimPreviewDispatch({
+        previewDispatchId: dispatchId,
+        workerId: "worker-1",
+        uploadRequestFingerprint: requestFingerprint,
+        claimedAt: "2026-08-14T01:20:00.000Z",
+        leaseExpiresAt: "2026-08-14T01:25:00.000Z",
+      }),
+    ).rejects.toThrow("not least privileged");
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 });
