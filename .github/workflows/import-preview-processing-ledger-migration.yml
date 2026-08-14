@@ -1,0 +1,70 @@
+name: Import Preview processing ledger migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0033_import_preview_processing_ledger.*.sql"
+      - ".github/workflows/import-preview-processing-ledger-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  import-preview-processing-ledger-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0033_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Apply Preview processing ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0033_import_preview_processing_ledger.up.sql
+      - name: Run Preview processing ledger smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0033_import_preview_processing_ledger.smoke.sql
+      - name: Reverse Preview processing ledger migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0033_import_preview_processing_ledger.down.sql
+      - name: Verify Preview processing ledger removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF EXISTS (
+          SELECT 1 FROM pg_proc proc
+          JOIN pg_namespace namespace ON namespace.oid = proc.pronamespace
+          WHERE namespace.nspname = 'dna'
+          AND proc.proname IN (
+          'claim_import_preview_dispatch',
+          'publish_import_prepared_preview',
+          'record_import_preview_processing_failure'
+          )
+          ) OR EXISTS (
+          SELECT 1 FROM pg_class relation
+          JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+          WHERE namespace.nspname = 'dna'
+          AND relation.relname IN (
+          'import_preview_processing',
+          'import_prepared_preview'
+          )
+          ) THEN RAISE EXCEPTION 'Preview processing ledger objects still exist';
+          END IF; END \$\$;"
