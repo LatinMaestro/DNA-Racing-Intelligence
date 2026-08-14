@@ -6,6 +6,7 @@ import {
   type AggregateRetryActionDependencies,
   unavailableAggregateRetryCapabilities,
 } from "@/lib/import-aggregate-retry-action-service";
+import { hostedImportUploadCompletionRuntime } from "@/lib/hosted-import-upload-completion-runtime";
 import { hostedImportUploadIntakeRuntime } from "@/lib/hosted-import-upload-intake-runtime";
 import { unavailableImportActivationCapabilities } from "@/lib/import-activation-service";
 import {
@@ -21,7 +22,6 @@ import {
   completeOwnerImportUpload,
   type ImportOwnerActionDependencies,
 } from "@/lib/import-owner-action-service";
-import { unavailableImportUploadCompletionCapabilities } from "@/lib/import-upload-completion-service";
 import { type ImportUploadCandidate } from "@/lib/import-upload-intake-service";
 
 const UPLOAD_TARGET_LIFETIME_MILLISECONDS = 15 * 60 * 1000;
@@ -73,7 +73,26 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
         },
       },
     }),
-    uploadCompletionCapabilities: unavailableImportUploadCompletionCapabilities,
+    uploadCompletionCapabilities: hostedImportUploadCompletionRuntime({
+      environment: {
+        authorizedOwnerId: configuredOwnerId,
+        database: {
+          databaseUrl: process.env.DATABASE_URL,
+          databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+          runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+        },
+        r2: {
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+          bucketName: process.env.DNA_R2_BUCKET_NAME,
+          accessKeyId: process.env.DNA_R2_ACCESS_KEY_ID,
+          secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
+        },
+        cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
+        queueId: process.env.DNA_IMPORT_QUEUE_ID,
+        queueName: process.env.DNA_IMPORT_QUEUE_NAME,
+        deadLetterQueueName: process.env.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
+      },
+    }),
   };
 }
 
