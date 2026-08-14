@@ -41,7 +41,8 @@ const VERIFY_OWNER_ISOLATION_SQL = `
   JOIN pg_catalog.pg_class prepared
     ON prepared.oid = 'dna.import_prepared_preview'::regclass
   JOIN pg_catalog.pg_roles role ON role.rolname = session_user
-  WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
+  WHERE owner.id = $1::uuid
+    AND ($2::text IS NULL OR owner.clerk_user_id = $2)
 `;
 
 const CLAIM_SQL = `
@@ -223,14 +224,15 @@ function requireConfiguration(input: {
 
 function verifyIsolation(
   result: QueryResult,
-  input: { databaseOwnerId: string; ownerId: string; runtimeRole: string },
+  input: { databaseOwnerId: string; ownerId: string | null; runtimeRole: string },
 ) {
   const row = oneRow(result, "owner isolation");
   if (
     string(row.database_owner_id, "database_owner_id") !==
       input.databaseOwnerId ||
-    string(row.authenticated_owner_id, "authenticated_owner_id") !==
-      input.ownerId
+    (input.ownerId !== null &&
+      string(row.authenticated_owner_id, "authenticated_owner_id") !==
+        input.ownerId)
   ) {
     throw new Error("Private Preview repository owner scope denied.");
   }
@@ -261,7 +263,7 @@ async function transaction<Result>(input: {
   databaseUrl: string;
   databaseOwnerId: string;
   runtimeRole: string;
-  ownerId: string;
+  ownerId: string | null;
   sessionFactory: NeonImportPersistenceSessionFactory;
   operation: (client: NeonImportPersistenceClient) => Promise<Result>;
 }): Promise<Result> {
@@ -300,19 +302,19 @@ export function createNeonImportPreviewProcessingRepository(input: {
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
   const run = <Result>(
-    ownerId: string,
+    ownerId: string | null,
     operation: (client: NeonImportPersistenceClient) => Promise<Result>,
   ) =>
     transaction({
       ...configuration,
-      ownerId: ownerId.trim(),
+      ownerId: ownerId?.trim() ?? null,
       sessionFactory,
       operation,
     });
 
   return {
     claimPreviewDispatch(input) {
-      return run(input.workerId === "" ? "" : input.workerId, async (client) => {
+      return run(null, async (client) => {
         // The database maps the authenticated owner from the configured UUID.
         const row = oneRow(
           await client.query(CLAIM_SQL, [
