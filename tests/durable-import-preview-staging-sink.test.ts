@@ -5,6 +5,7 @@ import {
   createDurableImportPreviewStagingSink,
   type DurableImportPreviewStagingRepository,
   type DurablePreviewObjectTransaction,
+  type DurablePreviewStagedRow,
 } from "../lib/durable-import-preview-staging-sink";
 
 const encoder = new TextEncoder();
@@ -13,7 +14,9 @@ const sha = (value: Uint8Array) =>
 
 function harness() {
   const stageSchema = vi.fn(async () => undefined);
-  const stageRows = vi.fn(async () => undefined);
+  const stageRows = vi.fn(
+    async (_rows: readonly DurablePreviewStagedRow[]) => undefined,
+  );
   const commitVerified = vi.fn(async () => ({
     importBatchId: "import-batch-1",
     sourceRowCount: 2,
