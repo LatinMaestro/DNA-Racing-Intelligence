@@ -90,8 +90,7 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
         cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
         queueId: process.env.DNA_IMPORT_QUEUE_ID,
         queueName: process.env.DNA_IMPORT_QUEUE_NAME,
-        deadLetterQueueName:
-          process.env.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
+        deadLetterQueueName: process.env.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
       },
     }),
   };
