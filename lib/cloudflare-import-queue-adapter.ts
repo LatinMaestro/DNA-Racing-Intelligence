@@ -10,11 +10,18 @@ const MAX_MESSAGE_BYTES = 128 * 1024;
 export type CloudflareImportQueueKind =
   "preview" | "import_activation" | "aggregate_refresh_retry";
 
-export type CloudflareImportQueueMessage = Readonly<{
-  version: 1;
-  kind: CloudflareImportQueueKind;
-  dispatchId: string;
-}>;
+export type CloudflareImportQueueMessage =
+  | Readonly<{
+      version: 1;
+      kind: "preview";
+      dispatchId: string;
+      uploadRequestFingerprint: string;
+    }>
+  | Readonly<{
+      version: 1;
+      kind: Exclude<CloudflareImportQueueKind, "preview">;
+      dispatchId: string;
+    }>;
 
 export type CloudflareImportQueueEvidence = Readonly<{
   paused: boolean;
@@ -93,12 +100,6 @@ function assertQueueEvidence(
   }
 }
 
-function kindFor(input: ImportQueueInput): CloudflareImportQueueKind {
-  if ("uploadBatchId" in input) return "preview";
-  if ("updateSessionId" in input) return "import_activation";
-  return "aggregate_refresh_retry";
-}
-
 export function createCloudflareImportQueueForOwner(input: {
   ownerId: string;
   configuration: CloudflareImportQueueConfiguration;
@@ -162,11 +163,22 @@ export function createCloudflareImportQueueForOwner(input: {
         requireSafeIdentifier(queueInput.refreshId, "refreshId");
       }
 
-      const message: CloudflareImportQueueMessage = {
-        version: 1,
-        kind: kindFor(queueInput),
-        dispatchId,
-      };
+      const message: CloudflareImportQueueMessage =
+        "uploadBatchId" in queueInput
+          ? {
+              version: 1,
+              kind: "preview",
+              dispatchId,
+              uploadRequestFingerprint: queueInput.uploadRequestFingerprint,
+            }
+          : {
+              version: 1,
+              kind:
+                "updateSessionId" in queueInput
+                  ? "import_activation"
+                  : "aggregate_refresh_retry",
+              dispatchId,
+            };
       const byteLength = new TextEncoder().encode(
         JSON.stringify(message),
       ).length;
