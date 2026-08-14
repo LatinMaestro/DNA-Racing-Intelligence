@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   cloudflareImportQueueConfigurationFromEnvironment,
   createCloudflareImportQueueForOwner,
+  type CloudflareImportQueueEvidence,
   type CloudflareImportQueueMessage,
   type CloudflareImportQueuePort,
 } from "../lib/cloudflare-import-queue-adapter";
@@ -11,12 +12,14 @@ const OWNER_ID = "owner-1";
 const FINGERPRINT = "a".repeat(64);
 
 function readyQueue() {
-  const readQueueEvidence = vi.fn(async () => ({
-    paused: false,
-    consumerConfigured: true,
-    maxRetries: 5,
-    deadLetterQueueName: "dna-private-import-dlq",
-  }));
+  const readQueueEvidence = vi.fn(
+    async (): Promise<CloudflareImportQueueEvidence> => ({
+      paused: false,
+      consumerConfigured: true,
+      maxRetries: 5,
+      deadLetterQueueName: "dna-private-import-dlq",
+    }),
+  );
   const sendJson = vi.fn(
     async (input: { queueName: string; body: CloudflareImportQueueMessage }) =>
       void input,
