@@ -181,9 +181,7 @@ function requiredBoolean(value: unknown, field: string): boolean {
 
 function boundedFileCount(value: unknown, field: string): number {
   const parsed =
-    typeof value === "string" && /^[0-9]+$/.test(value)
-      ? Number(value)
-      : value;
+    typeof value === "string" && /^[0-9]+$/.test(value) ? Number(value) : value;
   if (
     typeof parsed !== "number" ||
     !Number.isSafeInteger(parsed) ||
@@ -197,9 +195,7 @@ function boundedFileCount(value: unknown, field: string): number {
 
 function positiveByteLength(value: unknown, field: string): number {
   const parsed =
-    typeof value === "string" && /^[0-9]+$/.test(value)
-      ? Number(value)
-      : value;
+    typeof value === "string" && /^[0-9]+$/.test(value) ? Number(value) : value;
   if (
     typeof parsed !== "number" ||
     !Number.isSafeInteger(parsed) ||
@@ -329,18 +325,14 @@ function reservedFiles(value: unknown): readonly ReservedImportUploadObject[] {
       `reserved_files[${index}].sourceFamily`,
     ) as ImportUploadSourceFamily;
     if (!sourceFamilySet.has(sourceFamily)) {
-      throw new Error(
-        `reserved_files[${index}].sourceFamily is unsupported`,
-      );
+      throw new Error(`reserved_files[${index}].sourceFamily is unsupported`);
     }
     const expectedSha256 = requiredString(
       file.expectedSha256,
       `reserved_files[${index}].expectedSha256`,
     );
     if (!SHA_256_PATTERN.test(expectedSha256)) {
-      throw new Error(
-        `reserved_files[${index}].expectedSha256 is invalid`,
-      );
+      throw new Error(`reserved_files[${index}].expectedSha256 is invalid`);
     }
     return {
       uploadFileId,
