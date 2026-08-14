@@ -71,6 +71,7 @@ describe("Cloudflare import queue port", () => {
       version: 1 as const,
       kind: "preview" as const,
       dispatchId: "dispatch-1",
+      uploadRequestFingerprint: "a".repeat(64),
     };
 
     await create(fetcher).sendJson({ queueName, body: message });
@@ -141,7 +142,12 @@ describe("Cloudflare import queue port", () => {
     await expect(
       port.sendJson({
         queueName: "other-queue",
-        body: { version: 1, kind: "preview", dispatchId: "dispatch-1" },
+        body: {
+          version: 1,
+          kind: "preview",
+          dispatchId: "dispatch-1",
+          uploadRequestFingerprint: "a".repeat(64),
+        },
       }),
     ).rejects.toThrow("identity is inconsistent");
     expect(fetcher).not.toHaveBeenCalled();
@@ -159,7 +165,12 @@ describe("Cloudflare import queue port", () => {
     await expect(
       port.sendJson({
         queueName,
-        body: { version: 1, kind: "preview", dispatchId: "dispatch-1" },
+        body: {
+          version: 1,
+          kind: "preview",
+          dispatchId: "dispatch-1",
+          uploadRequestFingerprint: "a".repeat(64),
+        },
       }),
     ).rejects.not.toThrow(/private provider detail/);
   });

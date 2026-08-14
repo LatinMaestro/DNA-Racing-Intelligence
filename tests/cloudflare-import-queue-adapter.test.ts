@@ -69,7 +69,7 @@ describe("Cloudflare import queue adapter", () => {
     expect(ready.createPort).not.toHaveBeenCalled();
   });
 
-  it("sends only a compact dispatch identity and returns the current preview acknowledgement", async () => {
+  it("sends the compact fingerprint-bound preview identity and current acknowledgement", async () => {
     const ready = readyQueue();
     await expect(
       ready.queue.enqueue({
@@ -85,11 +85,16 @@ describe("Cloudflare import queue adapter", () => {
     });
     expect(ready.sendJson).toHaveBeenCalledWith({
       queueName: "dna-private-import",
-      body: { version: 1, kind: "preview", dispatchId: "preview-1" },
+      body: {
+        version: 1,
+        kind: "preview",
+        dispatchId: "preview-1",
+        uploadRequestFingerprint: FINGERPRINT,
+      },
     });
     const serialized = JSON.stringify(ready.sendJson.mock.calls[0]);
     expect(serialized).not.toContain(OWNER_ID);
-    expect(serialized).not.toContain(FINGERPRINT);
+    expect(serialized).toContain(FINGERPRINT);
     expect(serialized).not.toContain("batch-1");
   });
 
