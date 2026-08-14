@@ -8,10 +8,7 @@ const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 
 export type ImportQueueConsumerDecision =
-  | Readonly<{
-      disposition: "acknowledge";
-      reason: "completed" | "not_found";
-    }>
+  | Readonly<{ disposition: "acknowledge"; reason: "completed" | "not_found" }>
   | Readonly<{ disposition: "retry"; reason: "not_configured" }>
   | Readonly<{
       disposition: "retry";
@@ -102,7 +99,9 @@ export async function consumeImportPreviewQueueMessage(input: {
 }): Promise<ImportQueueConsumerDecision> {
   const message = parseCloudflareImportQueueMessage(input.body);
   if (message.kind !== "preview") {
-    throw new Error("Import queue message kind is not available in this worker.");
+    throw new Error(
+      "Import queue message kind is not available in this worker.",
+    );
   }
   const result = await runImportPreviewDispatch({
     previewDispatchId: message.dispatchId,
