@@ -172,11 +172,6 @@ function requiredString(value: unknown, field: string): string {
   return value;
 }
 
-function optionalString(value: unknown, field: string): string | null {
-  if (value === null) return null;
-  return requiredString(value, field);
-}
-
 function requiredBoolean(value: unknown, field: string): boolean {
   if (typeof value !== "boolean") {
     throw new Error(`${field} must be a boolean`);
