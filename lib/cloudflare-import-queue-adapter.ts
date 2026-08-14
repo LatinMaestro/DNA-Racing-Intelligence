@@ -100,11 +100,6 @@ function assertQueueEvidence(
   }
 }
 
-function kindFor(input: ImportQueueInput): CloudflareImportQueueKind {
-  if ("uploadBatchId" in input) return "preview";
-  if ("updateSessionId" in input) return "import_activation";
-  return "aggregate_refresh_retry";
-}
 
 export function createCloudflareImportQueueForOwner(input: {
   ownerId: string;
@@ -179,7 +174,10 @@ export function createCloudflareImportQueueForOwner(input: {
             }
           : {
               version: 1,
-              kind: kindFor(queueInput),
+              kind:
+                "updateSessionId" in queueInput
+                  ? "import_activation"
+                  : "aggregate_refresh_retry",
               dispatchId,
             };
       const byteLength = new TextEncoder().encode(
