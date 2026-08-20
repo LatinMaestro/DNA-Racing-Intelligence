@@ -151,9 +151,9 @@ describe("Pro League preparation", () => {
         ({ breedingPriority }) => breedingPriority === "quality",
       ),
     ).toBe(true);
-    expect(result.elements.every(({ powerDepthGap }) => powerDepthGap === 5)).toBe(
-      true,
-    );
+    expect(
+      result.elements.every(({ powerDepthGap }) => powerDepthGap === 5),
+    ).toBe(true);
   });
 
   it("keeps female outcomes non-targetable and uses the confirmed parent-sum threshold for F15+", () => {
