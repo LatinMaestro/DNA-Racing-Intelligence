@@ -13,6 +13,7 @@ function profile(
   distanceMetres: number,
   benchmarkAssessment: ProLeagueBenchmarkAssessment,
   raceCount = 10,
+  freshness: "current" | "ageing" | "stale" | "unknown" = "current",
 ) {
   return {
     mode,
@@ -22,7 +23,7 @@ function profile(
       raceCount >= 10
         ? ("minimally_analytical" as const)
         : ("hypothesis_only" as const),
-    freshness: "current" as const,
+    freshness,
     dataCurrentThrough: "2026-08-19T00:00:00.000Z",
     benchmarkAssessment,
   };
@@ -141,6 +142,23 @@ describe("Pro League preparation", () => {
       winningRangeModes: [],
       topThreeOrBetterModes: [],
       discoveryPriority: "high",
+    });
+  });
+
+  it("labels stale evidence and excludes it from current power tiers", () => {
+    const result = buildProLeaguePreparation([
+      core("stale-signal", "Earth", {
+        performanceProfiles: [
+          profile("horse", 1_600, "winning_range", 12, "stale"),
+        ],
+      }),
+    ]);
+
+    expect(result.overallPowerPool[0]).toMatchObject({
+      coreId: "stale-signal",
+      powerTier: "unproven",
+      evidenceFreshness: "stale",
+      dataCurrentThrough: "2026-08-19T00:00:00.000Z",
     });
   });
 
