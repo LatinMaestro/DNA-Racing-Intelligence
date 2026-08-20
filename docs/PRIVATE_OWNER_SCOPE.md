@@ -35,6 +35,18 @@ This section is a current owner decision and overrides older specifications, pha
 
 Until the older source documents are reconciled during implementation, this section is authoritative for Vault ownership, source-count assumptions, Search Core and Discovery scope.
 
+## Owner-approved Pro League preparation — 20 August 2026
+
+The private website may include a Pro League preparation workspace using the
+owner-supplied DNA Community Update as provisional evidence. Scope is limited to
+owned-roster compliance, breeding gap review, Bike-focused Discovery evidence and
+owner-reviewed team-core selection. The owner does not plan to mint additional Genesis
+cores, so mint planning is excluded.
+
+Unknown maps, distances, scoring, inheritance outcomes and esports performance mechanics
+must remain unconfigured. The workspace cannot enter teams or races, bet, mint, trade,
+sign or automate game actions.
+
 ## Explicitly out of scope
 
 Unless the owner later requests them, do not add:
