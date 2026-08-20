@@ -1,0 +1,64 @@
+name: Preview staging runtime grants migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/0034_preview_staging_runtime_grants.*.sql"
+      - ".github/workflows/preview-staging-runtime-grants-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preview-staging-runtime-grants-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply prerequisite migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            [[ "$migration" == *"/0034_"* ]] && break
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' | sort)
+      - name: Apply Preview staging runtime grants migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0034_preview_staging_runtime_grants.up.sql
+      - name: Run Preview staging runtime grants smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0034_preview_staging_runtime_grants.smoke.sql
+      - name: Reverse Preview staging runtime grants migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0034_preview_staging_runtime_grants.down.sql
+      - name: Verify Preview staging runtime grants removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF
+          has_table_privilege('dna_app_runtime', 'dna.import_batch',
+          'SELECT,INSERT,UPDATE,DELETE')
+          OR has_table_privilege('dna_app_runtime',
+          'dna.dataset_staged_record', 'INSERT')
+          OR has_table_privilege('dna_app_runtime',
+          'dna.normalized_race_staged_fact', 'INSERT')
+          OR has_table_privilege('dna_app_runtime',
+          'dna.normalized_core_staged_fact', 'INSERT')
+          OR has_table_privilege('dna_app_runtime',
+          'dna.normalized_arena_staged_fact', 'INSERT')
+          THEN RAISE EXCEPTION 'Preview staging runtime grants still exist';
+          END IF; END \$\$;"
