@@ -436,10 +436,18 @@ export function buildProLeaguePreparation(
   );
   const overallPowerPool = [...candidates].sort(comparePower);
   const teamCandidatePools: Record<Element, readonly ProLeagueCandidate[]> = {
-    Metal: candidates.filter((core) => core.element === "Metal").sort(comparePower),
-    Fire: candidates.filter((core) => core.element === "Fire").sort(comparePower),
-    Earth: candidates.filter((core) => core.element === "Earth").sort(comparePower),
-    Water: candidates.filter((core) => core.element === "Water").sort(comparePower),
+    Metal: candidates
+      .filter((core) => core.element === "Metal")
+      .sort(comparePower),
+    Fire: candidates
+      .filter((core) => core.element === "Fire")
+      .sort(comparePower),
+    Earth: candidates
+      .filter((core) => core.element === "Earth")
+      .sort(comparePower),
+    Water: candidates
+      .filter((core) => core.element === "Water")
+      .sort(comparePower),
   };
 
   return {
