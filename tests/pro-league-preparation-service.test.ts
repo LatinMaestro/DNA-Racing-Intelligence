@@ -18,10 +18,10 @@ function repositories() {
       {
         sourceCoreId: "water-1",
         displayName: "Water One",
-        coreClass: "Morphed",
-        element: "Water",
+        coreClass: "Morphed" as const,
+        element: "Water" as const,
         fNumber: 18,
-        sex: "female",
+        sex: "female" as const,
         inMyVault: true,
         meEligible: false,
         version: 1,
@@ -36,12 +36,12 @@ function repositories() {
       profiles: [
         {
           coreId: "water-1",
-          mode: "bike",
+          mode: "bike" as const,
           distance: 1_400,
           dataCurrentThrough: "2026-08-19T00:00:00.000Z",
-          freshness: "current",
+          freshness: "current" as const,
           raceCount: 10,
-          sampleStatus: "minimally_analytical",
+          sampleStatus: "minimally_analytical" as const,
           elapsedTime: {
             bestMilliseconds: 10_000,
             medianMilliseconds: 10_500,
@@ -55,16 +55,16 @@ function repositories() {
             medianMetresPerSecond: 133.333,
           },
           starProfile: null,
-          analyticalStatus: "experimental",
+          analyticalStatus: "experimental" as const,
         },
         {
           coreId: "water-1",
-          mode: "car",
+          mode: "car" as const,
           distance: 1_600,
           dataCurrentThrough: "2026-08-19T00:00:00.000Z",
-          freshness: "current",
+          freshness: "current" as const,
           raceCount: 12,
-          sampleStatus: "minimally_analytical",
+          sampleStatus: "minimally_analytical" as const,
           elapsedTime: {
             bestMilliseconds: 11_000,
             medianMilliseconds: 11_400,
@@ -78,7 +78,7 @@ function repositories() {
             medianMetresPerSecond: 140.351,
           },
           starProfile: null,
-          analyticalStatus: "experimental",
+          analyticalStatus: "experimental" as const,
         },
       ],
     })),
@@ -87,7 +87,7 @@ function repositories() {
     status: "ready",
     listBenchmarksByOwner: vi.fn(async () => [
       {
-        mode: "bike",
+        mode: "bike" as const,
         distanceMetres: 1_400,
         dataCurrentThrough: "2026-08-19T00:00:00.000Z",
         raceEntryCount: 100,
@@ -102,7 +102,7 @@ function repositories() {
         refreshedAt: "2026-08-20T00:00:00.000Z",
       },
       {
-        mode: "car",
+        mode: "car" as const,
         distanceMetres: 1_600,
         dataCurrentThrough: "2026-08-19T00:00:00.000Z",
         raceEntryCount: 100,
