@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CorePerformanceProfileRepository } from "@/lib/core-intelligence-workspace-service";
+import type { DiscoveryBenchmarkRepository } from "@/lib/neon-discovery-benchmark-repository";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
 import {
   createProLeaguePreparationRepository,
@@ -56,10 +57,68 @@ function repositories() {
           starProfile: null,
           analyticalStatus: "experimental",
         },
+        {
+          coreId: "water-1",
+          mode: "car",
+          distance: 1_600,
+          dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+          freshness: "current",
+          raceCount: 12,
+          sampleStatus: "minimally_analytical",
+          elapsedTime: {
+            bestMilliseconds: 11_000,
+            medianMilliseconds: 11_400,
+            meanMilliseconds: 11_500,
+            trimmedMeanMilliseconds: 11_450,
+            standardDeviationMilliseconds: 250,
+            interquartileRangeMilliseconds: 180,
+          },
+          speed: {
+            bestMetresPerSecond: 145.455,
+            medianMetresPerSecond: 140.351,
+          },
+          starProfile: null,
+          analyticalStatus: "experimental",
+        },
       ],
     })),
   };
-  return { vault, performance };
+  const benchmark: DiscoveryBenchmarkRepository = {
+    status: "ready",
+    listBenchmarksByOwner: vi.fn(async () => [
+      {
+        mode: "bike",
+        distanceMetres: 1_400,
+        dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+        raceEntryCount: 100,
+        winningEntryCount: 20,
+        topThreeEntryCount: 60,
+        winningP25Milliseconds: 9_800,
+        winningMedianMilliseconds: 10_100,
+        winningP75Milliseconds: 10_200,
+        topThreeP25Milliseconds: 10_100,
+        topThreeMedianMilliseconds: 10_600,
+        topThreeP75Milliseconds: 10_900,
+        refreshedAt: "2026-08-20T00:00:00.000Z",
+      },
+      {
+        mode: "car",
+        distanceMetres: 1_600,
+        dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+        raceEntryCount: 100,
+        winningEntryCount: 20,
+        topThreeEntryCount: 60,
+        winningP25Milliseconds: 10_500,
+        winningMedianMilliseconds: 10_800,
+        winningP75Milliseconds: 10_900,
+        topThreeP25Milliseconds: 10_900,
+        topThreeMedianMilliseconds: 11_500,
+        topThreeP75Milliseconds: 11_700,
+        refreshedAt: "2026-08-20T00:00:00.000Z",
+      },
+    ]),
+  };
+  return { vault, performance, benchmark };
 }
 
 describe("Pro League preparation service", () => {
@@ -83,21 +142,38 @@ describe("Pro League preparation service", () => {
     ).rejects.toThrow("access denied");
   });
 
-  it("uses My Vault plus Bike profiles only", async () => {
-    const { vault, performance } = repositories();
+  it("uses My Vault plus cross-mode benchmark-relative performance", async () => {
+    const { vault, performance, benchmark } = repositories();
     const state = await loadProLeaguePreparationPageState({
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
       repository: createProLeaguePreparationRepository({
         vaultRepository: vault,
         performanceRepository: performance,
+        benchmarkRepository: benchmark,
       }),
     });
+
     expect(state.connectionStatus).toBe("read_model_connected");
-    expect(state.preparation?.teamCandidatePools.Water[0]).toMatchObject({
+    expect(state.preparation?.overallPowerPool[0]).toMatchObject({
       coreId: "water-1",
-      bikePriorStatus: "minimally_analytical",
+      powerTier: "multi_mode_top_three_range",
+      winningRangeModes: ["bike"],
+      topThreeOrBetterModes: ["bike", "car"],
+      analyticalModes: ["bike", "car"],
     });
     expect(state.lastImportedAt).toBe("2026-08-20T00:00:00.000Z");
+  });
+
+  it("fails closed when benchmark evidence is not configured", () => {
+    const { vault, performance } = repositories();
+
+    expect(
+      createProLeaguePreparationRepository({
+        vaultRepository: vault,
+        performanceRepository: performance,
+        benchmarkRepository: { status: "not_configured" },
+      }),
+    ).toBe(unavailableProLeaguePreparationRepository);
   });
 });
