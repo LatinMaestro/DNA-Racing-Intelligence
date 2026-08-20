@@ -98,7 +98,7 @@ describe("Cloudflare import queue adapter", () => {
     expect(serialized).not.toContain("batch-1");
   });
 
-  it("maps activation and aggregate retry onto the same queue", async () => {
+  it("maps activation and refresh-bound aggregate retry onto the same queue", async () => {
     const ready = readyQueue();
     await ready.queue.enqueue({
       ownerId: OWNER_ID,
@@ -110,14 +110,22 @@ describe("Cloudflare import queue adapter", () => {
       refreshId: "refresh-1",
       dispatchId: "dispatch-2",
     });
-    expect(ready.sendJson.mock.calls.map(([value]) => value.body.kind)).toEqual(
-      ["import_activation", "aggregate_refresh_retry"],
-    );
-    expect(
-      ready.sendJson.mock.calls.every(
-        ([value]) => value.queueName === "dna-private-import",
-      ),
-    ).toBe(true);
+    expect(ready.sendJson.mock.calls.map(([value]) => value.body)).toEqual([
+      {
+        version: 1,
+        kind: "import_activation",
+        dispatchId: "dispatch-1",
+      },
+      {
+        version: 1,
+        kind: "aggregate_refresh_retry",
+        dispatchId: "dispatch-2",
+        refreshId: "refresh-1",
+      },
+    ]);
+    const aggregateDelivery = JSON.stringify(ready.sendJson.mock.calls[1]);
+    expect(aggregateDelivery).not.toContain(OWNER_ID);
+    expect(aggregateDelivery).toContain("refresh-1");
   });
 
   it.each([
