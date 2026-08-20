@@ -89,10 +89,15 @@ describe("Pro League roster audit", () => {
     const audit = auditProLeagueRoster(roster);
 
     expect(audit.readiness).toBe("incomplete");
+    expect(audit.selectedCoreCount).toBe(24);
     expect(audit.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: "NOT_IN_MY_VAULT" }),
         expect.objectContaining({ code: "DUPLICATE_CORE" }),
+        expect.objectContaining({
+          code: "ROSTER_SIZE",
+          actual: 24,
+        }),
         expect.objectContaining({
           code: "GENESIS_ELEMENT_CAP",
           element: "Metal",
