@@ -9,6 +9,7 @@ import type {
   DiscoveryBenchmarkRepository,
   DiscoveryExactDistanceBenchmark,
 } from "@/lib/neon-discovery-benchmark-repository";
+import type { CorePayoutFormatProfileRepository } from "@/lib/neon-core-payout-format-profile-repository";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
 
 export type ProLeaguePreparationRepository =
@@ -72,32 +73,37 @@ export function createProLeaguePreparationRepository(input: {
   vaultRepository: OwnerVaultCatalogueRepository;
   performanceRepository: CorePerformanceProfileRepository;
   benchmarkRepository: DiscoveryBenchmarkRepository;
+  payoutFormatRepository: CorePayoutFormatProfileRepository;
 }): ProLeaguePreparationRepository {
   if (
     input.vaultRepository.status !== "ready" ||
     input.performanceRepository.status !== "ready" ||
-    input.benchmarkRepository.status !== "ready"
+    input.benchmarkRepository.status !== "ready" ||
+    input.payoutFormatRepository.status !== "ready"
   ) {
     return unavailableProLeaguePreparationRepository;
   }
   const vault = input.vaultRepository;
   const performance = input.performanceRepository;
   const benchmarks = input.benchmarkRepository;
+  const payoutFormats = input.payoutFormatRepository;
   return {
     status: "ready",
     async loadByOwner(ownerId) {
-      const [cores, profiles, benchmarkEvidence] = await Promise.all([
-        vault.listCoresByOwner(ownerId, {
-          scope: "vault",
-          query: null,
-          element: null,
-          coreClass: null,
-          sex: null,
-          fNumber: null,
-        }),
-        performance.listProfilesByOwner(ownerId),
-        benchmarks.listBenchmarksByOwner(ownerId),
-      ]);
+      const [cores, profiles, benchmarkEvidence, formatEvidence] =
+        await Promise.all([
+          vault.listCoresByOwner(ownerId, {
+            scope: "vault",
+            query: null,
+            element: null,
+            coreClass: null,
+            sex: null,
+            fNumber: null,
+          }),
+          performance.listProfilesByOwner(ownerId),
+          benchmarks.listBenchmarksByOwner(ownerId),
+          payoutFormats.listProfilesByOwner(ownerId),
+        ]);
       const benchmarkByModeDistance = new Map(
         benchmarkEvidence.map((benchmark) => [
           benchmarkKey(benchmark.mode, benchmark.distanceMetres),
@@ -126,6 +132,28 @@ export function createProLeaguePreparationRepository(input: {
           },
         ]);
       }
+      const payoutFormatsByCore = new Map<
+        string,
+        ProLeaguePreparationCore["payoutFormatProfiles"]
+      >();
+      for (const profile of formatEvidence.profiles) {
+        payoutFormatsByCore.set(profile.coreId, [
+          ...(payoutFormatsByCore.get(profile.coreId) ?? []),
+          {
+            mode: profile.mode,
+            payoutFormatKey: profile.payoutFormatKey,
+            payoutFormatLabel: profile.payoutFormatLabel,
+            raceCount: profile.raceCount,
+            winCount: profile.winCount,
+            topThreeCount: profile.topThreeCount,
+            exactDistanceCount: profile.exactDistanceCount,
+            timedRaceCount: profile.timedRaceCount,
+            sampleStatus: profile.sampleStatus,
+            freshness: profile.freshness,
+            dataCurrentThrough: profile.dataCurrentThrough,
+          },
+        ]);
+      }
       return {
         cores: cores
           .filter(({ inMyVault }) => inMyVault)
@@ -137,8 +165,13 @@ export function createProLeaguePreparationRepository(input: {
             sex: core.sex,
             fNumber: core.fNumber,
             performanceProfiles: performanceByCore.get(core.sourceCoreId) ?? [],
+            payoutFormatProfiles:
+              payoutFormatsByCore.get(core.sourceCoreId) ?? [],
           })),
-        lastImportedAt: profiles.lastImportedAt,
+        lastImportedAt:
+          [profiles.lastImportedAt, formatEvidence.lastImportedAt]
+            .filter((value): value is string => value !== null)
+            .sort()[0] ?? null,
       };
     },
   };
