@@ -2,9 +2,31 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildProLeaguePreparation,
+  type ProLeagueBenchmarkAssessment,
   type ProLeaguePreparationCore,
 } from "@/domain/pro-league-preparation";
+import type { RaceMode } from "@/domain/core-performance";
 import type { Element } from "@/domain/game-rules";
+
+function profile(
+  mode: RaceMode,
+  distanceMetres: number,
+  benchmarkAssessment: ProLeagueBenchmarkAssessment,
+  raceCount = 10,
+) {
+  return {
+    mode,
+    distanceMetres,
+    raceCount,
+    sampleStatus:
+      raceCount >= 10
+        ? ("minimally_analytical" as const)
+        : ("hypothesis_only" as const),
+    freshness: "current" as const,
+    dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+    benchmarkAssessment,
+  };
+}
 
 function core(
   id: string,
@@ -18,29 +40,22 @@ function core(
     element,
     sex: "male",
     fNumber: 10,
-    bikeProfiles: [],
+    performanceProfiles: [],
     ...overrides,
   };
 }
 
-function bike(distanceMetres = 1_200) {
-  return [
-    {
-      distanceMetres,
-      raceCount: 10,
-      sampleStatus: "minimally_analytical" as const,
-      freshness: "current" as const,
-      dataCurrentThrough: "2026-08-19T00:00:00.000Z",
-    },
-  ];
-}
-
 describe("Pro League preparation", () => {
-  it("excludes the mint and separates DNA Racing Bike evidence from Esports performance", () => {
+  it("uses shared DNA Racing performance and excludes additional Genesis minting", () => {
     const result = buildProLeaguePreparation([core("m1", "Metal")]);
+
     expect(result.mintStrategy).toBe("no_additional_genesis_mint");
-    expect(result.dnaRacingBikeEvidenceStatus).toBe(
-      "prior_only_not_esports_performance",
+    expect(result.performanceAuthority).toBe("shared_dna_racing_core_stats");
+    expect(result.selectionObjective).toBe(
+      "most_powerful_overall_cross_mode_and_format",
+    );
+    expect(result.formatEvidenceStatus).toBe(
+      "pending_bounded_rpayout_aggregate",
     );
     expect(result.genesisInterpretationStatus).toBe("working_interpretation");
   });
@@ -54,6 +69,7 @@ describe("Pro League preparation", () => {
       core("m5", "Metal"),
     ]);
     const metal = result.elements.find(({ element }) => element === "Metal");
+
     expect(metal).toMatchObject({
       rosterFloorGap: 0,
       nonGenesisDepthGap: 2,
@@ -62,62 +78,90 @@ describe("Pro League preparation", () => {
     expect(result.selectableUnderGenesisCaps).toBe(3);
   });
 
-  it("uses under-tested scarce-role cores for Discovery while ranking Bike-ready cores first for team review", () => {
+  it("ranks broad winning-range power ahead of a one-mode specialist", () => {
     const result = buildProLeaguePreparation([
-      core("development", "Water", {
-        sex: "female",
-        fNumber: 18,
-        bikeProfiles: [
-          {
-            distanceMetres: 1_400,
-            raceCount: 4,
-            sampleStatus: "hypothesis_only",
-            freshness: "ageing",
-            dataCurrentThrough: "2026-08-15T00:00:00.000Z",
-          },
+      core("all-rounder", "Water", {
+        performanceProfiles: [
+          profile("bike", 1_200, "winning_range"),
+          profile("car", 1_400, "winning_range"),
+          profile("horse", 1_600, "top_three_range"),
         ],
       }),
-      core("ready", "Water", { bikeProfiles: bike() }),
+      core("specialist", "Water", {
+        performanceProfiles: [
+          profile("bike", 1_200, "winning_range"),
+          profile("bike", 1_400, "winning_range"),
+          profile("bike", 1_600, "winning_range"),
+        ],
+      }),
     ]);
-    expect(result.discoveryQueue[0]).toMatchObject({
-      coreId: "development",
-      discoveryPriority: "high",
-      bikePriorStatus: "developing",
+
+    expect(result.overallPowerPool[0]).toMatchObject({
+      coreId: "all-rounder",
+      powerTier: "multi_mode_winning_range",
+      winningRangeModes: ["bike", "car"],
+      topThreeOrBetterModes: ["bike", "car", "horse"],
     });
-    expect(result.teamCandidatePools.Water[0]?.coreId).toBe("ready");
+    expect(result.overallPowerPool[1]).toMatchObject({
+      coreId: "specialist",
+      powerTier: "single_mode_winning_range",
+    });
   });
 
-  it("does not breed merely because an otherwise adequate pool needs more Bike testing", () => {
-    const elements: readonly Element[] = ["Metal", "Fire", "Earth", "Water"];
+  it("prioritises Discovery when a powerful core is still untested in other modes", () => {
+    const result = buildProLeaguePreparation([
+      core("promising", "Fire", {
+        sex: "female",
+        fNumber: 18,
+        performanceProfiles: [profile("bike", 1_400, "winning_range")],
+      }),
+      core("unknown", "Fire"),
+    ]);
+
+    expect(result.discoveryQueue[0]).toMatchObject({
+      coreId: "promising",
+      discoveryPriority: "high",
+      powerTier: "single_mode_winning_range",
+    });
+    expect(result.discoveryQueue[0]?.reasons.join(" ")).toContain(
+      "missing modes",
+    );
+  });
+
+  it("separates structural readiness from the need to improve power depth", () => {
     const pool: ProLeaguePreparationCore[] = [];
     let sequence = 0;
-    for (const element of elements) {
-      for (let index = 0; index < 5; index += 1) {
+    for (const element of ["Metal", "Fire", "Earth", "Water"] as const) {
+      for (let index = 0; index < 7; index += 1) {
         sequence += 1;
         pool.push(
           core(`${element}-${index}`, element, {
             sex: sequence <= 8 ? "female" : "male",
             fNumber: sequence <= 5 ? 15 + sequence : 10,
-            bikeProfiles: index < 4 ? bike(1_000 + index * 100) : [],
           }),
         );
       }
     }
+
     const result = buildProLeaguePreparation(pool);
+
+    expect(result.structuralPoolReady).toBe(true);
     expect(
       result.elements.every(
-        ({ breedingPriority }) => breedingPriority === "maintain",
+        ({ breedingPriority }) => breedingPriority === "quality",
       ),
     ).toBe(true);
-    expect(
-      result.elements.every(({ bikePriorDepthGap }) => bikePriorDepthGap === 1),
-    ).toBe(true);
+    expect(result.elements.every(({ powerDepthGap }) => powerDepthGap === 5)).toBe(
+      true,
+    );
   });
 
   it("keeps female outcomes non-targetable and uses the confirmed parent-sum threshold for F15+", () => {
     const result = buildProLeaguePreparation([core("one", "Fire")]);
+
     expect(result.breeding.femaleOutcomeTargetable).toBe(false);
     expect(result.breeding.minimumParentFSumForF15).toBe(15);
     expect(result.breeding.genesisMintExcluded).toBe(true);
+    expect(result.breeding.qualityObjective).toBe("elite_all_rounder_upside");
   });
 });
