@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type AggregateRefreshCapabilities,
+  type AggregateRefreshClaim,
+} from "../lib/import-aggregate-refresh-service";
+import {
+  consumeAggregateRefreshQueueMessage,
   consumeImportPreviewQueueMessage,
   parseCloudflareImportQueueMessage,
 } from "../lib/import-queue-consumer";
@@ -12,6 +17,7 @@ import {
 
 const NOW = new Date("2026-08-14T05:00:00.000Z");
 const FINGERPRINT = "a".repeat(64);
+const SOURCE_VERSION_SET = "b".repeat(64);
 
 function message() {
   return {
@@ -19,6 +25,15 @@ function message() {
     kind: "preview",
     dispatchId: "preview-dispatch-1",
     uploadRequestFingerprint: FINGERPRINT,
+  } as const;
+}
+
+function aggregateMessage() {
+  return {
+    version: 1,
+    kind: "aggregate_refresh_retry",
+    dispatchId: "refresh-dispatch-1",
+    refreshId: "refresh-1",
   } as const;
 }
 
@@ -37,6 +52,29 @@ function capabilities(claim: ImportPreviewDispatchClaim) {
   return { value, claimPreviewDispatch, preparePreview };
 }
 
+function aggregateCapabilities(claim: AggregateRefreshClaim) {
+  const claimRefresh = vi.fn(async () => claim);
+  const prepare = vi.fn(async () => ({
+    preparedAggregateSetId: "prepared-set-1",
+    sourceVersionSetSha256: SOURCE_VERSION_SET,
+    aggregateFamilyCount: 4,
+    materializedRowCount: 25,
+  }));
+  const value: AggregateRefreshCapabilities = {
+    status: "ready",
+    repository: {
+      claimRefresh,
+      publishPreparedAggregateSet: vi.fn(async () => ({
+        status: "published" as const,
+        aggregateSetId: "aggregate-set-1",
+      })),
+      recordRefreshFailure: vi.fn(async () => undefined),
+    },
+    refresher: { prepare },
+  };
+  return { value, claimRefresh, prepare };
+}
+
 const baseInput = {
   body: message(),
   workerId: "preview-worker-1",
@@ -45,9 +83,19 @@ const baseInput = {
   maximumBatchBytes: 512 * 1024 * 1024,
 } as const;
 
+const aggregateInput = {
+  body: aggregateMessage(),
+  workerId: "aggregate-worker-1",
+  now: NOW,
+  leaseDurationMilliseconds: 15 * 60 * 1000,
+} as const;
+
 describe("import queue consumer", () => {
-  it("parses the exact versioned preview identity", () => {
+  it("parses the exact versioned preview and aggregate identities", () => {
     expect(parseCloudflareImportQueueMessage(message())).toEqual(message());
+    expect(parseCloudflareImportQueueMessage(aggregateMessage())).toEqual(
+      aggregateMessage(),
+    );
   });
 
   it.each([
@@ -56,13 +104,20 @@ describe("import queue consumer", () => {
     { ...message(), uploadRequestFingerprint: "not-a-sha" },
     { ...message(), ownerId: "owner-1" },
     { version: 1, kind: "preview", dispatchId: "preview-dispatch-1" },
+    {
+      version: 1,
+      kind: "aggregate_refresh_retry",
+      dispatchId: "refresh-dispatch-1",
+    },
+    { ...aggregateMessage(), refreshId: "../unsafe" },
+    { ...aggregateMessage(), ownerId: "owner-1" },
   ])("rejects malformed or over-privileged message evidence %#", (body) => {
     expect(() => parseCloudflareImportQueueMessage(body)).toThrow(
       "message is invalid",
     );
   });
 
-  it("retries without repository access when processing is unavailable", async () => {
+  it("retries without repository access when preview processing is unavailable", async () => {
     await expect(
       consumeImportPreviewQueueMessage({
         ...baseInput,
@@ -71,7 +126,7 @@ describe("import queue consumer", () => {
     ).resolves.toEqual({ disposition: "retry", reason: "not_configured" });
   });
 
-  it("binds the delivery fingerprint to the durable dispatch claim", async () => {
+  it("binds the delivery fingerprint to the durable preview dispatch claim", async () => {
     const ready = capabilities({ status: "not_found" });
     await expect(
       consumeImportPreviewQueueMessage({
@@ -88,7 +143,7 @@ describe("import queue consumer", () => {
     });
   });
 
-  it("returns the durable competing-lease retry boundary", async () => {
+  it("returns the durable competing preview lease boundary", async () => {
     const ready = capabilities({
       status: "leased_elsewhere",
       uploadRequestFingerprint: FINGERPRINT,
@@ -107,19 +162,88 @@ describe("import queue consumer", () => {
     expect(ready.preparePreview).not.toHaveBeenCalled();
   });
 
-  it("rejects other queue kinds before preview repository access", async () => {
-    const ready = capabilities({ status: "not_found" });
+  it("binds an aggregate retry delivery to its durable refresh, not its queue dispatch", async () => {
+    const ready = aggregateCapabilities({ status: "not_found" });
+    await expect(
+      consumeAggregateRefreshQueueMessage({
+        ...aggregateInput,
+        capabilities: ready.value,
+      }),
+    ).resolves.toEqual({ disposition: "acknowledge", reason: "not_found" });
+    expect(ready.claimRefresh).toHaveBeenCalledWith({
+      refreshId: "refresh-1",
+      workerId: "aggregate-worker-1",
+      claimedAt: NOW.toISOString(),
+      leaseExpiresAt: "2026-08-14T05:15:00.000Z",
+    });
+    expect(ready.claimRefresh).not.toHaveBeenCalledWith(
+      expect.objectContaining({ refreshId: "refresh-dispatch-1" }),
+    );
+  });
+
+  it("maps unavailable and competing aggregate work to queue retries", async () => {
+    await expect(
+      consumeAggregateRefreshQueueMessage({
+        ...aggregateInput,
+        capabilities: { status: "not_configured" },
+      }),
+    ).resolves.toEqual({ disposition: "retry", reason: "not_configured" });
+
+    const ready = aggregateCapabilities({
+      status: "leased_elsewhere",
+      retryAfter: "2026-08-14T05:15:00.000Z",
+    });
+    await expect(
+      consumeAggregateRefreshQueueMessage({
+        ...aggregateInput,
+        capabilities: ready.value,
+      }),
+    ).resolves.toEqual({
+      disposition: "retry",
+      reason: "leased_elsewhere",
+      retryAfter: "2026-08-14T05:15:00.000Z",
+    });
+    expect(ready.prepare).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges completed and missing aggregate work without replay loops", async () => {
+    for (const claim of [
+      {
+        status: "already_complete" as const,
+        updateSessionId: "session-1",
+        aggregateSetId: "aggregate-set-1",
+      },
+      { status: "not_found" as const },
+    ]) {
+      const ready = aggregateCapabilities(claim);
+      const result = await consumeAggregateRefreshQueueMessage({
+        ...aggregateInput,
+        capabilities: ready.value,
+      });
+      expect(result.disposition).toBe("acknowledge");
+      expect(ready.prepare).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rejects queue kinds before the wrong repository is accessed", async () => {
+    const preview = capabilities({ status: "not_found" });
     await expect(
       consumeImportPreviewQueueMessage({
         ...baseInput,
-        body: {
-          version: 1,
-          kind: "import_activation",
-          dispatchId: "activation-1",
-        },
-        capabilities: ready.value,
+        body: aggregateMessage(),
+        capabilities: preview.value,
       }),
     ).rejects.toThrow("not available");
-    expect(ready.claimPreviewDispatch).not.toHaveBeenCalled();
+    expect(preview.claimPreviewDispatch).not.toHaveBeenCalled();
+
+    const aggregate = aggregateCapabilities({ status: "not_found" });
+    await expect(
+      consumeAggregateRefreshQueueMessage({
+        ...aggregateInput,
+        body: message(),
+        capabilities: aggregate.value,
+      }),
+    ).rejects.toThrow("not available");
+    expect(aggregate.claimRefresh).not.toHaveBeenCalled();
   });
 });

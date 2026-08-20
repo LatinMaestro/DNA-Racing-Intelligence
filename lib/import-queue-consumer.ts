@@ -1,5 +1,9 @@
 import type { CloudflareImportQueueMessage } from "./cloudflare-import-queue-adapter";
 import {
+  runAggregateRefreshDispatch,
+  type AggregateRefreshCapabilities,
+} from "./import-aggregate-refresh-service";
+import {
   runImportPreviewDispatch,
   type ImportPreviewProcessingCapabilities,
 } from "./import-preview-processing-service";
@@ -75,15 +79,21 @@ export function parseCloudflareImportQueueMessage(
       uploadRequestFingerprint: message.uploadRequestFingerprint,
     };
   }
-  if (
-    message.kind === "import_activation" ||
-    message.kind === "aggregate_refresh_retry"
-  ) {
+  if (message.kind === "import_activation") {
     exactKeys(message, ["version", "kind", "dispatchId"]);
     return {
       version: 1,
-      kind: message.kind,
+      kind: "import_activation",
       dispatchId: safeIdentifier(message.dispatchId),
+    };
+  }
+  if (message.kind === "aggregate_refresh_retry") {
+    exactKeys(message, ["version", "kind", "dispatchId", "refreshId"]);
+    return {
+      version: 1,
+      kind: "aggregate_refresh_retry",
+      dispatchId: safeIdentifier(message.dispatchId),
+      refreshId: safeIdentifier(message.refreshId),
     };
   }
   throw new Error("Import queue message is invalid.");
@@ -110,6 +120,42 @@ export async function consumeImportPreviewQueueMessage(input: {
     now: input.now,
     leaseDurationMilliseconds: input.leaseDurationMilliseconds,
     maximumBatchBytes: input.maximumBatchBytes,
+    capabilities: input.capabilities,
+  });
+  if (result.status === "not_configured") {
+    return { disposition: "retry", reason: "not_configured" };
+  }
+  if (result.status === "leased_elsewhere") {
+    return {
+      disposition: "retry",
+      reason: "leased_elsewhere",
+      retryAfter: result.retryAfter,
+    };
+  }
+  if (result.status === "not_found") {
+    return { disposition: "acknowledge", reason: "not_found" };
+  }
+  return { disposition: "acknowledge", reason: "completed" };
+}
+
+export async function consumeAggregateRefreshQueueMessage(input: {
+  body: unknown;
+  workerId: string;
+  now: Date;
+  leaseDurationMilliseconds: number;
+  capabilities: AggregateRefreshCapabilities;
+}): Promise<ImportQueueConsumerDecision> {
+  const message = parseCloudflareImportQueueMessage(input.body);
+  if (message.kind !== "aggregate_refresh_retry") {
+    throw new Error(
+      "Import queue message kind is not available in this worker.",
+    );
+  }
+  const result = await runAggregateRefreshDispatch({
+    refreshId: message.refreshId,
+    workerId: input.workerId,
+    now: input.now,
+    leaseDurationMilliseconds: input.leaseDurationMilliseconds,
     capabilities: input.capabilities,
   });
   if (result.status === "not_configured") {
