@@ -115,7 +115,9 @@ export type EsportsProLeaguePreparation = Readonly<{
   elementPools: readonly EsportsElementPoolStatus[];
   candidates: readonly EsportsCandidateAssessment[];
   discoveryQueue: readonly EsportsCandidateAssessment[];
-  teamCandidatePools: Readonly<Record<Element, readonly EsportsCandidateAssessment[]>>;
+  teamCandidatePools: Readonly<
+    Record<Element, readonly EsportsCandidateAssessment[]>
+  >;
   breedingPlan: Readonly<{
     femaleRequirementGap: number;
     femaleOutcomeIsNotDeterministicallyTargetable: true;
@@ -129,20 +131,26 @@ export type EsportsProLeaguePreparation = Readonly<{
 }>;
 
 const safeIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
-const discoveryPriorityOrder = Object.freeze({ high: 0, medium: 1, maintain: 2 });
+const discoveryPriorityOrder = Object.freeze({
+  high: 0,
+  medium: 1,
+  maintain: 2,
+});
 const teamTierOrder = Object.freeze({
   bike_prior_ready: 0,
   bike_prior_developing: 1,
   structural_depth_only: 2,
 });
 
-const offspringElementGuidance: Readonly<Record<Element, string>> = Object.freeze({
-  Metal: "Metal offspring require Metal × Metal because offspring takes the lower-ranked parent element.",
-  Fire: "Fire offspring require Fire × Fire or Metal × Fire.",
-  Earth:
-    "Earth offspring require at least one Earth parent and no Water parent (Metal/Fire/Earth × Earth).",
-  Water: "Any eligible pairing with a Water parent produces Water offspring.",
-});
+const offspringElementGuidance: Readonly<Record<Element, string>> =
+  Object.freeze({
+    Metal:
+      "Metal offspring require Metal × Metal because offspring takes the lower-ranked parent element.",
+    Fire: "Fire offspring require Fire × Fire or Metal × Fire.",
+    Earth:
+      "Earth offspring require at least one Earth parent and no Water parent (Metal/Fire/Earth × Earth).",
+    Water: "Any eligible pairing with a Water parent produces Water offspring.",
+  });
 
 function required(value: unknown, label: string): string {
   if (typeof value !== "string" || value.trim() === "") {
@@ -205,7 +213,9 @@ function normalizeCandidate(
     if (profile.sampleStatus !== expectedSampleStatus) {
       throw new Error("Bike prior sample status does not match race count.");
     }
-    if (!["current", "ageing", "stale", "unknown"].includes(profile.freshness)) {
+    if (
+      !["current", "ageing", "stale", "unknown"].includes(profile.freshness)
+    ) {
       throw new Error("Bike prior freshness is invalid.");
     }
     return {
@@ -228,9 +238,17 @@ function latestTimestamp(values: readonly string[]): string | null {
   );
 }
 
+type DiscoveryNeeds = Readonly<{
+  femaleNeeded: boolean;
+  f15PlusNeeded: boolean;
+  elementRosterNeeded: Readonly<Record<Element, boolean>>;
+  nonGenesisNeeded: Readonly<Record<Element, boolean>>;
+  bikePriorNeeded: Readonly<Record<Element, boolean>>;
+}>;
+
 function assessment(
   candidate: EsportsRosterCandidateInput,
-  bikeReadyByElement: Readonly<Record<Element, number>>,
+  needs: DiscoveryNeeds,
 ): EsportsCandidateAssessment {
   const totalDnaRacingBikeRaces = candidate.bikeProfiles.reduce(
     (total, profile) => total + profile.raceCount,
@@ -249,11 +267,14 @@ function assessment(
         ? "developing"
         : "absent";
   const discoveryReasons: string[] = [];
-  const structurallyUseful =
-    candidate.sex === "female" ||
-    candidate.fNumber >= 15 ||
-    candidate.coreClass !== "Genesis" ||
-    bikeReadyByElement[candidate.element] < 5;
+  const fillsScarceStructuralRole =
+    needs.elementRosterNeeded[candidate.element] ||
+    (needs.nonGenesisNeeded[candidate.element] &&
+      candidate.coreClass !== "Genesis") ||
+    (needs.femaleNeeded && candidate.sex === "female") ||
+    (needs.f15PlusNeeded && candidate.fNumber >= 15);
+  const fillsBikeEvidenceGap = needs.bikePriorNeeded[candidate.element];
+
   if (bikePriorStatus === "absent") {
     discoveryReasons.push(
       "No DNA Racing Bike exact-distance prior is available; establish only targeted hypotheses rather than random racing.",
@@ -263,28 +284,39 @@ function assessment(
       "Bike evidence exists but no exact distance has reached the 10-race minimally analytical boundary.",
     );
   }
-  if (bikeReadyByElement[candidate.element] < 5) {
+  if (fillsBikeEvidenceGap) {
     discoveryReasons.push(
       `${candidate.element} has fewer than five owned cores with a minimally analytical DNA Racing Bike prior.`,
     );
   }
   if (candidate.sex === "female") {
-    discoveryReasons.push("Female roster depth is strategically useful for the published minimum of eight.");
+    discoveryReasons.push(
+      needs.femaleNeeded
+        ? "Female roster depth currently contributes to closing the published minimum of eight."
+        : "Female roster depth is strategically useful for the published minimum of eight.",
+    );
   }
   if (candidate.fNumber >= 15) {
-    discoveryReasons.push("F15+ roster depth is strategically useful for the published minimum of five.");
+    discoveryReasons.push(
+      needs.f15PlusNeeded
+        ? "F15+ roster depth currently contributes to closing the published minimum of five."
+        : "F15+ roster depth is strategically useful for the published minimum of five.",
+    );
   }
   if (candidate.coreClass !== "Genesis") {
     discoveryReasons.push(
-      "A bred/non-Genesis core preserves flexibility under the published two-Genesis-per-element cap.",
+      needs.nonGenesisNeeded[candidate.element]
+        ? `Additional non-Genesis ${candidate.element} depth is currently needed to make a five-core element group possible under the provisional two-Genesis cap.`
+        : "A bred/non-Genesis core preserves flexibility under the published two-Genesis-per-element cap.",
     );
   }
   const discoveryPriority =
     bikePriorStatus === "minimally_analytical"
       ? "maintain"
-      : structurallyUseful
+      : fillsScarceStructuralRole || fillsBikeEvidenceGap
         ? "high"
         : "medium";
+
   return {
     coreId: candidate.coreId,
     displayName: candidate.displayName,
@@ -392,7 +424,9 @@ export function validateSelectedEsportsRoster(
 export function prepareEsportsProLeague(
   input: readonly EsportsRosterCandidateInput[],
 ): EsportsProLeaguePreparation {
-  if (!Array.isArray(input)) throw new Error("Esports candidate pool must be an array.");
+  if (!Array.isArray(input)) {
+    throw new Error("Esports candidate pool must be an array.");
+  }
   const candidates = input.map(normalizeCandidate);
   const ids = new Set(candidates.map(({ coreId }) => coreId));
   if (ids.size !== candidates.length) {
@@ -408,8 +442,14 @@ export function prepareEsportsProLeague(
     candidates,
     ({ coreClass }) => coreClass !== "Genesis",
   );
-  const femaleByElement = countsByElement(candidates, ({ sex }) => sex === "female");
-  const f15ByElement = countsByElement(candidates, ({ fNumber }) => fNumber >= 15);
+  const femaleByElement = countsByElement(
+    candidates,
+    ({ sex }) => sex === "female",
+  );
+  const f15ByElement = countsByElement(
+    candidates,
+    ({ fNumber }) => fNumber >= 15,
+  );
   const bikeReadyByElement = countsByElement(candidates, (candidate) =>
     candidate.bikeProfiles.some(
       ({ sampleStatus }) => sampleStatus === "minimally_analytical",
@@ -436,17 +476,31 @@ export function prepareEsportsProLeague(
       nonGenesisDepthGap,
       bikePriorDepthGap,
       breedingPriority:
-        rosterFloorGap > 0 || nonGenesisDepthGap > 0
-          ? "critical"
-          : bikePriorDepthGap > 0
-            ? "development"
-            : "maintain",
+        rosterFloorGap > 0 || nonGenesisDepthGap > 0 ? "critical" : "maintain",
       deterministicOffspringElementGuidance: offspringElementGuidance[element],
     };
   });
 
+  const femalePoolCount = candidates.filter(({ sex }) => sex === "female").length;
+  const f15PlusPoolCount = candidates.filter(({ fNumber }) => fNumber >= 15).length;
+  const discoveryNeeds: DiscoveryNeeds = {
+    femaleNeeded:
+      femalePoolCount < esportsProLeagueRosterRequirements.minimumFemales,
+    f15PlusNeeded:
+      f15PlusPoolCount < esportsProLeagueRosterRequirements.minimumF15Plus,
+    elementRosterNeeded: Object.fromEntries(
+      elements.map((element) => [element, totalByElement[element] < 5]),
+    ) as Record<Element, boolean>,
+    nonGenesisNeeded: Object.fromEntries(
+      elements.map((element) => [element, nonGenesisByElement[element] < 3]),
+    ) as Record<Element, boolean>,
+    bikePriorNeeded: Object.fromEntries(
+      elements.map((element) => [element, bikeReadyByElement[element] < 5]),
+    ) as Record<Element, boolean>,
+  };
+
   const assessed = candidates.map((candidate) =>
-    assessment(candidate, bikeReadyByElement),
+    assessment(candidate, discoveryNeeds),
   );
   const teamCandidatePools = Object.fromEntries(
     elements.map((element) => [
@@ -467,8 +521,6 @@ export function prepareEsportsProLeague(
     ]),
   ) as Record<Element, readonly EsportsCandidateAssessment[]>;
 
-  const femalePoolCount = candidates.filter(({ sex }) => sex === "female").length;
-  const f15PlusPoolCount = candidates.filter(({ fNumber }) => fNumber >= 15).length;
   const selectableCoreCountUnderGenesisCaps = elements.reduce(
     (total, element) =>
       total +
