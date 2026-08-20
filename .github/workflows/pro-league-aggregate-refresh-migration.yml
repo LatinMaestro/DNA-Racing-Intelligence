@@ -41,6 +41,18 @@ jobs:
           done
       - name: Run Pro League aggregate refresh smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0036_pro_league_aggregate_refresh.smoke.sql
+      - name: Run Pro League aggregate worker smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0037_pro_league_aggregate_worker.smoke.sql
+      - name: Reverse Pro League aggregate worker migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0037_pro_league_aggregate_worker.down.sql
+      - name: Verify Pro League aggregate worker removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF to_regclass(
+          'dna.aggregate_refresh_processing'
+          ) IS NOT NULL THEN RAISE EXCEPTION
+          'Pro League aggregate worker ledger still exists';
+          END IF; END \$\$;"
       - name: Reverse Pro League aggregate refresh migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0036_pro_league_aggregate_refresh.down.sql
       - name: Verify Pro League aggregate refresh removal
