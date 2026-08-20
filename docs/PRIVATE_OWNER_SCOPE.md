@@ -35,7 +35,6 @@ This section is a current owner decision and overrides older specifications, pha
 
 Until the older source documents are reconciled during implementation, this section is authoritative for Vault ownership, source-count assumptions, Search Core and Discovery scope.
 
-
 ## Owner-approved Pro League preparation — 20 August 2026
 
 The private website may include a Pro League preparation workspace using the
