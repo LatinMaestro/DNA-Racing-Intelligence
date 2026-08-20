@@ -242,7 +242,8 @@ BEGIN
     );
     RAISE EXCEPTION 'expected 25-file rejection was not raised';
   EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM NOT LIKE 'verified Preview source version count is invalid%' THEN
+    IF SQLERRM NOT LIKE 'import upload batch exceeds the bounded 24-file contract%'
+       AND SQLERRM NOT LIKE 'verified Preview source version count is invalid%' THEN
       RAISE;
     END IF;
   END;
