@@ -8,9 +8,7 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 const MAX_MESSAGE_BYTES = 128 * 1024;
 
 export type CloudflareImportQueueKind =
-  | "preview"
-  | "import_activation"
-  | "aggregate_refresh_retry";
+  "preview" | "import_activation" | "aggregate_refresh_retry";
 
 export type CloudflareImportQueueMessage =
   | Readonly<{
