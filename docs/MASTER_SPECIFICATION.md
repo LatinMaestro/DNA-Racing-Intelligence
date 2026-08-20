@@ -431,6 +431,31 @@ Required views include:
 - classification/reconciliation queue;
 - detailed ledger and filters.
 
+
+### 4.16 Pro League preparation
+
+Provide a protected, owner-only Pro League preparation workspace based on the
+owner-supplied DNA Community Update received 20 August 2026.
+
+The workspace must:
+
+- audit an owner-selected 25-core roster against the provisional published element,
+  per-element Genesis, female and F15+ boundaries;
+- use My Vault as the only ownership authority and reject duplicate or unowned cores;
+- identify structural gaps that may inform Breeding review without guaranteeing
+  inheritance outcomes;
+- use accepted Bike evidence, sample sizes, confidence and freshness for Discovery
+  prioritisation only after structural compliance is considered;
+- keep unknown maps, distances, scoring and esports performance mechanics visibly
+  unconfigured;
+- exclude additional Genesis minting from the owner's preparation strategy; and
+- remain advisory: no team entry, race entry, betting, minting, trading, signing or
+  wallet action.
+
+The announcement rules remain provisional and versioned until DNA publishes a complete
+rule source. A roster that meets them is only structurally compliant, never described
+as competitively proven.
+
 ## 5. Data refresh workflow
 
 The complete owner upload, preview, confirmation, background-processing, retention, completion and rollback contract is defined in `docs/DATA_UPDATE_WORKFLOW.md` and forms part of this specification.
