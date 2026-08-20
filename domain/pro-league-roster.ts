@@ -136,10 +136,7 @@ function breedingPriorities(input: {
       input.genesisCounts[element] -
         proLeagueAnnouncementRules.maximumGenesisPerElement,
     );
-    const nonGenesisRemaining = Math.max(
-      nonGenesisDepthGap,
-      genesisCapExcess,
-    );
+    const nonGenesisRemaining = Math.max(nonGenesisDepthGap, genesisCapExcess);
     if (nonGenesisRemaining > 0) {
       priorities.push({
         priorityId: "non-genesis-" + element.toLowerCase(),
