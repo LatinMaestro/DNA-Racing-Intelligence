@@ -36,17 +36,21 @@ function isolation(overrides: Record<string, unknown> = {}) {
 function harness(rows: readonly (readonly unknown[])[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
-    const normalized = statement.replace(/\s+/g, " ").trim();
-    events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (
-      ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
-        normalized,
+  const query = vi.fn(
+    async (statement: string, values?: readonly unknown[]) => {
+      const normalized = statement.replace(/\s+/g, " ").trim();
+      events.push(
+        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+      );
+      if (
+        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+          normalized,
+        )
       )
-    )
-      return { rows: [] };
-    return { rows: rows[index++] ?? [] };
-  });
+        return { rows: [] };
+      return { rows: rows[index++] ?? [] };
+    },
+  );
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => events.push("close"));
   const sessionFactory = vi.fn(async () => ({ client, close }));
