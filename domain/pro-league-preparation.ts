@@ -19,6 +19,20 @@ export type ProLeaguePerformanceProfile = Readonly<{
   benchmarkAssessment: ProLeagueBenchmarkAssessment;
 }>;
 
+export type ProLeaguePayoutFormatProfile = Readonly<{
+  mode: RaceMode;
+  payoutFormatKey: string;
+  payoutFormatLabel: string;
+  raceCount: number;
+  winCount: number;
+  topThreeCount: number;
+  exactDistanceCount: number;
+  timedRaceCount: number;
+  sampleStatus: "hypothesis_only" | "minimally_supported";
+  freshness: FreshnessState;
+  dataCurrentThrough: string;
+}>;
+
 export type ProLeaguePreparationCore = Readonly<{
   coreId: string;
   displayName: string;
@@ -27,6 +41,7 @@ export type ProLeaguePreparationCore = Readonly<{
   sex: "male" | "female";
   fNumber: number;
   performanceProfiles: readonly ProLeaguePerformanceProfile[];
+  payoutFormatProfiles: readonly ProLeaguePayoutFormatProfile[];
 }>;
 
 export type ProLeaguePowerTier =
@@ -53,6 +68,8 @@ export type ProLeagueCandidate = Readonly<{
   topThreeOrBetterDistances: number;
   evidenceFreshness: FreshnessState;
   dataCurrentThrough: string | null;
+  payoutFormatProfiles: readonly ProLeaguePayoutFormatProfile[];
+  supportedPayoutFormatCount: number;
   powerTier: ProLeaguePowerTier;
   discoveryPriority: "high" | "medium" | "maintain";
   reasons: readonly string[];
@@ -79,7 +96,7 @@ export type ProLeaguePreparation = Readonly<{
   genesisInterpretationStatus: "working_interpretation";
   performanceAuthority: "shared_dna_racing_core_stats";
   selectionObjective: "most_powerful_overall_cross_mode_and_format";
-  formatEvidenceStatus: "pending_bounded_rpayout_aggregate";
+  formatEvidenceStatus: "descriptive_context_connected";
   mintStrategy: "no_additional_genesis_mint";
   ownedCoreCount: number;
   femaleCount: number;
@@ -129,6 +146,15 @@ const freshnessRisk: Readonly<Record<FreshnessState, number>> = {
 function rankingEligible(profile: ProLeaguePerformanceProfile): boolean {
   return (
     profile.sampleStatus === "minimally_analytical" &&
+    (profile.freshness === "current" || profile.freshness === "ageing")
+  );
+}
+
+function formatEvidenceEligible(
+  profile: ProLeaguePayoutFormatProfile,
+): boolean {
+  return (
+    profile.sampleStatus === "minimally_supported" &&
     (profile.freshness === "current" || profile.freshness === "ageing")
   );
 }
@@ -227,6 +253,14 @@ function assess(
         profile.benchmarkAssessment === "top_three_range"),
   ).length;
   const evidenceFreshness = conservativeFreshness(core.performanceProfiles);
+  const payoutFormatProfiles = [...core.payoutFormatProfiles].sort(
+    (a, b) =>
+      a.mode.localeCompare(b.mode) ||
+      a.payoutFormatLabel.localeCompare(b.payoutFormatLabel),
+  );
+  const supportedPayoutFormatCount = payoutFormatProfiles.filter(
+    formatEvidenceEligible,
+  ).length;
   const dataCurrentThrough =
     core.performanceProfiles.length === 0
       ? null
@@ -286,6 +320,15 @@ function assess(
       "Non-Genesis depth preserves flexibility under the provisional per-element Genesis cap.",
     );
   }
+  if (supportedPayoutFormatCount > 0) {
+    reasons.push(
+      `${supportedPayoutFormatCount} fresh payout-format profile(s) have at least 10 accepted races; treat their win and Top-3 rates as descriptive context only.`,
+    );
+  } else if (payoutFormatProfiles.length > 0) {
+    reasons.push(
+      "Payout-format history exists but is too small or stale for supported format context; keep it hypothesis-only.",
+    );
+  }
 
   return {
     coreId: core.coreId,
@@ -304,6 +347,8 @@ function assess(
     topThreeOrBetterDistances,
     evidenceFreshness,
     dataCurrentThrough,
+    payoutFormatProfiles,
+    supportedPayoutFormatCount,
     powerTier: tier,
     discoveryPriority:
       (positivePowerSignal || promisingHypothesis) && missingAnalyticalModes > 0
@@ -354,6 +399,9 @@ export function buildProLeaguePreparation(
     }
     if (!Array.isArray(core.performanceProfiles)) {
       throw new Error("Pro League performance profiles must be an array.");
+    }
+    if (!Array.isArray(core.payoutFormatProfiles)) {
+      throw new Error("Pro League payout-format profiles must be an array.");
     }
   }
 
@@ -505,7 +553,7 @@ export function buildProLeaguePreparation(
     genesisInterpretationStatus: "working_interpretation",
     performanceAuthority: "shared_dna_racing_core_stats",
     selectionObjective: "most_powerful_overall_cross_mode_and_format",
-    formatEvidenceStatus: "pending_bounded_rpayout_aggregate",
+    formatEvidenceStatus: "descriptive_context_connected",
     mintStrategy: "no_additional_genesis_mint",
     ownedCoreCount: input.length,
     femaleCount,
