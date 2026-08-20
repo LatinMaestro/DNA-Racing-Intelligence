@@ -47,9 +47,7 @@ function profileRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function harness(
-  rows: readonly (readonly unknown[])[],
-): Readonly<{
+function harness(rows: readonly (readonly unknown[])[]): Readonly<{
   sessionFactory: NeonImportPersistenceSessionFactory;
   query: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
@@ -87,7 +85,8 @@ describe("Neon payout-format profile repository", () => {
       now,
       sessionFactory: store.sessionFactory,
     });
-    if (repository.status !== "ready") throw new Error("repository unavailable");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
 
     await expect(repository.listProfilesByOwner(ownerId)).resolves.toEqual({
       lastImportedAt: "2026-08-20T00:00:00.000Z",
@@ -127,7 +126,8 @@ describe("Neon payout-format profile repository", () => {
       now,
       sessionFactory: store.sessionFactory,
     });
-    if (repository.status !== "ready") throw new Error("repository unavailable");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
 
     await repository.listProfilesByOwner(ownerId, "bike-1");
     expect(store.query).toHaveBeenNthCalledWith(
@@ -151,7 +151,8 @@ describe("Neon payout-format profile repository", () => {
       now,
       sessionFactory: store.sessionFactory,
     });
-    if (repository.status !== "ready") throw new Error("repository unavailable");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
 
     await expect(repository.listProfilesByOwner(ownerId)).rejects.toThrow(
       "forced owner isolation",
@@ -175,7 +176,8 @@ describe("Neon payout-format profile repository", () => {
       now,
       sessionFactory: store.sessionFactory,
     });
-    if (repository.status !== "ready") throw new Error("repository unavailable");
+    if (repository.status !== "ready")
+      throw new Error("repository unavailable");
 
     await expect(repository.listProfilesByOwner(ownerId)).rejects.toThrow(
       "counts are inconsistent",
