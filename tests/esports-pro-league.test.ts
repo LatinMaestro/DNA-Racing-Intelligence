@@ -107,10 +107,52 @@ describe("DNA Pro Esports roster preparation", () => {
     const priority = preparation.discoveryQueue[0]!;
     expect(priority.coreId).toBe("female-f15");
     expect(priority.discoveryPriority).toBe("high");
-    expect(priority.discoveryReasons.join(" ")).toContain("female");
+    expect(priority.discoveryReasons.join(" ")).toContain("Female");
     expect(priority.discoveryReasons.join(" ")).toContain("F15+");
     expect(priority.teamSelectionTier).toBe("bike_prior_developing");
     expect(preparation.teamCandidatePools.Water[0]?.coreId).toBe("ready");
+  });
+
+  it("does not turn an evidence-only Bike gap into a breeding shortage", () => {
+    const elements: readonly Element[] = ["Metal", "Fire", "Earth", "Water"];
+    const pool: EsportsRosterCandidateInput[] = [];
+    let sequence = 0;
+    for (const element of elements) {
+      for (let index = 0; index < 5; index += 1) {
+        sequence += 1;
+        pool.push(
+          core(`${element.toLowerCase()}-${index + 1}`, element, {
+            sex: sequence <= 8 ? "female" : "male",
+            fNumber: sequence <= 5 ? 15 + sequence : 10,
+            bikeProfiles: analyticalBike(1_000 + index * 100),
+          }),
+        );
+      }
+    }
+    pool.push(
+      core("metal-development", "Metal", {
+        bikeProfiles: [
+          {
+            distanceMetres: 1_800,
+            raceCount: 3,
+            sampleStatus: "hypothesis_only",
+            freshness: "current",
+            dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const preparation = prepareEsportsProLeague(pool);
+    const development = preparation.candidates.find(
+      ({ coreId }) => coreId === "metal-development",
+    );
+    expect(development?.discoveryPriority).toBe("medium");
+    expect(
+      preparation.elementPools.every(
+        ({ breedingPriority }) => breedingPriority === "maintain",
+      ),
+    ).toBe(true);
   });
 
   it("validates an exact 25-core roster against element, female, F15 and Genesis constraints", () => {
