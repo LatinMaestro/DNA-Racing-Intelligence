@@ -127,9 +127,18 @@ function breedingPriorities(input: {
     const requiredNonGenesis =
       proLeagueAnnouncementRules.minimumPerElement -
       proLeagueAnnouncementRules.maximumGenesisPerElement;
-    const nonGenesisRemaining = Math.max(
+    const nonGenesisDepthGap = Math.max(
       0,
       requiredNonGenesis - nonGenesisCount,
+    );
+    const genesisCapExcess = Math.max(
+      0,
+      input.genesisCounts[element] -
+        proLeagueAnnouncementRules.maximumGenesisPerElement,
+    );
+    const nonGenesisRemaining = Math.max(
+      nonGenesisDepthGap,
+      genesisCapExcess,
     );
     if (nonGenesisRemaining > 0) {
       priorities.push({
@@ -138,7 +147,7 @@ function breedingPriorities(input: {
         element,
         remaining: nonGenesisRemaining,
         guidance:
-          "Breeding adds non-Genesis roster depth and avoids relying on more than the working two-Genesis-per-element cap.",
+          "Breeding adds non-Genesis roster depth and provides replacement options when a selected element exceeds the working two-Genesis-per-element cap.",
       });
     }
   }
