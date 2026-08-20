@@ -254,11 +254,7 @@ function text(value: unknown, field: string): string {
 }
 function count(value: unknown, field: string): number {
   const result = typeof value === "string" ? Number(value) : value;
-  if (
-    typeof result !== "number" ||
-    !Number.isSafeInteger(result) ||
-    result < 0
-  )
+  if (typeof result !== "number" || !Number.isSafeInteger(result) || result < 0)
     throw new Error(`${field} must be a non-negative safe integer`);
   return result;
 }
@@ -301,7 +297,10 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   )
     throw new Error("Private Preview runtime role is not least privileged.");
 }
@@ -467,9 +466,7 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
               "staged Preview row counts",
             );
           },
-          async commitVerified(
-            verified,
-          ): Promise<DurablePreviewObjectResult> {
+          async commitVerified(verified): Promise<DurablePreviewObjectResult> {
             if (!schemaStaged || !open)
               throw new Error("Preview object is not committable");
             if (
@@ -495,10 +492,7 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
               importBatchId: text(row.import_batch_id, "import_batch_id"),
               sourceRowCount: count(row.source_rows, "source_rows"),
               readyRowCount: count(row.accepted_rows, "accepted_rows"),
-              quarantinedRowCount: count(
-                row.rejected_rows,
-                "rejected_rows",
-              ),
+              quarantinedRowCount: count(row.rejected_rows, "rejected_rows"),
               warningRowCount: count(row.warning_rows, "warning_rows"),
               blockingIssueCount: count(row.rejected_rows, "rejected_rows"),
             };
@@ -536,7 +530,9 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
           "staged Preview assertion",
         );
         if (count(row.matched_count, "matched_count") !== expected.length)
-          throw new Error("Prepared Preview objects do not match durable staging");
+          throw new Error(
+            "Prepared Preview objects do not match durable staging",
+          );
       });
     },
     abortPreview(abort) {
