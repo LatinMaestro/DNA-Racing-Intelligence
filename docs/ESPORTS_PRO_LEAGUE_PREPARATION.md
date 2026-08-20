@@ -106,9 +106,11 @@ Candidate ordering should first reward **breadth of winning-level evidence acros
 
 ## Payout/race-format evidence
 
-Race Merge already preserves the authoritative payout mechanism label (`rpayout`) as payout-mechanism source evidence. The Pro League requires a bounded aggregate rather than scanning multi-million-row history on every page.
+Race Merge already preserves the authoritative payout mechanism label (`rpayout`) as payout-mechanism source evidence. Migration 0035 materialises a bounded owner/core/mode/payout-format read model rather than scanning multi-million-row history on every page.
 
-A follow-up read model should materialise per owner/core/mode/payout-format evidence including race count, wins, top-three finishes, rates, exact-distance coverage, time evidence and freshness. Until that aggregate is implemented, the Pro League page must say **format evidence pending** rather than invent a format score.
+The aggregate stores the conservatively normalised label key while retaining a display label, race/win/top-three numerators, exact-distance coverage, timed-race coverage, first/latest event timestamps and refresh/import timestamps. It is owner-isolated, replay-safe and rebuilt only from selected facts in non-rolled-back Race Merge versions.
+
+This is descriptive context, not proof that payout format changes intrinsic core ability. The UI must expose sample sizes and freshness, derive rates from the stored numerators, and keep format strength pending until the repository layer and evidence-quality thresholds are connected. Raw times from different exact distances must not be blended into a misleading format-wide time score; exact-distance timing remains in Core Performance profiles.
 
 ## Unknowns that must remain unconfigured
 
