@@ -2,11 +2,12 @@
 
 Private, single-user decision-support and analytics platform for improving the repository owner’s DNA Racing vault.
 
-The product will analyse periodically imported historical race times, Gold/Blue pre-race star signals, lineage, current-vault snapshots, latest arena snapshots, user-configured tournament qualification rules and recorded economic activity to support:
+The product will analyse periodically imported historical race times, Gold/Blue pre-race star signals, lineage, the owner-maintained My Vault registry, latest arena snapshots, user-configured tournament qualification rules and recorded economic activity to support:
 
 - tournament and Auto-Entry selection;
 - Maiden Eligible strategy;
 - targeted mode and distance discovery;
+- DNA Pro Esports roster preparation, breeding targets and Bike testing priorities;
 - whole-core and field-relative star analysis;
 - vault profit/loss and economic performance tracking;
 - breeding and arena partner selection;
@@ -17,15 +18,19 @@ The application is not connected to live DNA Racing data. Race exports are expec
 
 For an Open Race, current-race Gold and Blue stars are unavailable while the field is forming. They appear only after all gates are filled and the race is set to run, so they cannot be used to choose or switch the entered core.
 
+The DNA Pro Esports League is treated as a separate evidence domain. Existing DNA Racing Bike history may support pre-launch triage and targeted testing, but the application must not represent it as measured Esports ability unless future Esports results validate that relationship.
+
 ## Repository status
 
-The private Vercel application is active with Clerk owner authentication, while automatic Git deployments remain disabled in `vercel.json`. The repository contains the guarded owner workspaces, import/recovery services, analytical domains and economic write boundaries described by the private-owner scope. Hosted Neon Production and Preview databases still contain no application tables or private data. The next delivery focus is Preview-first persistence and provider commissioning; Production schema changes and the first real private-data import remain explicit owner approval boundaries.
+The private Vercel application exists with Clerk owner authentication, while automatic Git deployments remain disabled in `vercel.json`. The repository contains the guarded owner workspaces, import/recovery services, analytical domains and economic write boundaries described by the private-owner scope. Hosted Neon Preview has been commissioned with owner-scoped forced RLS and least-privilege runtime access; it contains no real imported owner data. Production remains unchanged. The next delivery focus remains protected Preview provider/import commissioning; the first real private-data import and any Production change remain explicit owner approval boundaries.
 
 ## Source-of-truth documents
 
 - [`AGENTS.md`](AGENTS.md) — autonomous agent operating instructions
+- [`docs/PRIVATE_OWNER_SCOPE.md`](docs/PRIVATE_OWNER_SCOPE.md) — current minimal single-owner scope and overriding owner decisions
 - [`docs/MASTER_SPECIFICATION.md`](docs/MASTER_SPECIFICATION.md) — complete product requirements
 - [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics
+- [`docs/ESPORTS_PRO_LEAGUE_PREPARATION.md`](docs/ESPORTS_PRO_LEAGUE_PREPARATION.md) — owner-supplied initial DNA Pro Esports announcement, no-mint strategy, roster preparation and evidence boundary
 - [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Gold/Blue database, Gold gate eligibility, field-relative analytics, freshness and no-leakage requirements
 - [`docs/OPEN_RACE_WORKFLOW.md`](docs/OPEN_RACE_WORKFLOW.md) — pre-entry selection, post-lock star observation and import-reconciliation requirements
 - [`docs/ANALYTICS_METHOD.md`](docs/ANALYTICS_METHOD.md) — statistical and recommendation methodology
@@ -50,7 +55,7 @@ The private Vercel application is active with Clerk owner authentication, while 
 - [`docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md`](docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md) — idempotent post-lock observation reconciliation
 - [`docs/PHASE_1_LINEAGE_GRAPH.md`](docs/PHASE_1_LINEAGE_GRAPH.md) — owner-scoped lineage graph and exact confirmed family restrictions
 - [`docs/PHASE_1_CORE_MATERIALIZATION.md`](docs/PHASE_1_CORE_MATERIALIZATION.md) — atomic Core Details and parent-edge persistence with rollback
-- [`docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md`](docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md) — reversible Current Vault and Arena historical snapshots
+- [`docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md`](docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md) — reversible historical snapshot materialization
 - [`docs/PHASE_1_IMPORT_RECOVERY_UI.md`](docs/PHASE_1_IMPORT_RECOVERY_UI.md) — private import status, freshness and recovery workspace contract
 - [`docs/PHASE_1_DATA_UPDATE_PREVIEW.md`](docs/PHASE_1_DATA_UPDATE_PREVIEW.md) — grouped owner upload preview and explicit confirmation contract
 - [`docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md`](docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md) — owner-scoped fail-closed application service for historical import status
@@ -60,11 +65,11 @@ The private Vercel application is active with Clerk owner authentication, while 
 - [`docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md`](docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md) — bounded manifest-verified background preview processing contract
 - [`docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md`](docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md) — source-version-bound analytical refresh and atomic publication contract
 - [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
-- [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
+- [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics and private persistence placement
 - [`docs/PHASE_2_CORE_PERFORMANCE.md`](docs/PHASE_2_CORE_PERFORMANCE.md) — exact mode-distance performance profile contract and evidence boundary
 - [`docs/PHASE_2_CORE_READ_WORKSPACE.md`](docs/PHASE_2_CORE_READ_WORKSPACE.md) — owner-scoped compact-profile application service and historical interface
 - [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
-- [`docs/PHASE_2_VAULT_READ_WORKSPACE.md`](docs/PHASE_2_VAULT_READ_WORKSPACE.md) — owner-scoped Vault application service and historical-snapshot interface
+- [`docs/PHASE_2_VAULT_READ_WORKSPACE.md`](docs/PHASE_2_VAULT_READ_WORKSPACE.md) — owner-scoped Vault application service and historical interface
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md`](docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md) — exact asset-separated Vault Performance aggregation contract
 - [`docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md`](docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md) — owner-scoped historical economic summary service and private interface
 - [`docs/PHASE_3_DISCOVERY_PROBE_PLAN.md`](docs/PHASE_3_DISCOVERY_PROBE_PLAN.md) — exact-distance, mode-separated and non-actionable Discovery probe plan
@@ -73,4 +78,4 @@ The private Vercel application is active with Clerk owner authentication, while 
 
 ## Privacy
 
-Real race, vault, core, arena and economic exports are confidential and must not be committed to Git. Development and tests must use synthetic fixtures. The deployed product is private, authenticated and non-indexed. The application must never request crypto private keys or seed phrases and must not initiate wallet or game transactions.
+Real race, vault, core, arena and economic exports must not be committed to Git. Development and tests use synthetic fixtures. The deployed product is private, authenticated and non-indexed. The application must never request crypto private keys or seed phrases and must not initiate wallet, mint, marketplace, game or Esports transactions.
