@@ -156,6 +156,7 @@ export function auditProLeagueRoster(
   const genesisCounts = blankElementCounts();
   const issues: ProLeagueRosterIssue[] = [];
   const seen = new Set<string>();
+  let ownedSelectedCount = 0;
   let femaleCount = 0;
   let f15PlusCount = 0;
 
@@ -178,18 +179,20 @@ export function auditProLeagueRoster(
           core.coreId +
           " is not in the owner-maintained My Vault registry.",
       });
+      continue;
     }
+    ownedSelectedCount += 1;
     elementCounts[core.element] += 1;
     if (core.coreClass === "Genesis") genesisCounts[core.element] += 1;
     if (core.sex === "female") femaleCount += 1;
     if (core.fNumber >= 15) f15PlusCount += 1;
   }
 
-  if (seen.size !== proLeagueAnnouncementRules.rosterSize) {
+  if (ownedSelectedCount !== proLeagueAnnouncementRules.rosterSize) {
     issues.push({
       code: "ROSTER_SIZE",
       element: null,
-      actual: seen.size,
+      actual: ownedSelectedCount,
       required: proLeagueAnnouncementRules.rosterSize,
       detail:
         "Select exactly " +
@@ -253,7 +256,7 @@ export function auditProLeagueRoster(
     rulesetId: proLeagueAnnouncementRules.rulesetId,
     evidenceStatus: "provisional",
     readiness: issues.length === 0 ? "compliant" : "incomplete",
-    selectedCoreCount: seen.size,
+    selectedCoreCount: ownedSelectedCount,
     elementCounts,
     genesisCounts,
     femaleCount,
