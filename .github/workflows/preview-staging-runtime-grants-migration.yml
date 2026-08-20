@@ -62,4 +62,3 @@ jobs:
           'dna.normalized_arena_staged_fact', 'INSERT')
           THEN RAISE EXCEPTION 'Preview staging runtime grants still exist';
           END IF; END \$\$;"
-
