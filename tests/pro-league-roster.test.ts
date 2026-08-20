@@ -24,13 +24,14 @@ function compliantRoster(): ProLeagueRosterCore[] {
 }
 
 describe("Pro League roster audit", () => {
-  it("captures only the published provisional requirements", () => {
+  it("captures the published provisional requirements and labels the gens interpretation", () => {
     expect(proLeagueAnnouncementRules).toMatchObject({
       evidenceStatus: "provisional",
       primaryMode: "bike",
       rosterSize: 25,
       minimumPerElement: 5,
       maximumGenesisPerElement: 2,
+      maximumGenesisInterpretation: "working_interpretation",
       minimumFemales: 8,
       minimumF15Plus: 5,
     });
@@ -45,7 +46,7 @@ describe("Pro League roster audit", () => {
     expect(audit.breedingPriorities).toEqual([]);
   });
 
-  it("reports element, female and F15+ gaps as uncertain breeding priorities", () => {
+  it("uses confirmed element and F-number inheritance while keeping offspring sex non-deterministic", () => {
     const roster = compliantRoster()
       .slice(0, 20)
       .map((core, index) => ({
@@ -70,10 +71,31 @@ describe("Pro League roster audit", () => {
       expect.arrayContaining(["element", "female", "f15_plus"]),
     );
     expect(
-      audit.breedingPriorities.every(({ guidance }) =>
-        /not|uncertain|Do not/i.test(guidance),
-      ),
-    ).toBe(true);
+      audit.breedingPriorities.find(({ target }) => target === "f15_plus")
+        ?.guidance,
+    ).toContain("sum");
+    expect(
+      audit.breedingPriorities.find(({ target }) => target === "female")
+        ?.guidance,
+    ).toContain("no confirmed rule");
+  });
+
+  it("adds a non-Genesis breeding priority when a selected element depends on too many Genesis cores", () => {
+    const roster = compliantRoster();
+    roster[8] = {
+      ...roster[8]!,
+      element: "Metal",
+      coreClass: "Genesis",
+    };
+    const audit = auditProLeagueRoster(roster);
+    expect(audit.breedingPriorities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: "non_genesis_element",
+          element: "Metal",
+        }),
+      ]),
+    );
   });
 
   it("fails closed for duplicate, unowned and over-cap Genesis selections", () => {
