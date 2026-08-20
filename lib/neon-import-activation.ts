@@ -1,4 +1,7 @@
-import type {\n  AcceptedDatasetPreparationRepository,\n} from "./bounded-accepted-dataset-processor";\nimport type { ImportActivationRepository } from "./import-activation-service";
+import type {
+  AcceptedDatasetPreparationRepository,
+} from "./bounded-accepted-dataset-processor";
+import type { ImportActivationRepository } from "./import-activation-service";
 import type {
   BackgroundDispatchClaim,
   BackgroundImportProcessingRepository,
@@ -78,7 +81,14 @@ const ACTIVATE_SQL = `
     $6::integer, $7::bigint, $8::boolean
   )
 `;
-const PREPARE_ACCEPTED_DATASET_SQL = `\n  SELECT prepared_result_id, source_version_count,\n    quarantined_record_count, aggregate_refresh_required\n  FROM dna.prepare_import_activation_dataset(\n    $1::uuid, $2::uuid, $3::uuid, $4::character(64), $5::integer\n  )\n`;\nconst PROCESSING_FAILURE_SQL = `
+const PREPARE_ACCEPTED_DATASET_SQL = `
+  SELECT prepared_result_id, source_version_count,
+    quarantined_record_count, aggregate_refresh_required
+  FROM dna.prepare_import_activation_dataset(
+    $1::uuid, $2::uuid, $3::uuid, $4::character(64), $5::integer
+  )
+`;
+const PROCESSING_FAILURE_SQL = `
   SELECT dna.record_import_activation_failure(
     $1::uuid, $2::uuid, $3::uuid, $4::text, $5::timestamptz
   )
@@ -361,7 +371,42 @@ export function createNeonImportActivationRepositories(input: {
     },
   };
 
-  const preparationRepository: AcceptedDatasetPreparationRepository = {\n    prepareAcceptedDataset(input) {\n      return run(input.ownerId, async (client) => {\n        const row = oneRow(\n          await client.query(PREPARE_ACCEPTED_DATASET_SQL, [\n            config.databaseOwnerId,\n            input.updateSessionId,\n            input.dispatchId,\n            input.previewFingerprintSha256,\n            input.maximumSourceVersions,\n          ]),\n          "accepted dataset preparation",\n        );\n        return {\n          preparedResultId: string(\n            row.prepared_result_id,\n            "prepared_result_id",\n          ),\n          sourceVersionCount: count(\n            row.source_version_count,\n            "source_version_count",\n          ),\n          quarantinedRecordCount: count(\n            row.quarantined_record_count,\n            "quarantined_record_count",\n          ),\n          aggregateRefreshRequired: bool(\n            row.aggregate_refresh_required,\n            "aggregate_refresh_required",\n          ),\n        };\n      });\n    },\n  };\n\n  return { activationRepository, processingRepository, preparationRepository };
+  const preparationRepository: AcceptedDatasetPreparationRepository = {
+    prepareAcceptedDataset(input) {
+      return run(input.ownerId, async (client) => {
+        const row = oneRow(
+          await client.query(PREPARE_ACCEPTED_DATASET_SQL, [
+            config.databaseOwnerId,
+            input.updateSessionId,
+            input.dispatchId,
+            input.previewFingerprintSha256,
+            input.maximumSourceVersions,
+          ]),
+          "accepted dataset preparation",
+        );
+        return {
+          preparedResultId: string(
+            row.prepared_result_id,
+            "prepared_result_id",
+          ),
+          sourceVersionCount: count(
+            row.source_version_count,
+            "source_version_count",
+          ),
+          quarantinedRecordCount: count(
+            row.quarantined_record_count,
+            "quarantined_record_count",
+          ),
+          aggregateRefreshRequired: bool(
+            row.aggregate_refresh_required,
+            "aggregate_refresh_required",
+          ),
+        };
+      });
+    },
+  };
+
+  return { activationRepository, processingRepository, preparationRepository };
 }
 
 export function neonImportActivationRepositoriesFromEnvironment(
