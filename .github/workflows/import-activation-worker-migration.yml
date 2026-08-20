@@ -1,0 +1,55 @@
+name: Import activation worker migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/import-activation-worker-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run import activation worker smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.smoke.sql
+      - name: Reverse import activation worker migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.down.sql
+      - name: Verify import activation worker removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF to_regclass(
+          'dna.import_activation_processing'
+          ) IS NOT NULL OR to_regclass(
+          'dna.import_activation_dispatch'
+          ) IS NOT NULL THEN RAISE EXCEPTION
+          'import activation worker ledger still exists';
+          END IF; END \$\$;"
