@@ -82,11 +82,13 @@ describe("Pro League roster audit", () => {
 
   it("adds a non-Genesis breeding priority when a selected element depends on too many Genesis cores", () => {
     const roster = compliantRoster();
-    roster[8] = {
-      ...roster[8]!,
-      element: "Metal",
-      coreClass: "Genesis",
-    };
+    for (const index of [8, 12, 16]) {
+      roster[index] = {
+        ...roster[index]!,
+        element: "Metal",
+        coreClass: "Genesis",
+      };
+    }
     const audit = auditProLeagueRoster(roster);
     expect(audit.breedingPriorities).toEqual(
       expect.arrayContaining([
