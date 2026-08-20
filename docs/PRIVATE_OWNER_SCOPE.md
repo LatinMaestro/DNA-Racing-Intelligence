@@ -10,7 +10,7 @@ The implementation goal is the minimum architecture and interface required to de
 
 Retain or build a component only when it is necessary for one or more of:
 
-- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence or Vault Performance functionality;
+- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence, Pro League preparation or Vault Performance functionality;
 - correct import and processing of the agreed periodically imported game-data sources, including the multi-million-row Race Merge history;
 - basic owner authentication and private access;
 - data integrity, deterministic replay, rollback or duplicate prevention that is necessary to avoid corrupting the owner's data;
@@ -37,21 +37,27 @@ Until the older source documents are reconciled during implementation, this sect
 
 ## Owner-approved Pro League preparation — 20 August 2026
 
-The private website may include a Pro League preparation workspace using the
-owner-supplied DNA Community Update as provisional evidence. Scope is limited to
-owned-roster compliance, breeding gap review, Bike-focused Discovery evidence and
-owner-reviewed team-core selection. The owner does not plan to mint additional Genesis
-cores, so mint planning is excluded.
+Read `docs/ESPORTS_PRO_LEAGUE_PREPARATION.md` before changing Pro League logic.
 
-Unknown maps, distances, scoring, inheritance outcomes and esports performance mechanics
-must remain unconfigured. The workspace cannot enter teams or races, bet, mint, trade,
-sign or automate game actions.
+The owner intends to participate in the DNA Pro Esports League. Scope is private owner preparation from roster compliance, breeding, Discovery and team-core-selection perspectives.
+
+- Do **not** recommend or plan additional Genesis minting. Use the existing owner-maintained My Vault plus breeding.
+- Current published roster requirements are 25 cores; minimum five Metal, five Fire, five Earth and five Water; maximum two “gens” per element; minimum eight females; and at least five F15+ cores.
+- Treat “gens” = Genesis as a clearly labelled working interpretation until DNA clarifies it.
+- Use confirmed DNA breeding rules for offspring class, element and F-number. In particular, an F15+ structural target requires parent F-numbers summing to at least 15. Do not claim offspring sex can be deterministically targeted.
+- Bred/non-Genesis depth can improve roster flexibility under the working Genesis cap. Breeding should close structural gaps or improve quality; a shortage of tested Bike evidence alone is a Discovery problem, not a reason to breed more cores.
+- DNA states Esports has separate UI and systems. Existing DNA Racing Bike history may therefore be used as prior evidence for test prioritisation and evidence readiness only; it must not be represented as measured Esports ability.
+- The Pro League workspace should read current My Vault state, show structural roster readiness, identify breeding targets, produce a Bike-focused Discovery queue and show element-grouped team candidate pools by evidence readiness.
+- Team candidate lists are not definitive Esports rankings until actual Esports evidence validates a performance model.
+- Unknown maps, distances, scoring, roster/substitution rules and performance mechanics remain unconfigured rather than guessed.
+- The workspace cannot enter teams or races, bet, mint, trade, sign or automate game actions.
+- An in-game Pro League “team” is the owner’s competitive roster and does not change this private application into a multi-user/team SaaS product.
 
 ## Explicitly out of scope
 
 Unless the owner later requests them, do not add:
 
-- multi-user accounts, organisations, teams, invitations, roles or enterprise RBAC;
+- multi-user accounts, organisations, application teams, invitations, roles or enterprise RBAC;
 - public pages, public APIs, public sharing or discoverability;
 - wallet connection, signing, automatic game actions or automated transactions;
 - enterprise audit administration or formal compliance programmes;
