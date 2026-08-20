@@ -8,7 +8,9 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 const MAX_MESSAGE_BYTES = 128 * 1024;
 
 export type CloudflareImportQueueKind =
-  "preview" | "import_activation" | "aggregate_refresh_retry";
+  | "preview"
+  | "import_activation"
+  | "aggregate_refresh_retry";
 
 export type CloudflareImportQueueMessage =
   | Readonly<{
@@ -19,8 +21,14 @@ export type CloudflareImportQueueMessage =
     }>
   | Readonly<{
       version: 1;
-      kind: Exclude<CloudflareImportQueueKind, "preview">;
+      kind: "import_activation";
       dispatchId: string;
+    }>
+  | Readonly<{
+      version: 1;
+      kind: "aggregate_refresh_retry";
+      dispatchId: string;
+      refreshId: string;
     }>;
 
 export type CloudflareImportQueueEvidence = Readonly<{
@@ -171,14 +179,21 @@ export function createCloudflareImportQueueForOwner(input: {
               dispatchId,
               uploadRequestFingerprint: queueInput.uploadRequestFingerprint,
             }
-          : {
-              version: 1,
-              kind:
-                "updateSessionId" in queueInput
-                  ? "import_activation"
-                  : "aggregate_refresh_retry",
-              dispatchId,
-            };
+          : "updateSessionId" in queueInput
+            ? {
+                version: 1,
+                kind: "import_activation",
+                dispatchId,
+              }
+            : {
+                version: 1,
+                kind: "aggregate_refresh_retry",
+                dispatchId,
+                refreshId: requireSafeIdentifier(
+                  queueInput.refreshId,
+                  "refreshId",
+                ),
+              };
       const byteLength = new TextEncoder().encode(
         JSON.stringify(message),
       ).length;
