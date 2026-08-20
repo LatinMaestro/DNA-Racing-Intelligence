@@ -5,7 +5,12 @@ import {
   type AggregateRefreshClaim,
 } from "../lib/import-aggregate-refresh-service";
 import {
+  type BackgroundDispatchClaim,
+  type BackgroundProcessingCapabilities,
+} from "../lib/import-background-processing-service";
+import {
   consumeAggregateRefreshQueueMessage,
+  consumeImportActivationQueueMessage,
   consumeImportPreviewQueueMessage,
   parseCloudflareImportQueueMessage,
 } from "../lib/import-queue-consumer";
@@ -37,6 +42,14 @@ function aggregateMessage() {
   } as const;
 }
 
+function activationMessage() {
+  return {
+    version: 1,
+    kind: "import_activation",
+    dispatchId: "activation-dispatch-1",
+  } as const;
+}
+
 function capabilities(claim: ImportPreviewDispatchClaim) {
   const claimPreviewDispatch = vi.fn(async () => claim);
   const preparePreview = vi.fn();
@@ -50,6 +63,26 @@ function capabilities(claim: ImportPreviewDispatchClaim) {
     processor: { preparePreview },
   };
   return { value, claimPreviewDispatch, preparePreview };
+}
+
+function activationCapabilities(claim: BackgroundDispatchClaim) {
+  const claimDispatch = vi.fn(async () => claim);
+  const prepare = vi.fn(async () => ({
+    preparedResultId: "prepared-result-1",
+    sourceVersionCount: 3,
+    quarantinedRecordCount: 0,
+    aggregateRefreshRequired: true,
+  }));
+  const value: BackgroundProcessingCapabilities = {
+    status: "ready",
+    repository: {
+      claimDispatch,
+      activatePreparedResult: vi.fn(async () => undefined),
+      recordProcessingFailure: vi.fn(async () => undefined),
+    },
+    processor: { prepare },
+  };
+  return { value, claimDispatch, prepare };
 }
 
 function aggregateCapabilities(claim: AggregateRefreshClaim) {
@@ -83,6 +116,13 @@ const baseInput = {
   maximumBatchBytes: 512 * 1024 * 1024,
 } as const;
 
+const activationInput = {
+  body: activationMessage(),
+  workerId: "activation-worker-1",
+  now: NOW,
+  leaseDurationMilliseconds: 15 * 60 * 1000,
+} as const;
+
 const aggregateInput = {
   body: aggregateMessage(),
   workerId: "aggregate-worker-1",
@@ -91,8 +131,11 @@ const aggregateInput = {
 } as const;
 
 describe("import queue consumer", () => {
-  it("parses the exact versioned preview and aggregate identities", () => {
+  it("parses the exact versioned queue identities", () => {
     expect(parseCloudflareImportQueueMessage(message())).toEqual(message());
+    expect(parseCloudflareImportQueueMessage(activationMessage())).toEqual(
+      activationMessage(),
+    );
     expect(parseCloudflareImportQueueMessage(aggregateMessage())).toEqual(
       aggregateMessage(),
     );
@@ -160,6 +203,47 @@ describe("import queue consumer", () => {
       retryAfter: "2026-08-14T05:15:00.000Z",
     });
     expect(ready.preparePreview).not.toHaveBeenCalled();
+  });
+
+  it("binds activation deliveries to the durable import dispatch", async () => {
+    const ready = activationCapabilities({ status: "not_found" });
+    await expect(
+      consumeImportActivationQueueMessage({
+        ...activationInput,
+        capabilities: ready.value,
+      }),
+    ).resolves.toEqual({ disposition: "acknowledge", reason: "not_found" });
+    expect(ready.claimDispatch).toHaveBeenCalledWith({
+      dispatchId: "activation-dispatch-1",
+      workerId: "activation-worker-1",
+      claimedAt: NOW.toISOString(),
+      leaseExpiresAt: "2026-08-14T05:15:00.000Z",
+    });
+  });
+
+  it("maps unavailable and competing activation work to queue retries", async () => {
+    await expect(
+      consumeImportActivationQueueMessage({
+        ...activationInput,
+        capabilities: { status: "not_configured" },
+      }),
+    ).resolves.toEqual({ disposition: "retry", reason: "not_configured" });
+
+    const ready = activationCapabilities({
+      status: "leased_elsewhere",
+      retryAfter: "2026-08-14T05:15:00.000Z",
+    });
+    await expect(
+      consumeImportActivationQueueMessage({
+        ...activationInput,
+        capabilities: ready.value,
+      }),
+    ).resolves.toEqual({
+      disposition: "retry",
+      reason: "leased_elsewhere",
+      retryAfter: "2026-08-14T05:15:00.000Z",
+    });
+    expect(ready.prepare).not.toHaveBeenCalled();
   });
 
   it("binds an aggregate retry delivery to its durable refresh, not its queue dispatch", async () => {
@@ -235,6 +319,16 @@ describe("import queue consumer", () => {
       }),
     ).rejects.toThrow("not available");
     expect(preview.claimPreviewDispatch).not.toHaveBeenCalled();
+
+    const activation = activationCapabilities({ status: "not_found" });
+    await expect(
+      consumeImportActivationQueueMessage({
+        ...activationInput,
+        body: aggregateMessage(),
+        capabilities: activation.value,
+      }),
+    ).rejects.toThrow("not available");
+    expect(activation.claimDispatch).not.toHaveBeenCalled();
 
     const aggregate = aggregateCapabilities({ status: "not_found" });
     await expect(
