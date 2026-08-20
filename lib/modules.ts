@@ -26,6 +26,11 @@ export const modules = [
     shortDescription: "Targeted testing hypotheses",
   },
   {
+    href: "/esports",
+    label: "Esports Prep",
+    shortDescription: "Pro roster, breeding and Bike testing",
+  },
+  {
     href: "/tournaments",
     label: "Tournaments",
     shortDescription: "Qualification planning",
