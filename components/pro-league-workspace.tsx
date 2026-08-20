@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import type { ProLeaguePreparation } from "@/domain/pro-league-preparation";
+import type {
+  ProLeagueCandidate,
+  ProLeaguePreparation,
+} from "@/domain/pro-league-preparation";
 import {
   proLeagueAnnouncementRules,
   type ProLeagueRosterAudit,
@@ -16,17 +19,17 @@ const connectionCopy: Record<
   identity_not_connected: {
     heading: "Owner identity not connected",
     detail:
-      "Pro League Vault preparation remains unavailable until the signed-in owner matches the private server-side allowlist.",
+      "Pro League preparation remains unavailable until the signed-in owner matches the private server-side allowlist.",
   },
   persistence_not_configured: {
-    heading: "Vault or Bike evidence not connected",
+    heading: "Vault or performance evidence not connected",
     detail:
-      "The planner needs the owner-maintained My Vault registry plus persisted Core Performance profiles. It fails closed rather than showing a synthetic roster.",
+      "The planner requires My Vault, persisted cross-mode Core Performance profiles and exact-distance benchmarks. It fails closed rather than showing a synthetic power ranking.",
   },
   read_model_connected: {
-    heading: "My Vault preparation connected",
+    heading: "My Vault and DNA Racing power evidence connected",
     detail:
-      "Structural roster readiness comes from the owner-maintained Vault. DNA Racing Bike history is used only as prior evidence for testing and team review, not as measured Esports ability.",
+      "Pro League uses the same underlying DNA Racing core performance. The shortlist therefore uses accepted Bike, Car and Horse evidence plus exact-distance winning/top-three benchmarks.",
   },
 };
 
@@ -48,6 +51,50 @@ function timestamp(value: string | null): string {
   }).format(parsed);
 }
 
+function candidateSummary(core: ProLeagueCandidate): string {
+  const winningModes =
+    core.winningRangeModes.length === 0
+      ? "none"
+      : core.winningRangeModes.join(", ");
+  const topThreeModes =
+    core.topThreeOrBetterModes.length === 0
+      ? "none"
+      : core.topThreeOrBetterModes.join(", ");
+  return `Winning-range modes: ${winningModes} · Top-three-or-better modes: ${topThreeModes}`;
+}
+
+function CandidateRow({
+  core,
+  rank,
+}: Readonly<{ core: ProLeagueCandidate; rank: number }>) {
+  return (
+    <li className="py-4">
+      <div className="flex flex-wrap justify-between gap-3">
+        <div>
+          <p className="font-semibold">
+            {rank}. {core.displayName}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            {core.coreId}
+          </p>
+        </div>
+        <span className="text-xs font-semibold text-[var(--warning)]">
+          {label(core.powerTier)}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        {core.element} · {core.coreClass} · {core.sex} · F{core.fNumber} ·{" "}
+        {core.totalRaceCount} accepted races
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+        {candidateSummary(core)} · {core.winningRangeDistances} winning-range
+        distance(s) · {core.topThreeOrBetterDistances} top-three-or-better
+        distance(s) · {core.analyticalModes.length}/3 analytical modes
+      </p>
+    </li>
+  );
+}
+
 function Preparation({
   preparation,
   lastImportedAt,
@@ -59,7 +106,7 @@ function Preparation({
     ({ discoveryPriority }) => discoveryPriority !== "maintain",
   );
   const breedingTargets = preparation.elements.filter(
-    ({ breedingPriority }) => breedingPriority === "critical",
+    ({ breedingPriority }) => breedingPriority !== "maintain",
   );
 
   return (
@@ -68,7 +115,7 @@ function Preparation({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold" id="pro-vault-readiness">
-              Current Vault preparation
+              Roster pool readiness
             </h2>
             <p className="mt-2 text-sm text-[var(--muted)]">
               {preparation.ownedCoreCount} owned · {preparation.femaleCount}
@@ -79,7 +126,7 @@ function Preparation({
           </div>
           <span className="rounded-full border border-[var(--warning)]/50 px-3 py-1 text-xs font-semibold text-[var(--warning)]">
             {preparation.structuralPoolReady
-              ? "Pool floors available"
+              ? "Structural pool available"
               : "Structural gaps remain"}
           </span>
         </div>
@@ -92,7 +139,7 @@ function Preparation({
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-semibold">{item.element}</h3>
                 <span className="text-xs text-[var(--muted)]">
-                  {item.bikePriorReady} Bike-ready
+                  {item.multiModeStrongOwned} multi-mode strong
                 </span>
               </div>
               <p className="mt-3 text-sm text-[var(--muted)]">
@@ -100,8 +147,8 @@ function Preparation({
                 {item.nonGenesisOwned} non-Genesis
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
-                {item.femaleOwned} female · {item.f15PlusOwned} F15+ · Bike
-                prior gap {item.bikePriorDepthGap}
+                {item.femaleOwned} female · {item.f15PlusOwned} F15+ · quality
+                depth gap {item.powerDepthGap}
               </p>
             </article>
           ))}
@@ -114,23 +161,47 @@ function Preparation({
           </ul>
         ) : (
           <p className="mt-4 text-sm text-[var(--muted)]">
-            Pool-level minimums are available. This does not yet mean a chosen
-            25-core roster is competitively proven.
+            Structural minimums are available. The next objective is replacing
+            merely compliant cores with the strongest all-round candidates.
           </p>
         )}
+      </section>
+
+      <section aria-labelledby="pro-power-pool">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold" id="pro-power-pool">
+              Overall power shortlist
+            </h2>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+              Ordered transparently by cross-mode winning-range breadth, then
+              top-three breadth, distance breadth, analytical coverage and
+              sample depth. This deliberately favours powerful all-rounders over
+              one-dimensional specialists.
+            </p>
+          </div>
+          <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+            Shared DNA Racing performance
+          </span>
+        </div>
+        <ol className="mt-4 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] px-5">
+          {preparation.overallPowerPool.slice(0, 20).map((core, index) => (
+            <CandidateRow core={core} key={core.coreId} rank={index + 1} />
+          ))}
+        </ol>
       </section>
 
       <section aria-labelledby="pro-breeding">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold" id="pro-breeding">
-              Breeding-first roster development
+              Breeding for roster quality
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-              Additional Genesis minting is excluded. Breed only where it adds
-              structural depth or quality: confirmed DNA breeding rules can
-              target offspring element and F-number, while racing quality stays
-              probabilistic and offspring sex is not known to be targetable.
+              No additional Genesis minting. Breed to close genuine structural
+              gaps and, once compliant, to improve elite all-round upside. A
+              weak core should not be retained simply because the roster needs
+              25 names.
             </p>
           </div>
           <Link
@@ -142,31 +213,32 @@ function Preparation({
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
-            <h3 className="font-semibold">Global targets</h3>
+            <h3 className="font-semibold">Global breeding targets</h3>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--muted)]">
               <li>
-                F15+ gap: {preparation.breeding.f15PlusGap}. An offspring is
-                structurally F15+ when the confirmed parent F-number sum is at
-                least {preparation.breeding.minimumParentFSumForF15}.
+                F15+ gap: {preparation.breeding.f15PlusGap}. Confirmed offspring
+                F-number is the parent sum, so an F15+ structural target requires
+                a sum of at least {preparation.breeding.minimumParentFSumForF15}.
               </li>
               <li>
-                Female gap: {preparation.breeding.femaleGap}. Do not choose a
-                pairing on the assumption it can guarantee female offspring;
-                manage this through actual outcomes and retention.
+                Female gap: {preparation.breeding.femaleGap}. Offspring sex is
+                not treated as deterministically targetable; manage the minimum
+                through actual outcomes and retention.
               </li>
               <li>
-                Genesis mint: excluded. Bred non-Genesis depth increases roster
-                flexibility under the provisional two-Genesis-per-element
-                interpretation.
+                Quality objective: {label(preparation.breeding.qualityObjective)}.
+                Keep the existing elite-upside breeding ranking visible even
+                where roster counts are already sufficient.
               </li>
             </ul>
           </article>
           <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
-            <h3 className="font-semibold">Element breeding targets</h3>
+            <h3 className="font-semibold">Element priorities</h3>
             {breedingTargets.length === 0 ? (
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                No element is structurally short. Continue breeding for elite
-                upside and deeper quality rather than roster-count compliance.
+                Every element has structural and current multi-mode quality
+                depth. Continue breeding only where the expected upside can
+                improve the top 25.
               </p>
             ) : (
               <ul className="mt-3 space-y-3 text-sm leading-6 text-[var(--muted)]">
@@ -175,8 +247,10 @@ function Preparation({
                     <strong className="text-[var(--foreground)]">
                       {target.element}:
                     </strong>{" "}
-                    roster gap {target.rosterFloorGap}, non-Genesis depth gap{" "}
-                    {target.nonGenesisDepthGap}. {target.breedingGuidance}
+                    {label(target.breedingPriority)} · roster gap{" "}
+                    {target.rosterFloorGap} · non-Genesis gap{" "}
+                    {target.nonGenesisDepthGap} · multi-mode quality gap{" "}
+                    {target.powerDepthGap}. {target.breedingGuidance}
                   </li>
                 ))}
               </ul>
@@ -189,12 +263,13 @@ function Preparation({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold" id="pro-discovery">
-              Bike Discovery queue
+              Pro League Discovery queue
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-              DNA Racing Bike history is a prior only because DNA says Esports
-              uses separate systems. Use it to decide what to test first, not to
-              claim which cores are already strongest in Esports.
+              This is intentionally a discovery-heavy competition. Strong
+              evidence in one mode is a reason to test promising missing modes,
+              not a reason to assume them. Use lineage and adjacent-distance
+              evidence to choose efficient probes and stop weak paths early.
             </p>
           </div>
           <Link
@@ -206,11 +281,11 @@ function Preparation({
         </div>
         {discovery.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 text-sm text-[var(--muted)]">
-            No under-tested roster candidate is currently prioritised.
+            No cross-mode Discovery candidate is currently prioritised.
           </p>
         ) : (
           <ol className="mt-4 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] px-5">
-            {discovery.slice(0, 16).map((core, index) => (
+            {discovery.slice(0, 20).map((core, index) => (
               <li className="py-4" key={core.coreId}>
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
@@ -222,14 +297,14 @@ function Preparation({
                     </p>
                   </div>
                   <span className="text-xs font-semibold text-[var(--warning)]">
-                    {label(core.discoveryPriority)} · {core.element} ·{" "}
-                    {core.coreClass} · F{core.fNumber}
+                    {label(core.discoveryPriority)} · {label(core.powerTier)}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-[var(--muted)]">
-                  DNA Racing Bike prior: {core.bikeRaceCount} races ·{" "}
-                  {core.analyticalBikeDistances} exact-distance analytical
-                  sample(s).
+                  {core.analyticalModes.length}/3 analytical modes ·{" "}
+                  {core.winningRangeDistances} winning-range distance(s) ·{" "}
+                  {core.topThreeOrBetterDistances} top-three-or-better
+                  distance(s)
                 </p>
                 <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                   {core.reasons.join(" ")}
@@ -240,14 +315,31 @@ function Preparation({
         )}
       </section>
 
+      <section aria-labelledby="pro-format-evidence">
+        <h2 className="text-xl font-semibold" id="pro-format-evidence">
+          Race-format versatility
+        </h2>
+        <div className="mt-4 rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-5">
+          <p className="text-sm leading-6 text-[var(--muted)]">
+            Top 3, Winner Take All and other `rpayout` formats are part of the
+            Pro League selection objective. The source label is already retained
+            in Race Merge history, but the bounded per-core format aggregate is
+            not materialised yet. Until it is, format strength stays visibly
+            pending instead of being approximated from unrelated data.
+          </p>
+          <p className="mt-3 text-xs font-semibold text-[var(--warning)]">
+            {label(preparation.formatEvidenceStatus)}
+          </p>
+        </div>
+      </section>
+
       <section aria-labelledby="pro-team-pools">
         <h2 className="text-xl font-semibold" id="pro-team-pools">
-          Team-core candidate pools
+          Element team-core pools
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-          Ordered by evidence readiness, not claimed Esports performance. Once
-          actual Esports evidence exists, this layer can be validated and
-          replaced with Esports-specific selection evidence.
+          These use the same transparent overall-power order inside each element.
+          Structural constraints are tie-breakers, not a substitute for power.
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {elements.map((element) => (
@@ -256,25 +348,15 @@ function Preparation({
               key={element}
             >
               <h3 className="font-semibold">{element}</h3>
-              <ol className="mt-3 space-y-3">
+              <ol className="mt-3 divide-y divide-[var(--border)]">
                 {preparation.teamCandidatePools[element]
-                  .slice(0, 7)
+                  .slice(0, 8)
                   .map((core, index) => (
-                    <li className="text-sm" key={core.coreId}>
-                      <div className="flex justify-between gap-3">
-                        <span className="font-semibold">
-                          {index + 1}. {core.displayName}
-                        </span>
-                        <span className="text-xs text-[var(--muted)]">
-                          {label(core.bikePriorStatus)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        {core.coreClass} · {core.sex} · F{core.fNumber} ·{" "}
-                        {core.bikeRaceCount} Bike races ·{" "}
-                        {core.analyticalBikeDistances} analytical distances
-                      </p>
-                    </li>
+                    <CandidateRow
+                      core={core}
+                      key={core.coreId}
+                      rank={index + 1}
+                    />
                   ))}
               </ol>
             </article>
@@ -290,7 +372,8 @@ function Preparation({
           ))}
         </ul>
         <p className="mt-4 text-xs text-[var(--muted)]">
-          DNA Racing Bike evidence last imported: {timestamp(lastImportedAt)}.
+          DNA Racing performance evidence last imported:{" "}
+          {timestamp(lastImportedAt)}.
         </p>
       </section>
     </>
@@ -313,25 +396,27 @@ export function ProLeagueWorkspace({
     <div className="space-y-8">
       <header className="max-w-4xl">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Provisional owner preparation
+          Dedicated Pro League preparation
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           Pro League
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Build a 25-core Bike-focused roster from the existing Vault and
-          breeding. No additional Genesis minting is part of this plan.
+          Build the strongest possible 25-core roster from the existing Vault
+          and breeding. Prefer cores that prove power across multiple modes,
+          distances and race formats. No additional Genesis minting is part of
+          this plan.
         </p>
       </header>
 
       <section className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6">
-        <h2 className="text-lg font-semibold">Provisional rule authority</h2>
+        <h2 className="text-lg font-semibold">Rule and performance authority</h2>
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           Source: {proLeagueAnnouncementRules.sourceLabel}, received{" "}
-          {proLeagueAnnouncementRules.receivedAt}. The announcement publishes a
-          25-core roster, five of each element, eight females and five F15+.
-          “Maximum 2 gens per element” is currently treated as a working
-          Genesis interpretation until DNA clarifies the shorthand.
+          {proLeagueAnnouncementRules.receivedAt}. Roster mechanics remain
+          provisional where DNA has not clarified them. The owner has confirmed
+          that Pro League uses the same underlying DNA Racing core stats and
+          performance, so accepted DNA Racing history is valid power evidence.
         </p>
       </section>
 
@@ -355,8 +440,8 @@ export function ProLeagueWorkspace({
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
           The deterministic 25-core validator remains available for the later
-          owner selection workflow. No empty selection is represented as a team
-          recommendation: current placeholder audit status is{" "}
+          owner selection workflow. Structural compliance is necessary but does
+          not make a core powerful: current placeholder audit status is{" "}
           {audit.readiness === "compliant" ? "compliant" : "not selected"}.
         </p>
       </section>
