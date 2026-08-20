@@ -217,8 +217,9 @@ function Preparation({
             <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--muted)]">
               <li>
                 F15+ gap: {preparation.breeding.f15PlusGap}. Confirmed offspring
-                F-number is the parent sum, so an F15+ structural target requires
-                a sum of at least {preparation.breeding.minimumParentFSumForF15}.
+                F-number is the parent sum, so an F15+ structural target
+                requires a sum of at least{" "}
+                {preparation.breeding.minimumParentFSumForF15}.
               </li>
               <li>
                 Female gap: {preparation.breeding.femaleGap}. Offspring sex is
@@ -226,9 +227,10 @@ function Preparation({
                 through actual outcomes and retention.
               </li>
               <li>
-                Quality objective: {label(preparation.breeding.qualityObjective)}.
-                Keep the existing elite-upside breeding ranking visible even
-                where roster counts are already sufficient.
+                Quality objective:{" "}
+                {label(preparation.breeding.qualityObjective)}. Keep the
+                existing elite-upside breeding ranking visible even where roster
+                counts are already sufficient.
               </li>
             </ul>
           </article>
@@ -338,8 +340,9 @@ function Preparation({
           Element team-core pools
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-          These use the same transparent overall-power order inside each element.
-          Structural constraints are tie-breakers, not a substitute for power.
+          These use the same transparent overall-power order inside each
+          element. Structural constraints are tie-breakers, not a substitute for
+          power.
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {elements.map((element) => (
@@ -410,7 +413,9 @@ export function ProLeagueWorkspace({
       </header>
 
       <section className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6">
-        <h2 className="text-lg font-semibold">Rule and performance authority</h2>
+        <h2 className="text-lg font-semibold">
+          Rule and performance authority
+        </h2>
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           Source: {proLeagueAnnouncementRules.sourceLabel}, received{" "}
           {proLeagueAnnouncementRules.receivedAt}. Roster mechanics remain
