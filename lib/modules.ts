@@ -31,6 +31,11 @@ export const modules = [
     shortDescription: "Qualification planning",
   },
   {
+    href: "/pro-league",
+    label: "Pro League",
+    shortDescription: "Roster, breeding and Bike preparation",
+  },
+  {
     href: "/maiden",
     label: "Maiden",
     shortDescription: "Cross-mode ME strategy",
