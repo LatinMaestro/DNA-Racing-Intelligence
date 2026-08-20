@@ -53,13 +53,15 @@ function benchmarkAssessment(
   if (benchmark === null) return "not_available";
   if (
     profile.elapsedTime.bestMilliseconds <= benchmark.winningP75Milliseconds ||
-    profile.elapsedTime.medianMilliseconds <= benchmark.winningMedianMilliseconds
+    profile.elapsedTime.medianMilliseconds <=
+      benchmark.winningMedianMilliseconds
   ) {
     return "winning_range";
   }
   if (
     profile.elapsedTime.bestMilliseconds <= benchmark.topThreeP75Milliseconds ||
-    profile.elapsedTime.medianMilliseconds <= benchmark.topThreeMedianMilliseconds
+    profile.elapsedTime.medianMilliseconds <=
+      benchmark.topThreeMedianMilliseconds
   ) {
     return "top_three_range";
   }
@@ -134,8 +136,7 @@ export function createProLeaguePreparationRepository(input: {
             element: core.element,
             sex: core.sex,
             fNumber: core.fNumber,
-            performanceProfiles:
-              performanceByCore.get(core.sourceCoreId) ?? [],
+            performanceProfiles: performanceByCore.get(core.sourceCoreId) ?? [],
           })),
         lastImportedAt: profiles.lastImportedAt,
       };
