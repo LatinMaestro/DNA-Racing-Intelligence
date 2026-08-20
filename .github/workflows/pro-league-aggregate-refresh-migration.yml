@@ -1,0 +1,53 @@
+name: Pro League aggregate refresh migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/pro-league-aggregate-refresh-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run Pro League aggregate refresh smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0036_pro_league_aggregate_refresh.smoke.sql
+      - name: Reverse Pro League aggregate refresh migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0036_pro_league_aggregate_refresh.down.sql
+      - name: Verify Pro League aggregate refresh removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF to_regprocedure(
+          'dna.refresh_pro_league_aggregates(uuid,timestamp with time zone)'
+          ) IS NOT NULL THEN RAISE EXCEPTION
+          'Pro League aggregate refresh function still exists';
+          END IF; END \$\$;"
