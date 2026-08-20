@@ -254,7 +254,11 @@ function text(value: unknown, field: string): string {
 }
 function count(value: unknown, field: string): number {
   const result = typeof value === "string" ? Number(value) : value;
-  if (typeof result !== "number" || !Number.isSafeInteger(result) || result < 0)
+  if (
+    typeof result !== "number" ||
+    !Number.isSafeInteger(result) ||
+    result < 0
+  )
     throw new Error(`${field} must be a non-negative safe integer`);
   return result;
 }
@@ -277,20 +281,28 @@ function configuration(input: {
   return result;
 }
 
-function verifyIsolation(result: QueryResult, ownerId: string, runtimeRole: string) {
+function verifyIsolation(
+  result: QueryResult,
+  ownerId: string,
+  runtimeRole: string,
+) {
   const row = oneRow(result, "staging isolation");
   if (text(row.authenticated_owner_id, "authenticated_owner_id") !== ownerId)
     throw new Error("Private Preview staging owner scope denied.");
-  if (!bool(row.staging_rls, "staging_rls") ||
-      !bool(row.staging_force_rls, "staging_force_rls"))
+  if (
+    !bool(row.staging_rls, "staging_rls") ||
+    !bool(row.staging_force_rls, "staging_force_rls")
+  )
     throw new Error("Private Preview staging requires forced owner RLS.");
-  if (text(row.session_user_name, "session_user_name") !== runtimeRole ||
-      text(row.current_user_name, "current_user_name") !== runtimeRole ||
-      bool(row.runtime_is_superuser, "runtime_is_superuser") ||
-      bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
-      bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
-      bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-      bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member"))
+  if (
+    text(row.session_user_name, "session_user_name") !== runtimeRole ||
+    text(row.current_user_name, "current_user_name") !== runtimeRole ||
+    bool(row.runtime_is_superuser, "runtime_is_superuser") ||
+    bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
+    bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
+    bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
+    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+  )
     throw new Error("Private Preview runtime role is not least privileged.");
 }
 
@@ -305,9 +317,14 @@ async function beginTransaction(input: {
   try {
     await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
     await session.client.query(SET_OWNER_SCOPE_SQL, [input.databaseOwnerId]);
-    verifyIsolation(await session.client.query(VERIFY_ISOLATION_SQL, [
-      input.databaseOwnerId, input.ownerId,
-    ]), input.ownerId, input.runtimeRole);
+    verifyIsolation(
+      await session.client.query(VERIFY_ISOLATION_SQL, [
+        input.databaseOwnerId,
+        input.ownerId,
+      ]),
+      input.ownerId,
+      input.runtimeRole,
+    );
     return session;
   } catch (error) {
     await session.client.query("ROLLBACK").catch(() => undefined);
@@ -317,8 +334,11 @@ async function beginTransaction(input: {
 }
 
 async function transaction<Result>(input: {
-  databaseUrl: string; databaseOwnerId: string; runtimeRole: string;
-  ownerId: string; sessionFactory: NeonImportPersistenceSessionFactory;
+  databaseUrl: string;
+  databaseOwnerId: string;
+  runtimeRole: string;
+  ownerId: string;
+  sessionFactory: NeonImportPersistenceSessionFactory;
   operation: (client: NeonImportPersistenceClient) => Promise<Result>;
 }) {
   const session = await beginTransaction(input);
@@ -341,22 +361,36 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
   sessionFactory?: NeonImportPersistenceSessionFactory;
 }): DurableImportPreviewStagingRepository {
   const config = configuration(input);
-  const sessionFactory = input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
-  const run = <Result>(ownerId: string, operation: (client: NeonImportPersistenceClient) => Promise<Result>) =>
-    transaction({ ...config, ownerId, sessionFactory, operation });
+  const sessionFactory =
+    input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
+  const run = <Result>(
+    ownerId: string,
+    operation: (client: NeonImportPersistenceClient) => Promise<Result>,
+  ) => transaction({ ...config, ownerId, sessionFactory, operation });
 
   return {
     async beginObject(object) {
       if (!SHA_PATTERN.test(object.expectedSha256))
         throw new Error("expectedSha256 is invalid");
-      const session = await beginTransaction({ ...config, ownerId: object.ownerId, sessionFactory });
+      const session = await beginTransaction({
+        ...config,
+        ownerId: object.ownerId,
+        sessionFactory,
+      });
       let open = true;
       let schemaStaged = false;
       try {
-        const evidence = oneRow(await session.client.query(VERIFY_OBJECT_SQL, [
-          config.databaseOwnerId, object.previewDispatchId, object.objectId,
-          object.sourceFamily, object.expectedByteLength, object.expectedSha256,
-        ]), "verified Preview object");
+        const evidence = oneRow(
+          await session.client.query(VERIFY_OBJECT_SQL, [
+            config.databaseOwnerId,
+            object.previewDispatchId,
+            object.objectId,
+            object.sourceFamily,
+            object.expectedByteLength,
+            object.expectedSha256,
+          ]),
+          "verified Preview object",
+        );
         const importBatchId = text(evidence.import_batch_id, "import_batch_id");
         const close = async (statement: "COMMIT" | "ROLLBACK") => {
           if (!open) return;
@@ -369,48 +403,102 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
         };
         return {
           async stageSchema(schema: StagedSourceSchema) {
-            if (schemaStaged) throw new Error("Preview schema was already staged");
-            if (schema.status !== "ready" || schema.sourceType !== object.sourceFamily ||
-                schema.schemaVersion === null)
-              throw new Error("Preview schema is not ready for this source family");
+            if (schemaStaged)
+              throw new Error("Preview schema was already staged");
+            if (
+              schema.status !== "ready" ||
+              schema.sourceType !== object.sourceFamily ||
+              schema.schemaVersion === null
+            )
+              throw new Error(
+                "Preview schema is not ready for this source family",
+              );
             const inserted = await session.client.query(STAGE_SCHEMA_SQL, [
-              config.databaseOwnerId, object.previewDispatchId, object.objectId,
-              schema.encoding, schema.schemaVersion,
+              config.databaseOwnerId,
+              object.previewDispatchId,
+              object.objectId,
+              schema.encoding,
+              schema.schemaVersion,
             ]);
             if (inserted.rows.length !== 1)
               throw new Error("Preview import batch could not be staged");
             schemaStaged = true;
           },
           async stageRows(rows: readonly DurablePreviewStagedRow[]) {
-            if (!schemaStaged || !open) throw new Error("Preview object is not stageable");
+            if (!schemaStaged || !open)
+              throw new Error("Preview object is not stageable");
             if (rows.length === 0) return;
             const json = JSON.stringify(rows);
-            await session.client.query(STAGE_RECORDS_SQL, [config.databaseOwnerId, importBatchId, json]);
-            await session.client.query(STAGE_RACE_SQL, [config.databaseOwnerId, importBatchId, json]);
-            await session.client.query(STAGE_CORE_SQL, [config.databaseOwnerId, importBatchId, json]);
-            await session.client.query(STAGE_ARENA_SQL, [config.databaseOwnerId, importBatchId, json]);
-            const ready = rows.filter(({ row }) => row.status === "ready").length;
-            const warnings = rows.filter(({ row }) => row.issues.length > 0).length;
-            oneRow(await session.client.query(UPDATE_COUNTS_SQL, [
-              config.databaseOwnerId, importBatchId, rows.length, ready,
-              rows.length - ready, warnings,
-            ]), "staged Preview row counts");
+            await session.client.query(STAGE_RECORDS_SQL, [
+              config.databaseOwnerId,
+              importBatchId,
+              json,
+            ]);
+            await session.client.query(STAGE_RACE_SQL, [
+              config.databaseOwnerId,
+              importBatchId,
+              json,
+            ]);
+            await session.client.query(STAGE_CORE_SQL, [
+              config.databaseOwnerId,
+              importBatchId,
+              json,
+            ]);
+            await session.client.query(STAGE_ARENA_SQL, [
+              config.databaseOwnerId,
+              importBatchId,
+              json,
+            ]);
+            const ready = rows.filter(
+              ({ row }) => row.status === "ready",
+            ).length;
+            const warnings = rows.filter(
+              ({ row }) => row.issues.length > 0,
+            ).length;
+            oneRow(
+              await session.client.query(UPDATE_COUNTS_SQL, [
+                config.databaseOwnerId,
+                importBatchId,
+                rows.length,
+                ready,
+                rows.length - ready,
+                warnings,
+              ]),
+              "staged Preview row counts",
+            );
           },
-          async commitVerified(verified): Promise<DurablePreviewObjectResult> {
-            if (!schemaStaged || !open) throw new Error("Preview object is not committable");
-            if (verified.byteLength !== object.expectedByteLength ||
-                verified.sha256 !== object.expectedSha256 ||
-                !Number.isSafeInteger(verified.chunkCount) || verified.chunkCount < 1)
-              throw new Error("Preview object verification does not match reservation");
-            const row = oneRow(await session.client.query(RESULT_SQL, [
-              config.databaseOwnerId, importBatchId, object.previewDispatchId,
-              verified.byteLength, verified.sha256,
-            ]), "staged Preview object");
+          async commitVerified(
+            verified,
+          ): Promise<DurablePreviewObjectResult> {
+            if (!schemaStaged || !open)
+              throw new Error("Preview object is not committable");
+            if (
+              verified.byteLength !== object.expectedByteLength ||
+              verified.sha256 !== object.expectedSha256 ||
+              !Number.isSafeInteger(verified.chunkCount) ||
+              verified.chunkCount < 1
+            )
+              throw new Error(
+                "Preview object verification does not match reservation",
+              );
+            const row = oneRow(
+              await session.client.query(RESULT_SQL, [
+                config.databaseOwnerId,
+                importBatchId,
+                object.previewDispatchId,
+                verified.byteLength,
+                verified.sha256,
+              ]),
+              "staged Preview object",
+            );
             const result = {
               importBatchId: text(row.import_batch_id, "import_batch_id"),
               sourceRowCount: count(row.source_rows, "source_rows"),
               readyRowCount: count(row.accepted_rows, "accepted_rows"),
-              quarantinedRowCount: count(row.rejected_rows, "rejected_rows"),
+              quarantinedRowCount: count(
+                row.rejected_rows,
+                "rejected_rows",
+              ),
               warningRowCount: count(row.warning_rows, "warning_rows"),
               blockingIssueCount: count(row.rejected_rows, "rejected_rows"),
             };
@@ -430,14 +518,23 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
     },
     assertPreviewObjects(assertion) {
       return run(assertion.ownerId, async (client) => {
-        const expected = assertion.objects.map(({ objectId, sourceFamily, sha256 }) => ({
-          objectId, sourceFamily, sha256,
-        }));
-        const row = oneRow(await client.query(ASSERT_PREVIEW_SQL, [
-          config.databaseOwnerId, assertion.uploadBatchId,
-          assertion.previewDispatchId, assertion.uploadManifestFingerprintSha256,
-          JSON.stringify(expected),
-        ]), "staged Preview assertion");
+        const expected = assertion.objects.map(
+          ({ objectId, sourceFamily, sha256 }) => ({
+            objectId,
+            sourceFamily,
+            sha256,
+          }),
+        );
+        const row = oneRow(
+          await client.query(ASSERT_PREVIEW_SQL, [
+            config.databaseOwnerId,
+            assertion.uploadBatchId,
+            assertion.previewDispatchId,
+            assertion.uploadManifestFingerprintSha256,
+            JSON.stringify(expected),
+          ]),
+          "staged Preview assertion",
+        );
         if (count(row.matched_count, "matched_count") !== expected.length)
           throw new Error("Prepared Preview objects do not match durable staging");
       });
@@ -445,7 +542,9 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
     abortPreview(abort) {
       return run(abort.ownerId, async (client) => {
         await client.query(ABORT_PREVIEW_SQL, [
-          config.databaseOwnerId, abort.uploadBatchId, abort.previewDispatchId,
+          config.databaseOwnerId,
+          abort.uploadBatchId,
+          abort.previewDispatchId,
         ]);
       });
     },
@@ -465,6 +564,9 @@ export function neonDurableImportPreviewStagingRepositoryFromEnvironment(
   const runtimeRole = environment.runtimeRole?.trim();
   if (!databaseUrl || !databaseOwnerId || !runtimeRole) return null;
   return createNeonDurableImportPreviewStagingRepository({
-    databaseUrl, databaseOwnerId, runtimeRole, ...(sessionFactory ? { sessionFactory } : {}),
+    databaseUrl,
+    databaseOwnerId,
+    runtimeRole,
+    ...(sessionFactory ? { sessionFactory } : {}),
   });
 }
