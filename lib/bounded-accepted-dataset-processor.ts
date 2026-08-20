@@ -52,7 +52,7 @@ function normalizeResult(
     value.quarantinedRecordCount < 0 ||
     value.quarantinedRecordCount > maximumQuarantinedRecords
   ) {
-    throw new Error("quarantinedRecordCount exceeds the accepted dataset bound");
+    throw new Error(\n      "quarantinedRecordCount exceeds the accepted dataset bound",\n    );
   }
   if (
     value.aggregateRefreshRequired !== true &&
