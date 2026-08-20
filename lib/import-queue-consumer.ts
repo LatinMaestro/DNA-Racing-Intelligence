@@ -4,6 +4,10 @@ import {
   type AggregateRefreshCapabilities,
 } from "./import-aggregate-refresh-service";
 import {
+  runBackgroundImportDispatch,
+  type BackgroundProcessingCapabilities,
+} from "./import-background-processing-service";
+import {
   runImportPreviewDispatch,
   type ImportPreviewProcessingCapabilities,
 } from "./import-preview-processing-service";
@@ -120,6 +124,42 @@ export async function consumeImportPreviewQueueMessage(input: {
     now: input.now,
     leaseDurationMilliseconds: input.leaseDurationMilliseconds,
     maximumBatchBytes: input.maximumBatchBytes,
+    capabilities: input.capabilities,
+  });
+  if (result.status === "not_configured") {
+    return { disposition: "retry", reason: "not_configured" };
+  }
+  if (result.status === "leased_elsewhere") {
+    return {
+      disposition: "retry",
+      reason: "leased_elsewhere",
+      retryAfter: result.retryAfter,
+    };
+  }
+  if (result.status === "not_found") {
+    return { disposition: "acknowledge", reason: "not_found" };
+  }
+  return { disposition: "acknowledge", reason: "completed" };
+}
+
+export async function consumeImportActivationQueueMessage(input: {
+  body: unknown;
+  workerId: string;
+  now: Date;
+  leaseDurationMilliseconds: number;
+  capabilities: BackgroundProcessingCapabilities;
+}): Promise<ImportQueueConsumerDecision> {
+  const message = parseCloudflareImportQueueMessage(input.body);
+  if (message.kind !== "import_activation") {
+    throw new Error(
+      "Import queue message kind is not available in this worker.",
+    );
+  }
+  const result = await runBackgroundImportDispatch({
+    dispatchId: message.dispatchId,
+    workerId: input.workerId,
+    now: input.now,
+    leaseDurationMilliseconds: input.leaseDurationMilliseconds,
     capabilities: input.capabilities,
   });
   if (result.status === "not_configured") {
