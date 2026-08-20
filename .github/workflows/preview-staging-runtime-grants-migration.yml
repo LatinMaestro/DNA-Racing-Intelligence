@@ -32,6 +32,17 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install formatter dependencies
+        run: npm ci
+      - name: Print exact Prettier diff for staging adapter
+        shell: bash
+        run: |
+          npx prettier --write lib/neon-durable-import-preview-staging-repository.ts tests/neon-durable-import-preview-staging-repository.test.ts
+          git diff -- lib/neon-durable-import-preview-staging-repository.ts tests/neon-durable-import-preview-staging-repository.test.ts
       - name: Apply prerequisite migrations
         shell: bash
         run: |
