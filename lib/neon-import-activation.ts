@@ -1,6 +1,4 @@
-import type {
-  AcceptedDatasetPreparationRepository,
-} from "./bounded-accepted-dataset-processor";
+import type { AcceptedDatasetPreparationRepository } from "./bounded-accepted-dataset-processor";
 import type { ImportActivationRepository } from "./import-activation-service";
 import type {
   BackgroundDispatchClaim,
@@ -419,7 +417,11 @@ export function createNeonImportActivationRepositories(input: {
     },
   };
 
-  return { activationRepository, processingRepository, preparationRepository };
+  return {
+    activationRepository,
+    processingRepository,
+    preparationRepository,
+  };
 }
 
 export function neonImportActivationRepositoriesFromEnvironment(
