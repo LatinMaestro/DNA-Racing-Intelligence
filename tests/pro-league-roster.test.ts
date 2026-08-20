@@ -84,6 +84,11 @@ describe("Pro League roster audit", () => {
       element: "Metal",
       coreClass: "Genesis",
     };
+    roster[12] = {
+      ...roster[12]!,
+      element: "Metal",
+      coreClass: "Genesis",
+    };
     roster.push({ ...roster[1]! });
 
     const audit = auditProLeagueRoster(roster);
