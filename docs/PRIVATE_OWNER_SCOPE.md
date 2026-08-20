@@ -10,7 +10,7 @@ The implementation goal is the minimum architecture and interface required to de
 
 Retain or build a component only when it is necessary for one or more of:
 
-- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence or Vault Performance functionality;
+- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence, Pro League preparation or Vault Performance functionality;
 - correct import and processing of the agreed periodically imported game-data sources, including the multi-million-row Race Merge history;
 - basic owner authentication and private access;
 - data integrity, deterministic replay, rollback or duplicate prevention that is necessary to avoid corrupting the owner's data;
@@ -37,21 +37,30 @@ Until the older source documents are reconciled during implementation, this sect
 
 ## Owner-approved Pro League preparation — 20 August 2026
 
-The private website may include a Pro League preparation workspace using the
-owner-supplied DNA Community Update as provisional evidence. Scope is limited to
-owned-roster compliance, breeding gap review, Bike-focused Discovery evidence and
-owner-reviewed team-core selection. The owner does not plan to mint additional Genesis
-cores, so mint planning is excluded.
+Read `docs/ESPORTS_PRO_LEAGUE_PREPARATION.md` before changing Pro League logic. This section and that dedicated document override older Pro League wording that treated DNA Racing performance as merely a prior for a separate performance system.
 
-Unknown maps, distances, scoring, inheritance outcomes and esports performance mechanics
-must remain unconfigured. The workspace cannot enter teams or races, bet, mint, trade,
-sign or automate game actions.
+The owner intends to participate in the DNA Pro Esports League. Pro League is part of the DNA Racing ecosystem and uses the same underlying core stats and performance characteristics. Keep it as a dedicated private website section because roster construction, breeding, Discovery and team-core selection form a distinct high-value competition workflow.
+
+- Do **not** recommend or plan additional Genesis minting. Use the existing owner-maintained My Vault plus breeding.
+- Current published roster requirements are 25 cores; minimum five Metal, five Fire, five Earth and five Water; maximum two “gens” per element; minimum eight females; and at least five F15+ cores.
+- Treat “gens” = Genesis as a clearly labelled working interpretation until DNA clarifies it.
+- Use confirmed DNA breeding rules for offspring class, element and F-number. In particular, an F15+ structural target requires parent F-numbers summing to at least 15. Do not claim offspring sex can be deterministically targeted.
+- Bred/non-Genesis depth can improve roster flexibility under the working Genesis cap. Once structural requirements are met, breeding should continue only where elite-upside evidence can improve the quality of the provisional top 25 rather than merely add quantity.
+- Accepted DNA Racing Bike, Car and Horse performance is valid Pro League power evidence because the underlying core performance is shared. Preserve mode separation and exact-distance evidence quality rather than fabricating strength in an untested mode.
+- The Pro League selection objective is the **most powerful overall roster**, favouring cores that perform strongly across multiple modes, distances and supported payout/race formats. A genuinely dominant specialist can still be useful, but broad all-round strength should rank above one-dimensional evidence where the data supports it.
+- Use winning-range and top-three-or-better exact-distance benchmarks as transparent current evidence dimensions. Do not hide the reasoning inside an unexplained universal score.
+- Pro League should be Discovery-intensive. Strong evidence in one mode is a reason to test promising missing modes and lineage-supported/adjacent distances; it is not permission to assume those strengths. Continue promising paths toward minimally analytical samples and stop weak paths early.
+- Race Merge `rpayout` evidence should support format versatility such as Top 3 and Winner Take All through a bounded precomputed per-core/mode/format aggregate. Until that read model exists, show format evidence as pending rather than scanning the full Race Merge history or inventing a format score.
+- The Pro League workspace should read current My Vault state, show structural readiness, an overall cross-mode power shortlist, element-specific candidate pools, breeding quality/structural targets and a Pro League Discovery queue.
+- Unknown exact maps/distances, roster/substitution rules, competition-format mix and registration details remain unconfigured rather than guessed.
+- The workspace cannot enter teams or races, bet, mint, trade, sign or automate game actions.
+- An in-game Pro League “team” is the owner’s competitive roster and does not change this private application into a multi-user/team SaaS product.
 
 ## Explicitly out of scope
 
 Unless the owner later requests them, do not add:
 
-- multi-user accounts, organisations, teams, invitations, roles or enterprise RBAC;
+- multi-user accounts, organisations, application teams, invitations, roles or enterprise RBAC;
 - public pages, public APIs, public sharing or discoverability;
 - wallet connection, signing, automatic game actions or automated transactions;
 - enterprise audit administration or formal compliance programmes;
