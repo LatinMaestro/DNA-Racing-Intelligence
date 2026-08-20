@@ -51,6 +51,8 @@ export type ProLeagueCandidate = Readonly<{
   topThreeOrBetterModes: readonly RaceMode[];
   winningRangeDistances: number;
   topThreeOrBetterDistances: number;
+  evidenceFreshness: FreshnessState;
+  dataCurrentThrough: string | null;
   powerTier: ProLeaguePowerTier;
   discoveryPriority: "high" | "medium" | "maintain";
   reasons: readonly string[];
@@ -117,6 +119,33 @@ const powerTierOrder: Readonly<Record<ProLeaguePowerTier, number>> = {
   unproven: 4,
 };
 
+const freshnessRisk: Readonly<Record<FreshnessState, number>> = {
+  current: 0,
+  ageing: 1,
+  stale: 2,
+  unknown: 3,
+};
+
+function rankingEligible(profile: ProLeaguePerformanceProfile): boolean {
+  return (
+    profile.sampleStatus === "minimally_analytical" &&
+    (profile.freshness === "current" || profile.freshness === "ageing")
+  );
+}
+
+function conservativeFreshness(
+  profiles: readonly ProLeaguePerformanceProfile[],
+): FreshnessState {
+  if (profiles.length === 0) return "unknown";
+  return profiles.reduce<FreshnessState>(
+    (worst, profile) =>
+      freshnessRisk[profile.freshness] > freshnessRisk[worst]
+        ? profile.freshness
+        : worst,
+    "current",
+  );
+}
+
 function countByElement(
   cores: readonly ProLeaguePreparationCore[],
   predicate: (core: ProLeaguePreparationCore) => boolean = () => true,
@@ -175,28 +204,35 @@ function assess(
   ).length;
   const winningRangeModes = modeList(
     core.performanceProfiles,
-    ({ benchmarkAssessment, sampleStatus }) =>
-      sampleStatus === "minimally_analytical" &&
-      benchmarkAssessment === "winning_range",
+    (profile) =>
+      rankingEligible(profile) &&
+      profile.benchmarkAssessment === "winning_range",
   );
   const topThreeOrBetterModes = modeList(
     core.performanceProfiles,
-    ({ benchmarkAssessment, sampleStatus }) =>
-      sampleStatus === "minimally_analytical" &&
-      (benchmarkAssessment === "winning_range" ||
-        benchmarkAssessment === "top_three_range"),
+    (profile) =>
+      rankingEligible(profile) &&
+      (profile.benchmarkAssessment === "winning_range" ||
+        profile.benchmarkAssessment === "top_three_range"),
   );
   const winningRangeDistances = core.performanceProfiles.filter(
-    ({ benchmarkAssessment, sampleStatus }) =>
-      sampleStatus === "minimally_analytical" &&
-      benchmarkAssessment === "winning_range",
+    (profile) =>
+      rankingEligible(profile) &&
+      profile.benchmarkAssessment === "winning_range",
   ).length;
   const topThreeOrBetterDistances = core.performanceProfiles.filter(
-    ({ benchmarkAssessment, sampleStatus }) =>
-      sampleStatus === "minimally_analytical" &&
-      (benchmarkAssessment === "winning_range" ||
-        benchmarkAssessment === "top_three_range"),
+    (profile) =>
+      rankingEligible(profile) &&
+      (profile.benchmarkAssessment === "winning_range" ||
+        profile.benchmarkAssessment === "top_three_range"),
   ).length;
+  const evidenceFreshness = conservativeFreshness(core.performanceProfiles);
+  const dataCurrentThrough =
+    core.performanceProfiles.length === 0
+      ? null
+      : [...core.performanceProfiles]
+          .map((profile) => profile.dataCurrentThrough)
+          .sort()[0]!;
   const tier = powerTier(
     winningRangeModes,
     topThreeOrBetterModes,
@@ -266,6 +302,8 @@ function assess(
     topThreeOrBetterModes,
     winningRangeDistances,
     topThreeOrBetterDistances,
+    evidenceFreshness,
+    dataCurrentThrough,
     powerTier: tier,
     discoveryPriority:
       (positivePowerSignal || promisingHypothesis) && missingAnalyticalModes > 0
