@@ -1,9 +1,14 @@
 import {
   buildProLeaguePreparation,
+  type ProLeagueBenchmarkAssessment,
   type ProLeaguePreparation,
   type ProLeaguePreparationCore,
 } from "@/domain/pro-league-preparation";
 import type { CorePerformanceProfileRepository } from "@/lib/core-intelligence-workspace-service";
+import type {
+  DiscoveryBenchmarkRepository,
+  DiscoveryExactDistanceBenchmark,
+} from "@/lib/neon-discovery-benchmark-repository";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
 
 export type ProLeaguePreparationRepository =
@@ -32,22 +37,54 @@ export type ProLeaguePreparationPageState = Readonly<{
 export const unavailableProLeaguePreparationRepository: ProLeaguePreparationRepository =
   Object.freeze({ status: "not_configured" });
 
+function benchmarkKey(mode: string, distanceMetres: number): string {
+  return JSON.stringify([mode, distanceMetres]);
+}
+
+function benchmarkAssessment(
+  profile: Readonly<{
+    elapsedTime: Readonly<{
+      bestMilliseconds: number;
+      medianMilliseconds: number;
+    }>;
+  }>,
+  benchmark: DiscoveryExactDistanceBenchmark | null,
+): ProLeagueBenchmarkAssessment {
+  if (benchmark === null) return "not_available";
+  if (
+    profile.elapsedTime.bestMilliseconds <= benchmark.winningP75Milliseconds ||
+    profile.elapsedTime.medianMilliseconds <= benchmark.winningMedianMilliseconds
+  ) {
+    return "winning_range";
+  }
+  if (
+    profile.elapsedTime.bestMilliseconds <= benchmark.topThreeP75Milliseconds ||
+    profile.elapsedTime.medianMilliseconds <= benchmark.topThreeMedianMilliseconds
+  ) {
+    return "top_three_range";
+  }
+  return "outside_top_three_range";
+}
+
 export function createProLeaguePreparationRepository(input: {
   vaultRepository: OwnerVaultCatalogueRepository;
   performanceRepository: CorePerformanceProfileRepository;
+  benchmarkRepository: DiscoveryBenchmarkRepository;
 }): ProLeaguePreparationRepository {
   if (
     input.vaultRepository.status !== "ready" ||
-    input.performanceRepository.status !== "ready"
+    input.performanceRepository.status !== "ready" ||
+    input.benchmarkRepository.status !== "ready"
   ) {
     return unavailableProLeaguePreparationRepository;
   }
   const vault = input.vaultRepository;
   const performance = input.performanceRepository;
+  const benchmarks = input.benchmarkRepository;
   return {
     status: "ready",
     async loadByOwner(ownerId) {
-      const [cores, profiles] = await Promise.all([
+      const [cores, profiles, benchmarkEvidence] = await Promise.all([
         vault.listCoresByOwner(ownerId, {
           scope: "vault",
           query: null,
@@ -57,21 +94,33 @@ export function createProLeaguePreparationRepository(input: {
           fNumber: null,
         }),
         performance.listProfilesByOwner(ownerId),
+        benchmarks.listBenchmarksByOwner(ownerId),
       ]);
-      const bikeByCore = new Map<
+      const benchmarkByModeDistance = new Map(
+        benchmarkEvidence.map((benchmark) => [
+          benchmarkKey(benchmark.mode, benchmark.distanceMetres),
+          benchmark,
+        ]),
+      );
+      const performanceByCore = new Map<
         string,
-        ProLeaguePreparationCore["bikeProfiles"]
+        ProLeaguePreparationCore["performanceProfiles"]
       >();
       for (const profile of profiles.profiles) {
-        if (profile.mode !== "bike") continue;
-        bikeByCore.set(profile.coreId, [
-          ...(bikeByCore.get(profile.coreId) ?? []),
+        const benchmark =
+          benchmarkByModeDistance.get(
+            benchmarkKey(profile.mode, profile.distance),
+          ) ?? null;
+        performanceByCore.set(profile.coreId, [
+          ...(performanceByCore.get(profile.coreId) ?? []),
           {
+            mode: profile.mode,
             distanceMetres: profile.distance,
             raceCount: profile.raceCount,
             sampleStatus: profile.sampleStatus,
             freshness: profile.freshness,
             dataCurrentThrough: profile.dataCurrentThrough,
+            benchmarkAssessment: benchmarkAssessment(profile, benchmark),
           },
         ]);
       }
@@ -85,7 +134,8 @@ export function createProLeaguePreparationRepository(input: {
             element: core.element,
             sex: core.sex,
             fNumber: core.fNumber,
-            bikeProfiles: bikeByCore.get(core.sourceCoreId) ?? [],
+            performanceProfiles:
+              performanceByCore.get(core.sourceCoreId) ?? [],
           })),
         lastImportedAt: profiles.lastImportedAt,
       };
