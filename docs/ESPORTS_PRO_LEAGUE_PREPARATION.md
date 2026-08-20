@@ -2,9 +2,34 @@
 
 ## Authority
 
-This document records the DNA Community Update supplied by the owner on 20 August 2026. It is the complete Pro League information currently available to the owner and is provisional until DNA publishes further rules.
+This document records the DNA Community Update supplied by the owner on 20 August 2026 plus the owner's subsequent clarification of how Pro League relates to DNA Racing.
 
-The owner intends to participate, but will **not mint additional Genesis cores**. Preparation must use the existing owner-maintained My Vault plus breeding.
+The announcement remains provisional for roster and competition mechanics until DNA publishes more detail. The owner intends to participate but will **not mint additional Genesis cores**. Preparation must use the existing owner-maintained My Vault plus breeding.
+
+## Owner-confirmed performance relationship
+
+The Pro League is part of the DNA Racing ecosystem. A core has the **same underlying stats and performance characteristics** in normal DNA Racing and Pro League. Treat Pro League analytically like a dedicated high-value tournament/competition layer, not like a separate game with unrelated core ability.
+
+Therefore accepted DNA Racing history is authoritative performance evidence for Pro League preparation. Existing Bike, Car and Horse evidence, exact-distance times, finishing performance, Gold/Blue supporting signals and race-format history may all inform selection subject to their normal evidence-quality and freshness rules.
+
+The Pro League still has a dedicated private website section because roster construction, all-rounder selection, Discovery workload and competition preparation are materially different from ordinary tournament qualification.
+
+## Selection objective
+
+The roster should contain the **most powerful overall cores available**, while satisfying every published structural roster rule.
+
+Prefer cores that demonstrate strength across:
+
+- multiple modes, ideally Bike, Car and Horse rather than a single specialist mode;
+- multiple exact distances or distance bands;
+- both winning-level and top-three-level benchmark ranges;
+- multiple historical payout/race formats, including formats such as Winner Take All and Top 3 where supported by accepted `rpayout` evidence;
+- sufficiently large and fresh samples; and
+- different competitive contexts without relying on one isolated outlier result.
+
+Do not collapse this into one opaque score. The website should show the evidence dimensions and use a deterministic lexicographic review order so the owner can see why one core ranks ahead of another.
+
+A genuinely dominant specialist may still deserve a roster slot, but broad multi-mode/multi-format power is the primary Pro League preference.
 
 ## Published roster and competition information
 
@@ -14,7 +39,7 @@ The owner intends to participate, but will **not mint additional Genesis cores**
 - Maximum 2 “gens” per element.
 - Minimum 8 females.
 - At least 5 F15+ cores.
-- Current focus is Bike mode.
+- Current announced focus is Bike mode.
 - Two Pro matches per week, Tuesday and Friday at 9:00 PM ET.
 - Open-entry lower league with seasonal promotion/relegation: top three lower-league teams move up and bottom three Pro teams move down.
 - Matches are best-of-three maps; maps are first to 16, win by two, with up to 42 races.
@@ -28,18 +53,6 @@ The announcement also mentions live betting markets. Betting functionality is ou
 Until DNA clarifies the shorthand, the website interprets “maximum 2 gens per element” as **maximum two Genesis cores per element** because Genesis is the matching published core-class term in the same announcement and existing game vocabulary.
 
 This interpretation must remain visibly labelled provisional and versioned. A later clarification must invalidate and recalculate affected roster advice.
-
-## Critical evidence boundary
-
-DNA states that Esports has its own UI and systems and that the cores themselves are the connection to DNA Racing. Therefore:
-
-- DNA Racing Bike history may be used as prior evidence for test prioritisation and evidence readiness only;
-- DNA Racing times, distances, Gold/Blue stars and rankings must not be represented as measured Esports ability;
-- unknown Esports maps and distances must not be inferred from DNA Racing distances;
-- a final competitive roster must not be labelled authoritative from DNA Racing history alone; and
-- actual Esports results should become a separate evidence family unless DNA later confirms shared mechanics.
-
-Any future claim that DNA Racing evidence predicts Esports performance requires chronological validation against actual Esports outcomes.
 
 ## Breeding-first preparation
 
@@ -57,46 +70,56 @@ Use confirmed DNA breeding mechanics where they genuinely help roster constructi
 
 Racing quality remains probabilistic. No confirmed rule currently allows offspring sex to be deterministically targeted, so a female roster gap is managed through actual offspring outcomes and retention rather than a claimed female-producing pairing.
 
-Breeding should close structural gaps or improve quality. A shortage of **tested Bike evidence** alone is a Discovery problem, not a reason to breed more cores.
+Breeding is not only for structural minimums. Once the pool is structurally compliant, the Pro League objective should influence the normal Breeding workspace so high-upside pairings that could produce stronger **all-round** roster candidates remain visible. Existing weak quantity must never be preferred over elite quality merely to fill 25 slots.
 
 ## Discovery preparation
 
-Discovery remains the owned-core testing planner.
+Pro League should be one of the most Discovery-intensive workflows in the site.
 
-For Pro League preparation:
+The goal is not to run every core blindly across every combination. Use the existing lineage-informed Discovery method to find high-value unknowns efficiently:
 
-- prioritise under-tested Bike hypotheses where a core could fill a scarce roster role;
-- give extra strategic relevance to element groups with fewer than five cores carrying a minimally analytical DNA Racing Bike prior;
-- use direct exact-distance evidence first, then lineage/population support under the existing Discovery method;
-- retain the 10-race exact-distance threshold as the minimum for a minimally analytical DNA Racing sample;
-- do not randomly spend races merely to make a core look Esports-ready; and
-- never imply that reaching the DNA Racing 10-race threshold proves Esports strength.
+1. Start with owned cores that already show winning/top-three-range evidence in at least one mode or exact distance.
+2. Test promising missing modes and adjacent/lineage-supported distances to determine whether a specialist is actually an all-rounder.
+3. Prioritise cores that could materially improve a weak element group or replace a lower-ranked provisional roster core.
+4. Continue promising paths toward the 10-race exact-distance analytical minimum; stop weak paths early.
+5. Add payout-format robustness testing once the historical `rpayout` read model is materialised, prioritising formats such as Winner Take All and Top 3 rather than assuming format neutrality from one sample.
+6. Preserve separate evidence for Bike, Car and Horse. Cross-mode breadth is valuable, but one strong mode must not fabricate strength in another.
 
-## Team-core selection
+The announced Bike focus can increase immediate relevance of Bike evidence, but it does not change the owner's longer-term objective of finding the strongest overall cores across the ecosystem.
 
-Before actual Esports evidence exists, team candidate pools may rank **evidence readiness**, not Esports ability.
+## Power and versatility review
 
-For each element show current owned candidates with:
+For every owned Pro League candidate, show at minimum:
 
-- class, sex and F-number;
-- DNA Racing Bike race count;
-- number of exact Bike distances with a minimally analytical sample;
-- Discovery priority and rationale; and
-- structural relevance to roster constraints.
+- class, element, sex and F-number;
+- total accepted races;
+- modes with any evidence;
+- modes with a minimally analytical exact-distance sample;
+- modes and distances reaching winning benchmark range;
+- modes and distances reaching top-three-or-better benchmark range;
+- exact-distance sample counts and freshness;
+- historical payout-format coverage and win/top-three performance once the aggregate is available;
+- Discovery gaps and recommended next tests; and
+- structural roster relevance.
 
-A later selected-roster workflow must validate the chosen 25 cores against every published structural rule. Actual performance ranking becomes Esports-specific only when an authoritative Esports data source exists.
+Candidate ordering should first reward **breadth of winning-level evidence across modes**, then top-three breadth, then winning/top-three distance breadth, analytical coverage and sample depth. This is a review order, not a claim that a hidden universal core rating exists.
+
+## Payout/race-format evidence
+
+Race Merge already preserves the authoritative payout mechanism label (`rpayout`) as payout-mechanism source evidence. The Pro League requires a bounded aggregate rather than scanning multi-million-row history on every page.
+
+A follow-up read model should materialise per owner/core/mode/payout-format evidence including race count, wins, top-three finishes, rates, exact-distance coverage, time evidence and freshness. Until that aggregate is implemented, the Pro League page must say **format evidence pending** rather than invent a format score.
 
 ## Unknowns that must remain unconfigured
 
 - How initial places in the 12 Pro teams are allocated versus starting in the lower league.
 - Formal meaning of “gens”.
-- Map distances and track characteristics.
+- Exact Pro League map distances and track characteristics.
 - Roster locks, substitutions, transfers and per-map/core-use rules.
-- Whether DNA Racing Bike performance predicts Esports performance.
-- Esports result exports, APIs or other supported ingestion methods.
+- Exact mix of payout/race formats used by Pro League matches.
 - Registration dates, first-season timing and sponsorship administration details.
 
-Do not invent answers to these gaps.
+The relationship between DNA Racing core performance and Pro League performance is **not** an unresolved item: the owner has confirmed the same core stats and performance characteristics apply.
 
 ## Safety and scope
 
