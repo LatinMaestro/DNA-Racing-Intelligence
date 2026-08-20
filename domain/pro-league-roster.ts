@@ -70,8 +70,7 @@ const elements = ["Metal", "Fire", "Earth", "Water"] as const;
 const elementBreedingGuidance: Readonly<Record<CoreElement, string>> = {
   Metal:
     "Confirmed DNA inheritance requires Metal × Metal for a Metal offspring target.",
-  Fire:
-    "Confirmed DNA inheritance permits Fire × Fire or Metal × Fire for a Fire offspring target.",
+  Fire: "Confirmed DNA inheritance permits Fire × Fire or Metal × Fire for a Fire offspring target.",
   Earth:
     "Confirmed DNA inheritance requires an Earth parent with Metal, Fire or Earth for an Earth target; a Water parent would produce Water.",
   Water:
