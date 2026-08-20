@@ -10,6 +10,7 @@ export const proLeagueAnnouncementRules = Object.freeze({
   rosterSize: 25,
   minimumPerElement: 5,
   maximumGenesisPerElement: 2,
+  maximumGenesisInterpretation: "working_interpretation" as const,
   minimumFemales: 8,
   minimumF15Plus: 5,
 });
@@ -45,7 +46,7 @@ export type ProLeagueRosterIssue =
 
 export type ProLeagueBreedingPriority = Readonly<{
   priorityId: string;
-  target: "element" | "female" | "f15_plus";
+  target: "element" | "non_genesis_element" | "female" | "f15_plus";
   element: CoreElement | null;
   remaining: number;
   guidance: string;
@@ -65,6 +66,17 @@ export type ProLeagueRosterAudit = Readonly<{
 }>;
 
 const elements = ["Metal", "Fire", "Earth", "Water"] as const;
+
+const elementBreedingGuidance: Readonly<Record<CoreElement, string>> = {
+  Metal:
+    "Confirmed DNA inheritance requires Metal × Metal for a Metal offspring target.",
+  Fire:
+    "Confirmed DNA inheritance permits Fire × Fire or Metal × Fire for a Fire offspring target.",
+  Earth:
+    "Confirmed DNA inheritance requires an Earth parent with Metal, Fire or Earth for an Earth target; a Water parent would produce Water.",
+  Water:
+    "Confirmed DNA inheritance means any otherwise eligible pairing with a Water parent produces Water.",
+};
 
 function blankElementCounts(): Record<CoreElement, number> {
   return { Metal: 0, Fire: 0, Earth: 0, Water: 0 };
@@ -91,6 +103,7 @@ function normalizedCore(core: ProLeagueRosterCore): ProLeagueRosterCore {
 
 function breedingPriorities(input: {
   elementCounts: Readonly<Record<CoreElement, number>>;
+  genesisCounts: Readonly<Record<CoreElement, number>>;
   femaleCount: number;
   f15PlusCount: number;
 }): readonly ProLeagueBreedingPriority[] {
@@ -107,10 +120,26 @@ function breedingPriorities(input: {
         target: "element",
         element,
         remaining,
+        guidance: elementBreedingGuidance[element],
+      });
+    }
+    const nonGenesisCount =
+      input.elementCounts[element] - input.genesisCounts[element];
+    const requiredNonGenesis =
+      proLeagueAnnouncementRules.minimumPerElement -
+      proLeagueAnnouncementRules.maximumGenesisPerElement;
+    const nonGenesisRemaining = Math.max(
+      0,
+      requiredNonGenesis - nonGenesisCount,
+    );
+    if (nonGenesisRemaining > 0) {
+      priorities.push({
+        priorityId: "non-genesis-" + element.toLowerCase(),
+        target: "non_genesis_element",
+        element,
+        remaining: nonGenesisRemaining,
         guidance:
-          "Review owned breeding pairs with evidence relevant to " +
-          element +
-          " outcomes. Element inheritance has not been confirmed by this announcement, so treat every outcome as uncertain until supported by game evidence.",
+          "Breeding adds non-Genesis roster depth and avoids relying on more than the working two-Genesis-per-element cap.",
       });
     }
   }
@@ -125,7 +154,7 @@ function breedingPriorities(input: {
       element: null,
       remaining: femaleRemaining,
       guidance:
-        "Prioritise review of breeding evidence that could improve the female roster pool. Sex outcome is not guaranteed by the announcement.",
+        "The roster needs more female outcomes, but no confirmed rule allows offspring sex to be targeted. Manage this gap through actual breeding outcomes and retention, not a claimed female-producing pairing.",
     });
   }
   const f15Remaining = Math.max(
@@ -139,7 +168,7 @@ function breedingPriorities(input: {
       element: null,
       remaining: f15Remaining,
       guidance:
-        "Prioritise review of owned pairings with supported F-number evidence that could expand the F15+ pool. Do not infer offspring F-number rules from this announcement.",
+        "Confirmed DNA rules set offspring F-number to the sum of both parents, so a structural F15+ target requires parent F-numbers summing to at least 15.",
     });
   }
   return priorities;
@@ -223,7 +252,9 @@ export function auditProLeagueRoster(
         element,
         actual: genesisCounts[element],
         required: proLeagueAnnouncementRules.maximumGenesisPerElement,
-        detail: element + " exceeds the provisional two-Genesis hard cap.",
+        detail:
+          element +
+          " exceeds the working interpretation of the two-Genesis cap.",
       });
     }
   }
@@ -264,6 +295,7 @@ export function auditProLeagueRoster(
     issues,
     breedingPriorities: breedingPriorities({
       elementCounts,
+      genesisCounts,
       femaleCount,
       f15PlusCount,
     }),
