@@ -41,6 +41,12 @@ jobs:
           done
       - name: Run import activation worker smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.smoke.sql
+      - name: Run atomic import activation dataset smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.smoke.sql
+      - name: Reverse atomic import activation dataset migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.down.sql
+      - name: Verify atomic import activation dataset removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.removal.sql
       - name: Reverse import activation worker migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.down.sql
       - name: Verify import activation worker removal
