@@ -22,14 +22,14 @@ const connectionCopy: Record<
       "Pro League preparation remains unavailable until the signed-in owner matches the private server-side allowlist.",
   },
   persistence_not_configured: {
-    heading: "Vault or performance evidence not connected",
+    heading: "Vault, performance or format evidence not connected",
     detail:
-      "The planner requires My Vault, persisted cross-mode Core Performance profiles and exact-distance benchmarks. It fails closed rather than showing a synthetic power ranking.",
+      "The planner requires My Vault, persisted cross-mode Core Performance profiles, exact-distance benchmarks and bounded payout-format profiles. It fails closed rather than showing a partial synthetic ranking.",
   },
   read_model_connected: {
     heading: "My Vault and DNA Racing power evidence connected",
     detail:
-      "Pro League uses the same underlying DNA Racing core performance. The shortlist therefore uses accepted Bike, Car and Horse evidence plus exact-distance winning/top-three benchmarks.",
+      "Pro League uses accepted Bike, Car and Horse evidence, exact-distance winning/top-three benchmarks and descriptive payout-format context.",
   },
 };
 
@@ -51,6 +51,11 @@ function timestamp(value: string | null): string {
   }).format(parsed);
 }
 
+function rate(numerator: number, denominator: number): string {
+  if (denominator <= 0) return "Not available";
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
 function candidateSummary(core: ProLeagueCandidate): string {
   const winningModes =
     core.winningRangeModes.length === 0
@@ -67,6 +72,11 @@ function CandidateRow({
   core,
   rank,
 }: Readonly<{ core: ProLeagueCandidate; rank: number }>) {
+  const supportedFormats = core.payoutFormatProfiles.filter(
+    ({ sampleStatus, freshness }) =>
+      sampleStatus === "minimally_supported" &&
+      (freshness === "current" || freshness === "ageing"),
+  );
   return (
     <li className="py-4">
       <div className="flex flex-wrap justify-between gap-3">
@@ -94,6 +104,17 @@ function CandidateRow({
       <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
         Evidence current through: {timestamp(core.dataCurrentThrough)} ·
         Freshness: {label(core.evidenceFreshness)}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+        Supported payout-format contexts: {core.supportedPayoutFormatCount}
+        {supportedFormats.length > 0
+          ? ` · ${supportedFormats
+              .map(
+                (profile) =>
+                  `${profile.payoutFormatLabel} (${profile.mode}, ${profile.raceCount} races, ${rate(profile.winCount, profile.raceCount)} wins, ${rate(profile.topThreeCount, profile.raceCount)} Top 3)`,
+              )
+              .join(" · ")}`
+          : " · none current with at least 10 races"}
       </p>
     </li>
   );
@@ -325,15 +346,17 @@ function Preparation({
         <h2 className="text-xl font-semibold" id="pro-format-evidence">
           Race-format versatility
         </h2>
-        <div className="mt-4 rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-5">
+        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-raised)] p-5">
           <p className="text-sm leading-6 text-[var(--muted)]">
             Top 3, Winner Take All and other `rpayout` formats are part of the
-            Pro League selection objective. The source label is already retained
-            in Race Merge history, but the bounded per-core format aggregate is
-            not materialised yet. Until it is, format strength stays visibly
-            pending instead of being approximated from unrelated data.
+            Pro League review. Each candidate now shows accepted race, win and
+            Top-3 context when a profile has at least 10 races and is current or
+            ageing. Smaller or stale profiles remain hypothesis-only. These
+            rates do not represent money, do not replace `rformat`, do not blend
+            times across distances and do not claim that format causes intrinsic
+            performance.
           </p>
-          <p className="mt-3 text-xs font-semibold text-[var(--warning)]">
+          <p className="mt-3 text-xs font-semibold text-[var(--success)]">
             {label(preparation.formatEvidenceStatus)}
           </p>
         </div>

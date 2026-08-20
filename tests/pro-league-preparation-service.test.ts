@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CorePerformanceProfileRepository } from "@/lib/core-intelligence-workspace-service";
 import type { DiscoveryBenchmarkRepository } from "@/lib/neon-discovery-benchmark-repository";
+import type { CorePayoutFormatProfileRepository } from "@/lib/neon-core-payout-format-profile-repository";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
 import {
   createProLeaguePreparationRepository,
@@ -118,7 +119,31 @@ function repositories() {
       },
     ]),
   };
-  return { vault, performance, benchmark };
+  const payoutFormat: CorePayoutFormatProfileRepository = {
+    status: "ready",
+    listProfilesByOwner: vi.fn(async () => ({
+      lastImportedAt: "2026-08-20T00:00:00.000Z",
+      profiles: [
+        {
+          coreId: "water-1",
+          mode: "bike" as const,
+          payoutFormatKey: "top 3",
+          payoutFormatLabel: "Top 3",
+          dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+          firstEventAt: "2026-08-01T00:00:00.000Z",
+          raceCount: 12,
+          winCount: 2,
+          topThreeCount: 7,
+          exactDistanceCount: 3,
+          timedRaceCount: 12,
+          refreshedAt: "2026-08-20T00:00:00.000Z",
+          sampleStatus: "minimally_supported" as const,
+          freshness: "current" as const,
+        },
+      ],
+    })),
+  };
+  return { vault, performance, benchmark, payoutFormat };
 }
 
 describe("Pro League preparation service", () => {
@@ -143,7 +168,7 @@ describe("Pro League preparation service", () => {
   });
 
   it("uses My Vault plus cross-mode benchmark-relative performance", async () => {
-    const { vault, performance, benchmark } = repositories();
+    const { vault, performance, benchmark, payoutFormat } = repositories();
     const state = await loadProLeaguePreparationPageState({
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
@@ -151,6 +176,7 @@ describe("Pro League preparation service", () => {
         vaultRepository: vault,
         performanceRepository: performance,
         benchmarkRepository: benchmark,
+        payoutFormatRepository: payoutFormat,
       }),
     });
 
@@ -161,18 +187,33 @@ describe("Pro League preparation service", () => {
       winningRangeModes: ["bike"],
       topThreeOrBetterModes: ["bike", "car"],
       analyticalModes: ["bike", "car"],
+      supportedPayoutFormatCount: 1,
     });
     expect(state.lastImportedAt).toBe("2026-08-20T00:00:00.000Z");
   });
 
   it("fails closed when benchmark evidence is not configured", () => {
-    const { vault, performance } = repositories();
+    const { vault, performance, payoutFormat } = repositories();
 
     expect(
       createProLeaguePreparationRepository({
         vaultRepository: vault,
         performanceRepository: performance,
         benchmarkRepository: { status: "not_configured" },
+        payoutFormatRepository: payoutFormat,
+      }),
+    ).toBe(unavailableProLeaguePreparationRepository);
+  });
+
+  it("fails closed when payout-format evidence is not configured", () => {
+    const { vault, performance, benchmark } = repositories();
+
+    expect(
+      createProLeaguePreparationRepository({
+        vaultRepository: vault,
+        performanceRepository: performance,
+        benchmarkRepository: benchmark,
+        payoutFormatRepository: { status: "not_configured" },
       }),
     ).toBe(unavailableProLeaguePreparationRepository);
   });
