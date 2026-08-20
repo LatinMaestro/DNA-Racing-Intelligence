@@ -39,7 +39,11 @@ function harness(rows: readonly (readonly unknown[])[]) {
   const query = vi.fn(async (statement: string, values?: readonly unknown[]) => {
     const normalized = statement.replace(/\s+/g, " ").trim();
     events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
-    if (["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(normalized))
+    if (
+      ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
+        normalized,
+      )
+    )
       return { rows: [] };
     return { rows: rows[index++] ?? [] };
   });
@@ -174,7 +178,11 @@ describe("Neon durable Preview staging repository", () => {
       blockingIssueCount: 1,
     });
     expect(test.events[3]).toContain("import_preview_processing");
-    expect(test.events.some((event) => event.includes("normalized_core_staged_fact"))).toBe(true);
+    expect(
+      test.events.some((event) =>
+        event.includes("normalized_core_staged_fact"),
+      ),
+    ).toBe(true);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
