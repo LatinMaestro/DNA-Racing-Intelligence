@@ -26,6 +26,7 @@ CREATE TABLE dna.import_activation_dispatch (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (owner_id, id),
   UNIQUE (owner_id, update_session_id),
+  UNIQUE (owner_id, id, update_session_id),
   UNIQUE (owner_id, preview_dispatch_id),
   UNIQUE (owner_id, idempotency_key),
   FOREIGN KEY (owner_id, preview_dispatch_id)
@@ -72,10 +73,10 @@ CREATE TABLE dna.import_activation_processing (
   completed_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (owner_id, dispatch_id),
-  FOREIGN KEY (owner_id, dispatch_id)
-    REFERENCES dna.import_activation_dispatch(owner_id, id) ON DELETE CASCADE,
-  FOREIGN KEY (owner_id, update_session_id)
-    REFERENCES dna.import_activation_dispatch(owner_id, update_session_id)
+  FOREIGN KEY (owner_id, dispatch_id, update_session_id)
+    REFERENCES dna.import_activation_dispatch(
+      owner_id, id, update_session_id
+    )
     ON DELETE CASCADE,
   CHECK (lease_expires_at > claimed_at),
   CHECK ((state = 'failed') = (failure_reason IS NOT NULL AND failed_at IS NOT NULL)),
