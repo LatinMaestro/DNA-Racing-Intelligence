@@ -221,3 +221,29 @@ ETH is Ethereum's native crypto asset. Preserve all source token amounts exactly
 Historical Race Merge rows whose `toke_curr` is BGC remain valid racing-performance evidence but are treated as free-entry, no-payout races. Their effective fee and payout are zero, they create no race-derived ledger transaction in any asset, and their source fee and prize do not enter economic totals or completeness queues. This is an exceptional historical rule and does not change the separate BGC ledger for genuine breeding, arena and burn activity.
 
 BGC is otherwise separate from racing. It is used for breeding and burning and has an owner-confirmed reference conversion of USD 1 = BGC 1. Keep BGC in its own ledger and show any USD equivalent separately rather than silently mixing BGC with ETH/DEZ operating profit.
+
+
+## DNA Pro League announcement — provisional preparation authority
+
+The owner supplied a DNA Community Update on 20 August 2026. Treat it as provisional
+source evidence for preparation, not as a complete esports rulebook.
+
+Published roster constraints:
+
+- exactly 25 cores;
+- at least five Metal, five Fire, five Earth and five Water cores;
+- at most two Genesis cores per element;
+- at least eight female cores;
+- at least five F15+ cores; and
+- current competitive focus is Bike mode.
+
+The announcement also describes 12 Pro teams, an unlimited lower league,
+promotion/relegation, two weekly matches, best-of-three maps and first-to-16 maps.
+Those competition details may be displayed as provisional context but must not drive
+performance rankings until map, distance, scoring and evidence contracts are published.
+
+Owner direction is breeding-first: do not recommend minting additional Genesis cores.
+Use existing My Vault cores first, identify structural roster gaps, and review breeding
+or Discovery evidence without claiming an offspring element, sex, F-number, map fit or
+competitive outcome that has not been proven. The website must never enter a team,
+race, place a bet, mint, trade or automate an esports action.
