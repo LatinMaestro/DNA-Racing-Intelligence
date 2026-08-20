@@ -128,6 +128,22 @@ describe("Pro League preparation", () => {
     );
   });
 
+  it("keeps an under-tested fast hypothesis out of proven power tiers while prioritising Discovery", () => {
+    const result = buildProLeaguePreparation([
+      core("early-signal", "Fire", {
+        performanceProfiles: [profile("bike", 1_400, "winning_range", 4)],
+      }),
+    ]);
+
+    expect(result.overallPowerPool[0]).toMatchObject({
+      coreId: "early-signal",
+      powerTier: "unproven",
+      winningRangeModes: [],
+      topThreeOrBetterModes: [],
+      discoveryPriority: "high",
+    });
+  });
+
   it("separates structural readiness from the need to improve power depth", () => {
     const pool: ProLeaguePreparationCore[] = [];
     let sequence = 0;
