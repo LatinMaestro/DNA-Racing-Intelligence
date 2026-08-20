@@ -50,11 +50,7 @@ function boundedInteger(
   const normalized = value?.trim() ?? "";
   if (!/^[1-9][0-9]*$/.test(normalized)) return null;
   const parsed = Number(normalized);
-  if (
-    !Number.isSafeInteger(parsed) ||
-    parsed < minimum ||
-    parsed > maximum
-  ) {
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
     return null;
   }
   return parsed;
