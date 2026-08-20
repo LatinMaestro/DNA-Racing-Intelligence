@@ -19,6 +19,7 @@ SET search_path = pg_catalog, pg_temp
 AS $function$
 DECLARE
   v_preview_dispatch_id uuid;
+  v_upload_batch_id uuid;
   v_preview_file_count integer;
   v_object_count integer;
   v_batch record;
@@ -36,9 +37,10 @@ BEGIN
     RAISE EXCEPTION 'source version bound must be between 1 and 24';
   END IF;
 
-  SELECT dispatch.preview_dispatch_id, prepared.file_count,
-    GREATEST(prepared.completed_at, processing.claimed_at)
-  INTO v_preview_dispatch_id, v_preview_file_count, v_activated_at
+  SELECT dispatch.preview_dispatch_id, prepared.upload_batch_id,
+    prepared.file_count, GREATEST(prepared.completed_at, processing.claimed_at)
+  INTO v_preview_dispatch_id, v_upload_batch_id,
+    v_preview_file_count, v_activated_at
   FROM dna.import_activation_processing processing
   JOIN dna.import_activation_dispatch dispatch
     ON dispatch.owner_id = processing.owner_id
@@ -51,12 +53,9 @@ BEGIN
     AND processing.dispatch_id = p_dispatch_id
     AND processing.update_session_id = p_update_session_id
     AND processing.state = 'processing'
-    AND processing.preview_fingerprint_sha256 =
-      p_preview_fingerprint_sha256
-    AND dispatch.preview_fingerprint_sha256 =
-      p_preview_fingerprint_sha256
-    AND prepared.preview_fingerprint_sha256 =
-      p_preview_fingerprint_sha256
+    AND processing.preview_fingerprint_sha256 = p_preview_fingerprint_sha256
+    AND dispatch.preview_fingerprint_sha256 = p_preview_fingerprint_sha256
+    AND prepared.preview_fingerprint_sha256 = p_preview_fingerprint_sha256
     AND prepared.confirmable
     AND prepared.blocking_issue_count = 0
   FOR UPDATE OF processing, prepared;
@@ -76,7 +75,8 @@ BEGIN
     AND batch.id = file.id
   WHERE object.owner_id = p_owner_id
     AND object.preview_dispatch_id = v_preview_dispatch_id
-    AND object.upload_batch_id = prepared_upload_batch_id(object)
+    AND object.upload_batch_id = v_upload_batch_id
+    AND file.upload_batch_id = v_upload_batch_id
     AND batch.source_type = file.source_family
     AND batch.checksum_sha256 = file.sha256
     AND batch.status IN ('validating', 'accepted');
@@ -132,11 +132,12 @@ BEGIN
       AND race.import_batch_id = batch.id
     WHERE object.owner_id = p_owner_id
       AND object.preview_dispatch_id = v_preview_dispatch_id
+      AND object.upload_batch_id = v_upload_batch_id
     GROUP BY batch.id, batch.source_type, batch.uploaded_at
     ORDER BY
       CASE batch.source_type
-        WHEN 'race_merge' THEN 1
-        WHEN 'core_details' THEN 2
+        WHEN 'core_details' THEN 1
+        WHEN 'race_merge' THEN 2
         WHEN 'current_arena' THEN 3
         ELSE 4
       END,
@@ -150,18 +151,14 @@ BEGIN
     v_data_current_through := v_batch.source_current_through;
 
     IF v_batch.source_type = 'race_merge' THEN
-      SELECT GREATEST(
-        v_data_current_through,
-        max(version.data_current_through)
-      )
+      SELECT GREATEST(v_data_current_through, max(version.data_current_through))
       INTO v_data_current_through
       FROM dna.dataset_version version
       WHERE version.owner_id = p_owner_id
         AND version.source_type = 'race_merge'
         AND version.is_active;
 
-      PERFORM *
-      FROM dna.accept_staged_race_dataset(
+      PERFORM * FROM dna.accept_staged_race_dataset(
         v_batch.id,
         md5(v_batch.id::text || ':dataset-version')::uuid,
         v_import_completed_at,
@@ -169,8 +166,7 @@ BEGIN
         v_data_current_through
       );
     ELSIF v_batch.source_type = 'core_details' THEN
-      PERFORM *
-      FROM dna.accept_staged_core_dataset(
+      PERFORM * FROM dna.accept_staged_core_dataset(
         v_batch.id,
         md5(v_batch.id::text || ':dataset-version')::uuid,
         v_import_completed_at,
@@ -178,8 +174,7 @@ BEGIN
         v_data_current_through
       );
     ELSIF v_batch.source_type = 'current_arena' THEN
-      PERFORM *
-      FROM dna.accept_staged_arena_dataset(
+      PERFORM * FROM dna.accept_staged_arena_dataset(
         v_batch.id,
         md5(v_batch.id::text || ':dataset-version')::uuid,
         v_import_completed_at,
@@ -208,7 +203,8 @@ BEGIN
     AND job.dataset_version_id = version.id
     AND job.status IN ('queued', 'running', 'completed')
   WHERE object.owner_id = p_owner_id
-    AND object.preview_dispatch_id = v_preview_dispatch_id;
+    AND object.preview_dispatch_id = v_preview_dispatch_id
+    AND object.upload_batch_id = v_upload_batch_id;
 
   IF v_version_count < 1
      OR v_version_count > p_maximum_source_versions
@@ -217,13 +213,10 @@ BEGIN
   END IF;
 
   RETURN QUERY SELECT
-    (
-      'prepared-' ||
-      md5(
-        p_owner_id::text || ':' || p_update_session_id::text || ':' ||
-        p_dispatch_id::text || ':' || p_preview_fingerprint_sha256::text
-      )
-    )::text,
+    ('prepared-' || md5(
+      p_owner_id::text || ':' || p_update_session_id::text || ':' ||
+      p_dispatch_id::text || ':' || p_preview_fingerprint_sha256::text
+    ))::text,
     v_version_count,
     v_quarantined_count,
     (v_job_count > 0);
