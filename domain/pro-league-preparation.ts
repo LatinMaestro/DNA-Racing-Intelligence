@@ -1,7 +1,4 @@
-import {
-  raceModes,
-  type RaceMode,
-} from "@/domain/core-performance";
+import { raceModes, type RaceMode } from "@/domain/core-performance";
 import type { FreshnessState } from "@/domain/freshness";
 import { elements, type CoreClass, type Element } from "@/domain/game-rules";
 import { proLeagueAnnouncementRules } from "@/domain/pro-league-roster";
