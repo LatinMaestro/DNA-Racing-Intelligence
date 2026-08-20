@@ -175,21 +175,27 @@ function assess(
   ).length;
   const winningRangeModes = modeList(
     core.performanceProfiles,
-    ({ benchmarkAssessment }) => benchmarkAssessment === "winning_range",
+    ({ benchmarkAssessment, sampleStatus }) =>
+      sampleStatus === "minimally_analytical" &&
+      benchmarkAssessment === "winning_range",
   );
   const topThreeOrBetterModes = modeList(
     core.performanceProfiles,
-    ({ benchmarkAssessment }) =>
-      benchmarkAssessment === "winning_range" ||
-      benchmarkAssessment === "top_three_range",
+    ({ benchmarkAssessment, sampleStatus }) =>
+      sampleStatus === "minimally_analytical" &&
+      (benchmarkAssessment === "winning_range" ||
+        benchmarkAssessment === "top_three_range"),
   );
   const winningRangeDistances = core.performanceProfiles.filter(
-    ({ benchmarkAssessment }) => benchmarkAssessment === "winning_range",
+    ({ benchmarkAssessment, sampleStatus }) =>
+      sampleStatus === "minimally_analytical" &&
+      benchmarkAssessment === "winning_range",
   ).length;
   const topThreeOrBetterDistances = core.performanceProfiles.filter(
-    ({ benchmarkAssessment }) =>
-      benchmarkAssessment === "winning_range" ||
-      benchmarkAssessment === "top_three_range",
+    ({ benchmarkAssessment, sampleStatus }) =>
+      sampleStatus === "minimally_analytical" &&
+      (benchmarkAssessment === "winning_range" ||
+        benchmarkAssessment === "top_three_range"),
   ).length;
   const tier = powerTier(
     winningRangeModes,
@@ -199,6 +205,11 @@ function assess(
   );
   const missingAnalyticalModes = raceModes.length - analyticalModes.length;
   const positivePowerSignal = topThreeOrBetterDistances > 0;
+  const promisingHypothesis = core.performanceProfiles.some(
+    ({ benchmarkAssessment }) =>
+      benchmarkAssessment === "winning_range" ||
+      benchmarkAssessment === "top_three_range",
+  );
   const scarceRole =
     needs.element[core.element] ||
     (needs.nonGenesis[core.element] && core.coreClass !== "Genesis") ||
@@ -257,7 +268,7 @@ function assess(
     topThreeOrBetterDistances,
     powerTier: tier,
     discoveryPriority:
-      positivePowerSignal && missingAnalyticalModes > 0
+      (positivePowerSignal || promisingHypothesis) && missingAnalyticalModes > 0
         ? "high"
         : missingAnalyticalModes > 0 || scarceRole
           ? "medium"
