@@ -42,6 +42,7 @@ function core(
     sex: "male",
     fNumber: 10,
     performanceProfiles: [],
+    payoutFormatProfiles: [],
     ...overrides,
   };
 }
@@ -55,10 +56,49 @@ describe("Pro League preparation", () => {
     expect(result.selectionObjective).toBe(
       "most_powerful_overall_cross_mode_and_format",
     );
-    expect(result.formatEvidenceStatus).toBe(
-      "pending_bounded_rpayout_aggregate",
-    );
+    expect(result.formatEvidenceStatus).toBe("descriptive_context_connected");
     expect(result.genesisInterpretationStatus).toBe("working_interpretation");
+  });
+
+  it("exposes only fresh minimally-supported payout-format context without changing power tiers", () => {
+    const result = buildProLeaguePreparation([
+      core("format-context", "Fire", {
+        payoutFormatProfiles: [
+          {
+            mode: "bike",
+            payoutFormatKey: "top 3",
+            payoutFormatLabel: "Top 3",
+            raceCount: 12,
+            winCount: 2,
+            topThreeCount: 7,
+            exactDistanceCount: 3,
+            timedRaceCount: 12,
+            sampleStatus: "minimally_supported",
+            freshness: "current",
+            dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+          },
+          {
+            mode: "car",
+            payoutFormatKey: "winner take all",
+            payoutFormatLabel: "Winner Take All",
+            raceCount: 4,
+            winCount: 1,
+            topThreeCount: 1,
+            exactDistanceCount: 1,
+            timedRaceCount: 4,
+            sampleStatus: "hypothesis_only",
+            freshness: "current",
+            dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+          },
+        ],
+      }),
+    ]);
+    const candidate = result.overallPowerPool[0]!;
+
+    expect(candidate.supportedPayoutFormatCount).toBe(1);
+    expect(candidate.payoutFormatProfiles).toHaveLength(2);
+    expect(candidate.powerTier).toBe("unproven");
+    expect(candidate.reasons.join(" ")).toContain("descriptive context only");
   });
 
   it("detects non-Genesis depth needed under the provisional per-element Genesis cap", () => {
