@@ -205,10 +205,10 @@ describe("Neon import activation repositories", () => {
     ]);
   });
 
-  it("rejects unsupported durable failure reasons before database access", async () => {
+  it("rejects unsupported durable failure reasons before database access", () => {
     const test = harness([]);
     const configured = repositories(test);
-    await expect(
+    expect(() =>
       configured.activationRepository.markDispatchFailed({
         ownerId,
         updateSessionId,
@@ -216,7 +216,7 @@ describe("Neon import activation repositories", () => {
         failedAt: "2026-08-21T00:05:00.000Z",
         reason: "wrong" as "queue_unavailable",
       }),
-    ).rejects.toThrow("failure reason is unsupported");
+    ).toThrow("failure reason is unsupported");
     expect(test.query).not.toHaveBeenCalled();
   });
 
