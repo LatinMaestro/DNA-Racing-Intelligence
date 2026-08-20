@@ -244,8 +244,7 @@ function profile(rowValue: unknown, now: Date): CorePayoutFormatProfile {
     exactDistanceCount,
     timedRaceCount,
     refreshedAt: timestamp(row.refreshed_at, "refreshed_at"),
-    sampleStatus:
-      raceCount >= 10 ? "minimally_supported" : "hypothesis_only",
+    sampleStatus: raceCount >= 10 ? "minimally_supported" : "hypothesis_only",
     freshness: deriveFreshness(new Date(dataCurrentThrough), now),
   };
 }
