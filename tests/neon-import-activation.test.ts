@@ -205,6 +205,48 @@ describe("Neon import activation repositories", () => {
     ]);
   });
 
+  it("prepares bounded accepted datasets through one database function", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [evidence()],
+      [
+        {
+          prepared_result_id: "prepared-9",
+          source_version_count: "9",
+          quarantined_record_count: "2",
+          aggregate_refresh_required: true,
+        },
+      ],
+    ]);
+
+    await expect(
+      repositories(test).preparationRepository.prepareAcceptedDataset({
+        ownerId,
+        updateSessionId,
+        dispatchId,
+        previewFingerprintSha256: sourceHash,
+        maximumSourceVersions: 24,
+      }),
+    ).resolves.toEqual({
+      preparedResultId: "prepared-9",
+      sourceVersionCount: 9,
+      quarantinedRecordCount: 2,
+      aggregateRefreshRequired: true,
+    });
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      updateSessionId,
+      dispatchId,
+      sourceHash,
+      24,
+    ]);
+    expect(
+      test.events.some((event) =>
+        event.includes("prepare_import_activation_dataset"),
+      ),
+    ).toBe(true);
+  });
+
   it("rejects unsupported durable failure reasons before database access", () => {
     const test = harness([]);
     const configured = repositories(test);
