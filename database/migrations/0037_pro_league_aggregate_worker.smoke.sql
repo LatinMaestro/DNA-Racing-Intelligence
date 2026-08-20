@@ -18,7 +18,7 @@ VALUES (
   '37000000-0000-4000-8000-000000000001',
   'race_merge', 'synthetic-worker.csv', repeat('7', 64),
   'utf_8', 'race-merge/v1', 'accepted',
-  '2026-08-21T00:00:00Z', '2026-08-21T00:01:00Z',
+  '2026-08-20T00:00:00Z', '2026-08-20T00:01:00Z',
   0, 0, 0, 0
 );
 
@@ -31,7 +31,7 @@ VALUES (
   '37000000-0000-4000-8000-000000000001',
   'race_merge', 1,
   '37000000-0000-4000-8000-000000000101',
-  '2026-08-21T00:02:00Z', '2026-08-21T00:01:00Z', true
+  '2026-08-20T00:02:00Z', '2026-08-20T00:01:00Z', true
 );
 
 INSERT INTO dna.aggregate_refresh_job (
@@ -56,8 +56,8 @@ BEGIN
     '37000000-0000-4000-8000-000000000001',
     '37000000-0000-4000-8000-000000000301',
     'synthetic-worker',
-    '2026-08-21T00:03:00Z',
-    '2026-08-21T00:08:00Z'
+    '2026-08-20T00:03:00Z',
+    '2026-08-20T00:08:00Z'
   );
   IF v_claim.status <> 'claimed'
      OR v_claim.authenticated_owner_id <> 'synthetic_aggregate_worker_owner'
@@ -88,7 +88,7 @@ BEGIN
     v_prepared.source_version_set_sha256,
     v_prepared.aggregate_family_count,
     v_prepared.materialized_row_count,
-    '2026-08-21T00:04:00Z'
+    '2026-08-20T00:04:00Z'
   );
   IF v_published.status <> 'published'
      OR v_published.aggregate_set_id <>
@@ -101,8 +101,8 @@ BEGIN
     '37000000-0000-4000-8000-000000000001',
     '37000000-0000-4000-8000-000000000301',
     'synthetic-worker-replay',
-    '2026-08-21T00:05:00Z',
-    '2026-08-21T00:10:00Z'
+    '2026-08-20T00:05:00Z',
+    '2026-08-20T00:10:00Z'
   );
   IF v_replay.status <> 'already_complete'
      OR v_replay.aggregate_set_id <>
