@@ -91,6 +91,10 @@ function CandidateRow({
         distance(s) · {core.topThreeOrBetterDistances} top-three-or-better
         distance(s) · {core.analyticalModes.length}/3 analytical modes
       </p>
+      <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+        Evidence current through: {timestamp(core.dataCurrentThrough)} ·
+        Freshness: {label(core.evidenceFreshness)}
+      </p>
     </li>
   );
 }
