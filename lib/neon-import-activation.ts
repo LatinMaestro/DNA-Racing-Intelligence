@@ -103,6 +103,7 @@ export type ImportActivationDatabaseEnvironment = Readonly<{
 export type NeonImportActivationRepositories = Readonly<{
   activationRepository: ImportActivationRepository;
   processingRepository: BackgroundImportProcessingRepository;
+  preparationRepository: AcceptedDatasetPreparationRepository;
 }>;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -129,6 +130,18 @@ function string(value: unknown, field: string): string {
 function bool(value: unknown, field: string): boolean {
   if (typeof value !== "boolean") throw new Error(`${field} must be boolean`);
   return value;
+}
+
+function count(value: unknown, field: string): number {
+  const result = typeof value === "string" ? Number(value) : value;
+  if (
+    typeof result !== "number" ||
+    !Number.isSafeInteger(result) ||
+    result < 0
+  ) {
+    throw new Error(`${field} must be a non-negative safe integer`);
+  }
+  return result;
 }
 
 function sha(value: unknown, field: string): string {
