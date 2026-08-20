@@ -2,6 +2,7 @@ import { ProLeagueWorkspace } from "@/components/pro-league-workspace";
 import { auditProLeagueRoster } from "@/domain/pro-league-roster";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
+import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import {
   createProLeaguePreparationRepository,
@@ -29,7 +30,11 @@ export default async function ProLeaguePage() {
       vaultRepository:
         neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
       performanceRepository:
-        neonCorePerformanceProfileRepositoryFromEnvironment(databaseEnvironment),
+        neonCorePerformanceProfileRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
+      benchmarkRepository:
+        neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
     }),
   });
 
