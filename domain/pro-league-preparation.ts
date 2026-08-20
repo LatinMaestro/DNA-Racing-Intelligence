@@ -435,12 +435,12 @@ export function buildProLeaguePreparation(
       comparePower(a, b),
   );
   const overallPowerPool = [...candidates].sort(comparePower);
-  const teamCandidatePools = Object.fromEntries(
-    elements.map((element) => [
-      element,
-      candidates.filter((core) => core.element === element).sort(comparePower),
-    ]),
-  ) as Record<Element, readonly ProLeagueCandidate[]>;
+  const teamCandidatePools: Record<Element, readonly ProLeagueCandidate[]> = {
+    Metal: candidates.filter((core) => core.element === "Metal").sort(comparePower),
+    Fire: candidates.filter((core) => core.element === "Fire").sort(comparePower),
+    Earth: candidates.filter((core) => core.element === "Earth").sort(comparePower),
+    Water: candidates.filter((core) => core.element === "Water").sort(comparePower),
+  };
 
   return {
     rulesetId: proLeagueAnnouncementRules.rulesetId,
