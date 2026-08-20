@@ -10,7 +10,7 @@ The implementation goal is the minimum architecture and interface required to de
 
 Retain or build a component only when it is necessary for one or more of:
 
-- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence or Vault Performance functionality;
+- the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence, Esports preparation or Vault Performance functionality;
 - correct import and processing of the agreed periodically imported game-data sources, including the multi-million-row Race Merge history;
 - basic owner authentication and private access;
 - data integrity, deterministic replay, rollback or duplicate prevention that is necessary to avoid corrupting the owner's data;
@@ -35,11 +35,29 @@ This section is a current owner decision and overrides older specifications, pha
 
 Until the older source documents are reconciled during implementation, this section is authoritative for Vault ownership, source-count assumptions, Search Core and Discovery scope.
 
+## Owner-approved DNA Pro Esports preparation — 20 August 2026
+
+This section records a new owner objective following the initial DNA Community Update about the DNA Pro Esports League. Read `docs/ESPORTS_PRO_LEAGUE_PREPARATION.md` before changing Esports-related logic.
+
+- The owner intends to compete and wants the website to prepare a Pro-level roster from breeding, Discovery and team-core-selection perspectives.
+- The owner will **not** participate in the special Genesis mint. Do not recommend minting or build a mint workflow. Use the existing Vault plus breeding.
+- Published roster requirements currently available are: 25 cores; minimum five of each Metal, Fire, Earth and Water; maximum two “gens” per element; minimum eight females; and at least five F15+ cores. The website uses a clearly labelled working interpretation that “gens” means Genesis until DNA formally clarifies it.
+- Esports is currently Bike-focused, but DNA says the Esports UI and systems are separate from DNA Racing. Existing DNA Racing Bike history may therefore support testing priority and prior evidence only. It must not be presented as measured Esports ability or assumed to transfer to Esports maps.
+- Add a private **Esports Prep** workspace that shows roster-structure readiness, breeding targets, targeted Bike Discovery priorities and element-grouped team candidate pools.
+- Breeding preparation may use confirmed deterministic rules for offspring class, element and F-number. It must not claim offspring sex can be targeted because no confirmed deterministic sex-inheritance rule exists.
+- Bred/non-Genesis depth is strategically useful under the published Genesis cap. F15+ offspring can be structurally targeted where parent F-numbers sum to at least 15, while racing-quality outcomes remain probabilistic.
+- Team candidate lists may rank evidence readiness before Esports data exists, but they must not be labelled as definitive Esports performance rankings.
+- When actual Esports results, an export or a supported API becomes available, model Esports evidence separately unless DNA later confirms shared performance mechanics. Chronological validation is required before DNA Racing evidence is represented as predictive of Esports performance.
+- Do not build betting, sponsorship administration, public team pages, wallet/game automation or automated Esports entry from the initial announcement.
+- The Esports “team” is an in-game competitive roster for this single owner; it does not change the private single-user product into a multi-user organisation/team SaaS feature.
+
+This section is additive to the existing private-owner scope. Unpublished Esports mechanics remain unknown and must fail closed rather than being guessed.
+
 ## Explicitly out of scope
 
 Unless the owner later requests them, do not add:
 
-- multi-user accounts, organisations, teams, invitations, roles or enterprise RBAC;
+- multi-user accounts, organisations, application teams, invitations, roles or enterprise RBAC;
 - public pages, public APIs, public sharing or discoverability;
 - wallet connection, signing, automatic game actions or automated transactions;
 - enterprise audit administration or formal compliance programmes;
