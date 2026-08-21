@@ -12,6 +12,7 @@ import {
   neonImportActivationRepositoriesFromEnvironment,
   type ImportActivationDatabaseEnvironment,
 } from "./neon-import-activation";
+import type { AggregateRetryQueue } from "./import-aggregate-retry-action-service";
 import type { NeonImportPersistenceSessionFactory } from "./neon-import-persistence-driver";
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -37,6 +38,7 @@ export type HostedImportActivationWorkerDependencies = Readonly<{
   now?: () => Date;
   neonSessionFactory?: NeonImportPersistenceSessionFactory;
   fetch?: typeof globalThis.fetch;
+  aggregateQueue?: AggregateRetryQueue;
 }>;
 
 export type HostedImportActivationWorkerRuntime =
@@ -97,6 +99,7 @@ export function hostedImportActivationWorkerRuntime(input: {
   const accountId = providerId(input.environment.cloudflare.accountId);
   const queueId = providerId(input.environment.cloudflare.queueId);
   const apiToken = secret(input.environment.cloudflare.apiToken);
+  const injectedAggregateQueue = input.dependencies?.aggregateQueue;
   const leaseDurationMilliseconds = boundedInteger(
     input.environment.leaseDurationMilliseconds,
     1_000,
@@ -115,9 +118,8 @@ export function hostedImportActivationWorkerRuntime(input: {
   if (
     workerId === null ||
     ownerId === null ||
-    accountId === null ||
-    queueId === null ||
-    apiToken === null ||
+    (injectedAggregateQueue === undefined &&
+      (accountId === null || queueId === null || apiToken === null)) ||
     leaseDurationMilliseconds === null ||
     maximumSourceVersions === null ||
     maximumQuarantinedRecords === null
@@ -130,26 +132,35 @@ export function hostedImportActivationWorkerRuntime(input: {
       input.environment.database,
       input.dependencies?.neonSessionFactory,
     );
-    const queueConfiguration =
-      cloudflareImportQueueConfigurationFromEnvironment({
-        queueName: input.environment.cloudflare.queueName,
-        deadLetterQueueName: input.environment.cloudflare.deadLetterQueueName,
-        createPort: () =>
-          createCloudflareImportQueuePort({
-            accountId,
-            queueId,
-            queueName: input.environment.cloudflare.queueName ?? "",
-            apiToken,
-            fetch: input.dependencies?.fetch ?? globalThis.fetch,
-          }),
-      });
-    if (repositories === null || queueConfiguration === null) {
+    if (repositories === null) {
       return unavailableHostedImportActivationWorkerRuntime;
     }
-    const aggregateQueue = createCloudflareImportQueueForOwner({
-      ownerId,
-      configuration: queueConfiguration,
-    });
+    let aggregateQueue = injectedAggregateQueue;
+    if (aggregateQueue === undefined) {
+      if (accountId === null || queueId === null || apiToken === null) {
+        return unavailableHostedImportActivationWorkerRuntime;
+      }
+      const queueConfiguration =
+        cloudflareImportQueueConfigurationFromEnvironment({
+          queueName: input.environment.cloudflare.queueName,
+          deadLetterQueueName: input.environment.cloudflare.deadLetterQueueName,
+          createPort: () =>
+            createCloudflareImportQueuePort({
+              accountId,
+              queueId,
+              queueName: input.environment.cloudflare.queueName ?? "",
+              apiToken,
+              fetch: input.dependencies?.fetch ?? globalThis.fetch,
+            }),
+        });
+      if (queueConfiguration === null) {
+        return unavailableHostedImportActivationWorkerRuntime;
+      }
+      aggregateQueue = createCloudflareImportQueueForOwner({
+        ownerId,
+        configuration: queueConfiguration,
+      });
+    }
     const processor = createBoundedAcceptedDatasetProcessor({
       repository: repositories.preparationRepository,
       maximumSourceVersions,

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { AggregateRetryQueue } from "../lib/import-aggregate-retry-action-service";
 import {
   hostedImportActivationWorkerRuntime,
   type HostedImportActivationWorkerEnvironment,
@@ -126,6 +127,26 @@ describe("hosted import activation worker runtime", () => {
         }),
       }),
     ).toEqual({ status: "not_configured" });
+  });
+
+  it("accepts a native aggregate queue without REST publishing credentials", () => {
+    const aggregateQueue = {
+      enqueue: vi.fn(async () => undefined),
+    } satisfies AggregateRetryQueue;
+    const runtime = hostedImportActivationWorkerRuntime({
+      environment: environment({
+        cloudflare: {
+          accountId: undefined,
+          apiToken: undefined,
+          queueId: undefined,
+          queueName: undefined,
+          deadLetterQueueName: undefined,
+        },
+      }),
+      dependencies: { aggregateQueue },
+    });
+
+    expect(runtime.status).toBe("ready");
   });
 
   it("consumes one delivery through claim, bounded preparation, and activation", async () => {
