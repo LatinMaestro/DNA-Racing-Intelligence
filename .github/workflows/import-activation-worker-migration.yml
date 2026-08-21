@@ -45,6 +45,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.smoke.sql
       - name: Run runtime connection capacity smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.smoke.sql
+      - name: Run pre-activation cleanup smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.smoke.sql
+      - name: Reverse pre-activation cleanup migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.down.sql
+      - name: Verify pre-activation cleanup removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.removal.sql
       - name: Reverse runtime connection capacity migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.down.sql
       - name: Verify runtime connection capacity reversal
