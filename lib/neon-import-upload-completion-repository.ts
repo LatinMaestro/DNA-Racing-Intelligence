@@ -395,7 +395,10 @@ function uploadCompletionClaim(
   };
 }
 
-function persistenceFiles(files: readonly VerifiedUploadedObject[]): string {
+function persistenceFiles(
+  files: readonly VerifiedUploadedObject[],
+  databaseOwnerId: string,
+): string {
   return JSON.stringify(
     files.map((file) => ({
       upload_file_id: file.uploadFileId,
@@ -405,7 +408,7 @@ function persistenceFiles(files: readonly VerifiedUploadedObject[]): string {
       advertised_content_type: file.advertisedContentType,
       provider_sha256: file.providerSha256,
       scope: file.scope,
-      owner_id: file.ownerId,
+      owner_id: databaseOwnerId,
       upload_batch_id: file.uploadBatchId,
     })),
   );
@@ -505,7 +508,7 @@ export function createNeonImportUploadCompletionRepository(input: {
             input.completionId,
             input.uploadRequestFingerprint,
             input.verifiedAt,
-            persistenceFiles(input.files),
+            persistenceFiles(input.files, databaseOwnerId),
           ]),
           "preview dispatch reservation",
         );
