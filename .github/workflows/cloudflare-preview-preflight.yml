@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: cloudflare-preview-worker-commission
@@ -327,3 +328,12 @@ jobs:
       - name: Record deployed Worker inventory
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npx wrangler deployments list --config wrangler.jsonc
+      - name: Record commissioning outcome on Issue 120
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh issue comment 120
+          --body "Cloudflare Preview Worker commissioning run
+          https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/${{ github.run_id }}
+          completed with job status ${{ job.status }}. No secret values are included."
