@@ -508,8 +508,10 @@ describeConnected("hosted Preview Neon upload completion access", () => {
         runtimeRole: "dna_app_runtime",
         sessionFactory: seededDispatchRollbackOnlySessionFactory({
           ownerId: databaseOwnerId,
-          seedIdempotencyKey: `connected-dispatch-seed-${runId}-${runAttempt}`,
-          claimIdempotencyKey: `connected-dispatch-claim-${runId}-${runAttempt}`,
+          seedIdempotencyKey:
+            `connected-dispatch-seed-${runId}-${runAttempt}`,
+          claimIdempotencyKey:
+            `connected-dispatch-claim-${runId}-${runAttempt}`,
           fingerprint,
           requestedAt: now.toISOString(),
           expiresAt,
@@ -525,7 +527,8 @@ describeConnected("hosted Preview Neon upload completion access", () => {
           {
             uploadFileId: "00000000-0000-4000-8000-000000000202",
             objectId: "00000000-0000-4000-8000-000000000202",
-            objectVersion: `connected-r2-version-${runId}-${runAttempt}`,
+            objectVersion:
+              `connected-r2-version-${runId}-${runAttempt}`,
             advertisedByteLength: 256,
             advertisedContentType: "text/csv",
             providerSha256: fingerprint,
@@ -535,7 +538,7 @@ describeConnected("hosted Preview Neon upload completion access", () => {
           },
         ],
       });
-  
+
       expect(dispatch.previewDispatchId).toMatch(UUID_PATTERN);
       expect(dispatch.disposition).toBe("existing");
       expect(dispatch.dispatchState).toBe("pending");
