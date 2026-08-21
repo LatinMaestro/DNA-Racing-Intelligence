@@ -58,7 +58,7 @@ jobs:
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
-      WORKER_SECRETS_FILE: ${{ runner.temp }}/dna-racing-preview-worker-secrets.json
+      WORKER_SECRETS_FILE: /tmp/dna-racing-preview-worker-secrets.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
