@@ -273,7 +273,7 @@ function acceptedRaceEventBounds(
   rows: readonly DurablePreviewStagedRow[],
 ): readonly [string | null, string | null] {
   const timestamps = rows.flatMap(({ row }) =>
-    row.status === "ready" && row.record.sourceType === "race_merge"
+    row.status === "ready" && row.record?.sourceType === "race_merge"
       ? [Date.parse(row.record.eventAt)]
       : [],
   );
