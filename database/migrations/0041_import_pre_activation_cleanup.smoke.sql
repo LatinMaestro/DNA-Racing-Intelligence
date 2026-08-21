@@ -83,6 +83,21 @@ DECLARE
   v_first record;
   v_replay record;
 BEGIN
+  BEGIN
+    PERFORM * FROM dna.cleanup_import_before_activation(
+      '41000000-0000-4000-8000-000000000001',
+      '41000000-0000-4000-8000-000000000101',
+      repeat('9', 64)::character(64),
+      'Attempt cleanup with a stale synthetic fingerprint.',
+      '2026-08-22T00:09:00Z'
+    );
+    RAISE EXCEPTION 'expected fingerprint rejection was not raised';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'pre-activation cleanup fingerprint conflict%' THEN
+      RAISE;
+    END IF;
+  END;
+
   SELECT * INTO STRICT v_first
   FROM dna.cleanup_import_before_activation(
     '41000000-0000-4000-8000-000000000001',
