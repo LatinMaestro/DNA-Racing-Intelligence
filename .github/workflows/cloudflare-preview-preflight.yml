@@ -24,7 +24,7 @@ on:
       - "lib/neon-aggregate-refresh-repository.test.ts"
       - "package.json"
       - "package-lock.json"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
