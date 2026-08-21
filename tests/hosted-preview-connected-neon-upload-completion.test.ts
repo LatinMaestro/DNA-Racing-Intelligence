@@ -102,8 +102,7 @@ function seededClaimRollbackOnlySessionFactory(input: {
             ],
           );
           const seedRow = seed.rows[0] as
-            | { upload_batch_id?: unknown; reserved_files?: unknown }
-            | undefined;
+            { upload_batch_id?: unknown; reserved_files?: unknown } | undefined;
           if (
             typeof seedRow?.upload_batch_id !== "string" ||
             !UUID_PATTERN.test(seedRow.upload_batch_id)
