@@ -180,7 +180,17 @@ const UPDATE_COUNTS_SQL = `
     source_rows = source_rows + $3::bigint,
     accepted_rows = accepted_rows + $4::bigint,
     rejected_rows = rejected_rows + $5::bigint,
-    warning_rows = warning_rows + $6::bigint
+    warning_rows = warning_rows + $6::bigint,
+    minimum_accepted_event_at = CASE
+      WHEN $7::timestamptz IS NULL THEN minimum_accepted_event_at
+      WHEN minimum_accepted_event_at IS NULL THEN $7::timestamptz
+      ELSE LEAST(minimum_accepted_event_at, $7::timestamptz)
+    END,
+    maximum_accepted_event_at = CASE
+      WHEN $8::timestamptz IS NULL THEN maximum_accepted_event_at
+      WHEN maximum_accepted_event_at IS NULL THEN $8::timestamptz
+      ELSE GREATEST(maximum_accepted_event_at, $8::timestamptz)
+    END
   WHERE owner_id = $1::uuid AND id = $2::uuid AND status = 'validating'
   RETURNING id::text AS import_batch_id
 `;
@@ -257,6 +267,21 @@ function count(value: unknown, field: string): number {
   if (typeof result !== "number" || !Number.isSafeInteger(result) || result < 0)
     throw new Error(`${field} must be a non-negative safe integer`);
   return result;
+}
+
+function acceptedRaceEventBounds(
+  rows: readonly DurablePreviewStagedRow[],
+): readonly [string | null, string | null] {
+  const timestamps = rows.flatMap(({ row }) =>
+    row.status === "ready" && row.record?.sourceType === "race_merge"
+      ? [Date.parse(row.record.eventAt)]
+      : [],
+  );
+  if (timestamps.length === 0) return [null, null];
+  return [
+    new Date(Math.min(...timestamps)).toISOString(),
+    new Date(Math.max(...timestamps)).toISOString(),
+  ];
 }
 
 function configuration(input: {
@@ -454,6 +479,8 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
             const warnings = rows.filter(
               ({ row }) => row.issues.length > 0,
             ).length;
+            const [minimumAcceptedEventAt, maximumAcceptedEventAt] =
+              acceptedRaceEventBounds(rows);
             oneRow(
               await session.client.query(UPDATE_COUNTS_SQL, [
                 config.databaseOwnerId,
@@ -462,6 +489,8 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
                 ready,
                 rows.length - ready,
                 warnings,
+                minimumAcceptedEventAt,
+                maximumAcceptedEventAt,
               ]),
               "staged Preview row counts",
             );
