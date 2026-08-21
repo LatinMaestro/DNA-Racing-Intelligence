@@ -13,6 +13,7 @@ import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
 import { hostedImportPreviewWorkerRuntime } from "../lib/hosted-import-preview-worker-runtime";
 import { hostedImportUploadCompletionRuntime } from "../lib/hosted-import-upload-completion-runtime";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
+import { createDefaultNeonImportPersistenceSession } from "../lib/neon-import-persistence-driver";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
 import { createNeonImportUploadIntakeRepository } from "../lib/neon-import-upload-intake-repository";
 
@@ -347,6 +348,7 @@ describeConnected(
             uploadBatchId,
           });
         } catch (queueError) {
+          const failedDatabaseOperations: string[] = [];
           const diagnosticRuntime = hostedImportPreviewWorkerRuntime({
             environment: {
               authorizedOwnerId: ownerId,
@@ -363,28 +365,59 @@ describeConnected(
               maximumObjectBytes: "536870912",
               maximumChunkBytes: "1048576",
             },
+            dependencies: {
+              neonSessionFactory: async (connectionString) => {
+                const session = await createDefaultNeonImportPersistenceSession(
+                  connectionString,
+                );
+                return {
+                  client: {
+                    async query(statement, values) {
+                      try {
+                        return await session.client.query(statement, values);
+                      } catch (error) {
+                        const operation = statement
+                          .trim()
+                          .replace(/\s+/g, " ")
+                          .split(" ")
+                          .slice(0, 4)
+                          .join(" ");
+                        failedDatabaseOperations.push(operation);
+                        throw error;
+                      }
+                    },
+                  },
+                  close: session.close,
+                };
+              },
+            },
           });
           if (diagnosticRuntime.status !== "ready") {
             throw new Error(
               `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=not_configured`,
             );
           }
-          const directDecision = await diagnosticRuntime.consume({
-            body: {
-              version: 1,
-              kind: "preview",
-              dispatchId: queued.previewDispatchId,
-              uploadRequestFingerprint: requestFingerprint,
-            },
-            now: new Date(),
-          });
+          let directDecision: unknown;
+          try {
+            directDecision = await diagnosticRuntime.consume({
+              body: {
+                version: 1,
+                kind: "preview",
+                dispatchId: queued.previewDispatchId,
+                uploadRequestFingerprint: requestFingerprint,
+              },
+              now: new Date(),
+            });
+          } catch {
+            directDecision = { disposition: "threw_sanitized" };
+          }
           const directState = await readPreviewState({
             databaseUrl,
             databaseOwnerId,
             uploadBatchId,
           });
           throw new Error(
-            `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=${JSON.stringify(directDecision)}; direct_state=${JSON.stringify(directState)}`,
+            `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=${JSON.stringify(directDecision)}; failed_database_operations=${JSON.stringify(failedDatabaseOperations)}; direct_state=${JSON.stringify(directState)}`
           );
         }
         expect(prepared).toMatchObject({
