@@ -367,9 +367,10 @@ describeConnected(
             },
             dependencies: {
               neonSessionFactory: async (connectionString) => {
-                const session = await createDefaultNeonImportPersistenceSession(
-                  connectionString,
-                );
+                const session =
+                  await createDefaultNeonImportPersistenceSession(
+                    connectionString,
+                  );
                 return {
                   client: {
                     async query(statement, values) {
