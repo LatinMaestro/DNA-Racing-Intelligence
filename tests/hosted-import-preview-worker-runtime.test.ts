@@ -136,10 +136,10 @@ function stagingSink(): ImportPreviewStagingSink {
 }
 
 describe("hosted import Preview worker runtime", () => {
-  it("fails closed until provider, capacity, and staging dependencies are complete", () => {
+  it("composes durable staging by default and fails closed on incomplete settings", () => {
     expect(
-      hostedImportPreviewWorkerRuntime({ environment: environment() }),
-    ).toEqual({ status: "not_configured" });
+      hostedImportPreviewWorkerRuntime({ environment: environment() }).status,
+    ).toBe("ready");
     expect(
       hostedImportPreviewWorkerRuntime({
         environment: environment({ maximumChunkBytes: "1048577" }),
@@ -150,6 +150,17 @@ describe("hosted import Preview worker runtime", () => {
       hostedImportPreviewWorkerRuntime({
         environment: environment({ authorizedOwnerId: undefined }),
         dependencies: { stagingSink: stagingSink() },
+      }),
+    ).toEqual({ status: "not_configured" });
+    expect(
+      hostedImportPreviewWorkerRuntime({
+        environment: environment({
+          database: {
+            databaseUrl: undefined,
+            databaseOwnerId,
+            runtimeRole,
+          },
+        }),
       }),
     ).toEqual({ status: "not_configured" });
   });
