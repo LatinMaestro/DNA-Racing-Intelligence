@@ -104,7 +104,9 @@ async function waitForPreparedPreview(input: {
   let latest = await readPreviewState(input);
   while (Date.now() < deadline) {
     if (latest.processingState === "failed") {
-      throw new Error(`Connected Preview Worker recorded a processing failure (${latest.failureReason ?? "reason unavailable"})`);
+      throw new Error(
+        `Connected Preview Worker recorded a processing failure (${latest.failureReason ?? "reason unavailable"})`,
+      );
     }
     if (latest.processingState === "complete" && latest.previewId !== null) {
       return latest;
@@ -366,13 +368,18 @@ describeConnected(
           fileCount: 1,
         });
       } finally {
+        let cleanupFailure: unknown;
         if (uploadBatchId !== null) {
-          cleanupResult = await waitForCleanup({
-            repository: cleanupRepository,
-            ownerId,
-            uploadBatchId,
-            requestFingerprintSha256: requestFingerprint,
-          });
+          try {
+            cleanupResult = await waitForCleanup({
+              repository: cleanupRepository,
+              ownerId,
+              uploadBatchId,
+              requestFingerprintSha256: requestFingerprint,
+            });
+          } catch (error) {
+            cleanupFailure = error;
+          }
         }
         if (uploadFileId !== null) {
           const ownerPrefix = createHash("sha256")
@@ -384,6 +391,9 @@ describeConnected(
               Key: `quarantine/${ownerPrefix}/${uploadFileId}.csv`,
             }),
           );
+        }
+        if (cleanupFailure !== undefined) {
+          throw cleanupFailure;
         }
       }
 
