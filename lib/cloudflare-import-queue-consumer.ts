@@ -22,10 +22,7 @@ function retryDelaySeconds(retryAfter: string, now: Date): number | null {
   const retryAt = Date.parse(retryAfter);
   if (Number.isNaN(retryAt)) return null;
   const delaySeconds = Math.ceil((retryAt - now.getTime()) / 1_000);
-  if (
-    delaySeconds < 1 ||
-    delaySeconds > MAXIMUM_LEASE_RETRY_DELAY_SECONDS
-  ) {
+  if (delaySeconds < 1 || delaySeconds > MAXIMUM_LEASE_RETRY_DELAY_SECONDS) {
     return null;
   }
   return delaySeconds;
