@@ -1,5 +1,8 @@
 import type { AcceptedDatasetPreparationRepository } from "./bounded-accepted-dataset-processor";
-import type { ImportActivationRepository } from "./import-activation-service";
+import type {
+  ImportActivationRepository,
+  PrivateRawUploadStore,
+} from "./import-activation-service";
 import type {
   BackgroundDispatchClaim,
   BackgroundImportProcessingRepository,
@@ -43,6 +46,12 @@ const VERIFY_ISOLATION_SQL = `
   JOIN pg_catalog.pg_roles role ON role.rolname = session_user
   WHERE owner.id = $1::uuid
     AND ($2::text IS NULL OR owner.clerk_user_id = $2)
+`;
+
+const ASSERT_READINESS_SQL = `
+  SELECT dna.assert_import_activation_ready(
+    $1::uuid, $2::text, $3::character(64)
+  )
 `;
 
 const RESERVE_SQL = `
@@ -100,6 +109,7 @@ export type ImportActivationDatabaseEnvironment = Readonly<{
 
 export type NeonImportActivationRepositories = Readonly<{
   activationRepository: ImportActivationRepository;
+  readinessStore: PrivateRawUploadStore;
   processingRepository: BackgroundImportProcessingRepository;
   preparationRepository: AcceptedDatasetPreparationRepository;
 }>;
@@ -335,6 +345,18 @@ export function createNeonImportActivationRepositories(input: {
     },
   };
 
+  const readinessStore: PrivateRawUploadStore = {
+    assertPreviewUploadsReady(input) {
+      return run(input.ownerId, async (client) => {
+        await client.query(ASSERT_READINESS_SQL, [
+          config.databaseOwnerId,
+          input.previewId,
+          input.previewFingerprintSha256,
+        ]);
+      });
+    },
+  };
+
   const processingRepository: BackgroundImportProcessingRepository = {
     claimDispatch(input) {
       return run(null, async (client) =>
@@ -419,6 +441,7 @@ export function createNeonImportActivationRepositories(input: {
 
   return {
     activationRepository,
+    readinessStore,
     processingRepository,
     preparationRepository,
   };
