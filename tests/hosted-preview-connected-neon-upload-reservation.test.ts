@@ -34,7 +34,9 @@ function rollbackOnlySessionFactory(): NeonImportPersistenceSessionFactory {
         if (statement === "COMMIT") {
           return client.query("ROLLBACK");
         }
-        return client.query(statement, values);
+        return values === undefined
+          ? client.query(statement)
+          : client.query(statement, [...values]);
       },
     };
     return {
