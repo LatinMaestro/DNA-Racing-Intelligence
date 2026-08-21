@@ -289,6 +289,9 @@ GRANT EXECUTE ON FUNCTION dna.prepare_import_activation_dataset(
 GRANT EXECUTE ON FUNCTION dna.assert_import_activation_ready(
   uuid, text, character
 ) TO dna_ci_activation_dataset;
+GRANT EXECUTE ON FUNCTION dna.list_import_activation_aggregate_refreshes(
+  uuid, uuid, uuid, integer
+) TO dna_ci_activation_dataset;
 
 SET LOCAL ROLE dna_ci_activation_dataset;
 SET LOCAL app.owner_id = '39000000-0000-4000-8000-000000000001';
@@ -394,6 +397,16 @@ BEGIN
       AND aggregate_refresh_required
   ) THEN
     RAISE EXCEPTION 'activation completion evidence was not persisted';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM dna.list_import_activation_aggregate_refreshes(
+      '39000000-0000-4000-8000-000000000001',
+      v_update_session_id, v_dispatch_id, 24
+    )
+  ) <> 9 THEN
+    RAISE EXCEPTION 'activation aggregate publication set is invalid';
   END IF;
 END
 $activation_evidence$;

@@ -87,6 +87,93 @@ GRANT EXECUTE ON FUNCTION dna.assert_import_activation_ready(
   uuid, text, character
 ) TO dna_app_runtime;
 
+CREATE FUNCTION dna.list_import_activation_aggregate_refreshes(
+  p_owner_id uuid,
+  p_update_session_id uuid,
+  p_dispatch_id uuid,
+  p_maximum_refreshes integer
+)
+RETURNS TABLE (refresh_id uuid)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $function$
+DECLARE
+  v_expected_count integer;
+  v_actual_count integer;
+BEGIN
+  IF dna.current_owner_id() IS NULL OR p_owner_id <> dna.current_owner_id() THEN
+    RAISE EXCEPTION 'owner-scoped activation aggregate publication denied';
+  END IF;
+  IF p_maximum_refreshes < 1 OR p_maximum_refreshes > 24 THEN
+    RAISE EXCEPTION 'aggregate refresh publication bound is invalid';
+  END IF;
+
+  SELECT processing.source_version_count
+  INTO v_expected_count
+  FROM dna.import_activation_processing processing
+  WHERE processing.owner_id = p_owner_id
+    AND processing.update_session_id = p_update_session_id
+    AND processing.dispatch_id = p_dispatch_id
+    AND processing.state = 'complete'
+    AND processing.aggregate_refresh_required;
+
+  IF v_expected_count IS NULL THEN
+    RETURN;
+  END IF;
+
+  SELECT count(DISTINCT job.id)::integer
+  INTO v_actual_count
+  FROM dna.import_activation_dispatch dispatch
+  JOIN dna.import_verified_upload_object object
+    ON object.owner_id = dispatch.owner_id
+    AND object.preview_dispatch_id = dispatch.preview_dispatch_id
+  JOIN dna.dataset_version version
+    ON version.owner_id = object.owner_id
+    AND version.import_batch_id = object.upload_file_id
+    AND version.rolled_back_at IS NULL
+  JOIN dna.aggregate_refresh_job job
+    ON job.owner_id = version.owner_id
+    AND job.dataset_version_id = version.id
+    AND job.status <> 'rolled_back'
+  WHERE dispatch.owner_id = p_owner_id
+    AND dispatch.update_session_id = p_update_session_id
+    AND dispatch.id = p_dispatch_id;
+
+  IF v_actual_count <> v_expected_count
+     OR v_actual_count < 1
+     OR v_actual_count > p_maximum_refreshes THEN
+    RAISE EXCEPTION 'activation aggregate refresh evidence is invalid';
+  END IF;
+
+  RETURN QUERY
+  SELECT DISTINCT job.id
+  FROM dna.import_activation_dispatch dispatch
+  JOIN dna.import_verified_upload_object object
+    ON object.owner_id = dispatch.owner_id
+    AND object.preview_dispatch_id = dispatch.preview_dispatch_id
+  JOIN dna.dataset_version version
+    ON version.owner_id = object.owner_id
+    AND version.import_batch_id = object.upload_file_id
+    AND version.rolled_back_at IS NULL
+  JOIN dna.aggregate_refresh_job job
+    ON job.owner_id = version.owner_id
+    AND job.dataset_version_id = version.id
+    AND job.status <> 'rolled_back'
+  WHERE dispatch.owner_id = p_owner_id
+    AND dispatch.update_session_id = p_update_session_id
+    AND dispatch.id = p_dispatch_id
+  ORDER BY job.id;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION dna.list_import_activation_aggregate_refreshes(
+  uuid, uuid, uuid, integer
+) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION dna.list_import_activation_aggregate_refreshes(
+  uuid, uuid, uuid, integer
+) TO dna_app_runtime;
+
 CREATE FUNCTION dna.prepare_import_activation_dataset(
   p_owner_id uuid,
   p_update_session_id uuid,

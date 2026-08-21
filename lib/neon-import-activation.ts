@@ -82,6 +82,13 @@ const CLAIM_SQL = `
     $1::uuid, $2::uuid, $3::text, $4::timestamptz, $5::timestamptz
   )
 `;
+const LIST_AGGREGATE_REFRESHES_SQL = `
+  SELECT refresh_id::text AS refresh_id
+  FROM dna.list_import_activation_aggregate_refreshes(
+    $1::uuid, $2::uuid, $3::uuid, $4::integer
+  )
+`;
+
 const ACTIVATE_SQL = `
   SELECT dna.complete_import_activation(
     $1::uuid, $2::uuid, $3::uuid, $4::text, $5::timestamptz,
@@ -258,6 +265,7 @@ function normalizeClaim(row: Record<string, unknown>): BackgroundDispatchClaim {
   if (status === "already_complete") {
     return {
       status,
+      ownerId: string(row.authenticated_owner_id, "authenticated_owner_id"),
       updateSessionId: string(row.update_session_id, "update_session_id"),
     };
   }
@@ -373,6 +381,22 @@ export function createNeonImportActivationRepositories(input: {
           ),
         ),
       );
+    },
+    listAggregateRefreshIds(input) {
+      return run(input.ownerId, async (client) => {
+        const result = await client.query(LIST_AGGREGATE_REFRESHES_SQL, [
+          config.databaseOwnerId,
+          input.updateSessionId,
+          input.dispatchId,
+          input.maximumRefreshes,
+        ]);
+        return result.rows.map((value, index) =>
+          string(
+            record(value, `aggregate refresh[${index}]`).refresh_id,
+            `aggregate refresh[${index}].refresh_id`,
+          ),
+        );
+      });
     },
     activatePreparedResult(input) {
       return run(input.ownerId, async (client) => {

@@ -1,6 +1,11 @@
 DO $removal$
 BEGIN
   IF to_regprocedure(
+    'dna.list_import_activation_aggregate_refreshes(uuid,uuid,uuid,integer)'
+  ) IS NOT NULL THEN
+    RAISE EXCEPTION 'activation aggregate publication function still exists';
+  END IF;
+  IF to_regprocedure(
     'dna.assert_import_activation_ready(uuid,text,character)'
   ) IS NOT NULL THEN
     RAISE EXCEPTION 'activation readiness function still exists';

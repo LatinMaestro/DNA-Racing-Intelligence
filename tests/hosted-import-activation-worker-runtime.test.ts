@@ -21,10 +21,18 @@ function environment(
 ): HostedImportActivationWorkerEnvironment {
   return {
     workerId: "activation-worker-1",
+    authorizedOwnerId: ownerId,
     database: {
       databaseUrl: "postgresql://private.example/dna",
       databaseOwnerId,
       runtimeRole,
+    },
+    cloudflare: {
+      accountId: "a".repeat(32),
+      apiToken: "least-privilege-queue-token",
+      queueId: "b".repeat(32),
+      queueName: "dna-import-preview",
+      deadLetterQueueName: "dna-import-preview-dlq",
     },
     leaseDurationMilliseconds: "300000",
     maximumSourceVersions: "24",
@@ -146,12 +154,47 @@ describe("hosted import activation worker runtime", () => {
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
       [],
+      [{ owner_scope: databaseOwnerId }],
+      [isolationEvidence()],
+      [{ refresh_id: "aggregate-refresh-1" }],
     ]);
     const runtime = hostedImportActivationWorkerRuntime({
       environment: environment(),
       dependencies: {
         neonSessionFactory: database.sessionFactory,
         now: () => new Date("2026-08-21T02:00:00.000Z"),
+        fetch: vi.fn<typeof globalThis.fetch>(async (request, init) => {
+          const url = String(request);
+          if (init?.method === "GET") {
+            return new Response(
+              JSON.stringify({
+                success: true,
+                result: {
+                  queue_id: "b".repeat(32),
+                  queue_name: "dna-import-preview",
+                  consumers_total_count: 1,
+                  consumers: [
+                    {
+                      settings: { max_retries: 3 },
+                      dead_letter_queue: "dna-import-preview-dlq",
+                      type: "worker",
+                    },
+                  ],
+                  settings: { delivery_paused: false },
+                },
+              }),
+              {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              },
+            );
+          }
+          expect(url).toContain("/messages");
+          return new Response(JSON.stringify({ success: true, result: {} }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }),
       },
     });
     expect(runtime.status).toBe("ready");
@@ -187,6 +230,10 @@ describe("hosted import activation worker runtime", () => {
         2,
         true,
       ],
+    );
+    expect(database.query).toHaveBeenCalledWith(
+      expect.stringContaining("dna.list_import_activation_aggregate_refreshes"),
+      [databaseOwnerId, updateSessionId, dispatchId, 24],
     );
   });
 
