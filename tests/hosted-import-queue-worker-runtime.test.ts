@@ -131,7 +131,7 @@ describe("hosted import queue worker runtime", () => {
     });
     if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
-    await expect(
+    expect(() =>
       runtime.consume({
         body: {
           version: 1,
@@ -140,8 +140,8 @@ describe("hosted import queue worker runtime", () => {
           uploadRequestFingerprint: "not-a-sha256",
         },
       }),
-    ).rejects.toThrow("Import queue message is invalid.");
-    await expect(
+    ).toThrow("Import queue message is invalid.");
+    expect(() =>
       runtime.consume({
         body: {
           version: 1,
@@ -149,7 +149,7 @@ describe("hosted import queue worker runtime", () => {
           dispatchId: "unexpected-dispatch-1",
         },
       }),
-    ).rejects.toThrow("Import queue message is invalid.");
+    ).toThrow("Import queue message is invalid.");
     expect(preview.consume).not.toHaveBeenCalled();
     expect(activation.consume).not.toHaveBeenCalled();
     expect(aggregate.consume).not.toHaveBeenCalled();
