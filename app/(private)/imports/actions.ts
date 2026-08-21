@@ -6,9 +6,9 @@ import {
   type AggregateRetryActionDependencies,
   unavailableAggregateRetryCapabilities,
 } from "@/lib/import-aggregate-retry-action-service";
+import { hostedImportConfirmationRuntime } from "@/lib/hosted-import-confirmation-runtime";
 import { hostedImportUploadCompletionRuntime } from "@/lib/hosted-import-upload-completion-runtime";
 import { hostedImportUploadIntakeRuntime } from "@/lib/hosted-import-upload-intake-runtime";
-import { unavailableImportActivationCapabilities } from "@/lib/import-activation-service";
 import {
   confirmOwnerDataUpdate,
   type ImportConfirmationActionDependencies,
@@ -97,6 +97,7 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
 }
 
 function confirmationActionDependencies(): ImportConfirmationActionDependencies {
+  const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID;
   return {
     resolveAuthenticatedOwnerId: () =>
       authenticatedClerkOwnerId({
@@ -105,9 +106,42 @@ function confirmationActionDependencies(): ImportConfirmationActionDependencies 
           secretKey: process.env.CLERK_SECRET_KEY,
         },
       }),
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    configuredOwnerId: configuredOwnerId ?? null,
     now: () => new Date(),
-    activationCapabilities: unavailableImportActivationCapabilities,
+    activationCapabilities: hostedImportConfirmationRuntime({
+      environment: {
+        authorizedOwnerId: configuredOwnerId,
+        database: {
+          databaseUrl: process.env.DATABASE_URL,
+          databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+          runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+        },
+        cloudflare: {
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+          r2BucketName: process.env.DNA_R2_BUCKET_NAME,
+          queueId: process.env.DNA_IMPORT_QUEUE_ID,
+          queueName: process.env.DNA_IMPORT_QUEUE_NAME,
+          deadLetterQueueName: process.env.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
+        },
+        capacity: {
+          approvedLimits: {
+            r2_storage_bytes: process.env.DNA_IMPORT_LIMIT_R2_STORAGE_BYTES,
+            r2_class_a_operations:
+              process.env.DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS,
+            r2_class_b_operations:
+              process.env.DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS,
+            neon_storage_bytes: process.env.DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES,
+            queue_backlog_messages:
+              process.env.DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES,
+          },
+          minimumHeadroomBasisPoints:
+            process.env.DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS,
+          maximumMeasurementAgeMilliseconds:
+            process.env.DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS,
+        },
+      },
+    }),
   };
 }
 

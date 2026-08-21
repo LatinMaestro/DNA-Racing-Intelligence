@@ -1,5 +1,92 @@
 BEGIN;
 
+CREATE FUNCTION dna.assert_import_activation_ready(
+  p_owner_id uuid,
+  p_preview_id text,
+  p_preview_fingerprint_sha256 character(64)
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $function$
+DECLARE
+  v_file_count integer;
+  v_verified_count integer;
+  v_source_family_count integer;
+BEGIN
+  IF dna.current_owner_id() IS NULL OR p_owner_id <> dna.current_owner_id() THEN
+    RAISE EXCEPTION 'owner-scoped import activation readiness denied';
+  END IF;
+
+  SELECT prepared.file_count, count(object.upload_file_id)::integer,
+    count(DISTINCT file.source_family)::integer
+  INTO v_file_count, v_verified_count, v_source_family_count
+  FROM dna.import_prepared_preview prepared
+  JOIN dna.import_preview_dispatch dispatch
+    ON dispatch.owner_id = prepared.owner_id
+    AND dispatch.id = prepared.preview_dispatch_id
+    AND dispatch.state = 'queued'
+  JOIN dna.import_upload_completion completion
+    ON completion.owner_id = dispatch.owner_id
+    AND completion.id = dispatch.completion_id
+    AND completion.state = 'verified'
+  JOIN dna.import_verified_upload_object object
+    ON object.owner_id = prepared.owner_id
+    AND object.preview_dispatch_id = prepared.preview_dispatch_id
+    AND object.upload_batch_id = prepared.upload_batch_id
+  JOIN dna.import_upload_file file
+    ON file.owner_id = object.owner_id
+    AND file.upload_batch_id = object.upload_batch_id
+    AND file.id = object.upload_file_id
+    AND file.byte_length = object.advertised_byte_length
+    AND file.content_type = object.advertised_content_type
+    AND (
+      object.provider_sha256 IS NULL
+      OR object.provider_sha256 = file.sha256
+    )
+  WHERE prepared.owner_id = p_owner_id
+    AND prepared.preview_id = p_preview_id
+    AND prepared.preview_fingerprint_sha256 = p_preview_fingerprint_sha256
+    AND prepared.confirmable
+    AND prepared.blocking_issue_count = 0
+    AND file.source_family IN ('race_merge', 'core_details', 'current_arena')
+  GROUP BY prepared.file_count;
+
+  IF v_file_count IS NULL
+     OR v_file_count < 1
+     OR v_file_count > 24
+     OR v_verified_count <> v_file_count
+     OR v_source_family_count < 1
+     OR EXISTS (
+       SELECT 1
+       FROM dna.import_verified_upload_object object
+       JOIN dna.import_upload_file file
+         ON file.owner_id = object.owner_id
+         AND file.id = object.upload_file_id
+       JOIN dna.import_prepared_preview prepared
+         ON prepared.owner_id = object.owner_id
+         AND prepared.preview_dispatch_id = object.preview_dispatch_id
+       WHERE prepared.owner_id = p_owner_id
+         AND prepared.preview_id = p_preview_id
+         AND prepared.preview_fingerprint_sha256 =
+           p_preview_fingerprint_sha256
+         AND file.source_family IN ('core_details', 'current_arena')
+       GROUP BY file.source_family
+       HAVING count(*) > 1
+     ) THEN
+    RAISE EXCEPTION 'verified confirmable Preview evidence is unavailable';
+  END IF;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION dna.assert_import_activation_ready(
+  uuid, text, character
+) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION dna.assert_import_activation_ready(
+  uuid, text, character
+) TO dna_app_runtime;
+
 CREATE FUNCTION dna.prepare_import_activation_dataset(
   p_owner_id uuid,
   p_update_session_id uuid,

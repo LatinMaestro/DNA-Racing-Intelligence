@@ -124,6 +124,32 @@ describe("Neon import activation repositories", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
+  it("asserts exact verified Preview evidence through the least-privilege function", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [evidence()],
+      [],
+    ]);
+
+    await repositories(test).readinessStore.assertPreviewUploadsReady({
+      ownerId,
+      previewId: "preview-1",
+      previewFingerprintSha256: sourceHash,
+    });
+
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      "preview-1",
+      sourceHash,
+    ]);
+    expect(
+      test.events.some((event) =>
+        event.includes("assert_import_activation_ready"),
+      ),
+    ).toBe(true);
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
   it("maps claimed and leased worker outcomes without trusting message ownership", async () => {
     const claimed = harness([
       [{ owner_scope: databaseOwnerId }],

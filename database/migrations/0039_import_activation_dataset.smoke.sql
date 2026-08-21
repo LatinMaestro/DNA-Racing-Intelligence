@@ -84,6 +84,24 @@ INSERT INTO dna.import_prepared_preview (
   9, 3, 0, true, '2026-08-21T00:04:00Z'
 );
 
+DO $activation_readiness$
+BEGIN
+  PERFORM dna.assert_import_activation_ready(
+    '39000000-0000-4000-8000-000000000001',
+    'preview-activation-dataset', repeat('d', 64)::character(64)
+  );
+  BEGIN
+    PERFORM dna.assert_import_activation_ready(
+      '39000000-0000-4000-8000-000000000001',
+      'preview-activation-dataset', repeat('e', 64)::character(64)
+    );
+    RAISE EXCEPTION 'mismatched Preview fingerprint was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'mismatched Preview fingerprint was accepted' THEN RAISE; END IF;
+  END;
+END
+$activation_readiness$;
+
 INSERT INTO dna.import_batch (
   id, owner_id, source_type, source_filename, checksum_sha256,
   detected_encoding, schema_version, status, uploaded_at,
@@ -268,9 +286,26 @@ GRANT EXECUTE ON FUNCTION dna.current_owner_id() TO dna_ci_activation_dataset;
 GRANT EXECUTE ON FUNCTION dna.prepare_import_activation_dataset(
   uuid, uuid, uuid, character, integer
 ) TO dna_ci_activation_dataset;
+GRANT EXECUTE ON FUNCTION dna.assert_import_activation_ready(
+  uuid, text, character
+) TO dna_ci_activation_dataset;
 
 SET LOCAL ROLE dna_ci_activation_dataset;
 SET LOCAL app.owner_id = '39000000-0000-4000-8000-000000000001';
+
+DO $runtime_readiness$
+BEGIN
+  PERFORM dna.assert_import_activation_ready(
+    '39000000-0000-4000-8000-000000000001',
+    'preview-activation-dataset', repeat('d', 64)::character(64)
+  );
+  BEGIN
+    PERFORM * FROM dna.import_verified_upload_object;
+    RAISE EXCEPTION 'activation runtime received direct upload evidence access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END
+$runtime_readiness$;
 
 DO $prepare_and_replay$
 DECLARE
