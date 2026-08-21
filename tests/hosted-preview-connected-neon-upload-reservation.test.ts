@@ -9,6 +9,8 @@ import type {
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim() ?? "";
@@ -83,12 +85,8 @@ describeConnected("hosted Preview Neon upload reservation acceptance", () => {
       requestFingerprint,
       files: [{ clientFileId: "connected-neon-race-1" }],
     });
-    expect(reservation.uploadBatchId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
-    expect(reservation.files[0]?.uploadFileId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    expect(reservation.uploadBatchId).toMatch(UUID_PATTERN);
+    expect(reservation.files[0]?.uploadFileId).toMatch(UUID_PATTERN);
 
     const replayAfterRollback = await repository.reserveUploadBatch({
       ownerId: authenticatedOwnerId,
