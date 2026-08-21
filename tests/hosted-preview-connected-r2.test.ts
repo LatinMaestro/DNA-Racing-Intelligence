@@ -7,9 +7,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { describe, expect, it } from "vitest";
 
-import {
-  createCloudflareR2ImportObjectStorageForOwner,
-} from "../lib/cloudflare-r2-import-object-storage";
+import { createCloudflareR2ImportObjectStorageForOwner } from "../lib/cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
@@ -118,7 +116,9 @@ describeConnected("hosted Preview R2 direct upload acceptance", () => {
         });
         expect(opened.status).toBe("ready");
         if (opened.status !== "ready") {
-          throw new Error("Synthetic Preview object disappeared before verification");
+          throw new Error(
+            "Synthetic Preview object disappeared before verification",
+          );
         }
         const streamedHash = createHash("sha256");
         let streamedBytes = 0;
