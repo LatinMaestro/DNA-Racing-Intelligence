@@ -23,9 +23,11 @@ function capabilities(
   value: BackgroundProcessingCapabilities;
   repository: BackgroundImportProcessingRepository;
   processor: BoundedImportProcessor;
+  aggregateQueue: { enqueue: ReturnType<typeof vi.fn> };
 } {
   const repository: BackgroundImportProcessingRepository = {
     claimDispatch: vi.fn(async () => claim),
+    listAggregateRefreshIds: vi.fn(async () => ["refresh-1", "refresh-2"]),
     activatePreparedResult: vi.fn(async () => undefined),
     recordProcessingFailure: vi.fn(async () => undefined),
   };
@@ -39,10 +41,20 @@ function capabilities(
         aggregateRefreshRequired: true,
       })),
   };
+  const aggregateQueue = {
+    enqueue: vi.fn(async () => undefined),
+  };
   return {
-    value: { status: "ready", repository, processor },
+    value: {
+      status: "ready",
+      repository,
+      processor,
+      aggregateQueue,
+      maximumAggregateRefreshes: 24,
+    },
     repository,
     processor,
+    aggregateQueue,
   };
 }
 
@@ -101,6 +113,13 @@ describe("background import dispatch processing", () => {
       quarantinedRecordCount: 1,
       aggregateRefreshRequired: true,
     });
+    expect(services.repository.listAggregateRefreshIds).toHaveBeenCalledWith({
+      ownerId: "owner",
+      updateSessionId: "synthetic-session",
+      dispatchId: "synthetic-dispatch",
+      maximumRefreshes: 24,
+    });
+    expect(services.aggregateQueue.enqueue).toHaveBeenCalledTimes(2);
   });
 
   it("does not process a missing, completed or concurrently leased dispatch", async () => {
@@ -108,6 +127,7 @@ describe("background import dispatch processing", () => {
       { status: "not_found" as const },
       {
         status: "already_complete" as const,
+        ownerId: "owner",
         updateSessionId: "existing-session",
       },
       {
