@@ -150,6 +150,29 @@ describe("Neon import activation repositories", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
+  it("lists the bounded aggregate publication set after activation", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [evidence()],
+      [{ refresh_id: "refresh-1" }, { refresh_id: "refresh-2" }],
+    ]);
+
+    await expect(
+      repositories(test).processingRepository.listAggregateRefreshIds({
+        ownerId,
+        updateSessionId,
+        dispatchId,
+        maximumRefreshes: 24,
+      }),
+    ).resolves.toEqual(["refresh-1", "refresh-2"]);
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      updateSessionId,
+      dispatchId,
+      24,
+    ]);
+  });
+
   it("maps claimed and leased worker outcomes without trusting message ownership", async () => {
     const claimed = harness([
       [{ owner_scope: databaseOwnerId }],
