@@ -1,4 +1,4 @@
-name: Connected Preview R2 acceptance
+name: Connected Preview provider acceptance
 
 on:
   pull_request:
@@ -7,6 +7,9 @@ on:
       - ".github/workflows/connected-preview-r2-acceptance.yml"
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
+      - "lib/neon-import-persistence-driver.ts"
+      - "lib/neon-import-upload-intake-repository.ts"
+      - "tests/hosted-preview-connected-neon-upload-reservation.test.ts"
       - "tests/hosted-preview-connected-r2.test.ts"
   workflow_dispatch: {}
 
@@ -14,12 +17,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: connected-preview-r2-acceptance
+  group: connected-preview-provider-acceptance
   cancel-in-progress: false
 
 jobs:
-  connected-r2:
-    name: Presigned upload, verify, and clean up
+  connected-provider:
+    name: Upload, reservation, verification, and clean up
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
@@ -30,7 +33,9 @@ jobs:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_CONNECTED_PREVIEW_ACCEPTANCE: "1"
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
     steps:
@@ -51,6 +56,8 @@ jobs:
             "AUTHORIZED_CLERK_USER_ID",
             "CLOUDFLARE_ACCOUNT_ID",
             "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
             "DNA_R2_ACCESS_KEY_ID",
             "DNA_R2_SECRET_ACCESS_KEY",
           ];
@@ -66,7 +73,27 @@ jobs:
           if (!/^[a-f0-9]{32}$/.test(process.env.CLOUDFLARE_ACCOUNT_ID)) {
             throw new Error("CLOUDFLARE_ACCOUNT_ID has an unexpected shape");
           }
-          console.log("Validated bounded Preview R2 acceptance inputs.");
+          if (
+            process.env.DNA_DATABASE_OWNER_ID !==
+            "ae7e0493-eb8d-4de8-b1f6-9815d1c0c8a3"
+          ) {
+            throw new Error("DNA_DATABASE_OWNER_ID targets the wrong Preview owner");
+          }
+          const databaseUrl = new URL(process.env.DATABASE_URL);
+          if (
+            decodeURIComponent(databaseUrl.username) !== "dna_app_runtime" ||
+            !databaseUrl.password ||
+            !databaseUrl.hostname.includes("-pooler.") ||
+            !databaseUrl.hostname.endsWith(".neon.tech") ||
+            databaseUrl.pathname !== "/neondb" ||
+            databaseUrl.searchParams.get("sslmode") !== "require"
+          ) {
+            throw new Error("DATABASE_URL is outside the pooled Preview runtime contract");
+          }
+          console.log("Validated bounded connected Preview acceptance inputs.");
           NODE
-      - name: Run connected synthetic direct-upload acceptance
-        run: npx vitest run tests/hosted-preview-connected-r2.test.ts
+      - name: Run connected synthetic provider acceptance
+        run: >-
+          npx vitest run
+          tests/hosted-preview-connected-r2.test.ts
+          tests/hosted-preview-connected-neon-upload-reservation.test.ts
