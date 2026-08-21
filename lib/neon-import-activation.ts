@@ -391,8 +391,10 @@ export function createNeonImportActivationRepositories(input: {
           input.maximumRefreshes,
         ]);
         return result.rows.map((value, index) =>
-          string(record(value, `aggregate refresh[${index}]`).refresh_id,
-            `aggregate refresh[${index}].refresh_id`),
+          string(
+            record(value, `aggregate refresh[${index}]`).refresh_id,
+            `aggregate refresh[${index}].refresh_id`,
+          ),
         );
       });
     },
