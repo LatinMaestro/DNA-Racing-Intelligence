@@ -108,7 +108,7 @@ function seededClaimRollbackOnlySessionFactory(input: {
             typeof seedRow?.upload_batch_id !== "string" ||
             !UUID_PATTERN.test(seedRow.upload_batch_id)
           ) {
-            throw new Error("synthetic upload reservation did not return a batch");
+            throw new Error(\n              "synthetic upload reservation did not return a batch",\n            );
           }
           const reserved =
             typeof seedRow.reserved_files === "string"
