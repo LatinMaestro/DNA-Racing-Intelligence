@@ -186,8 +186,7 @@ function verifyIsolation(
   if (
     text(row.database_owner_id, "database_owner_id") !==
       input.databaseOwnerId ||
-    text(row.authenticated_owner_id, "authenticated_owner_id") !==
-      input.ownerId
+    text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId
   ) {
     throw new Error("Private Preview cleanup owner scope denied.");
   }
