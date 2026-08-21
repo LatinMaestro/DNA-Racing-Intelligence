@@ -143,8 +143,7 @@ export function hostedImportActivationWorkerRuntime(input: {
       const queueConfiguration =
         cloudflareImportQueueConfigurationFromEnvironment({
           queueName: input.environment.cloudflare.queueName,
-          deadLetterQueueName:
-            input.environment.cloudflare.deadLetterQueueName,
+          deadLetterQueueName: input.environment.cloudflare.deadLetterQueueName,
           createPort: () =>
             createCloudflareImportQueuePort({
               accountId,
