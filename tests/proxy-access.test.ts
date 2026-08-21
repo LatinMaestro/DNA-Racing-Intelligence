@@ -76,8 +76,7 @@ describe("deployment and Clerk proxy composition", () => {
     delete process.env.VERCEL_ENV;
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_configured";
     process.env.CLERK_SECRET_KEY = "sk_test_configured";
-    delete (process.env as Partial<NodeJS.ProcessEnv>)
-      .AUTHORIZED_CLERK_USER_ID;
+    delete (process.env as Partial<NodeJS.ProcessEnv>).AUTHORIZED_CLERK_USER_ID;
 
     const response = await proxy(request, event);
 
