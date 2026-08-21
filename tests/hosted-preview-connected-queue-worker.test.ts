@@ -418,7 +418,7 @@ describeConnected(
             uploadBatchId,
           });
           throw new Error(
-            `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=${JSON.stringify(directDecision)}; failed_database_operations=${JSON.stringify(failedDatabaseOperations)}; direct_state=${JSON.stringify(directState)}`
+            `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=${JSON.stringify(directDecision)}; failed_database_operations=${JSON.stringify(failedDatabaseOperations)}; direct_state=${JSON.stringify(directState)}`,
           );
         }
         expect(prepared).toMatchObject({
