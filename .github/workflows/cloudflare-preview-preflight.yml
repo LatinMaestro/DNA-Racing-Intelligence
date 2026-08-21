@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - .github/workflows/cloudflare-preview-preflight.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/cloudflare-preview-preflight.yml
 
 permissions:
   contents: read
