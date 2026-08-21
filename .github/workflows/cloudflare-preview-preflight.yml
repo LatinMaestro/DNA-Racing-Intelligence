@@ -24,11 +24,14 @@ on:
       - "lib/neon-aggregate-refresh-repository.test.ts"
       - "package.json"
       - "package-lock.json"
+  workflow_dispatch:
+
 permissions:
   contents: read
+  issues: write
 
 concurrency:
-  group: cloudflare-preview-provider-validation
+  group: cloudflare-preview-worker-commission
   cancel-in-progress: false
 
 env:
@@ -55,6 +58,7 @@ jobs:
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      WORKER_SECRETS_FILE: ${{ runner.temp }}/dna-racing-preview-worker-secrets.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -209,7 +213,46 @@ jobs:
           NODE
       - name: Validate Worker bundle without deployment
         run: npm run worker:dry-run
+      - name: Materialize ephemeral Worker secrets
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from "node:fs";
+          const names = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_SECRET_ACCESS_KEY",
+          ];
+          const secrets = Object.fromEntries(
+            names.map((name) => {
+              const value = process.env[name];
+              if (!value) throw new Error("Missing " + name);
+              return [name, value];
+            }),
+          );
+          writeFileSync(process.env.WORKER_SECRETS_FILE, JSON.stringify(secrets), {
+            encoding: "utf8",
+            mode: 0o600,
+          });
+          NODE
+      - name: Deploy protected queue-only Worker
+        if: github.event_name == 'workflow_dispatch'
+        run: >
+          npx wrangler deploy
+          --config wrangler.jsonc
+          --strict
+          --experimental-provision=false
+          --experimental-auto-create=false
+          --secrets-file "${WORKER_SECRETS_FILE}"
+      - name: Remove ephemeral Worker secrets
+        if: always() && github.event_name == 'workflow_dispatch'
+        run: rm -f -- "${WORKER_SECRETS_FILE}"
       - name: Verify deployed secret bindings
+        if: github.event_name == 'workflow_dispatch'
         run: |
           npx wrangler secret list --config wrangler.jsonc > "${RUNNER_TEMP}/worker-secret-list.json"
           node --input-type=module <<'NODE'
@@ -236,6 +279,7 @@ jobs:
           console.log("Verified seven deployed Worker secret bindings without reading their values.");
           NODE
       - name: Verify exact queue consumer controls
+        if: github.event_name == 'workflow_dispatch'
         run: |
           node --input-type=module <<'NODE'
           const response = await fetch(
@@ -279,4 +323,14 @@ jobs:
           console.log("Verified queue-only Worker, DLQ, retry, batch, wait, and concurrency controls.");
           NODE
       - name: Record deployed Worker inventory
+        if: github.event_name == 'workflow_dispatch'
         run: npx wrangler deployments list --config wrangler.jsonc
+      - name: Record commissioning outcome on Issue 120
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh issue comment 120
+          --body "Cloudflare Preview Worker commissioning run
+          https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/${{ github.run_id }}
+          completed with job status ${{ job.status }}. No secret values are included."
