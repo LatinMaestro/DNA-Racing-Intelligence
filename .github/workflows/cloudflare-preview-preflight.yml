@@ -204,7 +204,9 @@ jobs:
           const unexpected = consumers.filter(
             (consumer) =>
               consumer.type !== "worker" ||
-              consumer.script_name !== process.env.EXPECTED_WORKER_NAME,
+              consumer.queue_name !== process.env.EXPECTED_ACTIVATION_QUEUE ||
+              (consumer.script_name != null &&
+                consumer.script_name !== process.env.EXPECTED_WORKER_NAME),
           );
           if (unexpected.length > 0 || consumers.length > 1) {
             throw new Error("Activation queue has an unexpected consumer");
@@ -302,7 +304,9 @@ jobs:
           const consumers = body.result.filter(
             (consumer) =>
               consumer.type === "worker" &&
-              consumer.script_name === process.env.EXPECTED_WORKER_NAME,
+              consumer.queue_name === process.env.EXPECTED_ACTIVATION_QUEUE &&
+              (consumer.script_name == null ||
+                consumer.script_name === process.env.EXPECTED_WORKER_NAME),
           );
           if (body.result.length !== 1 || consumers.length !== 1) {
             throw new Error("Activation queue does not have exactly one expected Worker consumer");
