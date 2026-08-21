@@ -42,9 +42,7 @@ export type HostedImportQueueWorkerRuntime =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      consume: (
-        input: QueueDelivery,
-      ) => Promise<ImportQueueConsumerDecision>;
+      consume: (input: QueueDelivery) => Promise<ImportQueueConsumerDecision>;
     }>;
 
 export const unavailableHostedImportQueueWorkerRuntime: HostedImportQueueWorkerRuntime =
