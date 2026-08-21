@@ -183,13 +183,19 @@ describe("hosted import activation worker runtime", () => {
                   settings: { delivery_paused: false },
                 },
               }),
-              { status: 200, headers: { "content-type": "application/json" } },
+              {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              },
             );
           }
           expect(url).toContain("/messages");
           return new Response(
             JSON.stringify({ success: true, result: {} }),
-            { status: 200, headers: { "content-type": "application/json" } },
+            {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            },
           );
         }),
       },
