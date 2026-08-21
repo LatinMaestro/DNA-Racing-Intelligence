@@ -92,14 +92,16 @@ BEGIN
   FROM dna.import_upload_batch batch
   WHERE batch.owner_id = p_owner_id
     AND batch.id = p_upload_batch_id
-    AND batch.request_fingerprint_sha256 =
-      p_request_fingerprint_sha256
   FOR UPDATE;
 
   IF NOT FOUND THEN
     RETURN QUERY SELECT 'not_found'::text, NULL::uuid,
       0::integer, 0::integer, 0::integer;
     RETURN;
+  END IF;
+  IF v_batch.request_fingerprint_sha256 <>
+     p_request_fingerprint_sha256 THEN
+    RAISE EXCEPTION 'pre-activation cleanup fingerprint conflict';
   END IF;
 
   SELECT count(*)::integer
@@ -111,6 +113,33 @@ BEGIN
   IF v_file_count NOT BETWEEN 1 AND 24 THEN
     RAISE EXCEPTION 'pre-activation cleanup file count is invalid';
   END IF;
+
+  PERFORM 1
+  FROM dna.import_preview_dispatch dispatch
+  WHERE dispatch.owner_id = p_owner_id
+    AND dispatch.upload_batch_id = p_upload_batch_id
+  FOR UPDATE;
+
+  PERFORM 1
+  FROM dna.import_preview_processing processing
+  WHERE processing.owner_id = p_owner_id
+    AND processing.upload_batch_id = p_upload_batch_id
+  FOR UPDATE;
+
+  PERFORM 1
+  FROM dna.import_prepared_preview prepared
+  WHERE prepared.owner_id = p_owner_id
+    AND prepared.upload_batch_id = p_upload_batch_id
+  FOR UPDATE;
+
+  PERFORM 1
+  FROM dna.import_activation_dispatch activation
+  JOIN dna.import_prepared_preview prepared
+    ON prepared.owner_id = activation.owner_id
+    AND prepared.preview_dispatch_id = activation.preview_dispatch_id
+  WHERE activation.owner_id = p_owner_id
+    AND prepared.upload_batch_id = p_upload_batch_id
+  FOR UPDATE OF activation;
 
   IF EXISTS (
     SELECT 1
