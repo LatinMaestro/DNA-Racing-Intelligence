@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { createCloudflareR2ImportObjectStorageForOwner } from "../lib/cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
+import { hostedImportPreviewWorkerRuntime } from "../lib/hosted-import-preview-worker-runtime";
 import { hostedImportUploadCompletionRuntime } from "../lib/hosted-import-upload-completion-runtime";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
@@ -334,11 +335,58 @@ describeConnected(
           fileCount: 1,
         });
 
-        const prepared = await waitForPreparedPreview({
-          databaseUrl,
-          databaseOwnerId,
-          uploadBatchId,
-        });
+        if (queued.status !== "queued_for_preview") {
+          throw new Error("Connected upload was not queued for Preview");
+        }
+
+        let prepared: Awaited<ReturnType<typeof readPreviewState>>;
+        try {
+          prepared = await waitForPreparedPreview({
+            databaseUrl,
+            databaseOwnerId,
+            uploadBatchId,
+          });
+        } catch (queueError) {
+          const diagnosticRuntime = hostedImportPreviewWorkerRuntime({
+            environment: {
+              authorizedOwnerId: ownerId,
+              workerId: "dna-racing-import-preview-worker-diagnostic",
+              database: {
+                databaseUrl,
+                databaseOwnerId,
+                runtimeRole: "dna_app_runtime",
+              },
+              r2: { accountId, bucketName, accessKeyId, secretAccessKey },
+              cloudflareApiToken: apiToken,
+              leaseDurationMilliseconds: "300000",
+              maximumBatchBytes: "1073741824",
+              maximumObjectBytes: "536870912",
+              maximumChunkBytes: "1048576",
+            },
+          });
+          if (diagnosticRuntime.status !== "ready") {
+            throw new Error(
+              `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=not_configured`,
+            );
+          }
+          const directDecision = await diagnosticRuntime.consume({
+            body: {
+              version: 1,
+              kind: "preview",
+              dispatchId: queued.previewDispatchId,
+              uploadRequestFingerprint: requestFingerprint,
+            },
+            now: new Date(),
+          });
+          const directState = await readPreviewState({
+            databaseUrl,
+            databaseOwnerId,
+            uploadBatchId,
+          });
+          throw new Error(
+            `${queueError instanceof Error ? queueError.message : "Connected Preview Worker timed out"}; direct_runtime=${JSON.stringify(directDecision)}; direct_state=${JSON.stringify(directState)}`,
+          );
+        }
         expect(prepared).toMatchObject({
           processingState: "complete",
           failureReason: null,
