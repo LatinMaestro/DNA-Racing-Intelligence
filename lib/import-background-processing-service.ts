@@ -1,6 +1,12 @@
+import type { AggregateRetryQueue } from "./import-aggregate-retry-action-service";
+
 export type BackgroundDispatchClaim =
   | Readonly<{ status: "not_found" }>
-  | Readonly<{ status: "already_complete"; updateSessionId: string }>
+  | Readonly<{
+      status: "already_complete";
+      ownerId: string;
+      updateSessionId: string;
+    }>
   | Readonly<{ status: "leased_elsewhere"; retryAfter: string }>
   | Readonly<{
       status: "claimed";
@@ -23,6 +29,12 @@ export type BackgroundImportProcessingRepository = Readonly<{
     claimedAt: string;
     leaseExpiresAt: string;
   }) => Promise<BackgroundDispatchClaim>;
+  listAggregateRefreshIds: (input: {
+    ownerId: string;
+    updateSessionId: string;
+    dispatchId: string;
+    maximumRefreshes: number;
+  }) => Promise<readonly string[]>;
   activatePreparedResult: (input: {
     ownerId: string;
     updateSessionId: string;
@@ -58,6 +70,8 @@ export type BackgroundProcessingCapabilities =
       status: "ready";
       repository: BackgroundImportProcessingRepository;
       processor: BoundedImportProcessor;
+      aggregateQueue: AggregateRetryQueue;
+      maximumAggregateRefreshes: number;
     }>;
 
 export type BackgroundDispatchResult =
@@ -65,6 +79,7 @@ export type BackgroundDispatchResult =
   | Readonly<{ status: "not_found" }>
   | Readonly<{
       status: "already_complete";
+      ownerId: string;
       updateSessionId: string;
     }>
   | Readonly<{
@@ -137,6 +152,7 @@ function normalizeClaim(
     case "already_complete":
       return {
         status: "already_complete",
+        ownerId: requireSafeIdentifier(claim.ownerId, "ownerId"),
         updateSessionId: requireSafeIdentifier(
           claim.updateSessionId,
           "updateSessionId",
@@ -179,6 +195,41 @@ function normalizeClaim(
   }
 }
 
+async function publishAggregateRefreshes(input: {
+  repository: BackgroundImportProcessingRepository;
+  aggregateQueue: AggregateRetryQueue;
+  ownerId: string;
+  updateSessionId: string;
+  dispatchId: string;
+  maximumAggregateRefreshes: number;
+}): Promise<void> {
+  const refreshIds = await input.repository.listAggregateRefreshIds({
+    ownerId: input.ownerId,
+    updateSessionId: input.updateSessionId,
+    dispatchId: input.dispatchId,
+    maximumRefreshes: input.maximumAggregateRefreshes,
+  });
+  if (
+    !Array.isArray(refreshIds) ||
+    refreshIds.length > input.maximumAggregateRefreshes
+  ) {
+    throw new Error("Aggregate refresh publication set is invalid.");
+  }
+  const unique = new Set<string>();
+  for (const candidate of refreshIds) {
+    const refreshId = requireSafeIdentifier(candidate, "refreshId");
+    if (unique.has(refreshId)) {
+      throw new Error("Aggregate refresh publication set is invalid.");
+    }
+    unique.add(refreshId);
+    await input.aggregateQueue.enqueue({
+      ownerId: input.ownerId,
+      refreshId,
+      dispatchId: input.dispatchId,
+    });
+  }
+}
+
 export async function runBackgroundImportDispatch(
   input: Readonly<{
     dispatchId: string;
@@ -211,7 +262,15 @@ export async function runBackgroundImportDispatch(
     "maximumRetryAt",
   );
 
-  const { repository, processor } = input.capabilities;
+  const { repository, processor, aggregateQueue, maximumAggregateRefreshes } =
+    input.capabilities;
+  if (
+    !Number.isSafeInteger(maximumAggregateRefreshes) ||
+    maximumAggregateRefreshes < 1 ||
+    maximumAggregateRefreshes > 24
+  ) {
+    throw new Error("maximumAggregateRefreshes must be between 1 and 24");
+  }
   const claim = normalizeClaim(
     await repository.claimDispatch({
       dispatchId,
@@ -225,8 +284,17 @@ export async function runBackgroundImportDispatch(
 
   if (claim.status === "not_found") return { status: "not_found" };
   if (claim.status === "already_complete") {
+    await publishAggregateRefreshes({
+      repository,
+      aggregateQueue,
+      ownerId: claim.ownerId,
+      updateSessionId: claim.updateSessionId,
+      dispatchId,
+      maximumAggregateRefreshes,
+    });
     return {
       status: "already_complete",
+      ownerId: claim.ownerId,
       updateSessionId: claim.updateSessionId,
     };
   }
@@ -269,6 +337,17 @@ export async function runBackgroundImportDispatch(
     quarantinedRecordCount: prepared.quarantinedRecordCount,
     aggregateRefreshRequired: prepared.aggregateRefreshRequired,
   });
+
+  if (prepared.aggregateRefreshRequired) {
+    await publishAggregateRefreshes({
+      repository,
+      aggregateQueue,
+      ownerId: claim.ownerId,
+      updateSessionId: claim.updateSessionId,
+      dispatchId,
+      maximumAggregateRefreshes,
+    });
+  }
 
   return {
     status: "completed",
