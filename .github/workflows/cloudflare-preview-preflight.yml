@@ -22,6 +22,7 @@ concurrency:
 
 env:
   DNA_R2_BUCKET_NAME: dna-racing-import-preview
+  DNA_IMPORT_QUEUE_ID: df7408e1d697475db4dbcdda1aa3e247
   DNA_IMPORT_QUEUE_NAME: dna-racing-import-preview
   DNA_IMPORT_DEAD_LETTER_QUEUE_NAME: dna-racing-import-preview-dlq
 
@@ -58,8 +59,15 @@ jobs:
       - name: Inventory private R2 buckets
         run: npx wrangler r2 bucket list
 
-      - name: Inventory Queues and DLQs
-        run: npx wrangler queues list
+      - name: Inventory and verify Queue identity
+        shell: bash
+        run: |
+          inventory="$(npx wrangler queues list)"
+          printf '%s\n' "$inventory"
+          printf '%s\n' "$inventory" \
+            | grep -Eq "[[:space:]|]$DNA_IMPORT_QUEUE_ID[[:space:]|]+$DNA_IMPORT_QUEUE_NAME[[:space:]|]"
+          printf '%s\n' "$inventory" \
+            | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"
 
       - name: Validate Worker bundle without deployment
         run: npm run worker:dry-run
@@ -136,7 +144,7 @@ jobs:
           printf '%s\n' "$r2_inventory" \
             | grep -Eq "^name:[[:space:]]+$DNA_R2_BUCKET_NAME$"
           printf '%s\n' "$queue_inventory" \
-            | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_QUEUE_NAME([[:space:]|]|$)"
+            | grep -Eq "[[:space:]|]$DNA_IMPORT_QUEUE_ID[[:space:]|]+$DNA_IMPORT_QUEUE_NAME[[:space:]|]"
           printf '%s\n' "$queue_inventory" \
             | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"
 
