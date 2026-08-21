@@ -307,7 +307,7 @@ jobs:
       - name: Record deployed Worker inventory
         run: npx wrangler deployments list --config wrangler.jsonc
       - name: Record commissioning outcome on Issue 120
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
