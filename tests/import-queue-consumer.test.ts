@@ -77,10 +77,13 @@ function activationCapabilities(claim: BackgroundDispatchClaim) {
     status: "ready",
     repository: {
       claimDispatch,
+      listAggregateRefreshIds: vi.fn(async () => []),
       activatePreparedResult: vi.fn(async () => undefined),
       recordProcessingFailure: vi.fn(async () => undefined),
     },
     processor: { prepare },
+    aggregateQueue: { enqueue: vi.fn(async () => undefined) },
+    maximumAggregateRefreshes: 24,
   };
   return { value, claimDispatch, prepare };
 }
