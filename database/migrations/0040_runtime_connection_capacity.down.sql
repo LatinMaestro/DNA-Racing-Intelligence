@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER ROLE dna_app_runtime CONNECTION LIMIT -1;
+
+COMMIT;
