@@ -390,7 +390,101 @@ function seededDispatchRollbackOnlySessionFactory(input: {
               "synthetic preview dispatch replay is not idempotent",
             );
           }
-          return replay;
+          await client.query(
+            `SELECT dna.mark_import_preview_dispatch_failed(
+              $1::uuid,
+              $2::uuid,
+              $3::uuid,
+              $4::timestamptz
+            )`,
+            [
+              input.ownerId,
+              seedRow.upload_batch_id,
+              createdRow.preview_dispatch_id,
+              values[4],
+            ],
+          );
+          const recovered = await client.query(statement, dispatchValues);
+          const recoveredRow = recovered.rows[0] as
+            | {
+                preview_dispatch_id?: unknown;
+                disposition?: unknown;
+                dispatch_state?: unknown;
+              }
+            | undefined;
+          if (
+            recoveredRow?.preview_dispatch_id !==
+              createdRow.preview_dispatch_id ||
+            recoveredRow.disposition !== "existing" ||
+            recoveredRow.dispatch_state !== "pending"
+          ) {
+            throw new Error("synthetic failed dispatch did not recover");
+          }
+          await client.query(
+            `SELECT dna.mark_import_preview_dispatch_queued(
+              $1::uuid,
+              $2::uuid,
+              $3::uuid,
+              $4::timestamptz
+            )`,
+            [
+              input.ownerId,
+              seedRow.upload_batch_id,
+              createdRow.preview_dispatch_id,
+              values[4],
+            ],
+          );
+          const queued = await client.query(statement, dispatchValues);
+          const queuedRow = queued.rows[0] as
+            | {
+                preview_dispatch_id?: unknown;
+                disposition?: unknown;
+                dispatch_state?: unknown;
+              }
+            | undefined;
+          if (
+            queuedRow?.preview_dispatch_id !== createdRow.preview_dispatch_id ||
+            queuedRow.disposition !== "existing" ||
+            queuedRow.dispatch_state !== "queued"
+          ) {
+            throw new Error("synthetic queued dispatch replay is invalid");
+          }
+          const queuedClaim = await client.query(
+            `SELECT
+              status,
+              preview_dispatch_id::text AS preview_dispatch_id,
+              file_count
+            FROM dna.claim_import_upload_completion(
+              $1::uuid,
+              $2::uuid,
+              $3::text,
+              $4::character(64),
+              $5::timestamptz
+            )`,
+            [
+              input.ownerId,
+              seedRow.upload_batch_id,
+              `${input.claimIdempotencyKey}:queued`,
+              input.fingerprint,
+              values[4],
+            ],
+          );
+          const queuedClaimRow = queuedClaim.rows[0] as
+            | {
+                status?: unknown;
+                preview_dispatch_id?: unknown;
+                file_count?: unknown;
+              }
+            | undefined;
+          if (
+            queuedClaimRow?.status !== "already_queued" ||
+            queuedClaimRow.preview_dispatch_id !==
+              createdRow.preview_dispatch_id ||
+            queuedClaimRow.file_count !== 1
+          ) {
+            throw new Error("synthetic queued completion replay is invalid");
+          }
+          return queued;
         }
         return values === undefined
           ? client.query(statement)
@@ -488,7 +582,7 @@ describeConnected("hosted Preview Neon upload completion access", () => {
     expect(claim.files[0]?.objectId).toMatch(UUID_PATTERN);
   }, 120_000);
 
-  it("persists and replays a transaction-local verified dispatch, then rolls it back", async () => {
+  it("recovers and queues a transaction-local verified dispatch, then rolls it back", async () => {
     const databaseUrl = requiredEnvironment("DATABASE_URL");
     const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
     const authenticatedOwnerId = requiredEnvironment(
@@ -535,7 +629,7 @@ describeConnected("hosted Preview Neon upload completion access", () => {
 
     expect(dispatch.previewDispatchId).toMatch(UUID_PATTERN);
     expect(dispatch.disposition).toBe("existing");
-    expect(dispatch.dispatchState).toBe("pending");
+    expect(dispatch.dispatchState).toBe("queued");
     expect(dispatch.uploadRequestFingerprint).toBe(fingerprint);
   }, 120_000);
 });
