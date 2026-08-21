@@ -68,9 +68,7 @@ function seededCleanupRollbackOnlySessionFactory(input: {
         if (statement === "COMMIT") {
           return client.query("ROLLBACK");
         }
-        if (
-          statement.includes("FROM dna.cleanup_import_before_activation(")
-        ) {
+        if (statement.includes("FROM dna.cleanup_import_before_activation(")) {
           if (values === undefined) {
             throw new Error("cleanup values are required");
           }
