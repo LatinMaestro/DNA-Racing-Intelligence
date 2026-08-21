@@ -8,6 +8,7 @@ import {
   type CloudflareR2ImportObjectStoragePort,
 } from "./cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
+import { createDurableImportPreviewStagingSink } from "./durable-import-preview-staging-sink";
 import {
   consumeImportPreviewQueueMessage,
   type ImportQueueConsumerDecision,
@@ -16,6 +17,7 @@ import {
   neonImportPreviewProcessingRepositoryFromEnvironment,
   type ImportPreviewProcessingRepositoryEnvironment,
 } from "./neon-import-preview-processing-repository";
+import { neonDurableImportPreviewStagingRepositoryFromEnvironment } from "./neon-durable-import-preview-staging-repository";
 import type { NeonImportPersistenceSessionFactory } from "./neon-import-persistence-driver";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
@@ -105,8 +107,6 @@ export function hostedImportPreviewWorkerRuntime(input: {
   const maximumChunkBytes = positiveInteger(
     input.environment.maximumChunkBytes,
   );
-  const stagingSink = input.dependencies?.stagingSink;
-
   if (
     ownerId === null ||
     workerId === null ||
@@ -121,8 +121,7 @@ export function hostedImportPreviewWorkerRuntime(input: {
     maximumObjectBytes === null ||
     maximumChunkBytes === null ||
     maximumChunkBytes > maximumObjectBytes ||
-    maximumObjectBytes > maximumBatchBytes ||
-    stagingSink === undefined
+    maximumObjectBytes > maximumBatchBytes
   ) {
     return unavailableHostedImportPreviewWorkerRuntime;
   }
@@ -150,7 +149,25 @@ export function hostedImportPreviewWorkerRuntime(input: {
             fetch: fetcher,
           }),
       });
-    if (repository === null || r2Configuration === null) {
+    const stagingRepository =
+      input.dependencies?.stagingSink === undefined
+        ? neonDurableImportPreviewStagingRepositoryFromEnvironment(
+            input.environment.database,
+            input.dependencies?.neonSessionFactory,
+          )
+        : null;
+    const stagingSink =
+      input.dependencies?.stagingSink ??
+      (stagingRepository === null
+        ? null
+        : createDurableImportPreviewStagingSink({
+            repository: stagingRepository,
+          }));
+    if (
+      repository === null ||
+      r2Configuration === null ||
+      stagingSink === null
+    ) {
       return unavailableHostedImportPreviewWorkerRuntime;
     }
 
