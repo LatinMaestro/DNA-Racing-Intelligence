@@ -8,7 +8,7 @@
   "preview_urls": false,
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 1
+    "head_sampling_rate": 1,
   },
   "secrets": {
     "required": [
@@ -19,8 +19,8 @@
       "CLOUDFLARE_API_TOKEN",
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",
-      "DNA_IMPORT_QUEUE_ID"
-    ]
+      "DNA_IMPORT_QUEUE_ID",
+    ],
   },
   "vars": {
     "DNA_DATABASE_RUNTIME_ROLE": "dna_app_runtime",
@@ -33,14 +33,14 @@
     "DNA_IMPORT_MAXIMUM_OBJECT_BYTES": "536870912",
     "DNA_IMPORT_MAXIMUM_CHUNK_BYTES": "1048576",
     "DNA_IMPORT_MAXIMUM_SOURCE_VERSIONS": "24",
-    "DNA_IMPORT_MAXIMUM_QUARANTINED_RECORDS": "1000000"
+    "DNA_IMPORT_MAXIMUM_QUARANTINED_RECORDS": "1000000",
   },
   "queues": {
     "producers": [
       {
         "binding": "DNA_IMPORT_QUEUE",
-        "queue": "dna-racing-import-preview"
-      }
+        "queue": "dna-racing-import-preview",
+      },
     ],
     "consumers": [
       {
@@ -48,8 +48,8 @@
         "max_batch_size": 1,
         "max_batch_timeout": 5,
         "max_retries": 3,
-        "dead_letter_queue": "dna-racing-import-preview-dlq"
-      }
-    ]
-  }
+        "dead_letter_queue": "dna-racing-import-preview-dlq",
+      },
+    ],
+  },
 }
