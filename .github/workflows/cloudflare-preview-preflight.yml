@@ -1,4 +1,4 @@
-name: Cloudflare Preview preflight
+name: Cloudflare Preview provider
 
 on:
   workflow_dispatch:
@@ -17,6 +17,11 @@ permissions:
 concurrency:
   group: cloudflare-preview-provider
   cancel-in-progress: false
+
+env:
+  DNA_R2_BUCKET_NAME: dna-racing-import-preview
+  DNA_IMPORT_QUEUE_NAME: dna-racing-import-preview
+  DNA_IMPORT_DEAD_LETTER_QUEUE_NAME: dna-racing-import-preview-dlq
 
 jobs:
   preflight:
@@ -55,4 +60,83 @@ jobs:
         run: npx wrangler queues list
 
       - name: Validate Worker bundle without deployment
+        run: npm run worker:dry-run
+
+  commission_resources:
+    name: commission private R2 and Queue resources
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Require protected Cloudflare credentials
+        shell: bash
+        run: |
+          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "Cloudflare Preview credentials are not configured."
+            exit 1
+          fi
+
+      - name: Commission private R2 bucket idempotently
+        shell: bash
+        run: |
+          inventory="$(npx wrangler r2 bucket list)"
+          if printf '%s\n' "$inventory" | grep -Eq "^name:[[:space:]]+$DNA_R2_BUCKET_NAME$"; then
+            echo "Private R2 bucket already exists: $DNA_R2_BUCKET_NAME"
+          else
+            npx wrangler r2 bucket create "$DNA_R2_BUCKET_NAME"
+          fi
+
+      - name: Commission import Queue idempotently
+        shell: bash
+        run: |
+          inventory="$(npx wrangler queues list)"
+          if printf '%s\n' "$inventory" | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_QUEUE_NAME([[:space:]|]|$)"; then
+            echo "Import Queue already exists: $DNA_IMPORT_QUEUE_NAME"
+          else
+            npx wrangler queues create "$DNA_IMPORT_QUEUE_NAME" \
+              --message-retention-period-secs 86400
+          fi
+
+      - name: Commission DLQ idempotently
+        shell: bash
+        run: |
+          inventory="$(npx wrangler queues list)"
+          if printf '%s\n' "$inventory" | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"; then
+            echo "DLQ already exists: $DNA_IMPORT_DEAD_LETTER_QUEUE_NAME"
+          else
+            npx wrangler queues create "$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME" \
+              --message-retention-period-secs 86400
+          fi
+
+      - name: Verify exact commissioned resources
+        shell: bash
+        run: |
+          r2_inventory="$(npx wrangler r2 bucket list)"
+          queue_inventory="$(npx wrangler queues list)"
+
+          printf '%s\n' "$r2_inventory"
+          printf '%s\n' "$queue_inventory"
+
+          printf '%s\n' "$r2_inventory" \
+            | grep -Eq "^name:[[:space:]]+$DNA_R2_BUCKET_NAME$"
+          printf '%s\n' "$queue_inventory" \
+            | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_QUEUE_NAME([[:space:]|]|$)"
+          printf '%s\n' "$queue_inventory" \
+            | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"
+
+      - name: Confirm Worker remains undeployed
         run: npm run worker:dry-run
