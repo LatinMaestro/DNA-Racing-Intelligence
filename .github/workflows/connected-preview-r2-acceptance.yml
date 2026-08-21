@@ -8,8 +8,10 @@ on:
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
       - "lib/neon-import-persistence-driver.ts"
+      - "lib/neon-import-pre-activation-cleanup-repository.ts"
       - "lib/neon-import-upload-completion-repository.ts"
       - "lib/neon-import-upload-intake-repository.ts"
+      - "tests/hosted-preview-connected-neon-pre-activation-cleanup.test.ts"
       - "tests/hosted-preview-connected-neon-upload-completion.test.ts"
       - "tests/hosted-preview-connected-neon-upload-reservation.test.ts"
       - "tests/hosted-preview-connected-r2.test.ts"
@@ -100,3 +102,4 @@ jobs:
           tests/hosted-preview-connected-r2.test.ts
           tests/hosted-preview-connected-neon-upload-reservation.test.ts
           tests/hosted-preview-connected-neon-upload-completion.test.ts
+          tests/hosted-preview-connected-neon-pre-activation-cleanup.test.ts
