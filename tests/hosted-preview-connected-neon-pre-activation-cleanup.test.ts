@@ -99,8 +99,7 @@ function seededCleanupRollbackOnlySessionFactory(input: {
             ],
           );
           const seedRow = seed.rows[0] as
-            | { upload_batch_id?: unknown }
-            | undefined;
+            { upload_batch_id?: unknown } | undefined;
           if (
             typeof seedRow?.upload_batch_id !== "string" ||
             !UUID_PATTERN.test(seedRow.upload_batch_id)
