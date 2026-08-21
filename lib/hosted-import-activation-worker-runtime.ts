@@ -132,34 +132,36 @@ export function hostedImportActivationWorkerRuntime(input: {
       input.environment.database,
       input.dependencies?.neonSessionFactory,
     );
-    const queueConfiguration =
-      injectedAggregateQueue === undefined
-        ? cloudflareImportQueueConfigurationFromEnvironment({
-            queueName: input.environment.cloudflare.queueName,
-            deadLetterQueueName:
-              input.environment.cloudflare.deadLetterQueueName,
-            createPort: () =>
-              createCloudflareImportQueuePort({
-                accountId: accountId ?? "",
-                queueId: queueId ?? "",
-                queueName: input.environment.cloudflare.queueName ?? "",
-                apiToken: apiToken ?? "",
-                fetch: input.dependencies?.fetch ?? globalThis.fetch,
-              }),
-          })
-        : null;
-    if (
-      repositories === null ||
-      (injectedAggregateQueue === undefined && queueConfiguration === null)
-    ) {
+    if (repositories === null) {
       return unavailableHostedImportActivationWorkerRuntime;
     }
-    const aggregateQueue =
-      injectedAggregateQueue ??
-      createCloudflareImportQueueForOwner({
+    let aggregateQueue = injectedAggregateQueue;
+    if (aggregateQueue === undefined) {
+      if (accountId === null || queueId === null || apiToken === null) {
+        return unavailableHostedImportActivationWorkerRuntime;
+      }
+      const queueConfiguration =
+        cloudflareImportQueueConfigurationFromEnvironment({
+          queueName: input.environment.cloudflare.queueName,
+          deadLetterQueueName:
+            input.environment.cloudflare.deadLetterQueueName,
+          createPort: () =>
+            createCloudflareImportQueuePort({
+              accountId,
+              queueId,
+              queueName: input.environment.cloudflare.queueName ?? "",
+              apiToken,
+              fetch: input.dependencies?.fetch ?? globalThis.fetch,
+            }),
+        });
+      if (queueConfiguration === null) {
+        return unavailableHostedImportActivationWorkerRuntime;
+      }
+      aggregateQueue = createCloudflareImportQueueForOwner({
         ownerId,
-        configuration: queueConfiguration!,
+        configuration: queueConfiguration,
       });
+    }
     const processor = createBoundedAcceptedDatasetProcessor({
       repository: repositories.preparationRepository,
       maximumSourceVersions,
