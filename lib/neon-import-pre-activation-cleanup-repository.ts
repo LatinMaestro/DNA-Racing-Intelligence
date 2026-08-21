@@ -144,7 +144,7 @@ function validateCleanup(input: ImportPreActivationCleanupInput) {
   const uploadBatchId = input.uploadBatchId.trim();
   const reason = input.reason.trim();
   if (!ownerId) throw new Error("ownerId is required");
-  if (!UUID_PATTERN.test(uploadBatchId)) {
+  if (!DATABASE_UUID_PATTERN.test(uploadBatchId)) {
     throw new Error("uploadBatchId must be a UUID");
   }
   if (!SHA_PATTERN.test(input.requestFingerprintSha256)) {
