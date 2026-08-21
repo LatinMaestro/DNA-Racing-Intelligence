@@ -22,12 +22,10 @@ function delivery(body: unknown) {
 }
 
 function runtime(
-  consume: HostedImportQueueWorkerRuntime extends Readonly<{
-    status: "ready";
-    consume: infer Consumer;
-  }>
-    ? Consumer
-    : never,
+  consume: Extract<
+    HostedImportQueueWorkerRuntime,
+    Readonly<{ status: "ready" }>
+  >["consume"],
 ): HostedImportQueueWorkerRuntime {
   return Object.freeze({
     status: "ready" as const,
