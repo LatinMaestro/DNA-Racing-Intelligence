@@ -32,6 +32,10 @@ jobs:
       - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
+      - name: Verify generated Cloudflare Worker bindings
+        run: npm run worker:types:check
+      - name: Validate Cloudflare Worker bundle without deployment
+        run: npm run worker:dry-run
       - run: npm test
       - run: npm run build
         env:
