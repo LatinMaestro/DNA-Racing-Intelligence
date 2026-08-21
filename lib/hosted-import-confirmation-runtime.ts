@@ -106,8 +106,7 @@ export function hostedImportConfirmationRuntime(input: {
             fetch: fetcher,
             readNeonStorageBytes: createNeonImportStorageBytesReader({
               authorizedOwnerId: ownerId,
-              databaseOwnerId:
-                input.environment.database.databaseOwnerId ?? "",
+              databaseOwnerId: input.environment.database.databaseOwnerId ?? "",
               databaseUrl: input.environment.database.databaseUrl ?? "",
               runtimeRole: input.environment.database.runtimeRole ?? "",
               ...(sessionFactory ? { sessionFactory } : {}),
@@ -117,8 +116,7 @@ export function hostedImportConfirmationRuntime(input: {
     const queueConfiguration =
       cloudflareImportQueueConfigurationFromEnvironment({
         queueName: input.environment.cloudflare.queueName,
-        deadLetterQueueName:
-          input.environment.cloudflare.deadLetterQueueName,
+        deadLetterQueueName: input.environment.cloudflare.deadLetterQueueName,
         createPort: () =>
           createCloudflareImportQueuePort({
             accountId,
