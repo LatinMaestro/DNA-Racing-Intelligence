@@ -317,7 +317,7 @@ describe("Neon private-upload completion repository", () => {
           advertised_content_type: "text/csv",
           provider_sha256: "b".repeat(64),
           scope: "private_owner",
-          owner_id: authenticatedOwnerId,
+          owner_id: databaseOwnerId,
           upload_batch_id: uploadBatchId,
         },
       ]),
