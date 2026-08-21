@@ -43,6 +43,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.smoke.sql
       - name: Run atomic import activation dataset smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.smoke.sql
+      - name: Run runtime connection capacity smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.smoke.sql
+      - name: Reverse runtime connection capacity migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.down.sql
+      - name: Verify runtime connection capacity reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.removal.sql
       - name: Reverse atomic import activation dataset migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.down.sql
       - name: Verify atomic import activation dataset removal
