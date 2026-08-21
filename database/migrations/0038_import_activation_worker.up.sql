@@ -276,12 +276,15 @@ BEGIN
     RETURN;
   END IF;
 
+  SELECT owner.clerk_user_id INTO STRICT v_owner_clerk_id
+  FROM dna.app_owner owner WHERE owner.id = p_owner_id;
+
   SELECT processing.* INTO v_processing
   FROM dna.import_activation_processing processing
   WHERE processing.owner_id = p_owner_id
     AND processing.dispatch_id = p_dispatch_id;
   IF FOUND AND v_processing.state = 'complete' THEN
-    RETURN QUERY SELECT 'already_complete'::text, NULL::text,
+    RETURN QUERY SELECT 'already_complete'::text, v_owner_clerk_id,
       v_dispatch.update_session_id, NULL::character(64), NULL::timestamptz;
     RETURN;
   END IF;
@@ -294,8 +297,6 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT owner.clerk_user_id INTO STRICT v_owner_clerk_id
-  FROM dna.app_owner owner WHERE owner.id = p_owner_id;
   INSERT INTO dna.import_activation_processing (
     owner_id, dispatch_id, update_session_id, worker_id, state,
     preview_fingerprint_sha256, claimed_at, lease_expires_at
