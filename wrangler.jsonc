@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dna-racing-import-preview",
+  "main": "workers/import-queue/index.ts",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "secrets": {
+    "required": [
+      "AUTHORIZED_CLERK_USER_ID",
+      "DATABASE_URL",
+      "DNA_DATABASE_OWNER_ID",
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "DNA_R2_ACCESS_KEY_ID",
+      "DNA_R2_SECRET_ACCESS_KEY",
+      "DNA_IMPORT_QUEUE_ID",
+    ],
+  },
+  "vars": {
+    "DNA_DATABASE_RUNTIME_ROLE": "dna_app_runtime",
+    "DNA_R2_BUCKET_NAME": "dna-racing-import-preview",
+    "DNA_IMPORT_QUEUE_NAME": "dna-racing-import-preview",
+    "DNA_IMPORT_DEAD_LETTER_QUEUE_NAME": "dna-racing-import-preview-dlq",
+    "DNA_IMPORT_WORKER_ID": "dna-racing-import-preview-worker",
+    "DNA_IMPORT_LEASE_DURATION_MILLISECONDS": "300000",
+    "DNA_IMPORT_MAXIMUM_BATCH_BYTES": "1073741824",
+    "DNA_IMPORT_MAXIMUM_OBJECT_BYTES": "536870912",
+    "DNA_IMPORT_MAXIMUM_CHUNK_BYTES": "1048576",
+    "DNA_IMPORT_MAXIMUM_SOURCE_VERSIONS": "24",
+    "DNA_IMPORT_MAXIMUM_QUARANTINED_RECORDS": "1000000",
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "DNA_IMPORT_QUEUE",
+        "queue": "dna-racing-import-preview",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "dna-racing-import-preview",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "dna-racing-import-preview-dlq",
+      },
+    ],
+  },
+}

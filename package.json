@@ -7,14 +7,17 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "worker:types": "wrangler types worker-configuration.d.ts --include-runtime=false --config wrangler.jsonc",
+    "worker:types:check": "wrangler types worker-configuration.d.ts --include-runtime=false --check --config wrangler.jsonc",
+    "worker:dry-run": "wrangler deploy --dry-run --strict --experimental-provision=false --experimental-auto-create=false --outdir .wrangler/dry-run --config wrangler.jsonc",
     "validate": "npm run format && npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
@@ -27,6 +30,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20260821.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
@@ -36,7 +40,8 @@
     "prettier": "3.9.6",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "wrangler": "4.125.0"
   },
   "overrides": {
     "js-yaml": "4.3.1",
