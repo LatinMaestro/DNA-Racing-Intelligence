@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { Pool } from "@neondatabase/serverless";
 import { describe, expect, it } from "vitest";
 
@@ -382,8 +383,7 @@ function seededDispatchRollbackOnlySessionFactory(input: {
               }
             | undefined;
           if (
-            replayRow?.preview_dispatch_id !==
-              createdRow.preview_dispatch_id ||
+            replayRow?.preview_dispatch_id !== createdRow.preview_dispatch_id ||
             replayRow.disposition !== "existing" ||
             replayRow.dispatch_state !== "pending"
           ) {
@@ -489,61 +489,54 @@ describeConnected("hosted Preview Neon upload completion access", () => {
     expect(claim.files[0]?.objectId).toMatch(UUID_PATTERN);
   }, 120_000);
 
-  it(
-    "persists and replays a transaction-local verified dispatch, then rolls it back",
-    async () => {
-      const databaseUrl = requiredEnvironment("DATABASE_URL");
-      const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
-      const authenticatedOwnerId = requiredEnvironment(
-        "AUTHORIZED_CLERK_USER_ID",
-      );
-      const runId = requiredEnvironment("GITHUB_RUN_ID");
-      const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
-      const fingerprint = "e".repeat(64);
-      const repository = createNeonImportUploadCompletionRepository({
-        databaseUrl,
-        databaseOwnerId,
-        runtimeRole: "dna_app_runtime",
-        sessionFactory: seededDispatchRollbackOnlySessionFactory({
-          ownerId: databaseOwnerId,
-          seedIdempotencyKey:
-            `connected-dispatch-seed-${runId}-${runAttempt}`,
-          claimIdempotencyKey:
-            `connected-dispatch-claim-${runId}-${runAttempt}`,
-          fingerprint,
-          requestedAt: now.toISOString(),
-          expiresAt,
-        }),
-      });
-      const dispatch = await repository.reservePreviewDispatch({
-        ownerId: authenticatedOwnerId,
-        uploadBatchId: "00000000-0000-4000-8000-000000000200",
-        completionId: "00000000-0000-4000-8000-000000000201",
-        uploadRequestFingerprint: fingerprint,
-        verifiedAt: now.toISOString(),
-        files: [
-          {
-            uploadFileId: "00000000-0000-4000-8000-000000000202",
-            objectId: "00000000-0000-4000-8000-000000000202",
-            objectVersion:
-              `connected-r2-version-${runId}-${runAttempt}`,
-            advertisedByteLength: 256,
-            advertisedContentType: "text/csv",
-            providerSha256: fingerprint,
-            scope: "private_owner",
-            ownerId: authenticatedOwnerId,
-            uploadBatchId: "00000000-0000-4000-8000-000000000200",
-          },
-        ],
-      });
+  it("persists and replays a transaction-local verified dispatch, then rolls it back", async () => {
+    const databaseUrl = requiredEnvironment("DATABASE_URL");
+    const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
+    const authenticatedOwnerId = requiredEnvironment(
+      "AUTHORIZED_CLERK_USER_ID",
+    );
+    const runId = requiredEnvironment("GITHUB_RUN_ID");
+    const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+    const fingerprint = "e".repeat(64);
+    const repository = createNeonImportUploadCompletionRepository({
+      databaseUrl,
+      databaseOwnerId,
+      runtimeRole: "dna_app_runtime",
+      sessionFactory: seededDispatchRollbackOnlySessionFactory({
+        ownerId: databaseOwnerId,
+        seedIdempotencyKey: `connected-dispatch-seed-${runId}-${runAttempt}`,
+        claimIdempotencyKey: `connected-dispatch-claim-${runId}-${runAttempt}`,
+        fingerprint,
+        requestedAt: now.toISOString(),
+        expiresAt,
+      }),
+    });
+    const dispatch = await repository.reservePreviewDispatch({
+      ownerId: authenticatedOwnerId,
+      uploadBatchId: "00000000-0000-4000-8000-000000000200",
+      completionId: "00000000-0000-4000-8000-000000000201",
+      uploadRequestFingerprint: fingerprint,
+      verifiedAt: now.toISOString(),
+      files: [
+        {
+          uploadFileId: "00000000-0000-4000-8000-000000000202",
+          objectId: "00000000-0000-4000-8000-000000000202",
+          objectVersion: `connected-r2-version-${runId}-${runAttempt}`,
+          advertisedByteLength: 256,
+          advertisedContentType: "text/csv",
+          providerSha256: fingerprint,
+          scope: "private_owner",
+          ownerId: authenticatedOwnerId,
+          uploadBatchId: "00000000-0000-4000-8000-000000000200",
+        },
+      ],
+    });
 
-      expect(dispatch.previewDispatchId).toMatch(UUID_PATTERN);
-      expect(dispatch.disposition).toBe("existing");
-      expect(dispatch.dispatchState).toBe("pending");
-      expect(dispatch.uploadRequestFingerprint).toBe(fingerprint);
-    },
-    120_000,
-  );
+    expect(dispatch.previewDispatchId).toMatch(UUID_PATTERN);
+    expect(dispatch.disposition).toBe("existing");
+    expect(dispatch.dispatchState).toBe("pending");
+    expect(dispatch.uploadRequestFingerprint).toBe(fingerprint);
+  }, 120_000);
 });
