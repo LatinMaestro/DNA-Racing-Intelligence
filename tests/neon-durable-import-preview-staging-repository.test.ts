@@ -192,6 +192,58 @@ describe("Neon durable Preview staging repository", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
+  it("updates accepted Race Merge chronology with staged row counts", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ import_batch_id: objectId }],
+      [{ import_batch_id: objectId }],
+      [],
+      [],
+      [],
+      [],
+      [{ import_batch_id: objectId }],
+    ]);
+    const transaction = await repository(test).beginObject({
+      ownerId,
+      previewDispatchId: dispatchId,
+      objectId,
+      sourceFamily: "race_merge",
+      expectedByteLength: 1024,
+      expectedSha256: sha256,
+    });
+    await transaction.stageSchema({
+      ...schema,
+      sourceType: "race_merge",
+      schemaVersion: "race-merge/v1",
+    });
+    await transaction.stageRows([
+      {
+        sourceRowNumber: 1,
+        naturalKey: "event-1:core-1",
+        fingerprintSha256: "c".repeat(64),
+        row: {
+          status: "ready",
+          sourceType: "race_merge",
+          record: {
+            sourceType: "race_merge",
+            eventAt: "2026-08-21T00:00:00.000Z",
+          },
+          provenance: [],
+          issues: [],
+        },
+      } as unknown as DurablePreviewStagedRow,
+    ]);
+    await transaction.rollback({ reason: "sink_failed" });
+
+    const countUpdate = test.events.find((event) =>
+      event.startsWith("UPDATE dna.import_batch SET"),
+    );
+    expect(countUpdate).toContain(
+      '"2026-08-21T00:00:00.000Z","2026-08-21T00:00:00.000Z"',
+    );
+  });
+
   it("rejects changed object evidence before commit and rolls back explicitly", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
