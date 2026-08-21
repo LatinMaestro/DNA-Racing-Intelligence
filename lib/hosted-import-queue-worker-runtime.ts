@@ -53,10 +53,13 @@ export function createHostedImportQueueWorkerRuntime(input: {
   activation: HostedImportActivationWorkerRuntime;
   aggregate: HostedProLeagueAggregateWorkerRuntime;
 }): HostedImportQueueWorkerRuntime {
+  const preview = input.preview;
+  const activation = input.activation;
+  const aggregate = input.aggregate;
   if (
-    input.preview.status !== "ready" ||
-    input.activation.status !== "ready" ||
-    input.aggregate.status !== "ready"
+    preview.status !== "ready" ||
+    activation.status !== "ready" ||
+    aggregate.status !== "ready"
   ) {
     return unavailableHostedImportQueueWorkerRuntime;
   }
@@ -66,12 +69,12 @@ export function createHostedImportQueueWorkerRuntime(input: {
     consume(delivery: QueueDelivery) {
       const message = parseCloudflareImportQueueMessage(delivery.body);
       if (message.kind === "preview") {
-        return input.preview.consume(delivery);
+        return preview.consume(delivery);
       }
       if (message.kind === "import_activation") {
-        return input.activation.consume(delivery);
+        return activation.consume(delivery);
       }
-      return input.aggregate.consume(delivery);
+      return aggregate.consume(delivery);
     },
   });
 }
@@ -83,15 +86,21 @@ export function hostedImportQueueWorkerRuntime(input: {
   return createHostedImportQueueWorkerRuntime({
     preview: hostedImportPreviewWorkerRuntime({
       environment: input.environment.preview,
-      dependencies: input.dependencies?.preview,
+      ...(input.dependencies?.preview
+        ? { dependencies: input.dependencies.preview }
+        : {}),
     }),
     activation: hostedImportActivationWorkerRuntime({
       environment: input.environment.activation,
-      dependencies: input.dependencies?.activation,
+      ...(input.dependencies?.activation
+        ? { dependencies: input.dependencies.activation }
+        : {}),
     }),
     aggregate: hostedProLeagueAggregateWorkerRuntime({
       environment: input.environment.aggregate,
-      dependencies: input.dependencies?.aggregate,
+      ...(input.dependencies?.aggregate
+        ? { dependencies: input.dependencies.aggregate }
+        : {}),
     }),
   });
 }
