@@ -521,7 +521,6 @@ jobs:
   commission_preview_worker:
     name: Exact-head Preview Worker commission
     needs: [validate, migration]
-    if: github.event_name == 'pull_request' && github.head_ref == 'codex/commission-worker-after-ci'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
