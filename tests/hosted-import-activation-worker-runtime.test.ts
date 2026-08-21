@@ -232,9 +232,7 @@ describe("hosted import activation worker runtime", () => {
       ],
     );
     expect(database.query).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "dna.list_import_activation_aggregate_refreshes",
-      ),
+      expect.stringContaining("dna.list_import_activation_aggregate_refreshes"),
       [databaseOwnerId, updateSessionId, dispatchId, 24],
     );
   });
