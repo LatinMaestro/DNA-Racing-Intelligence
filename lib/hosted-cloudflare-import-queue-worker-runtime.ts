@@ -39,10 +39,7 @@ export type HostedCloudflareImportQueueWorkerBindings = Readonly<{
 
 export type HostedCloudflareImportQueueWorkerDependencies = Readonly<{
   runtime?: HostedImportQueueWorkerDependencies;
-  queueEvidencePort?: Pick<
-    CloudflareImportQueuePort,
-    "readQueueEvidence"
-  >;
+  queueEvidencePort?: Pick<CloudflareImportQueuePort, "readQueueEvidence">;
 }>;
 
 export function hostedCloudflareImportQueueWorkerRuntime(input: {
@@ -117,13 +114,11 @@ export function hostedCloudflareImportQueueWorkerRuntime(input: {
             apiToken: bindings.CLOUDFLARE_API_TOKEN,
             queueId: bindings.DNA_IMPORT_QUEUE_ID,
             queueName: bindings.DNA_IMPORT_QUEUE_NAME,
-            deadLetterQueueName:
-              bindings.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
+            deadLetterQueueName: bindings.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
           },
           leaseDurationMilliseconds:
             bindings.DNA_IMPORT_LEASE_DURATION_MILLISECONDS,
-          maximumSourceVersions:
-            bindings.DNA_IMPORT_MAXIMUM_SOURCE_VERSIONS,
+          maximumSourceVersions: bindings.DNA_IMPORT_MAXIMUM_SOURCE_VERSIONS,
           maximumQuarantinedRecords:
             bindings.DNA_IMPORT_MAXIMUM_QUARANTINED_RECORDS,
         },
