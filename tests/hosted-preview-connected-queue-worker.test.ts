@@ -407,7 +407,7 @@ describeConnected(
                 dispatchId: queued.previewDispatchId,
                 uploadRequestFingerprint: requestFingerprint,
               },
-              now: new Date(),
+              now: new Date(Date.now() + 10 * 60 * 1_000),
             });
           } catch {
             directDecision = { disposition: "threw_sanitized" };
