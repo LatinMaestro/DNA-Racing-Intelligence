@@ -65,7 +65,7 @@ jobs:
           inventory="$(npx wrangler queues list)"
           printf '%s\n' "$inventory"
           printf '%s\n' "$inventory" \
-            | grep -Eq "[[:space:]|]$DNA_IMPORT_QUEUE_ID[[:space:]|]+$DNA_IMPORT_QUEUE_NAME[[:space:]|]"
+            | grep -Eq "$DNA_IMPORT_QUEUE_ID.*$DNA_IMPORT_QUEUE_NAME"
           printf '%s\n' "$inventory" \
             | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"
 
@@ -144,7 +144,7 @@ jobs:
           printf '%s\n' "$r2_inventory" \
             | grep -Eq "^name:[[:space:]]+$DNA_R2_BUCKET_NAME$"
           printf '%s\n' "$queue_inventory" \
-            | grep -Eq "[[:space:]|]$DNA_IMPORT_QUEUE_ID[[:space:]|]+$DNA_IMPORT_QUEUE_NAME[[:space:]|]"
+            | grep -Eq "$DNA_IMPORT_QUEUE_ID.*$DNA_IMPORT_QUEUE_NAME"
           printf '%s\n' "$queue_inventory" \
             | grep -Eq "(^|[[:space:]|])$DNA_IMPORT_DEAD_LETTER_QUEUE_NAME([[:space:]|]|$)"
 
