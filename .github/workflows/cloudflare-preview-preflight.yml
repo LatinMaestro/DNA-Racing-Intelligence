@@ -221,7 +221,6 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: preview
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
