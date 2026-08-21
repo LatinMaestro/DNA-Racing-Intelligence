@@ -19,12 +19,12 @@
       "CLOUDFLARE_API_TOKEN",
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",
-      "DNA_IMPORT_QUEUE_ID",
     ],
   },
   "vars": {
     "DNA_DATABASE_RUNTIME_ROLE": "dna_app_runtime",
     "DNA_R2_BUCKET_NAME": "dna-racing-import-preview",
+    "DNA_IMPORT_QUEUE_ID": "df7408e1d697475db4dbcdda1aa3e247",
     "DNA_IMPORT_QUEUE_NAME": "dna-racing-import-preview",
     "DNA_IMPORT_DEAD_LETTER_QUEUE_NAME": "dna-racing-import-preview-dlq",
     "DNA_IMPORT_WORKER_ID": "dna-racing-import-preview-worker",
