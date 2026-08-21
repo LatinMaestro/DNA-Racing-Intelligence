@@ -348,7 +348,11 @@ describeConnected(
             uploadBatchId,
           });
         } catch (queueError) {
-          const failedDatabaseOperations: string[] = [];
+          const failedDatabaseOperations: Array<{
+            operation: string;
+            code: string | null;
+            constraint: string | null;
+          }> = [];
           const diagnosticRuntime = hostedImportPreviewWorkerRuntime({
             environment: {
               authorizedOwnerId: ownerId,
@@ -383,7 +387,21 @@ describeConnected(
                           .split(" ")
                           .slice(0, 4)
                           .join(" ");
-                        failedDatabaseOperations.push(operation);
+                        const databaseError = error as {
+                          code?: unknown;
+                          constraint?: unknown;
+                        };
+                        failedDatabaseOperations.push({
+                          operation,
+                          code:
+                            typeof databaseError.code === "string"
+                              ? databaseError.code
+                              : null,
+                          constraint:
+                            typeof databaseError.constraint === "string"
+                              ? databaseError.constraint
+                              : null,
+                        });
                         throw error;
                       }
                     },
