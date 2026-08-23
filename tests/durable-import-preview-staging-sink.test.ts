@@ -271,7 +271,9 @@ describe("durable import Preview staging sink", () => {
         sha256: sha(csv),
         chunkCount: 1,
       }),
-    ).resolves.toEqual(expect.objectContaining({ importBatchId: "import-batch-1" }));
+    ).resolves.toEqual(
+      expect.objectContaining({ importBatchId: "import-batch-1" }),
+    );
 
     expect(test.beginEvidence).toHaveBeenCalledWith({
       ownerId: "owner-1",
@@ -297,10 +299,9 @@ describe("durable import Preview staging sink", () => {
     const active = await begin(test, "current_arena", csv);
     await active.write(csv);
 
-    await expect(
-      active.abort({ reason: "checksum_mismatch" }),
-    ).rejects.toThrow("Neon rollback failed");
+    await expect(active.abort({ reason: "checksum_mismatch" })).rejects.toThrow(
+      "Neon rollback failed",
+    );
     expect(evidence.abort).toHaveBeenCalledOnce();
   });
-
 });
