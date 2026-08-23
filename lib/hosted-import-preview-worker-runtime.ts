@@ -191,6 +191,7 @@ export function hostedImportPreviewWorkerRuntime(input: {
             accessKeyId,
             secretAccessKey,
             apiToken,
+            maximumBufferedPutBytes: maximumChunkBytes,
             fetch: fetcher,
           }));
     const evidenceLifecycle =
