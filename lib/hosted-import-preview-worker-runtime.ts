@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import {
   createBoundedImportPreviewProcessor,
   type ImportPreviewStagingSink,
@@ -171,13 +172,11 @@ export function hostedImportPreviewWorkerRuntime(input: {
         ? null
         : createNeonDatasetEvidenceObjectRepository({
             databaseUrl: input.environment.database.databaseUrl ?? "",
-            databaseOwnerId:
-              input.environment.database.databaseOwnerId ?? "",
+            databaseOwnerId: input.environment.database.databaseOwnerId ?? "",
             runtimeRole: input.environment.database.runtimeRole ?? "",
             ...(input.dependencies?.neonSessionFactory
               ? {
-                  sessionFactory:
-                    input.dependencies.neonSessionFactory,
+                  sessionFactory: input.dependencies.neonSessionFactory,
                 }
               : {}),
           });
