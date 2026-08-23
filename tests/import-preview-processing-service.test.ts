@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { ImportPreviewProcessingFailure } from "../lib/import-preview-processing-failure";
 import {
   runImportPreviewDispatch,
   type ImportPreviewDispatchClaim,
@@ -224,7 +225,7 @@ describe("runImportPreviewDispatch", () => {
     expect(ready.preparePreview).not.toHaveBeenCalled();
   });
 
-  it("records processor failure without publishing partial preview evidence", async () => {
+  it("records unknown processor failure without publishing partial preview evidence", async () => {
     const ready = readyCapabilities();
     ready.preparePreview.mockRejectedValueOnce(new Error("private row detail"));
     await expect(
@@ -242,6 +243,23 @@ describe("runImportPreviewDispatch", () => {
       failedAt: NOW.toISOString(),
       reason: "preview_processor_failed",
     });
+    expect(ready.publishPreparedPreview).not.toHaveBeenCalled();
+  });
+
+  it("persists only the sanitized processor failure stage", async () => {
+    const ready = readyCapabilities();
+    ready.preparePreview.mockRejectedValueOnce(
+      new ImportPreviewProcessingFailure("preview_staging_commit_failed"),
+    );
+    await expect(
+      runImportPreviewDispatch({
+        ...baseInput,
+        capabilities: ready.capabilities,
+      }),
+    ).rejects.toThrow("preview processing failed");
+    expect(ready.recordPreviewFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "preview_staging_commit_failed" }),
+    );
     expect(ready.publishPreparedPreview).not.toHaveBeenCalled();
   });
 
