@@ -105,9 +105,7 @@ describe("Neon confirmed import cleanup repository", () => {
     ).toBeNull();
   });
 
-  it(
-    "cleans an exact pending confirmation through forced owner RLS",
-    async () => {
+  it("cleans an exact pending confirmation through forced owner RLS", async () => {
       const test = harness([
         [{ owner_scope: databaseOwnerId }],
         [isolation()],
@@ -145,8 +143,7 @@ describe("Neon confirmed import cleanup repository", () => {
         cleanedAt,
       ]);
       expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
-    },
-  );
+  });
 
   it("maps exact idempotent replay without inventing identifiers", async () => {
     const test = harness([
@@ -176,9 +173,7 @@ describe("Neon confirmed import cleanup repository", () => {
     });
   });
 
-  it(
-    "rejects malformed confirmation authority before opening a connection",
-    () => {
+  it("rejects malformed confirmation authority before opening a connection", () => {
       const test = harness([]);
       const configured = repository(test);
       expect(() =>
@@ -194,12 +189,9 @@ describe("Neon confirmed import cleanup repository", () => {
         }),
       ).toThrow("activationDispatchId must be a UUID");
       expect(test.query).not.toHaveBeenCalled();
-    },
-  );
+  });
 
-  it(
-    "rolls back when runtime privilege or RLS evidence is unsafe",
-    async () => {
+  it("rolls back when runtime privilege or RLS evidence is unsafe", async () => {
       const test = harness([
         [{ owner_scope: databaseOwnerId }],
         [isolation({ runtime_can_cleanup_confirmation: false })],
@@ -215,12 +207,9 @@ describe("Neon confirmed import cleanup repository", () => {
             event.includes("SELECT status"),
         ),
       ).toBe(false);
-    },
-  );
+  });
 
-  it(
-    "rejects inconsistent durable cleanup evidence and rolls back",
-    async () => {
+  it("rejects inconsistent durable cleanup evidence and rolls back", async () => {
       const test = harness([
         [{ owner_scope: databaseOwnerId }],
         [isolation()],
@@ -239,6 +228,5 @@ describe("Neon confirmed import cleanup repository", () => {
         repository(test).cleanupBeforeDispatch(cleanupInput()),
       ).rejects.toThrow("counts are inconsistent");
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
-    },
-  );
+  });
 });
