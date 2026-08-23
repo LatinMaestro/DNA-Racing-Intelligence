@@ -115,6 +115,7 @@ function createPartitionWriter<Written, Result>(
 ): Readonly<{
   append: (rows: readonly DatasetEvidenceNdjsonRow[]) => Promise<void>;
   finish: () => Promise<readonly Result[]>;
+  abort: () => Promise<readonly Result[]>;
 }> {
   const maximumUncompressedBytes = positiveInteger(
     input.maximumUncompressedBytes,
@@ -133,6 +134,7 @@ function createPartitionWriter<Written, Result>(
   let failure: unknown;
   let finishRequested = false;
   let finished = false;
+  let aborted = false;
 
   const flush = async () => {
     if (partitionRows.length === 0) return;
@@ -233,12 +235,28 @@ function createPartitionWriter<Written, Result>(
       });
     },
     finish() {
+      if (aborted) {
+        return Promise.reject(
+          new Error("evidence partition writer was aborted"),
+        );
+      }
       if (!finishRequested) finishRequested = true;
       return enqueue(async () => {
         if (!finished) {
           await flush();
           finished = true;
         }
+        return [...results];
+      });
+    },
+    abort() {
+      finishRequested = true;
+      return tail.then(() => {
+        aborted = true;
+        partitionBytes = [];
+        partitionByteLength = 0;
+        partitionRows = [];
+        finished = true;
         return [...results];
       });
     },
@@ -265,6 +283,7 @@ export function createDeferredDatasetEvidenceNdjsonPartitionWriter(
 ): Readonly<{
   append: (rows: readonly DatasetEvidenceNdjsonRow[]) => Promise<void>;
   finish: () => Promise<readonly StoredPrivateDatasetEvidenceObject[]>;
+  abort: () => Promise<readonly StoredPrivateDatasetEvidenceObject[]>;
 }> {
   return createPartitionWriter({
     ...input,
