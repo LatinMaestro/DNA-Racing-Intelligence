@@ -189,6 +189,29 @@ describe("beginPrivateImportUpload", () => {
     expect(ready.reserveUploadBatch).not.toHaveBeenCalled();
   });
 
+  it("accepts exactly the bounded 24-file maximum", async () => {
+    const ready = readyCapabilities();
+    const files = Array.from({ length: 24 }, (_, index) =>
+      candidate({
+        clientFileId: `race-${index + 1}`,
+        originalFileName: `race-${index + 1}.csv`,
+      }),
+    );
+
+    await expect(
+      beginPrivateImportUpload({
+        ...baseInput,
+        files,
+        capabilities: ready.capabilities,
+      }),
+    ).resolves.toMatchObject({ status: "ready", targets: { length: 24 } });
+    expect(ready.assertWithinApprovedCapacity).toHaveBeenCalledWith(
+      expect.objectContaining({ fileCount: 24 }),
+    );
+    expect(ready.reserveUploadBatch).toHaveBeenCalledOnce();
+    expect(ready.createDirectUploadTarget).toHaveBeenCalledTimes(24);
+  });
+
   it("rejects the retired Current Vault source and batches above the bounded maximum", async () => {
     const ready = readyCapabilities();
     await expect(
