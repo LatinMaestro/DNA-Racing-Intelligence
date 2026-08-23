@@ -93,7 +93,7 @@ This slice does not:
 
 - provision Clerk, Neon, object storage or a queue;
 - implement a large-file HTTP upload route or direct-upload grant;
-- create the persistence tables or provider adapters;
+- expose the confirmation-cleanup boundary through a provider adapter or owner-facing route;
 - process, validate or materialise rows;
 - refresh aggregates;
 - implement completion reporting or versioned rollback; or
