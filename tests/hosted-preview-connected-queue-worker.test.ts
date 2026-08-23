@@ -289,7 +289,7 @@ async function waitForPreparedPreview(input: {
   databaseOwnerId: string;
   uploadBatchId: string;
 }): Promise<Awaited<ReturnType<typeof readPreviewState>>> {
-  const deadline = Date.now() + 180_000;
+  const deadline = Date.now() + 360_000;
   let latest = await readPreviewState(input);
   while (Date.now() < deadline) {
     if (latest.processingState === "failed") {
