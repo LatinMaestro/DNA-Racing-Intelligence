@@ -51,6 +51,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.smoke.sql
       - name: Run import dataset rollback smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.smoke.sql
+      - name: Run dataset evidence object manifest smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.smoke.sql
+      - name: Reverse dataset evidence object manifest migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.down.sql
+      - name: Verify dataset evidence object manifest removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.removal.sql
       - name: Reverse import dataset rollback migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.down.sql
       - name: Verify import dataset rollback removal
