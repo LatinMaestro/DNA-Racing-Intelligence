@@ -90,7 +90,7 @@ BEGIN
       failure_code = NULL
   WHERE owner_id = v_owner_id
     AND dataset_version_id = p_dataset_version_id
-    AND status IN ('queued', 'running', 'failed');
+    AND status IN ('queued', 'running', 'failed', 'completed');
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Pro League aggregate refresh target job is unavailable';
