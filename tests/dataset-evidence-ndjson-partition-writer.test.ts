@@ -84,7 +84,9 @@ describe("dataset evidence NDJSON partition writer", () => {
 
     expect(result).toHaveLength(2);
     expect(result.map((partition) => partition.rowCount)).toEqual([2, 1]);
-    expect(result.map((partition) => partition.partitionNumber)).toEqual([0, 1]);
+    expect(result.map((partition) => partition.partitionNumber)).toEqual([
+      0, 1,
+    ]);
     expect(result[0]).toMatchObject({
       firstNaturalKey: "event-1:core-1",
       lastNaturalKey: "event-1:core-1",
@@ -163,7 +165,9 @@ describe("dataset evidence NDJSON partition writer", () => {
   it("makes finish idempotent and rejects later rows", async () => {
     const test = harness();
     const writer = partitionWriter(test);
-    await writer.append([{ naturalKey: null, value: { status: "quarantined" } }]);
+    await writer.append([
+      { naturalKey: null, value: { status: "quarantined" } },
+    ]);
 
     const first = await writer.finish();
     const replay = await writer.finish();
