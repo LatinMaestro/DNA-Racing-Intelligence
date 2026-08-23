@@ -502,13 +502,15 @@ describeConnected(
           previewFingerprintSha256: prepared.previewFingerprintSha256,
         });
         const confirmation =
-          await activationRepositories.activationRepository.reserveConfirmedUpdate({
-            ownerId,
-            previewId: prepared.previewId,
-            previewFingerprintSha256: prepared.previewFingerprintSha256,
-            idempotencyKey: `connected-confirm-${runId}-${runAttempt}`,
-            confirmedAt: new Date().toISOString(),
-          });
+          await activationRepositories.activationRepository.reserveConfirmedUpdate(
+            {
+              ownerId,
+              previewId: prepared.previewId,
+              previewFingerprintSha256: prepared.previewFingerprintSha256,
+              idempotencyKey: `connected-confirm-${runId}-${runAttempt}`,
+              confirmedAt: new Date().toISOString(),
+            },
+          );
         expect(confirmation).toMatchObject({
           disposition: "created",
           dispatchState: "pending",
