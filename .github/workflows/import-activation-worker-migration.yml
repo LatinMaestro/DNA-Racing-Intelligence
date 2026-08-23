@@ -59,6 +59,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.smoke.sql
       - name: Run import activation evidence compaction smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.smoke.sql
+      - name: Run staged evidence compaction coverage smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.smoke.sql
+      - name: Reverse staged evidence compaction coverage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.down.sql
+      - name: Verify staged evidence compaction coverage reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.removal.sql
       - name: Reverse import activation evidence compaction migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.down.sql
       - name: Verify import activation evidence compaction removal
