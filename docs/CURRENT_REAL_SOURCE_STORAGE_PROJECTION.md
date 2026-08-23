@@ -42,20 +42,20 @@ smallest legal representative values.
 
 Measured minimum composite payloads:
 
-| Retained relation | Minimum measured bytes per source row |
-| --- | ---: |
-| `dna.dataset_staged_record` | 160 |
-| `dna.dataset_record_contribution` | 144 |
-| **Combined minimum** | **304** |
+| Retained relation                   | Minimum measured bytes per source row |
+| ----------------------------------- | ------------------------------------: |
+| `dna.dataset_staged_record`         |                                   160 |
+| `dna.dataset_record_contribution`   |                                   144 |
+| **Combined minimum**                |                               **304** |
 
 At 2,711,566 recurring source rows this gives:
 
-| Projection component | Bytes | Approx. MiB |
-| --- | ---: | ---: |
-| staged-record minimum | 433,850,560 | 413.75 |
-| contribution minimum | 390,465,504 | 372.38 |
-| **two-ledger minimum** | **824,316,064** | **786.13** |
-| Preview total logical-size limit | 536,870,912 | 512.00 |
+| Projection component             |       Bytes | Approx. MiB |
+| -------------------------------- | ----------: | ----------: |
+| staged-record minimum            | 433,850,560 |      413.75 |
+| contribution minimum             | 390,465,504 |      372.38 |
+| **two-ledger minimum**           | **824,316,064** |  **786.13** |
+| Preview total logical-size limit | 536,870,912 |      512.00 |
 
 The two-ledger minimum is therefore approximately **1.535 × the entire Preview
 branch limit** before any PostgreSQL heap/index overhead or any other application
