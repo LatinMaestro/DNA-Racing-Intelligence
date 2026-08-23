@@ -164,24 +164,24 @@ BEGIN
     RAISE EXCEPTION 'active dataset version changed during rollback';
   END IF;
 
-  UPDATE dna.import_batch
+  UPDATE dna.import_batch AS batch
   SET status = 'rolled_back',
       rollback_reason = btrim(p_reason),
       rolled_back_at = p_requested_at
-  WHERE owner_id = p_owner_id
-    AND id = v_target.import_batch_id
-    AND status = 'accepted';
+  WHERE batch.owner_id = p_owner_id
+    AND batch.id = v_target.import_batch_id
+    AND batch.status = 'accepted';
   IF NOT FOUND THEN
     RAISE EXCEPTION 'active import batch is not accepted';
   END IF;
 
-  UPDATE dna.aggregate_refresh_job
+  UPDATE dna.aggregate_refresh_job AS refresh
   SET status = 'rolled_back',
-      started_at = COALESCE(started_at, p_requested_at),
-      completed_at = COALESCE(completed_at, p_requested_at)
-  WHERE owner_id = p_owner_id
-    AND dataset_version_id = v_target.id
-    AND status <> 'rolled_back';
+      started_at = COALESCE(refresh.started_at, p_requested_at),
+      completed_at = COALESCE(refresh.completed_at, p_requested_at)
+  WHERE refresh.owner_id = p_owner_id
+    AND refresh.dataset_version_id = v_target.id
+    AND refresh.status <> 'rolled_back';
 
   UPDATE dna.dataset_version
   SET is_active = true, aggregate_refreshed_at = NULL
