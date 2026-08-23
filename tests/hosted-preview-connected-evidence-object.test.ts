@@ -52,7 +52,6 @@ describeConnected("connected Preview immutable evidence object", () => {
         }) + "\n",
         "utf8",
       ),
-      { mtime: 0 },
     );
     const checksumSha256 = createHash("sha256").update(payload).digest("hex");
     const ownerPrefix = createHash("sha256")
