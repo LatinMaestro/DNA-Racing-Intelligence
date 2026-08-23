@@ -14,6 +14,7 @@ on:
       - "lib/durable-import-preview-staging-sink.ts"
       - "lib/bounded-import-preview-processor.ts"
       - "lib/neon-import-persistence-driver.ts"
+      - "lib/neon-import-confirmation-cleanup-repository.ts"
       - "lib/neon-import-pre-activation-cleanup-repository.ts"
       - "lib/neon-import-upload-completion-repository.ts"
       - "lib/neon-import-upload-intake-repository.ts"

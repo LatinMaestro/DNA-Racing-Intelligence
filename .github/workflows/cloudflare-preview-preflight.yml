@@ -24,6 +24,7 @@ on:
       - "lib/cloudflare-import-queue-producer.ts"
       - "lib/cloudflare-import-queue-producer.test.ts"
       - "lib/neon-import-activation-repository.ts"
+      - "lib/neon-import-confirmation-cleanup-repository.ts"
       - "lib/neon-import-activation-repository.test.ts"
       - "lib/neon-aggregate-refresh-repository.ts"
       - "lib/neon-aggregate-refresh-repository.test.ts"
