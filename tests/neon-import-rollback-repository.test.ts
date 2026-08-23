@@ -189,6 +189,12 @@ describe("Neon import rollback repository", () => {
         idempotencyKey: "../unsafe",
       }),
     ).toThrow("idempotencyKey is invalid");
+    expect(() =>
+      configured.rollbackActiveSourceVersion({
+        ...rollbackInput(),
+        reason: "Restore unsafe\nsource version.",
+      }),
+    ).toThrow("reason must contain between 10 and 500 printable characters");
     expect(test.query).not.toHaveBeenCalled();
   });
 
