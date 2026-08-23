@@ -1,0 +1,26 @@
+name: Temporary formatting diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Show exact Prettier diff
+        run: |
+          npx prettier --write tests/neon-import-confirmation-cleanup-repository.test.ts
+          git diff -- tests/neon-import-confirmation-cleanup-repository.test.ts
+          exit 1
