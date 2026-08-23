@@ -156,9 +156,13 @@ async function readPreviewState(input: {
         typeof row?.confirmable === "boolean" ? row.confirmable : null,
       fileCount: row?.file_count == null ? null : Number(row.file_count),
       sourceFamilyCount:
-        row?.source_family_count == null ? null : Number(row.source_family_count),
+        row?.source_family_count == null
+          ? null
+          : Number(row.source_family_count),
       blockingIssueCount:
-        row?.blocking_issue_count == null ? null : Number(row.blocking_issue_count),
+        row?.blocking_issue_count == null
+          ? null
+          : Number(row.blocking_issue_count),
     };
   } finally {
     client.release();
@@ -281,7 +285,9 @@ describeConnected(
       const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
       const files = connectedFiles(runId, runAttempt);
       expect(files).toHaveLength(9);
-      expect(files.filter((file) => file.sourceFamily === "race_merge")).toHaveLength(7);
+      expect(
+        files.filter((file) => file.sourceFamily === "race_merge"),
+      ).toHaveLength(7);
       const requestFingerprint = createHash("sha256")
         .update(
           `connected-nine-file-request:${runId}:${runAttempt}:${files
@@ -342,13 +348,18 @@ describeConnected(
         expect(reservation.files).toHaveLength(9);
         uploadBatchId = reservation.uploadBatchId;
         const reservedByClientId = new Map(
-          reservation.files.map((file) => [file.clientFileId, file.uploadFileId]),
+          reservation.files.map((file) => [
+            file.clientFileId,
+            file.uploadFileId,
+          ]),
         );
 
         for (const file of files) {
           const uploadFileId = reservedByClientId.get(file.clientFileId);
           if (uploadFileId === undefined) {
-            throw new Error(`Connected upload reservation omitted ${file.clientFileId}`);
+            throw new Error(
+              `Connected upload reservation omitted ${file.clientFileId}`,
+            );
           }
           uploadFileIds.push(uploadFileId);
           const target = await objectStorage.createDirectUploadTarget({
