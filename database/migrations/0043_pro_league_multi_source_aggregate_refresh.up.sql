@@ -21,6 +21,7 @@ DECLARE
   v_owner_id uuid := dna.current_owner_id();
   v_target_version dna.dataset_version%ROWTYPE;
   v_active_race_version_id uuid;
+  v_active_race_job dna.aggregate_refresh_job%ROWTYPE;
   v_normalized_entry_count bigint;
   v_performance_profile_count bigint;
   v_validated_event_count bigint;
@@ -65,6 +66,18 @@ BEGIN
     RAISE EXCEPTION 'active owner-scoped Race Merge version does not exist';
   END IF;
 
+  SELECT job.*
+  INTO v_active_race_job
+  FROM dna.aggregate_refresh_job job
+  WHERE job.owner_id = v_owner_id
+    AND job.dataset_version_id = v_active_race_version_id
+    AND job.status <> 'rolled_back'
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'active Race Merge aggregate job is unavailable';
+  END IF;
+
   PERFORM pg_advisory_xact_lock(
     hashtextextended(v_owner_id::text || ':pro-league-aggregate-refresh', 0)
   );
@@ -99,6 +112,17 @@ BEGIN
     v_star_profile_count
   FROM dna.refresh_star_profiles(v_active_race_version_id, p_refreshed_at) result;
 
+  IF p_dataset_version_id <> v_active_race_version_id THEN
+    UPDATE dna.aggregate_refresh_job
+    SET status = v_active_race_job.status,
+        started_at = v_active_race_job.started_at,
+        completed_at = v_active_race_job.completed_at,
+        affected_record_count = v_active_race_job.affected_record_count,
+        failure_code = v_active_race_job.failure_code
+    WHERE owner_id = v_owner_id
+      AND dataset_version_id = v_active_race_version_id;
+  END IF;
+
   SELECT dna.refresh_discovery_exact_distance_benchmarks(p_refreshed_at)
   INTO v_discovery_benchmark_count;
 
@@ -130,10 +154,7 @@ BEGIN
       affected_record_count = v_materialized_row_count,
       failure_code = NULL
   WHERE owner_id = v_owner_id
-    AND dataset_version_id IN (
-      p_dataset_version_id,
-      v_active_race_version_id
-    )
+    AND dataset_version_id = p_dataset_version_id
     AND status <> 'rolled_back';
 
   IF NOT EXISTS (
