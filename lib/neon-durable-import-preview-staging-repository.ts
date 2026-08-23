@@ -426,6 +426,7 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
           }
         };
         return {
+          importBatchId,
           async stageSchema(schema: StagedSourceSchema) {
             if (schemaStaged)
               throw new Error("Preview schema was already staged");
