@@ -72,8 +72,7 @@ SET search_path = pg_catalog, pg_temp
 AS $function$
 DECLARE
   v_existing dna.import_confirmation_cleanup%ROWTYPE;
-  v_activation dna.import_activation_dispatch%ROWTYPE;
-  v_prepared dna.import_prepared_preview%ROWTYPE;
+  v_context record;
   v_cleanup record;
   v_confirmation_cleanup_id uuid := md5(
     p_owner_id::text || ':confirmation_cleanup:' || p_activation_dispatch_id::text
@@ -115,8 +114,18 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT activation, prepared
-  INTO v_activation, v_prepared
+  SELECT
+    activation.state AS activation_state,
+    activation.queued_at AS activation_queued_at,
+    activation.failure_reason AS activation_failure_reason,
+    activation.failed_at AS activation_failed_at,
+    activation.preview_fingerprint_sha256 AS activation_preview_fingerprint_sha256,
+    activation.preview_dispatch_id,
+    activation.idempotency_key AS activation_idempotency_key,
+    prepared.preview_fingerprint_sha256 AS prepared_preview_fingerprint_sha256,
+    prepared.upload_request_fingerprint_sha256,
+    prepared.confirmable
+  INTO STRICT v_context
   FROM dna.import_activation_dispatch activation
   JOIN dna.import_prepared_preview prepared
     ON prepared.owner_id = activation.owner_id
@@ -128,19 +137,19 @@ BEGIN
     AND prepared.preview_id = p_preview_id
   FOR UPDATE OF activation, prepared;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'pending confirmed import reservation is unavailable';
-  END IF;
-  IF v_activation.state <> 'pending'
-     OR v_activation.queued_at IS NOT NULL
-     OR v_activation.failure_reason IS NOT NULL
-     OR v_activation.failed_at IS NOT NULL THEN
+  IF v_context.activation_state <> 'pending'
+     OR v_context.activation_queued_at IS NOT NULL
+     OR v_context.activation_failure_reason IS NOT NULL
+     OR v_context.activation_failed_at IS NOT NULL THEN
     RAISE EXCEPTION 'confirmed import cleanup requires an undispatched pending reservation';
   END IF;
-  IF v_activation.preview_fingerprint_sha256 <> p_preview_fingerprint_sha256
-     OR v_prepared.preview_fingerprint_sha256 <> p_preview_fingerprint_sha256
-     OR v_prepared.upload_request_fingerprint_sha256 <> p_request_fingerprint_sha256
-     OR NOT v_prepared.confirmable THEN
+  IF v_context.activation_preview_fingerprint_sha256 <>
+       p_preview_fingerprint_sha256
+     OR v_context.prepared_preview_fingerprint_sha256 <>
+       p_preview_fingerprint_sha256
+     OR v_context.upload_request_fingerprint_sha256 <>
+       p_request_fingerprint_sha256
+     OR NOT v_context.confirmable THEN
     RAISE EXCEPTION 'confirmed import cleanup fingerprint or preview conflict';
   END IF;
   IF EXISTS (
@@ -183,9 +192,9 @@ BEGIN
     staged_batch_count, cleaned_at
   ) VALUES (
     v_confirmation_cleanup_id, p_owner_id, p_upload_batch_id,
-    p_request_fingerprint_sha256, v_activation.preview_dispatch_id,
+    p_request_fingerprint_sha256, v_context.preview_dispatch_id,
     p_preview_id, p_preview_fingerprint_sha256, p_update_session_id,
-    p_activation_dispatch_id, v_activation.idempotency_key,
+    p_activation_dispatch_id, v_context.activation_idempotency_key,
     v_cleanup.cleanup_id, btrim(p_reason), v_cleanup.file_count,
     v_cleanup.verified_object_count, v_cleanup.staged_batch_count,
     p_cleaned_at
