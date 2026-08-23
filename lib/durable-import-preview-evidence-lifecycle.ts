@@ -100,7 +100,9 @@ export function createDurableImportPreviewEvidenceLifecycle(input: {
           commit: () => Committed | Promise<Committed>,
         ): Promise<Committed> {
           if (commitRequested) {
-            throw new Error("Durable Preview evidence commit was already requested.");
+            throw new Error(
+              "Durable Preview evidence commit was already requested.",
+            );
           }
           commitRequested = true;
           let stored: readonly StoredPrivateDatasetEvidenceObject[];
