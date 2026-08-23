@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
+import type { DurableImportPreviewEvidenceSession } from "../lib/durable-import-preview-evidence-lifecycle";
 import {
   createDurableImportPreviewStagingSink,
   type DurableImportPreviewStagingRepository,
@@ -12,7 +13,21 @@ const encoder = new TextEncoder();
 const sha = (value: Uint8Array) =>
   createHash("sha256").update(value).digest("hex");
 
-function harness() {
+function evidenceHarness() {
+  const append = vi.fn(async () => undefined);
+  const commitAndRegister = vi.fn(
+    async (commit: () => unknown | Promise<unknown>) => commit(),
+  );
+  const abort = vi.fn(async () => undefined);
+  const session: DurableImportPreviewEvidenceSession = {
+    append,
+    commitAndRegister,
+    abort,
+  };
+  return { session, append, commitAndRegister, abort };
+}
+
+function harness(evidenceSession?: DurableImportPreviewEvidenceSession) {
   const stageSchema = vi.fn(async () => undefined);
   const stageRows = vi.fn(async (rows: readonly DurablePreviewStagedRow[]) => {
     void rows;
@@ -41,14 +56,24 @@ function harness() {
     assertPreviewObjects,
     abortPreview,
   };
+  const beginEvidence = vi.fn(() => {
+    if (evidenceSession === undefined) {
+      throw new Error("evidence session is unavailable");
+    }
+    return evidenceSession;
+  });
   const sink = createDurableImportPreviewStagingSink({
     repository,
+    ...(evidenceSession === undefined
+      ? {}
+      : { evidenceLifecycle: { beginObject: beginEvidence } }),
     rowsPerWrite: 1,
     maximumHeaderBytes: 2048,
   });
   return {
     sink,
     beginObject,
+    beginEvidence,
     stageSchema,
     stageRows,
     commitVerified,
@@ -232,4 +257,50 @@ describe("durable import Preview staging sink", () => {
       reason: "preview_finalization_failed",
     });
   });
+
+  it("mirrors staged rows and wraps commit with the evidence lifecycle", async () => {
+    const evidence = evidenceHarness();
+    const test = harness(evidence.session);
+    const csv = encoder.encode("token_id,price_usd\ncore-1,12.50\n");
+    const active = await begin(test, "current_arena", csv);
+    await active.write(csv);
+
+    await expect(
+      active.commitVerified({
+        byteLength: csv.byteLength,
+        sha256: sha(csv),
+        chunkCount: 1,
+      }),
+    ).resolves.toEqual(expect.objectContaining({ importBatchId: "import-batch-1" }));
+
+    expect(test.beginEvidence).toHaveBeenCalledWith({
+      ownerId: "owner-1",
+      importBatchId: "11111111-1111-4111-8111-111111111111",
+      sourceFamily: "current_arena",
+    });
+    expect(evidence.append).toHaveBeenCalledWith([
+      expect.objectContaining({
+        naturalKey: "core-1",
+        row: expect.objectContaining({ status: "ready" }),
+      }),
+    ]);
+    expect(evidence.commitAndRegister).toHaveBeenCalledOnce();
+    expect(test.commitVerified).toHaveBeenCalledOnce();
+    expect(evidence.abort).not.toHaveBeenCalled();
+  });
+
+  it("attempts evidence cleanup even when transaction rollback fails", async () => {
+    const evidence = evidenceHarness();
+    const test = harness(evidence.session);
+    test.rollback.mockRejectedValueOnce(new Error("Neon rollback failed"));
+    const csv = encoder.encode("token_id,price_usd\ncore-1,12.50\n");
+    const active = await begin(test, "current_arena", csv);
+    await active.write(csv);
+
+    await expect(
+      active.abort({ reason: "checksum_mismatch" }),
+    ).rejects.toThrow("Neon rollback failed");
+    expect(evidence.abort).toHaveBeenCalledOnce();
+  });
+
 });
