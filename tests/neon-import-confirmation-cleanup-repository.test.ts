@@ -209,9 +209,10 @@ describe("Neon confirmed import cleanup repository", () => {
       ).rejects.toThrow("runtime privileges are incomplete");
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
       expect(
-        test.events.some((event) =>
-          event.includes("cleanup_confirmed_import_before_dispatch(") &&
-          event.includes("SELECT status"),
+        test.events.some(
+          (event) =>
+            event.includes("cleanup_confirmed_import_before_dispatch(") &&
+            event.includes("SELECT status"),
         ),
       ).toBe(false);
     },
