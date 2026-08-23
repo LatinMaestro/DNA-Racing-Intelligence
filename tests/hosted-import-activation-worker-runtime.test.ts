@@ -248,9 +248,7 @@ describe("hosted import activation worker runtime", () => {
       [databaseOwnerId, updateSessionId, dispatchId, sourceHash, 24],
     );
     expect(database.query).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "dna.compact_import_activation_dataset_evidence",
-      ),
+      expect.stringContaining("dna.compact_import_activation_dataset_evidence"),
       [databaseOwnerId, updateSessionId, dispatchId, 24],
     );
     expect(database.query).toHaveBeenCalledWith(
