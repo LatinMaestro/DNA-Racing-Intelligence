@@ -749,6 +749,9 @@ describeConnected(
             reason: "completed",
           });
           expect(aggregateRefreshes).toHaveLength(9);
+          expect(
+            new Set(aggregateRefreshes.map((refresh) => refresh.refreshId)).size,
+          ).toBe(9);
 
           const aggregateRuntime = hostedProLeagueAggregateWorkerRuntime({
             environment: {
