@@ -51,6 +51,76 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+async function assertProtectedQueueConsumer(input: {
+  accountId: string;
+  apiToken: string;
+  queueId: string;
+  queueName: string;
+  deadLetterQueueName: string;
+}): Promise<void> {
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${input.accountId}/queues/${input.queueId}/consumers`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.apiToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  const body = (await response.json()) as {
+    success?: unknown;
+    result?: unknown;
+  };
+  if (!response.ok || body.success !== true || !Array.isArray(body.result)) {
+    throw new Error(
+      "Connected Preview queue consumer inventory could not be verified",
+    );
+  }
+  const consumers = body.result as Array<{
+    type?: unknown;
+    queue_name?: unknown;
+    script_name?: unknown;
+    dead_letter_queue?: unknown;
+    dead_letter_queue_name?: unknown;
+    settings?: {
+      batch_size?: unknown;
+      max_concurrency?: unknown;
+      max_retries?: unknown;
+      max_wait_time_ms?: unknown;
+    };
+  }>;
+  if (consumers.length !== 1) {
+    throw new Error(
+      `Connected Preview queue requires exactly one consumer (found=${consumers.length})`,
+    );
+  }
+  const consumer = consumers[0];
+  if (consumer === undefined) {
+    throw new Error("Connected Preview queue consumer is unavailable");
+  }
+  const settings = consumer.settings ?? {};
+  const deadLetterQueue =
+    consumer.dead_letter_queue ?? consumer.dead_letter_queue_name;
+  if (
+    consumer.type !== "worker" ||
+    consumer.queue_name !== input.queueName ||
+    (consumer.script_name != null &&
+      consumer.script_name !== "dna-racing-import-preview") ||
+    deadLetterQueue !== input.deadLetterQueueName ||
+    Number(settings.batch_size) !== 1 ||
+    Number(settings.max_concurrency) !== 1 ||
+    Number(settings.max_retries) !== 3 ||
+    Number(settings.max_wait_time_ms) !== 5_000
+  ) {
+    throw new Error(
+      "Connected Preview queue consumer differs from the protected contract",
+    );
+  }
+  console.log(
+    "Verified the protected Preview queue consumer immediately before dispatch.",
+  );
+}
+
 type RollbackOnlyConnectedSession = Readonly<{
   sessionFactory: NeonImportPersistenceSessionFactory;
   query: NeonImportPersistenceClient["query"];
@@ -459,6 +529,13 @@ describeConnected(
       );
       const runId = requiredEnvironment("GITHUB_RUN_ID");
       const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
+      await assertProtectedQueueConsumer({
+        accountId,
+        apiToken,
+        queueId,
+        queueName,
+        deadLetterQueueName,
+      });
       const files = connectedFiles(runId, runAttempt);
       expect(files).toHaveLength(9);
       expect(
