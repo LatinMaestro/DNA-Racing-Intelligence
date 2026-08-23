@@ -24,15 +24,20 @@ The existing provider upload gate deliberately used a conservative `2 × raw byt
 Neon staging placeholder. That is useful for failing closed, but it does not answer
 whether the normalized persistent model can fit after import.
 
-The current schema retains owner-scoped acceptance provenance in PostgreSQL. In
-particular, for every accepted source row it retains at least:
+The current schema retains owner-scoped acceptance provenance in PostgreSQL. It
+stores one `dna.dataset_staged_record` for every source row, including a
+quarantined row, and one `dna.dataset_record_contribution` for each accepted
+natural key in each contributing import batch.
 
-1. one `dna.dataset_staged_record`; and
-2. one `dna.dataset_record_contribution` for that source row and import batch.
+The current source audit found zero within-file duplicate Race entry keys and unique
+Core Details and Current Arena IDs. The projection therefore models the intended
+usable import, in which the audited valid rows retain accepted contribution
+provenance. An unexpectedly quarantined row would still consume its staging row but
+would not consume a contribution row.
 
 This is before counting normalized Race staging facts, dataset-version records, race
-events, race entries, race-entry source provenance, Core/Arena materialization,
-indexes, heap tuple overhead, aggregate tables or future imports.
+events, race entries, race-entry source provenance, Core/Arena materialization, page
+line pointers, indexes, aggregate tables or future imports.
 
 ## PostgreSQL 18 measurement
 
@@ -57,11 +62,15 @@ The two-ledger minimum is therefore approximately **1.535 × the entire Preview
 branch limit** before any PostgreSQL heap/index overhead or any other application
 table is counted.
 
-Even this deliberately understated model would fit at most 1,766,022 source rows.
-The known recurring set exceeds that by 945,544 rows. In other words, more than
-34.87% of the current source rows would have to disappear before these two ledgers
-alone could fit the entire branch limit. Capacity planning cannot rely on rejecting
-valid source evidence merely to make storage fit.
+The mandatory staging rows alone leave only 103,020,352 bytes of the branch limit.
+At the measured 144-byte contribution payload, that remainder can hold at most
+715,419 accepted contribution rows. At least **1,996,147 rows, or 73.62% of the
+current source set, would therefore have to lose accepted contribution provenance**
+before even these two ledgers could fit.
+
+That is not a usable import outcome, and it still ignores page/index overhead and all
+normalized/materialized relations. Capacity planning cannot rely on quarantining or
+discarding valid source evidence merely to make storage fit.
 
 ## Decision
 
