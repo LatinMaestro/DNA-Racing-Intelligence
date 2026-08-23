@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: connected-preview-provider-acceptance
+  group: cloudflare-preview-worker-commission
   cancel-in-progress: false
 
 jobs:
