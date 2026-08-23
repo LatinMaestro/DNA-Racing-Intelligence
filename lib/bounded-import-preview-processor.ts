@@ -159,7 +159,9 @@ export function createBoundedImportPreviewProcessor(input: {
           previewDispatchId: previewInput.previewDispatchId,
           reason: "object_processing_failed",
         });
-        throw new ImportPreviewProcessingFailure(processingFailureReason(error));
+        throw new ImportPreviewProcessingFailure(
+          processingFailureReason(error),
+        );
       }
 
       try {
