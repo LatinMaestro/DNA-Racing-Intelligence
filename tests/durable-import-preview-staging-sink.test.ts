@@ -16,10 +16,15 @@ const sha = (value: Uint8Array) =>
 function evidenceHarness() {
   const append = vi.fn(async () => undefined);
   const commitAndRegisterMock = vi.fn(
-    async (commit: () => unknown | Promise<unknown>) => commit(),
+    (_commit: () => unknown | Promise<unknown>) => undefined,
   );
   const commitAndRegister: DurableImportPreviewEvidenceSession["commitAndRegister"] =
-    (commit) => commitAndRegisterMock(commit);
+    async <Committed>(
+      commit: () => Committed | Promise<Committed>,
+    ): Promise<Committed> => {
+      commitAndRegisterMock(commit);
+      return commit();
+    };
   const abort = vi.fn(async () => undefined);
   const session: DurableImportPreviewEvidenceSession = {
     append,
@@ -263,6 +268,22 @@ describe("durable import Preview staging sink", () => {
       previewDispatchId: "dispatch-1",
       reason: "preview_finalization_failed",
     });
+  });
+
+  it("rolls back the opened transaction when evidence initialization fails", async () => {
+    const evidence = evidenceHarness();
+    const test = harness(evidence.session);
+    const initializationError = new Error("Evidence initialization failed");
+    test.beginEvidence.mockImplementationOnce(() => {
+      throw initializationError;
+    });
+    const csv = encoder.encode("token_id,price_usd\ncore-1,12.50\n");
+
+    await expect(begin(test, "current_arena", csv)).rejects.toBe(
+      initializationError,
+    );
+    expect(test.rollback).toHaveBeenCalledWith({ reason: "sink_failed" });
+    expect(test.stageRows).not.toHaveBeenCalled();
   });
 
   it("mirrors staged rows and wraps commit with the evidence lifecycle", async () => {
