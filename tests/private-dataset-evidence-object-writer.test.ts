@@ -219,6 +219,18 @@ describe("private dataset evidence object writer", () => {
   it("initializes the provider and private-bucket check only once", async () => {
     const test = harness();
     await test.writer.write(writeInput());
+    test.headObject.mockResolvedValueOnce({
+      status: "ready",
+      contentType: "application/vnd.apache.parquet",
+      byteLength: 3,
+      checksumSha256,
+      metadata: {
+        rows: "1",
+        source: "race_merge",
+        kind: "normalized_partition",
+        partition: "1",
+      },
+    });
     await test.writer.write({
       ...writeInput(),
       partitionNumber: 1,
