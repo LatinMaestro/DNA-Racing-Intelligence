@@ -10,11 +10,18 @@ import { describe, expect, it } from "vitest";
 
 import { createCloudflareR2ImportObjectStorageForOwner } from "../lib/cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
+import { hostedImportActivationWorkerRuntime } from "../lib/hosted-import-activation-worker-runtime";
 import { hostedImportUploadCompletionRuntime } from "../lib/hosted-import-upload-completion-runtime";
+import { hostedProLeagueAggregateWorkerRuntime } from "../lib/hosted-pro-league-aggregate-worker-runtime";
+import type { AggregateRetryQueue } from "../lib/import-aggregate-retry-action-service";
 import { createNeonImportActivationRepositories } from "../lib/neon-import-activation";
 import { createNeonImportConfirmationCleanupRepository } from "../lib/neon-import-confirmation-cleanup-repository";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
+import type {
+  NeonImportPersistenceClient,
+  NeonImportPersistenceSessionFactory,
+} from "../lib/neon-import-persistence-driver";
 import { createNeonImportUploadIntakeRepository } from "../lib/neon-import-upload-intake-repository";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
@@ -42,6 +49,102 @@ function requiredEnvironment(name: string): string {
 
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+type RollbackOnlyConnectedSession = Readonly<{
+  sessionFactory: NeonImportPersistenceSessionFactory;
+  query: NeonImportPersistenceClient["query"];
+  rollback: () => Promise<void>;
+}>;
+
+async function createRollbackOnlyConnectedSession(
+  databaseUrl: string,
+): Promise<RollbackOnlyConnectedSession> {
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: 1,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+  });
+  const outerClient = await pool.connect();
+  await outerClient.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+  let savepointSequence = 0;
+  let finished = false;
+
+  const query: NeonImportPersistenceClient["query"] = async (
+    statement,
+    values,
+  ) => {
+    if (finished) throw new Error("Rollback-only session is closed");
+    const result =
+      values === undefined
+        ? await outerClient.query(statement)
+        : await outerClient.query(statement, [...values]);
+    return { rows: result.rows };
+  };
+
+  const sessionFactory: NeonImportPersistenceSessionFactory = async (
+    requestedDatabaseUrl,
+  ) => {
+    if (finished || requestedDatabaseUrl.trim() !== databaseUrl.trim()) {
+      throw new Error("Rollback-only session database mismatch");
+    }
+    const savepoint = `connected_acceptance_${++savepointSequence}`;
+    let open = false;
+    const client: NeonImportPersistenceClient = {
+      async query(statement, values) {
+        const normalized = statement.replace(/\s+/g, " ").trim();
+        if (normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE") {
+          if (open) throw new Error("Nested acceptance transaction is open");
+          await outerClient.query(`SAVEPOINT ${savepoint}`);
+          open = true;
+          return { rows: [] };
+        }
+        if (normalized === "COMMIT") {
+          if (!open) throw new Error("Nested acceptance transaction is closed");
+          await outerClient.query(`RELEASE SAVEPOINT ${savepoint}`);
+          open = false;
+          return { rows: [] };
+        }
+        if (normalized === "ROLLBACK") {
+          if (!open) return { rows: [] };
+          await outerClient.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+          await outerClient.query(`RELEASE SAVEPOINT ${savepoint}`);
+          open = false;
+          return { rows: [] };
+        }
+        const result =
+          values === undefined
+            ? await outerClient.query(statement)
+            : await outerClient.query(statement, [...values]);
+        return { rows: result.rows };
+      },
+    };
+    return {
+      client,
+      async close() {
+        if (!open) return;
+        await outerClient.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await outerClient.query(`RELEASE SAVEPOINT ${savepoint}`);
+        open = false;
+      },
+    };
+  };
+
+  return {
+    sessionFactory,
+    query,
+    async rollback() {
+      if (finished) return;
+      finished = true;
+      try {
+        await outerClient.query("ROLLBACK");
+      } finally {
+        outerClient.release();
+        await pool.end();
+      }
+    },
+  };
 }
 
 function csv(value: string): Uint8Array {
@@ -573,6 +676,184 @@ describeConnected(
           updateSessionId: confirmation.updateSessionId,
           activationDispatchId: confirmation.dispatchId,
         };
+
+        const aggregateRefreshes: Array<{
+          ownerId: string;
+          refreshId: string;
+          dispatchId: string;
+        }> = [];
+        const aggregateQueue: AggregateRetryQueue = {
+          async enqueue(message) {
+            aggregateRefreshes.push(message);
+          },
+        };
+        const activationTransaction =
+          await createRollbackOnlyConnectedSession(databaseUrl);
+        try {
+          const transactionalActivationRepositories =
+            createNeonImportActivationRepositories({
+              databaseUrl,
+              databaseOwnerId,
+              runtimeRole: "dna_app_runtime",
+              sessionFactory: activationTransaction.sessionFactory,
+            });
+          const processingAt = new Date();
+          await transactionalActivationRepositories.activationRepository.markDispatchQueued(
+            {
+              ownerId,
+              updateSessionId: confirmation.updateSessionId,
+              dispatchId: confirmation.dispatchId,
+              queuedAt: processingAt.toISOString(),
+            },
+          );
+          const activationRuntime = hostedImportActivationWorkerRuntime({
+            environment: {
+              workerId: "connected-activation-worker",
+              authorizedOwnerId: ownerId,
+              database: {
+                databaseUrl,
+                databaseOwnerId,
+                runtimeRole: "dna_app_runtime",
+              },
+              cloudflare: {
+                accountId: undefined,
+                apiToken: undefined,
+                queueId: undefined,
+                queueName: undefined,
+                deadLetterQueueName: undefined,
+              },
+              leaseDurationMilliseconds: "300000",
+              maximumSourceVersions: "24",
+              maximumQuarantinedRecords: "1000000",
+            },
+            dependencies: {
+              neonSessionFactory: activationTransaction.sessionFactory,
+              aggregateQueue,
+            },
+          });
+          expect(activationRuntime.status).toBe("ready");
+          if (activationRuntime.status !== "ready") {
+            throw new Error("Connected activation runtime is unavailable");
+          }
+          await expect(
+            activationRuntime.consume({
+              body: {
+                version: 1,
+                kind: "import_activation",
+                dispatchId: confirmation.dispatchId,
+              },
+              now: processingAt,
+            }),
+          ).resolves.toEqual({
+            disposition: "acknowledge",
+            reason: "completed",
+          });
+          expect(aggregateRefreshes).toHaveLength(9);
+
+          const aggregateRuntime = hostedProLeagueAggregateWorkerRuntime({
+            environment: {
+              workerId: "connected-aggregate-worker",
+              database: {
+                databaseUrl,
+                databaseOwnerId,
+                runtimeRole: "dna_app_runtime",
+              },
+              leaseDurationMilliseconds: "300000",
+            },
+            dependencies: {
+              neonSessionFactory: activationTransaction.sessionFactory,
+            },
+          });
+          expect(aggregateRuntime.status).toBe("ready");
+          if (aggregateRuntime.status !== "ready") {
+            throw new Error("Connected aggregate runtime is unavailable");
+          }
+          for (const refresh of aggregateRefreshes) {
+            expect(refresh).toMatchObject({
+              ownerId,
+              dispatchId: confirmation.dispatchId,
+            });
+            await expect(
+              aggregateRuntime.consume({
+                body: {
+                  version: 1,
+                  kind: "aggregate_refresh_retry",
+                  dispatchId: refresh.dispatchId,
+                  refreshId: refresh.refreshId,
+                },
+                now: processingAt,
+              }),
+            ).resolves.toEqual({
+              disposition: "acknowledge",
+              reason: "completed",
+            });
+          }
+
+          const activationEvidence = await activationTransaction.query(
+            `SELECT
+              activation.state AS activation_state,
+              activation.source_version_count,
+              (
+                SELECT count(*)
+                FROM dna.dataset_version version
+                JOIN dna.import_verified_upload_object object
+                  ON object.owner_id = version.owner_id
+                  AND object.upload_file_id = version.import_batch_id
+                WHERE object.owner_id = $1::uuid
+                  AND object.upload_batch_id = $3::uuid
+                  AND version.rolled_back_at IS NULL
+              )::integer AS source_version_count,
+              (
+                SELECT count(*)
+                FROM dna.aggregate_refresh_job job
+                JOIN dna.dataset_version version
+                  ON version.owner_id = job.owner_id
+                  AND version.id = job.dataset_version_id
+                JOIN dna.import_verified_upload_object object
+                  ON object.owner_id = version.owner_id
+                  AND object.upload_file_id = version.import_batch_id
+                WHERE object.owner_id = $1::uuid
+                  AND object.upload_batch_id = $3::uuid
+                  AND job.status = 'completed'
+              )::integer AS completed_refresh_count,
+              (
+                SELECT count(*)
+                FROM dna.aggregate_refresh_processing processing
+                JOIN dna.aggregate_refresh_job job
+                  ON job.owner_id = processing.owner_id
+                  AND job.id = processing.refresh_id
+                JOIN dna.dataset_version version
+                  ON version.owner_id = job.owner_id
+                  AND version.id = job.dataset_version_id
+                JOIN dna.import_verified_upload_object object
+                  ON object.owner_id = version.owner_id
+                  AND object.upload_file_id = version.import_batch_id
+                WHERE object.owner_id = $1::uuid
+                  AND object.upload_batch_id = $3::uuid
+                  AND processing.state = 'published'
+              )::integer AS published_refresh_count
+            FROM dna.import_activation_processing activation
+            WHERE activation.owner_id = $1::uuid
+              AND activation.dispatch_id = $2::uuid`,
+            [databaseOwnerId, confirmation.dispatchId, uploadBatchId],
+          );
+          const activationRow = activationEvidence.rows[0] as
+            | {
+                activation_state?: unknown;
+                source_version_count?: unknown;
+                completed_refresh_count?: unknown;
+                published_refresh_count?: unknown;
+              }
+            | undefined;
+          expect(activationRow).toMatchObject({
+            activation_state: "complete",
+            source_version_count: 9,
+            completed_refresh_count: 9,
+            published_refresh_count: 9,
+          });
+        } finally {
+          await activationTransaction.rollback();
+        }
 
         const replay = await completePrivateImportUpload({
           authenticatedOwnerId: ownerId,
