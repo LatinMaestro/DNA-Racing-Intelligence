@@ -40,8 +40,12 @@ function stored(
 
 function harness(): {
   coordinator: DatasetEvidenceCommitCoordinator;
-  validate: ReturnType<typeof vi.fn<DatasetEvidenceManifestRegistrationService["validate"]>>;
-  register: ReturnType<typeof vi.fn<DatasetEvidenceManifestRegistrationService["register"]>>;
+  validate: ReturnType<
+    typeof vi.fn<DatasetEvidenceManifestRegistrationService["validate"]>
+  >;
+  register: ReturnType<
+    typeof vi.fn<DatasetEvidenceManifestRegistrationService["register"]>
+  >;
   cleanup: ReturnType<
     typeof vi.fn<
       (
