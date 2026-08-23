@@ -305,7 +305,6 @@ async function countBatchResidue(input: {
   }
 }
 
-
 describeConnected(
   "hosted Preview synthetic queue and Worker acceptance",
   () => {
