@@ -1,7 +1,9 @@
 import { Pool } from "@neondatabase/serverless";
 import { describe, expect, it } from "vitest";
 
-import { createNeonImportRollbackRepository } from "../lib/neon-import-rollback-repository";
+import {
+  createNeonImportRollbackRepository,
+} from "../lib/neon-import-rollback-repository";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
