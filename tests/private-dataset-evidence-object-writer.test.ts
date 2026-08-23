@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createPrivateDatasetEvidenceObjectRecovery,
   createPrivateDatasetEvidenceObjectStorageWriter,
   createPrivateDatasetEvidenceObjectWriter,
-  type PrivateDatasetEvidenceObjectStoragePort,
+  type PrivateDatasetEvidenceObjectDeletionPort,
 } from "@/lib/private-dataset-evidence-object-writer";
-import type { DatasetEvidenceObjectRepository } from "@/lib/neon-dataset-evidence-object-repository";
+import type {
+  DatasetEvidenceObjectInspectionRepository,
+  DatasetEvidenceObjectRepository,
+} from "@/lib/neon-dataset-evidence-object-repository";
 
 const ownerId = "user_owner";
 const importBatchId = "11111111-1111-4111-8111-111111111111";
@@ -20,7 +24,7 @@ function harness() {
   let storageStatus: "created" | "existing" = "created";
   let stored:
     | Parameters<
-        PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
+        PrivateDatasetEvidenceObjectDeletionPort["putObjectIfAbsent"]
       >[0]
     | undefined;
   const readBucketPrivacy = vi.fn(async () => ({
@@ -29,13 +33,13 @@ function harness() {
     customDomainCount: 0,
   }));
   const putObjectIfAbsent = vi.fn<
-    PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
+    PrivateDatasetEvidenceObjectDeletionPort["putObjectIfAbsent"]
   >(async (input) => {
     stored = input;
     return { status: storageStatus };
   });
   const headObject = vi.fn<
-    PrivateDatasetEvidenceObjectStoragePort["headObject"]
+    PrivateDatasetEvidenceObjectDeletionPort["headObject"]
   >(async () =>
     stored === undefined
       ? { status: "missing" }
@@ -47,10 +51,17 @@ function harness() {
           metadata: stored.metadata,
         },
   );
-  const port: PrivateDatasetEvidenceObjectStoragePort = {
+  const deleteObject = vi.fn<
+    PrivateDatasetEvidenceObjectDeletionPort["deleteObject"]
+  >(async () => {
+    stored = undefined;
+    return { status: "deleted" };
+  });
+  const port: PrivateDatasetEvidenceObjectDeletionPort = {
     readBucketPrivacy,
     putObjectIfAbsent,
     headObject,
+    deleteObject,
   };
   const register =
     vi.fn<
@@ -64,6 +75,11 @@ function harness() {
     status: "ready" as const,
     register,
   } satisfies DatasetEvidenceObjectRepository;
+  const inspect = vi.fn<DatasetEvidenceObjectInspectionRepository["inspect"]>();
+  inspect.mockResolvedValue({ status: "missing" });
+  const inspectionRepository: DatasetEvidenceObjectInspectionRepository = {
+    inspect,
+  };
   const createPort = vi.fn(async () => port);
   const writer = createPrivateDatasetEvidenceObjectWriter({
     ownerId,
@@ -79,7 +95,10 @@ function harness() {
     readBucketPrivacy,
     putObjectIfAbsent,
     headObject,
+    deleteObject,
     register,
+    inspect,
+    inspectionRepository,
     setStorageStatus(status: "created" | "existing") {
       storageStatus = status;
     },
@@ -265,5 +284,116 @@ describe("private dataset evidence object writer", () => {
     });
     expect(test.createPort).toHaveBeenCalledOnce();
     expect(test.readBucketPrivacy).toHaveBeenCalledOnce();
+  });
+
+  it("deletes only newly created objects with no durable manifest", async () => {
+    const test = harness();
+    const storageWriter = createPrivateDatasetEvidenceObjectStorageWriter({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => test.port,
+    });
+    const stored = await storageWriter.store(writeInput());
+    const recovery = createPrivateDatasetEvidenceObjectRecovery({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => test.port,
+      inspectionRepository: test.inspectionRepository,
+    });
+
+    await expect(recovery.cleanup([stored])).resolves.toEqual([
+      {
+        objectKey: stored.registration.objectKey,
+        status: "deleted",
+      },
+    ]);
+    expect(test.inspect).toHaveBeenCalledWith(stored.registration);
+    expect(test.deleteObject).toHaveBeenCalledOnce();
+    await expect(recovery.cleanup([stored])).resolves.toEqual([
+      {
+        objectKey: stored.registration.objectKey,
+        status: "missing",
+      },
+    ]);
+    expect(test.deleteObject).toHaveBeenCalledOnce();
+  });
+
+  it("retains exact durable manifests and blocks conflicts before R2 access", async () => {
+    const exact = harness();
+    exact.inspect.mockResolvedValueOnce({ status: "exact" });
+    const recovery = createPrivateDatasetEvidenceObjectRecovery({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => exact.port,
+      inspectionRepository: exact.inspectionRepository,
+    });
+    const storageWriter = createPrivateDatasetEvidenceObjectStorageWriter({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => exact.port,
+    });
+    const stored = await storageWriter.store(writeInput());
+
+    await expect(recovery.cleanup([stored])).resolves.toEqual([
+      {
+        objectKey: stored.registration.objectKey,
+        status: "retained_registered",
+      },
+    ]);
+    expect(exact.deleteObject).not.toHaveBeenCalled();
+
+    const conflict = harness();
+    conflict.inspect.mockResolvedValueOnce({ status: "conflict" });
+    const blocked = createPrivateDatasetEvidenceObjectRecovery({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => conflict.port,
+      inspectionRepository: conflict.inspectionRepository,
+    });
+    await expect(blocked.cleanup([stored])).rejects.toThrow(
+      "Conflicting evidence manifest",
+    );
+    expect(conflict.createPort).not.toHaveBeenCalled();
+    expect(conflict.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it("rejects replayed or non-owner-derived cleanup receipts", async () => {
+    const test = harness();
+    const recovery = createPrivateDatasetEvidenceObjectRecovery({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => test.port,
+      inspectionRepository: test.inspectionRepository,
+    });
+    const storageWriter = createPrivateDatasetEvidenceObjectStorageWriter({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => test.port,
+    });
+    const stored = await storageWriter.store(writeInput());
+
+    await expect(
+      recovery.cleanup([{ ...stored, storageStatus: "existing" }]),
+    ).rejects.toThrow("newly created");
+    await expect(
+      recovery.cleanup([
+        {
+          ...stored,
+          registration: {
+            ...stored.registration,
+            objectKey: "evidence/other/part-0000.parquet",
+          },
+        },
+      ]),
+    ).rejects.toThrow("not owner-derived");
+    expect(test.inspect).not.toHaveBeenCalled();
+    expect(test.deleteObject).not.toHaveBeenCalled();
   });
 });
