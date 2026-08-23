@@ -3,6 +3,11 @@ import type {
   PreparedImportPreview,
 } from "./import-preview-processing-service";
 import {
+  ImportPreviewProcessingFailure,
+  type ImportPreviewProcessingFailureReason,
+} from "./import-preview-processing-failure";
+import {
+  RawImportObjectError,
   streamVerifiedPrivateRawImportObject,
   type PrivateRawImportObjectStore,
   type TransactionalRawImportSink,
@@ -62,6 +67,28 @@ async function abortSafely(
     await sink.abortPreview(input);
   } catch {
     // Preserve the stable processing failure instead of provider detail.
+  }
+}
+
+function processingFailureReason(
+  error: unknown,
+): ImportPreviewProcessingFailureReason {
+  if (!(error instanceof RawImportObjectError)) {
+    return "preview_processor_failed";
+  }
+  switch (error.code) {
+    case "store_failed":
+      return "preview_object_store_failed";
+    case "sink_begin_failed":
+      return "preview_staging_begin_failed";
+    case "sink_write_failed":
+      return "preview_staging_write_failed";
+    case "sink_commit_failed":
+      return "preview_staging_commit_failed";
+    case "sink_failed":
+      return "preview_processor_failed";
+    default:
+      return "preview_object_integrity_failed";
   }
 }
 
@@ -125,14 +152,14 @@ export function createBoundedImportPreviewProcessor(input: {
             stagedResult: verified.result,
           });
         }
-      } catch {
+      } catch (error) {
         await abortSafely(input.stagingSink, {
           ownerId: previewInput.ownerId,
           uploadBatchId: previewInput.uploadBatchId,
           previewDispatchId: previewInput.previewDispatchId,
           reason: "object_processing_failed",
         });
-        throw new Error("Bounded import preview object processing failed.");
+        throw new ImportPreviewProcessingFailure(processingFailureReason(error));
       }
 
       try {
@@ -152,7 +179,7 @@ export function createBoundedImportPreviewProcessor(input: {
           previewDispatchId: previewInput.previewDispatchId,
           reason: "preview_finalization_failed",
         });
-        throw new Error("Bounded import preview finalization failed.");
+        throw new ImportPreviewProcessingFailure("preview_finalization_failed");
       }
     },
   });
