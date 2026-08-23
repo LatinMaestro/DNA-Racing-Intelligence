@@ -43,6 +43,10 @@ describeConnected("connected Preview immutable evidence object", () => {
     const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
     const ownerId = requiredEnvironment("AUTHORIZED_CLERK_USER_ID");
     const bucketName = "dna-racing-import-preview";
+    const createdAt = "2026-08-23T07:30:00.000Z";
+    const fixtureChecksum = createHash("sha256")
+      .update(`connected-evidence-fixture:${importBatchId}`)
+      .digest("hex");
     const payload = gzipSync(
       Buffer.from(
         JSON.stringify({
@@ -72,6 +76,12 @@ describeConnected("connected Preview immutable evidence object", () => {
       forcePathStyle: true,
       credentials: { accessKeyId, secretAccessKey },
     });
+    const pool = new Pool({
+      connectionString: databaseUrl,
+      max: 1,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+    });
     const repository = createNeonDatasetEvidenceObjectRepository({
       databaseUrl,
       databaseOwnerId,
@@ -91,6 +101,41 @@ describeConnected("connected Preview immutable evidence object", () => {
       repository,
     });
 
+    const setup = await pool.connect();
+    try {
+      await setup.query("BEGIN");
+      await setup.query("SELECT set_config('app.owner_id', $1, true)", [
+        databaseOwnerId,
+      ]);
+      const stale = await setup.query(
+        `SELECT
+           (SELECT count(*)::integer FROM dna.import_batch
+             WHERE owner_id = $1::uuid AND id = $2::uuid) AS batches,
+           (SELECT count(*)::integer FROM dna.dataset_evidence_object
+             WHERE owner_id = $1::uuid AND import_batch_id = $2::uuid) AS manifests`,
+        [databaseOwnerId, importBatchId],
+      );
+      expect(stale.rows).toEqual([{ batches: 0, manifests: 0 }]);
+      await setup.query(
+        `INSERT INTO dna.import_batch (
+           id, owner_id, source_type, source_filename, checksum_sha256,
+           detected_encoding, schema_version, status, uploaded_at,
+           source_rows, accepted_rows, rejected_rows, warning_rows
+         ) VALUES (
+           $1::uuid, $2::uuid, 'race_merge', 'synthetic-evidence-connected.csv',
+           $3::character(64), 'utf_8', 'race-merge/v1', 'validating',
+           $4::timestamptz, 1, 0, 1, 0
+         )`,
+        [importBatchId, databaseOwnerId, fixtureChecksum, createdAt],
+      );
+      await setup.query("COMMIT");
+    } catch (error) {
+      await setup.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      setup.release();
+    }
+
     const writeInput = () => ({
       ownerId,
       importBatchId,
@@ -104,7 +149,7 @@ describeConnected("connected Preview immutable evidence object", () => {
       checksumSha256,
       firstNaturalKey: "synthetic-evidence-event:synthetic-evidence-core",
       lastNaturalKey: "synthetic-evidence-event:synthetic-evidence-core",
-      createdAt: "2026-08-23T07:30:00.000Z",
+      createdAt,
     });
 
     let createdId: string | null = null;
@@ -123,12 +168,6 @@ describeConnected("connected Preview immutable evidence object", () => {
         storageStatus: "existing",
       });
 
-      const pool = new Pool({
-        connectionString: databaseUrl,
-        max: 1,
-        idleTimeoutMillis: 10_000,
-        connectionTimeoutMillis: 10_000,
-      });
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -174,12 +213,45 @@ describeConnected("connected Preview immutable evidence object", () => {
       } finally {
         await client.query("ROLLBACK").catch(() => undefined);
         client.release();
-        await pool.end();
       }
     } finally {
-      await cleanupClient.send(
-        new DeleteObjectCommand({ Bucket: bucketName, Key: objectKey }),
-      );
+      try {
+        await cleanupClient.send(
+          new DeleteObjectCommand({ Bucket: bucketName, Key: objectKey }),
+        );
+      } finally {
+        const cleanup = await pool.connect();
+        try {
+          await cleanup.query("BEGIN");
+          await cleanup.query("SELECT set_config('app.owner_id', $1, true)", [
+            databaseOwnerId,
+          ]);
+          await cleanup.query(
+            "DELETE FROM dna.dataset_evidence_object WHERE owner_id = $1::uuid AND import_batch_id = $2::uuid",
+            [databaseOwnerId, importBatchId],
+          );
+          await cleanup.query(
+            "DELETE FROM dna.import_batch WHERE owner_id = $1::uuid AND id = $2::uuid",
+            [databaseOwnerId, importBatchId],
+          );
+          const residue = await cleanup.query(
+            `SELECT
+               (SELECT count(*)::integer FROM dna.import_batch
+                 WHERE owner_id = $1::uuid AND id = $2::uuid) AS batches,
+               (SELECT count(*)::integer FROM dna.dataset_evidence_object
+                 WHERE owner_id = $1::uuid AND import_batch_id = $2::uuid) AS manifests`,
+            [databaseOwnerId, importBatchId],
+          );
+          expect(residue.rows).toEqual([{ batches: 0, manifests: 0 }]);
+          await cleanup.query("COMMIT");
+        } catch (error) {
+          await cleanup.query("ROLLBACK").catch(() => undefined);
+          throw error;
+        } finally {
+          cleanup.release();
+          await pool.end();
+        }
+      }
     }
 
     expect(createdId).not.toBeNull();
