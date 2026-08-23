@@ -169,8 +169,10 @@ function verifyIsolation(
 ) {
   const row = oneRow(result, "dataset rollback isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
-    text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
+    text(row.authenticated_owner_id, "authenticated_owner_id") !==
+      input.ownerId
   ) {
     throw new Error("Private Preview dataset rollback owner scope denied.");
   }
@@ -178,7 +180,9 @@ function verifyIsolation(
     !bool(row.rollback_rls, "rollback_rls") ||
     !bool(row.rollback_force_rls, "rollback_force_rls")
   ) {
-    throw new Error("Private Preview dataset rollback requires forced owner RLS.");
+    throw new Error(
+      "Private Preview dataset rollback requires forced owner RLS.",
+    );
   }
   if (
     !bool(
