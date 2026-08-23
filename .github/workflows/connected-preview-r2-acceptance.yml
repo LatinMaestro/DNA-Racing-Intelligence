@@ -8,6 +8,7 @@ on:
       - "database/migrations/0043_pro_league_multi_source_aggregate_refresh.up.sql"
       - "database/migrations/0044_import_dataset_rollback.up.sql"
       - "database/migrations/0045_dataset_evidence_object_manifest.up.sql"
+      - "database/migrations/0046_unlinked_dataset_evidence_cleanup.up.sql"
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
       - "lib/cloudflare-r2-dataset-evidence-port.ts"
