@@ -18,6 +18,16 @@ import { createNeonImportUploadIntakeRepository } from "../lib/neon-import-uploa
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
 
+type ConnectedSourceFamily = "race_merge" | "core_details" | "current_arena";
+
+type ConnectedFile = Readonly<{
+  clientFileId: string;
+  sourceFamily: ConnectedSourceFamily;
+  originalFileName: string;
+  payload: Uint8Array;
+  sha256: string;
+}>;
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim() ?? "";
   if (value === "" || /[\u0000-\u001f\u007f]/.test(value)) {
@@ -30,6 +40,53 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function csv(value: string): Uint8Array {
+  return new TextEncoder().encode(`${value}\n`);
+}
+
+function connectedFiles(runId: string, runAttempt: string): ConnectedFile[] {
+  const definitions: Array<Omit<ConnectedFile, "sha256">> = [
+    {
+      clientFileId: `connected-core-details-${runId}-${runAttempt}`,
+      sourceFamily: "core_details",
+      originalFileName: "Core Details.csv",
+      payload: csv(
+        [
+          "bikeid,core_name,core_type,gender,f_no,element",
+          "connected-core,Connected Core,Genesis,Female,F1,Fire",
+        ].join("\n"),
+      ),
+    },
+    ...Array.from({ length: 7 }, (_, index) => {
+      const segment = index + 1;
+      const day = String(10 + index).padStart(2, "0");
+      const payout = segment % 2 === 0 ? "Winner Take All" : "Top 3";
+      return {
+        clientFileId: `connected-race-${segment}-${runId}-${runAttempt}`,
+        sourceFamily: "race_merge" as const,
+        originalFileName: `Race Merge ${segment}.csv`,
+        payload: csv(
+          [
+            "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time,rpayout,rfee,prize,toke_curr,r_tags",
+            `connected-event-${runId}-${runAttempt}-${segment},2026-08-${day}T00:00:00.000Z,Bike,1000,connected-core,8,false,false,1,61.${segment}0,${payout},0,0,DEZ,Synthetic`,
+          ].join("\n"),
+        ),
+      };
+    }),
+    {
+      clientFileId: `connected-arena-${runId}-${runAttempt}`,
+      sourceFamily: "current_arena",
+      originalFileName: "Current Arena.csv",
+      payload: csv(["token_id,price_usd", "connected-core,125.00"].join("\n")),
+    },
+  ];
+
+  return definitions.map((file) => ({
+    ...file,
+    sha256: createHash("sha256").update(file.payload).digest("hex"),
+  }));
+}
+
 async function readPreviewState(input: {
   databaseUrl: string;
   databaseOwnerId: string;
@@ -39,6 +96,9 @@ async function readPreviewState(input: {
   failureReason: string | null;
   previewId: string | null;
   confirmable: boolean | null;
+  fileCount: number | null;
+  sourceFamilyCount: number | null;
+  blockingIssueCount: number | null;
 }> {
   const pool = new Pool({
     connectionString: input.databaseUrl,
@@ -57,7 +117,10 @@ async function readPreviewState(input: {
         processing.state AS processing_state,
         processing.failure_reason,
         prepared.preview_id,
-        prepared.confirmable
+        prepared.confirmable,
+        prepared.file_count,
+        prepared.source_family_count,
+        prepared.blocking_issue_count
       FROM dna.import_upload_batch upload
       LEFT JOIN dna.import_preview_dispatch dispatch
         ON dispatch.owner_id = upload.owner_id
@@ -78,6 +141,9 @@ async function readPreviewState(input: {
           failure_reason?: unknown;
           preview_id?: unknown;
           confirmable?: unknown;
+          file_count?: unknown;
+          source_family_count?: unknown;
+          blocking_issue_count?: unknown;
         }
       | undefined;
     return {
@@ -88,6 +154,11 @@ async function readPreviewState(input: {
       previewId: typeof row?.preview_id === "string" ? row.preview_id : null,
       confirmable:
         typeof row?.confirmable === "boolean" ? row.confirmable : null,
+      fileCount: row?.file_count == null ? null : Number(row.file_count),
+      sourceFamilyCount:
+        row?.source_family_count == null ? null : Number(row.source_family_count),
+      blockingIssueCount:
+        row?.blocking_issue_count == null ? null : Number(row.blocking_issue_count),
     };
   } finally {
     client.release();
@@ -100,7 +171,7 @@ async function waitForPreparedPreview(input: {
   databaseOwnerId: string;
   uploadBatchId: string;
 }): Promise<Awaited<ReturnType<typeof readPreviewState>>> {
-  const deadline = Date.now() + 120_000;
+  const deadline = Date.now() + 180_000;
   let latest = await readPreviewState(input);
   while (Date.now() < deadline) {
     if (latest.processingState === "failed") {
@@ -125,7 +196,7 @@ async function waitForCleanup(input: {
   uploadBatchId: string;
   requestFingerprintSha256: string;
 }) {
-  const deadline = Date.now() + 120_000;
+  const deadline = Date.now() + 180_000;
   let lastError: unknown;
   while (Date.now() < deadline) {
     try {
@@ -133,7 +204,7 @@ async function waitForCleanup(input: {
         ownerId: input.ownerId,
         uploadBatchId: input.uploadBatchId,
         requestFingerprintSha256: input.requestFingerprintSha256,
-        reason: "Connected synthetic queue and Worker acceptance cleanup.",
+        reason: "Connected synthetic nine-file Preview acceptance cleanup.",
         cleanedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -192,7 +263,7 @@ async function countBatchResidue(input: {
 describeConnected(
   "hosted Preview synthetic queue and Worker acceptance",
   () => {
-    it("commits one private synthetic dispatch, observes Worker completion, replays, and cleans up", async () => {
+    it("processes the current nine-file source shape, replays, and cleans up", async () => {
       const databaseUrl = requiredEnvironment("DATABASE_URL");
       const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
       const ownerId = requiredEnvironment("AUTHORIZED_CLERK_USER_ID");
@@ -208,16 +279,15 @@ describeConnected(
       );
       const runId = requiredEnvironment("GITHUB_RUN_ID");
       const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
-      const payload = new TextEncoder().encode(
-        [
-          "event_id,rstart_time,rmode,rcb,token_id,rgate_count,gold_star,blue_star,pos,time",
-          `connected-worker-${runId}-${runAttempt},2026-08-21T00:00:00.000Z,Bike,1000,connected-core,8,0,0,1,61.25`,
-          "",
-        ].join("\n"),
-      );
-      const sha256 = createHash("sha256").update(payload).digest("hex");
+      const files = connectedFiles(runId, runAttempt);
+      expect(files).toHaveLength(9);
+      expect(files.filter((file) => file.sourceFamily === "race_merge")).toHaveLength(7);
       const requestFingerprint = createHash("sha256")
-        .update(`connected-worker-request:${runId}:${runAttempt}:${sha256}`)
+        .update(
+          `connected-nine-file-request:${runId}:${runAttempt}:${files
+            .map((file) => file.sha256)
+            .join(":")}`,
+        )
         .digest("hex");
       const repository = createNeonImportUploadIntakeRepository({
         databaseUrl,
@@ -250,57 +320,62 @@ describeConnected(
         credentials: { accessKeyId, secretAccessKey },
       });
       let uploadBatchId: string | null = null;
-      let uploadFileId: string | null = null;
+      const uploadFileIds: string[] = [];
       let cleanupResult: Awaited<ReturnType<typeof waitForCleanup>> | undefined;
 
       try {
         const reservation = await repository.reserveUploadBatch({
           ownerId,
-          idempotencyKey: `connected-worker-${runId}-${runAttempt}`,
+          idempotencyKey: `connected-nine-file-${runId}-${runAttempt}`,
           requestedAt: new Date().toISOString(),
           requestFingerprint,
-          files: [
-            {
-              clientFileId: `connected-worker-file-${runId}-${runAttempt}`,
-              sourceFamily: "race_merge",
-              originalFileName: "connected-worker-race-merge.csv",
-              contentType: "text/csv",
-              byteLength: payload.byteLength,
-              sha256,
-            },
-          ],
+          files: files.map((file) => ({
+            clientFileId: file.clientFileId,
+            sourceFamily: file.sourceFamily,
+            originalFileName: file.originalFileName,
+            contentType: "text/csv",
+            byteLength: file.payload.byteLength,
+            sha256: file.sha256,
+          })),
         });
         expect(reservation.disposition).toBe("created");
+        expect(reservation.files).toHaveLength(9);
         uploadBatchId = reservation.uploadBatchId;
-        uploadFileId = reservation.files[0]?.uploadFileId ?? null;
-        if (uploadFileId === null) {
-          throw new Error("Connected upload reservation returned no file");
-        }
+        const reservedByClientId = new Map(
+          reservation.files.map((file) => [file.clientFileId, file.uploadFileId]),
+        );
 
-        const target = await objectStorage.createDirectUploadTarget({
-          ownerId,
-          uploadBatchId,
-          uploadFileId,
-          contentType: "text/csv",
-          byteLength: payload.byteLength,
-          sha256,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        });
-        const uploaded = await fetch(target.targetToken, {
-          method: target.method,
-          headers: {
-            "Content-Type": "text/csv",
-            "Content-Length": String(payload.byteLength),
-          },
-          body: payload,
-        });
-        expect(uploaded.status).toBeGreaterThanOrEqual(200);
-        expect(uploaded.status).toBeLessThan(300);
+        for (const file of files) {
+          const uploadFileId = reservedByClientId.get(file.clientFileId);
+          if (uploadFileId === undefined) {
+            throw new Error(`Connected upload reservation omitted ${file.clientFileId}`);
+          }
+          uploadFileIds.push(uploadFileId);
+          const target = await objectStorage.createDirectUploadTarget({
+            ownerId,
+            uploadBatchId,
+            uploadFileId,
+            contentType: "text/csv",
+            byteLength: file.payload.byteLength,
+            sha256: file.sha256,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          });
+          const uploaded = await fetch(target.targetToken, {
+            method: target.method,
+            headers: {
+              "Content-Type": "text/csv",
+              "Content-Length": String(file.payload.byteLength),
+            },
+            body: file.payload,
+          });
+          expect(uploaded.status).toBeGreaterThanOrEqual(200);
+          expect(uploaded.status).toBeLessThan(300);
+        }
 
         await repository.markUploadTargetsReady({
           ownerId,
           uploadBatchId,
-          uploadFileIds: [uploadFileId],
+          uploadFileIds,
           requestFingerprint,
           expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         });
@@ -324,7 +399,7 @@ describeConnected(
           authenticatedOwnerId: ownerId,
           configuredOwnerId: ownerId,
           uploadBatchId,
-          idempotencyKey: `connected-worker-complete-${runId}-${runAttempt}`,
+          idempotencyKey: `connected-nine-file-complete-${runId}-${runAttempt}`,
           uploadRequestFingerprint: requestFingerprint,
           now: new Date(),
           capabilities,
@@ -333,11 +408,10 @@ describeConnected(
           status: "queued_for_preview",
           uploadBatchId,
           disposition: "created",
-          fileCount: 1,
+          fileCount: 9,
         });
-
         if (queued.status !== "queued_for_preview") {
-          throw new Error("Connected upload was not queued for Preview");
+          throw new Error("Connected nine-file upload was not queued for Preview");
         }
 
         const prepared = await waitForPreparedPreview({
@@ -349,6 +423,9 @@ describeConnected(
           processingState: "complete",
           failureReason: null,
           confirmable: true,
+          fileCount: 9,
+          sourceFamilyCount: 3,
+          blockingIssueCount: 0,
         });
         expect(prepared.previewId).toMatch(/^preview-[a-f0-9]{32}$/);
 
@@ -356,7 +433,7 @@ describeConnected(
           authenticatedOwnerId: ownerId,
           configuredOwnerId: ownerId,
           uploadBatchId,
-          idempotencyKey: `connected-worker-replay-${runId}-${runAttempt}`,
+          idempotencyKey: `connected-nine-file-replay-${runId}-${runAttempt}`,
           uploadRequestFingerprint: requestFingerprint,
           now: new Date(),
           capabilities,
@@ -365,7 +442,7 @@ describeConnected(
           status: "queued_for_preview",
           uploadBatchId,
           disposition: "existing",
-          fileCount: 1,
+          fileCount: 9,
         });
       } finally {
         let cleanupFailure: unknown;
@@ -381,16 +458,20 @@ describeConnected(
             cleanupFailure = error;
           }
         }
-        if (uploadFileId !== null) {
-          const ownerPrefix = createHash("sha256")
-            .update(`dna-owner\u0000${ownerId}`)
-            .digest("hex");
-          await cleanupClient.send(
-            new DeleteObjectCommand({
-              Bucket: bucketName,
-              Key: `quarantine/${ownerPrefix}/${uploadFileId}.csv`,
-            }),
-          );
+        const ownerPrefix = createHash("sha256")
+          .update(`dna-owner\u0000${ownerId}`)
+          .digest("hex");
+        for (const uploadFileId of uploadFileIds) {
+          try {
+            await cleanupClient.send(
+              new DeleteObjectCommand({
+                Bucket: bucketName,
+                Key: `quarantine/${ownerPrefix}/${uploadFileId}.csv`,
+              }),
+            );
+          } catch (error) {
+            cleanupFailure ??= error;
+          }
         }
         if (cleanupFailure !== undefined) {
           throw cleanupFailure;
@@ -399,12 +480,12 @@ describeConnected(
 
       expect(cleanupResult).toMatchObject({
         status: "cleaned",
-        fileCount: 1,
-        verifiedObjectCount: 1,
-        stagedBatchCount: 1,
+        fileCount: 9,
+        verifiedObjectCount: 9,
+        stagedBatchCount: 9,
       });
-      if (uploadBatchId === null || uploadFileId === null) {
-        throw new Error("Connected cleanup identifiers are unavailable");
+      if (uploadBatchId === null) {
+        throw new Error("Connected cleanup batch identifier is unavailable");
       }
       expect(
         await countBatchResidue({
@@ -416,14 +497,16 @@ describeConnected(
       const ownerPrefix = createHash("sha256")
         .update(`dna-owner\u0000${ownerId}`)
         .digest("hex");
-      const remaining = await cleanupClient.send(
-        new ListObjectsV2Command({
-          Bucket: bucketName,
-          Prefix: `quarantine/${ownerPrefix}/${uploadFileId}.csv`,
-          MaxKeys: 1,
-        }),
-      );
-      expect(remaining.KeyCount ?? 0).toBe(0);
-    }, 420_000);
+      for (const uploadFileId of uploadFileIds) {
+        const remaining = await cleanupClient.send(
+          new ListObjectsV2Command({
+            Bucket: bucketName,
+            Prefix: `quarantine/${ownerPrefix}/${uploadFileId}.csv`,
+            MaxKeys: 1,
+          }),
+        );
+        expect(remaining.KeyCount ?? 0).toBe(0);
+      }
+    }, 600_000);
   },
 );
