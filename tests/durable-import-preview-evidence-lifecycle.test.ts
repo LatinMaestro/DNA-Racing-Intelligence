@@ -60,34 +60,33 @@ function harness() {
       };
     },
   );
-  const validate =
-    vi.fn<DatasetEvidenceManifestRegistrationService["validate"]>(() => {
-      order.push("validate");
-    });
-  const register =
-    vi.fn<DatasetEvidenceManifestRegistrationService["register"]>(
-      async (stored) => {
-        order.push("register");
-        return stored.map((object) => ({
-          evidenceObjectId,
-          objectKey: object.registration.objectKey,
-          status: "created" as const,
-          storageStatus: object.storageStatus,
-        }));
-      },
-    );
-  const cleanup =
-    vi.fn<
-      (
-        stored: readonly StoredPrivateDatasetEvidenceObject[],
-      ) => Promise<readonly PrivateDatasetEvidenceObjectRecoveryReceipt[]>
-    >(async (stored) => {
-      order.push("cleanup");
-      return stored.map((object) => ({
-        objectKey: object.registration.objectKey,
-        status: "deleted" as const,
-      }));
-    });
+  const validate = vi.fn<
+    DatasetEvidenceManifestRegistrationService["validate"]
+  >(() => {
+    order.push("validate");
+  });
+  const register = vi.fn<
+    DatasetEvidenceManifestRegistrationService["register"]
+  >(async (stored) => {
+    order.push("register");
+    return stored.map((object) => ({
+      evidenceObjectId,
+      objectKey: object.registration.objectKey,
+      status: "created" as const,
+      storageStatus: object.storageStatus,
+    }));
+  });
+  const cleanup = vi.fn<
+    (
+      stored: readonly StoredPrivateDatasetEvidenceObject[],
+    ) => Promise<readonly PrivateDatasetEvidenceObjectRecoveryReceipt[]>
+  >(async (stored) => {
+    order.push("cleanup");
+    return stored.map((object) => ({
+      objectKey: object.registration.objectKey,
+      status: "deleted" as const,
+    }));
+  });
   const lifecycle = createDurableImportPreviewEvidenceLifecycle({
     ownerId,
     storageWriter: { store },
