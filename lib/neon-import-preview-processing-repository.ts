@@ -1,3 +1,7 @@
+import {
+  importPreviewProcessingFailureReasons,
+  type ImportPreviewProcessingFailureReason,
+} from "./import-preview-processing-failure";
 import type {
   ImportPreviewDispatchClaim,
   ImportPreviewProcessingRepository,
@@ -15,6 +19,9 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/;
 const SHA_PATTERN = /^[a-f0-9]{64}$/;
+const failureReasonSet = new Set<ImportPreviewProcessingFailureReason>(
+  importPreviewProcessingFailureReasons,
+);
 
 const SET_OWNER_SCOPE_SQL =
   "SELECT set_config('app.owner_id', $1, true) AS owner_scope";
@@ -74,7 +81,7 @@ const PUBLISH_SQL = `
 const FAILURE_SQL = `
   SELECT dna.record_import_preview_processing_failure(
     $1::uuid, $2::uuid, $3::uuid, $4::text,
-    $5::character(64), $6::timestamptz
+    $5::character(64), $6::timestamptz, $7::text
   )
 `;
 
@@ -376,7 +383,7 @@ export function createNeonImportPreviewProcessingRepository(input: {
     },
     recordPreviewFailure(input) {
       return run(input.ownerId, async (client) => {
-        if (input.reason !== "preview_processor_failed") {
+        if (!failureReasonSet.has(input.reason)) {
           throw new Error("preview failure reason is unsupported");
         }
         await client.query(FAILURE_SQL, [
@@ -386,6 +393,7 @@ export function createNeonImportPreviewProcessingRepository(input: {
           input.workerId,
           input.uploadRequestFingerprint,
           input.failedAt,
+          input.reason,
         ]);
       });
     },
