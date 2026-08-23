@@ -43,9 +43,7 @@ export type DatasetEvidenceObjectRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      register: (
-        input: DatasetEvidenceObjectRegistration,
-      ) => Promise<
+      register: (input: DatasetEvidenceObjectRegistration) => Promise<
         Readonly<{
           status: "created" | "existing";
           evidenceObjectId: string;
@@ -138,7 +136,8 @@ function configuration(input: {
   if (!UUID_PATTERN.test(databaseOwnerId)) {
     throw new Error("databaseOwnerId must be a UUID");
   }
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -245,7 +244,9 @@ function verifyIsolation(
     !bool(row.evidence_rls, "evidence_rls") ||
     !bool(row.evidence_force_rls, "evidence_force_rls")
   ) {
-    throw new Error("Private Preview evidence objects require forced owner RLS.");
+    throw new Error(
+      "Private Preview evidence objects require forced owner RLS.",
+    );
   }
   if (
     !bool(row.runtime_can_read_evidence, "runtime_can_read_evidence") ||
@@ -276,10 +277,7 @@ function normalizeRegistration(row: Record<string, unknown>) {
   if (status !== "created" && status !== "existing") {
     throw new Error("evidence object registration status is unsupported");
   }
-  const evidenceObjectId = text(
-    row.evidence_object_id,
-    "evidence_object_id",
-  );
+  const evidenceObjectId = text(row.evidence_object_id, "evidence_object_id");
   if (!UUID_PATTERN.test(evidenceObjectId)) {
     throw new Error("evidenceObjectId must be a UUID");
   }
