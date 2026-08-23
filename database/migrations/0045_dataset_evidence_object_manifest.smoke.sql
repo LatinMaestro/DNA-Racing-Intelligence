@@ -18,7 +18,7 @@ VALUES (
   '45000000-0000-4000-8000-000000000001',
   'race_merge', 'synthetic-race-merge.csv', repeat('1', 64),
   'utf_8', 'race-merge/v1', 'validating',
-  '2026-08-23T07:00:00Z', 1000, 0, 0, 0
+  '2026-08-23T07:00:00Z', 1000, 0, 1000, 0
 );
 
 DO $registration_assertions$
