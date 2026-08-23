@@ -153,14 +153,14 @@ describe("bounded import preview processor", () => {
     expect(test.abortPreview).not.toHaveBeenCalled();
   });
 
-  it("aborts the whole preview without finalizing when an object is missing", async () => {
+  it("records a sanitized object-store stage when an object is missing", async () => {
     const test = harness();
     const secondFile = test.files[1];
     if (secondFile === undefined) throw new Error("fixture is incomplete");
     test.files[1] = { ...secondFile, objectId: "object-missing" };
-    await expect(test.processor.preparePreview(input(test))).rejects.toThrow(
-      "object processing failed",
-    );
+    await expect(
+      test.processor.preparePreview(input(test)),
+    ).rejects.toMatchObject({ reason: "preview_object_store_failed" });
     expect(test.abortPreview).toHaveBeenCalledWith({
       ownerId: OWNER_ID,
       uploadBatchId: BATCH_ID,
@@ -170,12 +170,12 @@ describe("bounded import preview processor", () => {
     expect(test.completePreview).not.toHaveBeenCalled();
   });
 
-  it("aborts staged evidence when finalization fails", async () => {
+  it("records a sanitized finalization stage", async () => {
     const test = harness();
     test.completePreview.mockRejectedValueOnce(new Error("private detail"));
-    await expect(test.processor.preparePreview(input(test))).rejects.toThrow(
-      "finalization failed",
-    );
+    await expect(
+      test.processor.preparePreview(input(test)),
+    ).rejects.toMatchObject({ reason: "preview_finalization_failed" });
     expect(test.abortPreview).toHaveBeenCalledWith({
       ownerId: OWNER_ID,
       uploadBatchId: BATCH_ID,
