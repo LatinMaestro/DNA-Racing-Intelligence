@@ -15,16 +15,23 @@ const sha = (value: Uint8Array) =>
 
 function evidenceHarness() {
   const append = vi.fn(async () => undefined);
-  const commitAndRegister = vi.fn(
+  const commitAndRegisterMock = vi.fn(
     async (commit: () => unknown | Promise<unknown>) => commit(),
   );
+  const commitAndRegister: DurableImportPreviewEvidenceSession["commitAndRegister"] =
+    (commit) => commitAndRegisterMock(commit);
   const abort = vi.fn(async () => undefined);
   const session: DurableImportPreviewEvidenceSession = {
     append,
     commitAndRegister,
     abort,
   };
-  return { session, append, commitAndRegister, abort };
+  return {
+    session,
+    append,
+    commitAndRegister: commitAndRegisterMock,
+    abort,
+  };
 }
 
 function harness(evidenceSession?: DurableImportPreviewEvidenceSession) {
