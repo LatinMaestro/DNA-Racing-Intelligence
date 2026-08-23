@@ -311,4 +311,24 @@ describe("durable import Preview staging sink", () => {
     );
     expect(evidence.abort).toHaveBeenCalledOnce();
   });
+
+  it("surfaces both rollback and evidence cleanup failures", async () => {
+    const evidence = evidenceHarness();
+    const test = harness(evidence.session);
+    const rollbackError = new Error("Neon rollback failed");
+    const cleanupError = new Error("R2 cleanup failed");
+    test.rollback.mockRejectedValueOnce(rollbackError);
+    evidence.abort.mockRejectedValueOnce(cleanupError);
+    const csv = encoder.encode("token_id,price_usd\ncore-1,12.50\n");
+    const active = await begin(test, "current_arena", csv);
+    await active.write(csv);
+
+    await expect(
+      active.abort({ reason: "checksum_mismatch" }),
+    ).rejects.toMatchObject({
+      message: "Durable Preview staging and evidence abort both failed.",
+      errors: [rollbackError, cleanupError],
+    });
+  });
+
 });
