@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 
 import type {
+  PrivateDatasetEvidenceObjectStorageWriter,
   PrivateDatasetEvidenceObjectWriter,
   PrivateDatasetEvidenceObjectWrite,
+  StoredPrivateDatasetEvidenceObject,
 } from "./private-dataset-evidence-object-writer";
 
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -76,8 +78,19 @@ function stream(value: Uint8Array): AsyncIterable<Uint8Array> {
   })();
 }
 
-export function createDatasetEvidenceNdjsonPartitionWriter(input: {
-  writer: PrivateDatasetEvidenceObjectWriter;
+type DatasetEvidenceNdjsonPartitionMetadata = Readonly<
+  Pick<
+    DatasetEvidenceNdjsonPartition,
+    | "partitionNumber"
+    | "rowCount"
+    | "byteSize"
+    | "checksumSha256"
+    | "firstNaturalKey"
+    | "lastNaturalKey"
+  >
+>;
+
+type DatasetEvidenceNdjsonPartitionWriterInput = Readonly<{
   ownerId: string;
   importBatchId: string;
   sourceType: PrivateDatasetEvidenceObjectWrite["sourceType"];
@@ -88,9 +101,20 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
   maximumUncompressedBytes: number;
   maximumRowsPerPartition: number;
   createdAt: string;
-}): Readonly<{
+}>;
+
+function createPartitionWriter<Written, Result>(
+  input: DatasetEvidenceNdjsonPartitionWriterInput &
+    Readonly<{
+      write: (value: PrivateDatasetEvidenceObjectWrite) => Promise<Written>;
+      result: (
+        metadata: DatasetEvidenceNdjsonPartitionMetadata,
+        written: Written,
+      ) => Result;
+    }>,
+): Readonly<{
   append: (rows: readonly DatasetEvidenceNdjsonRow[]) => Promise<void>;
-  finish: () => Promise<readonly DatasetEvidenceNdjsonPartition[]>;
+  finish: () => Promise<readonly Result[]>;
 }> {
   const maximumUncompressedBytes = positiveInteger(
     input.maximumUncompressedBytes,
@@ -104,7 +128,7 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
   let partitionBytes: Uint8Array[] = [];
   let partitionByteLength = 0;
   let partitionRows: DatasetEvidenceNdjsonRow[] = [];
-  const results: DatasetEvidenceNdjsonPartition[] = [];
+  const results: Result[] = [];
   let tail: Promise<void> = Promise.resolve();
   let failure: unknown;
   let finishRequested = false;
@@ -124,7 +148,7 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
     const keyed = partitionRows.filter((row) => row.naturalKey !== null);
     const firstNaturalKey = keyed[0]?.naturalKey ?? null;
     const lastNaturalKey = keyed.at(-1)?.naturalKey ?? null;
-    const written = await input.writer.write({
+    const written = await input.write({
       ownerId: input.ownerId,
       importBatchId: input.importBatchId,
       sourceType: input.sourceType,
@@ -139,15 +163,15 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
       lastNaturalKey,
       createdAt: input.createdAt,
     });
-    results.push({
+    const metadata = {
       partitionNumber,
       rowCount: partitionRows.length,
       byteSize: compressed.byteLength,
       checksumSha256,
       firstNaturalKey,
       lastNaturalKey,
-      ...written,
-    });
+    };
+    results.push(input.result(metadata, written));
     partitionNumber += 1;
     partitionBytes = [];
     partitionByteLength = 0;
@@ -218,5 +242,34 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
         return [...results];
       });
     },
+  });
+}
+
+
+export function createDatasetEvidenceNdjsonPartitionWriter(
+  input: DatasetEvidenceNdjsonPartitionWriterInput &
+    Readonly<{ writer: PrivateDatasetEvidenceObjectWriter }>,
+): Readonly<{
+  append: (rows: readonly DatasetEvidenceNdjsonRow[]) => Promise<void>;
+  finish: () => Promise<readonly DatasetEvidenceNdjsonPartition[]>;
+}> {
+  return createPartitionWriter({
+    ...input,
+    write: (value) => input.writer.write(value),
+    result: (metadata, written) => ({ ...metadata, ...written }),
+  });
+}
+
+export function createDeferredDatasetEvidenceNdjsonPartitionWriter(
+  input: DatasetEvidenceNdjsonPartitionWriterInput &
+    Readonly<{ storageWriter: PrivateDatasetEvidenceObjectStorageWriter }>,
+): Readonly<{
+  append: (rows: readonly DatasetEvidenceNdjsonRow[]) => Promise<void>;
+  finish: () => Promise<readonly StoredPrivateDatasetEvidenceObject[]>;
+}> {
+  return createPartitionWriter({
+    ...input,
+    write: (value) => input.storageWriter.store(value),
+    result: (_metadata, stored) => stored,
   });
 }
