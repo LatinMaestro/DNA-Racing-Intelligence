@@ -21,9 +21,9 @@ function harness() {
     r2DevDisabled: true,
     customDomainCount: 0,
   }));
-  const putObjectIfAbsent = vi.fn(async () => ({
-    status: "created" as const,
-  }));
+  const putObjectIfAbsent =
+    vi.fn<PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]>();
+  putObjectIfAbsent.mockResolvedValue({ status: "created" });
   const headObject = vi.fn(
     async (): Promise<
       Awaited<ReturnType<PrivateDatasetEvidenceObjectStoragePort["headObject"]>>
@@ -45,10 +45,14 @@ function harness() {
     putObjectIfAbsent,
     headObject,
   };
-  const register = vi.fn(async () => ({
-    status: "created" as const,
-    evidenceObjectId,
-  }));
+  const register =
+    vi.fn<
+      Extract<
+        DatasetEvidenceObjectRepository,
+        Readonly<{ status: "ready" }>
+      >["register"]
+    >();
+  register.mockResolvedValue({ status: "created", evidenceObjectId });
   const repository = {
     status: "ready" as const,
     register,
