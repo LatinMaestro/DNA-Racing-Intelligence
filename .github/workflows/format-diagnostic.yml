@@ -1,6 +1,7 @@
 name: Format diagnostic
 
 on:
+  pull_request:
   push:
     branches:
       - codex/bounded-evidence-ndjson-partitions
