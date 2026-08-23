@@ -96,7 +96,7 @@ type DatasetEvidenceNdjsonPartitionWriterInput = Readonly<{
   sourceType: PrivateDatasetEvidenceObjectWrite["sourceType"];
   objectKind: Extract<
     PrivateDatasetEvidenceObjectWrite["objectKind"],
-    "staged_rows" | "accepted_contributions" | "normalized_partition"
+    "staged_rows" | "accepted_contributions"
   >;
   maximumUncompressedBytes: number;
   maximumRowsPerPartition: number;
