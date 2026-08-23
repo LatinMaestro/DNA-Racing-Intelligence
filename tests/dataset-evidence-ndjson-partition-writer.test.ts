@@ -284,9 +284,9 @@ describe("dataset evidence NDJSON partition writer", () => {
     const stored = await writer.abort();
 
     expect(store).toHaveBeenCalledOnce();
-    expect(stored.map((object) => object.registration.partitionNumber)).toEqual([
-      0,
-    ]);
+    expect(stored.map((object) => object.registration.partitionNumber)).toEqual(
+      [0],
+    );
     await expect(writer.finish()).rejects.toThrow("was aborted");
     await expect(
       writer.append([
