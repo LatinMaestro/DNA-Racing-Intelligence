@@ -35,6 +35,7 @@ export type DurablePreviewObjectResult = Readonly<{
 }>;
 
 export type DurablePreviewObjectTransaction = Readonly<{
+  importBatchId: string;
   stageSchema: (schema: StagedSourceSchema) => Promise<void>;
   stageRows: (rows: readonly DurablePreviewStagedRow[]) => Promise<void>;
   commitVerified: (input: {

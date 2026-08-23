@@ -167,6 +167,7 @@ describe("Neon durable Preview staging repository", () => {
       expectedByteLength: 1024,
       expectedSha256: sha256,
     });
+    expect(transaction.importBatchId).toBe(objectId);
     await transaction.stageSchema(schema);
     await transaction.stageRows(rows);
     await expect(
