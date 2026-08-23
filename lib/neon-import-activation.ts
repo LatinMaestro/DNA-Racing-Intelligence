@@ -465,8 +465,10 @@ export function createNeonImportActivationRepositories(input: {
         if (
           (compactionStatus !== "compacted" &&
             compactionStatus !== "existing") ||
-          count(compaction.source_version_count, "compaction.source_version_count") !==
-            sourceVersionCount
+          count(
+            compaction.source_version_count,
+            "compaction.source_version_count",
+          ) !== sourceVersionCount
         ) {
           throw new Error("accepted dataset compaction evidence is invalid");
         }
