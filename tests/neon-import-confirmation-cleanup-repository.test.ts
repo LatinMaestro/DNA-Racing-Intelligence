@@ -106,43 +106,43 @@ describe("Neon confirmed import cleanup repository", () => {
   });
 
   it("cleans an exact pending confirmation through forced owner RLS", async () => {
-      const test = harness([
-        [{ owner_scope: databaseOwnerId }],
-        [isolation()],
-        [
-          {
-            status: "cleaned",
-            confirmation_cleanup_id: confirmationCleanupId,
-            pre_activation_cleanup_id: preActivationCleanupId,
-            file_count: 9,
-            verified_object_count: 9,
-            staged_batch_count: 9,
-          },
-        ],
-      ]);
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          status: "cleaned",
+          confirmation_cleanup_id: confirmationCleanupId,
+          pre_activation_cleanup_id: preActivationCleanupId,
+          file_count: 9,
+          verified_object_count: 9,
+          staged_batch_count: 9,
+        },
+      ],
+    ]);
 
-      await expect(
-        repository(test).cleanupBeforeDispatch(cleanupInput()),
-      ).resolves.toEqual({
-        status: "cleaned",
-        confirmationCleanupId,
-        preActivationCleanupId,
-        fileCount: 9,
-        verifiedObjectCount: 9,
-        stagedBatchCount: 9,
-      });
-      expect(test.query.mock.calls[3]?.[1]).toEqual([
-        databaseOwnerId,
-        uploadBatchId,
-        requestFingerprint,
-        "preview-confirmed-cleanup",
-        previewFingerprint,
-        updateSessionId,
-        activationDispatchId,
-        "synthetic confirmed Preview cleanup",
-        cleanedAt,
-      ]);
-      expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+    await expect(
+      repository(test).cleanupBeforeDispatch(cleanupInput()),
+    ).resolves.toEqual({
+      status: "cleaned",
+      confirmationCleanupId,
+      preActivationCleanupId,
+      fileCount: 9,
+      verifiedObjectCount: 9,
+      stagedBatchCount: 9,
+    });
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      uploadBatchId,
+      requestFingerprint,
+      "preview-confirmed-cleanup",
+      previewFingerprint,
+      updateSessionId,
+      activationDispatchId,
+      "synthetic confirmed Preview cleanup",
+      cleanedAt,
+    ]);
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
   it("maps exact idempotent replay without inventing identifiers", async () => {
@@ -174,59 +174,59 @@ describe("Neon confirmed import cleanup repository", () => {
   });
 
   it("rejects malformed confirmation authority before opening a connection", () => {
-      const test = harness([]);
-      const configured = repository(test);
-      expect(() =>
-        configured.cleanupBeforeDispatch({
-          ...cleanupInput(),
-          previewFingerprintSha256: "B".repeat(64),
-        }),
-      ).toThrow("previewFingerprintSha256 is invalid");
-      expect(() =>
-        configured.cleanupBeforeDispatch({
-          ...cleanupInput(),
-          activationDispatchId: "not-a-uuid",
-        }),
-      ).toThrow("activationDispatchId must be a UUID");
-      expect(test.query).not.toHaveBeenCalled();
+    const test = harness([]);
+    const configured = repository(test);
+    expect(() =>
+      configured.cleanupBeforeDispatch({
+        ...cleanupInput(),
+        previewFingerprintSha256: "B".repeat(64),
+      }),
+    ).toThrow("previewFingerprintSha256 is invalid");
+    expect(() =>
+      configured.cleanupBeforeDispatch({
+        ...cleanupInput(),
+        activationDispatchId: "not-a-uuid",
+      }),
+    ).toThrow("activationDispatchId must be a UUID");
+    expect(test.query).not.toHaveBeenCalled();
   });
 
   it("rolls back when runtime privilege or RLS evidence is unsafe", async () => {
-      const test = harness([
-        [{ owner_scope: databaseOwnerId }],
-        [isolation({ runtime_can_cleanup_confirmation: false })],
-      ]);
-      await expect(
-        repository(test).cleanupBeforeDispatch(cleanupInput()),
-      ).rejects.toThrow("runtime privileges are incomplete");
-      expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
-      expect(
-        test.events.some(
-          (event) =>
-            event.includes("cleanup_confirmed_import_before_dispatch(") &&
-            event.includes("SELECT status"),
-        ),
-      ).toBe(false);
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation({ runtime_can_cleanup_confirmation: false })],
+    ]);
+    await expect(
+      repository(test).cleanupBeforeDispatch(cleanupInput()),
+    ).rejects.toThrow("runtime privileges are incomplete");
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
+    expect(
+      test.events.some(
+        (event) =>
+          event.includes("cleanup_confirmed_import_before_dispatch(") &&
+          event.includes("SELECT status"),
+      ),
+    ).toBe(false);
   });
 
   it("rejects inconsistent durable cleanup evidence and rolls back", async () => {
-      const test = harness([
-        [{ owner_scope: databaseOwnerId }],
-        [isolation()],
-        [
-          {
-            status: "cleaned",
-            confirmation_cleanup_id: confirmationCleanupId,
-            pre_activation_cleanup_id: preActivationCleanupId,
-            file_count: 1,
-            verified_object_count: 2,
-            staged_batch_count: 0,
-          },
-        ],
-      ]);
-      await expect(
-        repository(test).cleanupBeforeDispatch(cleanupInput()),
-      ).rejects.toThrow("counts are inconsistent");
-      expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          status: "cleaned",
+          confirmation_cleanup_id: confirmationCleanupId,
+          pre_activation_cleanup_id: preActivationCleanupId,
+          file_count: 1,
+          verified_object_count: 2,
+          staged_batch_count: 0,
+        },
+      ],
+    ]);
+    await expect(
+      repository(test).cleanupBeforeDispatch(cleanupInput()),
+    ).rejects.toThrow("counts are inconsistent");
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 });
