@@ -344,5 +344,4 @@ describe("dataset evidence NDJSON partition writer", () => {
       }),
     ]);
   });
-
 });
