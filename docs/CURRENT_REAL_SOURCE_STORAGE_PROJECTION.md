@@ -99,6 +99,25 @@ prove that:
 - raw/private analytical objects remain non-public and owner-scoped; and
 - no Production or paid-service authority is implied.
 
+## Compact evidence-object control plane
+
+Migration 0045 introduces the first executable part of the replacement design:
+an owner-scoped Neon manifest for immutable private evidence objects. Each manifest
+row binds one import batch and source family to a bounded partition number, object
+format, private object key, SHA-256 checksum, byte count, row count and optional
+natural-key range.
+
+Registration is least-privilege and replay-safe: the same batch, object kind and
+partition returns the same deterministic receipt only when all immutable metadata
+matches. A changed checksum, size, row count, format, key or range fails closed.
+Forced row-level security keeps the compact control plane owner-isolated.
+
+This migration does **not** remove either high-volume Neon ledger and therefore does
+not clear the real-upload stop condition. The next slices must make the Worker write
+and verify these private objects, switch acceptance/replay/rollback to the manifest
+boundary, remove duplicated row-level Neon retention, and rerun the complete capacity
+projection including normalized and read-model storage.
+
 ## Reproducibility
 
 The dedicated `Current real-source storage projection` GitHub Actions workflow uses
