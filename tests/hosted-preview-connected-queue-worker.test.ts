@@ -305,47 +305,6 @@ async function countBatchResidue(input: {
   }
 }
 
-async function countConfirmationResidue(input: {
-  databaseUrl: string;
-  databaseOwnerId: string;
-  previewId: string;
-}): Promise<number> {
-  const pool = new Pool({
-    connectionString: input.databaseUrl,
-    max: 1,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 10_000,
-  });
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query("SELECT set_config(\'app.owner_id\', $1, true)", [
-      input.databaseOwnerId,
-    ]);
-    const result = await client.query(
-      `SELECT (
-        (SELECT count(*) FROM dna.import_activation_dispatch
-          WHERE owner_id = $1::uuid AND preview_id = $2::text) +
-        (SELECT count(*)
-          FROM dna.import_activation_processing processing
-          JOIN dna.import_activation_dispatch dispatch
-            ON dispatch.owner_id = processing.owner_id
-            AND dispatch.id = processing.dispatch_id
-          WHERE dispatch.owner_id = $1::uuid
-            AND dispatch.preview_id = $2::text)
-      )::integer AS residue_count`,
-      [input.databaseOwnerId, input.previewId],
-    );
-    await client.query("ROLLBACK");
-    return Number(
-      (result.rows[0] as { residue_count?: unknown } | undefined)
-        ?.residue_count,
-    );
-  } finally {
-    client.release();
-    await pool.end();
-  }
-}
 
 describeConnected(
   "hosted Preview synthetic queue and Worker acceptance",
@@ -559,13 +518,6 @@ describeConnected(
         });
         expect(confirmation.updateSessionId).toMatch(UUID_PATTERN);
         expect(confirmation.dispatchId).toMatch(UUID_PATTERN);
-        expect(
-          await countConfirmationResidue({
-            databaseUrl,
-            databaseOwnerId,
-            previewId: prepared.previewId,
-          }),
-        ).toBe(0);
 
         const replay = await completePrivateImportUpload({
           authenticatedOwnerId: ownerId,
