@@ -60,6 +60,28 @@ Routine application reads must continue using the last completely published
 aggregate set. They must not use a partly prepared set or imply that newly
 accepted source data has refreshed recommendations before publication succeeds.
 
+## Multi-source activation refresh
+
+A transactional activation retains one aggregate-refresh audit job for every
+accepted source version. The count follows the accepted source-version count and
+is not hard-coded to the current number of Race Merge segments. Each queue
+receipt remains independently claimable, publishable and replay-safe even though
+the compact Pro League aggregates are calculated from the complete active source
+set rather than from only the receipt's source family.
+
+Star-profile materialisation is always anchored to the current active,
+non-rolled-back Race Merge version. A Core Details, Current Arena or superseded
+Race Merge receipt must never be passed to the star refresher as if it were the
+active Race version. When another receipt invokes the global refresh, the active
+Race Merge job's prior queue state is restored after star materialisation so its
+own queued delivery is not consumed indirectly. Direct deterministic refresh
+replay remains supported for an already completed target job.
+
+This preserves source-version auditability and queue recovery while ensuring
+that every published receipt was prepared against the same current active
+source-version fingerprint. It does not make an older Race segment active or
+allow a non-Race source version to become the star-profile authority.
+
 ## Validation
 
 Synthetic tests cover:
