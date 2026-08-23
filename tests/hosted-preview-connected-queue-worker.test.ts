@@ -24,7 +24,7 @@ type ConnectedFile = Readonly<{
   clientFileId: string;
   sourceFamily: ConnectedSourceFamily;
   originalFileName: string;
-  payload: Uint8Array;
+  payload: ReturnType<TextEncoder["encode"]>;
   sha256: string;
 }>;
 
