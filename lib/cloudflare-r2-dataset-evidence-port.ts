@@ -35,10 +35,7 @@ export type CloudflareR2DatasetEvidenceDriver = Readonly<{
     bucketName: string;
     key: string;
   }) => Promise<EvidenceHeadResult>;
-  deleteObject: (input: {
-    bucketName: string;
-    key: string;
-  }) => Promise<void>;
+  deleteObject: (input: { bucketName: string; key: string }) => Promise<void>;
 }>;
 
 export type CloudflareR2DatasetEvidencePortConfiguration = Readonly<{
