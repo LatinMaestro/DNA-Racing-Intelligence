@@ -16,29 +16,33 @@ async function* bytes() {
 }
 
 function harness() {
+  let stored:
+    | Parameters<
+        PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
+      >[0]
+    | undefined;
   const readBucketPrivacy = vi.fn(async () => ({
     publicAccessDisabled: true,
     r2DevDisabled: true,
     customDomainCount: 0,
   }));
-  const putObjectIfAbsent =
-    vi.fn<PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]>();
-  putObjectIfAbsent.mockResolvedValue({ status: "created" });
-  const headObject = vi.fn(
-    async (): Promise<
-      Awaited<ReturnType<PrivateDatasetEvidenceObjectStoragePort["headObject"]>>
-    > => ({
-      status: "ready",
-      contentType: "application/vnd.apache.parquet",
-      byteLength: 3,
-      checksumSha256,
-      metadata: {
-        rows: "1",
-        source: "race_merge",
-        kind: "normalized_partition",
-        partition: "0",
-      },
-    }),
+  const putObjectIfAbsent = vi.fn<
+    PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
+  >(async (input) => {
+    stored = input;
+    return { status: "created" };
+  });
+  const headObject = vi.fn<PrivateDatasetEvidenceObjectStoragePort["headObject"]>(
+    async () =>
+      stored === undefined
+        ? { status: "missing" }
+        : {
+            status: "ready",
+            contentType: stored.contentType,
+            byteLength: stored.byteLength,
+            checksumSha256: stored.checksumSha256,
+            metadata: stored.metadata,
+          },
   );
   const port: PrivateDatasetEvidenceObjectStoragePort = {
     readBucketPrivacy,
@@ -134,7 +138,10 @@ describe("private dataset evidence object writer", () => {
 
   it("supports exact storage and manifest replay", async () => {
     const test = harness();
-    test.putObjectIfAbsent.mockResolvedValueOnce({ status: "existing" });
+    test.putObjectIfAbsent.mockImplementationOnce(async (input) => {
+      await test.putObjectIfAbsent.getMockImplementation()?.(input);
+      return { status: "existing" };
+    });
     test.register.mockResolvedValueOnce({
       status: "existing",
       evidenceObjectId,
@@ -219,18 +226,6 @@ describe("private dataset evidence object writer", () => {
   it("initializes the provider and private-bucket check only once", async () => {
     const test = harness();
     await test.writer.write(writeInput());
-    test.headObject.mockResolvedValueOnce({
-      status: "ready",
-      contentType: "application/vnd.apache.parquet",
-      byteLength: 3,
-      checksumSha256,
-      metadata: {
-        rows: "1",
-        source: "race_merge",
-        kind: "normalized_partition",
-        partition: "1",
-      },
-    });
     await test.writer.write({
       ...writeInput(),
       partitionNumber: 1,
