@@ -216,9 +216,7 @@ async function assertEmptyDurableOwnerState(input: {
 
 export async function recoverHostedPreviewEvidenceResidue(
   input: HostedPreviewEvidenceResidueRecoveryInput,
-): Promise<
-  Readonly<{ deleted: number; retained: number; missing: number }>
-> {
+): Promise<Readonly<{ deleted: number; retained: number; missing: number }>> {
   if (input.requireEmptyDurableOwnerState === true) {
     await assertEmptyDurableOwnerState(input);
   }
@@ -356,7 +354,9 @@ export async function recoverHostedPreviewEvidenceResidue(
       prefix,
     });
     if (remaining.length > 0 && requestedBatchIds !== null) {
-      throw new Error("Synthetic Preview evidence residue remains after cleanup");
+      throw new Error(
+        "Synthetic Preview evidence residue remains after cleanup",
+      );
     }
   }
   return {
