@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { Readable } from "node:stream";
 
 import {
   HeadObjectCommand,
@@ -80,7 +81,7 @@ function defaultDriver(input: {
         new PutObjectCommand({
           Bucket: request.bucketName,
           Key: request.key,
-          Body: request.body,
+          Body: Readable.from(request.body),
           ContentType: request.contentType,
           ContentLength: request.byteLength,
           ChecksumSHA256: request.checksumSha256Base64,
