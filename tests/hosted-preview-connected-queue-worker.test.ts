@@ -77,9 +77,7 @@ function connectedFiles(runId: string, runAttempt: string): ConnectedFile[] {
       clientFileId: `connected-arena-${runId}-${runAttempt}`,
       sourceFamily: "current_arena",
       originalFileName: "Current Arena.csv",
-      payload: csv(
-        ["token_id,price_usd", "connected-core,125.00"].join("\n"),
-      ),
+      payload: csv(["token_id,price_usd", "connected-core,125.00"].join("\n")),
     },
   ];
 
@@ -424,7 +422,9 @@ describeConnected(
           fileCount: 9,
         });
         if (queued.status !== "queued_for_preview") {
-          throw new Error("Connected nine-file upload was not queued for Preview");
+          throw new Error(
+            "Connected nine-file upload was not queued for Preview",
+          );
         }
 
         const prepared = await waitForPreparedPreview({
