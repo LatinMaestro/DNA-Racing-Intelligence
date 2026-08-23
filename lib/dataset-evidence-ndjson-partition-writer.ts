@@ -245,7 +245,6 @@ function createPartitionWriter<Written, Result>(
   });
 }
 
-
 export function createDatasetEvidenceNdjsonPartitionWriter(
   input: DatasetEvidenceNdjsonPartitionWriterInput &
     Readonly<{ writer: PrivateDatasetEvidenceObjectWriter }>,
