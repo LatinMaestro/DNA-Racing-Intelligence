@@ -114,9 +114,7 @@ describeConnected("connected Preview immutable evidence object", () => {
          )`,
         [databaseOwnerId, importBatchId, fixtureChecksum],
       );
-      expect(["cleaned", "not_found"]).toContain(
-        priorCleanup.rows[0]?.status,
-      );
+      expect(["cleaned", "not_found"]).toContain(priorCleanup.rows[0]?.status);
       const stale = await setup.query(
         `SELECT
            (SELECT count(*)::integer FROM dna.import_batch
