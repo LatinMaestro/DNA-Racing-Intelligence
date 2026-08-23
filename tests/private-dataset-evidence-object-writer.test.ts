@@ -15,7 +15,7 @@ async function* bytes() {
   yield new Uint8Array([1, 2, 3]);
 }
 
-function harness() {
+function harness(storageStatus: "created" | "existing" = "created") {
   let stored:
     | Parameters<
         PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
@@ -30,7 +30,7 @@ function harness() {
     PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
   >(async (input) => {
     stored = input;
-    return { status: "created" };
+    return { status: storageStatus };
   });
   const headObject = vi.fn<PrivateDatasetEvidenceObjectStoragePort["headObject"]>(
     async () =>
@@ -137,11 +137,7 @@ describe("private dataset evidence object writer", () => {
   });
 
   it("supports exact storage and manifest replay", async () => {
-    const test = harness();
-    test.putObjectIfAbsent.mockImplementationOnce(async (input) => {
-      await test.putObjectIfAbsent.getMockImplementation()?.(input);
-      return { status: "existing" };
-    });
+    const test = harness("existing");
     test.register.mockResolvedValueOnce({
       status: "existing",
       evidenceObjectId,
