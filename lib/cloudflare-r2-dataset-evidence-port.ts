@@ -85,7 +85,10 @@ async function collectExactBody(input: {
   const output = new Uint8Array(byteLength);
   let offset = 0;
   for await (const chunk of input.body) {
-    if (!(chunk instanceof Uint8Array) || offset + chunk.byteLength > byteLength) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > byteLength
+    ) {
       throw new Error("Cloudflare R2 evidence body length is invalid.");
     }
     output.set(chunk, offset);
@@ -197,7 +200,8 @@ export function createCloudflareR2DatasetEvidencePort(
   );
   const apiToken = secret(configuration.apiToken, "apiToken");
   const maximumBufferedPutBytes = positiveSafeInteger(
-    configuration.maximumBufferedPutBytes ?? DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES,
+    configuration.maximumBufferedPutBytes ??
+      DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES,
     "maximumBufferedPutBytes",
   );
   const endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
