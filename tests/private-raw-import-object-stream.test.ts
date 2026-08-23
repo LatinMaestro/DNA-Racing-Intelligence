@@ -215,7 +215,7 @@ describe("private raw import object streaming", () => {
     expect(service.commitVerified).not.toHaveBeenCalled();
   });
 
-  it("aborts prepared staging when the transactional sink fails", async () => {
+  it("classifies transactional sink write failures without provider detail", async () => {
     const bodyChunks = [encoder.encode("synthetic")];
     const objectReference = reference(bodyChunks);
     const service = services(bodyChunks, objectReference.expectedByteLength);
@@ -224,10 +224,10 @@ describe("private raw import object streaming", () => {
     await expect(
       streamVerifiedPrivateRawImportObject(input(service, objectReference)),
     ).rejects.toMatchObject({
-      code: "sink_failed",
+      code: "sink_write_failed",
       message: expect.not.stringContaining("synthetic sink failure"),
     });
-    expect(service.abort).toHaveBeenCalledWith({ reason: "sink_failed" });
+    expect(service.abort).toHaveBeenCalledWith({ reason: "sink_write_failed" });
     expect(service.commitVerified).not.toHaveBeenCalled();
   });
 
