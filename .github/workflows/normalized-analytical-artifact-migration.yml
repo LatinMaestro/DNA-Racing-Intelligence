@@ -1,0 +1,57 @@
+name: Normalized analytical artifact migration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/normalized-analytical-artifact-migration.yml"
+      - "database/migrations/0044_normalized_analytical_artifact_manifest.*.sql"
+      - "lib/private-normalized-analytical-artifact-store.ts"
+      - "tests/private-normalized-analytical-artifact-store.test.ts"
+      - "docs/PHASE_1_NORMALIZED_ANALYTICAL_ARTIFACTS.md"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run normalized analytical artifact smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1
+          --file database/migrations/0044_normalized_analytical_artifact_manifest.smoke.sql
+      - name: Reverse normalized analytical artifact migration
+        run: >-
+          psql --set ON_ERROR_STOP=1
+          --file database/migrations/0044_normalized_analytical_artifact_manifest.down.sql
+      - name: Verify normalized analytical artifact removal
+        run: >-
+          psql --set ON_ERROR_STOP=1
+          --file database/migrations/0044_normalized_analytical_artifact_manifest.removal.sql
