@@ -1,5 +1,4 @@
 import { Buffer } from "node:buffer";
-import { Readable } from "node:stream";
 
 import {
   DeleteObjectCommand,
@@ -13,6 +12,7 @@ import type { PrivateDatasetEvidenceObjectDeletionPort } from "./private-dataset
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
+const DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES = 8 * 1024 * 1024;
 
 type EvidenceHeadResult = Readonly<{
   contentLength: number | undefined;
@@ -25,7 +25,7 @@ export type CloudflareR2DatasetEvidenceDriver = Readonly<{
   putObjectIfAbsent: (input: {
     bucketName: string;
     key: string;
-    body: AsyncIterable<Uint8Array>;
+    body: Uint8Array;
     contentType: string;
     byteLength: number;
     checksumSha256Base64: string;
@@ -43,6 +43,7 @@ export type CloudflareR2DatasetEvidencePortConfiguration = Readonly<{
   accessKeyId: string;
   secretAccessKey: string;
   apiToken: string;
+  maximumBufferedPutBytes?: number;
   fetch?: typeof globalThis.fetch;
   createDriver?: (input: {
     endpoint: string;
@@ -61,6 +62,39 @@ function secret(value: string, field: string): string {
     throw new Error(field + " is invalid");
   }
   return normalized;
+}
+
+function positiveSafeInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(field + " is invalid");
+  }
+  return value;
+}
+
+async function collectExactBody(input: {
+  body: AsyncIterable<Uint8Array>;
+  byteLength: number;
+  maximumBufferedPutBytes: number;
+}): Promise<Uint8Array> {
+  const byteLength = positiveSafeInteger(input.byteLength, "byteLength");
+  if (byteLength > input.maximumBufferedPutBytes) {
+    throw new Error(
+      "Cloudflare R2 evidence write exceeds bounded memory capacity.",
+    );
+  }
+  const output = new Uint8Array(byteLength);
+  let offset = 0;
+  for await (const chunk of input.body) {
+    if (!(chunk instanceof Uint8Array) || offset + chunk.byteLength > byteLength) {
+      throw new Error("Cloudflare R2 evidence body length is invalid.");
+    }
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  if (offset !== byteLength) {
+    throw new Error("Cloudflare R2 evidence body length is invalid.");
+  }
+  return output;
 }
 
 function defaultDriver(input: {
@@ -83,7 +117,7 @@ function defaultDriver(input: {
         new PutObjectCommand({
           Bucket: request.bucketName,
           Key: request.key,
-          Body: Readable.from(request.body),
+          Body: request.body,
           ContentType: request.contentType,
           ContentLength: request.byteLength,
           ChecksumSHA256: request.checksumSha256Base64,
@@ -162,6 +196,10 @@ export function createCloudflareR2DatasetEvidencePort(
     "secretAccessKey",
   );
   const apiToken = secret(configuration.apiToken, "apiToken");
+  const maximumBufferedPutBytes = positiveSafeInteger(
+    configuration.maximumBufferedPutBytes ?? DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES,
+    "maximumBufferedPutBytes",
+  );
   const endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
   const driver = (configuration.createDriver ?? defaultDriver)({
     endpoint,
@@ -183,11 +221,16 @@ export function createCloudflareR2DatasetEvidencePort(
       if (!SHA_256_PATTERN.test(input.checksumSha256)) {
         throw new Error("Cloudflare R2 evidence checksum is invalid.");
       }
+      const bufferedBody = await collectExactBody({
+        body: input.body,
+        byteLength: input.byteLength,
+        maximumBufferedPutBytes,
+      });
       try {
         await driver.putObjectIfAbsent({
           bucketName: input.bucketName,
           key: input.key,
-          body: input.body,
+          body: bufferedBody,
           contentType: input.contentType,
           byteLength: input.byteLength,
           checksumSha256Base64: Buffer.from(
