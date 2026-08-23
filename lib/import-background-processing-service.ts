@@ -315,7 +315,7 @@ export async function runBackgroundImportDispatch(
         previewFingerprintSha256: claim.previewFingerprintSha256,
       }),
     );
-  } catch {
+  } catch (error) {
     await repository.recordProcessingFailure({
       ownerId: claim.ownerId,
       updateSessionId: claim.updateSessionId,
@@ -324,7 +324,7 @@ export async function runBackgroundImportDispatch(
       failedAt: claimedAt,
       reason: "processor_failed",
     });
-    throw new Error("Background import processing failed.");
+    throw new Error("Background import processing failed.", { cause: error });
   }
 
   await repository.activatePreparedResult({
