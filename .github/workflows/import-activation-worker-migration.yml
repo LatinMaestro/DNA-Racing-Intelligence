@@ -47,6 +47,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.smoke.sql
       - name: Run pre-activation cleanup smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.smoke.sql
+      - name: Run confirmed import cleanup smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.smoke.sql
+      - name: Reverse confirmed import cleanup migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.down.sql
+      - name: Verify confirmed import cleanup removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.removal.sql
       - name: Reverse pre-activation cleanup migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.down.sql
       - name: Verify pre-activation cleanup removal
