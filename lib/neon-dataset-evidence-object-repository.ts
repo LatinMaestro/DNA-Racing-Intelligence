@@ -49,10 +49,13 @@ export type DatasetEvidenceObjectRepository =
           evidenceObjectId: string;
         }>
       >;
-      inspect: (
-        input: DatasetEvidenceObjectRegistration,
-      ) => Promise<Readonly<{ status: "missing" | "exact" | "conflict" }>>;
     }>;
+
+export type DatasetEvidenceObjectInspectionRepository = Readonly<{
+  inspect: (
+    input: DatasetEvidenceObjectRegistration,
+  ) => Promise<Readonly<{ status: "missing" | "exact" | "conflict" }>>;
+}>;
 
 export type NeonDatasetEvidenceObjectEnvironment = Readonly<{
   databaseUrl: string | undefined;
@@ -356,7 +359,8 @@ export function createNeonDatasetEvidenceObjectRepository(input: {
   databaseOwnerId: string;
   runtimeRole: string;
   sessionFactory?: NeonImportPersistenceSessionFactory;
-}): Extract<DatasetEvidenceObjectRepository, Readonly<{ status: "ready" }>> {
+}): Extract<DatasetEvidenceObjectRepository, Readonly<{ status: "ready" }>> &
+  DatasetEvidenceObjectInspectionRepository {
   const config = configuration(input);
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
