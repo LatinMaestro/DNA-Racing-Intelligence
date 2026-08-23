@@ -8,7 +8,9 @@ import {
 } from "@aws-sdk/client-s3";
 
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
-import type { PrivateDatasetEvidenceObjectDeletionPort } from "./private-dataset-evidence-object-writer";
+import type {
+  PrivateDatasetEvidenceObjectDeletionPort,
+} from "./private-dataset-evidence-object-writer";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
