@@ -61,6 +61,21 @@ and the error is returned. No source version is activated on this path. The
 previous accepted dataset remains current until a later background transaction
 finishes validation and activation.
 
+## Pre-dispatch confirmation cleanup
+
+Synthetic and abandoned confirmation reservations may be removed only before
+queue dispatch. The cleanup boundary requires the exact authenticated owner,
+upload request fingerprint, prepared-preview ID and fingerprint, update session
+ID and activation dispatch ID. It accepts only an undispatched `pending`
+activation reservation and rejects queued, failed, processing or accepted work.
+
+The reservation removal and existing pre-activation source cleanup execute in one
+database transaction. Successful cleanup records both the original
+pre-activation cleanup receipt and a confirmation-cleanup receipt containing the
+opaque reservation identity and bounded source counts. Exact replay is
+idempotent. This boundary is not a substitute for versioned rollback after any
+source version has been activated.
+
 ## Data and logging
 
 The activation service receives no file contents, filenames, row values,
@@ -81,7 +96,7 @@ This slice does not:
 - create the persistence tables or provider adapters;
 - process, validate or materialise rows;
 - refresh aggregates;
-- implement completion reporting or rollback; or
+- implement completion reporting or versioned rollback; or
 - enable Preview or Production.
 
 Those capabilities remain focused later slices and require their own synthetic,
