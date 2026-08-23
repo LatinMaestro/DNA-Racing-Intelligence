@@ -62,10 +62,7 @@ describe("dataset evidence manifest registration service", () => {
 
     expect(() => test.service.validate([stored(0), stored(1)])).not.toThrow();
     expect(() =>
-      test.service.validate([
-        stored(0),
-        stored(1, { ownerId: "other_owner" }),
-      ]),
+      test.service.validate([stored(0), stored(1, { ownerId: "other_owner" })]),
     ).toThrow("access denied");
     expect(test.register).not.toHaveBeenCalled();
   });
