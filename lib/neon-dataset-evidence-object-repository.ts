@@ -49,6 +49,9 @@ export type DatasetEvidenceObjectRepository =
           evidenceObjectId: string;
         }>
       >;
+      inspect: (
+        input: DatasetEvidenceObjectRegistration,
+      ) => Promise<Readonly<{ status: "missing" | "exact" | "conflict" }>>;
     }>;
 
 export type NeonDatasetEvidenceObjectEnvironment = Readonly<{
@@ -96,6 +99,29 @@ const REGISTER_SQL = [
   "  $7::text, $8::character(64), $9::bigint, $10::bigint,",
   "  $11::text, $12::text, $13::timestamptz",
   ")",
+].join("\n");
+
+const INSPECT_SQL = [
+  "SELECT CASE",
+  "  WHEN count(*) = 0 THEN 'missing'",
+  "  WHEN bool_and(",
+  "    source_type = $3::text",
+  "    AND object_format = $6::text",
+  "    AND object_key = $7::text",
+  "    AND checksum_sha256 = $8::character(64)",
+  "    AND byte_size = $9::bigint",
+  "    AND row_count = $10::bigint",
+  "    AND first_natural_key IS NOT DISTINCT FROM $11::text",
+  "    AND last_natural_key IS NOT DISTINCT FROM $12::text",
+  "    AND created_at = $13::timestamptz",
+  "  ) THEN 'exact'",
+  "  ELSE 'conflict'",
+  "END AS status",
+  "FROM dna.dataset_evidence_object",
+  "WHERE owner_id = $1::uuid",
+  "  AND import_batch_id = $2::uuid",
+  "  AND object_kind = $4::text",
+  "  AND partition_number = $5::integer",
 ].join("\n");
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -284,6 +310,14 @@ function normalizeRegistration(row: Record<string, unknown>) {
   return { status, evidenceObjectId } as const;
 }
 
+function normalizeInspection(row: Record<string, unknown>) {
+  const status = text(row.status, "status");
+  if (status !== "missing" && status !== "exact" && status !== "conflict") {
+    throw new Error("evidence object inspection status is unsupported");
+  }
+  return { status } as const;
+}
+
 async function transaction<Result>(input: {
   config: ReturnType<typeof configuration>;
   ownerId: string;
@@ -353,6 +387,35 @@ export function createNeonDatasetEvidenceObjectRepository(input: {
                 registration.createdAt,
               ]),
               "dataset evidence object registration",
+            ),
+          ),
+      });
+    },
+    inspect(registrationInput) {
+      const registration = validateRegistration(registrationInput);
+      return transaction({
+        config,
+        ownerId: registration.ownerId,
+        sessionFactory,
+        operation: async (client) =>
+          normalizeInspection(
+            oneRow(
+              await client.query(INSPECT_SQL, [
+                config.databaseOwnerId,
+                registration.importBatchId,
+                registration.sourceType,
+                registration.objectKind,
+                registration.partitionNumber,
+                registration.objectFormat,
+                registration.objectKey,
+                registration.checksumSha256,
+                registration.byteSize,
+                registration.rowCount,
+                registration.firstNaturalKey,
+                registration.lastNaturalKey,
+                registration.createdAt,
+              ]),
+              "dataset evidence object inspection",
             ),
           ),
       });
