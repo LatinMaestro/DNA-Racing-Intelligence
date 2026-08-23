@@ -244,4 +244,105 @@ describe("dataset evidence NDJSON partition writer", () => {
     expect(stored[0]).not.toHaveProperty("evidenceObjectId");
     expect(stored[0]).not.toHaveProperty("status");
   });
+
+  it("returns only flushed receipts on abort and discards buffered rows", async () => {
+    const store = vi.fn<PrivateDatasetEvidenceObjectStorageWriter["store"]>(
+      async (input) => ({
+        registration: {
+          ownerId: input.ownerId,
+          importBatchId: input.importBatchId,
+          sourceType: input.sourceType,
+          objectKind: input.objectKind,
+          partitionNumber: input.partitionNumber,
+          objectFormat: input.objectFormat,
+          objectKey: `evidence/abort-part-${input.partitionNumber}.ndjson.gz`,
+          checksumSha256: input.checksumSha256,
+          byteSize: input.byteSize,
+          rowCount: input.rowCount,
+          firstNaturalKey: input.firstNaturalKey,
+          lastNaturalKey: input.lastNaturalKey,
+          createdAt: input.createdAt,
+        },
+        storageStatus: "created" as const,
+      }),
+    );
+    const writer = createDeferredDatasetEvidenceNdjsonPartitionWriter({
+      storageWriter: { store },
+      ownerId,
+      importBatchId,
+      sourceType: "race_merge",
+      objectKind: "staged_rows",
+      maximumUncompressedBytes: 1024,
+      maximumRowsPerPartition: 1,
+      createdAt: "2026-08-23T09:00:00.000Z",
+    });
+
+    await writer.append([
+      { naturalKey: "event-1:core-1", value: { status: "ready" } },
+      { naturalKey: "event-2:core-2", value: { status: "ready" } },
+    ]);
+    const stored = await writer.abort();
+
+    expect(store).toHaveBeenCalledOnce();
+    expect(stored.map((object) => object.registration.partitionNumber)).toEqual([
+      0,
+    ]);
+    await expect(writer.finish()).rejects.toThrow("was aborted");
+    await expect(
+      writer.append([
+        { naturalKey: "event-3:core-3", value: { status: "ready" } },
+      ]),
+    ).rejects.toThrow("writer is finished");
+  });
+
+  it("preserves earlier receipts for recovery after a later storage failure", async () => {
+    const store = vi.fn<PrivateDatasetEvidenceObjectStorageWriter["store"]>(
+      async (input) => {
+        if (input.partitionNumber === 1) {
+          throw new Error("R2 write interrupted");
+        }
+        return {
+          registration: {
+            ownerId: input.ownerId,
+            importBatchId: input.importBatchId,
+            sourceType: input.sourceType,
+            objectKind: input.objectKind,
+            partitionNumber: input.partitionNumber,
+            objectFormat: input.objectFormat,
+            objectKey: `evidence/failure-part-${input.partitionNumber}.ndjson.gz`,
+            checksumSha256: input.checksumSha256,
+            byteSize: input.byteSize,
+            rowCount: input.rowCount,
+            firstNaturalKey: input.firstNaturalKey,
+            lastNaturalKey: input.lastNaturalKey,
+            createdAt: input.createdAt,
+          },
+          storageStatus: "created" as const,
+        };
+      },
+    );
+    const writer = createDeferredDatasetEvidenceNdjsonPartitionWriter({
+      storageWriter: { store },
+      ownerId,
+      importBatchId,
+      sourceType: "race_merge",
+      objectKind: "staged_rows",
+      maximumUncompressedBytes: 1024,
+      maximumRowsPerPartition: 1,
+      createdAt: "2026-08-23T09:00:00.000Z",
+    });
+
+    await writer.append([
+      { naturalKey: "event-1:core-1", value: { status: "ready" } },
+      { naturalKey: "event-2:core-2", value: { status: "ready" } },
+    ]);
+    await expect(writer.finish()).rejects.toThrow("R2 write interrupted");
+
+    await expect(writer.abort()).resolves.toEqual([
+      expect.objectContaining({
+        registration: expect.objectContaining({ partitionNumber: 0 }),
+      }),
+    ]);
+  });
+
 });
