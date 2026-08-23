@@ -110,14 +110,14 @@ INSERT INTO dna.import_batch (
     '42000000-0000-4000-8000-000000000001',
     'race_merge', 'Synthetic Pending.csv', repeat('1', 64),
     'utf_8', 'race-merge/v1', 'validating', '2026-08-23T00:00:00Z',
-    1, 1, 0, 0
+    1, 0, 1, 0
   ),
   (
     '42000000-0000-4000-8000-000000000202',
     '42000000-0000-4000-8000-000000000001',
     'race_merge', 'Synthetic Queued.csv', repeat('2', 64),
     'utf_8', 'race-merge/v1', 'validating', '2026-08-23T00:00:00Z',
-    1, 1, 0, 0
+    1, 0, 1, 0
   );
 
 INSERT INTO dna.import_activation_dispatch (
@@ -134,6 +134,7 @@ INSERT INTO dna.import_activation_dispatch (
     '2026-08-23T00:05:00Z', NULL
   ),
   (
+    '42000000-0000-4000-8000-000000000001',
     '42000000-0000-4000-8000-000000000205',
     '42000000-0000-4000-8000-000000000206',
     '42000000-0000-4000-8000-000000000204', 'preview-confirmation-cleanup-2',
