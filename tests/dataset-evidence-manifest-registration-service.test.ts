@@ -57,6 +57,16 @@ function harness(maximumObjects?: number) {
 }
 
 describe("dataset evidence manifest registration service", () => {
+  it("validates the complete set without registering a manifest", () => {
+    const test = harness();
+
+    expect(() => test.service.validate([stored(0), stored(1)])).not.toThrow();
+    expect(() =>
+      test.service.validate([stored(0), stored(1, { ownerId: "other_owner" })]),
+    ).toThrow("access denied");
+    expect(test.register).not.toHaveBeenCalled();
+  });
+
   it("registers a prevalidated bounded set sequentially", async () => {
     const test = harness();
 
