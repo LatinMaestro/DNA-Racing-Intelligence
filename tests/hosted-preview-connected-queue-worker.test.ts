@@ -95,6 +95,9 @@ async function assertProtectedQueueConsumer(input: {
     );
   }
   const consumer = consumers[0];
+  if (consumer === undefined) {
+    throw new Error("Connected Preview queue consumer is unavailable");
+  }
   const settings = consumer.settings ?? {};
   const deadLetterQueue =
     consumer.dead_letter_queue ?? consumer.dead_letter_queue_name;
