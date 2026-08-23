@@ -197,4 +197,57 @@ describe("Neon dataset evidence object repository", () => {
       expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
     }
   });
+
+  it("inspects the exact owner-scoped manifest identity without mutation", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ status: "exact" }],
+    ]);
+
+    await expect(repository(test).inspect(registration())).resolves.toEqual({
+      status: "exact",
+    });
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      importBatchId,
+      "race_merge",
+      "staged_rows",
+      0,
+      "parquet",
+      "evidence/private/part-0000.parquet",
+      "a".repeat(64),
+      65536,
+      1000,
+      "event-0001",
+      "event-1000",
+      "2026-08-23T07:00:00.000Z",
+    ]);
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("distinguishes missing and conflicting manifest identities", async () => {
+    for (const status of ["missing", "conflict"] as const) {
+      const test = harness([
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ status }],
+      ]);
+      await expect(repository(test).inspect(registration())).resolves.toEqual({
+        status,
+      });
+    }
+  });
+
+  it("rolls back malformed manifest inspection evidence", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ status: "invented" }],
+    ]);
+    await expect(repository(test).inspect(registration())).rejects.toThrow(
+      "inspection status is unsupported",
+    );
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
+  });
 });
