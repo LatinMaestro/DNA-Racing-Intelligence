@@ -12,6 +12,7 @@ import type {
   ImportPreviewStagingSink,
   StagedImportPreviewObject,
 } from "./bounded-import-preview-processor";
+import type { DurableImportPreviewEvidenceLifecycle } from "./durable-import-preview-evidence-lifecycle";
 import type { PreparedImportPreview } from "./import-preview-processing-service";
 import type {
   PrivateRawImportSourceFamily,
@@ -256,6 +257,7 @@ function previewSummary(input: {
 
 export function createDurableImportPreviewStagingSink(input: {
   repository: DurableImportPreviewStagingRepository;
+  evidenceLifecycle?: DurableImportPreviewEvidenceLifecycle;
   maximumHeaderBytes?: number;
   rowsPerWrite?: number;
 }): ImportPreviewStagingSink {
@@ -283,6 +285,19 @@ export function createDurableImportPreviewStagingSink(input: {
         expectedByteLength: beginInput.expectedByteLength,
         expectedSha256: beginInput.expectedSha256,
       });
+      let evidence:
+        | ReturnType<DurableImportPreviewEvidenceLifecycle["beginObject"]>
+        | undefined;
+      try {
+        evidence = input.evidenceLifecycle?.beginObject({
+          ownerId: beginInput.ownerId,
+          importBatchId: transaction.importBatchId,
+          sourceFamily,
+        });
+      } catch (error) {
+        await transaction.rollback({ reason: "sink_failed" });
+        throw error;
+      }
       let header = new Uint8Array();
       let decoder: TextDecoder | null = null;
       let csv: CsvRecordDecoder | null = null;
@@ -294,6 +309,7 @@ export function createDurableImportPreviewStagingSink(input: {
         if (pendingRows.length === 0) return;
         const rows = pendingRows;
         pendingRows = [];
+        await evidence?.append(rows);
         await transaction.stageRows(rows);
       };
       const emit = async (values: readonly string[]) => {
@@ -366,10 +382,26 @@ export function createDurableImportPreviewStagingSink(input: {
           csv.push(decoder.decode());
           await csv.finish();
           await flush();
-          return transaction.commitVerified(verified);
+          const commit = () => transaction.commitVerified(verified);
+          return evidence === undefined
+            ? commit()
+            : evidence.commitAndRegister(commit);
         },
-        abort({ reason }) {
-          return transaction.rollback({ reason });
+        async abort({ reason }) {
+          const results = await Promise.allSettled([
+            transaction.rollback({ reason }),
+            evidence?.abort() ?? Promise.resolve(),
+          ]);
+          const failures = results.flatMap((result) =>
+            result.status === "rejected" ? [result.reason] : [],
+          );
+          if (failures.length === 1) throw failures[0];
+          if (failures.length > 1) {
+            throw new AggregateError(
+              failures,
+              "Durable Preview staging and evidence abort both failed.",
+            );
+          }
         },
       };
     },
