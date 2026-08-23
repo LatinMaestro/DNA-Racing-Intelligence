@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Emit exact formatted file
+      - name: Emit exact formatting diff
         run: |
           npx prettier tests/hosted-preview-connected-queue-worker.test.ts --write
-          base64 -w 0 tests/hosted-preview-connected-queue-worker.test.ts
+          git diff -- tests/hosted-preview-connected-queue-worker.test.ts
