@@ -159,6 +159,9 @@ export function hostedImportPreviewWorkerRuntime(input: {
             fetch: fetcher,
           }),
       });
+    if (repository === null || r2Configuration === null) {
+      return unavailableHostedImportPreviewWorkerRuntime;
+    }
     const stagingRepository =
       input.dependencies?.stagingSink === undefined
         ? neonDurableImportPreviewStagingRepositoryFromEnvironment(
@@ -228,11 +231,7 @@ export function hostedImportPreviewWorkerRuntime(input: {
             repository: stagingRepository,
             evidenceLifecycle,
           }));
-    if (
-      repository === null ||
-      r2Configuration === null ||
-      stagingSink === null
-    ) {
+    if (stagingSink === null) {
       return unavailableHostedImportPreviewWorkerRuntime;
     }
 
