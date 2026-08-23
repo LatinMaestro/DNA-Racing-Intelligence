@@ -27,6 +27,7 @@ function harness() {
   }));
   const rollback = vi.fn(async () => undefined);
   const transaction: DurablePreviewObjectTransaction = {
+    importBatchId: "11111111-1111-4111-8111-111111111111",
     stageSchema,
     stageRows,
     commitVerified,
