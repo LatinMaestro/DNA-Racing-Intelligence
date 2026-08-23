@@ -60,7 +60,9 @@ describe("dataset evidence manifest registration service", () => {
   it("registers a prevalidated bounded set sequentially", async () => {
     const test = harness();
 
-    await expect(test.service.register([stored(0), stored(1)])).resolves.toEqual([
+    await expect(
+      test.service.register([stored(0), stored(1)]),
+    ).resolves.toEqual([
       {
         status: "created",
         evidenceObjectId,
@@ -74,9 +76,9 @@ describe("dataset evidence manifest registration service", () => {
         storageStatus: "created",
       },
     ]);
-    expect(test.register.mock.calls.map(([value]) => value.partitionNumber)).toEqual([
-      0, 1,
-    ]);
+    expect(
+      test.register.mock.calls.map(([value]) => value.partitionNumber),
+    ).toEqual([0, 1]);
   });
 
   it("rejects another owner before registering any manifest", async () => {
