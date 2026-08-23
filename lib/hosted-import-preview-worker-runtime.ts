@@ -2,23 +2,32 @@ import {
   createBoundedImportPreviewProcessor,
   type ImportPreviewStagingSink,
 } from "./bounded-import-preview-processor";
+import { createCloudflareR2DatasetEvidencePort } from "./cloudflare-r2-dataset-evidence-port";
 import {
   cloudflareR2ImportObjectStorageConfigurationFromEnvironment,
   createCloudflareR2ImportObjectStorageForOwner,
   type CloudflareR2ImportObjectStoragePort,
 } from "./cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
+import { createDatasetEvidenceManifestRegistrationService } from "./dataset-evidence-manifest-registration-service";
+import { createDurableImportPreviewEvidenceLifecycle } from "./durable-import-preview-evidence-lifecycle";
 import { createDurableImportPreviewStagingSink } from "./durable-import-preview-staging-sink";
 import {
   consumeImportPreviewQueueMessage,
   type ImportQueueConsumerDecision,
 } from "./import-queue-consumer";
+import { createNeonDatasetEvidenceObjectRepository } from "./neon-dataset-evidence-object-repository";
 import {
   neonImportPreviewProcessingRepositoryFromEnvironment,
   type ImportPreviewProcessingRepositoryEnvironment,
 } from "./neon-import-preview-processing-repository";
 import { neonDurableImportPreviewStagingRepositoryFromEnvironment } from "./neon-durable-import-preview-staging-repository";
 import type { NeonImportPersistenceSessionFactory } from "./neon-import-persistence-driver";
+import {
+  createPrivateDatasetEvidenceObjectRecovery,
+  createPrivateDatasetEvidenceObjectStorageWriter,
+  type PrivateDatasetEvidenceObjectDeletionPort,
+} from "./private-dataset-evidence-object-writer";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -45,6 +54,7 @@ export type HostedImportPreviewWorkerDependencies = Readonly<{
   fetch?: typeof globalThis.fetch;
   neonSessionFactory?: NeonImportPersistenceSessionFactory;
   r2Port?: CloudflareR2ImportObjectStoragePort;
+  evidenceR2Port?: PrivateDatasetEvidenceObjectDeletionPort;
   stagingSink?: ImportPreviewStagingSink;
 }>;
 
@@ -156,12 +166,69 @@ export function hostedImportPreviewWorkerRuntime(input: {
             input.dependencies?.neonSessionFactory,
           )
         : null;
+    const evidenceRepository =
+      stagingRepository === null
+        ? null
+        : createNeonDatasetEvidenceObjectRepository({
+            databaseUrl: input.environment.database.databaseUrl ?? "",
+            databaseOwnerId:
+              input.environment.database.databaseOwnerId ?? "",
+            runtimeRole: input.environment.database.runtimeRole ?? "",
+            ...(input.dependencies?.neonSessionFactory
+              ? {
+                  sessionFactory:
+                    input.dependencies.neonSessionFactory,
+                }
+              : {}),
+          });
+    const evidencePort =
+      evidenceRepository === null
+        ? null
+        : (input.dependencies?.evidenceR2Port ??
+          createCloudflareR2DatasetEvidencePort({
+            accountId,
+            accessKeyId,
+            secretAccessKey,
+            apiToken,
+            fetch: fetcher,
+          }));
+    const evidenceLifecycle =
+      evidenceRepository === null || evidencePort === null
+        ? null
+        : createDurableImportPreviewEvidenceLifecycle({
+            ownerId,
+            storageWriter: createPrivateDatasetEvidenceObjectStorageWriter({
+              ownerId,
+              bucketName: r2Configuration.bucketName,
+              maximumObjectBytes,
+              createPort: () => evidencePort,
+            }),
+            registrationService:
+              createDatasetEvidenceManifestRegistrationService({
+                ownerId,
+                repository: evidenceRepository,
+              }),
+            recovery: createPrivateDatasetEvidenceObjectRecovery({
+              ownerId,
+              bucketName: r2Configuration.bucketName,
+              maximumObjectBytes,
+              createPort: () => evidencePort,
+              inspectionRepository: evidenceRepository,
+            }),
+            maximumUncompressedBytes: Math.max(
+              1,
+              Math.floor(maximumChunkBytes / 2),
+            ),
+            maximumRowsPerPartition: 500,
+            now,
+          });
     const stagingSink =
       input.dependencies?.stagingSink ??
-      (stagingRepository === null
+      (stagingRepository === null || evidenceLifecycle === null
         ? null
         : createDurableImportPreviewStagingSink({
             repository: stagingRepository,
+            evidenceLifecycle,
           }));
     if (
       repository === null ||
