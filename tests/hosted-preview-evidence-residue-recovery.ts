@@ -149,7 +149,9 @@ async function listKeys(input: {
       }
       keys.push(object.Key);
       if (keys.length > MAXIMUM_RECOVERY_OBJECTS) {
-        throw new Error("Preview evidence recovery exceeds configured capacity");
+        throw new Error(
+          "Preview evidence recovery exceeds configured capacity",
+        );
       }
     }
     continuationToken = result.IsTruncated
@@ -194,11 +196,10 @@ async function assertEmptyDurableOwnerState(input: {
       throw new Error("Preview durable owner state could not be inspected");
     }
     const counts = Object.values(row).map((value) => Number(value));
-    if (
-      counts.some(
-        (value) => !Number.isSafeInteger(value) || value < 0 || value !== 0,
-      )
-    ) {
+    const hasUnsafeState = counts.some(
+      (value) => !Number.isSafeInteger(value) || value < 0 || value !== 0,
+    );
+    if (hasUnsafeState) {
       throw new Error(
         "Preview durable owner state is not empty; evidence recovery is blocked",
       );
@@ -215,7 +216,9 @@ async function assertEmptyDurableOwnerState(input: {
 
 export async function recoverHostedPreviewEvidenceResidue(
   input: HostedPreviewEvidenceResidueRecoveryInput,
-): Promise<Readonly<{ deleted: number; retained: number; missing: number }>> {
+): Promise<
+  Readonly<{ deleted: number; retained: number; missing: number }>
+> {
   if (input.requireEmptyDurableOwnerState === true) {
     await assertEmptyDurableOwnerState(input);
   }
@@ -251,17 +254,16 @@ export async function recoverHostedPreviewEvidenceResidue(
       : [...requestedBatchIds].map(
           (importBatchId) => `evidence/${ownerPrefix}/${importBatchId}/`,
         );
-  const keys = [
-    ...new Set(
-      (
-        await Promise.all(
-          prefixes.map((prefix) =>
-            listKeys({ client: listClient, bucketName: input.bucketName, prefix }),
-          ),
-        )
-      ).flat(),
+  const listed = await Promise.all(
+    prefixes.map((prefix) =>
+      listKeys({
+        client: listClient,
+        bucketName: input.bucketName,
+        prefix,
+      }),
     ),
-  ];
+  );
+  const keys = [...new Set(listed.flat())];
   const stored: StoredPrivateDatasetEvidenceObject[] = [];
   for (const key of keys) {
     const parsed = parseEvidenceKey({ key, ownerPrefix });
@@ -278,7 +280,10 @@ export async function recoverHostedPreviewEvidenceResidue(
         ChecksumMode: "ENABLED",
       }),
     );
-    const byteSize = positiveInteger(head.ContentLength, "Preview evidence size");
+    const byteSize = positiveInteger(
+      head.ContentLength,
+      "Preview evidence size",
+    );
     if (byteSize > maximumObjectBytes) {
       throw new Error("Preview evidence object exceeds recovery capacity");
     }
