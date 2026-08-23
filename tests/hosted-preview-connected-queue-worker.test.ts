@@ -789,68 +789,37 @@ describeConnected(
             });
           }
 
-          const activationEvidence = await activationTransaction.query(
-            `SELECT
-              activation.state AS activation_state,
-              activation.source_version_count,
-              (
-                SELECT count(*)
-                FROM dna.dataset_version version
-                JOIN dna.import_verified_upload_object object
-                  ON object.owner_id = version.owner_id
-                  AND object.upload_file_id = version.import_batch_id
-                WHERE object.owner_id = $1::uuid
-                  AND object.upload_batch_id = $3::uuid
-                  AND version.rolled_back_at IS NULL
-              )::integer AS source_version_count,
-              (
-                SELECT count(*)
-                FROM dna.aggregate_refresh_job job
-                JOIN dna.dataset_version version
-                  ON version.owner_id = job.owner_id
-                  AND version.id = job.dataset_version_id
-                JOIN dna.import_verified_upload_object object
-                  ON object.owner_id = version.owner_id
-                  AND object.upload_file_id = version.import_batch_id
-                WHERE object.owner_id = $1::uuid
-                  AND object.upload_batch_id = $3::uuid
-                  AND job.status = 'completed'
-              )::integer AS completed_refresh_count,
-              (
-                SELECT count(*)
-                FROM dna.aggregate_refresh_processing processing
-                JOIN dna.aggregate_refresh_job job
-                  ON job.owner_id = processing.owner_id
-                  AND job.id = processing.refresh_id
-                JOIN dna.dataset_version version
-                  ON version.owner_id = job.owner_id
-                  AND version.id = job.dataset_version_id
-                JOIN dna.import_verified_upload_object object
-                  ON object.owner_id = version.owner_id
-                  AND object.upload_file_id = version.import_batch_id
-                WHERE object.owner_id = $1::uuid
-                  AND object.upload_batch_id = $3::uuid
-                  AND processing.state = 'published'
-              )::integer AS published_refresh_count
-            FROM dna.import_activation_processing activation
-            WHERE activation.owner_id = $1::uuid
-              AND activation.dispatch_id = $2::uuid`,
-            [databaseOwnerId, confirmation.dispatchId, uploadBatchId],
-          );
-          const activationRow = activationEvidence.rows[0] as
-            | {
-                activation_state?: unknown;
-                source_version_count?: unknown;
-                completed_refresh_count?: unknown;
-                published_refresh_count?: unknown;
-              }
-            | undefined;
-          expect(activationRow).toMatchObject({
-            activation_state: "complete",
-            source_version_count: 9,
-            completed_refresh_count: 9,
-            published_refresh_count: 9,
+          await expect(
+            activationRuntime.consume({
+              body: {
+                version: 1,
+                kind: "import_activation",
+                dispatchId: confirmation.dispatchId,
+              },
+              now: processingAt,
+            }),
+          ).resolves.toEqual({
+            disposition: "acknowledge",
+            reason: "completed",
           });
+          expect(aggregateRefreshes).toHaveLength(9);
+
+          for (const refresh of aggregateRefreshes) {
+            await expect(
+              aggregateRuntime.consume({
+                body: {
+                  version: 1,
+                  kind: "aggregate_refresh_retry",
+                  dispatchId: refresh.dispatchId,
+                  refreshId: refresh.refreshId,
+                },
+                now: processingAt,
+              }),
+            ).resolves.toEqual({
+              disposition: "acknowledge",
+              reason: "completed",
+            });
+          }
         } finally {
           await activationTransaction.rollback();
         }
