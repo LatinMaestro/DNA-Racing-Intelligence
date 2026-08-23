@@ -72,7 +72,7 @@ export function createDurableImportPreviewEvidenceLifecycle(input: {
         ownerId,
         importBatchId: beginInput.importBatchId,
         sourceType: beginInput.sourceFamily,
-        objectKind: "staged_rows",
+        objectKind: "normalized_partition",
         maximumUncompressedBytes: input.maximumUncompressedBytes,
         maximumRowsPerPartition: input.maximumRowsPerPartition,
         createdAt: now().toISOString(),
