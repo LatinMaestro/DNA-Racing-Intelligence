@@ -11,6 +11,13 @@ export type DatasetEvidenceManifestRegistrationReceipt = Readonly<{
   storageStatus: "created" | "existing";
 }>;
 
+export type DatasetEvidenceManifestRegistrationService = Readonly<{
+  validate: (stored: readonly StoredPrivateDatasetEvidenceObject[]) => void;
+  register: (
+    stored: readonly StoredPrivateDatasetEvidenceObject[],
+  ) => Promise<readonly DatasetEvidenceManifestRegistrationReceipt[]>;
+}>;
+
 function owner(value: string): string {
   const normalized = value.trim();
   if (
@@ -37,38 +44,41 @@ export function createDatasetEvidenceManifestRegistrationService(input: {
     Readonly<{ status: "ready" }>
   >;
   maximumObjects?: number;
-}): Readonly<{
-  register: (
-    stored: readonly StoredPrivateDatasetEvidenceObject[],
-  ) => Promise<readonly DatasetEvidenceManifestRegistrationReceipt[]>;
-}> {
+}): DatasetEvidenceManifestRegistrationService {
   const ownerId = owner(input.ownerId);
   const limit = maximumObjects(input.maximumObjects ?? DEFAULT_MAXIMUM_OBJECTS);
 
-  return Object.freeze({
-    async register(stored) {
-      if (stored.length > limit) {
-        throw new Error("evidence manifest set exceeds configured capacity");
-      }
+  function validate(
+    stored: readonly StoredPrivateDatasetEvidenceObject[],
+  ): void {
+    if (stored.length > limit) {
+      throw new Error("evidence manifest set exceeds configured capacity");
+    }
 
-      const seen = new Set<string>();
-      for (const object of stored) {
-        const registration = object.registration;
-        if (owner(registration.ownerId) !== ownerId) {
-          throw new Error("Evidence manifest registration access denied.");
-        }
-        const identity = [
-          registration.importBatchId,
-          registration.objectKind,
-          registration.partitionNumber,
-        ].join("\u0000");
-        if (seen.has(identity)) {
-          throw new Error(
-            "evidence manifest set contains a duplicate partition",
-          );
-        }
-        seen.add(identity);
+    const seen = new Set<string>();
+    for (const object of stored) {
+      const registration = object.registration;
+      if (owner(registration.ownerId) !== ownerId) {
+        throw new Error("Evidence manifest registration access denied.");
       }
+      const identity = [
+        registration.importBatchId,
+        registration.objectKind,
+        registration.partitionNumber,
+      ].join("\u0000");
+      if (seen.has(identity)) {
+        throw new Error(
+          "evidence manifest set contains a duplicate partition",
+        );
+      }
+      seen.add(identity);
+    }
+  }
+
+  return Object.freeze({
+    validate,
+    async register(stored) {
+      validate(stored);
 
       const receipts: DatasetEvidenceManifestRegistrationReceipt[] = [];
       for (const object of stored) {
