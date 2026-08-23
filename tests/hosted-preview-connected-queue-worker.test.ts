@@ -649,7 +649,9 @@ describeConnected(
         throw new Error("Connected cleanup batch identifier is unavailable");
       }
       if (confirmedCleanupContext === null) {
-        throw new Error("Persistent confirmation cleanup context is unavailable");
+        throw new Error(
+          "Persistent confirmation cleanup context is unavailable",
+        );
       }
       const cleanupReplay =
         await confirmationCleanupRepository.cleanupBeforeDispatch({
