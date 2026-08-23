@@ -1,0 +1,30 @@
+name: Preview evidence format diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/preview-evidence-format-diagnostic.yml"
+      - "tests/hosted-preview-evidence-residue-recovery.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Print exact Prettier diff
+        shell: bash
+        run: |
+          npx prettier tests/hosted-preview-evidence-residue-recovery.ts --write
+          git diff -- tests/hosted-preview-evidence-residue-recovery.ts
+          if ! git diff --quiet -- tests/hosted-preview-evidence-residue-recovery.ts; then
+            exit 1
+          fi
