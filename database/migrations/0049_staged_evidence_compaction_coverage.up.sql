@@ -22,6 +22,7 @@ DECLARE
   v_normalized_manifest_count integer;
   v_normalized_evidence_rows bigint;
   v_evidence_rows bigint;
+  v_evidence_kind text;
   v_deleted_staged bigint;
   v_deleted_contributions bigint;
 BEGIN
@@ -94,13 +95,18 @@ BEGIN
     RAISE EXCEPTION 'accepted evidence coverage is ambiguous';
   ELSIF v_staged_manifest_count > 0 THEN
     v_evidence_rows := v_staged_evidence_rows;
+    v_evidence_kind := 'staged_rows';
   ELSIF v_normalized_manifest_count > 0 THEN
     v_evidence_rows := v_normalized_evidence_rows;
+    v_evidence_kind := 'normalized_partition';
   ELSE
     RAISE EXCEPTION 'accepted evidence coverage is unavailable';
   END IF;
 
   IF v_evidence_rows <> v_batch.source_rows THEN
+    IF v_evidence_kind = 'normalized_partition' THEN
+      RAISE EXCEPTION 'normalized evidence coverage does not match accepted source rows';
+    END IF;
     RAISE EXCEPTION 'accepted evidence coverage does not match source rows';
   END IF;
 
