@@ -11,12 +11,19 @@ import { describe, expect, it } from "vitest";
 import { createCloudflareR2ImportObjectStorageForOwner } from "../lib/cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
 import { hostedImportUploadCompletionRuntime } from "../lib/hosted-import-upload-completion-runtime";
+import { createNeonImportActivationRepositories } from "../lib/neon-import-activation";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
 import { createNeonImportUploadIntakeRepository } from "../lib/neon-import-upload-intake-repository";
+import type {
+  NeonImportPersistenceClient,
+  NeonImportPersistenceSessionFactory,
+} from "../lib/neon-import-persistence-driver";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ConnectedSourceFamily = "race_merge" | "core_details" | "current_arena";
 
@@ -38,6 +45,33 @@ function requiredEnvironment(name: string): string {
 
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function rollbackOnlySessionFactory(): NeonImportPersistenceSessionFactory {
+  return async (databaseUrl) => {
+    const pool = new Pool({
+      connectionString: databaseUrl,
+      max: 1,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+    });
+    const client = await pool.connect();
+    const rollbackOnlyClient: NeonImportPersistenceClient = {
+      query(statement, values) {
+        if (statement === "COMMIT") return client.query("ROLLBACK");
+        return values === undefined
+          ? client.query(statement)
+          : client.query(statement, [...values]);
+      },
+    };
+    return {
+      client: rollbackOnlyClient,
+      async close() {
+        client.release();
+        await pool.end();
+      },
+    };
+  };
 }
 
 function csv(value: string): Uint8Array {
@@ -95,6 +129,7 @@ async function readPreviewState(input: {
   processingState: string | null;
   failureReason: string | null;
   previewId: string | null;
+  previewFingerprintSha256: string | null;
   confirmable: boolean | null;
   fileCount: number | null;
   sourceFamilyCount: number | null;
@@ -117,6 +152,7 @@ async function readPreviewState(input: {
         processing.state AS processing_state,
         processing.failure_reason,
         prepared.preview_id,
+        prepared.preview_fingerprint_sha256,
         prepared.confirmable,
         prepared.file_count,
         prepared.source_family_count,
@@ -140,6 +176,7 @@ async function readPreviewState(input: {
           processing_state?: unknown;
           failure_reason?: unknown;
           preview_id?: unknown;
+          preview_fingerprint_sha256?: unknown;
           confirmable?: unknown;
           file_count?: unknown;
           source_family_count?: unknown;
@@ -152,6 +189,10 @@ async function readPreviewState(input: {
       failureReason:
         typeof row?.failure_reason === "string" ? row.failure_reason : null,
       previewId: typeof row?.preview_id === "string" ? row.preview_id : null,
+      previewFingerprintSha256:
+        typeof row?.preview_fingerprint_sha256 === "string"
+          ? row.preview_fingerprint_sha256
+          : null,
       confirmable:
         typeof row?.confirmable === "boolean" ? row.confirmable : null,
       fileCount: row?.file_count == null ? null : Number(row.file_count),
@@ -441,6 +482,39 @@ describeConnected(
           blockingIssueCount: 0,
         });
         expect(prepared.previewId).toMatch(/^preview-[a-f0-9]{32}$/);
+        expect(prepared.previewFingerprintSha256).toMatch(/^[a-f0-9]{64}$/);
+        if (
+          prepared.previewId === null ||
+          prepared.previewFingerprintSha256 === null
+        ) {
+          throw new Error("Connected prepared Preview identity is unavailable");
+        }
+
+        const activationRepositories = createNeonImportActivationRepositories({
+          databaseUrl,
+          databaseOwnerId,
+          runtimeRole: "dna_app_runtime",
+          sessionFactory: rollbackOnlySessionFactory(),
+        });
+        await activationRepositories.readinessStore.assertPreviewUploadsReady({
+          ownerId,
+          previewId: prepared.previewId,
+          previewFingerprintSha256: prepared.previewFingerprintSha256,
+        });
+        const confirmation =
+          await activationRepositories.activationRepository.reserveConfirmedUpdate({
+            ownerId,
+            previewId: prepared.previewId,
+            previewFingerprintSha256: prepared.previewFingerprintSha256,
+            idempotencyKey: `connected-confirm-${runId}-${runAttempt}`,
+            confirmedAt: new Date().toISOString(),
+          });
+        expect(confirmation).toMatchObject({
+          disposition: "created",
+          dispatchState: "pending",
+        });
+        expect(confirmation.updateSessionId).toMatch(UUID_PATTERN);
+        expect(confirmation.dispatchId).toMatch(UUID_PATTERN);
 
         const replay = await completePrivateImportUpload({
           authenticatedOwnerId: ownerId,
