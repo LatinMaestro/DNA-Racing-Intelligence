@@ -43,9 +43,7 @@ export function createDatasetEvidenceManifestRegistrationService(input: {
   ) => Promise<readonly DatasetEvidenceManifestRegistrationReceipt[]>;
 }> {
   const ownerId = owner(input.ownerId);
-  const limit = maximumObjects(
-    input.maximumObjects ?? DEFAULT_MAXIMUM_OBJECTS,
-  );
+  const limit = maximumObjects(input.maximumObjects ?? DEFAULT_MAXIMUM_OBJECTS);
 
   return Object.freeze({
     async register(stored) {
@@ -65,7 +63,9 @@ export function createDatasetEvidenceManifestRegistrationService(input: {
           registration.partitionNumber,
         ].join("\u0000");
         if (seen.has(identity)) {
-          throw new Error("evidence manifest set contains a duplicate partition");
+          throw new Error(
+            "evidence manifest set contains a duplicate partition",
+          );
         }
         seen.add(identity);
       }
