@@ -229,9 +229,9 @@ describe("dataset evidence NDJSON partition writer", () => {
 
     expect(store).toHaveBeenCalledTimes(2);
     expect(stored).toHaveLength(2);
-    expect(stored.map((object) => object.registration.partitionNumber)).toEqual([
-      0, 1,
-    ]);
+    expect(stored.map((object) => object.registration.partitionNumber)).toEqual(
+      [0, 1],
+    );
     expect(stored[0]).toMatchObject({
       registration: {
         objectKind: "staged_rows",
