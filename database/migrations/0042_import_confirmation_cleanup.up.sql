@@ -115,7 +115,7 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT activation.*, prepared.*
+  SELECT activation, prepared
   INTO v_activation, v_prepared
   FROM dna.import_activation_dispatch activation
   JOIN dna.import_prepared_preview prepared
