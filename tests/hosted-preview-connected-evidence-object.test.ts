@@ -107,6 +107,16 @@ describeConnected("connected Preview immutable evidence object", () => {
       await setup.query("SELECT set_config('app.owner_id', $1, true)", [
         databaseOwnerId,
       ]);
+      const priorCleanup = await setup.query(
+        `SELECT status, deleted_manifest_count
+         FROM dna.cleanup_unlinked_dataset_evidence_batch(
+           $1::uuid, $2::uuid, $3::character(64)
+         )`,
+        [databaseOwnerId, importBatchId, fixtureChecksum],
+      );
+      expect(["cleaned", "not_found"]).toContain(
+        priorCleanup.rows[0]?.status,
+      );
       const stale = await setup.query(
         `SELECT
            (SELECT count(*)::integer FROM dna.import_batch
@@ -226,14 +236,16 @@ describeConnected("connected Preview immutable evidence object", () => {
           await cleanup.query("SELECT set_config('app.owner_id', $1, true)", [
             databaseOwnerId,
           ]);
-          await cleanup.query(
-            "DELETE FROM dna.dataset_evidence_object WHERE owner_id = $1::uuid AND import_batch_id = $2::uuid",
-            [databaseOwnerId, importBatchId],
+          const cleaned = await cleanup.query(
+            `SELECT status, deleted_manifest_count
+             FROM dna.cleanup_unlinked_dataset_evidence_batch(
+               $1::uuid, $2::uuid, $3::character(64)
+             )`,
+            [databaseOwnerId, importBatchId, fixtureChecksum],
           );
-          await cleanup.query(
-            "DELETE FROM dna.import_batch WHERE owner_id = $1::uuid AND id = $2::uuid",
-            [databaseOwnerId, importBatchId],
-          );
+          expect(cleaned.rows).toEqual([
+            { status: "cleaned", deleted_manifest_count: 1 },
+          ]);
           const residue = await cleanup.query(
             `SELECT
                (SELECT count(*)::integer FROM dna.import_batch
