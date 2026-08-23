@@ -4,9 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createDatasetEvidenceNdjsonPartitionWriter,
+  createDeferredDatasetEvidenceNdjsonPartitionWriter,
   type DatasetEvidenceNdjsonRow,
 } from "@/lib/dataset-evidence-ndjson-partition-writer";
-import type { PrivateDatasetEvidenceObjectWriter } from "@/lib/private-dataset-evidence-object-writer";
+import type {
+  PrivateDatasetEvidenceObjectStorageWriter,
+  PrivateDatasetEvidenceObjectWriter,
+} from "@/lib/private-dataset-evidence-object-writer";
 
 const ownerId = "user_owner";
 const importBatchId = "11111111-1111-4111-8111-111111111111";
@@ -183,5 +187,61 @@ describe("dataset evidence NDJSON partition writer", () => {
     const test = harness();
     await expect(partitionWriter(test).finish()).resolves.toEqual([]);
     expect(test.write).not.toHaveBeenCalled();
+  });
+
+  it("stores verified partitions for deferred manifest registration", async () => {
+    const store = vi.fn<PrivateDatasetEvidenceObjectStorageWriter["store"]>(
+      async (input) => ({
+        registration: {
+          ownerId: input.ownerId,
+          importBatchId: input.importBatchId,
+          sourceType: input.sourceType,
+          objectKind: input.objectKind,
+          partitionNumber: input.partitionNumber,
+          objectFormat: input.objectFormat,
+          objectKey: `evidence/deferred-part-${input.partitionNumber}.ndjson.gz`,
+          checksumSha256: input.checksumSha256,
+          byteSize: input.byteSize,
+          rowCount: input.rowCount,
+          firstNaturalKey: input.firstNaturalKey,
+          lastNaturalKey: input.lastNaturalKey,
+          createdAt: input.createdAt,
+        },
+        storageStatus: "created" as const,
+      }),
+    );
+    const writer = createDeferredDatasetEvidenceNdjsonPartitionWriter({
+      storageWriter: { store },
+      ownerId,
+      importBatchId,
+      sourceType: "race_merge",
+      objectKind: "staged_rows",
+      maximumUncompressedBytes: 1024,
+      maximumRowsPerPartition: 1,
+      createdAt: "2026-08-23T09:00:00.000Z",
+    });
+
+    await writer.append([
+      { naturalKey: "event-1:core-1", value: { status: "ready" } },
+      { naturalKey: "event-2:core-2", value: { status: "ready" } },
+    ]);
+    const stored = await writer.finish();
+
+    expect(store).toHaveBeenCalledTimes(2);
+    expect(stored).toHaveLength(2);
+    expect(
+      stored.map((object) => object.registration.partitionNumber),
+    ).toEqual([0, 1]);
+    expect(stored[0]).toMatchObject({
+      registration: {
+        objectKind: "staged_rows",
+        firstNaturalKey: "event-1:core-1",
+        lastNaturalKey: "event-1:core-1",
+        checksumSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      },
+      storageStatus: "created",
+    });
+    expect(stored[0]).not.toHaveProperty("evidenceObjectId");
+    expect(stored[0]).not.toHaveProperty("status");
   });
 });
