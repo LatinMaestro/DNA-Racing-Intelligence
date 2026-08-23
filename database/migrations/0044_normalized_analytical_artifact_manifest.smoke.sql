@@ -197,8 +197,14 @@ BEGIN
 END
 $normalized_artifact_rollback$;
 
-BEGIN;
-  SET LOCAL app.owner_id = '44000000-0000-4000-8000-000000000002';
+SELECT set_config(
+  'app.owner_id',
+  '44000000-0000-4000-8000-000000000002',
+  true
+);
+
+DO $normalized_artifact_owner_isolation$
+BEGIN
   BEGIN
     PERFORM * FROM dna.register_normalized_analytical_artifact(
       '44000000-0000-4000-8000-000000000001',
@@ -223,6 +229,13 @@ BEGIN;
         RAISE;
       END IF;
   END;
-ROLLBACK;
+END
+$normalized_artifact_owner_isolation$;
+
+SELECT set_config(
+  'app.owner_id',
+  '44000000-0000-4000-8000-000000000001',
+  true
+);
 
 ROLLBACK;
