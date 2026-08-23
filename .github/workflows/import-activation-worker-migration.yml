@@ -55,6 +55,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.smoke.sql
       - name: Run unlinked dataset evidence cleanup smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.smoke.sql
+      - name: Run accepted dataset evidence compaction smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.smoke.sql
+      - name: Reverse accepted dataset evidence compaction migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.down.sql
+      - name: Verify accepted dataset evidence compaction removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.removal.sql
       - name: Reverse unlinked dataset evidence cleanup migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.down.sql
       - name: Verify unlinked dataset evidence cleanup removal
