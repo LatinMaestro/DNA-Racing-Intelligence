@@ -7,6 +7,12 @@ on:
       - ".github/workflows/connected-preview-r2-acceptance.yml"
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
+      - "lib/hosted-import-preview-worker-runtime.ts"
+      - "lib/hosted-import-upload-completion-runtime.ts"
+      - "lib/import-upload-completion-service.ts"
+      - "lib/neon-durable-import-preview-staging-repository.ts"
+      - "lib/durable-import-preview-staging-sink.ts"
+      - "lib/bounded-import-preview-processor.ts"
       - "lib/neon-import-persistence-driver.ts"
       - "lib/neon-import-pre-activation-cleanup-repository.ts"
       - "lib/neon-import-upload-completion-repository.ts"
@@ -14,6 +20,7 @@ on:
       - "tests/hosted-preview-connected-neon-pre-activation-cleanup.test.ts"
       - "tests/hosted-preview-connected-neon-upload-completion.test.ts"
       - "tests/hosted-preview-connected-neon-upload-reservation.test.ts"
+      - "tests/hosted-preview-connected-queue-worker.test.ts"
       - "tests/hosted-preview-connected-r2.test.ts"
   workflow_dispatch: {}
 
@@ -26,13 +33,13 @@ concurrency:
 
 jobs:
   connected-provider:
-    name: Upload, reservation, verification, and clean up
+    name: Upload, reservation, verification, queue, Worker, and clean up
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor == 'LatinMaestro')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -40,6 +47,10 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_CONNECTED_PREVIEW_ACCEPTANCE: "1"
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_IMPORT_DEAD_LETTER_QUEUE_NAME: dna-racing-import-preview-dlq
+      DNA_IMPORT_QUEUE_ID: df7408e1d697475db4dbcdda1aa3e247
+      DNA_IMPORT_QUEUE_NAME: dna-racing-import-preview
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
     steps:
@@ -103,3 +114,4 @@ jobs:
           tests/hosted-preview-connected-neon-upload-reservation.test.ts
           tests/hosted-preview-connected-neon-upload-completion.test.ts
           tests/hosted-preview-connected-neon-pre-activation-cleanup.test.ts
+          tests/hosted-preview-connected-queue-worker.test.ts
