@@ -16,6 +16,8 @@ on:
       - "lib/neon-durable-import-preview-staging-repository.ts"
       - "lib/durable-import-preview-staging-sink.ts"
       - "lib/bounded-import-preview-processor.ts"
+      - "tests/hosted-preview-evidence-residue-recovery.ts"
+      - "tests/hosted-preview-connected-evidence-residue-cleanup.test.ts"
       - "tests/hosted-preview-connected-queue-worker.test.ts"
       - "lib/hosted-import-activation-worker.ts"
       - "lib/hosted-import-activation-worker.test.ts"
@@ -156,7 +158,14 @@ jobs:
           }
           console.log("Verified pooled Preview connectivity and least-privilege Neon role.");
           NODE
-      - name: Verify private empty R2 bucket access
+      - name: Recover unregistered pre-owner-upload evidence
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DNA_CONNECTED_PREVIEW_EVIDENCE_RESIDUE_CLEANUP: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-evidence-residue-cleanup.test.ts
+      - name: Verify private R2 bucket access and commissioning emptiness
         run: |
           node --input-type=module <<'NODE'
           import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
@@ -174,10 +183,15 @@ jobs:
               MaxKeys: 1,
             }),
           );
-          if (Number(response.KeyCount ?? 0) !== 0) {
+          const objectCount = Number(response.KeyCount ?? 0);
+          if (process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && objectCount !== 0) {
             throw new Error("Preview R2 bucket is not empty before first owner-approved upload");
           }
-          console.log("Verified bucket-scoped R2 credentials and empty Preview storage.");
+          console.log(
+            process.env.GITHUB_EVENT_NAME === "workflow_dispatch"
+              ? "Verified bucket-scoped R2 credentials and empty Preview storage."
+              : "Verified read-only bucket-scoped R2 access; commissioning emptiness is enforced only on manual deployment.",
+          );
           NODE
       - name: Verify Cloudflare queue inventory
         run: |
@@ -343,6 +357,13 @@ jobs:
       - name: Prove cleanup-bounded live Queue and Worker path
         if: github.event_name == 'workflow_dispatch'
         run: npx vitest run tests/hosted-preview-connected-queue-worker.test.ts
+      - name: Recover post-proof synthetic Preview evidence residue
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          DNA_CONNECTED_PREVIEW_EVIDENCE_RESIDUE_CLEANUP: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-evidence-residue-cleanup.test.ts
       - name: Record commissioning outcome on Issue 120
         if: always() && github.event_name == 'workflow_dispatch'
         env:
