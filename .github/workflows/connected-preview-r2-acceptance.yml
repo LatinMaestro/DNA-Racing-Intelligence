@@ -109,7 +109,7 @@ jobs:
           NODE
       - name: Run connected synthetic provider acceptance
         run: >-
-          npx vitest run
+          npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-r2.test.ts
           tests/hosted-preview-connected-neon-upload-reservation.test.ts
           tests/hosted-preview-connected-neon-upload-completion.test.ts
