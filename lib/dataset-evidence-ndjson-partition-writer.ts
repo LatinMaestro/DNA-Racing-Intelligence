@@ -115,10 +115,9 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
     if (partitionNumber >= 10_000) {
       throw new Error("evidence partition count exceeds manifest capacity");
     }
-    const compressed = gzipSync(
-      bytes(partitionBytes, partitionByteLength),
-      { level: 9 },
-    );
+    const compressed = gzipSync(bytes(partitionBytes, partitionByteLength), {
+      level: 9,
+    });
     const checksumSha256 = createHash("sha256")
       .update(compressed)
       .digest("hex");
@@ -155,7 +154,9 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
     partitionRows = [];
   };
 
-  const enqueue = <Result>(operation: () => Promise<Result>): Promise<Result> => {
+  const enqueue = <Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> => {
     const current = tail.then(async () => {
       if (failure !== undefined) throw failure;
       return operation();
@@ -172,7 +173,9 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
   return Object.freeze({
     append(rows) {
       if (finishRequested) {
-        return Promise.reject(new Error("evidence partition writer is finished"));
+        return Promise.reject(
+          new Error("evidence partition writer is finished"),
+        );
       }
       const pending = [...rows];
       return enqueue(async () => {
@@ -195,8 +198,7 @@ export function createDatasetEvidenceNdjsonPartitionWriter(input: {
           }
           if (
             partitionRows.length >= maximumRowsPerPartition ||
-            partitionByteLength + encoded.byteLength >
-              maximumUncompressedBytes
+            partitionByteLength + encoded.byteLength > maximumUncompressedBytes
           ) {
             await flush();
           }
