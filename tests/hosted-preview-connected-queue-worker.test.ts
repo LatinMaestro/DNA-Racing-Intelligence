@@ -24,7 +24,7 @@ type ConnectedFile = Readonly<{
   clientFileId: string;
   sourceFamily: ConnectedSourceFamily;
   originalFileName: string;
-  payload: ReturnType<TextEncoder["encode"]>;
+  payload: Uint8Array;
   sha256: string;
 }>;
 
@@ -377,7 +377,7 @@ describeConnected(
               "Content-Type": "text/csv",
               "Content-Length": String(file.payload.byteLength),
             },
-            body: file.payload,
+            body: new Uint8Array(file.payload),
           });
           expect(uploaded.status).toBeGreaterThanOrEqual(200);
           expect(uploaded.status).toBeLessThan(300);
