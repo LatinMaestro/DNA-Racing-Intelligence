@@ -38,7 +38,10 @@ function harness() {
       partition: "0",
     },
   });
-  const driver = { putObjectIfAbsent, headObject };
+  const deleteObject =
+    vi.fn<CloudflareR2DatasetEvidenceDriver["deleteObject"]>();
+  deleteObject.mockResolvedValue(undefined);
+  const driver = { putObjectIfAbsent, headObject, deleteObject };
   const createDriver = vi.fn(() => driver);
   const fetcher = vi
     .fn()
@@ -188,5 +191,30 @@ describe("Cloudflare R2 dataset evidence port", () => {
       }),
     ).toThrow("secretAccessKey is invalid");
     expect(createDriver).not.toHaveBeenCalled();
+  });
+
+  it("maps bounded deletion and idempotent missing evidence", async () => {
+    const test = harness();
+    const input = {
+      bucketName: "dna-private-preview",
+      key: "evidence/opaque/part-0000.parquet",
+    };
+    await expect(test.port.deleteObject(input)).resolves.toEqual({
+      status: "deleted",
+    });
+    expect(test.driver.deleteObject).toHaveBeenCalledWith(input);
+
+    test.driver.deleteObject.mockRejectedValueOnce({
+      name: "NoSuchKey",
+      $metadata: { httpStatusCode: 404 },
+    });
+    await expect(test.port.deleteObject(input)).resolves.toEqual({
+      status: "missing",
+    });
+
+    test.driver.deleteObject.mockRejectedValueOnce(new Error("private detail"));
+    await expect(test.port.deleteObject(input)).rejects.toThrow(
+      "evidence deletion failed",
+    );
   });
 });

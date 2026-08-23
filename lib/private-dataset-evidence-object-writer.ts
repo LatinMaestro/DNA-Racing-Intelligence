@@ -4,6 +4,7 @@ import type {
   DatasetEvidenceObjectFormat,
   DatasetEvidenceObjectKind,
   DatasetEvidenceObjectRegistration,
+  DatasetEvidenceObjectInspectionRepository,
   DatasetEvidenceObjectRepository,
   DatasetEvidenceSourceType,
 } from "./neon-dataset-evidence-object-repository";
@@ -68,7 +69,19 @@ export type PrivateDatasetEvidenceObjectStoragePort = Readonly<{
         metadata: Readonly<Record<string, string | undefined>>;
       }>
   >;
+  deleteObject?: (input: {
+    bucketName: string;
+    key: string;
+  }) => Promise<Readonly<{ status: "deleted" | "missing" }>>;
 }>;
+
+export type PrivateDatasetEvidenceObjectDeletionPort =
+  PrivateDatasetEvidenceObjectStoragePort &
+    Readonly<{
+      deleteObject: NonNullable<
+        PrivateDatasetEvidenceObjectStoragePort["deleteObject"]
+      >;
+    }>;
 
 export type PrivateDatasetEvidenceObjectWrite = Readonly<{
   ownerId: string;
@@ -411,6 +424,188 @@ export function createPrivateDatasetEvidenceObjectWriter(input: {
         objectKey: stored.registration.objectKey,
         storageStatus: stored.storageStatus,
       };
+    },
+  });
+}
+
+export type PrivateDatasetEvidenceObjectRecoveryReceipt = Readonly<{
+  objectKey: string;
+  status: "deleted" | "missing" | "retained_registered";
+}>;
+
+function emptyBody(): AsyncIterable<Uint8Array> {
+  return (async function* () {
+    return;
+  })();
+}
+
+function normalizeStoredEvidenceObject(
+  stored: StoredPrivateDatasetEvidenceObject,
+  maximumObjectBytes: number,
+): StoredPrivateDatasetEvidenceObject {
+  if (stored.storageStatus !== "created") {
+    throw new Error("Only newly created evidence objects are recoverable.");
+  }
+  const normalized = normalizeWrite(
+    {
+      ...stored.registration,
+      body: emptyBody(),
+      byteSize: stored.registration.byteSize,
+    },
+    maximumObjectBytes,
+  );
+  const { body: _body, ...withoutBody } = normalized;
+  const registration = {
+    ...withoutBody,
+    objectKey: objectKey(normalized),
+  };
+  if (registration.objectKey !== stored.registration.objectKey) {
+    throw new Error("Evidence recovery object key is not owner-derived.");
+  }
+  return { registration, storageStatus: "created" };
+}
+
+export function createPrivateDatasetEvidenceObjectRecovery(input: {
+  ownerId: string;
+  bucketName: string;
+  maximumObjectBytes: number;
+  maximumObjects?: number;
+  createPort: () =>
+    | PrivateDatasetEvidenceObjectDeletionPort
+    | Promise<PrivateDatasetEvidenceObjectDeletionPort>;
+  inspectionRepository: DatasetEvidenceObjectInspectionRepository;
+}): Readonly<{
+  cleanup: (
+    stored: readonly StoredPrivateDatasetEvidenceObject[],
+  ) => Promise<readonly PrivateDatasetEvidenceObjectRecoveryReceipt[]>;
+}> {
+  const ownerId = safeOwner(input.ownerId);
+  const bucketName = input.bucketName.trim();
+  if (!BUCKET_NAME_PATTERN.test(bucketName)) {
+    throw new Error("bucketName is invalid");
+  }
+  const maximumObjectBytes = positiveSafeInteger(
+    input.maximumObjectBytes,
+    "maximumObjectBytes",
+  );
+  const maximumObjects = positiveSafeInteger(
+    input.maximumObjects ?? 10_000,
+    "maximumObjects",
+    10_000,
+  );
+  let portPromise: Promise<PrivateDatasetEvidenceObjectDeletionPort> | null =
+    null;
+
+  async function privatePort() {
+    if (portPromise === null) {
+      portPromise = Promise.resolve(input.createPort()).then(
+        async (created) => {
+          if (
+            created === null ||
+            typeof created !== "object" ||
+            typeof created.deleteObject !== "function"
+          ) {
+            throw new Error("Evidence object recovery initialization failed.");
+          }
+          assertPrivateBucket(await created.readBucketPrivacy({ bucketName }));
+          return created;
+        },
+      );
+    }
+    return portPromise;
+  }
+
+  return Object.freeze({
+    async cleanup(stored) {
+      if (stored.length > maximumObjects) {
+        throw new Error("evidence recovery set exceeds configured capacity");
+      }
+      const normalized = stored.map((object) =>
+        normalizeStoredEvidenceObject(object, maximumObjectBytes),
+      );
+      const seen = new Set<string>();
+      for (const object of normalized) {
+        if (object.registration.ownerId !== ownerId) {
+          throw new Error("Evidence object recovery access denied.");
+        }
+        if (seen.has(object.registration.objectKey)) {
+          throw new Error("evidence recovery set contains a duplicate object");
+        }
+        seen.add(object.registration.objectKey);
+      }
+
+      const inspections = await Promise.all(
+        normalized.map((object) =>
+          input.inspectionRepository.inspect(object.registration),
+        ),
+      );
+      if (inspections.some(({ status }) => status === "conflict")) {
+        throw new Error("Conflicting evidence manifest blocks recovery.");
+      }
+
+      const port = await privatePort();
+      const candidates = normalized.filter(
+        (_object, index) => inspections[index]?.status === "missing",
+      );
+      const providerEvidence = await Promise.all(
+        candidates.map((object) =>
+          port.headObject({
+            bucketName,
+            key: object.registration.objectKey,
+          }),
+        ),
+      );
+      providerEvidence.forEach((evidence, index) => {
+        if (evidence.status === "missing") return;
+        const registration = candidates[index]!.registration;
+        exactObjectEvidence(evidence, {
+          contentType: objectMediaTypes[registration.objectFormat],
+          byteSize: registration.byteSize,
+          checksumSha256: registration.checksumSha256,
+          rowCount: registration.rowCount,
+          sourceType: registration.sourceType,
+          objectKind: registration.objectKind,
+          partitionNumber: registration.partitionNumber,
+        });
+      });
+
+      const receipts: PrivateDatasetEvidenceObjectRecoveryReceipt[] = [];
+      for (let index = 0; index < normalized.length; index += 1) {
+        const object = normalized[index]!;
+        if (inspections[index]?.status === "exact") {
+          receipts.push({
+            objectKey: object.registration.objectKey,
+            status: "retained_registered",
+          });
+          continue;
+        }
+        const candidateIndex = candidates.indexOf(object);
+        if (providerEvidence[candidateIndex]?.status === "missing") {
+          receipts.push({
+            objectKey: object.registration.objectKey,
+            status: "missing",
+          });
+          continue;
+        }
+        await port.deleteObject({
+          bucketName,
+          key: object.registration.objectKey,
+        });
+        const after = await port.headObject({
+          bucketName,
+          key: object.registration.objectKey,
+        });
+        if (after.status !== "missing") {
+          throw new Error(
+            "Evidence object recovery deletion was not verified.",
+          );
+        }
+        receipts.push({
+          objectKey: object.registration.objectKey,
+          status: "deleted",
+        });
+      }
+      return receipts;
     },
   });
 }
