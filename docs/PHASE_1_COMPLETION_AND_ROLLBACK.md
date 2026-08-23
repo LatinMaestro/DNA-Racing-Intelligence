@@ -49,6 +49,12 @@ Rollback requires:
 6. an owner-scoped idempotency key; and
 7. a genuine valid request timestamp.
 
+The Neon adapter executes this contract as the least-privilege runtime role
+inside a serializable transaction with forced owner RLS. Its durable,
+owner-scoped rollback receipt binds the active batch, restored version, recorded
+reason and idempotency key to exactly one new aggregate-refresh request. Runtime
+evidence is validated before it is returned to the service.
+
 The repository adapter must perform one transaction that:
 
 - locks the active owner/source version;
@@ -79,6 +85,6 @@ raw-object deletion remains a separate client-controlled workflow.
 
 ## Deferred work
 
-The Neon transaction adapter, completion/rollback UI, aggregate worker, real
-private source execution, provider secrets and Gate B evidence remain later
-focused work. Production remains fail-closed under Gate F.
+The completion/rollback UI, connected Preview rollback acceptance, real private
+source execution, provider secrets and Gate B evidence remain later focused
+work. Production remains fail-closed under Gate F.
