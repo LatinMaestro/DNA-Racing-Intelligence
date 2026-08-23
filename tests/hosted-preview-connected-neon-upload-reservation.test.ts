@@ -20,6 +20,20 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
+function connectedRaceFiles(count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const sequence = index + 1;
+    return {
+      clientFileId: `connected-neon-race-${sequence}`,
+      sourceFamily: "race_merge" as const,
+      originalFileName: `synthetic-race-merge-${sequence}.csv`,
+      contentType: "text/csv",
+      byteLength: 128,
+      sha256: sequence.toString(16).padStart(64, "0"),
+    };
+  });
+}
+
 function rollbackOnlySessionFactory(): NeonImportPersistenceSessionFactory {
   return async (databaseUrl) => {
     const pool = new Pool({
@@ -50,7 +64,7 @@ function rollbackOnlySessionFactory(): NeonImportPersistenceSessionFactory {
 }
 
 describeConnected("hosted Preview Neon upload reservation acceptance", () => {
-  it("proves owner-scoped least-privilege reservation and rolls the synthetic transaction back", async () => {
+  it("accepts 24 files, rejects 25, and rolls every synthetic transaction back", async () => {
     const databaseUrl = requiredEnvironment("DATABASE_URL");
     const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
     const authenticatedOwnerId = requiredEnvironment(
@@ -70,42 +84,36 @@ describeConnected("hosted Preview Neon upload reservation acceptance", () => {
       idempotencyKey: `connected-neon-${runId}-${runAttempt}`,
       requestedAt: new Date().toISOString(),
       requestFingerprint,
-      files: [
-        {
-          clientFileId: "connected-neon-race-1",
-          sourceFamily: "race_merge",
-          originalFileName: "synthetic-race-merge.csv",
-          contentType: "text/csv",
-          byteLength: 128,
-          sha256: "b".repeat(64),
-        },
-      ],
+      files: connectedRaceFiles(24),
     });
 
     expect(reservation).toMatchObject({
       disposition: "created",
       requestFingerprint,
-      files: [{ clientFileId: "connected-neon-race-1" }],
+      files: { length: 24 },
     });
     expect(reservation.uploadBatchId).toMatch(UUID_PATTERN);
     expect(reservation.files[0]?.uploadFileId).toMatch(UUID_PATTERN);
+    expect(reservation.files[23]?.uploadFileId).toMatch(UUID_PATTERN);
 
     const replayAfterRollback = await repository.reserveUploadBatch({
       ownerId: authenticatedOwnerId,
       idempotencyKey: `connected-neon-${runId}-${runAttempt}`,
       requestedAt: new Date().toISOString(),
       requestFingerprint,
-      files: [
-        {
-          clientFileId: "connected-neon-race-1",
-          sourceFamily: "race_merge",
-          originalFileName: "synthetic-race-merge.csv",
-          contentType: "text/csv",
-          byteLength: 128,
-          sha256: "b".repeat(64),
-        },
-      ],
+      files: connectedRaceFiles(24),
     });
     expect(replayAfterRollback.disposition).toBe("created");
+    expect(replayAfterRollback.files).toHaveLength(24);
+
+    await expect(
+      repository.reserveUploadBatch({
+        ownerId: authenticatedOwnerId,
+        idempotencyKey: `connected-neon-over-limit-${runId}-${runAttempt}`,
+        requestedAt: new Date().toISOString(),
+        requestFingerprint: "c".repeat(64),
+        files: connectedRaceFiles(25),
+      }),
+    ).rejects.toThrow("import upload file set is invalid");
   }, 120_000);
 });
