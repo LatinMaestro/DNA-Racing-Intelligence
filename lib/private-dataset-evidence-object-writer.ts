@@ -428,7 +428,6 @@ export function createPrivateDatasetEvidenceObjectWriter(input: {
   });
 }
 
-
 export type PrivateDatasetEvidenceObjectRecoveryReceipt = Readonly<{
   objectKey: string;
   status: "deleted" | "missing" | "retained_registered";
@@ -508,9 +507,7 @@ export function createPrivateDatasetEvidenceObjectRecovery(input: {
           ) {
             throw new Error("Evidence object recovery initialization failed.");
           }
-          assertPrivateBucket(
-            await created.readBucketPrivacy({ bucketName }),
-          );
+          assertPrivateBucket(await created.readBucketPrivacy({ bucketName }));
           return created;
         },
       );
@@ -599,7 +596,9 @@ export function createPrivateDatasetEvidenceObjectRecovery(input: {
           key: object.registration.objectKey,
         });
         if (after.status !== "missing") {
-          throw new Error("Evidence object recovery deletion was not verified.");
+          throw new Error(
+            "Evidence object recovery deletion was not verified.",
+          );
         }
         receipts.push({
           objectKey: object.registration.objectKey,
