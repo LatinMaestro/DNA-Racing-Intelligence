@@ -70,82 +70,120 @@ VALUES
 
 DO $multi_source_aggregate_assertions$
 DECLARE
-  v_claim record;
-  v_prepared record;
-  v_published record;
-  v_race_replay record;
+  v_core_claim record;
+  v_core_prepared record;
+  v_core_published record;
+  v_race_claim record;
+  v_race_prepared record;
+  v_race_published record;
 BEGIN
-  SELECT * INTO STRICT v_claim
+  SELECT * INTO STRICT v_core_claim
   FROM dna.claim_pro_league_aggregate_refresh(
     '43000000-0000-4000-8000-000000000001',
     '43000000-0000-4000-8000-000000000302',
-    'multi-source-worker',
+    'multi-source-core-worker',
     '2026-08-23T00:03:00Z',
     '2026-08-23T00:08:00Z'
   );
 
-  IF v_claim.status <> 'claimed'
-     OR v_claim.dataset_version_id <>
+  IF v_core_claim.status <> 'claimed'
+     OR v_core_claim.dataset_version_id <>
        '43000000-0000-4000-8000-000000000202'::uuid THEN
     RAISE EXCEPTION 'non-Race aggregate work was not claimed';
   END IF;
 
-  SELECT * INTO STRICT v_prepared
+  SELECT * INTO STRICT v_core_prepared
   FROM dna.prepare_pro_league_aggregate_refresh(
     '43000000-0000-4000-8000-000000000001',
     '43000000-0000-4000-8000-000000000302',
     '43000000-0000-4000-8000-000000000202',
-    v_claim.source_version_set_sha256
+    v_core_claim.source_version_set_sha256
   );
 
-  IF v_prepared.prepared_aggregate_set_id <>
+  IF v_core_prepared.prepared_aggregate_set_id <>
        '43000000-0000-4000-8000-000000000302'::uuid
-     OR v_prepared.aggregate_family_count <> 4
-     OR v_prepared.materialized_row_count <> 0 THEN
-    RAISE EXCEPTION 'multi-source aggregate preparation evidence is invalid';
+     OR v_core_prepared.aggregate_family_count <> 4
+     OR v_core_prepared.materialized_row_count <> 0 THEN
+    RAISE EXCEPTION 'non-Race aggregate preparation evidence is invalid';
   END IF;
 
-  SELECT * INTO STRICT v_published
+  IF NOT EXISTS (
+    SELECT 1 FROM dna.aggregate_refresh_job
+    WHERE owner_id = '43000000-0000-4000-8000-000000000001'
+      AND id = '43000000-0000-4000-8000-000000000301'
+      AND status = 'queued'
+      AND started_at IS NULL
+      AND completed_at IS NULL
+      AND affected_record_count IS NULL
+  ) THEN
+    RAISE EXCEPTION 'active Race Merge queue receipt was consumed indirectly';
+  END IF;
+
+  SELECT * INTO STRICT v_core_published
   FROM dna.publish_pro_league_aggregate_refresh(
     '43000000-0000-4000-8000-000000000001',
     '43000000-0000-4000-8000-000000000302',
     '43000000-0000-4000-8000-000000000202',
-    'multi-source-worker',
-    v_prepared.prepared_aggregate_set_id,
-    v_prepared.source_version_set_sha256,
-    v_prepared.aggregate_family_count,
-    v_prepared.materialized_row_count,
+    'multi-source-core-worker',
+    v_core_prepared.prepared_aggregate_set_id,
+    v_core_prepared.source_version_set_sha256,
+    v_core_prepared.aggregate_family_count,
+    v_core_prepared.materialized_row_count,
     '2026-08-23T00:04:00Z'
   );
 
-  IF v_published.status <> 'published'
-     OR v_published.aggregate_set_id <>
+  IF v_core_published.status <> 'published'
+     OR v_core_published.aggregate_set_id <>
        '43000000-0000-4000-8000-000000000302'::uuid THEN
-    RAISE EXCEPTION 'multi-source aggregate publication failed';
+    RAISE EXCEPTION 'non-Race aggregate publication failed';
   END IF;
 
-  SELECT * INTO STRICT v_race_replay
+  SELECT * INTO STRICT v_race_claim
   FROM dna.claim_pro_league_aggregate_refresh(
     '43000000-0000-4000-8000-000000000001',
     '43000000-0000-4000-8000-000000000301',
-    'multi-source-race-replay',
+    'multi-source-race-worker',
     '2026-08-23T00:05:00Z',
     '2026-08-23T00:10:00Z'
   );
 
-  IF v_race_replay.status <> 'already_complete' THEN
-    RAISE EXCEPTION 'active Race Merge aggregate receipt was not idempotent';
+  IF v_race_claim.status <> 'claimed'
+     OR v_race_claim.dataset_version_id <>
+       '43000000-0000-4000-8000-000000000201'::uuid THEN
+    RAISE EXCEPTION 'active Race Merge aggregate work was not independently claimed';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM dna.aggregate_refresh_processing
-    WHERE owner_id = '43000000-0000-4000-8000-000000000001'
-      AND refresh_id = '43000000-0000-4000-8000-000000000302'
-      AND dataset_version_id = '43000000-0000-4000-8000-000000000202'
-      AND state = 'published'
-  ) THEN
-    RAISE EXCEPTION 'non-Race aggregate publication receipt is missing';
+  SELECT * INTO STRICT v_race_prepared
+  FROM dna.prepare_pro_league_aggregate_refresh(
+    '43000000-0000-4000-8000-000000000001',
+    '43000000-0000-4000-8000-000000000301',
+    '43000000-0000-4000-8000-000000000201',
+    v_race_claim.source_version_set_sha256
+  );
+
+  IF v_race_prepared.aggregate_family_count <> 4
+     OR v_race_prepared.materialized_row_count <>
+       v_core_prepared.materialized_row_count THEN
+    RAISE EXCEPTION 'Race Merge aggregate preparation diverged';
+  END IF;
+
+  SELECT * INTO STRICT v_race_published
+  FROM dna.publish_pro_league_aggregate_refresh(
+    '43000000-0000-4000-8000-000000000001',
+    '43000000-0000-4000-8000-000000000301',
+    '43000000-0000-4000-8000-000000000201',
+    'multi-source-race-worker',
+    v_race_prepared.prepared_aggregate_set_id,
+    v_race_prepared.source_version_set_sha256,
+    v_race_prepared.aggregate_family_count,
+    v_race_prepared.materialized_row_count,
+    '2026-08-23T00:06:00Z'
+  );
+
+  IF v_race_published.status <> 'published'
+     OR v_race_published.aggregate_set_id <>
+       '43000000-0000-4000-8000-000000000301'::uuid THEN
+    RAISE EXCEPTION 'Race Merge aggregate publication failed';
   END IF;
 END
 $multi_source_aggregate_assertions$;
@@ -169,6 +207,19 @@ BEGIN
 
   IF v_core_count <> 0 OR v_race_count <> v_core_count THEN
     RAISE EXCEPTION 'aggregate completion counts diverged across source families';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM dna.aggregate_refresh_processing
+    WHERE owner_id = '43000000-0000-4000-8000-000000000001'
+      AND refresh_id IN (
+        '43000000-0000-4000-8000-000000000301',
+        '43000000-0000-4000-8000-000000000302'
+      )
+      AND state = 'published'
+  ) <> 2 THEN
+    RAISE EXCEPTION 'independent aggregate publication receipts are incomplete';
   END IF;
 
   IF EXISTS (
