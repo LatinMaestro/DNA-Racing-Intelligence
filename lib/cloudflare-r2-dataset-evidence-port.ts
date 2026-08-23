@@ -2,13 +2,14 @@ import { Buffer } from "node:buffer";
 import { Readable } from "node:stream";
 
 import {
+  DeleteObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
-import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
+import type { PrivateDatasetEvidenceObjectDeletionPort } from "./private-dataset-evidence-object-writer";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
@@ -34,6 +35,10 @@ export type CloudflareR2DatasetEvidenceDriver = Readonly<{
     bucketName: string;
     key: string;
   }) => Promise<EvidenceHeadResult>;
+  deleteObject: (input: {
+    bucketName: string;
+    key: string;
+  }) => Promise<void>;
 }>;
 
 export type CloudflareR2DatasetEvidencePortConfiguration = Readonly<{
@@ -105,6 +110,14 @@ function defaultDriver(input: {
         metadata: result.Metadata,
       };
     },
+    async deleteObject(request) {
+      await client.send(
+        new DeleteObjectCommand({
+          Bucket: request.bucketName,
+          Key: request.key,
+        }),
+      );
+    },
   };
 }
 
@@ -141,7 +154,7 @@ function checksumHex(value: string | undefined): string {
 
 export function createCloudflareR2DatasetEvidencePort(
   configuration: CloudflareR2DatasetEvidencePortConfiguration,
-): PrivateDatasetEvidenceObjectStoragePort {
+): PrivateDatasetEvidenceObjectDeletionPort {
   const accountId = configuration.accountId.trim().toLowerCase();
   if (!ACCOUNT_ID_PATTERN.test(accountId)) {
     throw new Error("accountId is invalid");
@@ -212,6 +225,16 @@ export function createCloudflareR2DatasetEvidencePort(
           throw error;
         }
         throw new Error("Cloudflare R2 evidence inspection failed.");
+      }
+    },
+
+    async deleteObject(input) {
+      try {
+        await driver.deleteObject(input);
+        return { status: "deleted" };
+      } catch (error) {
+        if (status(error, 404)) return { status: "missing" };
+        throw new Error("Cloudflare R2 evidence deletion failed.");
       }
     },
   });
