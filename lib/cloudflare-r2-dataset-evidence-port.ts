@@ -202,8 +202,7 @@ export function createCloudflareR2DatasetEvidencePort(
   );
   const apiToken = secret(configuration.apiToken, "apiToken");
   const maximumBufferedPutBytes = positiveSafeInteger(
-    configuration.maximumBufferedPutBytes ??
-      DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES,
+    configuration.maximumBufferedPutBytes ?? DEFAULT_MAXIMUM_BUFFERED_PUT_BYTES,
     "maximumBufferedPutBytes",
   );
   const endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
