@@ -43,6 +43,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0036_pro_league_aggregate_refresh.smoke.sql
       - name: Run Pro League aggregate worker smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0037_pro_league_aggregate_worker.smoke.sql
+      - name: Run multi-source aggregate refresh smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0043_pro_league_multi_source_aggregate_refresh.smoke.sql
+      - name: Reverse multi-source aggregate refresh migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0043_pro_league_multi_source_aggregate_refresh.down.sql
+      - name: Verify multi-source aggregate refresh rollback
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0043_pro_league_multi_source_aggregate_refresh.removal.sql
       - name: Reverse Pro League aggregate worker migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0037_pro_league_aggregate_worker.down.sql
       - name: Verify Pro League aggregate worker removal
