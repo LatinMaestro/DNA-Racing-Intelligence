@@ -12,13 +12,10 @@ import { createCloudflareR2ImportObjectStorageForOwner } from "../lib/cloudflare
 import { createCloudflareR2S3Port } from "../lib/cloudflare-r2-s3-port";
 import { hostedImportUploadCompletionRuntime } from "../lib/hosted-import-upload-completion-runtime";
 import { createNeonImportActivationRepositories } from "../lib/neon-import-activation";
+import { createNeonImportConfirmationCleanupRepository } from "../lib/neon-import-confirmation-cleanup-repository";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
 import { createNeonImportUploadIntakeRepository } from "../lib/neon-import-upload-intake-repository";
-import type {
-  NeonImportPersistenceClient,
-  NeonImportPersistenceSessionFactory,
-} from "../lib/neon-import-persistence-driver";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
@@ -45,33 +42,6 @@ function requiredEnvironment(name: string): string {
 
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function rollbackOnlySessionFactory(): NeonImportPersistenceSessionFactory {
-  return async (databaseUrl) => {
-    const pool = new Pool({
-      connectionString: databaseUrl,
-      max: 1,
-      idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 10_000,
-    });
-    const client = await pool.connect();
-    const rollbackOnlyClient: NeonImportPersistenceClient = {
-      query(statement, values) {
-        if (statement === "COMMIT") return client.query("ROLLBACK");
-        return values === undefined
-          ? client.query(statement)
-          : client.query(statement, [...values]);
-      },
-    };
-    return {
-      client: rollbackOnlyClient,
-      async close() {
-        client.release();
-        await pool.end();
-      },
-    };
-  };
 }
 
 function csv(value: string): Uint8Array {
@@ -305,6 +275,68 @@ async function countBatchResidue(input: {
   }
 }
 
+async function readConfirmationCleanupReceipt(input: {
+  databaseUrl: string;
+  databaseOwnerId: string;
+  activationDispatchId: string;
+}) {
+  const pool = new Pool({
+    connectionString: input.databaseUrl,
+    max: 1,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+  });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT set_config('app.owner_id', $1, true)", [
+      input.databaseOwnerId,
+    ]);
+    const result = await client.query(
+      `SELECT
+        upload_batch_id::text AS upload_batch_id,
+        activation_dispatch_id::text AS activation_dispatch_id,
+        pre_activation_cleanup_id::text AS pre_activation_cleanup_id,
+        file_count,
+        verified_object_count,
+        staged_batch_count
+      FROM dna.import_confirmation_cleanup
+      WHERE owner_id = $1::uuid AND activation_dispatch_id = $2::uuid`,
+      [input.databaseOwnerId, input.activationDispatchId],
+    );
+    await client.query("ROLLBACK");
+    const row = result.rows[0] as
+      | {
+          upload_batch_id?: unknown;
+          activation_dispatch_id?: unknown;
+          pre_activation_cleanup_id?: unknown;
+          file_count?: unknown;
+          verified_object_count?: unknown;
+          staged_batch_count?: unknown;
+        }
+      | undefined;
+    if (row === undefined) return null;
+    return {
+      uploadBatchId:
+        typeof row.upload_batch_id === "string" ? row.upload_batch_id : null,
+      activationDispatchId:
+        typeof row.activation_dispatch_id === "string"
+          ? row.activation_dispatch_id
+          : null,
+      preActivationCleanupId:
+        typeof row.pre_activation_cleanup_id === "string"
+          ? row.pre_activation_cleanup_id
+          : null,
+      fileCount: Number(row.file_count),
+      verifiedObjectCount: Number(row.verified_object_count),
+      stagedBatchCount: Number(row.staged_batch_count),
+    };
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
 describeConnected(
   "hosted Preview synthetic queue and Worker acceptance",
   () => {
@@ -346,6 +378,12 @@ describeConnected(
         databaseOwnerId,
         runtimeRole: "dna_app_runtime",
       });
+      const confirmationCleanupRepository =
+        createNeonImportConfirmationCleanupRepository({
+          databaseUrl,
+          databaseOwnerId,
+          runtimeRole: "dna_app_runtime",
+        });
       const objectStorage = createCloudflareR2ImportObjectStorageForOwner({
         ownerId,
         configuration: {
@@ -368,7 +406,20 @@ describeConnected(
       });
       let uploadBatchId: string | null = null;
       const uploadFileIds: string[] = [];
-      let cleanupResult: Awaited<ReturnType<typeof waitForCleanup>> | undefined;
+      let confirmedCleanupContext: Readonly<{
+        previewId: string;
+        previewFingerprintSha256: string;
+        updateSessionId: string;
+        activationDispatchId: string;
+      }> | null = null;
+      let cleanupResult:
+        | Readonly<{
+            status: string;
+            fileCount: number;
+            verifiedObjectCount: number;
+            stagedBatchCount: number;
+          }>
+        | undefined;
 
       try {
         const reservation = await repository.reserveUploadBatch({
@@ -494,7 +545,6 @@ describeConnected(
           databaseUrl,
           databaseOwnerId,
           runtimeRole: "dna_app_runtime",
-          sessionFactory: rollbackOnlySessionFactory(),
         });
         await activationRepositories.readinessStore.assertPreviewUploadsReady({
           ownerId,
@@ -517,6 +567,12 @@ describeConnected(
         });
         expect(confirmation.updateSessionId).toMatch(UUID_PATTERN);
         expect(confirmation.dispatchId).toMatch(UUID_PATTERN);
+        confirmedCleanupContext = {
+          previewId: prepared.previewId,
+          previewFingerprintSha256: prepared.previewFingerprintSha256,
+          updateSessionId: confirmation.updateSessionId,
+          activationDispatchId: confirmation.dispatchId,
+        };
 
         const replay = await completePrivateImportUpload({
           authenticatedOwnerId: ownerId,
@@ -537,12 +593,28 @@ describeConnected(
         let cleanupFailure: unknown;
         if (uploadBatchId !== null) {
           try {
-            cleanupResult = await waitForCleanup({
-              repository: cleanupRepository,
-              ownerId,
-              uploadBatchId,
-              requestFingerprintSha256: requestFingerprint,
-            });
+            cleanupResult =
+              confirmedCleanupContext === null
+                ? await waitForCleanup({
+                    repository: cleanupRepository,
+                    ownerId,
+                    uploadBatchId,
+                    requestFingerprintSha256: requestFingerprint,
+                  })
+                : await confirmationCleanupRepository.cleanupBeforeDispatch({
+                    ownerId,
+                    uploadBatchId,
+                    requestFingerprintSha256: requestFingerprint,
+                    previewId: confirmedCleanupContext.previewId,
+                    previewFingerprintSha256:
+                      confirmedCleanupContext.previewFingerprintSha256,
+                    updateSessionId: confirmedCleanupContext.updateSessionId,
+                    activationDispatchId:
+                      confirmedCleanupContext.activationDispatchId,
+                    reason:
+                      "Connected persistent confirmed Preview acceptance cleanup.",
+                    cleanedAt: new Date().toISOString(),
+                  });
           } catch (error) {
             cleanupFailure = error;
           }
@@ -576,6 +648,41 @@ describeConnected(
       if (uploadBatchId === null) {
         throw new Error("Connected cleanup batch identifier is unavailable");
       }
+      if (confirmedCleanupContext === null) {
+        throw new Error("Persistent confirmation cleanup context is unavailable");
+      }
+      const cleanupReplay =
+        await confirmationCleanupRepository.cleanupBeforeDispatch({
+          ownerId,
+          uploadBatchId,
+          requestFingerprintSha256: requestFingerprint,
+          previewId: confirmedCleanupContext.previewId,
+          previewFingerprintSha256:
+            confirmedCleanupContext.previewFingerprintSha256,
+          updateSessionId: confirmedCleanupContext.updateSessionId,
+          activationDispatchId: confirmedCleanupContext.activationDispatchId,
+          reason: "Replay persistent confirmed Preview acceptance cleanup.",
+          cleanedAt: new Date().toISOString(),
+        });
+      expect(cleanupReplay).toMatchObject({
+        status: "existing",
+        fileCount: 9,
+        verifiedObjectCount: 9,
+        stagedBatchCount: 9,
+      });
+      const cleanupReceipt = await readConfirmationCleanupReceipt({
+        databaseUrl,
+        databaseOwnerId,
+        activationDispatchId: confirmedCleanupContext.activationDispatchId,
+      });
+      expect(cleanupReceipt).toMatchObject({
+        uploadBatchId,
+        activationDispatchId: confirmedCleanupContext.activationDispatchId,
+        fileCount: 9,
+        verifiedObjectCount: 9,
+        stagedBatchCount: 9,
+      });
+      expect(cleanupReceipt?.preActivationCleanupId).toMatch(UUID_PATTERN);
       expect(
         await countBatchResidue({
           databaseUrl,
