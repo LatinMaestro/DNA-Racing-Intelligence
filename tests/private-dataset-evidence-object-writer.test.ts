@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createPrivateDatasetEvidenceObjectStorageWriter,
   createPrivateDatasetEvidenceObjectWriter,
   type PrivateDatasetEvidenceObjectStoragePort,
 } from "@/lib/private-dataset-evidence-object-writer";
@@ -73,6 +74,7 @@ function harness() {
   });
   return {
     writer,
+    port,
     createPort,
     readBucketPrivacy,
     putObjectIfAbsent,
@@ -223,6 +225,34 @@ describe("private dataset evidence object writer", () => {
       ).rejects.toThrow();
       expect(test.createPort).not.toHaveBeenCalled();
     }
+  });
+
+  it("can defer manifest registration until the import batch commits", async () => {
+    const test = harness();
+    const storageWriter = createPrivateDatasetEvidenceObjectStorageWriter({
+      ownerId,
+      bucketName: "dna-private-preview",
+      maximumObjectBytes: 64,
+      createPort: async () => test.port,
+    });
+
+    const stored = await storageWriter.store(writeInput());
+
+    expect(stored).toEqual({
+      registration: expect.objectContaining({
+        ownerId,
+        importBatchId,
+        objectKey: expect.stringMatching(/part-0000\.parquet$/),
+        checksumSha256,
+      }),
+      storageStatus: "created",
+    });
+    expect(test.register).not.toHaveBeenCalled();
+
+    await expect(test.register(stored.registration)).resolves.toEqual({
+      status: "created",
+      evidenceObjectId,
+    });
   });
 
   it("initializes the provider and private-bucket check only once", async () => {
