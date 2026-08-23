@@ -280,18 +280,25 @@ function exactObjectEvidence(
   }
 }
 
-export function createPrivateDatasetEvidenceObjectWriter(input: {
+export type StoredPrivateDatasetEvidenceObject = Readonly<{
+  registration: DatasetEvidenceObjectRegistration;
+  storageStatus: "created" | "existing";
+}>;
+
+export type PrivateDatasetEvidenceObjectStorageWriter = Readonly<{
+  store: (
+    input: PrivateDatasetEvidenceObjectWrite,
+  ) => Promise<StoredPrivateDatasetEvidenceObject>;
+}>;
+
+export function createPrivateDatasetEvidenceObjectStorageWriter(input: {
   ownerId: string;
   bucketName: string;
   maximumObjectBytes: number;
   createPort: () =>
     | PrivateDatasetEvidenceObjectStoragePort
     | Promise<PrivateDatasetEvidenceObjectStoragePort>;
-  repository: Extract<
-    DatasetEvidenceObjectRepository,
-    Readonly<{ status: "ready" }>
-  >;
-}): PrivateDatasetEvidenceObjectWriter {
+}): PrivateDatasetEvidenceObjectStorageWriter {
   const ownerId = safeOwner(input.ownerId);
   const bucketName = input.bucketName.trim();
   if (!BUCKET_NAME_PATTERN.test(bucketName)) {
@@ -325,7 +332,7 @@ export function createPrivateDatasetEvidenceObjectWriter(input: {
   }
 
   return Object.freeze({
-    async write(writeInput) {
+    async store(writeInput) {
       const normalized = normalizeWrite(writeInput, maximumObjectBytes);
       if (normalized.ownerId !== ownerId) {
         throw new Error("Evidence object storage access denied.");
@@ -359,25 +366,50 @@ export function createPrivateDatasetEvidenceObjectWriter(input: {
         objectKind: normalized.objectKind,
         partitionNumber: normalized.partitionNumber,
       });
-      const registered = await input.repository.register({
-        ownerId: normalized.ownerId,
-        importBatchId: normalized.importBatchId,
-        sourceType: normalized.sourceType,
-        objectKind: normalized.objectKind,
-        partitionNumber: normalized.partitionNumber,
-        objectFormat: normalized.objectFormat,
-        objectKey: key,
-        checksumSha256: normalized.checksumSha256,
-        byteSize: normalized.byteSize,
-        rowCount: normalized.rowCount,
-        firstNaturalKey: normalized.firstNaturalKey,
-        lastNaturalKey: normalized.lastNaturalKey,
-        createdAt: normalized.createdAt,
-      });
+      return {
+        registration: {
+          ownerId: normalized.ownerId,
+          importBatchId: normalized.importBatchId,
+          sourceType: normalized.sourceType,
+          objectKind: normalized.objectKind,
+          partitionNumber: normalized.partitionNumber,
+          objectFormat: normalized.objectFormat,
+          objectKey: key,
+          checksumSha256: normalized.checksumSha256,
+          byteSize: normalized.byteSize,
+          rowCount: normalized.rowCount,
+          firstNaturalKey: normalized.firstNaturalKey,
+          lastNaturalKey: normalized.lastNaturalKey,
+          createdAt: normalized.createdAt,
+        },
+        storageStatus: stored.status,
+      };
+    },
+  });
+}
+
+export function createPrivateDatasetEvidenceObjectWriter(input: {
+  ownerId: string;
+  bucketName: string;
+  maximumObjectBytes: number;
+  createPort: () =>
+    | PrivateDatasetEvidenceObjectStoragePort
+    | Promise<PrivateDatasetEvidenceObjectStoragePort>;
+  repository: Extract<
+    DatasetEvidenceObjectRepository,
+    Readonly<{ status: "ready" }>
+  >;
+}): PrivateDatasetEvidenceObjectWriter {
+  const storageWriter = createPrivateDatasetEvidenceObjectStorageWriter(input);
+
+  return Object.freeze({
+    async write(writeInput) {
+      const stored = await storageWriter.store(writeInput);
+      const registered = await input.repository.register(stored.registration);
       return {
         ...registered,
-        objectKey: key,
-        storageStatus: stored.status,
+        objectKey: stored.registration.objectKey,
+        storageStatus: stored.storageStatus,
       };
     },
   });
