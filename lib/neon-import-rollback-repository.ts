@@ -210,6 +210,27 @@ function verifyIsolation(
   }
 }
 
+function rollbackDisposition(value: unknown): "created" | "existing" {
+  const disposition = text(value, "disposition");
+  if (disposition !== "created" && disposition !== "existing") {
+    throw new Error("dataset rollback disposition is unsupported");
+  }
+  return disposition;
+}
+
+function rollbackSourceType(
+  value: unknown,
+): (typeof historicalImportSources)[number] {
+  const sourceType = text(value, "source_type");
+  const supported = historicalImportSources.find(
+    (candidate) => candidate === sourceType,
+  );
+  if (!supported) {
+    throw new Error("dataset rollback source type is unsupported");
+  }
+  return supported;
+}
+
 function normalizeRollback(row: Record<string, unknown>) {
   const status = text(row.status, "status");
   if (
@@ -222,12 +243,9 @@ function normalizeRollback(row: Record<string, unknown>) {
   if (status !== "restored") {
     throw new Error("dataset rollback status is unsupported");
   }
-  const disposition = text(row.disposition, "disposition");
-  if (disposition !== "created" && disposition !== "existing") {
-    throw new Error("dataset rollback disposition is unsupported");
-  }
+  const disposition = rollbackDisposition(row.disposition);
   const rollbackId = text(row.rollback_id, "rollback_id");
-  const sourceType = text(row.source_type, "source_type");
+  const sourceType = rollbackSourceType(row.source_type);
   const restoredBatchId = text(row.restored_batch_id, "restored_batch_id");
   const aggregateRefreshId = text(
     row.aggregate_refresh_id,
@@ -239,9 +257,6 @@ function normalizeRollback(row: Record<string, unknown>) {
     !DATABASE_UUID_PATTERN.test(aggregateRefreshId)
   ) {
     throw new Error("dataset rollback identifiers must be UUIDs");
-  }
-  if (!historicalImportSources.some((candidate) => candidate === sourceType)) {
-    throw new Error("dataset rollback source type is unsupported");
   }
   return {
     status: "restored" as const,
