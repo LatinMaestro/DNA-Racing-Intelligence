@@ -232,12 +232,31 @@ BEGIN
     'dna_app_runtime',
     'dna.rollback_active_source_version(uuid,uuid,text,text,timestamp with time zone)',
     'EXECUTE'
-  ) OR has_table_privilege(
-    'PUBLIC', 'dna.import_dataset_rollback', 'SELECT'
-  ) OR has_function_privilege(
-    'PUBLIC',
-    'dna.rollback_active_source_version(uuid,uuid,text,text,timestamp with time zone)',
-    'EXECUTE'
+  ) OR EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class relation
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(
+        relation.relacl,
+        pg_catalog.acldefault('r', relation.relowner)
+      )
+    ) privilege
+    WHERE relation.oid = 'dna.import_dataset_rollback'::regclass
+      AND privilege.grantee = 0
+      AND privilege.privilege_type = 'SELECT'
+  ) OR EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc routine
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(
+        routine.proacl,
+        pg_catalog.acldefault('f', routine.proowner)
+      )
+    ) privilege
+    WHERE routine.oid =
+      'dna.rollback_active_source_version(uuid,uuid,text,text,timestamp with time zone)'::regprocedure
+      AND privilege.grantee = 0
+      AND privilege.privilege_type = 'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'rollback runtime privileges are unsafe';
   END IF;
