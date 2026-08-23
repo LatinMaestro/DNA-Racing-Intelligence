@@ -15,7 +15,8 @@ async function* bytes() {
   yield new Uint8Array([1, 2, 3]);
 }
 
-function harness(storageStatus: "created" | "existing" = "created") {
+function harness() {
+  let storageStatus: "created" | "existing" = "created";
   let stored:
     | Parameters<
         PrivateDatasetEvidenceObjectStoragePort["putObjectIfAbsent"]
@@ -32,17 +33,18 @@ function harness(storageStatus: "created" | "existing" = "created") {
     stored = input;
     return { status: storageStatus };
   });
-  const headObject = vi.fn<PrivateDatasetEvidenceObjectStoragePort["headObject"]>(
-    async () =>
-      stored === undefined
-        ? { status: "missing" }
-        : {
-            status: "ready",
-            contentType: stored.contentType,
-            byteLength: stored.byteLength,
-            checksumSha256: stored.checksumSha256,
-            metadata: stored.metadata,
-          },
+  const headObject = vi.fn<
+    PrivateDatasetEvidenceObjectStoragePort["headObject"]
+  >(async () =>
+    stored === undefined
+      ? { status: "missing" }
+      : {
+          status: "ready",
+          contentType: stored.contentType,
+          byteLength: stored.byteLength,
+          checksumSha256: stored.checksumSha256,
+          metadata: stored.metadata,
+        },
   );
   const port: PrivateDatasetEvidenceObjectStoragePort = {
     readBucketPrivacy,
@@ -76,6 +78,9 @@ function harness(storageStatus: "created" | "existing" = "created") {
     putObjectIfAbsent,
     headObject,
     register,
+    setStorageStatus(status: "created" | "existing") {
+      storageStatus = status;
+    },
   };
 }
 
@@ -137,7 +142,8 @@ describe("private dataset evidence object writer", () => {
   });
 
   it("supports exact storage and manifest replay", async () => {
-    const test = harness("existing");
+    const test = harness();
+    test.setStorageStatus("existing");
     test.register.mockResolvedValueOnce({
       status: "existing",
       evidenceObjectId,
