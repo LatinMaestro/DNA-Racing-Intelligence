@@ -213,8 +213,8 @@ describe("bounded Race archive rebuild session", () => {
     ).toEqual([2, 2, 1]);
     expect(sink.rollback).not.toHaveBeenCalled();
     expect(events.slice(-3)).toEqual([
-      "stage:1",
       "archive:complete",
+      "stage:1",
       "commit:5",
     ]);
   });
