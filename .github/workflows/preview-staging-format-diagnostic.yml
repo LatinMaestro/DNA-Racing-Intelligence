@@ -9,23 +9,31 @@ on:
       - "tests/hosted-preview-connected-staging-contract.test.ts"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format-diff:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Print exact Prettier diff
+      - name: Apply exact Prettier output
         shell: bash
         run: |
           npx prettier .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts --write
-          git diff -- .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts
-          if ! git diff --quiet -- .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts; then
-            exit 1
+          if git diff --quiet -- .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts; then
+            echo "Formatting already exact."
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts
+          git commit -m "Format connected staging probe"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
