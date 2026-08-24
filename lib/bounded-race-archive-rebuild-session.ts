@@ -1,4 +1,3 @@
-import type { DurablePreviewStagedRow } from "./durable-import-preview-staging-sink";
 import type { SealedRaceArchiveManifest } from "./neon-sealed-race-archive-manifest-repository";
 import type {
   RaceStagedRowRehydrator,
@@ -32,7 +31,7 @@ export type RaceArchiveRebuildTransaction = Readonly<{
   stageRows: (input: {
     datasetVersionId: string;
     importBatchId: string;
-    rows: readonly DurablePreviewStagedRow[];
+    rows: readonly RehydratedRaceStagedRow[];
   }) => Promise<void>;
   commit: (receipt: RaceArchiveRebuildReceipt) => Promise<void>;
   rollback: (input: {
@@ -107,7 +106,7 @@ function assertRowIdentity(
 async function stageRows(input: {
   transaction: RaceArchiveRebuildTransaction;
   manifest: SealedRaceArchiveManifest;
-  rows: readonly DurablePreviewStagedRow[];
+  rows: readonly RehydratedRaceStagedRow[];
 }): Promise<void> {
   try {
     await input.transaction.stageRows({
@@ -186,7 +185,7 @@ export function createBoundedRaceArchiveRebuildSession(input: {
       let processedRowCount = 0;
       let readyRowCount = 0;
       let quarantinedRowCount = 0;
-      let batch: DurablePreviewStagedRow[] = [];
+      let batch: RehydratedRaceStagedRow[] = [];
 
       try {
         for await (const row of opened.rows) {
@@ -204,7 +203,7 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           } else {
             throw new Error("Rehydrated Race row status is invalid.");
           }
-          batch.push(row.stagedRow);
+          batch.push(row);
           if (batch.length === maximumRowsPerWrite) {
             await stageRows({
               transaction,
