@@ -67,7 +67,10 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
   maximumCoreLocators: number;
   maximumPartitionsPerCore: number;
 }): RaceArchiveCoreLocatorAccumulator {
-  const datasetVersionId = identifier(input.datasetVersionId, "datasetVersionId");
+  const datasetVersionId = identifier(
+    input.datasetVersionId,
+    "datasetVersionId",
+  );
   const importBatchId = identifier(input.importBatchId, "importBatchId");
   const maximumCoreLocators = positiveSafeInteger(
     input.maximumCoreLocators,
@@ -82,13 +85,16 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
 
   return Object.freeze({
     append(rows) {
-      if (finished) throw new Error("Race archive Core locator accumulator is finished.");
+      if (finished)
+        throw new Error("Race archive Core locator accumulator is finished.");
       for (const row of rows) {
         if (
           row.datasetVersionId !== datasetVersionId ||
           row.importBatchId !== importBatchId
         ) {
-          throw new Error("Race archive locator row identity conflicts with the rebuild session.");
+          throw new Error(
+            "Race archive locator row identity conflicts with the rebuild session.",
+          );
         }
         const partitionNumber = nonNegativeSafeInteger(
           row.partitionNumber,
@@ -104,7 +110,9 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
         let locator = locators.get(sourceCoreId);
         if (locator === undefined) {
           if (locators.size >= maximumCoreLocators) {
-            throw new Error("Race archive Core locator count exceeds its bound.");
+            throw new Error(
+              "Race archive Core locator count exceeds its bound.",
+            );
           }
           locator = {
             partitionNumbers: new Set<number>(),
@@ -116,11 +124,15 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
         }
         locator.partitionNumbers.add(partitionNumber);
         if (locator.partitionNumbers.size > maximumPartitionsPerCore) {
-          throw new Error("Race archive Core partition count exceeds its bound.");
+          throw new Error(
+            "Race archive Core partition count exceeds its bound.",
+          );
         }
         locator.readyRowCount += 1;
         if (!Number.isSafeInteger(locator.readyRowCount)) {
-          throw new Error("Race archive Core row count exceeds safe integer bounds.");
+          throw new Error(
+            "Race archive Core row count exceeds safe integer bounds.",
+          );
         }
         locator.firstSourceRowNumber = Math.min(
           locator.firstSourceRowNumber,
