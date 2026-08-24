@@ -84,6 +84,7 @@ AS $function$
 DECLARE
   v_version dna.dataset_version%ROWTYPE;
   v_batch dna.import_batch%ROWTYPE;
+  v_evidence dna.dataset_version_evidence_receipt%ROWTYPE;
   v_receipt dna.race_archive_core_locator_receipt%ROWTYPE;
   v_locator_count integer;
   v_distinct_core_count integer;
@@ -100,7 +101,7 @@ BEGIN
   IF p_built_at IS NULL THEN
     RAISE EXCEPTION 'Race archive Core locator build timestamp is required';
   END IF;
-  IF jsonb_typeof(p_locators) <> 'array' THEN
+  IF p_locators IS NULL OR jsonb_typeof(p_locators) <> 'array' THEN
     RAISE EXCEPTION 'Race archive Core locators must be a JSON array';
   END IF;
 
@@ -128,17 +129,18 @@ BEGIN
     RAISE EXCEPTION 'accepted owner-scoped Race Merge batch is unavailable';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM dna.dataset_version_evidence_receipt evidence
-    WHERE evidence.owner_id = p_owner_id
-      AND evidence.dataset_version_id = p_dataset_version_id
-      AND evidence.import_batch_id = p_import_batch_id
-      AND evidence.source_type = 'race_merge'
-      AND evidence.evidence_partition_count BETWEEN 1 AND 10000
-      AND evidence.evidence_row_count = v_batch.source_rows
-      AND evidence.evidence_byte_size > 0
-  ) THEN
+  SELECT evidence.* INTO v_evidence
+  FROM dna.dataset_version_evidence_receipt evidence
+  WHERE evidence.owner_id = p_owner_id
+    AND evidence.dataset_version_id = p_dataset_version_id
+    AND evidence.import_batch_id = p_import_batch_id
+    AND evidence.source_type = 'race_merge'
+  FOR UPDATE;
+
+  IF NOT FOUND
+     OR v_evidence.evidence_partition_count NOT BETWEEN 1 AND 10000
+     OR v_evidence.evidence_row_count <> v_batch.source_rows
+     OR v_evidence.evidence_byte_size <= 0 THEN
     RAISE EXCEPTION 'sealed Race archive evidence is unavailable';
   END IF;
 
@@ -183,9 +185,9 @@ BEGIN
     )
   )
   SELECT
-    count(DISTINCT source_core_id)::integer,
-    COALESCE(sum(ready_row_count), 0)::bigint,
-    COALESCE(sum(cardinality(partition_numbers)), 0)::bigint
+    count(DISTINCT parsed.source_core_id)::integer,
+    COALESCE(sum(parsed.ready_row_count), 0)::bigint,
+    COALESCE(sum(cardinality(parsed.partition_numbers)), 0)::bigint
   INTO
     v_distinct_core_count,
     v_ready_row_count,
@@ -195,7 +197,7 @@ BEGIN
   IF v_distinct_core_count <> v_locator_count THEN
     RAISE EXCEPTION 'Race archive Core locators contain duplicate Core IDs';
   END IF;
-  IF v_ready_row_count <= 0 OR v_ready_row_count > v_batch.source_rows THEN
+  IF v_ready_row_count <> v_batch.accepted_rows THEN
     RAISE EXCEPTION 'Race archive Core locator row coverage is invalid';
   END IF;
   IF v_partition_reference_count <= 0 THEN
@@ -225,7 +227,9 @@ BEGIN
       OR EXISTS (
         SELECT 1
         FROM unnest(locator.partition_numbers) AS partition_number
-        WHERE partition_number IS NULL OR partition_number < 0
+        WHERE partition_number IS NULL
+          OR partition_number < 0
+          OR partition_number >= v_evidence.evidence_partition_count
       )
       OR cardinality(locator.partition_numbers) <> (
         SELECT count(DISTINCT partition_number)::integer
@@ -328,7 +332,8 @@ BEGIN
      OR p_source_core_id ~ '[[:cntrl:]]' THEN
     RAISE EXCEPTION 'Race archive source Core ID is invalid';
   END IF;
-  IF p_maximum_versions NOT BETWEEN 1 AND 10000 THEN
+  IF p_maximum_versions IS NULL
+     OR p_maximum_versions NOT BETWEEN 1 AND 10000 THEN
     RAISE EXCEPTION 'Race archive Core locator version bound is invalid';
   END IF;
 
