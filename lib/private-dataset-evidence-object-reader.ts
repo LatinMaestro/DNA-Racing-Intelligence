@@ -3,14 +3,27 @@ import { createHash } from "node:crypto";
 import type { DatasetEvidenceObjectRegistration } from "./neon-dataset-evidence-object-repository";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
 const BUCKET_NAME_PATTERN =
   /^(?!.*\.\.)(?!.*--)[a-z0-9](?:[a-z0-9.-]{1,61}[a-z0-9])?$/;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
+const sourceTypes = new Set(["race_merge", "core_details", "current_arena"]);
+const objectKinds = new Set([
+  "staged_rows",
+  "accepted_contributions",
+  "normalized_partition",
+]);
 
 const objectMediaTypes = Object.freeze({
   ndjson_gzip: "application/x-ndjson+gzip",
   parquet: "application/vnd.apache.parquet",
+} as const);
+
+const objectExtensions = Object.freeze({
+  ndjson_gzip: "ndjson.gz",
+  parquet: "parquet",
 } as const);
 
 export type PrivateDatasetEvidenceObjectReadableStoragePort = Pick<
@@ -57,6 +70,26 @@ function positiveSafeInteger(value: number, field: string): number {
   return value;
 }
 
+function ownerPrefix(ownerId: string): string {
+  return createHash("sha256")
+    .update("dna-evidence-owner\u0000" + ownerId)
+    .digest("hex");
+}
+
+function expectedObjectKey(
+  registration: DatasetEvidenceObjectRegistration,
+): string {
+  const partition = String(registration.partitionNumber).padStart(4, "0");
+  return [
+    "evidence",
+    ownerPrefix(registration.ownerId),
+    registration.importBatchId,
+    registration.sourceType,
+    registration.objectKind,
+    "part-" + partition + "." + objectExtensions[registration.objectFormat],
+  ].join("/");
+}
+
 function assertPrivateBucket(evidence: {
   publicAccessDisabled: boolean;
   r2DevDisabled: boolean;
@@ -76,15 +109,29 @@ function validateRegistration(
   maximumObjectBytes: number,
 ): DatasetEvidenceObjectRegistration {
   const ownerId = safeOwner(input.ownerId);
+  const importBatchId = input.importBatchId.trim().toLowerCase();
   const objectKey = input.objectKey.trim();
+  if (!UUID_PATTERN.test(importBatchId)) {
+    throw new Error("importBatchId must be a UUID");
+  }
+  if (!sourceTypes.has(input.sourceType)) {
+    throw new Error("sourceType is unsupported");
+  }
+  if (!objectKinds.has(input.objectKind)) {
+    throw new Error("objectKind is unsupported");
+  }
   if (
-    objectKey === "" ||
-    objectKey.length > 1024 ||
-    objectKey.startsWith("/") ||
-    objectKey.split("/").includes("..") ||
-    CONTROL_CHARACTER_PATTERN.test(objectKey)
+    !Number.isSafeInteger(input.partitionNumber) ||
+    input.partitionNumber < 0 ||
+    input.partitionNumber > 9999
   ) {
-    throw new Error("objectKey is invalid");
+    throw new Error("partitionNumber is invalid");
+  }
+  if (
+    input.objectFormat !== "ndjson_gzip" &&
+    input.objectFormat !== "parquet"
+  ) {
+    throw new Error("objectFormat is unsupported");
   }
   if (!SHA_256_PATTERN.test(input.checksumSha256)) {
     throw new Error("checksumSha256 is invalid");
@@ -99,13 +146,16 @@ function validateRegistration(
   if (!Number.isSafeInteger(input.rowCount) || input.rowCount <= 0) {
     throw new Error("rowCount is invalid");
   }
-  if (
-    input.objectFormat !== "ndjson_gzip" &&
-    input.objectFormat !== "parquet"
-  ) {
-    throw new Error("objectFormat is unsupported");
+  const registration = {
+    ...input,
+    ownerId,
+    importBatchId,
+    objectKey,
+  };
+  if (objectKey !== expectedObjectKey(registration)) {
+    throw new Error("Evidence object key does not match its manifest identity.");
   }
-  return { ...input, ownerId, objectKey };
+  return registration;
 }
 
 function exactHead(
