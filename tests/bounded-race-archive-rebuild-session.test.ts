@@ -8,6 +8,7 @@ import type {
 } from "@/lib/race-staged-row-rehydrator";
 import {
   createBoundedRaceArchiveRebuildSession,
+  type RaceArchiveCoreLocatorRepository,
   type RaceArchiveRebuildRepository,
   type RaceArchiveRebuildTransaction,
 } from "@/lib/bounded-race-archive-rebuild-session";
@@ -15,6 +16,7 @@ import {
 const ownerId = "user_owner";
 const datasetVersionId = "11111111-1111-4111-8111-111111111111";
 const importBatchId = "22222222-2222-4222-8222-222222222222";
+const builtAt = "2026-08-25T00:03:00.000Z";
 
 function manifest(
   overrides: Partial<SealedRaceArchiveManifest> = {},
@@ -35,10 +37,12 @@ function manifest(
 function stagedRow(
   sourceRowNumber: number,
   status: "ready" | "quarantined" = "ready",
+  sourceCoreId = "core-1",
 ): DurablePreviewStagedRow {
   return {
     sourceRowNumber,
-    naturalKey: status === "ready" ? `event-${sourceRowNumber}:core-1` : null,
+    naturalKey:
+      status === "ready" ? `event-${sourceRowNumber}:${sourceCoreId}` : null,
     fingerprintSha256: status === "ready" ? "a".repeat(64) : null,
     row:
       status === "ready"
@@ -48,7 +52,7 @@ function stagedRow(
             record: {
               sourceType: "race_merge",
               sourceEventId: `event-${sourceRowNumber}`,
-              sourceCoreId: "core-1",
+              sourceCoreId,
             },
             provenance: [],
             issues: [],
@@ -150,15 +154,59 @@ function repository(input: {
   };
 }
 
+function locatorRepository(input: {
+  events?: string[];
+  failure?: boolean;
+  coverageOverride?: Partial<
+    Awaited<ReturnType<RaceArchiveCoreLocatorRepository["replace"]>>
+  >;
+} = {}) {
+  const replace = vi.fn<RaceArchiveCoreLocatorRepository["replace"]>(
+    async (request) => {
+      input.events?.push(`locator:${request.locators.length}`);
+      if (input.failure) throw new Error("locator failed");
+      return {
+        status: "sealed",
+        datasetVersionId: request.datasetVersionId,
+        importBatchId: request.importBatchId,
+        coreLocatorCount: request.locators.length,
+        readyRowCount: request.locators.reduce(
+          (sum, locator) => sum + locator.readyRowCount,
+          0,
+        ),
+        partitionReferenceCount: request.locators.reduce(
+          (sum, locator) => sum + locator.partitionNumbers.length,
+          0,
+        ),
+        ...input.coverageOverride,
+      };
+    },
+  );
+  return { replace, value: { replace } as RaceArchiveCoreLocatorRepository };
+}
+
+function createService(input: {
+  source: ReturnType<typeof rehydrator>;
+  sink: ReturnType<typeof repository>;
+  locators?: ReturnType<typeof locatorRepository>;
+}) {
+  return createBoundedRaceArchiveRebuildSession({
+    rehydrator: input.source.value,
+    repository: input.sink.value,
+    coreLocatorRepository: (input.locators ?? locatorRepository()).value,
+    maximumRowsPerWrite: 2,
+    maximumCoreLocators: 100,
+    maximumPartitionsPerCore: 10,
+    now: () => new Date(builtAt),
+  });
+}
+
 describe("bounded Race archive rebuild session", () => {
-  it("returns missing without opening a rebuild transaction", async () => {
+  it("returns missing without opening rebuild or locator persistence", async () => {
     const source = rehydrator({});
     const sink = repository({});
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository();
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
@@ -169,9 +217,10 @@ describe("bounded Race archive rebuild session", () => {
       maximumPartitions: 4,
     });
     expect(sink.begin).not.toHaveBeenCalled();
+    expect(locators.replace).not.toHaveBeenCalled();
   });
 
-  it("stages bounded batches and commits only after complete archive consumption", async () => {
+  it("stages bounded batches, seals Core locators, then commits", async () => {
     const events: string[] = [];
     const rows = [
       rehydratedRow(1),
@@ -183,11 +232,8 @@ describe("bounded Race archive rebuild session", () => {
     const sealed = manifest({ rowCount: rows.length });
     const source = rehydrator({ manifest: sealed, rows, events });
     const sink = repository({ events });
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository({ events });
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
@@ -199,6 +245,8 @@ describe("bounded Race archive rebuild session", () => {
         processedRowCount: 5,
         readyRowCount: 3,
         quarantinedRowCount: 2,
+        coreLocatorCount: 1,
+        partitionReferenceCount: 1,
       },
     });
     expect(sink.begin).toHaveBeenCalledWith({
@@ -211,10 +259,28 @@ describe("bounded Race archive rebuild session", () => {
     expect(
       sink.stageRows.mock.calls.map(([value]) => value.rows.length),
     ).toEqual([2, 2, 1]);
+    expect(locators.replace).toHaveBeenCalledWith({
+      ownerId,
+      datasetVersionId,
+      importBatchId,
+      builtAt,
+      locators: [
+        {
+          datasetVersionId,
+          importBatchId,
+          sourceCoreId: "core-1",
+          partitionNumbers: [0],
+          readyRowCount: 3,
+          firstSourceRowNumber: 1,
+          lastSourceRowNumber: 4,
+        },
+      ],
+    });
     expect(sink.rollback).not.toHaveBeenCalled();
-    expect(events.slice(-3)).toEqual([
+    expect(events.slice(-4)).toEqual([
       "archive:complete",
       "stage:1",
+      "locator:1",
       "commit:5",
     ]);
   });
@@ -230,11 +296,8 @@ describe("bounded Race archive rebuild session", () => {
       ],
     });
     const sink = repository({});
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository();
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
@@ -246,6 +309,7 @@ describe("bounded Race archive rebuild session", () => {
       reason: "archive_read_failed",
     });
     expect(sink.commit).not.toHaveBeenCalled();
+    expect(locators.replace).not.toHaveBeenCalled();
   });
 
   it("rolls back exactly once with stage_failed and preserves the staging error", async () => {
@@ -255,11 +319,8 @@ describe("bounded Race archive rebuild session", () => {
       rows,
     });
     const sink = repository({ stageFailureAtCall: 1 });
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository();
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
@@ -271,6 +332,7 @@ describe("bounded Race archive rebuild session", () => {
       reason: "stage_failed",
     });
     expect(sink.commit).not.toHaveBeenCalled();
+    expect(locators.replace).not.toHaveBeenCalled();
   });
 
   it("rolls back staged rows when archive verification fails during iteration", async () => {
@@ -281,11 +343,8 @@ describe("bounded Race archive rebuild session", () => {
       failAfterRows: 2,
     });
     const sink = repository({});
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository();
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
@@ -297,23 +356,64 @@ describe("bounded Race archive rebuild session", () => {
       reason: "archive_read_failed",
     });
     expect(sink.commit).not.toHaveBeenCalled();
+    expect(locators.replace).not.toHaveBeenCalled();
   });
 
-  it("rolls back when commit fails", async () => {
+  it("rolls back staged rebuild state when locator persistence fails", async () => {
+    const source = rehydrator({
+      manifest: manifest(),
+      rows: [rehydratedRow(1)],
+    });
+    const sink = repository({});
+    const locators = locatorRepository({ failure: true });
+    const service = createService({ source, sink, locators });
+
+    await expect(
+      service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
+    ).rejects.toThrow("locator failed");
+    expect(sink.rollback).toHaveBeenCalledWith({
+      datasetVersionId,
+      importBatchId,
+      reason: "locator_failed",
+    });
+    expect(sink.commit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed and rolls back if the persisted locator receipt changes coverage", async () => {
+    const source = rehydrator({
+      manifest: manifest(),
+      rows: [rehydratedRow(1)],
+    });
+    const sink = repository({});
+    const locators = locatorRepository({
+      coverageOverride: { readyRowCount: 2 },
+    });
+    const service = createService({ source, sink, locators });
+
+    await expect(
+      service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
+    ).rejects.toThrow("receipt conflicts with the verified rebuild");
+    expect(sink.rollback).toHaveBeenCalledWith({
+      datasetVersionId,
+      importBatchId,
+      reason: "locator_failed",
+    });
+    expect(sink.commit).not.toHaveBeenCalled();
+  });
+
+  it("rolls back when commit fails after locator persistence", async () => {
     const source = rehydrator({
       manifest: manifest(),
       rows: [rehydratedRow(1)],
     });
     const sink = repository({ commitFailure: true });
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const locators = locatorRepository();
+    const service = createService({ source, sink, locators });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 4 }),
     ).rejects.toThrow("commit failed");
+    expect(locators.replace).toHaveBeenCalledTimes(1);
     expect(sink.rollback).toHaveBeenCalledWith({
       datasetVersionId,
       importBatchId,
@@ -330,7 +430,11 @@ describe("bounded Race archive rebuild session", () => {
     const service = createBoundedRaceArchiveRebuildSession({
       rehydrator: source.value,
       repository: sink.value,
+      coreLocatorRepository: locatorRepository().value,
       maximumRowsPerWrite: 1,
+      maximumCoreLocators: 100,
+      maximumPartitionsPerCore: 10,
+      now: () => new Date(builtAt),
     });
 
     const failure = service.rebuild({
@@ -345,18 +449,25 @@ describe("bounded Race archive rebuild session", () => {
     expect(sink.rollback).toHaveBeenCalledTimes(1);
   });
 
-  it("validates bounded request parameters before opening archive evidence", async () => {
+  it("validates bounded request and locator parameters before opening archive evidence", async () => {
     const source = rehydrator({});
     const sink = repository({});
-    const service = createBoundedRaceArchiveRebuildSession({
-      rehydrator: source.value,
-      repository: sink.value,
-      maximumRowsPerWrite: 2,
-    });
+    const service = createService({ source, sink });
 
     await expect(
       service.rebuild({ ownerId, datasetVersionId, maximumPartitions: 0 }),
     ).rejects.toThrow("maximumPartitions must be a positive safe integer");
     expect(source.open).not.toHaveBeenCalled();
+
+    expect(() =>
+      createBoundedRaceArchiveRebuildSession({
+        rehydrator: source.value,
+        repository: sink.value,
+        coreLocatorRepository: locatorRepository().value,
+        maximumRowsPerWrite: 2,
+        maximumCoreLocators: 0,
+        maximumPartitionsPerCore: 10,
+      }),
+    ).toThrow("maximumCoreLocators must be a positive safe integer");
   });
 });
