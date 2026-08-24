@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CorePerformanceProfile } from "../domain/core-performance";
 import type { CorePerformanceProfileRepository } from "../lib/core-intelligence-workspace-service";
 import type { OwnerVaultCatalogueRepository } from "../lib/owner-vault-catalogue-service";
+import type { RaceArchiveCoreHistoryService } from "../lib/race-archive-core-history-service";
 import {
   loadSearchCorePageState,
   type SearchCorePageState,
@@ -79,6 +80,7 @@ describe("Search Core service", () => {
       selectedCore: null,
       performanceStatus: "not_connected",
       performanceProfiles: [],
+      archiveHistoryStatus: "not_connected",
     } satisfies Partial<SearchCorePageState>);
     expect(listCoresByOwner).not.toHaveBeenCalled();
   });
@@ -123,6 +125,86 @@ describe("Search Core service", () => {
     expect(state.performanceProfiles).toEqual([profile]);
     expect(state.performanceLastImportedAt).toBe("2026-08-11T02:00:00.000Z");
     expect(listProfilesByOwner).toHaveBeenCalledWith(ownerId, "core-7");
+  });
+
+  it("loads bounded immutable archive evidence only for the selected Core", async () => {
+    const load = vi.fn(async () => ({
+      sourceCoreId: "core-7",
+      locatorVersionCount: 2,
+      selectedPartitionCount: 3,
+      rows: [
+        {
+          datasetVersionId: "11111111-1111-4111-8111-111111111111",
+          importBatchId: "22222222-2222-4222-8222-222222222222",
+          versionNumber: 1,
+          partitionNumber: 2,
+          sourceRowNumber: 4,
+          naturalKey: "event-1:core-7",
+          fingerprintSha256: "a".repeat(64),
+          row: Object.freeze({}) as never,
+        },
+        {
+          datasetVersionId: "33333333-3333-4333-8333-333333333333",
+          importBatchId: "44444444-4444-4444-8444-444444444444",
+          versionNumber: 2,
+          partitionNumber: 7,
+          sourceRowNumber: 9,
+          naturalKey: "event-2:core-7",
+          fingerprintSha256: "b".repeat(64),
+          row: Object.freeze({}) as never,
+        },
+      ],
+    }));
+    const archiveHistoryService: RaceArchiveCoreHistoryService = { load };
+
+    const state = await loadSearchCorePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => [core]),
+      performanceRepository: noPerformance,
+      archiveHistoryService,
+      now,
+      query: "Seven",
+      selectedCoreId: "core-7",
+    });
+
+    expect(load).toHaveBeenCalledWith({ ownerId, sourceCoreId: "core-7" });
+    expect(state).toMatchObject({
+      archiveHistoryStatus: "connected",
+      archiveHistoryVersionCount: 2,
+      archiveHistoryPartitionCount: 3,
+      archiveHistoryRowCount: 2,
+    });
+  });
+
+  it("distinguishes absent sealed archive locators from an unconfigured archive runtime", async () => {
+    const missingArchive: RaceArchiveCoreHistoryService = {
+      load: vi.fn(async () => ({
+        sourceCoreId: "core-7",
+        locatorVersionCount: 0,
+        selectedPartitionCount: 0,
+        rows: [],
+      })),
+    };
+    const common = {
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => [core]),
+      performanceRepository: noPerformance,
+      now,
+      query: "Seven",
+      selectedCoreId: "core-7",
+    } as const;
+
+    await expect(
+      loadSearchCorePageState({
+        ...common,
+        archiveHistoryService: missingArchive,
+      }),
+    ).resolves.toMatchObject({ archiveHistoryStatus: "missing" });
+    await expect(loadSearchCorePageState(common)).resolves.toMatchObject({
+      archiveHistoryStatus: "not_connected",
+    });
   });
 
   it("selects only an exact durable Core ID from the returned catalogue", async () => {
