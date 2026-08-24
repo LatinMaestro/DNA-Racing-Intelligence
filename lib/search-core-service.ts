@@ -6,16 +6,24 @@ import type {
   OwnerVaultCatalogueRepository,
 } from "./owner-vault-catalogue-service";
 import { loadOwnerVaultCataloguePageState } from "./owner-vault-catalogue-service";
+import type { RaceArchiveCoreHistoryService } from "./race-archive-core-history-service";
 
 export type SearchCorePageState = Readonly<{
   connectionStatus:
-    "identity_not_connected" | "persistence_not_configured" | "connected";
+    | "identity_not_connected"
+    | "persistence_not_configured"
+    | "connected";
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
   performanceStatus: "not_connected" | "connected";
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
+  archiveHistoryStatus: "not_connected" | "missing" | "connected";
+  archiveHistoryVersionCount: number;
+  archiveHistoryPartitionCount: number;
+  archiveHistoryRowCount: number;
+  archiveHistoryLatestVersionNumber: number | null;
 }>;
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -77,12 +85,61 @@ const noPerformance = Object.freeze({
   performanceLastImportedAt: null,
 });
 
+const noArchiveHistory = Object.freeze({
+  archiveHistoryStatus: "not_connected" as const,
+  archiveHistoryVersionCount: 0,
+  archiveHistoryPartitionCount: 0,
+  archiveHistoryRowCount: 0,
+  archiveHistoryLatestVersionNumber: null,
+});
+
+async function archiveHistory(input: {
+  service: RaceArchiveCoreHistoryService | null;
+  ownerId: string | null;
+  sourceCoreId: string;
+}): Promise<
+  Pick<
+    SearchCorePageState,
+    | "archiveHistoryStatus"
+    | "archiveHistoryVersionCount"
+    | "archiveHistoryPartitionCount"
+    | "archiveHistoryRowCount"
+    | "archiveHistoryLatestVersionNumber"
+  >
+> {
+  if (input.service === null || input.ownerId === null) return noArchiveHistory;
+  const history = await input.service.load({
+    ownerId: input.ownerId,
+    sourceCoreId: input.sourceCoreId,
+  });
+  if (history.locatorVersionCount === 0) {
+    return Object.freeze({
+      archiveHistoryStatus: "missing" as const,
+      archiveHistoryVersionCount: 0,
+      archiveHistoryPartitionCount: 0,
+      archiveHistoryRowCount: 0,
+      archiveHistoryLatestVersionNumber: null,
+    });
+  }
+  return Object.freeze({
+    archiveHistoryStatus: "connected" as const,
+    archiveHistoryVersionCount: history.locatorVersionCount,
+    archiveHistoryPartitionCount: history.selectedPartitionCount,
+    archiveHistoryRowCount: history.rows.length,
+    archiveHistoryLatestVersionNumber:
+      history.rows.length === 0
+        ? null
+        : Math.max(...history.rows.map((row) => row.versionNumber)),
+  });
+}
+
 export async function loadSearchCorePageState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: OwnerVaultCatalogueRepository;
     performanceRepository: CorePerformanceProfileRepository;
+    archiveHistoryService?: RaceArchiveCoreHistoryService | null;
     now: Date;
     query?: unknown;
     selectedCoreId?: unknown;
@@ -99,6 +156,7 @@ export async function loadSearchCorePageState(
       results: [],
       selectedCore: null,
       ...noPerformance,
+      ...noArchiveHistory,
     };
   }
   if (status !== "connected") {
@@ -108,6 +166,7 @@ export async function loadSearchCorePageState(
       results: [],
       selectedCore: null,
       ...noPerformance,
+      ...noArchiveHistory,
     };
   }
 
@@ -135,13 +194,31 @@ export async function loadSearchCorePageState(
     }
   }
 
-  if (selectedCore === null || input.performanceRepository.status !== "ready") {
+  if (selectedCore === null) {
     return {
       connectionStatus: catalogue.connectionStatus,
       query,
       results: catalogue.cores,
       selectedCore,
       ...noPerformance,
+      ...noArchiveHistory,
+    };
+  }
+
+  const archived = await archiveHistory({
+    service: input.archiveHistoryService ?? null,
+    ownerId: input.authenticatedOwnerId,
+    sourceCoreId: selectedCore.sourceCoreId,
+  });
+
+  if (input.performanceRepository.status !== "ready") {
+    return {
+      connectionStatus: catalogue.connectionStatus,
+      query,
+      results: catalogue.cores,
+      selectedCore,
+      ...noPerformance,
+      ...archived,
     };
   }
 
@@ -175,5 +252,6 @@ export async function loadSearchCorePageState(
       (profile) => profile.coreId === selectedCore.sourceCoreId,
     ),
     performanceLastImportedAt: performance.lastImportedAt,
+    ...archived,
   };
 }
