@@ -1,5 +1,6 @@
 import { SearchCoreWorkspace } from "@/components/search-core-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { hostedRaceArchiveCoreHistoryRuntime } from "@/lib/hosted-race-archive-core-history-runtime";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { loadSearchCorePageState } from "@/lib/search-core-service";
@@ -32,6 +33,19 @@ export default async function SearchCorePage({
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   };
+  const archiveRuntime = hostedRaceArchiveCoreHistoryRuntime({
+    environment: {
+      authorizedOwnerId: process.env.AUTHORIZED_CLERK_USER_ID,
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      cloudflareAccountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+      cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
+      bucketName: process.env.DNA_R2_BUCKET_NAME,
+      r2AccessKeyId: process.env.DNA_R2_ACCESS_KEY_ID,
+      r2SecretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
+    },
+  });
   const state = await loadSearchCorePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
@@ -39,6 +53,8 @@ export default async function SearchCorePage({
       neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
     performanceRepository:
       neonCorePerformanceProfileRepositoryFromEnvironment(databaseEnvironment),
+    archiveHistoryService:
+      archiveRuntime.status === "ready" ? archiveRuntime.service : null,
     now: new Date(),
     query: single(params, "q"),
     selectedCoreId: single(params, "coreId"),
