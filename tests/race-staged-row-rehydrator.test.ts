@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { AdaptedSourceRow } from "@/domain/source-adapters";
 import type { DatasetEvidenceNdjsonRow } from "@/lib/dataset-evidence-ndjson-partition-writer";
 import type { DatasetEvidenceObjectRegistration } from "@/lib/neon-dataset-evidence-object-repository";
 import type { SealedRaceArchiveManifest } from "@/lib/neon-sealed-race-archive-manifest-repository";
@@ -55,7 +54,7 @@ function readyValue(
       record,
       provenance: [],
       issues: [],
-    } satisfies Partial<AdaptedSourceRow>,
+    },
   };
 }
 
@@ -264,10 +263,7 @@ describe("Race staged-row archive rehydrator", () => {
   it("fails closed when envelope and staged-row natural keys diverge", async () => {
     const value = readyValue(1, "event-1", "core-1");
     const item = partition(0, [value]);
-    item.rows[0] = {
-      naturalKey: "event-1:other-core",
-      value,
-    } as DatasetEvidenceNdjsonRow;
+    value.naturalKey = "event-1:other-core";
     const archive = archiveReader({ manifest: manifest([item]), partitions: [item] });
     const rehydrator = createRaceStagedRowRehydrator({
       archiveReader: archive.reader,
