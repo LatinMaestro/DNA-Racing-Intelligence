@@ -11,7 +11,9 @@ VALUES (
 INSERT INTO dna.import_batch (
   id, owner_id, source_type, source_filename, checksum_sha256,
   detected_encoding, schema_version, status, uploaded_at,
-  import_completed_at, source_rows, accepted_rows, rejected_rows, warning_rows
+  import_completed_at, minimum_accepted_event_at,
+  maximum_accepted_event_at, dataset_current_through_after_import,
+  source_rows, accepted_rows, rejected_rows, warning_rows
 )
 VALUES
   (
@@ -20,7 +22,8 @@ VALUES
     'race_merge', 'synthetic-race.csv', repeat('1', 64),
     'utf_8', 'race-merge/v1', 'accepted',
     '2026-08-23T00:00:00Z', '2026-08-23T00:01:00Z',
-    0, 0, 0, 0
+    '2026-08-22T23:59:00Z', '2026-08-22T23:59:00Z',
+    '2026-08-22T23:59:00Z', 1, 1, 0, 0
   ),
   (
     '43000000-0000-4000-8000-000000000102',
@@ -28,7 +31,7 @@ VALUES
     'core_details', 'synthetic-core.csv', repeat('2', 64),
     'utf_8', 'core-details/v1', 'accepted',
     '2026-08-23T00:00:00Z', '2026-08-23T00:01:00Z',
-    0, 0, 0, 0
+    NULL, NULL, NULL, 1, 1, 0, 0
   );
 
 INSERT INTO dna.dataset_version (
@@ -50,6 +53,42 @@ VALUES
     '43000000-0000-4000-8000-000000000102',
     '2026-08-23T00:02:00Z', '2026-08-23T00:01:00Z', true
   );
+
+INSERT INTO dna.dataset_evidence_object (
+  id, owner_id, import_batch_id, source_type, object_kind,
+  partition_number, object_format, object_key, checksum_sha256,
+  byte_size, row_count, first_natural_key, last_natural_key, created_at
+)
+VALUES
+  (
+    '43000000-0000-4000-8000-000000000211',
+    '43000000-0000-4000-8000-000000000001',
+    '43000000-0000-4000-8000-000000000101',
+    'race_merge', 'staged_rows', 0, 'ndjson_gzip',
+    'private/synthetic/multi-source-race.ndjson.gz', repeat('3', 64),
+    128, 1, 'synthetic-race-row', 'synthetic-race-row',
+    '2026-08-23T00:01:30Z'
+  ),
+  (
+    '43000000-0000-4000-8000-000000000212',
+    '43000000-0000-4000-8000-000000000001',
+    '43000000-0000-4000-8000-000000000102',
+    'core_details', 'staged_rows', 0, 'ndjson_gzip',
+    'private/synthetic/multi-source-core.ndjson.gz', repeat('4', 64),
+    96, 1, 'synthetic-core-row', 'synthetic-core-row',
+    '2026-08-23T00:01:30Z'
+  );
+
+INSERT INTO dna.dataset_evidence_compaction_receipt (
+  owner_id, import_batch_id, source_type, source_row_count,
+  evidence_row_count, deleted_staged_record_count,
+  deleted_contribution_count, compacted_at
+)
+VALUES (
+  '43000000-0000-4000-8000-000000000001',
+  '43000000-0000-4000-8000-000000000101',
+  'race_merge', 1, 1, 1, 1, '2026-08-23T00:02:30Z'
+);
 
 INSERT INTO dna.aggregate_refresh_job (
   id, owner_id, dataset_version_id, status
@@ -232,6 +271,27 @@ BEGIN
       AND aggregate_refreshed_at IS NULL
   ) THEN
     RAISE EXCEPTION 'multi-source aggregate freshness evidence is missing';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM dna.dataset_version_evidence_receipt
+    WHERE owner_id = '43000000-0000-4000-8000-000000000001'
+      AND dataset_version_id IN (
+        '43000000-0000-4000-8000-000000000201',
+        '43000000-0000-4000-8000-000000000202'
+      )
+  ) <> 2 THEN
+    RAISE EXCEPTION 'multi-source version evidence receipts are incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM dna.race_row_evidence_compaction_receipt
+    WHERE owner_id = '43000000-0000-4000-8000-000000000001'
+      AND import_batch_id = '43000000-0000-4000-8000-000000000101'
+  ) THEN
+    RAISE EXCEPTION 'Race Merge row compaction receipt is missing';
   END IF;
 END
 $multi_source_aggregate_state$;
