@@ -18,6 +18,9 @@ jobs:
   workerd-write:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,14 +28,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Exercise staging write inside local Workerd
+      - name: Exercise staging and transaction lifetime inside local Workerd
         shell: bash
         run: |
           set -euo pipefail
           LOG="${RUNNER_TEMP}/staging-workerd.log"
+          cat > .dev.vars <<EOF
+          DATABASE_URL="${DATABASE_URL}"
+          DNA_DATABASE_OWNER_ID="${DNA_DATABASE_OWNER_ID}"
+          EOF
+          chmod 600 .dev.vars
           npx wrangler dev --local --ip 127.0.0.1 --port 8787 --config wrangler.staging-diagnostic.jsonc >"${LOG}" 2>&1 &
           WRANGLER_PID=$!
           cleanup() {
+            rm -f .dev.vars
             kill "${WRANGLER_PID}" 2>/dev/null || true
             wait "${WRANGLER_PID}" 2>/dev/null || true
           }
@@ -40,13 +49,17 @@ jobs:
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error http://127.0.0.1:8787/ >"${RUNNER_TEMP}/staging-workerd-response.txt"; then
               cat "${RUNNER_TEMP}/staging-workerd-response.txt"
-              exit 0
+              break
             fi
             if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
               cat "${LOG}"
               exit 1
             fi
+            if [ "${attempt}" -eq 30 ]; then
+              cat "${LOG}"
+              exit 1
+            fi
             sleep 1
           done
-          cat "${LOG}"
-          exit 1
+          curl --fail --silent --show-error http://127.0.0.1:8787/transaction >"${RUNNER_TEMP}/staging-workerd-transaction-response.txt"
+          cat "${RUNNER_TEMP}/staging-workerd-transaction-response.txt"
