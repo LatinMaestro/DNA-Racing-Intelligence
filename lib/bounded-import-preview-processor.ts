@@ -48,7 +48,10 @@ export type ImportPreviewStagingSink = TransactionalRawImportSink<unknown> &
       ownerId: string;
       uploadBatchId: string;
       previewDispatchId: string;
-      reason: "object_processing_failed" | "preview_finalization_failed";
+      reason:
+        | "attempt_restart"
+        | "object_processing_failed"
+        | "preview_finalization_failed";
     }) => Promise<void>;
   }>;
 
@@ -122,6 +125,18 @@ export function createBoundedImportPreviewProcessor(input: {
 
   return Object.freeze({
     async preparePreview(previewInput) {
+      try {
+        await input.stagingSink.abortPreview({
+          ownerId: previewInput.ownerId,
+          uploadBatchId: previewInput.uploadBatchId,
+          previewDispatchId: previewInput.previewDispatchId,
+          reason: "attempt_restart",
+        });
+      } catch {
+        throw new ImportPreviewProcessingFailure(
+          "preview_staging_begin_failed",
+        );
+      }
       const objects: StagedImportPreviewObject[] = [];
       try {
         for (const file of previewInput.files) {

@@ -330,6 +330,22 @@ describe("runImportPreviewDispatch", () => {
     });
   });
 
+  it("records sanitized finalization failure when publication is unavailable", async () => {
+    const ready = readyCapabilities();
+    ready.publishPreparedPreview.mockRejectedValueOnce(
+      new Error("private publication detail"),
+    );
+    await expect(
+      runImportPreviewDispatch({
+        ...baseInput,
+        capabilities: ready.capabilities,
+      }),
+    ).rejects.toThrow("publication is unavailable");
+    expect(ready.recordPreviewFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "preview_finalization_failed" }),
+    );
+  });
+
   it("rejects publication acknowledgement drift", async () => {
     const ready = readyCapabilities();
     ready.publishPreparedPreview.mockResolvedValueOnce({
@@ -346,6 +362,9 @@ describe("runImportPreviewDispatch", () => {
         capabilities: ready.capabilities,
       }),
     ).rejects.toThrow("publication state");
+    expect(ready.recordPreviewFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "preview_finalization_failed" }),
+    );
   });
 
   it("fails closed on unsafe durable manifest evidence before processing", async () => {

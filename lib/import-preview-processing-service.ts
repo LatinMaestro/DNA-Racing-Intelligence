@@ -440,6 +440,15 @@ export async function runImportPreviewDispatch(
       completedAt: claimedAt,
     });
   } catch {
+    await recordPreviewFailureSafely(repository, {
+      ownerId: normalizedClaim.ownerId,
+      uploadBatchId: normalizedClaim.uploadBatchId,
+      previewDispatchId,
+      workerId,
+      uploadRequestFingerprint,
+      failedAt: claimedAt,
+      reason: "preview_finalization_failed",
+    });
     throw new Error("Private import preview publication is unavailable.");
   }
   if (
@@ -453,6 +462,15 @@ export async function runImportPreviewDispatch(
       prepared.previewFingerprintSha256 ||
     publication.confirmable !== prepared.confirmable
   ) {
+    await recordPreviewFailureSafely(repository, {
+      ownerId: normalizedClaim.ownerId,
+      uploadBatchId: normalizedClaim.uploadBatchId,
+      previewDispatchId,
+      workerId,
+      uploadRequestFingerprint,
+      failedAt: claimedAt,
+      reason: "preview_finalization_failed",
+    });
     throw new Error("Stored preview publication state is inconsistent.");
   }
   return {

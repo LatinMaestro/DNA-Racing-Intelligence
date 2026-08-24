@@ -150,7 +150,24 @@ describe("bounded import preview processor", () => {
         }),
       ],
     });
-    expect(test.abortPreview).not.toHaveBeenCalled();
+    expect(test.abortPreview).toHaveBeenCalledTimes(1);
+    expect(test.abortPreview).toHaveBeenNthCalledWith(1, {
+      ownerId: OWNER_ID,
+      uploadBatchId: BATCH_ID,
+      previewDispatchId: DISPATCH_ID,
+      reason: "attempt_restart",
+    });
+  });
+
+  it("fails closed before object access when stale staging cannot be reset", async () => {
+    const test = harness();
+    test.abortPreview.mockRejectedValueOnce(new Error("private cleanup detail"));
+    await expect(
+      test.processor.preparePreview(input(test)),
+    ).rejects.toMatchObject({ reason: "preview_staging_begin_failed" });
+    expect(test.objectStorage.openObject).not.toHaveBeenCalled();
+    expect(test.beginObject).not.toHaveBeenCalled();
+    expect(test.completePreview).not.toHaveBeenCalled();
   });
 
   it("records a sanitized object-store stage when an object is missing", async () => {
