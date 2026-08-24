@@ -219,10 +219,15 @@ function partitionNumbers(value: unknown): readonly number[] {
   const parsed = value.map((item, index) =>
     safeInteger(item, `partition_numbers[${index}]`),
   );
-  for (let index = 1; index < parsed.length; index += 1) {
-    if (parsed[index] <= parsed[index - 1]) {
+  let previousPartitionNumber: number | undefined;
+  for (const partitionNumber of parsed) {
+    if (
+      previousPartitionNumber !== undefined &&
+      partitionNumber <= previousPartitionNumber
+    ) {
       throw new Error("partition_numbers must be strictly increasing");
     }
+    previousPartitionNumber = partitionNumber;
   }
   return Object.freeze(parsed);
 }
@@ -579,12 +584,17 @@ export function createNeonRaceArchiveCoreLocatorRepository(input: {
         const parsed = result.rows.map((row) =>
           parseLocatorRow(row, { sourceCoreId }),
         );
-        for (let index = 1; index < parsed.length; index += 1) {
-          if (parsed[index].versionNumber <= parsed[index - 1].versionNumber) {
+        let previousVersionNumber: number | undefined;
+        for (const locator of parsed) {
+          if (
+            previousVersionNumber !== undefined &&
+            locator.versionNumber <= previousVersionNumber
+          ) {
             throw new Error(
               "Race archive Core locator versions are not ordered.",
             );
           }
+          previousVersionNumber = locator.versionNumber;
         }
         return Object.freeze(parsed);
       });
