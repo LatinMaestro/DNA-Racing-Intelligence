@@ -174,6 +174,16 @@ export function createBoundedImportPreviewProcessor(input: {
           });
         }
       } catch (error) {
+        try {
+          await input.stagingSink.abortPreview({
+            ownerId: previewInput.ownerId,
+            uploadBatchId: previewInput.uploadBatchId,
+            previewDispatchId: previewInput.previewDispatchId,
+            reason: "object_processing_failed",
+          });
+        } catch {
+          throw new ImportPreviewProcessingFailure("preview_processor_failed");
+        }
         throw new ImportPreviewProcessingFailure(
           processingFailureReason(error),
         );
@@ -190,6 +200,16 @@ export function createBoundedImportPreviewProcessor(input: {
           objects,
         });
       } catch {
+        try {
+          await input.stagingSink.abortPreview({
+            ownerId: previewInput.ownerId,
+            uploadBatchId: previewInput.uploadBatchId,
+            previewDispatchId: previewInput.previewDispatchId,
+            reason: "preview_finalization_failed",
+          });
+        } catch {
+          throw new ImportPreviewProcessingFailure("preview_processor_failed");
+        }
         throw new ImportPreviewProcessingFailure("preview_finalization_failed");
       }
     },
