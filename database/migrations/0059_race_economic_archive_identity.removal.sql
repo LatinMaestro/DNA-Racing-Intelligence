@@ -34,20 +34,20 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
-    FROM pg_constraint constraint
-    WHERE constraint.conrelid = 'dna.economic_transaction'::regclass
-      AND constraint.contype = 'f'
-      AND constraint.confrelid = 'dna.race_entry'::regclass
+    FROM pg_constraint con
+    WHERE con.conrelid = 'dna.economic_transaction'::regclass
+      AND con.contype = 'f'
+      AND con.confrelid = 'dna.race_entry'::regclass
   ) THEN
     RAISE EXCEPTION 'economic transaction race-entry foreign key was not restored';
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
-    FROM pg_constraint constraint
-    WHERE constraint.conrelid = 'dna.race_economic_contribution'::regclass
-      AND constraint.contype = 'f'
-      AND constraint.confrelid = 'dna.race_entry'::regclass
+    FROM pg_constraint con
+    WHERE con.conrelid = 'dna.race_economic_contribution'::regclass
+      AND con.contype = 'f'
+      AND con.confrelid = 'dna.race_entry'::regclass
   ) THEN
     RAISE EXCEPTION 'race contribution race-entry foreign key was not restored';
   END IF;
