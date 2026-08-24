@@ -115,6 +115,61 @@ function PerformanceProfile({
   );
 }
 
+function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
+  if (state.archiveHistoryStatus === "not_connected") {
+    return (
+      <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+        Immutable archived Race evidence is not configured for this environment.
+        Aggregate racing statistics remain the primary analytical view.
+      </p>
+    );
+  }
+  if (state.archiveHistoryStatus === "missing") {
+    return (
+      <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+        No sealed archived Race locator is available for this core. This is not
+        treated as evidence of zero historical races.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        <div>
+          <dt className="text-[var(--muted)]">Verified rows</dt>
+          <dd className="font-semibold">
+            {state.archiveHistoryRowCount.toLocaleString("en-AU")}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Dataset versions</dt>
+          <dd className="font-semibold">
+            {state.archiveHistoryVersionCount.toLocaleString("en-AU")}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">R2 partitions read</dt>
+          <dd className="font-semibold">
+            {state.archiveHistoryPartitionCount.toLocaleString("en-AU")}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Latest archive version</dt>
+          <dd className="font-semibold">
+            {state.archiveHistoryLatestVersionNumber === null
+              ? "—"
+              : state.archiveHistoryLatestVersionNumber.toLocaleString("en-AU")}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+        Verified private immutable evidence was resolved through this Core&apos;s
+        bounded archive locators. The complete Race archive was not scanned.
+      </p>
+    </div>
+  );
+}
+
 export function SearchCoreWorkspace({
   state,
 }: Readonly<{ state: SearchCorePageState }>) {
@@ -313,6 +368,10 @@ export function SearchCoreWorkspace({
                 ))}
               </div>
             )}
+          </div>
+          <div className="mt-6">
+            <h3 className="font-semibold">Archived Race evidence</h3>
+            <ArchiveEvidence state={state} />
           </div>
         </section>
       ) : null}
