@@ -1,0 +1,45 @@
+name: Codex Preview evidence resume library patch
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/codex-preview-evidence-resume-lib-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/invoke-activation-evidence-compaction
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reuse asserted production patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/codex-preview-evidence-resume-patch.yml').read_text()
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          code = textwrap.dedent(workflow[start:end])
+          exec(compile(code, 'embedded-resume-patch.py', 'exec'))
+          PY
+      - name: Commit production libraries only
+        run: |
+          git restore .github/workflows/import-activation-worker-migration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/durable-import-preview-staging-sink.ts \
+            lib/neon-durable-import-preview-staging-repository.ts \
+            lib/hosted-import-preview-worker-runtime.ts
+          git diff --cached --check
+          git commit -m "Make Preview evidence finalization resumable"
+          git push origin HEAD:codex/invoke-activation-evidence-compaction
