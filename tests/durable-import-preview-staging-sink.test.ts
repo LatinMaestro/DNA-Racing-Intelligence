@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import type { DurableImportPreviewEvidenceSession } from "../lib/durable-import-preview-evidence-lifecycle";
+import type { StoredPrivateDatasetEvidenceObject } from "../lib/private-dataset-evidence-object-writer";
 import {
   createDurableImportPreviewStagingSink,
   type DurableImportPreviewStagingRepository,
@@ -38,7 +39,11 @@ function evidenceHarness() {
   ];
   const commitWithEvidenceReceiptsMock = vi.fn((_commit: unknown) => undefined);
   const commitWithEvidenceReceipts: DurableImportPreviewEvidenceSession["commitWithEvidenceReceipts"] =
-    async <Committed>(commit): Promise<Committed> => {
+    async <Committed>(
+      commit: (
+        stored: readonly StoredPrivateDatasetEvidenceObject[],
+      ) => Committed | Promise<Committed>,
+    ): Promise<Committed> => {
       commitWithEvidenceReceiptsMock(commit);
       return commit(stored);
     };
