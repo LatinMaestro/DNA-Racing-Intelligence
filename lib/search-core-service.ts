@@ -23,7 +23,6 @@ export type SearchCorePageState = Readonly<{
   archiveHistoryVersionCount: number;
   archiveHistoryPartitionCount: number;
   archiveHistoryRowCount: number;
-  archiveHistoryLatestVersionNumber: number | null;
 }>;
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -90,7 +89,6 @@ const noArchiveHistory = Object.freeze({
   archiveHistoryVersionCount: 0,
   archiveHistoryPartitionCount: 0,
   archiveHistoryRowCount: 0,
-  archiveHistoryLatestVersionNumber: null,
 });
 
 async function archiveHistory(input: {
@@ -104,7 +102,6 @@ async function archiveHistory(input: {
     | "archiveHistoryVersionCount"
     | "archiveHistoryPartitionCount"
     | "archiveHistoryRowCount"
-    | "archiveHistoryLatestVersionNumber"
   >
 > {
   if (input.service === null || input.ownerId === null) return noArchiveHistory;
@@ -118,7 +115,6 @@ async function archiveHistory(input: {
       archiveHistoryVersionCount: 0,
       archiveHistoryPartitionCount: 0,
       archiveHistoryRowCount: 0,
-      archiveHistoryLatestVersionNumber: null,
     });
   }
   return Object.freeze({
@@ -126,10 +122,6 @@ async function archiveHistory(input: {
     archiveHistoryVersionCount: history.locatorVersionCount,
     archiveHistoryPartitionCount: history.selectedPartitionCount,
     archiveHistoryRowCount: history.rows.length,
-    archiveHistoryLatestVersionNumber:
-      history.rows.length === 0
-        ? null
-        : Math.max(...history.rows.map((row) => row.versionNumber)),
   });
 }
 
