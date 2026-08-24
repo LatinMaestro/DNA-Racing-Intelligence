@@ -206,7 +206,8 @@ describe("Cloudflare R2 dataset evidence port", () => {
     const streaming = await test.port.getObject(input);
     await expect(
       (async () => {
-        if (streaming.status !== "ready") throw new Error("expected ready object");
+        if (streaming.status !== "ready")
+          throw new Error("expected ready object");
         for await (const chunk of streaming.body) void chunk;
       })(),
     ).rejects.toThrow("evidence read failed");
