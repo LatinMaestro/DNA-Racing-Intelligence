@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write components/search-core-workspace.tsx lib/hosted-race-archive-core-history-runtime.ts lib/search-core-service.ts tests/search-core-service.test.ts && git diff --exit-code -- components/search-core-workspace.tsx lib/hosted-race-archive-core-history-runtime.ts lib/search-core-service.ts tests/search-core-service.test.ts",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
