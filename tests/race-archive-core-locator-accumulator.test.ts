@@ -67,11 +67,31 @@ describe("Race archive Core locator accumulator", () => {
   it("groups ready rows by Core and preserves distinct sorted partition locators", () => {
     const service = accumulator();
     service.append([
-      rehydrated({ sourceRowNumber: 1, sourceCoreId: "core-b", partitionNumber: 4 }),
-      rehydrated({ sourceRowNumber: 2, sourceCoreId: "core-a", partitionNumber: 3 }),
-      rehydrated({ sourceRowNumber: 3, sourceCoreId: "core-a", partitionNumber: 3 }),
-      rehydrated({ sourceRowNumber: 4, sourceCoreId: "core-a", partitionNumber: 1 }),
-      rehydrated({ sourceRowNumber: 5, partitionNumber: 4, quarantined: true }),
+      rehydrated({
+        sourceRowNumber: 1,
+        sourceCoreId: "core-b",
+        partitionNumber: 4,
+      }),
+      rehydrated({
+        sourceRowNumber: 2,
+        sourceCoreId: "core-a",
+        partitionNumber: 3,
+      }),
+      rehydrated({
+        sourceRowNumber: 3,
+        sourceCoreId: "core-a",
+        partitionNumber: 3,
+      }),
+      rehydrated({
+        sourceRowNumber: 4,
+        sourceCoreId: "core-a",
+        partitionNumber: 1,
+      }),
+      rehydrated({
+        sourceRowNumber: 5,
+        partitionNumber: 4,
+        quarantined: true,
+      }),
     ]);
 
     expect(service.finish()).toEqual([
@@ -99,21 +119,37 @@ describe("Race archive Core locator accumulator", () => {
   it("fails closed when Core or per-Core partition bounds are exceeded", () => {
     const coreBound = accumulator({ maximumCoreLocators: 1 });
     coreBound.append([
-      rehydrated({ sourceRowNumber: 1, sourceCoreId: "core-a", partitionNumber: 0 }),
+      rehydrated({
+        sourceRowNumber: 1,
+        sourceCoreId: "core-a",
+        partitionNumber: 0,
+      }),
     ]);
     expect(() =>
       coreBound.append([
-        rehydrated({ sourceRowNumber: 2, sourceCoreId: "core-b", partitionNumber: 0 }),
+        rehydrated({
+          sourceRowNumber: 2,
+          sourceCoreId: "core-b",
+          partitionNumber: 0,
+        }),
       ]),
     ).toThrow("Core locator count exceeds its bound");
 
     const partitionBound = accumulator({ maximumPartitionsPerCore: 1 });
     partitionBound.append([
-      rehydrated({ sourceRowNumber: 1, sourceCoreId: "core-a", partitionNumber: 0 }),
+      rehydrated({
+        sourceRowNumber: 1,
+        sourceCoreId: "core-a",
+        partitionNumber: 0,
+      }),
     ]);
     expect(() =>
       partitionBound.append([
-        rehydrated({ sourceRowNumber: 2, sourceCoreId: "core-a", partitionNumber: 1 }),
+        rehydrated({
+          sourceRowNumber: 2,
+          sourceCoreId: "core-a",
+          partitionNumber: 1,
+        }),
       ]),
     ).toThrow("Core partition count exceeds its bound");
   });
@@ -131,7 +167,11 @@ describe("Race archive Core locator accumulator", () => {
     ).toThrow("identity conflicts with the rebuild session");
 
     service.append([
-      rehydrated({ sourceRowNumber: 2, partitionNumber: 0, quarantined: true }),
+      rehydrated({
+        sourceRowNumber: 2,
+        partitionNumber: 0,
+        quarantined: true,
+      }),
     ]);
     expect(service.finish()).toEqual([]);
     expect(() => service.append([])).toThrow("accumulator is finished");
