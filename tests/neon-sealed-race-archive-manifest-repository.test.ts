@@ -55,8 +55,10 @@ function partition(
     checksum_sha256: partitionNumber === 0 ? "a".repeat(64) : "b".repeat(64),
     byte_size: partitionNumber === 0 ? "10" : "20",
     row_count: partitionNumber === 0 ? "1" : "2",
-    first_natural_key: partitionNumber === 0 ? "event-1:core-1" : "event-2:core-2",
-    last_natural_key: partitionNumber === 0 ? "event-1:core-1" : "event-3:core-3",
+    first_natural_key:
+      partitionNumber === 0 ? "event-1:core-1" : "event-2:core-2",
+    last_natural_key:
+      partitionNumber === 0 ? "event-1:core-1" : "event-3:core-3",
     created_at: new Date("2026-08-25T00:00:00.000Z"),
     ...overrides,
   };
@@ -106,7 +108,11 @@ describe("Neon sealed Race archive manifest repository", () => {
     ]);
 
     await expect(
-      test.repository.list({ ownerId, datasetVersionId, maximumPartitions: 10 }),
+      test.repository.list({
+        ownerId,
+        datasetVersionId,
+        maximumPartitions: 10,
+      }),
     ).resolves.toEqual({
       status: "ready",
       manifest: {
@@ -151,7 +157,11 @@ describe("Neon sealed Race archive manifest repository", () => {
       [],
     ]);
     await expect(
-      test.repository.list({ ownerId, datasetVersionId, maximumPartitions: 10 }),
+      test.repository.list({
+        ownerId,
+        datasetVersionId,
+        maximumPartitions: 10,
+      }),
     ).resolves.toEqual({ status: "missing" });
   });
 
@@ -204,7 +214,11 @@ describe("Neon sealed Race archive manifest repository", () => {
       [partition(0), partition(1, { byte_size: "21" })],
     ]);
     await expect(
-      test.repository.list({ ownerId, datasetVersionId, maximumPartitions: 10 }),
+      test.repository.list({
+        ownerId,
+        datasetVersionId,
+        maximumPartitions: 10,
+      }),
     ).rejects.toThrow("coverage conflicts");
   });
 
@@ -224,7 +238,11 @@ describe("Neon sealed Race archive manifest repository", () => {
       [isolation({ receipt_force_rls: false })],
     ]);
     await expect(
-      unsafe.repository.list({ ownerId, datasetVersionId, maximumPartitions: 10 }),
+      unsafe.repository.list({
+        ownerId,
+        datasetVersionId,
+        maximumPartitions: 10,
+      }),
     ).rejects.toThrow("forced owner RLS");
     expect(unsafe.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
