@@ -73,7 +73,9 @@ function secret(value: string | undefined): string | null {
   return normalized;
 }
 
-function configured(input: HostedRaceArchiveCoreHistoryEnvironment): null | Readonly<{
+function configured(
+  input: HostedRaceArchiveCoreHistoryEnvironment,
+): null | Readonly<{
   ownerId: string;
   databaseUrl: string;
   databaseOwnerId: string;
