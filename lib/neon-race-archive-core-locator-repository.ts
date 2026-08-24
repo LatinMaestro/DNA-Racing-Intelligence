@@ -116,7 +116,10 @@ const LIST_SQL = [
   "FROM dna.list_race_archive_core_locators($1::uuid, $2::text, $3::integer)",
 ].join("\n");
 
-function databaseRecord(value: unknown, field: string): Record<string, unknown> {
+function databaseRecord(
+  value: unknown,
+  field: string,
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${field} must be a database record`);
   }
@@ -237,9 +240,12 @@ function canonicalizeLocators(input: {
     if (
       uuid(locator.datasetVersionId, "locator.datasetVersionId") !==
         input.datasetVersionId ||
-      uuid(locator.importBatchId, "locator.importBatchId") !== input.importBatchId
+      uuid(locator.importBatchId, "locator.importBatchId") !==
+        input.importBatchId
     ) {
-      throw new Error("Race archive Core locator identity conflicts with its build.");
+      throw new Error(
+        "Race archive Core locator identity conflicts with its build.",
+      );
     }
     const sourceCoreId = coreId(locator.sourceCoreId);
     if (seen.has(sourceCoreId)) {
@@ -268,7 +274,9 @@ function canonicalizeLocators(input: {
       !Number.isSafeInteger(readyRowCount) ||
       !Number.isSafeInteger(partitionReferenceCount)
     ) {
-      throw new Error("Race archive Core locator coverage exceeds safe integer bounds.");
+      throw new Error(
+        "Race archive Core locator coverage exceeds safe integer bounds.",
+      );
     }
     return {
       source_core_id: sourceCoreId,
@@ -300,7 +308,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (databaseUrl === "") throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -310,7 +319,8 @@ function verifyIsolation(
 ): void {
   const row = oneRow(result, "Race archive Core locator isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
     text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId
   ) {
     throw new Error("Race archive Core locator owner scope denied.");
@@ -324,14 +334,28 @@ function verifyIsolation(
     throw new Error("Race archive Core locators require forced owner RLS.");
   }
   if (
-    bool(row.runtime_can_read_locator_table, "runtime_can_read_locator_table") ||
-    bool(row.runtime_can_write_locator_table, "runtime_can_write_locator_table") ||
-    bool(row.runtime_can_read_receipt_table, "runtime_can_read_receipt_table") ||
-    bool(row.runtime_can_write_receipt_table, "runtime_can_write_receipt_table") ||
+    bool(
+      row.runtime_can_read_locator_table,
+      "runtime_can_read_locator_table",
+    ) ||
+    bool(
+      row.runtime_can_write_locator_table,
+      "runtime_can_write_locator_table",
+    ) ||
+    bool(
+      row.runtime_can_read_receipt_table,
+      "runtime_can_read_receipt_table",
+    ) ||
+    bool(
+      row.runtime_can_write_receipt_table,
+      "runtime_can_write_receipt_table",
+    ) ||
     !bool(row.runtime_can_replace, "runtime_can_replace") ||
     !bool(row.runtime_can_list, "runtime_can_list")
   ) {
-    throw new Error("Race archive Core locator runtime privilege is not bounded.");
+    throw new Error(
+      "Race archive Core locator runtime privilege is not bounded.",
+    );
   }
   if (
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
@@ -340,9 +364,14 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
-    throw new Error("Race archive Core locator runtime role is not least privileged.");
+    throw new Error(
+      "Race archive Core locator runtime role is not least privileged.",
+    );
   }
 }
 
@@ -457,11 +486,15 @@ export function createNeonRaceArchiveCoreLocatorRepository(input: {
       );
       transactionStarted = true;
       const scope = oneRow(
-        await session.client.query(SET_OWNER_SCOPE_SQL, [config.databaseOwnerId]),
+        await session.client.query(SET_OWNER_SCOPE_SQL, [
+          config.databaseOwnerId,
+        ]),
         "Race archive Core locator owner scope",
       );
       if (text(scope.owner_scope, "owner_scope") !== config.databaseOwnerId) {
-        throw new Error("Race archive Core locator owner scope was not applied.");
+        throw new Error(
+          "Race archive Core locator owner scope was not applied.",
+        );
       }
       verifyIsolation(
         await session.client.query(VERIFY_ISOLATION_SQL, [
@@ -539,14 +572,18 @@ export function createNeonRaceArchiveCoreLocatorRepository(input: {
           maximumVersions,
         ]);
         if (result.rows.length > maximumVersions) {
-          throw new Error("Race archive Core locator history exceeds the read bound.");
+          throw new Error(
+            "Race archive Core locator history exceeds the read bound.",
+          );
         }
         const parsed = result.rows.map((row) =>
           parseLocatorRow(row, { sourceCoreId }),
         );
         for (let index = 1; index < parsed.length; index += 1) {
           if (parsed[index].versionNumber <= parsed[index - 1].versionNumber) {
-            throw new Error("Race archive Core locator versions are not ordered.");
+            throw new Error(
+              "Race archive Core locator versions are not ordered.",
+            );
           }
         }
         return Object.freeze(parsed);
