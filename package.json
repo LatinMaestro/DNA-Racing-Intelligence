@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/private-dataset-evidence-object-reader.ts tests/private-dataset-evidence-object-reader.test.ts && git diff -- lib/private-dataset-evidence-object-reader.ts tests/private-dataset-evidence-object-reader.test.ts",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
