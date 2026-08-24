@@ -2,6 +2,7 @@ import type { SealedRaceArchiveManifest } from "./neon-sealed-race-archive-manif
 import {
   createRaceArchiveCoreLocatorAccumulator,
   type RaceArchiveCoreLocator,
+  type RaceArchiveCoreLocatorAccumulator,
 } from "./race-archive-core-locator-accumulator";
 import type {
   RaceStagedRowRehydrator,
@@ -162,6 +163,17 @@ function locatorPartitionReferenceCount(
     }
   }
   return count;
+}
+
+function appendLocators(input: {
+  accumulator: RaceArchiveCoreLocatorAccumulator;
+  rows: readonly RehydratedRaceStagedRow[];
+}): void {
+  try {
+    input.accumulator.append(input.rows);
+  } catch (cause) {
+    throw new RaceArchiveLocatorFailure(cause);
+  }
 }
 
 async function stageRows(input: {
@@ -326,7 +338,7 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           batch.push(row);
           if (batch.length === maximumRowsPerWrite) {
             const stagedBatch = Object.freeze(batch);
-            locatorAccumulator.append(stagedBatch);
+            appendLocators({ accumulator: locatorAccumulator, rows: stagedBatch });
             await stageRows({
               transaction,
               manifest,
@@ -338,7 +350,7 @@ export function createBoundedRaceArchiveRebuildSession(input: {
 
         if (batch.length > 0) {
           const stagedBatch = Object.freeze(batch);
-          locatorAccumulator.append(stagedBatch);
+          appendLocators({ accumulator: locatorAccumulator, rows: stagedBatch });
           await stageRows({
             transaction,
             manifest,
@@ -354,11 +366,17 @@ export function createBoundedRaceArchiveRebuildSession(input: {
         }
       } catch (cause) {
         const stageFailure = cause instanceof RaceArchiveStageFailure;
+        const locatorFailure = cause instanceof RaceArchiveLocatorFailure;
         return await rollbackAfterFailure({
           transaction,
           manifest,
-          reason: stageFailure ? "stage_failed" : "archive_read_failed",
-          cause: stageFailure ? cause.originalCause : cause,
+          reason: stageFailure
+            ? "stage_failed"
+            : locatorFailure
+              ? "locator_failed"
+              : "archive_read_failed",
+          cause:
+            stageFailure || locatorFailure ? cause.originalCause : cause,
         });
       }
 
