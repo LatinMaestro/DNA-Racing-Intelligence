@@ -91,7 +91,9 @@ function locatorIdentity(
   sourceCoreId: string,
 ): void {
   if (locator.sourceCoreId !== sourceCoreId) {
-    throw new Error("Race archive Core locator returned a different Core identity.");
+    throw new Error(
+      "Race archive Core locator returned a different Core identity.",
+    );
   }
   positiveSafeInteger(locator.versionNumber, "locator.versionNumber");
   positiveSafeInteger(locator.readyRowCount, "locator.readyRowCount");
@@ -99,7 +101,10 @@ function locatorIdentity(
     locator.firstSourceRowNumber,
     "locator.firstSourceRowNumber",
   );
-  positiveSafeInteger(locator.lastSourceRowNumber, "locator.lastSourceRowNumber");
+  positiveSafeInteger(
+    locator.lastSourceRowNumber,
+    "locator.lastSourceRowNumber",
+  );
   if (locator.lastSourceRowNumber < locator.firstSourceRowNumber) {
     throw new Error("Race archive Core locator source-row range is invalid.");
   }
@@ -122,7 +127,11 @@ function readyCoreHistoryRow(input: {
   if (input.partition.registration.sourceType !== "race_merge") {
     throw new Error("Selected Race archive partition source type changed.");
   }
-  if (!input.locator.partitionNumbers.includes(input.partition.registration.partitionNumber)) {
+  if (
+    !input.locator.partitionNumbers.includes(
+      input.partition.registration.partitionNumber,
+    )
+  ) {
     throw new Error("Race archive reader returned an unselected partition.");
   }
 
@@ -135,11 +144,18 @@ function readyCoreHistoryRow(input: {
   if (row.sourceType !== "race_merge") {
     throw new Error("Archived Race staged-row source type is invalid.");
   }
+  if (!Array.isArray(row.provenance) || !Array.isArray(row.issues)) {
+    throw new Error("Archived Race staged-row evidence arrays are invalid.");
+  }
   if (row.status !== "ready" && row.status !== "quarantined") {
     throw new Error("Archived Race staged-row status is invalid.");
   }
   if (row.status === "quarantined") {
-    if (value.naturalKey !== null || value.fingerprintSha256 !== null) {
+    if (
+      row.record !== null ||
+      value.naturalKey !== null ||
+      value.fingerprintSha256 !== null
+    ) {
       throw new Error(
         "Quarantined Race staged-row unexpectedly contains identity evidence.",
       );
@@ -160,7 +176,10 @@ function readyCoreHistoryRow(input: {
   ) {
     throw new Error("Archived Core history row is outside its locator range.");
   }
-  const sourceEventId = safeText(race.sourceEventId, "Archived Race sourceEventId");
+  const sourceEventId = safeText(
+    race.sourceEventId,
+    "Archived Race sourceEventId",
+  );
   const naturalKey = safeText(value.naturalKey, "Archived Race naturalKey");
   if (
     input.evidenceNaturalKey !== naturalKey ||
@@ -198,7 +217,9 @@ async function readLocator(input: {
   ownerId: string;
   sourceCoreId: string;
   maximumArchivePartitions: number;
-}): Promise<Readonly<{ rows: readonly RaceArchiveCoreHistoryRow[]; partitions: number }>> {
+}): Promise<
+  Readonly<{ rows: readonly RaceArchiveCoreHistoryRow[]; partitions: number }>
+> {
   locatorIdentity(input.locator, input.sourceCoreId);
   const opened = await input.archiveReader.openSelected({
     ownerId: input.ownerId,
@@ -207,7 +228,9 @@ async function readLocator(input: {
     partitionNumbers: input.locator.partitionNumbers,
   });
   if (opened.status === "missing") {
-    throw new Error("Race archive Core locator points to missing sealed evidence.");
+    throw new Error(
+      "Race archive Core locator points to missing sealed evidence.",
+    );
   }
   if (
     opened.manifest.datasetVersionId !== input.locator.datasetVersionId ||
@@ -215,7 +238,9 @@ async function readLocator(input: {
     opened.manifest.sourceType !== "race_merge" ||
     opened.manifest.evidenceKind !== "staged_rows"
   ) {
-    throw new Error("Race archive Core locator conflicts with sealed evidence identity.");
+    throw new Error(
+      "Race archive Core locator conflicts with sealed evidence identity.",
+    );
   }
 
   const rows: RaceArchiveCoreHistoryRow[] = [];
@@ -223,7 +248,11 @@ async function readLocator(input: {
   let minimumSourceRowNumber: number | undefined;
   let maximumSourceRowNumber: number | undefined;
   for await (const partition of opened.partitions) {
-    observedPartitions.add(partition.registration.partitionNumber);
+    const partitionNumber = partition.registration.partitionNumber;
+    if (observedPartitions.has(partitionNumber)) {
+      throw new Error("Race archive reader returned a duplicate partition.");
+    }
+    observedPartitions.add(partitionNumber);
     for (const evidenceRow of partition.rows) {
       const historyRow = readyCoreHistoryRow({
         partition,
@@ -259,7 +288,9 @@ async function readLocator(input: {
     minimumSourceRowNumber !== input.locator.firstSourceRowNumber ||
     maximumSourceRowNumber !== input.locator.lastSourceRowNumber
   ) {
-    throw new Error("Archived Core history coverage conflicts with its locator.");
+    throw new Error(
+      "Archived Core history coverage conflicts with its locator.",
+    );
   }
 
   return Object.freeze({
@@ -275,7 +306,10 @@ export function createRaceArchiveCoreHistoryService(input: {
   maximumArchivePartitions: number;
   maximumHistoryRows: number;
 }): RaceArchiveCoreHistoryService {
-  const maximumVersions = positiveBound(input.maximumVersions, "maximumVersions");
+  const maximumVersions = positiveBound(
+    input.maximumVersions,
+    "maximumVersions",
+  );
   const maximumArchivePartitions = positiveBound(
     input.maximumArchivePartitions,
     "maximumArchivePartitions",
@@ -295,7 +329,9 @@ export function createRaceArchiveCoreHistoryService(input: {
         maximumVersions,
       });
       if (locators.length > maximumVersions) {
-        throw new Error("Race archive Core locator version bound was exceeded.");
+        throw new Error(
+          "Race archive Core locator version bound was exceeded.",
+        );
       }
 
       const rows: RaceArchiveCoreHistoryRow[] = [];
@@ -308,7 +344,9 @@ export function createRaceArchiveCoreHistoryService(input: {
           previousVersionNumber !== undefined &&
           locator.versionNumber <= previousVersionNumber
         ) {
-          throw new Error("Race archive Core locator versions are not ordered.");
+          throw new Error(
+            "Race archive Core locator versions are not ordered.",
+          );
         }
         previousVersionNumber = locator.versionNumber;
         const history = await readLocator({
@@ -323,17 +361,23 @@ export function createRaceArchiveCoreHistoryService(input: {
           throw new Error("Race archive selected partition total is unsafe.");
         }
         for (const row of history.rows) {
-          const existingFingerprint = fingerprintsByNaturalKey.get(row.naturalKey);
+          const existingFingerprint = fingerprintsByNaturalKey.get(
+            row.naturalKey,
+          );
           if (existingFingerprint !== undefined) {
             if (existingFingerprint !== row.fingerprintSha256) {
-              throw new Error("Archived Core history contains conflicting replay evidence.");
+              throw new Error(
+                "Archived Core history contains conflicting replay evidence.",
+              );
             }
             continue;
           }
           fingerprintsByNaturalKey.set(row.naturalKey, row.fingerprintSha256);
           rows.push(row);
           if (rows.length > maximumHistoryRows) {
-            throw new Error("Archived Core history exceeds the configured row bound.");
+            throw new Error(
+              "Archived Core history exceeds the configured row bound.",
+            );
           }
         }
       }
