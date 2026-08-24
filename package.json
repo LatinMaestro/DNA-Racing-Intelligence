@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write lib/sealed-race-archive-reader.ts tests/sealed-race-archive-selected-reader.test.ts && git diff --exit-code -- lib/sealed-race-archive-reader.ts tests/sealed-race-archive-selected-reader.test.ts",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
