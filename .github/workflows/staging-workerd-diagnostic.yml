@@ -8,6 +8,7 @@ on:
       - "wrangler.staging-diagnostic.jsonc"
       - "workers/staging-write-diagnostic/index.ts"
       - "lib/durable-import-preview-staging-sink.ts"
+      - "lib/cloudflare-r2-s3-port.ts"
       - "domain/source-adapters.ts"
       - "domain/source-schema.ts"
 
@@ -21,6 +22,11 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +34,36 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Exercise staging and transaction lifetime inside local Workerd
+      - name: Create bounded temporary R2 diagnostic object
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DNA_DIAGNOSTIC_R2_KEY="diagnostic/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.bin"
+          echo "DNA_DIAGNOSTIC_R2_KEY=${DNA_DIAGNOSTIC_R2_KEY}" >> "${GITHUB_ENV}"
+          node --input-type=module <<'NODE'
+          import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          const client = new S3Client({
+            region: "auto",
+            endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.DNA_R2_ACCESS_KEY_ID,
+              secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
+            },
+          });
+          const body = new Uint8Array(2 * 1024 * 1024);
+          body.fill(97);
+          await client.send(
+            new PutObjectCommand({
+              Bucket: process.env.DNA_R2_BUCKET_NAME,
+              Key: process.env.DNA_DIAGNOSTIC_R2_KEY,
+              Body: body,
+              ContentType: "application/octet-stream",
+            }),
+          );
+          console.log("Created bounded temporary R2 diagnostic object.");
+          NODE
+      - name: Exercise staging and cross-provider transaction lifetime inside local Workerd
         shell: bash
         run: |
           set -euo pipefail
@@ -36,6 +71,12 @@ jobs:
           cat > .dev.vars <<EOF
           DATABASE_URL="${DATABASE_URL}"
           DNA_DATABASE_OWNER_ID="${DNA_DATABASE_OWNER_ID}"
+          CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}"
+          CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}"
+          DNA_R2_BUCKET_NAME="${DNA_R2_BUCKET_NAME}"
+          DNA_R2_ACCESS_KEY_ID="${DNA_R2_ACCESS_KEY_ID}"
+          DNA_R2_SECRET_ACCESS_KEY="${DNA_R2_SECRET_ACCESS_KEY}"
+          DNA_DIAGNOSTIC_R2_KEY="${DNA_DIAGNOSTIC_R2_KEY}"
           EOF
           chmod 600 .dev.vars
           npx wrangler dev --local --ip 127.0.0.1 --port 8787 --config wrangler.staging-diagnostic.jsonc >"${LOG}" 2>&1 &
@@ -63,3 +104,29 @@ jobs:
           done
           curl --fail --silent --show-error http://127.0.0.1:8787/transaction >"${RUNNER_TEMP}/staging-workerd-transaction-response.txt"
           cat "${RUNNER_TEMP}/staging-workerd-transaction-response.txt"
+          curl --fail --silent --show-error http://127.0.0.1:8787/r2-transaction >"${RUNNER_TEMP}/staging-workerd-r2-transaction-response.txt"
+          cat "${RUNNER_TEMP}/staging-workerd-r2-transaction-response.txt"
+      - name: Remove bounded temporary R2 diagnostic object
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          if (!process.env.DNA_DIAGNOSTIC_R2_KEY) process.exit(0);
+          const client = new S3Client({
+            region: "auto",
+            endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.DNA_R2_ACCESS_KEY_ID,
+              secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
+            },
+          });
+          await client.send(
+            new DeleteObjectCommand({
+              Bucket: process.env.DNA_R2_BUCKET_NAME,
+              Key: process.env.DNA_DIAGNOSTIC_R2_KEY,
+            }),
+          );
+          console.log("Removed bounded temporary R2 diagnostic object.");
+          NODE
