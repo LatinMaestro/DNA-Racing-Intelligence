@@ -167,6 +167,7 @@ describeConnected("hosted Preview least-privilege staging contract", () => {
     });
     let uploadBatchId: string | null = null;
     let previewDispatchId: string | null = null;
+    let processingFailureRecorded = false;
     const workerId = `staging-probe-${runId}-${runAttempt}`;
     const fileByUploadId = new Map<string, ProbeFile>();
 
@@ -300,8 +301,20 @@ describeConnected("hosted Preview least-privilege staging contract", () => {
         failedAt: new Date().toISOString(),
         reason: "preview_processor_failed",
       });
+      processingFailureRecorded = true;
     } finally {
       if (uploadBatchId !== null) {
+        if (previewDispatchId !== null && !processingFailureRecorded) {
+          await processingRepository.recordPreviewFailure({
+            ownerId,
+            uploadBatchId,
+            previewDispatchId,
+            workerId,
+            uploadRequestFingerprint: requestFingerprint,
+            failedAt: new Date().toISOString(),
+            reason: "preview_processor_failed",
+          });
+        }
         await cleanup.cleanupBeforeActivation({
           ownerId,
           uploadBatchId,
