@@ -42,6 +42,7 @@ on:
       - "tests/hosted-preview-connected-neon-pre-activation-cleanup.test.ts"
       - "tests/hosted-preview-connected-neon-upload-completion.test.ts"
       - "tests/hosted-preview-connected-neon-upload-reservation.test.ts"
+      - "tests/hosted-preview-connected-staging-contract.test.ts"
       - "tests/hosted-preview-connected-queue-worker.test.ts"
       - "tests/hosted-preview-connected-r2.test.ts"
   workflow_dispatch: {}
@@ -129,6 +130,10 @@ jobs:
           }
           console.log("Validated bounded connected Preview acceptance inputs.");
           NODE
+      - name: Prove least-privilege Preview staging contract
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-staging-contract.test.ts
       - name: Run connected synthetic provider acceptance
         run: >-
           npx vitest run --no-file-parallelism
