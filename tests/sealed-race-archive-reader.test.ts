@@ -56,10 +56,9 @@ function manifest(
 function encodedRows(
   rows: readonly Readonly<{ naturalKey: string | null; value: unknown }>[],
 ): Uint8Array {
-  return gzipSync(
-    rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
-    { level: 9 },
-  );
+  return gzipSync(rows.map((row) => JSON.stringify(row)).join("\n") + "\n", {
+    level: 9,
+  });
 }
 
 function harness(input: {
@@ -72,17 +71,17 @@ function harness(input: {
   maximumRowsPerPartition?: number;
 }) {
   const list = vi.fn(
-    async (): Promise<Awaited<ReturnType<SealedRaceArchiveManifestRepository["list"]>>> =>
+    async (): Promise<
+      Awaited<ReturnType<SealedRaceArchiveManifestRepository["list"]>>
+    > =>
       input.manifest === undefined
         ? { status: "missing" }
         : { status: "ready", manifest: input.manifest },
   );
-  const read = vi.fn(
-    async (object: DatasetEvidenceObjectRegistration) => ({
-      registration: input.registrationOverride?.(object) ?? object,
-      body: input.bodies?.get(object.partitionNumber) ?? new Uint8Array(),
-    }),
-  );
+  const read = vi.fn(async (object: DatasetEvidenceObjectRegistration) => ({
+    registration: input.registrationOverride?.(object) ?? object,
+    body: input.bodies?.get(object.partitionNumber) ?? new Uint8Array(),
+  }));
   const reader = createSealedRaceArchiveReader({
     manifestRepository: { list },
     objectReader: { read } as PrivateDatasetEvidenceObjectReader,
@@ -211,7 +210,8 @@ describe("sealed Race archive reader", () => {
       datasetVersionId,
       maximumPartitions: 10,
     });
-    if (shortOpened.status !== "ready") throw new Error("expected ready archive");
+    if (shortOpened.status !== "ready")
+      throw new Error("expected ready archive");
     await expect(
       shortOpened.partitions[Symbol.asyncIterator]().next(),
     ).rejects.toThrow("row coverage is invalid");
@@ -233,7 +233,8 @@ describe("sealed Race archive reader", () => {
       datasetVersionId,
       maximumPartitions: 10,
     });
-    if (rangeOpened.status !== "ready") throw new Error("expected ready archive");
+    if (rangeOpened.status !== "ready")
+      throw new Error("expected ready archive");
     await expect(
       rangeOpened.partitions[Symbol.asyncIterator]().next(),
     ).rejects.toThrow("natural-key coverage is invalid");
@@ -296,7 +297,8 @@ describe("sealed Race archive reader", () => {
       datasetVersionId,
       maximumPartitions: 10,
     });
-    if (boundedOpened.status !== "ready") throw new Error("expected ready archive");
+    if (boundedOpened.status !== "ready")
+      throw new Error("expected ready archive");
     await expect(
       boundedOpened.partitions[Symbol.asyncIterator]().next(),
     ).rejects.toThrow("gzip payload is invalid or too large");
