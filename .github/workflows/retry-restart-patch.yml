@@ -1,0 +1,83 @@
+name: Retry restart patch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/retry-restart-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Apply restart-safe Preview retry patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          processor = Path('lib/bounded-import-preview-processor.ts')
+          text = processor.read_text()
+          text = text.replace(
+              'reason: "object_processing_failed" | "preview_finalization_failed";',
+              'reason:\n        | "attempt_restart"\n        | "object_processing_failed"\n        | "preview_finalization_failed";',
+              1,
+          )
+          old = '''    async preparePreview(previewInput) {\n      const objects: StagedImportPreviewObject[] = [];'''
+          new = '''    async preparePreview(previewInput) {\n      try {\n        await input.stagingSink.abortPreview({\n          ownerId: previewInput.ownerId,\n          uploadBatchId: previewInput.uploadBatchId,\n          previewDispatchId: previewInput.previewDispatchId,\n          reason: "attempt_restart",\n        });\n      } catch {\n        throw new ImportPreviewProcessingFailure(\n          "preview_staging_begin_failed",\n        );\n      }\n      const objects: StagedImportPreviewObject[] = [];'''
+          if old not in text:
+              raise SystemExit('preparePreview insertion point not found')
+          processor.write_text(text.replace(old, new, 1))
+
+          service = Path('lib/import-preview-processing-service.ts')
+          text = service.read_text()
+          old = '''  } catch {\n    throw new Error("Private import preview publication is unavailable.");\n  }'''
+          new = '''  } catch {\n    await recordPreviewFailureSafely(repository, {\n      ownerId: normalizedClaim.ownerId,\n      uploadBatchId: normalizedClaim.uploadBatchId,\n      previewDispatchId,\n      workerId,\n      uploadRequestFingerprint,\n      failedAt: claimedAt,\n      reason: "preview_finalization_failed",\n    });\n    throw new Error("Private import preview publication is unavailable.");\n  }'''
+          if old not in text:
+              raise SystemExit('publication catch not found')
+          text = text.replace(old, new, 1)
+          old = '''  ) {\n    throw new Error("Stored preview publication state is inconsistent.");\n  }'''
+          new = '''  ) {\n    await recordPreviewFailureSafely(repository, {\n      ownerId: normalizedClaim.ownerId,\n      uploadBatchId: normalizedClaim.uploadBatchId,\n      previewDispatchId,\n      workerId,\n      uploadRequestFingerprint,\n      failedAt: claimedAt,\n      reason: "preview_finalization_failed",\n    });\n    throw new Error("Stored preview publication state is inconsistent.");\n  }'''
+          if old not in text:
+              raise SystemExit('publication drift branch not found')
+          service.write_text(text.replace(old, new, 1))
+
+          test = Path('tests/bounded-import-preview-processor.test.ts')
+          text = test.read_text()
+          old = '    expect(test.abortPreview).not.toHaveBeenCalled();'
+          new = '''    expect(test.abortPreview).toHaveBeenCalledTimes(1);\n    expect(test.abortPreview).toHaveBeenNthCalledWith(1, {\n      ownerId: OWNER_ID,\n      uploadBatchId: BATCH_ID,\n      previewDispatchId: DISPATCH_ID,\n      reason: "attempt_restart",\n    });'''
+          if old not in text:
+              raise SystemExit('successful abort expectation not found')
+          text = text.replace(old, new, 1)
+          marker = '''  it("records a sanitized object-store stage when an object is missing", async () => {'''
+          addition = '''  it("fails closed before object access when stale staging cannot be reset", async () => {\n    const test = harness();\n    test.abortPreview.mockRejectedValueOnce(new Error("private cleanup detail"));\n    await expect(\n      test.processor.preparePreview(input(test)),\n    ).rejects.toMatchObject({ reason: "preview_staging_begin_failed" });\n    expect(test.objectStorage.openObject).not.toHaveBeenCalled();\n    expect(test.beginObject).not.toHaveBeenCalled();\n    expect(test.completePreview).not.toHaveBeenCalled();\n  });\n\n'''
+          if marker not in text:
+              raise SystemExit('processor test insertion marker not found')
+          test.write_text(text.replace(marker, addition + marker, 1))
+
+          service_test = Path('tests/import-preview-processing-service.test.ts')
+          text = service_test.read_text()
+          marker = '''  it("rejects publication acknowledgement drift", async () => {'''
+          addition = '''  it("records sanitized finalization failure when publication is unavailable", async () => {\n    const ready = readyCapabilities();\n    ready.publishPreparedPreview.mockRejectedValueOnce(\n      new Error("private publication detail"),\n    );\n    await expect(\n      runImportPreviewDispatch({\n        ...baseInput,\n        capabilities: ready.capabilities,\n      }),\n    ).rejects.toThrow("publication is unavailable");\n    expect(ready.recordPreviewFailure).toHaveBeenCalledWith(\n      expect.objectContaining({ reason: "preview_finalization_failed" }),\n    );\n  });\n\n'''
+          if marker not in text:
+              raise SystemExit('processing service test insertion marker not found')
+          text = text.replace(marker, addition + marker, 1)
+          old = '''    await expect(\n      runImportPreviewDispatch({\n        ...baseInput,\n        capabilities: ready.capabilities,\n      }),\n    ).rejects.toThrow("publication state");\n  });'''
+          new = '''    await expect(\n      runImportPreviewDispatch({\n        ...baseInput,\n        capabilities: ready.capabilities,\n      }),\n    ).rejects.toThrow("publication state");\n    expect(ready.recordPreviewFailure).toHaveBeenCalledWith(\n      expect.objectContaining({ reason: "preview_finalization_failed" }),\n    );\n  });'''
+          if old not in text:
+              raise SystemExit('publication drift test body not found')
+          service_test.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/bounded-import-preview-processor.ts lib/import-preview-processing-service.ts tests/bounded-import-preview-processor.test.ts tests/import-preview-processing-service.test.ts
+          git commit -m "Restart Preview staging safely on queue retry"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
