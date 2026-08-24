@@ -121,7 +121,7 @@ describe("private dataset evidence object reader", () => {
         registration({
           ownerId: "other-owner",
           objectKey:
-            "evidence/e79a507c208cde7c5a41bed2b66f845af7a6d4eacb9703441bf1721c729b1714/11111111-1111-4111-8111-111111111111/race_merge/staged_rows/part-0000.ndjson.gz",
+            "evidence/2e8394fae2cc45b0f68ebe1ca7df5ff73dd0a1359b9b270143707ee9b418cacd/11111111-1111-4111-8111-111111111111/race_merge/staged_rows/part-0000.ndjson.gz",
         }),
       ),
     ).rejects.toThrow("read access denied");
