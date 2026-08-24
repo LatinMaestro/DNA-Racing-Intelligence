@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Pool } from "@neondatabase/serverless";
 
+import { createCloudflareR2S3Port } from "../../lib/cloudflare-r2-s3-port";
 import { createDurableImportPreviewStagingSink } from "../../lib/durable-import-preview-staging-sink";
 import type { DurableImportPreviewStagingRepository } from "../../lib/durable-import-preview-staging-sink";
 
@@ -16,7 +17,19 @@ const sha256 = createHash("sha256").update(payload).digest("hex");
 type Env = Readonly<{
   DATABASE_URL?: string;
   DNA_DATABASE_OWNER_ID?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  DNA_R2_BUCKET_NAME?: string;
+  DNA_R2_ACCESS_KEY_ID?: string;
+  DNA_R2_SECRET_ACCESS_KEY?: string;
+  DNA_DIAGNOSTIC_R2_KEY?: string;
 }>;
+
+function required(env: Env, key: keyof Env): string {
+  const value = env[key]?.trim() ?? "";
+  if (value === "") throw new Error(`diagnostic ${key} is unavailable`);
+  return value;
+}
 
 function repository(): DurableImportPreviewStagingRepository {
   return {
@@ -72,13 +85,12 @@ async function stagingWriteProbe(): Promise<void> {
   }
 }
 
-async function transactionAcrossFetchProbe(env: Env): Promise<void> {
-  const databaseUrl = env.DATABASE_URL?.trim() ?? "";
-  const databaseOwnerId = env.DNA_DATABASE_OWNER_ID?.trim() ?? "";
-  if (databaseUrl === "" || databaseOwnerId === "") {
-    throw new Error("diagnostic database configuration is unavailable");
-  }
-
+async function withRuntimeTransaction(
+  env: Env,
+  operation: (client: Awaited<ReturnType<Pool["connect"]>>) => Promise<void>,
+): Promise<void> {
+  const databaseUrl = required(env, "DATABASE_URL");
+  const databaseOwnerId = required(env, "DNA_DATABASE_OWNER_ID");
   const pool = new Pool({
     connectionString: databaseUrl,
     max: 1,
@@ -93,35 +105,76 @@ async function transactionAcrossFetchProbe(env: Env): Promise<void> {
     await client.query("SELECT set_config('app.owner_id', $1, true)", [
       databaseOwnerId,
     ]);
-    const before = await client.query(
-      "SELECT current_user::text AS current_user, dna.current_owner_id()::text AS owner_id",
-    );
-    if (
-      before.rows[0]?.current_user !== "dna_app_runtime" ||
-      before.rows[0]?.owner_id !== databaseOwnerId
-    ) {
-      throw new Error("diagnostic runtime identity is inconsistent before fetch");
-    }
-
-    const external = await fetch("https://example.com/");
-    if (!external.ok) throw new Error("diagnostic external fetch failed");
-    await external.arrayBuffer();
-
-    const after = await client.query(
-      "SELECT current_user::text AS current_user, dna.current_owner_id()::text AS owner_id",
-    );
-    if (
-      after.rows[0]?.current_user !== "dna_app_runtime" ||
-      after.rows[0]?.owner_id !== databaseOwnerId
-    ) {
-      throw new Error("diagnostic runtime identity is inconsistent after fetch");
-    }
+    await operation(client);
     await client.query("ROLLBACK");
     begun = false;
   } finally {
     if (begun) await client.query("ROLLBACK").catch(() => undefined);
     client.release();
     await pool.end().catch(() => undefined);
+  }
+}
+
+async function assertRuntimeIdentity(
+  client: Awaited<ReturnType<Pool["connect"]>>,
+  databaseOwnerId: string,
+): Promise<void> {
+  const result = await client.query(
+    "SELECT current_user::text AS current_user, dna.current_owner_id()::text AS owner_id",
+  );
+  if (
+    result.rows[0]?.current_user !== "dna_app_runtime" ||
+    result.rows[0]?.owner_id !== databaseOwnerId
+  ) {
+    throw new Error("diagnostic runtime identity is inconsistent");
+  }
+}
+
+async function transactionAcrossFetchProbe(env: Env): Promise<void> {
+  const databaseOwnerId = required(env, "DNA_DATABASE_OWNER_ID");
+  await withRuntimeTransaction(env, async (client) => {
+    await assertRuntimeIdentity(client, databaseOwnerId);
+    const external = await fetch("https://example.com/");
+    if (!external.ok) throw new Error("diagnostic external fetch failed");
+    await external.arrayBuffer();
+    await assertRuntimeIdentity(client, databaseOwnerId);
+  });
+}
+
+async function r2StreamAcrossTransactionProbe(env: Env): Promise<void> {
+  const accountId = required(env, "CLOUDFLARE_ACCOUNT_ID");
+  const apiToken = required(env, "CLOUDFLARE_API_TOKEN");
+  const bucketName = required(env, "DNA_R2_BUCKET_NAME");
+  const accessKeyId = required(env, "DNA_R2_ACCESS_KEY_ID");
+  const secretAccessKey = required(env, "DNA_R2_SECRET_ACCESS_KEY");
+  const key = required(env, "DNA_DIAGNOSTIC_R2_KEY");
+  const databaseOwnerId = required(env, "DNA_DATABASE_OWNER_ID");
+  const port = createCloudflareR2S3Port({
+    accountId,
+    accessKeyId,
+    secretAccessKey,
+    apiToken,
+  });
+  const opened = await port.getObject({ bucketName, key });
+  if (opened.status !== "ready") {
+    throw new Error("diagnostic R2 object is unavailable");
+  }
+
+  let observedBytes = 0;
+  let chunks = 0;
+  await withRuntimeTransaction(env, async (client) => {
+    await assertRuntimeIdentity(client, databaseOwnerId);
+    for await (const chunk of opened.body) {
+      if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0) {
+        throw new Error("diagnostic R2 stream returned an invalid chunk");
+      }
+      observedBytes += chunk.byteLength;
+      chunks += 1;
+      await assertRuntimeIdentity(client, databaseOwnerId);
+    }
+  });
+  if (observedBytes !== opened.advertisedByteLength || chunks < 1) {
+    throw new Error("diagnostic R2 stream length is inconsistent");
   }
 }
 
@@ -132,6 +185,12 @@ export default {
       if (path === "/transaction") {
         await transactionAcrossFetchProbe(env);
         return new Response("workerd transaction across fetch passed", {
+          status: 200,
+        });
+      }
+      if (path === "/r2-transaction") {
+        await r2StreamAcrossTransactionProbe(env);
+        return new Response("workerd R2 stream across transaction passed", {
           status: 200,
         });
       }
