@@ -11,7 +11,9 @@ VALUES (
 INSERT INTO dna.import_batch (
   id, owner_id, source_type, source_filename, checksum_sha256,
   detected_encoding, schema_version, status, uploaded_at,
-  import_completed_at, source_rows, accepted_rows, rejected_rows, warning_rows
+  import_completed_at, minimum_accepted_event_at,
+  maximum_accepted_event_at, dataset_current_through_after_import,
+  source_rows, accepted_rows, rejected_rows, warning_rows
 )
 VALUES (
   '37000000-0000-4000-8000-000000000101',
@@ -19,7 +21,8 @@ VALUES (
   'race_merge', 'synthetic-worker.csv', repeat('7', 64),
   'utf_8', 'race-merge/v1', 'accepted',
   '2026-08-20T00:00:00Z', '2026-08-20T00:01:00Z',
-  0, 0, 0, 0
+  '2026-08-20T00:00:30Z', '2026-08-20T00:00:30Z',
+  '2026-08-20T00:00:30Z', 1, 1, 0, 0
 );
 
 INSERT INTO dna.dataset_version (
@@ -32,6 +35,32 @@ VALUES (
   'race_merge', 1,
   '37000000-0000-4000-8000-000000000101',
   '2026-08-20T00:02:00Z', '2026-08-20T00:01:00Z', true
+);
+
+INSERT INTO dna.dataset_evidence_object (
+  id, owner_id, import_batch_id, source_type, object_kind,
+  partition_number, object_format, object_key, checksum_sha256,
+  byte_size, row_count, first_natural_key, last_natural_key, created_at
+)
+VALUES (
+  '37000000-0000-4000-8000-000000000211',
+  '37000000-0000-4000-8000-000000000001',
+  '37000000-0000-4000-8000-000000000101',
+  'race_merge', 'staged_rows', 0, 'ndjson_gzip',
+  'private/synthetic/aggregate-worker.ndjson.gz', repeat('8', 64),
+  128, 1, 'synthetic-worker-row', 'synthetic-worker-row',
+  '2026-08-20T00:01:30Z'
+);
+
+INSERT INTO dna.dataset_evidence_compaction_receipt (
+  owner_id, import_batch_id, source_type, source_row_count,
+  evidence_row_count, deleted_staged_record_count,
+  deleted_contribution_count, compacted_at
+)
+VALUES (
+  '37000000-0000-4000-8000-000000000001',
+  '37000000-0000-4000-8000-000000000101',
+  'race_merge', 1, 1, 1, 1, '2026-08-20T00:02:30Z'
 );
 
 INSERT INTO dna.aggregate_refresh_job (
@@ -94,6 +123,21 @@ BEGIN
      OR v_published.aggregate_set_id <>
        '37000000-0000-4000-8000-000000000301'::uuid THEN
     RAISE EXCEPTION 'aggregate worker did not publish exact prepared evidence';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM dna.dataset_version_evidence_receipt receipt
+    WHERE receipt.owner_id = '37000000-0000-4000-8000-000000000001'
+      AND receipt.dataset_version_id = '37000000-0000-4000-8000-000000000201'
+      AND receipt.evidence_row_count = 1
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM dna.race_row_evidence_compaction_receipt receipt
+    WHERE receipt.owner_id = '37000000-0000-4000-8000-000000000001'
+      AND receipt.import_batch_id = '37000000-0000-4000-8000-000000000101'
+  ) THEN
+    RAISE EXCEPTION 'aggregate publication did not retain compact evidence receipts';
   END IF;
 
   SELECT * INTO STRICT v_replay
