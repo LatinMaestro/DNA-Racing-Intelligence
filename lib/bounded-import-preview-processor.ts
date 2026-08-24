@@ -36,6 +36,14 @@ export type StagedImportPreviewObject = Readonly<{
 
 export type ImportPreviewStagingSink = TransactionalRawImportSink<unknown> &
   Readonly<{
+    resumeObject: (input: {
+      ownerId: string;
+      previewDispatchId: string;
+      objectId: string;
+      sourceFamily: "race_merge" | "core_details" | "current_arena";
+      expectedByteLength: number;
+      expectedSha256: string;
+    }) => Promise<unknown | null>;
     completePreview: (input: {
       ownerId: string;
       uploadBatchId: string;
@@ -60,17 +68,6 @@ function positiveSafeInteger(value: number, field: string): number {
     throw new Error(`${field} must be a positive safe integer`);
   }
   return value;
-}
-
-async function abortSafely(
-  sink: ImportPreviewStagingSink,
-  input: Parameters<ImportPreviewStagingSink["abortPreview"]>[0],
-): Promise<void> {
-  try {
-    await sink.abortPreview(input);
-  } catch {
-    // Preserve the stable processing failure instead of provider detail.
-  }
 }
 
 function processingFailureReason(
@@ -125,21 +122,30 @@ export function createBoundedImportPreviewProcessor(input: {
 
   return Object.freeze({
     async preparePreview(previewInput) {
-      try {
-        await input.stagingSink.abortPreview({
-          ownerId: previewInput.ownerId,
-          uploadBatchId: previewInput.uploadBatchId,
-          previewDispatchId: previewInput.previewDispatchId,
-          reason: "attempt_restart",
-        });
-      } catch {
-        throw new ImportPreviewProcessingFailure(
-          "preview_staging_begin_failed",
-        );
-      }
       const objects: StagedImportPreviewObject[] = [];
       try {
         for (const file of previewInput.files) {
+          const resumed = await input.stagingSink.resumeObject({
+            ownerId: previewInput.ownerId,
+            previewDispatchId: previewInput.previewDispatchId,
+            objectId: file.objectId,
+            sourceFamily: file.sourceFamily,
+            expectedByteLength: file.expectedByteLength,
+            expectedSha256: file.expectedSha256,
+          });
+          if (resumed !== null) {
+            objects.push({
+              uploadFileId: file.uploadFileId,
+              objectId: file.objectId,
+              sourceFamily: file.sourceFamily,
+              byteLength: file.expectedByteLength,
+              sha256: file.expectedSha256,
+              chunkCount: 0,
+              stagedResult: resumed,
+            });
+            continue;
+          }
+
           const verified = await streamVerifiedPrivateRawImportObject({
             ownerId: previewInput.ownerId,
             updateSessionId: previewInput.previewDispatchId,
@@ -168,12 +174,6 @@ export function createBoundedImportPreviewProcessor(input: {
           });
         }
       } catch (error) {
-        await abortSafely(input.stagingSink, {
-          ownerId: previewInput.ownerId,
-          uploadBatchId: previewInput.uploadBatchId,
-          previewDispatchId: previewInput.previewDispatchId,
-          reason: "object_processing_failed",
-        });
         throw new ImportPreviewProcessingFailure(
           processingFailureReason(error),
         );
@@ -190,12 +190,6 @@ export function createBoundedImportPreviewProcessor(input: {
           objects,
         });
       } catch {
-        await abortSafely(input.stagingSink, {
-          ownerId: previewInput.ownerId,
-          uploadBatchId: previewInput.uploadBatchId,
-          previewDispatchId: previewInput.previewDispatchId,
-          reason: "preview_finalization_failed",
-        });
         throw new ImportPreviewProcessingFailure("preview_finalization_failed");
       }
     },
