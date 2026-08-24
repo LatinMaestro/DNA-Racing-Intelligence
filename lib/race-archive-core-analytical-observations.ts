@@ -109,7 +109,10 @@ function starDataStatus(value: StarDataStatus): StarDataStatus {
   return value;
 }
 
-function nullableBoolean(value: boolean | null, field: string): boolean | null {
+function nullableBoolean(
+  value: boolean | null,
+  field: string,
+): boolean | null {
   if (value !== null && typeof value !== "boolean") {
     throw new Error(`${field} must be Boolean or null`);
   }
@@ -211,7 +214,10 @@ function observation(
       race.payoutMechanismSourceValue,
       "Archived Race payout mechanism",
     ),
-    sourceFormat: nullableText(race.sourceFormat, "Archived Race source format"),
+    sourceFormat: nullableText(
+      race.sourceFormat,
+      "Archived Race source format",
+    ),
     sourceRaceClass: nullableText(
       race.sourceRaceClass,
       "Archived Race source class",
