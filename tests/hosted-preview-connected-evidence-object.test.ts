@@ -11,13 +11,21 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { createCloudflareR2DatasetEvidencePort } from "../lib/cloudflare-r2-dataset-evidence-port";
-import { createNeonDatasetEvidenceObjectRepository } from "../lib/neon-dataset-evidence-object-repository";
+import { hostedRaceArchiveCoreHistoryRuntime } from "../lib/hosted-race-archive-core-history-runtime";
+import {
+  createNeonDatasetEvidenceObjectRepository,
+  type DatasetEvidenceObjectRegistration,
+} from "../lib/neon-dataset-evidence-object-repository";
+import type { NeonRaceArchiveCoreLocatorRepository } from "../lib/neon-race-archive-core-locator-repository";
+import type { SealedRaceArchiveManifestRepository } from "../lib/neon-sealed-race-archive-manifest-repository";
 import { createPrivateDatasetEvidenceObjectReader } from "../lib/private-dataset-evidence-object-reader";
 import { createPrivateDatasetEvidenceObjectWriter } from "../lib/private-dataset-evidence-object-writer";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
 const describeConnected = connected ? describe : describe.skip;
 const importBatchId = "45200000-0000-4000-8000-000000000101";
+const archiveImportBatchId = "45200000-0000-4000-8000-000000000102";
+const archiveDatasetVersionId = "45200000-0000-4000-8000-000000000202";
 const wrongDatabaseOwnerId = "45200000-0000-4000-8000-000000000999";
 
 function requiredEnvironment(name: string): string {
@@ -32,6 +40,20 @@ function stream(payload: Uint8Array): AsyncIterable<Uint8Array> {
   return (async function* () {
     yield payload;
   })();
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value) ?? "null";
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  }
+  const object = value as Record<string, unknown>;
+  return `{${Object.keys(object)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key])}`)
+    .join(",")}}`;
 }
 
 describeConnected("connected Preview immutable evidence object", () => {
@@ -300,5 +322,197 @@ describeConnected("connected Preview immutable evidence object", () => {
       }),
     );
     expect(remaining.KeyCount ?? 0).toBe(0);
+  }, 120_000);
+
+  it("reads only the locator-selected staged-row partition through the connected private R2 runtime", async () => {
+    const accountId = requiredEnvironment("CLOUDFLARE_ACCOUNT_ID");
+    const apiToken = requiredEnvironment("CLOUDFLARE_API_TOKEN");
+    const accessKeyId = requiredEnvironment("DNA_R2_ACCESS_KEY_ID");
+    const secretAccessKey = requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY");
+    const databaseUrl = requiredEnvironment("DATABASE_URL");
+    const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
+    const ownerId = requiredEnvironment("AUTHORIZED_CLERK_USER_ID");
+    const bucketName = "dna-racing-import-preview";
+    const sourceCoreId = "synthetic-archive-core";
+    const sourceEventId = "synthetic-archive-event";
+    const naturalKey = `${sourceEventId}:${sourceCoreId}`;
+    const createdAt = "2026-08-25T00:30:00.000Z";
+    const record = {
+      sourceType: "race_merge",
+      sourceEventId,
+      sourceCoreId,
+      mode: "bike",
+      distance: 1000,
+    } as const;
+    const fingerprintSha256 = createHash("sha256")
+      .update(canonicalJson(record))
+      .digest("hex");
+    const payload = gzipSync(
+      Buffer.from(
+        JSON.stringify({
+          naturalKey,
+          value: {
+            sourceRowNumber: 1,
+            naturalKey,
+            fingerprintSha256,
+            row: {
+              sourceType: "race_merge",
+              status: "ready",
+              record,
+              provenance: [],
+              issues: [],
+            },
+          },
+        }) + "\n",
+        "utf8",
+      ),
+    );
+    const checksumSha256 = createHash("sha256").update(payload).digest("hex");
+    const ownerPrefix = createHash("sha256")
+      .update("dna-evidence-owner\u0000" + ownerId)
+      .digest("hex");
+    const objectKey = [
+      "evidence",
+      ownerPrefix,
+      archiveImportBatchId,
+      "race_merge",
+      "staged_rows",
+      "part-0000.ndjson.gz",
+    ].join("/");
+    const registration: DatasetEvidenceObjectRegistration = {
+      ownerId,
+      importBatchId: archiveImportBatchId,
+      sourceType: "race_merge",
+      objectKind: "staged_rows",
+      partitionNumber: 0,
+      objectFormat: "ndjson_gzip",
+      objectKey,
+      checksumSha256,
+      byteSize: payload.byteLength,
+      rowCount: 1,
+      firstNaturalKey: naturalKey,
+      lastNaturalKey: naturalKey,
+      createdAt,
+    };
+    const locatorRepository: NeonRaceArchiveCoreLocatorRepository = {
+      replace: async () => {
+        throw new Error("connected archive history read must not replace locators");
+      },
+      listForCore: async (request) => {
+        expect(request).toEqual({
+          ownerId,
+          sourceCoreId,
+          maximumVersions: 24,
+        });
+        return [
+          {
+            datasetVersionId: archiveDatasetVersionId,
+            importBatchId: archiveImportBatchId,
+            sourceCoreId,
+            versionNumber: 1,
+            partitionNumbers: [0],
+            readyRowCount: 1,
+            firstSourceRowNumber: 1,
+            lastSourceRowNumber: 1,
+            builtAt: createdAt,
+          },
+        ];
+      },
+    };
+    const manifestRepository: SealedRaceArchiveManifestRepository = {
+      list: async (request) => {
+        expect(request).toEqual({
+          ownerId,
+          datasetVersionId: archiveDatasetVersionId,
+          maximumPartitions: 10_000,
+        });
+        return {
+          status: "ready",
+          manifest: {
+            datasetVersionId: archiveDatasetVersionId,
+            importBatchId: archiveImportBatchId,
+            sourceType: "race_merge",
+            evidenceKind: "staged_rows",
+            partitionCount: 1,
+            rowCount: 1,
+            byteSize: payload.byteLength,
+            objects: [registration],
+          },
+        };
+      },
+    };
+    const evidencePort = createCloudflareR2DatasetEvidencePort({
+      accountId,
+      accessKeyId,
+      secretAccessKey,
+      apiToken,
+    });
+
+    await evidencePort.deleteObject({ bucketName, key: objectKey });
+    try {
+      await expect(
+        evidencePort.putObjectIfAbsent({
+          bucketName,
+          key: objectKey,
+          body: stream(payload),
+          contentType: "application/x-ndjson+gzip",
+          byteLength: payload.byteLength,
+          checksumSha256,
+          metadata: {
+            rows: "1",
+            source: "race_merge",
+            kind: "staged_rows",
+            partition: "0",
+          },
+        }),
+      ).resolves.toEqual({ status: "created" });
+
+      const runtime = hostedRaceArchiveCoreHistoryRuntime({
+        environment: {
+          authorizedOwnerId: ownerId,
+          databaseUrl,
+          databaseOwnerId,
+          runtimeRole: "dna_app_runtime",
+          cloudflareAccountId: accountId,
+          cloudflareApiToken: apiToken,
+          bucketName,
+          r2AccessKeyId: accessKeyId,
+          r2SecretAccessKey: secretAccessKey,
+        },
+        dependencies: {
+          locatorRepository,
+          manifestRepository,
+          evidencePort,
+        },
+      });
+      expect(runtime.status).toBe("ready");
+      if (runtime.status !== "ready") {
+        throw new Error("connected Race archive runtime was not configured");
+      }
+
+      const history = await runtime.service.load({ ownerId, sourceCoreId });
+      expect(history).toMatchObject({
+        sourceCoreId,
+        locatorVersionCount: 1,
+        selectedPartitionCount: 1,
+      });
+      expect(history.rows).toHaveLength(1);
+      expect(history.rows[0]).toMatchObject({
+        datasetVersionId: archiveDatasetVersionId,
+        importBatchId: archiveImportBatchId,
+        versionNumber: 1,
+        partitionNumber: 0,
+        sourceRowNumber: 1,
+        naturalKey,
+        fingerprintSha256,
+      });
+      expect(history.rows[0]?.row.record).toMatchObject(record);
+    } finally {
+      await evidencePort.deleteObject({ bucketName, key: objectKey });
+    }
+
+    await expect(
+      evidencePort.headObject({ bucketName, key: objectKey }),
+    ).resolves.toEqual({ status: "missing" });
   }, 120_000);
 });
