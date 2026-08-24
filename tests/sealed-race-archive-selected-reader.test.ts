@@ -25,7 +25,9 @@ function registration(
     objectKey: `evidence/private/${importBatchId}/race_merge/staged_rows/part-${String(
       partitionNumber,
     ).padStart(4, "0")}.ndjson.gz`,
-    checksumSha256: String(partitionNumber + 1).repeat(64).slice(0, 64),
+    checksumSha256: String(partitionNumber + 1)
+      .repeat(64)
+      .slice(0, 64),
     byteSize: 100 + partitionNumber,
     rowCount: 1,
     firstNaturalKey: `event-${partitionNumber}:core-1`,
@@ -63,7 +65,10 @@ function harness(input: {
     manifest,
   }));
   const read = vi.fn<PrivateDatasetEvidenceObjectReader["read"]>(
-    async (object) => ({ registration: object, body: body(object.partitionNumber) }),
+    async (object) => ({
+      registration: object,
+      body: body(object.partitionNumber),
+    }),
   );
   return {
     list,
