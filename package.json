@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/bounded-race-archive-rebuild-session.ts tests/bounded-race-archive-rebuild-session.test.ts && git diff --exit-code -- lib/bounded-race-archive-rebuild-session.ts tests/bounded-race-archive-rebuild-session.test.ts",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
