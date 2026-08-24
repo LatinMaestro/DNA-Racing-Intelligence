@@ -2,12 +2,14 @@ import { Buffer } from "node:buffer";
 
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
+import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectDeletionPort } from "./private-dataset-evidence-object-writer";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
@@ -35,6 +37,10 @@ export type CloudflareR2DatasetEvidenceDriver = Readonly<{
     bucketName: string;
     key: string;
   }) => Promise<EvidenceHeadResult>;
+  getObject: (input: {
+    bucketName: string;
+    key: string;
+  }) => Promise<Readonly<{ body: AsyncIterable<Uint8Array> }>>;
   deleteObject: (input: { bucketName: string; key: string }) => Promise<void>;
 }>;
 
@@ -100,6 +106,18 @@ async function collectExactBody(input: {
   return output;
 }
 
+function redactReadBody(
+  body: AsyncIterable<Uint8Array>,
+): AsyncIterable<Uint8Array> {
+  return (async function* () {
+    try {
+      for await (const chunk of body) yield chunk;
+    } catch {
+      throw new Error("Cloudflare R2 evidence read failed.");
+    }
+  })();
+}
+
 function defaultDriver(input: {
   endpoint: string;
   accessKeyId: string;
@@ -143,6 +161,24 @@ function defaultDriver(input: {
         checksumSha256: result.ChecksumSHA256,
         metadata: result.Metadata,
       };
+    },
+    async getObject(request) {
+      const result = await client.send(
+        new GetObjectCommand({
+          Bucket: request.bucketName,
+          Key: request.key,
+        }),
+      );
+      const body = result.Body as unknown;
+      if (
+        typeof body !== "object" ||
+        body === null ||
+        typeof (body as AsyncIterable<Uint8Array>)[Symbol.asyncIterator] !==
+          "function"
+      ) {
+        throw new Error("Cloudflare R2 evidence body is unavailable.");
+      }
+      return { body: body as AsyncIterable<Uint8Array> };
     },
     async deleteObject(request) {
       await client.send(
@@ -188,7 +224,8 @@ function checksumHex(value: string | undefined): string {
 
 export function createCloudflareR2DatasetEvidencePort(
   configuration: CloudflareR2DatasetEvidencePortConfiguration,
-): PrivateDatasetEvidenceObjectDeletionPort {
+): PrivateDatasetEvidenceObjectDeletionPort &
+  PrivateDatasetEvidenceObjectReadableStoragePort {
   const accountId = configuration.accountId.trim().toLowerCase();
   if (!ACCOUNT_ID_PATTERN.test(accountId)) {
     throw new Error("accountId is invalid");
@@ -268,6 +305,16 @@ export function createCloudflareR2DatasetEvidencePort(
           throw error;
         }
         throw new Error("Cloudflare R2 evidence inspection failed.");
+      }
+    },
+
+    async getObject(input) {
+      try {
+        const result = await driver.getObject(input);
+        return { status: "ready", body: redactReadBody(result.body) };
+      } catch (error) {
+        if (status(error, 404)) return { status: "missing" };
+        throw new Error("Cloudflare R2 evidence read failed.");
       }
     },
 

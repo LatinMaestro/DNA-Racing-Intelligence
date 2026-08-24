@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import { createCloudflareR2DatasetEvidencePort } from "../lib/cloudflare-r2-dataset-evidence-port";
 import { createNeonDatasetEvidenceObjectRepository } from "../lib/neon-dataset-evidence-object-repository";
+import { createPrivateDatasetEvidenceObjectReader } from "../lib/private-dataset-evidence-object-reader";
 import { createPrivateDatasetEvidenceObjectWriter } from "../lib/private-dataset-evidence-object-writer";
 
 const connected = process.env.DNA_CONNECTED_PREVIEW_ACCEPTANCE === "1";
@@ -34,7 +35,7 @@ function stream(payload: Uint8Array): AsyncIterable<Uint8Array> {
 }
 
 describeConnected("connected Preview immutable evidence object", () => {
-  it("streams to private R2, verifies provider checksum, registers once, replays, and cleans storage", async () => {
+  it("streams to private R2, verifies provider checksum, registers once, reads exact bytes, replays, and cleans storage", async () => {
     const accountId = requiredEnvironment("CLOUDFLARE_ACCOUNT_ID");
     const apiToken = requiredEnvironment("CLOUDFLARE_API_TOKEN");
     const accessKeyId = requiredEnvironment("DNA_R2_ACCESS_KEY_ID");
@@ -87,18 +88,25 @@ describeConnected("connected Preview immutable evidence object", () => {
       databaseOwnerId,
       runtimeRole: "dna_app_runtime",
     });
+    const createPort = () =>
+      createCloudflareR2DatasetEvidencePort({
+        accountId,
+        accessKeyId,
+        secretAccessKey,
+        apiToken,
+      });
     const writer = createPrivateDatasetEvidenceObjectWriter({
       ownerId,
       bucketName,
       maximumObjectBytes: 1024 * 1024,
-      createPort: () =>
-        createCloudflareR2DatasetEvidencePort({
-          accountId,
-          accessKeyId,
-          secretAccessKey,
-          apiToken,
-        }),
+      createPort,
       repository,
+    });
+    const reader = createPrivateDatasetEvidenceObjectReader({
+      ownerId,
+      bucketName,
+      maximumObjectBytes: 1024 * 1024,
+      createPort,
     });
 
     const setup = await pool.connect();
@@ -159,6 +167,21 @@ describeConnected("connected Preview immutable evidence object", () => {
       lastNaturalKey: "synthetic-evidence-event:synthetic-evidence-core",
       createdAt,
     });
+    const readInput = () => ({
+      ownerId,
+      importBatchId,
+      sourceType: "race_merge" as const,
+      objectKind: "normalized_partition" as const,
+      partitionNumber: 0,
+      objectFormat: "ndjson_gzip" as const,
+      objectKey,
+      checksumSha256,
+      byteSize: payload.byteLength,
+      rowCount: 1,
+      firstNaturalKey: "synthetic-evidence-event:synthetic-evidence-core",
+      lastNaturalKey: "synthetic-evidence-event:synthetic-evidence-core",
+      createdAt,
+    });
 
     let createdId: string | null = null;
     try {
@@ -169,6 +192,10 @@ describeConnected("connected Preview immutable evidence object", () => {
         objectKey,
       });
       createdId = created.evidenceObjectId;
+
+      const verified = await reader.read(readInput());
+      expect(verified.registration).toEqual(readInput());
+      expect(Buffer.from(verified.body)).toEqual(payload);
 
       await expect(writer.write(writeInput())).resolves.toEqual({
         ...created,
