@@ -38,8 +38,7 @@ function stagedRow(
 ): DurablePreviewStagedRow {
   return {
     sourceRowNumber,
-    naturalKey:
-      status === "ready" ? `event-${sourceRowNumber}:core-1` : null,
+    naturalKey: status === "ready" ? `event-${sourceRowNumber}:core-1` : null,
     fingerprintSha256: status === "ready" ? "a".repeat(64) : null,
     row:
       status === "ready"
@@ -114,7 +113,9 @@ function repository(input: {
 }) {
   let stageCall = 0;
   const stageRows = vi.fn(
-    async (value: Parameters<RaceArchiveRebuildTransaction["stageRows"]>[0]) => {
+    async (
+      value: Parameters<RaceArchiveRebuildTransaction["stageRows"]>[0],
+    ) => {
       stageCall += 1;
       input.events?.push(`stage:${value.rows.length}`);
       if (input.stageFailureAtCall === stageCall) {
@@ -207,9 +208,9 @@ describe("bounded Race archive rebuild session", () => {
       expectedRowCount: 5,
     });
     expect(sink.stageRows).toHaveBeenCalledTimes(3);
-    expect(sink.stageRows.mock.calls.map(([value]) => value.rows.length)).toEqual([
-      2, 2, 1,
-    ]);
+    expect(
+      sink.stageRows.mock.calls.map(([value]) => value.rows.length),
+    ).toEqual([2, 2, 1]);
     expect(sink.rollback).not.toHaveBeenCalled();
     expect(events.at(-2)).toBe("archive:complete");
     expect(events.at(-1)).toBe("commit:5");
@@ -296,7 +297,10 @@ describe("bounded Race archive rebuild session", () => {
   });
 
   it("rolls back when commit fails", async () => {
-    const source = rehydrator({ manifest: manifest(), rows: [rehydratedRow(1)] });
+    const source = rehydrator({
+      manifest: manifest(),
+      rows: [rehydratedRow(1)],
+    });
     const sink = repository({ commitFailure: true });
     const service = createBoundedRaceArchiveRebuildSession({
       rehydrator: source.value,
@@ -315,7 +319,10 @@ describe("bounded Race archive rebuild session", () => {
   });
 
   it("surfaces both the primary and rollback failures", async () => {
-    const source = rehydrator({ manifest: manifest(), rows: [rehydratedRow(1)] });
+    const source = rehydrator({
+      manifest: manifest(),
+      rows: [rehydratedRow(1)],
+    });
     const sink = repository({ stageFailureAtCall: 1, rollbackFailure: true });
     const service = createBoundedRaceArchiveRebuildSession({
       rehydrator: source.value,
