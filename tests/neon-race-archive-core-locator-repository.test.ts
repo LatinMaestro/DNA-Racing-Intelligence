@@ -135,7 +135,7 @@ describe("Neon Race archive Core locator repository", () => {
     expect(result.locatorSetSha256).toMatch(/^[a-f0-9]{64}$/);
 
     const replaceCall = test.query.mock.calls.find((call) =>
-      String(call[0]).includes("replace_race_archive_core_locators"),
+      String(call[0]).includes("FROM dna.replace_race_archive_core_locators("),
     );
     expect(replaceCall).toBeDefined();
     expect(replaceCall?.[1]?.slice(0, 4)).toEqual([
