@@ -52,13 +52,13 @@ Core Details, Arena snapshots, economic rows, analytical aggregates and control-
 
 The measured minimal materialized payloads are:
 
-| Durable relation | Conservative measured row payload |
-| --- | ---: |
-| `race_entry_source` | 186 bytes |
-| `race_event` | 129 bytes |
-| `race_entry` | 137 bytes |
-| `event_star_validation` | 158 bytes |
-| `dataset_version_record` | 160 bytes |
+| Durable relation         | Conservative measured row payload |
+| ------------------------ | --------------------------------: |
+| `race_entry_source`      |                         186 bytes |
+| `race_event`             |                         129 bytes |
+| `race_entry`             |                         137 bytes |
+| `event_star_validation`  |                         158 bytes |
+| `dataset_version_record` |                         160 bytes |
 
 The `race_entry_source` representative contains only values the accepted materialization path necessarily writes; optional source name, gate, format, class, asset, fee, payout, prize and tag values are left null/minimal. This intentionally understates real storage.
 
@@ -72,14 +72,14 @@ The projection is also deliberately conservative on row counts:
 
 This produces the following minimum composite payload:
 
-| Durable relation | Lower-bound bytes | Approx. MiB |
-| --- | ---: | ---: |
-| `race_entry_source` | 500,633,694 | 477.44 |
-| `race_event` | 96,317,592 | 91.86 |
-| `race_entry` | 102,290,776 | 97.55 |
-| `event_star_validation` | 117,970,384 | 112.51 |
-| `dataset_version_record` | 122,661,600 | 116.98 |
-| **Conservative durable total** | **939,874,046** | **896.33** |
+| Durable relation               | Lower-bound bytes | Approx. MiB |
+| ------------------------------ | ----------------: | ----------: |
+| `race_entry_source`            |       500,633,694 |      477.44 |
+| `race_event`                   |        96,317,592 |       91.86 |
+| `race_entry`                   |       102,290,776 |       97.55 |
+| `event_star_validation`        |       117,970,384 |      112.51 |
+| `dataset_version_record`       |       122,661,600 |      116.98 |
+| **Conservative durable total** |   **939,874,046** |  **896.33** |
 
 The conservative durable total is approximately **1.751 × the entire 512 MiB Preview branch limit**, exceeding the limit by at least **403,003,134 bytes** before normal PostgreSQL heap/page/index overhead is counted.
 
