@@ -451,7 +451,9 @@ describe("Race archive Core history service", () => {
     });
     await expect(
       quarantined.service.load({ ownerId, sourceCoreId: coreId }),
-    ).rejects.toThrow("Quarantined Race staged-row unexpectedly contains identity evidence");
+    ).rejects.toThrow(
+      "Quarantined Race staged-row unexpectedly contains identity evidence",
+    );
   });
 
   it("fails closed when bounded unique Core history would exceed its configured row limit", async () => {
