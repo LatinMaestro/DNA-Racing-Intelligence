@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DurablePreviewStagedRow } from "@/lib/durable-import-preview-staging-sink";
 import {
   createBoundedRaceArchiveRebuildSession,
+  type RaceArchiveCoreLocatorRepository,
   type RaceArchiveRebuildRepository,
   type RaceArchiveRebuildTransaction,
 } from "@/lib/bounded-race-archive-rebuild-session";
@@ -31,7 +32,7 @@ function stagedRow(sourceRowNumber: number): DurablePreviewStagedRow {
 }
 
 describe("bounded Race archive rebuild partition provenance", () => {
-  it("passes verified archive partition numbers through bounded staging", async () => {
+  it("passes verified archive partition numbers through bounded staging and locator persistence", async () => {
     const stageRows = vi.fn<RaceArchiveRebuildTransaction["stageRows"]>();
     const transaction: RaceArchiveRebuildTransaction = {
       stageRows,
@@ -41,6 +42,23 @@ describe("bounded Race archive rebuild partition provenance", () => {
     const repository: RaceArchiveRebuildRepository = {
       begin: vi.fn(async () => transaction),
     };
+    const replace = vi.fn<RaceArchiveCoreLocatorRepository["replace"]>(
+      async (request) => ({
+        status: "sealed",
+        datasetVersionId: request.datasetVersionId,
+        importBatchId: request.importBatchId,
+        coreLocatorCount: request.locators.length,
+        readyRowCount: request.locators.reduce(
+          (sum, locator) => sum + locator.readyRowCount,
+          0,
+        ),
+        partitionReferenceCount: request.locators.reduce(
+          (sum, locator) => sum + locator.partitionNumbers.length,
+          0,
+        ),
+      }),
+    );
+    const coreLocatorRepository: RaceArchiveCoreLocatorRepository = { replace };
     const rehydrator: RaceStagedRowRehydrator = {
       open: vi.fn(async () => ({
         status: "ready" as const,
@@ -73,7 +91,11 @@ describe("bounded Race archive rebuild partition provenance", () => {
     const service = createBoundedRaceArchiveRebuildSession({
       rehydrator,
       repository,
+      coreLocatorRepository,
       maximumRowsPerWrite: 2,
+      maximumCoreLocators: 100,
+      maximumPartitionsPerCore: 10,
+      now: () => new Date("2026-08-25T00:03:00Z"),
     });
 
     await expect(
@@ -88,5 +110,22 @@ describe("bounded Race archive rebuild partition provenance", () => {
     expect(
       stageRows.mock.calls[0]?.[0].rows.map((row) => row.partitionNumber),
     ).toEqual([3, 4]);
+    expect(replace).toHaveBeenCalledWith({
+      ownerId: "user_owner",
+      datasetVersionId,
+      importBatchId,
+      builtAt: "2026-08-25T00:03:00.000Z",
+      locators: [
+        {
+          datasetVersionId,
+          importBatchId,
+          sourceCoreId: "core-1",
+          partitionNumbers: [3, 4],
+          readyRowCount: 2,
+          firstSourceRowNumber: 1,
+          lastSourceRowNumber: 2,
+        },
+      ],
+    });
   });
 });
