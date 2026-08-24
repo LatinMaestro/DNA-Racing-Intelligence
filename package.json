@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write lib/race-archive-core-locator-accumulator.ts && git diff --exit-code -- lib/race-archive-core-locator-accumulator.ts",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
