@@ -106,10 +106,14 @@ function decodePartition(input: {
       input.registration.objectKind !== "normalized_partition") ||
     input.registration.objectFormat !== "ndjson_gzip"
   ) {
-    throw new Error("Archived Race evidence format is not supported for rebuild.");
+    throw new Error(
+      "Archived Race evidence format is not supported for rebuild.",
+    );
   }
   if (input.registration.rowCount > input.maximumRowsPerPartition) {
-    throw new Error("Archived Race evidence row count exceeds the decode bound.");
+    throw new Error(
+      "Archived Race evidence row count exceeds the decode bound.",
+    );
   }
 
   let uncompressed: Uint8Array;
@@ -118,13 +122,17 @@ function decodePartition(input: {
       maxOutputLength: input.maximumUncompressedBytes,
     });
   } catch {
-    throw new Error("Archived Race evidence gzip payload is invalid or too large.");
+    throw new Error(
+      "Archived Race evidence gzip payload is invalid or too large.",
+    );
   }
   if (
     uncompressed.byteLength < 1 ||
     uncompressed.byteLength > input.maximumUncompressedBytes
   ) {
-    throw new Error("Archived Race evidence exceeds the uncompressed decode bound.");
+    throw new Error(
+      "Archived Race evidence exceeds the uncompressed decode bound.",
+    );
   }
 
   let text: string;
