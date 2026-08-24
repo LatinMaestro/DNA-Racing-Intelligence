@@ -199,7 +199,9 @@ function selectedPartitionNumbers(
   maximumSelectedPartitions: number,
 ): readonly number[] {
   if (values.length < 1 || values.length > maximumSelectedPartitions) {
-    throw new Error("Selected Race archive partition count is outside its bound.");
+    throw new Error(
+      "Selected Race archive partition count is outside its bound.",
+    );
   }
   const selected = values.map((value, index) =>
     nonNegativeSafeInteger(value, `partitionNumbers[${index}]`),
@@ -224,7 +226,9 @@ function selectManifestObjects(input: {
   const byPartition = new Map<number, DatasetEvidenceObjectRegistration>();
   for (const registration of input.manifest.objects) {
     if (byPartition.has(registration.partitionNumber)) {
-      throw new Error("Sealed Race archive contains duplicate partition numbers.");
+      throw new Error(
+        "Sealed Race archive contains duplicate partition numbers.",
+      );
     }
     byPartition.set(registration.partitionNumber, registration);
   }
@@ -257,7 +261,8 @@ function verifiedPartitions(input: {
       if (verified.registration !== registration) {
         if (
           verified.registration.objectKey !== registration.objectKey ||
-          verified.registration.checksumSha256 !== registration.checksumSha256 ||
+          verified.registration.checksumSha256 !==
+            registration.checksumSha256 ||
           verified.registration.byteSize !== registration.byteSize ||
           verified.registration.rowCount !== registration.rowCount
         ) {
