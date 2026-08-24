@@ -7,7 +7,9 @@ ALTER TABLE dna.race_entry
   );
 
 UPDATE dna.race_entry entry
-SET source_fingerprint_sha256 = decode(record.fingerprint_sha256, 'hex')
+SET
+  source_import_batch_id = record.first_accepted_batch_id,
+  source_fingerprint_sha256 = decode(record.fingerprint_sha256, 'hex')
 FROM dna.race_event event,
   dna.dataset_version_record record,
   dna.dataset_version version
@@ -16,7 +18,6 @@ WHERE event.owner_id = entry.owner_id
   AND record.owner_id = entry.owner_id
   AND record.source_type = 'race_merge'
   AND record.natural_key = event.source_event_id || ':' || entry.source_core_id
-  AND record.first_accepted_batch_id = entry.source_import_batch_id
   AND version.owner_id = record.owner_id
   AND version.id = record.dataset_version_id
   AND version.rolled_back_at IS NULL;
