@@ -59,7 +59,7 @@ function history(input?: {
             raceAsset: "DEZ",
             entryFeeAmount: "0",
             grossPayoutAmount: "0",
-            economicDataStatus: "validated",
+            economicDataStatus: "ready",
           },
         },
       },
