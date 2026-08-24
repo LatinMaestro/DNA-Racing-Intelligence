@@ -10,9 +10,7 @@ import type { RaceArchiveCoreHistoryService } from "./race-archive-core-history-
 
 export type SearchCorePageState = Readonly<{
   connectionStatus:
-    | "identity_not_connected"
-    | "persistence_not_configured"
-    | "connected";
+    "identity_not_connected" | "persistence_not_configured" | "connected";
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
