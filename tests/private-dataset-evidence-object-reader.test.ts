@@ -4,9 +4,7 @@ import {
   createPrivateDatasetEvidenceObjectReader,
   type PrivateDatasetEvidenceObjectReadableStoragePort,
 } from "@/lib/private-dataset-evidence-object-reader";
-import type {
-  DatasetEvidenceObjectRegistration,
-} from "@/lib/neon-dataset-evidence-object-repository";
+import type { DatasetEvidenceObjectRegistration } from "@/lib/neon-dataset-evidence-object-repository";
 
 const ownerId = "owner-user";
 const bucketName = "dna-private-preview";
@@ -48,9 +46,10 @@ function harness(input?: {
     customDomainCount: number;
   }>;
 }) {
-  const readBucketPrivacy = vi.fn<
-    PrivateDatasetEvidenceObjectReadableStoragePort["readBucketPrivacy"]
-  >();
+  const readBucketPrivacy =
+    vi.fn<
+      PrivateDatasetEvidenceObjectReadableStoragePort["readBucketPrivacy"]
+    >();
   readBucketPrivacy.mockResolvedValue(
     input?.privacy ?? {
       publicAccessDisabled: true,
@@ -58,9 +57,8 @@ function harness(input?: {
       customDomainCount: 0,
     },
   );
-  const headObject = vi.fn<
-    PrivateDatasetEvidenceObjectReadableStoragePort["headObject"]
-  >();
+  const headObject =
+    vi.fn<PrivateDatasetEvidenceObjectReadableStoragePort["headObject"]>();
   headObject.mockResolvedValue({
     status: "ready",
     contentType: "application/x-ndjson+gzip",
@@ -73,9 +71,8 @@ function harness(input?: {
       partition: "0",
     },
   });
-  const getObject = vi.fn<
-    PrivateDatasetEvidenceObjectReadableStoragePort["getObject"]
-  >();
+  const getObject =
+    vi.fn<PrivateDatasetEvidenceObjectReadableStoragePort["getObject"]>();
   getObject.mockImplementation(async () => ({
     status: "ready",
     body: exactBody(),
@@ -92,113 +89,101 @@ function harness(input?: {
 }
 
 describe("private dataset evidence object reader", () => {
-  it(
-    "returns only body bytes that match the exact private manifest evidence",
-    async () => {
-      const test = harness();
-      const expected = registration();
-      await expect(test.reader.read(expected)).resolves.toEqual({
-        registration: expected,
-        body: new Uint8Array([1, 2, 3]),
-      });
-      expect(test.port.readBucketPrivacy).toHaveBeenCalledWith({ bucketName });
-      expect(test.port.headObject).toHaveBeenCalledWith({
-        bucketName,
-        key: objectKey,
-      });
-      expect(test.port.getObject).toHaveBeenCalledWith({
-        bucketName,
-        key: objectKey,
-      });
+  it("returns only body bytes that match the exact private manifest evidence", async () => {
+    const test = harness();
+    const expected = registration();
+    await expect(test.reader.read(expected)).resolves.toEqual({
+      registration: expected,
+      body: new Uint8Array([1, 2, 3]),
+    });
+    expect(test.port.readBucketPrivacy).toHaveBeenCalledWith({ bucketName });
+    expect(test.port.headObject).toHaveBeenCalledWith({
+      bucketName,
+      key: objectKey,
+    });
+    expect(test.port.getObject).toHaveBeenCalledWith({
+      bucketName,
+      key: objectKey,
+    });
 
-      await expect(test.reader.read(expected)).resolves.toMatchObject({
-        registration: expected,
-      });
-      expect(test.createPort).toHaveBeenCalledTimes(1);
-      expect(test.port.readBucketPrivacy).toHaveBeenCalledTimes(1);
-    },
-  );
+    await expect(test.reader.read(expected)).resolves.toMatchObject({
+      registration: expected,
+    });
+    expect(test.createPort).toHaveBeenCalledTimes(1);
+    expect(test.port.readBucketPrivacy).toHaveBeenCalledTimes(1);
+  });
 
-  it(
-    "rejects another owner or a key outside the exact manifest identity before provider access",
-    async () => {
-      const test = harness();
-      await expect(
-        test.reader.read(
-          registration({
-            ownerId: "other-owner",
-            objectKey:
-              "evidence/2e8394fae2cc45b0f68ebe1ca7df5ff73dd0a1359b9b270143707ee9b418cacd/11111111-1111-4111-8111-111111111111/race_merge/staged_rows/part-0000.ndjson.gz",
-          }),
-        ),
-      ).rejects.toThrow("read access denied");
-      await expect(
-        test.reader.read(registration({ objectKey: "private/arbitrary-object" })),
-      ).rejects.toThrow("manifest identity");
-      expect(test.createPort).not.toHaveBeenCalled();
-    },
-  );
+  it("rejects another owner or a key outside the exact manifest identity before provider access", async () => {
+    const test = harness();
+    await expect(
+      test.reader.read(
+        registration({
+          ownerId: "other-owner",
+          objectKey:
+            "evidence/2e8394fae2cc45b0f68ebe1ca7df5ff73dd0a1359b9b270143707ee9b418cacd/11111111-1111-4111-8111-111111111111/race_merge/staged_rows/part-0000.ndjson.gz",
+        }),
+      ),
+    ).rejects.toThrow("read access denied");
+    await expect(
+      test.reader.read(registration({ objectKey: "private/arbitrary-object" })),
+    ).rejects.toThrow("manifest identity");
+    expect(test.createPort).not.toHaveBeenCalled();
+  });
 
-  it(
-    "blocks GET when HEAD metadata does not exactly match the registered evidence",
-    async () => {
-      const test = harness();
-      test.port.headObject.mockResolvedValueOnce({
-        status: "ready",
-        contentType: "application/x-ndjson+gzip",
-        byteLength: 3,
-        checksumSha256: checksum,
-        metadata: {
-          rows: "2",
-          source: "race_merge",
-          kind: "staged_rows",
-          partition: "0",
-        },
-      });
-      await expect(test.reader.read(registration())).rejects.toThrow(
-        "exact verification",
-      );
-      expect(test.port.getObject).not.toHaveBeenCalled();
-    },
-  );
+  it("blocks GET when HEAD metadata does not exactly match the registered evidence", async () => {
+    const test = harness();
+    test.port.headObject.mockResolvedValueOnce({
+      status: "ready",
+      contentType: "application/x-ndjson+gzip",
+      byteLength: 3,
+      checksumSha256: checksum,
+      metadata: {
+        rows: "2",
+        source: "race_merge",
+        kind: "staged_rows",
+        partition: "0",
+      },
+    });
+    await expect(test.reader.read(registration())).rejects.toThrow(
+      "exact verification",
+    );
+    expect(test.port.getObject).not.toHaveBeenCalled();
+  });
 
-  it(
-    "fails closed when downloaded bytes are truncated, oversized or checksum-conflicting",
-    async () => {
-      const truncated = harness();
-      truncated.port.getObject.mockResolvedValueOnce({
-        status: "ready",
-        body: (async function* () {
-          yield new Uint8Array([1, 2]);
-        })(),
-      });
-      await expect(truncated.reader.read(registration())).rejects.toThrow(
-        "body length is invalid",
-      );
+  it("fails closed when downloaded bytes are truncated, oversized or checksum-conflicting", async () => {
+    const truncated = harness();
+    truncated.port.getObject.mockResolvedValueOnce({
+      status: "ready",
+      body: (async function* () {
+        yield new Uint8Array([1, 2]);
+      })(),
+    });
+    await expect(truncated.reader.read(registration())).rejects.toThrow(
+      "body length is invalid",
+    );
 
-      const oversized = harness();
-      oversized.port.getObject.mockResolvedValueOnce({
-        status: "ready",
-        body: (async function* () {
-          yield new Uint8Array([1, 2, 3, 4]);
-        })(),
-      });
-      await expect(oversized.reader.read(registration())).rejects.toThrow(
-        "body length is invalid",
-      );
+    const oversized = harness();
+    oversized.port.getObject.mockResolvedValueOnce({
+      status: "ready",
+      body: (async function* () {
+        yield new Uint8Array([1, 2, 3, 4]);
+      })(),
+    });
+    await expect(oversized.reader.read(registration())).rejects.toThrow(
+      "body length is invalid",
+    );
 
-      const conflicting = harness();
-      conflicting.port.getObject.mockResolvedValueOnce({
-        status: "ready",
-        body: (async function* () {
-          yield new Uint8Array([1, 2, 4]);
-        })(),
-      });
-      await expect(conflicting.reader.read(registration())).rejects.toThrow(
-        "body checksum is invalid",
-      );
-    },
-  );
+    const conflicting = harness();
+    conflicting.port.getObject.mockResolvedValueOnce({
+      status: "ready",
+      body: (async function* () {
+        yield new Uint8Array([1, 2, 4]);
+      })(),
+    });
+    await expect(conflicting.reader.read(registration())).rejects.toThrow(
+      "body checksum is invalid",
+    );
+  });
 
   it("requires a private bucket and a bounded registered object", async () => {
     const publicBucket = harness({
@@ -225,14 +210,11 @@ describe("private dataset evidence object reader", () => {
     );
   });
 
-  it(
-    "fails closed when verified evidence disappears between HEAD and GET",
-    async () => {
-      const test = harness();
-      test.port.getObject.mockResolvedValueOnce({ status: "missing" });
-      await expect(test.reader.read(registration())).rejects.toThrow(
-        "became unavailable",
-      );
-    },
-  );
+  it("fails closed when verified evidence disappears between HEAD and GET", async () => {
+    const test = harness();
+    test.port.getObject.mockResolvedValueOnce({ status: "missing" });
+    await expect(test.reader.read(registration())).rejects.toThrow(
+      "became unavailable",
+    );
+  });
 });
