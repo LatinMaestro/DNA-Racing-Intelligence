@@ -41,6 +41,7 @@ function harness() {
       };
     }),
   };
+  const resumeObject = vi.fn(async () => null);
   const beginObject = vi.fn(async ({ objectId }: { objectId: string }) => ({
     write: vi.fn(async () => undefined),
     commitVerified: vi.fn(async () => {
@@ -60,6 +61,7 @@ function harness() {
   }));
   const abortPreview = vi.fn(async () => undefined);
   const stagingSink: ImportPreviewStagingSink = {
+    resumeObject,
     beginObject,
     completePreview,
     abortPreview,
@@ -92,6 +94,7 @@ function harness() {
     values,
     openOrder,
     objectStorage,
+    resumeObject,
     beginObject,
     completePreview,
     abortPreview,
@@ -111,7 +114,7 @@ function input(test: ReturnType<typeof harness>) {
 }
 
 describe("bounded import preview processor", () => {
-  it("streams and verifies objects sequentially before finalization", async () => {
+  it("streams and verifies missing objects sequentially before finalization", async () => {
     const test = harness();
     await expect(test.processor.preparePreview(input(test))).resolves.toEqual({
       previewId: "preview-1",
@@ -122,6 +125,7 @@ describe("bounded import preview processor", () => {
       blockingIssueCount: 0,
       confirmable: true,
     });
+    expect(test.resumeObject).toHaveBeenCalledTimes(2);
     expect(test.openOrder).toEqual([
       "open:object-1",
       "commit:object-1",
@@ -150,26 +154,40 @@ describe("bounded import preview processor", () => {
         }),
       ],
     });
-    expect(test.abortPreview).toHaveBeenCalledTimes(1);
-    expect(test.abortPreview).toHaveBeenNthCalledWith(1, {
-      ownerId: OWNER_ID,
-      uploadBatchId: BATCH_ID,
-      previewDispatchId: DISPATCH_ID,
-      reason: "attempt_restart",
-    });
+    expect(test.abortPreview).not.toHaveBeenCalled();
   });
 
-  it("fails closed before object access when stale staging cannot be reset", async () => {
+  it("resumes a receipted file without reopening or restaging it", async () => {
     const test = harness();
-    test.abortPreview.mockRejectedValueOnce(
-      new Error("private cleanup detail"),
+    const resumed = {
+      importBatchId: "11111111-1111-4111-8111-111111111111",
+      sourceRowCount: 1,
+      readyRowCount: 1,
+      quarantinedRowCount: 0,
+      warningRowCount: 0,
+      blockingIssueCount: 0,
+    };
+    test.resumeObject.mockResolvedValueOnce(resumed).mockResolvedValueOnce(null);
+
+    await test.processor.preparePreview(input(test));
+
+    expect(test.openOrder).toEqual(["open:object-2", "commit:object-2"]);
+    expect(test.beginObject).toHaveBeenCalledOnce();
+    expect(test.completePreview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objects: [
+          expect.objectContaining({
+            objectId: "object-1",
+            chunkCount: 0,
+            stagedResult: resumed,
+          }),
+          expect.objectContaining({
+            objectId: "object-2",
+            stagedResult: "staged:object-2",
+          }),
+        ],
+      }),
     );
-    await expect(
-      test.processor.preparePreview(input(test)),
-    ).rejects.toMatchObject({ reason: "preview_staging_begin_failed" });
-    expect(test.objectStorage.openObject).not.toHaveBeenCalled();
-    expect(test.beginObject).not.toHaveBeenCalled();
-    expect(test.completePreview).not.toHaveBeenCalled();
   });
 
   it("records a sanitized object-store stage when an object is missing", async () => {
@@ -209,6 +227,7 @@ describe("bounded import preview processor", () => {
       createBoundedImportPreviewProcessor({
         objectStorage: test.objectStorage,
         stagingSink: {
+          resumeObject: test.resumeObject,
           beginObject: test.beginObject,
           completePreview: test.completePreview,
           abortPreview: test.abortPreview,
