@@ -109,15 +109,17 @@ function registration(input: {
   };
 }
 
-function locator(input: {
-  datasetVersionId?: string;
-  importBatchId?: string;
-  versionNumber?: number;
-  partitionNumbers?: readonly number[];
-  readyRowCount?: number;
-  firstSourceRowNumber?: number;
-  lastSourceRowNumber?: number;
-} = {}): PersistedRaceArchiveCoreLocator {
+function locator(
+  input: {
+    datasetVersionId?: string;
+    importBatchId?: string;
+    versionNumber?: number;
+    partitionNumbers?: readonly number[];
+    readyRowCount?: number;
+    firstSourceRowNumber?: number;
+    lastSourceRowNumber?: number;
+  } = {},
+): PersistedRaceArchiveCoreLocator {
   return Object.freeze({
     datasetVersionId: input.datasetVersionId ?? firstDatasetVersionId,
     importBatchId: input.importBatchId ?? firstImportBatchId,
@@ -213,7 +215,9 @@ describe("Race archive Core history service", () => {
   it("returns empty bounded history without scanning the archive when no locator exists", async () => {
     const test = harness({});
 
-    await expect(test.service.load({ ownerId, sourceCoreId: coreId })).resolves.toEqual({
+    await expect(
+      test.service.load({ ownerId, sourceCoreId: coreId }),
+    ).resolves.toEqual({
       sourceCoreId: coreId,
       locatorVersionCount: 0,
       selectedPartitionCount: 0,
@@ -274,8 +278,14 @@ describe("Race archive Core history service", () => {
   });
 
   it("deduplicates exact cross-version replay and fails closed on conflicting replay", async () => {
-    const firstRow = readyEvidence({ sourceRowNumber: 4, sourceEventId: "event-1" });
-    const secondReplay = readyEvidence({ sourceRowNumber: 9, sourceEventId: "event-1" });
+    const firstRow = readyEvidence({
+      sourceRowNumber: 4,
+      sourceEventId: "event-1",
+    });
+    const secondReplay = readyEvidence({
+      sourceRowNumber: 9,
+      sourceEventId: "event-1",
+    });
     const firstLocator = locator({ readyRowCount: 1, lastSourceRowNumber: 4 });
     const secondLocator = locator({
       datasetVersionId: secondDatasetVersionId,
@@ -312,7 +322,10 @@ describe("Race archive Core history service", () => {
       ]),
     });
 
-    const replayed = await replay.service.load({ ownerId, sourceCoreId: coreId });
+    const replayed = await replay.service.load({
+      ownerId,
+      sourceCoreId: coreId,
+    });
     expect(replayed.rows).toHaveLength(1);
     expect(replayed.selectedPartitionCount).toBe(2);
 
@@ -353,13 +366,19 @@ describe("Race archive Core history service", () => {
   });
 
   it("fails closed when locator identity or coverage disagrees with sealed evidence", async () => {
-    const onlyRow = readyEvidence({ sourceRowNumber: 4, sourceEventId: "event-1" });
+    const onlyRow = readyEvidence({
+      sourceRowNumber: 4,
+      sourceEventId: "event-1",
+    });
     const wrongImport = harness({
       locators: [locator({ readyRowCount: 1, lastSourceRowNumber: 4 })],
       archives: new Map([
         [
           firstDatasetVersionId,
-          { importBatchId: secondImportBatchId, partitions: [partition({ rows: [onlyRow] })] },
+          {
+            importBatchId: secondImportBatchId,
+            partitions: [partition({ rows: [onlyRow] })],
+          },
         ],
       ]),
     });
@@ -372,13 +391,67 @@ describe("Race archive Core history service", () => {
       archives: new Map([
         [
           firstDatasetVersionId,
-          { importBatchId: firstImportBatchId, partitions: [partition({ rows: [onlyRow] })] },
+          {
+            importBatchId: firstImportBatchId,
+            partitions: [partition({ rows: [onlyRow] })],
+          },
         ],
       ]),
     });
     await expect(
       wrongCoverage.service.load({ ownerId, sourceCoreId: coreId }),
     ).rejects.toThrow("coverage conflicts with its locator");
+  });
+
+  it("rejects duplicate partition delivery and malformed quarantined evidence", async () => {
+    const row = readyEvidence({ sourceRowNumber: 4, sourceEventId: "event-1" });
+    const duplicate = partition({ rows: [row] });
+    const duplicatePartition = harness({
+      locators: [locator({ readyRowCount: 1, lastSourceRowNumber: 4 })],
+      archives: new Map([
+        [
+          firstDatasetVersionId,
+          {
+            importBatchId: firstImportBatchId,
+            partitions: [duplicate, duplicate],
+          },
+        ],
+      ]),
+    });
+    await expect(
+      duplicatePartition.service.load({ ownerId, sourceCoreId: coreId }),
+    ).rejects.toThrow("duplicate partition");
+
+    const malformedQuarantine = Object.freeze({
+      naturalKey: null,
+      value: {
+        sourceRowNumber: 6,
+        naturalKey: null,
+        fingerprintSha256: null,
+        row: {
+          sourceType: "race_merge",
+          status: "quarantined",
+          record: { sourceType: "race_merge" },
+          provenance: [],
+          issues: [],
+        },
+      },
+    });
+    const quarantined = harness({
+      locators: [locator({ readyRowCount: 1, lastSourceRowNumber: 4 })],
+      archives: new Map([
+        [
+          firstDatasetVersionId,
+          {
+            importBatchId: firstImportBatchId,
+            partitions: [partition({ rows: [malformedQuarantine] })],
+          },
+        ],
+      ]),
+    });
+    await expect(
+      quarantined.service.load({ ownerId, sourceCoreId: coreId }),
+    ).rejects.toThrow("Quarantined Race staged-row unexpectedly contains identity evidence");
   });
 
   it("fails closed when bounded unique Core history would exceed its configured row limit", async () => {
