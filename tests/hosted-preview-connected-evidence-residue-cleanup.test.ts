@@ -63,25 +63,29 @@ async function assertEmptyImportRoots(input: {
 }
 
 describeConnected("hosted Preview orphan evidence recovery", () => {
-  it("removes only exact unregistered owner evidence before commissioning", async () => {
-    const databaseUrl = requiredEnvironment("DATABASE_URL");
-    const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
-    await assertEmptyImportRoots({ databaseUrl, databaseOwnerId });
+  it(
+    "removes only exact unregistered owner evidence before commissioning",
+    async () => {
+      const databaseUrl = requiredEnvironment("DATABASE_URL");
+      const databaseOwnerId = requiredEnvironment("DNA_DATABASE_OWNER_ID");
+      await assertEmptyImportRoots({ databaseUrl, databaseOwnerId });
 
-    const result = await recoverHostedPreviewEvidenceResidue({
-      ownerId: requiredEnvironment("AUTHORIZED_CLERK_USER_ID"),
-      databaseUrl,
-      databaseOwnerId,
-      runtimeRole: "dna_app_runtime",
-      accountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
-      apiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
-      bucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
-      accessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
-      secretAccessKey: requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY"),
-    });
-    expect(result.retained).toBe(0);
-    console.log(
-      `Recovered ${result.deleted} unregistered Preview evidence object(s); ${result.missing} were already missing.`,
-    );
-  });
+      const result = await recoverHostedPreviewEvidenceResidue({
+        ownerId: requiredEnvironment("AUTHORIZED_CLERK_USER_ID"),
+        databaseUrl,
+        databaseOwnerId,
+        runtimeRole: "dna_app_runtime",
+        accountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
+        apiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
+        bucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
+        accessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
+        secretAccessKey: requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY"),
+      });
+      expect(result.retained).toBe(0);
+      console.log(
+        `Recovered ${result.deleted} unregistered Preview evidence object(s); ${result.missing} were already missing.`,
+      );
+    },
+    30_000,
+  );
 });
