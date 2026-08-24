@@ -161,7 +161,9 @@ describe("bounded import preview processor", () => {
 
   it("fails closed before object access when stale staging cannot be reset", async () => {
     const test = harness();
-    test.abortPreview.mockRejectedValueOnce(new Error("private cleanup detail"));
+    test.abortPreview.mockRejectedValueOnce(
+      new Error("private cleanup detail"),
+    );
     await expect(
       test.processor.preparePreview(input(test)),
     ).rejects.toMatchObject({ reason: "preview_staging_begin_failed" });
