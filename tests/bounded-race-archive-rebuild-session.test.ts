@@ -154,13 +154,15 @@ function repository(input: {
   };
 }
 
-function locatorRepository(input: {
-  events?: string[];
-  failure?: boolean;
-  coverageOverride?: Partial<
-    Awaited<ReturnType<RaceArchiveCoreLocatorRepository["replace"]>>
-  >;
-} = {}) {
+function locatorRepository(
+  input: {
+    events?: string[];
+    failure?: boolean;
+    coverageOverride?: Partial<
+      Awaited<ReturnType<RaceArchiveCoreLocatorRepository["replace"]>>
+    >;
+  } = {},
+) {
   const replace = vi.fn<RaceArchiveCoreLocatorRepository["replace"]>(
     async (request) => {
       input.events?.push(`locator:${request.locators.length}`);
