@@ -1,0 +1,57 @@
+name: Codex update Preview resume tests
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/codex-update-preview-resume-tests.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/invoke-activation-evidence-compaction
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Update exact test contracts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"missing test anchor in {path}: {old[:100]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          path = "tests/durable-import-preview-staging-sink.test.ts"
+          replace(path, '''  const commitAndRegisterMock = vi.fn(\n    (_commit: () => unknown | Promise<unknown>) => undefined,\n  );\n  const commitAndRegister: DurableImportPreviewEvidenceSession["commitAndRegister"] =\n    async <Committed>(\n      commit: () => Committed | Promise<Committed>,\n    ): Promise<Committed> => {\n      commitAndRegisterMock(commit);\n      return commit();\n    };''', '''  const stored = [\n    {\n      registration: {\n        ownerId: "owner-1",\n        importBatchId: "11111111-1111-4111-8111-111111111111",\n        sourceType: "current_arena" as const,\n        objectKind: "staged_rows" as const,\n        partitionNumber: 0,\n        objectFormat: "ndjson_gzip" as const,\n        objectKey: "evidence/owner/import/current_arena/staged_rows/part-0000.ndjson.gz",\n        checksumSha256: "a".repeat(64),\n        byteSize: 100,\n        rowCount: 1,\n        firstNaturalKey: "core-1",\n        lastNaturalKey: "core-1",\n        createdAt: "2026-08-23T10:00:00.000Z",\n      },\n      storageStatus: "created" as const,\n    },\n  ];\n  const commitWithEvidenceReceiptsMock = vi.fn(\n    (_commit: unknown) => undefined,\n  );\n  const commitWithEvidenceReceipts: DurableImportPreviewEvidenceSession["commitWithEvidenceReceipts"] =\n    async <Committed>(commit): Promise<Committed> => {\n      commitWithEvidenceReceiptsMock(commit);\n      return commit(stored);\n    };''')
+          replace(path, '''  const session: DurableImportPreviewEvidenceSession = {\n    append,\n    commitAndRegister,\n    abort,\n  };''', '''  const session: DurableImportPreviewEvidenceSession = {\n    append,\n    commitWithEvidenceReceipts,\n    abort,\n  };''')
+          replace(path, '''    commitAndRegister: commitAndRegisterMock,''', '''    commitWithEvidenceReceipts: commitWithEvidenceReceiptsMock,''')
+          replace(path, '''  const beginObject = vi.fn(async () => transaction);\n  const assertPreviewObjects = vi.fn(async () => undefined);''', '''  const resumeObject = vi.fn(async () => null);\n  const beginObject = vi.fn(async () => transaction);\n  const finalizePreviewEvidence = vi.fn(async () => undefined);\n  const assertPreviewObjects = vi.fn(async () => undefined);''')
+          replace(path, '''  const repository: DurableImportPreviewStagingRepository = {\n    beginObject,\n    assertPreviewObjects,\n    abortPreview,\n  };''', '''  const repository: DurableImportPreviewStagingRepository = {\n    resumeObject,\n    beginObject,\n    finalizePreviewEvidence,\n    assertPreviewObjects,\n    abortPreview,\n  };''')
+          replace(path, '''    sink,\n    beginObject,''', '''    sink,\n    resumeObject,\n    beginObject,''')
+          replace(path, '''    rollback,\n    assertPreviewObjects,''', '''    rollback,\n    finalizePreviewEvidence,\n    assertPreviewObjects,''')
+          replace(path, '''    expect(test.assertPreviewObjects).toHaveBeenCalledTimes(2);''', '''    expect(test.finalizePreviewEvidence).toHaveBeenCalledTimes(2);\n    expect(test.finalizePreviewEvidence).toHaveBeenCalledWith({\n      ownerId: "owner-1",\n      importBatchIds: ["import-batch-1"],\n    });\n    expect(test.assertPreviewObjects).toHaveBeenCalledTimes(2);''')
+          replace(path, '''    expect(evidence.commitAndRegister).toHaveBeenCalledOnce();\n    expect(test.commitVerified).toHaveBeenCalledOnce();''', '''    expect(evidence.commitWithEvidenceReceipts).toHaveBeenCalledOnce();\n    expect(test.commitVerified).toHaveBeenCalledWith(\n      expect.objectContaining({\n        evidenceRegistrations: [\n          expect.objectContaining({\n            importBatchId: "11111111-1111-4111-8111-111111111111",\n            sourceType: "current_arena",\n            objectKind: "staged_rows",\n            partitionNumber: 0,\n          }),\n        ],\n      }),\n    );''')
+
+          path = "tests/hosted-import-preview-worker-runtime.test.ts"
+          replace(path, '''function stagingSink(): ImportPreviewStagingSink {\n  return {\n    beginObject:''', '''function stagingSink(): ImportPreviewStagingSink {\n  return {\n    resumeObject: vi.fn(async () => null),\n    beginObject:''')
+          replace(path, '''    expect(sink.beginObject).toHaveBeenCalledOnce();''', '''    expect(sink.resumeObject).toHaveBeenCalledOnce();\n    expect(sink.beginObject).toHaveBeenCalledOnce();''')
+          PY
+      - name: Commit tests only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/durable-import-preview-staging-sink.test.ts \
+            tests/hosted-import-preview-worker-runtime.test.ts
+          git diff --cached --check
+          git commit -m "Align tests with resumable Preview evidence"
+          git push origin HEAD:codex/invoke-activation-evidence-compaction
