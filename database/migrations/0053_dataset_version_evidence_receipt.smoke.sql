@@ -17,7 +17,7 @@ INSERT INTO dna.import_batch (
   '53000000-0000-4000-8000-000000000001',
   'core_details', 'Core Details.csv', repeat('1', 64),
   'utf_8', 'core-details/v1', 'validating',
-  '2026-08-24T10:00:00Z', 2, 0, 0, 0
+  '2026-08-24T10:00:00Z', 2, 0, 2, 0
 );
 
 INSERT INTO dna.dataset_staged_record (
