@@ -160,7 +160,10 @@ describe("archive-backed Core Performance profiles", () => {
 
     expect(() =>
       corePerformanceProfilesFromRaceArchive({
-        observationSet: set([duplicate, { ...duplicate, naturalKey: "event-2:core-7" }]),
+        observationSet: set([
+          duplicate,
+          { ...duplicate, naturalKey: "event-2:core-7" },
+        ]),
         maximumObservations: 1,
         maximumProfiles: 10,
       }),
