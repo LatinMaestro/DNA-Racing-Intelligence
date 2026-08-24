@@ -9,7 +9,6 @@ import {
   type CloudflareR2ImportObjectStoragePort,
 } from "./cloudflare-r2-import-object-storage";
 import { createCloudflareR2S3Port } from "./cloudflare-r2-s3-port";
-import { createDatasetEvidenceManifestRegistrationService } from "./dataset-evidence-manifest-registration-service";
 import { createDurableImportPreviewEvidenceLifecycle } from "./durable-import-preview-evidence-lifecycle";
 import { createDurableImportPreviewStagingSink } from "./durable-import-preview-staging-sink";
 import {
@@ -191,6 +190,7 @@ export function hostedImportPreviewWorkerRuntime(input: {
             accessKeyId,
             secretAccessKey,
             apiToken,
+            maximumBufferedPutBytes: maximumChunkBytes,
             fetch: fetcher,
           }));
     const evidenceLifecycle =
@@ -204,11 +204,6 @@ export function hostedImportPreviewWorkerRuntime(input: {
               maximumObjectBytes,
               createPort: () => evidencePort,
             }),
-            registrationService:
-              createDatasetEvidenceManifestRegistrationService({
-                ownerId,
-                repository: evidenceRepository,
-              }),
             recovery: createPrivateDatasetEvidenceObjectRecovery({
               ownerId,
               bucketName: r2Configuration.bucketName,

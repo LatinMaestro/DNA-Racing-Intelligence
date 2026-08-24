@@ -1,9 +1,4 @@
 import {
-  createDatasetEvidenceCommitCoordinator,
-  type DatasetEvidenceCommitCoordinator,
-} from "./dataset-evidence-commit-coordinator";
-import type { DatasetEvidenceManifestRegistrationService } from "./dataset-evidence-manifest-registration-service";
-import {
   createDeferredDatasetEvidenceNdjsonPartitionWriter,
   type DatasetEvidenceNdjsonRow,
 } from "./dataset-evidence-ndjson-partition-writer";
@@ -16,8 +11,10 @@ import type {
 
 export type DurableImportPreviewEvidenceSession = Readonly<{
   append: (rows: readonly DurablePreviewStagedRow[]) => Promise<void>;
-  commitAndRegister: <Committed>(
-    commit: () => Committed | Promise<Committed>,
+  commitWithEvidenceReceipts: <Committed>(
+    commit: (
+      stored: readonly StoredPrivateDatasetEvidenceObject[],
+    ) => Committed | Promise<Committed>,
   ) => Promise<Committed>;
   abort: () => Promise<void>;
 }>;
@@ -48,18 +45,12 @@ function evidenceRows(
 export function createDurableImportPreviewEvidenceLifecycle(input: {
   ownerId: string;
   storageWriter: PrivateDatasetEvidenceObjectStorageWriter;
-  registrationService: DatasetEvidenceManifestRegistrationService;
   recovery: EvidenceRecovery;
   maximumUncompressedBytes: number;
   maximumRowsPerPartition: number;
   now?: () => Date;
 }): DurableImportPreviewEvidenceLifecycle {
   const ownerId = input.ownerId;
-  const coordinator: DatasetEvidenceCommitCoordinator =
-    createDatasetEvidenceCommitCoordinator({
-      registrationService: input.registrationService,
-      recovery: input.recovery,
-    });
   const now = input.now ?? (() => new Date());
 
   return Object.freeze({
@@ -92,12 +83,29 @@ export function createDurableImportPreviewEvidenceLifecycle(input: {
         }
       }
 
+      async function failBeforeCommit(
+        error: unknown,
+        stored: readonly StoredPrivateDatasetEvidenceObject[],
+      ): Promise<never> {
+        try {
+          await cleanup(stored);
+        } catch (recoveryError) {
+          throw new AggregateError(
+            [error, recoveryError],
+            "Dataset evidence staging failed and pre-commit recovery was incomplete.",
+          );
+        }
+        throw error;
+      }
+
       return Object.freeze({
         append(rows: readonly DurablePreviewStagedRow[]) {
           return writer.append(evidenceRows(rows));
         },
-        async commitAndRegister<Committed>(
-          commit: () => Committed | Promise<Committed>,
+        async commitWithEvidenceReceipts<Committed>(
+          commit: (
+            stored: readonly StoredPrivateDatasetEvidenceObject[],
+          ) => Committed | Promise<Committed>,
         ): Promise<Committed> {
           if (commitRequested) {
             throw new Error(
@@ -110,25 +118,17 @@ export function createDurableImportPreviewEvidenceLifecycle(input: {
             stored = await writer.finish();
           } catch (storageError) {
             const partial = await writer.abort();
-            await coordinator.commitAndRegister({
-              stored: partial,
-              commit: () => {
-                throw storageError;
-              },
-            });
-            throw storageError;
+            return failBeforeCommit(storageError, partial);
           }
 
-          const result = await coordinator.commitAndRegister({
-            stored,
-            commit: async () => {
-              const committed = await commit();
-              databaseCommitted = true;
-              return committed;
-            },
-          });
-          completed = true;
-          return result.committed;
+          try {
+            const committed = await commit(stored);
+            databaseCommitted = true;
+            completed = true;
+            return committed;
+          } catch (commitError) {
+            return failBeforeCommit(commitError, stored);
+          }
         },
         async abort() {
           if (completed || databaseCommitted) return;

@@ -172,6 +172,14 @@ describe("hosted import activation worker runtime", () => {
           aggregate_refresh_required: true,
         },
       ],
+      [
+        {
+          status: "compacted",
+          source_version_count: "9",
+          deleted_staged_record_count: "9",
+          deleted_contribution_count: "9",
+        },
+      ],
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
       [],
@@ -238,6 +246,10 @@ describe("hosted import activation worker runtime", () => {
     expect(database.query).toHaveBeenCalledWith(
       expect.stringContaining("dna.prepare_import_activation_dataset"),
       [databaseOwnerId, updateSessionId, dispatchId, sourceHash, 24],
+    );
+    expect(database.query).toHaveBeenCalledWith(
+      expect.stringContaining("dna.compact_import_activation_dataset_evidence"),
+      [databaseOwnerId, updateSessionId, dispatchId, 24],
     );
     expect(database.query).toHaveBeenCalledWith(
       expect.stringContaining("dna.complete_import_activation"),

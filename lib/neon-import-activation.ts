@@ -102,6 +102,13 @@ const PREPARE_ACCEPTED_DATASET_SQL = `
     $1::uuid, $2::uuid, $3::uuid, $4::character(64), $5::integer
   )
 `;
+const COMPACT_ACCEPTED_DATASET_SQL = `
+  SELECT status, source_version_count, deleted_staged_record_count,
+    deleted_contribution_count
+  FROM dna.compact_import_activation_dataset_evidence(
+    $1::uuid, $2::uuid, $3::uuid, clock_timestamp(), $4::integer
+  )
+`;
 const PROCESSING_FAILURE_SQL = `
   SELECT dna.record_import_activation_failure(
     $1::uuid, $2::uuid, $3::uuid, $4::text, $5::timestamptz
@@ -441,15 +448,44 @@ export function createNeonImportActivationRepositories(input: {
           ]),
           "accepted dataset preparation",
         );
+        const sourceVersionCount = count(
+          row.source_version_count,
+          "source_version_count",
+        );
+        const compaction = oneRow(
+          await client.query(COMPACT_ACCEPTED_DATASET_SQL, [
+            config.databaseOwnerId,
+            input.updateSessionId,
+            input.dispatchId,
+            input.maximumSourceVersions,
+          ]),
+          "accepted dataset compaction",
+        );
+        const compactionStatus = string(compaction.status, "compaction.status");
+        if (
+          (compactionStatus !== "compacted" &&
+            compactionStatus !== "existing") ||
+          count(
+            compaction.source_version_count,
+            "compaction.source_version_count",
+          ) !== sourceVersionCount
+        ) {
+          throw new Error("accepted dataset compaction evidence is invalid");
+        }
+        count(
+          compaction.deleted_staged_record_count,
+          "compaction.deleted_staged_record_count",
+        );
+        count(
+          compaction.deleted_contribution_count,
+          "compaction.deleted_contribution_count",
+        );
         return {
           preparedResultId: string(
             row.prepared_result_id,
             "prepared_result_id",
           ),
-          sourceVersionCount: count(
-            row.source_version_count,
-            "source_version_count",
-          ),
+          sourceVersionCount,
           quarantinedRecordCount: count(
             row.quarantined_record_count,
             "quarantined_record_count",

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import type { DurableImportPreviewEvidenceSession } from "../lib/durable-import-preview-evidence-lifecycle";
+import type { StoredPrivateDatasetEvidenceObject } from "../lib/private-dataset-evidence-object-writer";
 import {
   createDurableImportPreviewStagingSink,
   type DurableImportPreviewStagingRepository,
@@ -15,26 +16,47 @@ const sha = (value: Uint8Array) =>
 
 function evidenceHarness() {
   const append = vi.fn(async () => undefined);
-  const commitAndRegisterMock = vi.fn(
-    (_commit: () => unknown | Promise<unknown>) => undefined,
-  );
-  const commitAndRegister: DurableImportPreviewEvidenceSession["commitAndRegister"] =
+  const stored = [
+    {
+      registration: {
+        ownerId: "owner-1",
+        importBatchId: "11111111-1111-4111-8111-111111111111",
+        sourceType: "current_arena" as const,
+        objectKind: "staged_rows" as const,
+        partitionNumber: 0,
+        objectFormat: "ndjson_gzip" as const,
+        objectKey:
+          "evidence/owner/import/current_arena/staged_rows/part-0000.ndjson.gz",
+        checksumSha256: "a".repeat(64),
+        byteSize: 100,
+        rowCount: 1,
+        firstNaturalKey: "core-1",
+        lastNaturalKey: "core-1",
+        createdAt: "2026-08-23T10:00:00.000Z",
+      },
+      storageStatus: "created" as const,
+    },
+  ];
+  const commitWithEvidenceReceiptsMock = vi.fn((_commit: unknown) => undefined);
+  const commitWithEvidenceReceipts: DurableImportPreviewEvidenceSession["commitWithEvidenceReceipts"] =
     async <Committed>(
-      commit: () => Committed | Promise<Committed>,
+      commit: (
+        stored: readonly StoredPrivateDatasetEvidenceObject[],
+      ) => Committed | Promise<Committed>,
     ): Promise<Committed> => {
-      commitAndRegisterMock(commit);
-      return commit();
+      commitWithEvidenceReceiptsMock(commit);
+      return commit(stored);
     };
   const abort = vi.fn(async () => undefined);
   const session: DurableImportPreviewEvidenceSession = {
     append,
-    commitAndRegister,
+    commitWithEvidenceReceipts,
     abort,
   };
   return {
     session,
     append,
-    commitAndRegister: commitAndRegisterMock,
+    commitWithEvidenceReceipts: commitWithEvidenceReceiptsMock,
     abort,
   };
 }
@@ -60,11 +82,15 @@ function harness(evidenceSession?: DurableImportPreviewEvidenceSession) {
     commitVerified,
     rollback,
   };
+  const resumeObject = vi.fn(async () => null);
   const beginObject = vi.fn(async () => transaction);
+  const finalizePreviewEvidence = vi.fn(async () => undefined);
   const assertPreviewObjects = vi.fn(async () => undefined);
   const abortPreview = vi.fn(async () => undefined);
   const repository: DurableImportPreviewStagingRepository = {
+    resumeObject,
     beginObject,
+    finalizePreviewEvidence,
     assertPreviewObjects,
     abortPreview,
   };
@@ -84,12 +110,14 @@ function harness(evidenceSession?: DurableImportPreviewEvidenceSession) {
   });
   return {
     sink,
+    resumeObject,
     beginObject,
     beginEvidence,
     stageSchema,
     stageRows,
     commitVerified,
     rollback,
+    finalizePreviewEvidence,
     assertPreviewObjects,
     abortPreview,
   };
@@ -251,6 +279,11 @@ describe("durable import Preview staging sink", () => {
         previewFingerprintSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       }),
     );
+    expect(test.finalizePreviewEvidence).toHaveBeenCalledTimes(2);
+    expect(test.finalizePreviewEvidence).toHaveBeenCalledWith({
+      ownerId: "owner-1",
+      importBatchIds: ["import-batch-1"],
+    });
     expect(test.assertPreviewObjects).toHaveBeenCalledTimes(2);
   });
 
@@ -314,8 +347,19 @@ describe("durable import Preview staging sink", () => {
         row: expect.objectContaining({ status: "ready" }),
       }),
     ]);
-    expect(evidence.commitAndRegister).toHaveBeenCalledOnce();
-    expect(test.commitVerified).toHaveBeenCalledOnce();
+    expect(evidence.commitWithEvidenceReceipts).toHaveBeenCalledOnce();
+    expect(test.commitVerified).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evidenceRegistrations: [
+          expect.objectContaining({
+            importBatchId: "11111111-1111-4111-8111-111111111111",
+            sourceType: "current_arena",
+            objectKind: "staged_rows",
+            partitionNumber: 0,
+          }),
+        ],
+      }),
+    );
     expect(evidence.abort).not.toHaveBeenCalled();
   });
 

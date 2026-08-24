@@ -144,7 +144,7 @@ describe("Neon import Preview processing repository", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
-  it("publishes exact prepared evidence and records retryable failures", async () => {
+  it("publishes exact prepared evidence and records sanitized failures", async () => {
     const publication = harness([
       [{ owner_scope: databaseOwnerId }],
       [evidence()],
@@ -188,11 +188,20 @@ describe("Neon import Preview processing repository", () => {
       workerId: "worker-1",
       uploadRequestFingerprint: requestFingerprint,
       failedAt: "2026-08-14T01:22:00.000Z",
-      reason: "preview_processor_failed",
+      reason: "preview_staging_commit_failed",
     });
     expect(failure.events[3]).toContain(
       "dna.record_import_preview_processing_failure",
     );
+    expect(failure.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      uploadBatchId,
+      dispatchId,
+      "worker-1",
+      requestFingerprint,
+      "2026-08-14T01:22:00.000Z",
+      "preview_staging_commit_failed",
+    ]);
   });
 
   it("rolls back before operations when runtime identity is privileged", async () => {

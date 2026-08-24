@@ -266,6 +266,14 @@ describe("Neon import activation repositories", () => {
           aggregate_refresh_required: true,
         },
       ],
+      [
+        {
+          status: "compacted",
+          source_version_count: "9",
+          deleted_staged_record_count: "9",
+          deleted_contribution_count: "9",
+        },
+      ],
     ]);
 
     await expect(
@@ -294,6 +302,18 @@ describe("Neon import activation repositories", () => {
         event.includes("prepare_import_activation_dataset"),
       ),
     ).toBe(true);
+    expect(test.query.mock.calls[4]?.[1]).toEqual([
+      databaseOwnerId,
+      updateSessionId,
+      dispatchId,
+      24,
+    ]);
+    expect(
+      test.events.some((event) =>
+        event.includes("compact_import_activation_dataset_evidence"),
+      ),
+    ).toBe(true);
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
   it("rejects unsupported durable failure reasons before database access", () => {

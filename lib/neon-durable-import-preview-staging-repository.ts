@@ -38,7 +38,8 @@ const VERIFY_ISOLATION_SQL = `
     'dna.dataset_staged_record'::regclass,
     'dna.normalized_race_staged_fact'::regclass,
     'dna.normalized_core_staged_fact'::regclass,
-    'dna.normalized_arena_staged_fact'::regclass
+    'dna.normalized_arena_staged_fact'::regclass,
+    'dna.import_preview_evidence_receipt'::regclass
   ]) relation(oid)
   JOIN pg_catalog.pg_class table_class ON table_class.oid = relation.oid
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
@@ -63,6 +64,49 @@ const VERIFY_OBJECT_SQL = `
     AND file.byte_length = $5::bigint
     AND file.sha256 = $6::character(64)
     AND object.advertised_byte_length = file.byte_length
+`;
+
+const RESUME_OBJECT_SQL = `
+  SELECT batch.id::text AS import_batch_id, batch.source_rows,
+    batch.accepted_rows, batch.rejected_rows, batch.warning_rows
+  FROM dna.import_preview_processing processing
+  JOIN dna.import_verified_upload_object object
+    ON object.owner_id = processing.owner_id
+    AND object.preview_dispatch_id = processing.preview_dispatch_id
+  JOIN dna.import_upload_file file
+    ON file.owner_id = object.owner_id AND file.id = object.upload_file_id
+  JOIN dna.import_batch batch
+    ON batch.owner_id = file.owner_id AND batch.id = file.id
+  WHERE processing.owner_id = $1::uuid
+    AND processing.preview_dispatch_id = $2::uuid
+    AND processing.state = 'processing'
+    AND object.object_id = $3
+    AND file.source_family = $4
+    AND file.byte_length = $5::bigint
+    AND file.sha256 = $6::character(64)
+    AND object.advertised_byte_length = file.byte_length
+    AND batch.status = 'validating'
+    AND batch.source_rows = COALESCE((
+      SELECT sum(receipt.row_count)
+      FROM dna.import_preview_evidence_receipt receipt
+      WHERE receipt.owner_id = batch.owner_id
+        AND receipt.import_batch_id = batch.id
+        AND receipt.source_type = batch.source_type
+        AND receipt.object_kind = 'staged_rows'
+    ), 0)
+`;
+
+const RECORD_EVIDENCE_RECEIPTS_SQL = `
+  SELECT dna.record_import_preview_evidence_receipts(
+    $1::uuid, $2::uuid, $3::jsonb
+  ) AS recorded_count
+`;
+
+const FINALIZE_EVIDENCE_RECEIPTS_SQL = `
+  SELECT staged_batch_count, receipt_count, registered_manifest_count
+  FROM dna.finalize_import_preview_evidence_receipts(
+    $1::uuid, $2::uuid[], $3::timestamptz
+  )
 `;
 
 const STAGE_SCHEMA_SQL = `
@@ -253,6 +297,21 @@ function oneRow(result: QueryResult, field: string): DbRow {
     throw new Error(`${field} must return exactly one row`);
   return record(result.rows[0], field);
 }
+function optionalRow(result: QueryResult, field: string): DbRow | null {
+  if (result.rows.length > 1)
+    throw new Error(`${field} must return at most one row`);
+  return result.rows.length === 0 ? null : record(result.rows[0], field);
+}
+function objectResult(row: DbRow): DurablePreviewObjectResult {
+  return {
+    importBatchId: text(row.import_batch_id, "import_batch_id"),
+    sourceRowCount: count(row.source_rows, "source_rows"),
+    readyRowCount: count(row.accepted_rows, "accepted_rows"),
+    quarantinedRowCount: count(row.rejected_rows, "rejected_rows"),
+    warningRowCount: count(row.warning_rows, "warning_rows"),
+    blockingIssueCount: count(row.rejected_rows, "rejected_rows"),
+  };
+}
 function bool(value: unknown, field: string): boolean {
   if (typeof value !== "boolean") throw new Error(`${field} must be boolean`);
   return value;
@@ -393,6 +452,24 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
   ) => transaction({ ...config, ownerId, sessionFactory, operation });
 
   return {
+    resumeObject(object) {
+      if (!SHA_PATTERN.test(object.expectedSha256))
+        throw new Error("expectedSha256 is invalid");
+      return run(object.ownerId, async (client) => {
+        const row = optionalRow(
+          await client.query(RESUME_OBJECT_SQL, [
+            config.databaseOwnerId,
+            object.previewDispatchId,
+            object.objectId,
+            object.sourceFamily,
+            object.expectedByteLength,
+            object.expectedSha256,
+          ]),
+          "resumable Preview object",
+        );
+        return row === null ? null : objectResult(row);
+      });
+    },
     async beginObject(object) {
       if (!SHA_PATTERN.test(object.expectedSha256))
         throw new Error("expectedSha256 is invalid");
@@ -508,6 +585,24 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
               throw new Error(
                 "Preview object verification does not match reservation",
               );
+            if (verified.evidenceRegistrations !== undefined) {
+              const receiptRow = oneRow(
+                await session.client.query(RECORD_EVIDENCE_RECEIPTS_SQL, [
+                  config.databaseOwnerId,
+                  importBatchId,
+                  JSON.stringify(verified.evidenceRegistrations),
+                ]),
+                "Preview evidence receipt recording",
+              );
+              if (
+                count(receiptRow.recorded_count, "recorded_count") !==
+                verified.evidenceRegistrations.length
+              ) {
+                throw new Error(
+                  "Preview evidence receipt recording is incomplete",
+                );
+              }
+            }
             const row = oneRow(
               await session.client.query(RESULT_SQL, [
                 config.databaseOwnerId,
@@ -518,14 +613,7 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
               ]),
               "staged Preview object",
             );
-            const result = {
-              importBatchId: text(row.import_batch_id, "import_batch_id"),
-              sourceRowCount: count(row.source_rows, "source_rows"),
-              readyRowCount: count(row.accepted_rows, "accepted_rows"),
-              quarantinedRowCount: count(row.rejected_rows, "rejected_rows"),
-              warningRowCount: count(row.warning_rows, "warning_rows"),
-              blockingIssueCount: count(row.rejected_rows, "rejected_rows"),
-            };
+            const result = objectResult(row);
             await close("COMMIT");
             return result;
           },
@@ -539,6 +627,42 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
         }
         throw error;
       }
+    },
+    finalizePreviewEvidence(finalization) {
+      if (
+        finalization.importBatchIds.length < 1 ||
+        finalization.importBatchIds.length > 24 ||
+        new Set(finalization.importBatchIds).size !==
+          finalization.importBatchIds.length
+      ) {
+        throw new Error("Preview evidence finalization batch set is invalid");
+      }
+      return run(finalization.ownerId, async (client) => {
+        await client.query("SET LOCAL statement_timeout = '60000ms'");
+        const row = oneRow(
+          await client.query(FINALIZE_EVIDENCE_RECEIPTS_SQL, [
+            config.databaseOwnerId,
+            finalization.importBatchIds,
+            new Date().toISOString(),
+          ]),
+          "Preview evidence finalization",
+        );
+        const stagedBatchCount = count(
+          row.staged_batch_count,
+          "staged_batch_count",
+        );
+        const receiptCount = count(row.receipt_count, "receipt_count");
+        const registeredManifestCount = count(
+          row.registered_manifest_count,
+          "registered_manifest_count",
+        );
+        if (
+          stagedBatchCount !== finalization.importBatchIds.length ||
+          registeredManifestCount !== receiptCount
+        ) {
+          throw new Error("Preview evidence finalization is incomplete");
+        }
+      });
     },
     assertPreviewObjects(assertion) {
       return run(assertion.ownerId, async (client) => {

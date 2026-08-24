@@ -12,7 +12,8 @@ const checksum = "b".repeat(64);
 const checksumBase64 = Buffer.from(checksum, "hex").toString("base64");
 
 async function* body() {
-  yield new Uint8Array([1, 2, 3]);
+  yield new Uint8Array([1, 2]);
+  yield new Uint8Array([3]);
 }
 
 function json(value: unknown, status = 200): Response {
@@ -22,7 +23,7 @@ function json(value: unknown, status = 200): Response {
   });
 }
 
-function harness() {
+function harness(maximumBufferedPutBytes = 8 * 1024 * 1024) {
   const putObjectIfAbsent =
     vi.fn<CloudflareR2DatasetEvidenceDriver["putObjectIfAbsent"]>();
   putObjectIfAbsent.mockResolvedValue(undefined);
@@ -52,6 +53,7 @@ function harness() {
     accessKeyId: "access-key",
     secretAccessKey: "secret-key",
     apiToken: "privacy-read-token",
+    maximumBufferedPutBytes,
     fetch: fetcher,
     createDriver,
   });
@@ -76,7 +78,7 @@ function putInput() {
 }
 
 describe("Cloudflare R2 dataset evidence port", () => {
-  it("maps a streamed create-only PUT with provider checksum validation", async () => {
+  it("maps a bounded create-only PUT with provider checksum validation", async () => {
     const test = harness();
     const input = putInput();
     await expect(test.port.putObjectIfAbsent(input)).resolves.toEqual({
@@ -85,7 +87,7 @@ describe("Cloudflare R2 dataset evidence port", () => {
     expect(test.driver.putObjectIfAbsent).toHaveBeenCalledWith({
       bucketName: input.bucketName,
       key: input.key,
-      body: input.body,
+      body: new Uint8Array([1, 2, 3]),
       contentType: input.contentType,
       byteLength: input.byteLength,
       checksumSha256Base64: checksumBase64,
@@ -96,6 +98,36 @@ describe("Cloudflare R2 dataset evidence port", () => {
       accessKeyId: "access-key",
       secretAccessKey: "secret-key",
     });
+  });
+
+  it("rejects evidence outside the Worker buffer bound or exact body length", async () => {
+    const bounded = harness(2);
+    await expect(bounded.port.putObjectIfAbsent(putInput())).rejects.toThrow(
+      "bounded memory capacity",
+    );
+    expect(bounded.driver.putObjectIfAbsent).not.toHaveBeenCalled();
+
+    const truncated = harness();
+    await expect(
+      truncated.port.putObjectIfAbsent({
+        ...putInput(),
+        body: (async function* () {
+          yield new Uint8Array([1, 2]);
+        })(),
+      }),
+    ).rejects.toThrow("body length is invalid");
+    expect(truncated.driver.putObjectIfAbsent).not.toHaveBeenCalled();
+
+    const oversized = harness();
+    await expect(
+      oversized.port.putObjectIfAbsent({
+        ...putInput(),
+        body: (async function* () {
+          yield new Uint8Array([1, 2, 3, 4]);
+        })(),
+      }),
+    ).rejects.toThrow("body length is invalid");
+    expect(oversized.driver.putObjectIfAbsent).not.toHaveBeenCalled();
   });
 
   it("maps only a provider precondition failure to immutable replay", async () => {
@@ -190,6 +222,16 @@ describe("Cloudflare R2 dataset evidence port", () => {
         createDriver,
       }),
     ).toThrow("secretAccessKey is invalid");
+    expect(() =>
+      createCloudflareR2DatasetEvidencePort({
+        accountId,
+        accessKeyId: "access-key",
+        secretAccessKey: "secret-key",
+        apiToken: "privacy-read-token",
+        maximumBufferedPutBytes: 0,
+        createDriver,
+      }),
+    ).toThrow("maximumBufferedPutBytes is invalid");
     expect(createDriver).not.toHaveBeenCalled();
   });
 

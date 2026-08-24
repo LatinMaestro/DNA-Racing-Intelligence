@@ -56,6 +56,9 @@ export const rawImportObjectFailureCodes = [
   "invalid_chunk",
   "invalid_stream",
   "store_failed",
+  "sink_begin_failed",
+  "sink_write_failed",
+  "sink_commit_failed",
   "sink_failed",
 ] as const;
 
@@ -206,7 +209,7 @@ export async function streamVerifiedPrivateRawImportObject<T>(
       expectedSha256: reference.expectedSha256,
     });
   } catch {
-    throw new RawImportObjectError("sink_failed");
+    throw new RawImportObjectError("sink_begin_failed");
   }
   if (
     typeof activeSink !== "object" ||
@@ -215,7 +218,7 @@ export async function streamVerifiedPrivateRawImportObject<T>(
     typeof activeSink.commitVerified !== "function" ||
     typeof activeSink.abort !== "function"
   ) {
-    throw new RawImportObjectError("sink_failed");
+    throw new RawImportObjectError("sink_begin_failed");
   }
 
   const hash = createHash("sha256");
@@ -243,7 +246,11 @@ export async function streamVerifiedPrivateRawImportObject<T>(
       }
 
       hash.update(chunk);
-      await activeSink.write(chunk);
+      try {
+        await activeSink.write(chunk);
+      } catch {
+        throw new RawImportObjectError("sink_write_failed");
+      }
       chunkCount += 1;
     }
 
@@ -255,11 +262,16 @@ export async function streamVerifiedPrivateRawImportObject<T>(
       throw new RawImportObjectError("checksum_mismatch");
     }
 
-    const result = await activeSink.commitVerified({
-      byteLength,
-      sha256,
-      chunkCount,
-    });
+    let result: T;
+    try {
+      result = await activeSink.commitVerified({
+        byteLength,
+        sha256,
+        chunkCount,
+      });
+    } catch {
+      throw new RawImportObjectError("sink_commit_failed");
+    }
     return { result, byteLength, sha256, chunkCount };
   } catch (error) {
     const code = failureCode(error);

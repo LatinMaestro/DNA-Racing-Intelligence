@@ -14,6 +14,7 @@ import type {
 } from "./bounded-import-preview-processor";
 import type { DurableImportPreviewEvidenceLifecycle } from "./durable-import-preview-evidence-lifecycle";
 import type { PreparedImportPreview } from "./import-preview-processing-service";
+import type { DatasetEvidenceObjectRegistration } from "./neon-dataset-evidence-object-repository";
 import type {
   PrivateRawImportSourceFamily,
   RawImportObjectFailureCode,
@@ -43,11 +44,20 @@ export type DurablePreviewObjectTransaction = Readonly<{
     byteLength: number;
     sha256: string;
     chunkCount: number;
+    evidenceRegistrations?: readonly DatasetEvidenceObjectRegistration[];
   }) => Promise<DurablePreviewObjectResult>;
   rollback: (input: { reason: RawImportObjectFailureCode }) => Promise<void>;
 }>;
 
 export type DurableImportPreviewStagingRepository = Readonly<{
+  resumeObject: (input: {
+    ownerId: string;
+    previewDispatchId: string;
+    objectId: string;
+    sourceFamily: "race_merge" | "core_details" | "current_arena";
+    expectedByteLength: number;
+    expectedSha256: string;
+  }) => Promise<DurablePreviewObjectResult | null>;
   beginObject: (input: {
     ownerId: string;
     previewDispatchId: string;
@@ -56,6 +66,10 @@ export type DurableImportPreviewStagingRepository = Readonly<{
     expectedByteLength: number;
     expectedSha256: string;
   }) => Promise<DurablePreviewObjectTransaction>;
+  finalizePreviewEvidence: (input: {
+    ownerId: string;
+    importBatchIds: readonly string[];
+  }) => Promise<void>;
   assertPreviewObjects: (input: {
     ownerId: string;
     uploadBatchId: string;
@@ -67,7 +81,10 @@ export type DurableImportPreviewStagingRepository = Readonly<{
     ownerId: string;
     uploadBatchId: string;
     previewDispatchId: string;
-    reason: "object_processing_failed" | "preview_finalization_failed";
+    reason:
+      | "attempt_restart"
+      | "object_processing_failed"
+      | "preview_finalization_failed";
   }) => Promise<void>;
 }>;
 
@@ -271,6 +288,16 @@ export function createDurableImportPreviewStagingSink(input: {
   );
 
   return {
+    resumeObject(resumeInput) {
+      if (!IMPORTED_FAMILIES.has(resumeInput.sourceFamily)) {
+        throw new Error("Source family is not imported into Preview");
+      }
+      return input.repository.resumeObject({
+        ...resumeInput,
+        sourceFamily: resumeInput.sourceFamily as
+          "race_merge" | "core_details" | "current_arena",
+      });
+    },
     async beginObject(beginInput) {
       if (!IMPORTED_FAMILIES.has(beginInput.sourceFamily)) {
         throw new Error("Source family is not imported into Preview");
@@ -382,10 +409,17 @@ export function createDurableImportPreviewStagingSink(input: {
           csv.push(decoder.decode());
           await csv.finish();
           await flush();
-          const commit = () => transaction.commitVerified(verified);
-          return evidence === undefined
-            ? commit()
-            : evidence.commitAndRegister(commit);
+          if (evidence === undefined) {
+            return transaction.commitVerified(verified);
+          }
+          return evidence.commitWithEvidenceReceipts((stored) =>
+            transaction.commitVerified({
+              ...verified,
+              evidenceRegistrations: stored.map(
+                ({ registration }) => registration,
+              ),
+            }),
+          );
         },
         async abort({ reason }) {
           const results = await Promise.allSettled([
@@ -406,6 +440,15 @@ export function createDurableImportPreviewStagingSink(input: {
       };
     },
     async completePreview(completeInput) {
+      const summary = previewSummary(completeInput);
+      const importBatchIds = completeInput.objects.map(
+        ({ stagedResult }) =>
+          (stagedResult as DurablePreviewObjectResult).importBatchId,
+      );
+      await input.repository.finalizePreviewEvidence({
+        ownerId: completeInput.ownerId,
+        importBatchIds,
+      });
       await input.repository.assertPreviewObjects({
         ownerId: completeInput.ownerId,
         uploadBatchId: completeInput.uploadBatchId,
@@ -414,7 +457,7 @@ export function createDurableImportPreviewStagingSink(input: {
           completeInput.uploadManifestFingerprintSha256,
         objects: completeInput.objects,
       });
-      return previewSummary(completeInput);
+      return summary;
     },
     abortPreview(abortInput) {
       return input.repository.abortPreview(abortInput);

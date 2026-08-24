@@ -113,6 +113,7 @@ function objectPort(): CloudflareR2ImportObjectStoragePort {
 
 function stagingSink(): ImportPreviewStagingSink {
   return {
+    resumeObject: vi.fn(async () => null),
     beginObject: vi.fn(async () => ({
       write: vi.fn(async () => undefined),
       commitVerified: vi.fn(async () => ({ stagedId: "stage-1" })),
@@ -230,6 +231,7 @@ describe("hosted import Preview worker runtime", () => {
       disposition: "acknowledge",
       reason: "completed",
     });
+    expect(sink.resumeObject).toHaveBeenCalledOnce();
     expect(sink.beginObject).toHaveBeenCalledOnce();
     expect(sink.completePreview).toHaveBeenCalledOnce();
     expect(database.query).toHaveBeenCalled();

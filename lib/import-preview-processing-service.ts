@@ -2,6 +2,10 @@ import {
   importUploadSourceFamilies,
   type ImportUploadSourceFamily,
 } from "./import-upload-intake-service";
+import {
+  ImportPreviewProcessingFailure,
+  type ImportPreviewProcessingFailureReason,
+} from "./import-preview-processing-failure";
 
 export type PreviewObjectReference = Readonly<{
   uploadFileId: string;
@@ -83,7 +87,7 @@ export type ImportPreviewProcessingRepository = Readonly<{
     workerId: string;
     uploadRequestFingerprint: string;
     failedAt: string;
-    reason: "preview_processor_failed";
+    reason: ImportPreviewProcessingFailureReason;
   }) => Promise<void>;
 }>;
 
@@ -399,7 +403,11 @@ export async function runImportPreviewDispatch(
       }),
       normalizedClaim,
     );
-  } catch {
+  } catch (error) {
+    const reason =
+      error instanceof ImportPreviewProcessingFailure
+        ? error.reason
+        : "preview_processor_failed";
     await recordPreviewFailureSafely(repository, {
       ownerId: normalizedClaim.ownerId,
       uploadBatchId: normalizedClaim.uploadBatchId,
@@ -407,7 +415,7 @@ export async function runImportPreviewDispatch(
       workerId,
       uploadRequestFingerprint,
       failedAt: claimedAt,
-      reason: "preview_processor_failed",
+      reason,
     });
     throw new Error("Private import preview processing failed.");
   }
@@ -432,6 +440,15 @@ export async function runImportPreviewDispatch(
       completedAt: claimedAt,
     });
   } catch {
+    await recordPreviewFailureSafely(repository, {
+      ownerId: normalizedClaim.ownerId,
+      uploadBatchId: normalizedClaim.uploadBatchId,
+      previewDispatchId,
+      workerId,
+      uploadRequestFingerprint,
+      failedAt: claimedAt,
+      reason: "preview_finalization_failed",
+    });
     throw new Error("Private import preview publication is unavailable.");
   }
   if (
@@ -445,6 +462,15 @@ export async function runImportPreviewDispatch(
       prepared.previewFingerprintSha256 ||
     publication.confirmable !== prepared.confirmable
   ) {
+    await recordPreviewFailureSafely(repository, {
+      ownerId: normalizedClaim.ownerId,
+      uploadBatchId: normalizedClaim.uploadBatchId,
+      previewDispatchId,
+      workerId,
+      uploadRequestFingerprint,
+      failedAt: claimedAt,
+      reason: "preview_finalization_failed",
+    });
     throw new Error("Stored preview publication state is inconsistent.");
   }
   return {
