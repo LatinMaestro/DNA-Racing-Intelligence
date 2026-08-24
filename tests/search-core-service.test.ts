@@ -174,7 +174,6 @@ describe("Search Core service", () => {
       archiveHistoryVersionCount: 2,
       archiveHistoryPartitionCount: 3,
       archiveHistoryRowCount: 2,
-      archiveHistoryLatestVersionNumber: 2,
     });
   });
 
