@@ -18,6 +18,7 @@ on:
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
       - "lib/cloudflare-r2-dataset-evidence-port.ts"
+      - "lib/private-dataset-evidence-object-reader.ts"
       - "lib/private-dataset-evidence-object-writer.ts"
       - "lib/neon-dataset-evidence-object-repository.ts"
       - "lib/hosted-import-activation-worker-runtime.ts"
