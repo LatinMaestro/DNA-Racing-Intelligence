@@ -41,7 +41,9 @@ function harness() {
       };
     }),
   };
-  const resumeObject = vi.fn(async () => null);
+  const resumeObject = vi.fn<ImportPreviewStagingSink["resumeObject"]>(
+    async () => null,
+  );
   const beginObject = vi.fn(async ({ objectId }: { objectId: string }) => ({
     write: vi.fn(async () => undefined),
     commitVerified: vi.fn(async () => {
