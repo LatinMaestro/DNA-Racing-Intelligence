@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { RaceArchiveCoreHistory } from "../lib/race-archive-core-history-service";
-import {
-  analyticalObservationsFromRaceArchiveCoreHistory,
-} from "../lib/race-archive-core-analytical-observations";
+import { analyticalObservationsFromRaceArchiveCoreHistory } from "../lib/race-archive-core-analytical-observations";
 
 function history(input?: {
   sourceCoreId?: string;
@@ -71,37 +69,39 @@ function history(input?: {
 
 describe("Race archive Core analytical observations", () => {
   it("extracts exact aggregate inputs without a durable race_entry row", () => {
-    expect(analyticalObservationsFromRaceArchiveCoreHistory(history())).toEqual({
-      sourceCoreId: "core-7",
-      locatorVersionCount: 1,
-      selectedPartitionCount: 1,
-      observations: [
-        {
-          datasetVersionId: "version-1",
-          importBatchId: "batch-1",
-          versionNumber: 1,
-          partitionNumber: 0,
-          sourceRowNumber: 4,
-          naturalKey: "event-21:core-7",
-          fingerprintSha256: "a".repeat(64),
-          sourceEventId: "event-21",
-          sourceCoreId: "core-7",
-          eventAt: "2026-08-20T01:02:03.000Z",
-          mode: "bike",
-          distance: 1000,
-          gateCount: 8,
-          goldStarEligible: true,
-          goldStar: true,
-          blueStar: false,
-          starDataStatus: "complete",
-          finishPosition: 1,
-          elapsedMilliseconds: 61_250,
-          payoutMechanismSourceValue: "Top 3",
-          sourceFormat: "Sprint",
-          sourceRaceClass: "A",
-        },
-      ],
-    });
+    expect(analyticalObservationsFromRaceArchiveCoreHistory(history())).toEqual(
+      {
+        sourceCoreId: "core-7",
+        locatorVersionCount: 1,
+        selectedPartitionCount: 1,
+        observations: [
+          {
+            datasetVersionId: "version-1",
+            importBatchId: "batch-1",
+            versionNumber: 1,
+            partitionNumber: 0,
+            sourceRowNumber: 4,
+            naturalKey: "event-21:core-7",
+            fingerprintSha256: "a".repeat(64),
+            sourceEventId: "event-21",
+            sourceCoreId: "core-7",
+            eventAt: "2026-08-20T01:02:03.000Z",
+            mode: "bike",
+            distance: 1000,
+            gateCount: 8,
+            goldStarEligible: true,
+            goldStar: true,
+            blueStar: false,
+            starDataStatus: "complete",
+            finishPosition: 1,
+            elapsedMilliseconds: 61_250,
+            payoutMechanismSourceValue: "Top 3",
+            sourceFormat: "Sprint",
+            sourceRaceClass: "A",
+          },
+        ],
+      },
+    );
   });
 
   it("matches the existing integer-millisecond conversion boundary", () => {
