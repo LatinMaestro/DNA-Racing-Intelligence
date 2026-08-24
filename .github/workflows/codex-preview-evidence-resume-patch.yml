@@ -1,9 +1,7 @@
 name: Codex Preview evidence resume patch
 
 on:
-  push:
-    branches:
-      - codex/invoke-activation-evidence-compaction
+  pull_request:
     paths:
       - .github/workflows/codex-preview-evidence-resume-patch.yml
 
