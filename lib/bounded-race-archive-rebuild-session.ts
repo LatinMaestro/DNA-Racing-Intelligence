@@ -12,10 +12,7 @@ import type {
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 
 type RaceArchiveRebuildFailureReason =
-  | "archive_read_failed"
-  | "stage_failed"
-  | "locator_failed"
-  | "commit_failed";
+  "archive_read_failed" | "stage_failed" | "locator_failed" | "commit_failed";
 
 class RaceArchiveStageFailure extends Error {
   readonly originalCause: unknown;
@@ -206,7 +203,9 @@ async function persistLocators(input: {
         "Race archive rebuild cannot seal Core locators without ready rows.",
       );
     }
-    const partitionReferenceCount = locatorPartitionReferenceCount(input.locators);
+    const partitionReferenceCount = locatorPartitionReferenceCount(
+      input.locators,
+    );
     const receipt = await input.repository.replace({
       ownerId: input.ownerId,
       datasetVersionId: input.manifest.datasetVersionId,
@@ -338,7 +337,10 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           batch.push(row);
           if (batch.length === maximumRowsPerWrite) {
             const stagedBatch = Object.freeze(batch);
-            appendLocators({ accumulator: locatorAccumulator, rows: stagedBatch });
+            appendLocators({
+              accumulator: locatorAccumulator,
+              rows: stagedBatch,
+            });
             await stageRows({
               transaction,
               manifest,
@@ -350,7 +352,10 @@ export function createBoundedRaceArchiveRebuildSession(input: {
 
         if (batch.length > 0) {
           const stagedBatch = Object.freeze(batch);
-          appendLocators({ accumulator: locatorAccumulator, rows: stagedBatch });
+          appendLocators({
+            accumulator: locatorAccumulator,
+            rows: stagedBatch,
+          });
           await stageRows({
             transaction,
             manifest,
@@ -375,8 +380,7 @@ export function createBoundedRaceArchiveRebuildSession(input: {
             : locatorFailure
               ? "locator_failed"
               : "archive_read_failed",
-          cause:
-            stageFailure || locatorFailure ? cause.originalCause : cause,
+          cause: stageFailure || locatorFailure ? cause.originalCause : cause,
         });
       }
 
