@@ -103,7 +103,10 @@ export function discoveryExactDistanceBenchmarksFromRaceArchive(input: {
   const naturalKeys = new Set<string>();
 
   for (const observation of input.observations) {
-    const naturalKey = safeText(observation.naturalKey, "observation.naturalKey");
+    const naturalKey = safeText(
+      observation.naturalKey,
+      "observation.naturalKey",
+    );
     if (naturalKeys.has(naturalKey)) {
       throw new Error("Archive Discovery contains duplicate Race evidence.");
     }
@@ -123,7 +126,10 @@ export function discoveryExactDistanceBenchmarksFromRaceArchive(input: {
       observation.elapsedMilliseconds,
       "observation.elapsedMilliseconds",
     );
-    const eventAt = normalizedTimestamp(observation.eventAt, "observation.eventAt");
+    const eventAt = normalizedTimestamp(
+      observation.eventAt,
+      "observation.eventAt",
+    );
     const key = `${observation.mode}:${distance}`;
     let group = groups.get(key);
     if (group === undefined) {
