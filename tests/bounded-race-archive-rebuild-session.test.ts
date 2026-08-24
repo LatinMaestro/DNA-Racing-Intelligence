@@ -212,8 +212,11 @@ describe("bounded Race archive rebuild session", () => {
       sink.stageRows.mock.calls.map(([value]) => value.rows.length),
     ).toEqual([2, 2, 1]);
     expect(sink.rollback).not.toHaveBeenCalled();
-    expect(events.at(-2)).toBe("archive:complete");
-    expect(events.at(-1)).toBe("commit:5");
+    expect(events.slice(-3)).toEqual([
+      "stage:1",
+      "archive:complete",
+      "commit:5",
+    ]);
   });
 
   it("rolls back once as archive_read_failed on manifest identity conflicts", async () => {
