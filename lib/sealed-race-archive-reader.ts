@@ -16,24 +16,36 @@ export type DecodedSealedRaceArchivePartition = Readonly<{
   uncompressedByteSize: number;
 }>;
 
+type ReadySealedRaceArchive = Readonly<{
+  status: "ready";
+  manifest: SealedRaceArchiveManifest;
+  partitions: AsyncIterable<DecodedSealedRaceArchivePartition>;
+}>;
+
 export type SealedRaceArchiveReader = Readonly<{
   open: (input: {
     ownerId: string;
     datasetVersionId: string;
     maximumPartitions: number;
-  }) => Promise<
-    | Readonly<{ status: "missing" }>
-    | Readonly<{
-        status: "ready";
-        manifest: SealedRaceArchiveManifest;
-        partitions: AsyncIterable<DecodedSealedRaceArchivePartition>;
-      }>
-  >;
+  }) => Promise<Readonly<{ status: "missing" }> | ReadySealedRaceArchive>;
+  openSelected: (input: {
+    ownerId: string;
+    datasetVersionId: string;
+    maximumPartitions: number;
+    partitionNumbers: readonly number[];
+  }) => Promise<Readonly<{ status: "missing" }> | ReadySealedRaceArchive>;
 }>;
 
 function positiveSafeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error(field + " must be a positive safe integer");
+  }
+  return value;
+}
+
+function nonNegativeSafeInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(field + " must be a non-negative safe integer");
   }
   return value;
 }
@@ -168,11 +180,108 @@ function decodePartition(input: {
   });
 }
 
+function assertRebuildableRegistration(
+  registration: DatasetEvidenceObjectRegistration,
+  maximumRowsPerPartition: number,
+): void {
+  if (
+    registration.objectFormat !== "ndjson_gzip" ||
+    registration.rowCount > maximumRowsPerPartition
+  ) {
+    throw new Error(
+      "Sealed Race archive contains a partition outside the rebuild bounds.",
+    );
+  }
+}
+
+function selectedPartitionNumbers(
+  values: readonly number[],
+  maximumSelectedPartitions: number,
+): readonly number[] {
+  if (values.length < 1 || values.length > maximumSelectedPartitions) {
+    throw new Error("Selected Race archive partition count is outside its bound.");
+  }
+  const selected = values.map((value, index) =>
+    nonNegativeSafeInteger(value, `partitionNumbers[${index}]`),
+  );
+  let previous: number | undefined;
+  for (const value of selected) {
+    if (previous !== undefined && value <= previous) {
+      throw new Error(
+        "Selected Race archive partition numbers must be strictly increasing.",
+      );
+    }
+    previous = value;
+  }
+  return Object.freeze(selected);
+}
+
+function selectManifestObjects(input: {
+  manifest: SealedRaceArchiveManifest;
+  partitionNumbers: readonly number[];
+  maximumRowsPerPartition: number;
+}): readonly DatasetEvidenceObjectRegistration[] {
+  const byPartition = new Map<number, DatasetEvidenceObjectRegistration>();
+  for (const registration of input.manifest.objects) {
+    if (byPartition.has(registration.partitionNumber)) {
+      throw new Error("Sealed Race archive contains duplicate partition numbers.");
+    }
+    byPartition.set(registration.partitionNumber, registration);
+  }
+  return Object.freeze(
+    input.partitionNumbers.map((partitionNumber) => {
+      const registration = byPartition.get(partitionNumber);
+      if (registration === undefined) {
+        throw new Error(
+          "Selected Race archive partition is missing from the sealed manifest.",
+        );
+      }
+      assertRebuildableRegistration(
+        registration,
+        input.maximumRowsPerPartition,
+      );
+      return registration;
+    }),
+  );
+}
+
+function verifiedPartitions(input: {
+  registrations: readonly DatasetEvidenceObjectRegistration[];
+  objectReader: PrivateDatasetEvidenceObjectReader;
+  maximumUncompressedBytes: number;
+  maximumRowsPerPartition: number;
+}): AsyncIterable<DecodedSealedRaceArchivePartition> {
+  return (async function* () {
+    for (const registration of input.registrations) {
+      const verified = await input.objectReader.read(registration);
+      if (verified.registration !== registration) {
+        if (
+          verified.registration.objectKey !== registration.objectKey ||
+          verified.registration.checksumSha256 !== registration.checksumSha256 ||
+          verified.registration.byteSize !== registration.byteSize ||
+          verified.registration.rowCount !== registration.rowCount
+        ) {
+          throw new Error(
+            "Verified Race archive object does not match its sealed manifest.",
+          );
+        }
+      }
+      yield decodePartition({
+        registration,
+        body: verified.body,
+        maximumUncompressedBytes: input.maximumUncompressedBytes,
+        maximumRowsPerPartition: input.maximumRowsPerPartition,
+      });
+    }
+  })();
+}
+
 export function createSealedRaceArchiveReader(input: {
   manifestRepository: SealedRaceArchiveManifestRepository;
   objectReader: PrivateDatasetEvidenceObjectReader;
   maximumUncompressedBytesPerPartition: number;
   maximumRowsPerPartition: number;
+  maximumSelectedPartitions?: number;
 }): SealedRaceArchiveReader {
   const maximumUncompressedBytes = positiveSafeInteger(
     input.maximumUncompressedBytesPerPartition,
@@ -182,6 +291,10 @@ export function createSealedRaceArchiveReader(input: {
     input.maximumRowsPerPartition,
     "maximumRowsPerPartition",
   );
+  const maximumSelectedPartitions = positiveSafeInteger(
+    input.maximumSelectedPartitions ?? 256,
+    "maximumSelectedPartitions",
+  );
 
   return Object.freeze({
     async open(request) {
@@ -189,45 +302,47 @@ export function createSealedRaceArchiveReader(input: {
       if (located.status === "missing") return located;
       const manifest = located.manifest;
       for (const registration of manifest.objects) {
-        if (
-          registration.objectFormat !== "ndjson_gzip" ||
-          registration.rowCount > maximumRowsPerPartition
-        ) {
-          throw new Error(
-            "Sealed Race archive contains a partition outside the rebuild bounds.",
-          );
-        }
+        assertRebuildableRegistration(registration, maximumRowsPerPartition);
       }
-
-      const partitions = (async function* () {
-        for (const registration of manifest.objects) {
-          const verified = await input.objectReader.read(registration);
-          if (verified.registration !== registration) {
-            if (
-              verified.registration.objectKey !== registration.objectKey ||
-              verified.registration.checksumSha256 !==
-                registration.checksumSha256 ||
-              verified.registration.byteSize !== registration.byteSize ||
-              verified.registration.rowCount !== registration.rowCount
-            ) {
-              throw new Error(
-                "Verified Race archive object does not match its sealed manifest.",
-              );
-            }
-          }
-          yield decodePartition({
-            registration,
-            body: verified.body,
-            maximumUncompressedBytes,
-            maximumRowsPerPartition,
-          });
-        }
-      })();
 
       return Object.freeze({
         status: "ready" as const,
         manifest,
-        partitions,
+        partitions: verifiedPartitions({
+          registrations: manifest.objects,
+          objectReader: input.objectReader,
+          maximumUncompressedBytes,
+          maximumRowsPerPartition,
+        }),
+      });
+    },
+    async openSelected(request) {
+      const partitionNumbers = selectedPartitionNumbers(
+        request.partitionNumbers,
+        maximumSelectedPartitions,
+      );
+      const located = await input.manifestRepository.list({
+        ownerId: request.ownerId,
+        datasetVersionId: request.datasetVersionId,
+        maximumPartitions: request.maximumPartitions,
+      });
+      if (located.status === "missing") return located;
+      const manifest = located.manifest;
+      const registrations = selectManifestObjects({
+        manifest,
+        partitionNumbers,
+        maximumRowsPerPartition,
+      });
+
+      return Object.freeze({
+        status: "ready" as const,
+        manifest,
+        partitions: verifiedPartitions({
+          registrations,
+          objectReader: input.objectReader,
+          maximumUncompressedBytes,
+          maximumRowsPerPartition,
+        }),
       });
     },
   });
