@@ -2,9 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { AdaptedSourceRow } from "@/domain/source-adapters";
 import type { DurablePreviewStagedRow } from "./durable-import-preview-staging-sink";
-import type {
-  SealedRaceArchiveManifest,
-} from "./neon-sealed-race-archive-manifest-repository";
+import type { SealedRaceArchiveManifest } from "./neon-sealed-race-archive-manifest-repository";
 import type {
   DecodedSealedRaceArchivePartition,
   SealedRaceArchiveReader,
@@ -97,7 +95,9 @@ function validateRaceSourceRow(value: unknown): AdaptedSourceRow {
   }
   if (row.status === "quarantined") {
     if (row.record !== null) {
-      throw new Error("Quarantined Race staged-row unexpectedly contains a record.");
+      throw new Error(
+        "Quarantined Race staged-row unexpectedly contains a record.",
+      );
     }
     return row as unknown as AdaptedSourceRow;
   }
@@ -131,7 +131,9 @@ function decodeStagedRow(input: {
 
   const naturalKey = nullableNaturalKey(value.naturalKey);
   if (naturalKey !== evidenceRow.naturalKey) {
-    throw new Error("Archived Race staged-row natural key conflicts with its envelope.");
+    throw new Error(
+      "Archived Race staged-row natural key conflicts with its envelope.",
+    );
   }
   const fingerprintSha256 = value.fingerprintSha256;
   if (
@@ -145,7 +147,9 @@ function decodeStagedRow(input: {
   const row = validateRaceSourceRow(value.row);
   if (row.status === "quarantined") {
     if (naturalKey !== null || fingerprintSha256 !== null) {
-      throw new Error("Quarantined Race staged-row unexpectedly contains identity evidence.");
+      throw new Error(
+        "Quarantined Race staged-row unexpectedly contains identity evidence.",
+      );
     }
   } else {
     const race = record(row.record, "Archived ready Race staged-row record");
@@ -160,7 +164,9 @@ function decodeStagedRow(input: {
       typeof fingerprintSha256 !== "string" ||
       fingerprintSha256 !== expectedFingerprint(row.record)
     ) {
-      throw new Error("Archived ready Race staged-row fingerprint does not match its record.");
+      throw new Error(
+        "Archived ready Race staged-row fingerprint does not match its record.",
+      );
     }
   }
 
