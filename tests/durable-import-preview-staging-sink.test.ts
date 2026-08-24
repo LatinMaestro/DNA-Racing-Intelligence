@@ -24,7 +24,8 @@ function evidenceHarness() {
         objectKind: "staged_rows" as const,
         partitionNumber: 0,
         objectFormat: "ndjson_gzip" as const,
-        objectKey: "evidence/owner/import/current_arena/staged_rows/part-0000.ndjson.gz",
+        objectKey:
+          "evidence/owner/import/current_arena/staged_rows/part-0000.ndjson.gz",
         checksumSha256: "a".repeat(64),
         byteSize: 100,
         rowCount: 1,
@@ -35,9 +36,7 @@ function evidenceHarness() {
       storageStatus: "created" as const,
     },
   ];
-  const commitWithEvidenceReceiptsMock = vi.fn(
-    (_commit: unknown) => undefined,
-  );
+  const commitWithEvidenceReceiptsMock = vi.fn((_commit: unknown) => undefined);
   const commitWithEvidenceReceipts: DurableImportPreviewEvidenceSession["commitWithEvidenceReceipts"] =
     async <Committed>(commit): Promise<Committed> => {
       commitWithEvidenceReceiptsMock(commit);

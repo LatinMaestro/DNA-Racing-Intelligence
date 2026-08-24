@@ -167,7 +167,9 @@ describe("bounded import preview processor", () => {
       warningRowCount: 0,
       blockingIssueCount: 0,
     };
-    test.resumeObject.mockResolvedValueOnce(resumed).mockResolvedValueOnce(null);
+    test.resumeObject
+      .mockResolvedValueOnce(resumed)
+      .mockResolvedValueOnce(null);
 
     await test.processor.preparePreview(input(test));
 

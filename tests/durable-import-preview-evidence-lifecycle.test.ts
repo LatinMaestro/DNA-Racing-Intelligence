@@ -113,10 +113,9 @@ describe("durable import Preview evidence lifecycle", () => {
 
     expect(result.importBatchId).toBe(importBatchId);
     expect(result.stored).toHaveLength(2);
-    expect(result.stored.map(({ registration }) => registration.partitionNumber)).toEqual([
-      0,
-      1,
-    ]);
+    expect(
+      result.stored.map(({ registration }) => registration.partitionNumber),
+    ).toEqual([0, 1]);
     expect(test.order).toEqual(["store-0", "store-1", "commit"]);
     expect(test.cleanup).not.toHaveBeenCalled();
   });
@@ -160,7 +159,9 @@ describe("durable import Preview evidence lifecycle", () => {
     const test = harness();
     await appendTwo(test.session);
 
-    await test.session.commitWithEvidenceReceipts(async () => ({ importBatchId }));
+    await test.session.commitWithEvidenceReceipts(async () => ({
+      importBatchId,
+    }));
     await test.session.abort();
 
     expect(test.cleanup).not.toHaveBeenCalled();
@@ -196,7 +197,9 @@ describe("durable import Preview evidence lifecycle", () => {
   it("rejects a second commit request", async () => {
     const test = harness();
     await test.session.append([row(1)]);
-    await test.session.commitWithEvidenceReceipts(async () => ({ importBatchId }));
+    await test.session.commitWithEvidenceReceipts(async () => ({
+      importBatchId,
+    }));
 
     await expect(
       test.session.commitWithEvidenceReceipts(async () => ({ importBatchId })),
