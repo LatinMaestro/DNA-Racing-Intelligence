@@ -224,7 +224,9 @@ function verifyIsolation(
     !bool(row.runtime_can_read_evidence, "runtime_can_read_evidence") ||
     !bool(row.runtime_can_read_receipts, "runtime_can_read_receipts")
   ) {
-    throw new Error("Sealed Race archive runtime read privilege is incomplete.");
+    throw new Error(
+      "Sealed Race archive runtime read privilege is incomplete.",
+    );
   }
   if (
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
@@ -238,7 +240,9 @@ function verifyIsolation(
       "runtime_is_neon_superuser_member",
     )
   ) {
-    throw new Error("Sealed Race archive runtime role is not least privileged.");
+    throw new Error(
+      "Sealed Race archive runtime role is not least privileged.",
+    );
   }
 }
 
@@ -251,7 +255,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (!databaseUrl) throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -263,7 +268,9 @@ function normalizeManifest(input: {
 }): SealedRaceArchiveManifest | null {
   if (input.rows.length === 0) return null;
   if (input.rows.length > input.maximumPartitions) {
-    throw new Error("Sealed Race archive partition count exceeds the read bound.");
+    throw new Error(
+      "Sealed Race archive partition count exceeds the read bound.",
+    );
   }
 
   const first = record(input.rows[0], "sealed Race archive manifest");
@@ -275,7 +282,10 @@ function normalizeManifest(input: {
     throw new Error("Sealed Race archive source type is invalid.");
   }
   const evidenceKind = text(first.evidence_kind, "evidence_kind");
-  if (evidenceKind !== "staged_rows" && evidenceKind !== "normalized_partition") {
+  if (
+    evidenceKind !== "staged_rows" &&
+    evidenceKind !== "normalized_partition"
+  ) {
     throw new Error("Sealed Race archive evidence kind is invalid.");
   }
   const partitionCount = safeInteger(
@@ -310,7 +320,10 @@ function normalizeManifest(input: {
     ) {
       throw new Error("Sealed Race archive receipt rows are inconsistent.");
     }
-    const partitionNumber = safeInteger(row.partition_number, "partition_number");
+    const partitionNumber = safeInteger(
+      row.partition_number,
+      "partition_number",
+    );
     if (partitionNumber !== index) {
       throw new Error("Sealed Race archive partitions are not contiguous.");
     }
@@ -340,8 +353,13 @@ function normalizeManifest(input: {
     }
     observedRows += objectRowCount;
     observedBytes += objectByteSize;
-    if (!Number.isSafeInteger(observedRows) || !Number.isSafeInteger(observedBytes)) {
-      throw new Error("Sealed Race archive coverage exceeds safe integer bounds.");
+    if (
+      !Number.isSafeInteger(observedRows) ||
+      !Number.isSafeInteger(observedBytes)
+    ) {
+      throw new Error(
+        "Sealed Race archive coverage exceeds safe integer bounds.",
+      );
     }
     return {
       ownerId: input.ownerId,
@@ -361,7 +379,9 @@ function normalizeManifest(input: {
   });
 
   if (observedRows !== rowCount || observedBytes !== byteSize) {
-    throw new Error("Sealed Race archive object coverage conflicts with its receipt.");
+    throw new Error(
+      "Sealed Race archive object coverage conflicts with its receipt.",
+    );
   }
 
   return {
@@ -389,14 +409,21 @@ export function createNeonSealedRaceArchiveManifestRepository(input: {
   return Object.freeze({
     async list(request) {
       const ownerId = safeOwner(request.ownerId);
-      const datasetVersionId = uuid(request.datasetVersionId, "datasetVersionId");
+      const datasetVersionId = uuid(
+        request.datasetVersionId,
+        "datasetVersionId",
+      );
       const maximumPartitions = boundedPartitions(request.maximumPartitions);
       const session = await sessionFactory(config.databaseUrl);
       let begun = false;
       try {
-        await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+        await session.client.query(
+          "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY",
+        );
         begun = true;
-        await session.client.query(SET_OWNER_SCOPE_SQL, [config.databaseOwnerId]);
+        await session.client.query(SET_OWNER_SCOPE_SQL, [
+          config.databaseOwnerId,
+        ]);
         verifyIsolation(
           await session.client.query(VERIFY_ISOLATION_SQL, [
             config.databaseOwnerId,
@@ -421,7 +448,8 @@ export function createNeonSealedRaceArchiveManifestRepository(input: {
           ? ({ status: "missing" } as const)
           : ({ status: "ready", manifest } as const);
       } catch (error) {
-        if (begun) await session.client.query("ROLLBACK").catch(() => undefined);
+        if (begun)
+          await session.client.query("ROLLBACK").catch(() => undefined);
         throw error;
       } finally {
         await session.close();
