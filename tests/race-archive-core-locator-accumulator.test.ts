@@ -134,6 +134,7 @@ describe("Race archive Core locator accumulator", () => {
         }),
       ]),
     ).toThrow("Core locator count exceeds its bound");
+    expect(() => coreBound.finish()).toThrow("accumulator has failed");
 
     const partitionBound = accumulator({ maximumPartitionsPerCore: 1 });
     partitionBound.append([
@@ -152,9 +153,11 @@ describe("Race archive Core locator accumulator", () => {
         }),
       ]),
     ).toThrow("Core partition count exceeds its bound");
+    expect(() => partitionBound.append([])).toThrow("accumulator has failed");
+    expect(() => partitionBound.finish()).toThrow("accumulator has failed");
   });
 
-  it("rejects rows from another rebuild identity and cannot be reused after finish", () => {
+  it("rejects rows from another rebuild identity and fails closed after an append error", () => {
     const service = accumulator();
     expect(() =>
       service.append([
@@ -165,7 +168,12 @@ describe("Race archive Core locator accumulator", () => {
         }),
       ]),
     ).toThrow("identity conflicts with the rebuild session");
+    expect(() => service.append([])).toThrow("accumulator has failed");
+    expect(() => service.finish()).toThrow("accumulator has failed");
+  });
 
+  it("cannot be reused after finish", () => {
+    const service = accumulator();
     service.append([
       rehydrated({
         sourceRowNumber: 2,
