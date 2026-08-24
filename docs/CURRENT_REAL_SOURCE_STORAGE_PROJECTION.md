@@ -46,22 +46,18 @@ The measured representative `race_entry` includes the mandatory 32-byte `source_
 
 Measured minimal row payloads are:
 
-| Durable relation | Conservative measured row payload |
-| --- | ---: |
-| `race_event` | 129 bytes |
-| `race_entry` with compact SHA identity | 170 bytes |
-| `event_star_validation` | 158 bytes |
-| Core/Arena `dataset_version_record` | 160 bytes |
+- `race_event`: **129 bytes**;
+- `race_entry` with compact SHA identity: **170 bytes**;
+- `event_star_validation`: **158 bytes**; and
+- Core/Arena `dataset_version_record`: **160 bytes**.
 
 The revised durable lower bound is:
 
-| Durable relation | Lower-bound rows | Lower-bound bytes | Approx. MiB |
-| --- | ---: | ---: | ---: |
-| `race_event` | 746,648 | 96,317,592 | 91.86 |
-| `race_entry` | 2,691,579 | 457,568,430 | 436.37 |
-| `event_star_validation` | 746,648 | 117,970,384 | 112.51 |
-| Core/Arena `dataset_version_record` | 19,987 | 3,197,920 | 3.05 |
-| **Conservative durable total** | — | **675,054,326** | **643.78** |
+- `race_event`: **746,648 rows**, **96,317,592 bytes** (~91.86 MiB);
+- `race_entry`: **2,691,579 rows**, **457,568,430 bytes** (~436.37 MiB);
+- `event_star_validation`: **746,648 rows**, **117,970,384 bytes** (~112.51 MiB);
+- Core/Arena `dataset_version_record`: **19,987 rows**, **3,197,920 bytes** (~3.05 MiB); and
+- conservative durable total: **675,054,326 bytes** (~643.78 MiB).
 
 The durable lower bound is **1.257 ×** the entire protected 512 MiB Preview branch limit. Explicit durable headroom is therefore **−138,183,414 bytes (−131.78 MiB)**.
 
@@ -110,7 +106,7 @@ A real owner upload remains separately gated even if a later proof passes.
 
 ## Reproducibility
 
-The `Current real-source storage projection` GitHub Actions workflow uses PostgreSQL 18, applies the complete migration chain and executes `database/measurements/current_real_source_neon_lower_bound.sql`.
+The `Current real-source storage projection` GitHub Actions workflow uses PostgreSQL 18, applies the complete current migration chain and executes `database/measurements/current_real_source_neon_lower_bound.sql`.
 
 Exact-head run **32725752215** measured:
 
