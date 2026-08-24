@@ -1,0 +1,52 @@
+name: Staging Workerd diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/staging-workerd-diagnostic.yml"
+      - "wrangler.staging-diagnostic.jsonc"
+      - "workers/staging-write-diagnostic/index.ts"
+      - "lib/durable-import-preview-staging-sink.ts"
+      - "domain/source-adapters.ts"
+      - "domain/source-schema.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  workerd-write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Exercise staging write inside local Workerd
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="${RUNNER_TEMP}/staging-workerd.log"
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 --config wrangler.staging-diagnostic.jsonc >"${LOG}" 2>&1 &
+          WRANGLER_PID=$!
+          cleanup() {
+            kill "${WRANGLER_PID}" 2>/dev/null || true
+            wait "${WRANGLER_PID}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8787/ >"${RUNNER_TEMP}/staging-workerd-response.txt"; then
+              cat "${RUNNER_TEMP}/staging-workerd-response.txt"
+              exit 0
+            fi
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+              cat "${LOG}"
+              exit 1
+            fi
+            sleep 1
+          done
+          cat "${LOG}"
+          exit 1
