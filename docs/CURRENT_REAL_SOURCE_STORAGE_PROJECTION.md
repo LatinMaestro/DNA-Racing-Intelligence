@@ -2,126 +2,135 @@
 
 ## Purpose
 
-This document records the first reproducible normalized-storage capacity decision for
-the owner’s currently audited DNA Racing import set. It is a **pre-upload safety
-gate**. It does not authorise a real upload, paid provider change, Production change
-or public deployment.
+This document records the current reproducible Neon capacity decision for the owner’s audited **nine-file** recurring DNA Racing source set after the accepted-evidence compaction work merged in PR #238.
 
-The source counts come from `docs/AGGREGATE_SOURCE_PROFILE.md`, which records the
-11 August 2026 streaming audit of the current recurring source set:
+It is a **pre-upload safety gate**. It does not authorise a real upload, a paid provider change, a Production change, a Vercel Production deployment or any public release.
 
-- Race Merge: 2,691,579 rows;
-- Core Details: 18,513 rows;
-- Current Arena: 1,474 rows; and
+The audited source profile remains:
+
+- seven sequential Race Merge files;
+- one Core Details file;
+- one Current Arena file;
+- Race Merge rows: **2,691,579**;
+- unique race events: **746,648**;
+- Core Details rows: **18,513**;
+- Current Arena rows: **1,474**; and
 - total recurring source rows: **2,711,566**.
 
-The current protected Neon Preview branch has a logical-size limit of **512 MiB**
-(536,870,912 bytes).
+The protected Neon Preview branch has a logical-size limit of **512 MiB** (536,870,912 bytes).
 
-## Why raw-file size is not enough
+## What PR #238 changed
 
-The existing provider upload gate deliberately used a conservative `2 × raw bytes`
-Neon staging placeholder. That is useful for failing closed, but it does not answer
-whether the normalized persistent model can fit after import.
+The earlier projection measured two high-volume acceptance ledgers:
 
-The current schema retains owner-scoped acceptance provenance in PostgreSQL. It
-stores one `dna.dataset_staged_record` for every source row, including a
-quarantined row, and one `dna.dataset_record_contribution` for each accepted
-natural key in each contributing import batch.
+- `dna.dataset_staged_record`; and
+- `dna.dataset_record_contribution`.
 
-The current source audit found zero within-file duplicate Race entry keys and unique
-Core Details and Current Arena IDs. The projection therefore models the intended
-usable import, in which the audited valid rows retain accepted contribution
-provenance. An unexpectedly quarantined row would still consume its staging row but
-would not consume a contribution row.
+That earlier lower bound was about 786 MiB and correctly stopped the first real upload.
 
-This is before counting normalized Race staging facts, dataset-version records, race
-events, race entries, race-entry source provenance, Core/Arena materialization, page
-line pointers, indexes, aggregate tables or future imports.
+PR #238 materially improved the design. Accepted normalized evidence is now stored as private bounded evidence objects with durable Neon manifests/receipts, and successful activation can compact the transient staged-record and contribution ledgers after exact coverage and aggregate/materialisation safeguards pass.
 
-## PostgreSQL 18 measurement
+That removes the old two-ledger duplication from the long-lived accepted state. The old 786 MiB calculation is therefore no longer the correct post-compaction capacity test.
 
-`database/measurements/current_real_source_neon_lower_bound.sql` applies the actual
-schema and uses `pg_column_size` against the two real composite table types with the
-smallest legal representative values.
+However, compaction intentionally does **not** delete the durable normalized/materialized data needed by the current application contract. The capacity gate must therefore test those surviving relations instead.
 
-Measured minimum composite payloads:
+## Durable rows that remain after compaction
 
-- `dna.dataset_staged_record`: 160 bytes per source row;
-- `dna.dataset_record_contribution`: 144 bytes per source row; and
-- combined minimum: **304 bytes per source row**.
+The current accepted Race Merge path still retains in Neon:
 
-At 2,711,566 recurring source rows this gives:
+- `dna.race_entry_source` — one durable source-provenance row for each accepted Race Merge row/import occurrence;
+- `dna.race_event` — one normalized event row per unique race event;
+- `dna.race_entry` — normalized race-entry facts;
+- `dna.event_star_validation` — event-level Gold/Blue integrity evidence; and
+- `dna.dataset_version_record` — durable replay/conflict/version evidence.
 
-- staged-record minimum: 433,850,560 bytes, about 413.75 MiB;
-- contribution minimum: 390,465,504 bytes, about 372.38 MiB;
-- **two-ledger minimum: 824,316,064 bytes, about 786.13 MiB**; and
-- Preview total logical-size limit: 536,870,912 bytes, exactly 512 MiB.
+Core Details, Arena snapshots, economic rows, analytical aggregates and control-plane tables also remain, but the new proof does not need all of them to establish the stop condition.
 
-The two-ledger minimum is therefore approximately **1.535 × the entire Preview
-branch limit** before any PostgreSQL heap/index overhead or any other application
-table is counted.
+## PostgreSQL 18 conservative measurement
 
-The mandatory staging rows alone leave only 103,020,352 bytes of the branch limit.
-At the measured 144-byte contribution payload, that remainder can hold at most
-715,419 accepted contribution rows. At least **1,996,147 rows, or 73.62% of the
-current source set, would therefore have to lose accepted contribution provenance**
-before even these two ledgers could fit.
+`database/measurements/current_real_source_neon_lower_bound.sql` applies the complete current schema and uses `pg_column_size` against the actual PostgreSQL 18 composite row types.
 
-That is not a usable import outcome, and it still ignores page/index overhead and all
-normalized/materialized relations. Capacity planning cannot rely on quarantining or
-discarding valid source evidence merely to make storage fit.
+The measured minimal materialized payloads are:
+
+| Durable relation         | Conservative measured row payload |
+| ------------------------ | --------------------------------: |
+| `race_entry_source`      |                         186 bytes |
+| `race_event`             |                         129 bytes |
+| `race_entry`             |                         137 bytes |
+| `event_star_validation`  |                         158 bytes |
+| `dataset_version_record` |                         160 bytes |
+
+The `race_entry_source` representative contains only values the accepted materialization path necessarily writes; optional source name, gate, format, class, asset, fee, payout, prize and tag values are left null/minimal. This intentionally understates real storage.
+
+The projection is also deliberately conservative on row counts:
+
+- `race_entry_source`: all **2,691,579** audited Race Merge source rows, because source provenance is retained per accepted import occurrence;
+- `race_event`: **746,648** audited unique events;
+- `event_star_validation`: **746,648** event validation rows;
+- `race_entry`: only **one row per event** is counted, despite real races containing multiple entered cores; and
+- `dataset_version_record`: only one Race Merge natural key per event plus the 18,513 Core Details and 1,474 Arena rows is counted, despite the actual Race Merge natural-key count being far higher.
+
+This produces the following minimum composite payload:
+
+| Durable relation               | Lower-bound bytes | Approx. MiB |
+| ------------------------------ | ----------------: | ----------: |
+| `race_entry_source`            |       500,633,694 |      477.44 |
+| `race_event`                   |        96,317,592 |       91.86 |
+| `race_entry`                   |       102,290,776 |       97.55 |
+| `event_star_validation`        |       117,970,384 |      112.51 |
+| `dataset_version_record`       |       122,661,600 |      116.98 |
+| **Conservative durable total** |   **939,874,046** |  **896.33** |
+
+The conservative durable total is approximately **1.751 × the entire 512 MiB Preview branch limit**, exceeding the limit by at least **403,003,134 bytes** before normal PostgreSQL heap/page/index overhead is counted.
+
+This also excludes:
+
+- indexes on every measured relation;
+- page line pointers and table/index fill overhead;
+- the fact that real `race_entry` cardinality is multiple rows per event rather than one;
+- the fact that Race Merge `dataset_version_record` cardinality is far higher than one row per event;
+- Core and lineage materialisation;
+- Arena snapshot rows beyond the minimal version evidence;
+- race-derived economic transactions and dated USD-rate records;
+- Core Performance, star, payout-format and Discovery aggregates;
+- import/control/evidence-manifest rows;
+- future Race Merge rollover files; and
+- the current schema’s existing logical footprint before any real data is imported.
+
+The result is therefore a lower bound, not an estimate of likely total storage.
 
 ## Decision
 
-**Current real Preview import: STOP / UNSAFE under the present Neon-retained
-provenance model.**
+**Current nine-file real Preview import: STOP / UNSAFE under the current durable Neon materialisation model.**
 
-Do not request or perform the first real upload while this condition remains.
-Increasing a provider limit or moving to paid capacity is not authorised by this
-evidence and must not be inferred as the solution.
+PR #238 successfully solved the transient staging/evidence duplication and made the synthetic hosted import path reliable, but it does **not** make the present multi-million-row durable Neon model fit within the 512 MiB Preview limit.
 
-The next dependency-critical architecture slice is to reduce high-volume PostgreSQL
-retention while preserving auditability, idempotency, rollback and source provenance.
-The existing architecture already designates private R2 for raw and partitioned
-analytical data, so large row-level staging/provenance should be evaluated for private
-object-storage persistence with compact Neon manifests/receipts rather than deleting
-evidence or weakening acceptance rules.
+Do not request or perform the first real upload while this condition remains. Do not infer that purchasing more Neon capacity is authorised; the owner’s current direction remains to prefer the smallest practical low-cost architecture and to stop before unapproved paid thresholds.
 
-Any replacement design must then rerun this measurement against the changed schema and
-prove that:
+## Next dependency-critical architecture slice
 
-- the first 9-file real source shape fits with explicit headroom;
-- a later growing Race Merge update remains bounded;
-- exact replay and cross-segment overlap remain idempotent;
-- rollback/recovery does not require retaining duplicated multi-million-row Neon
-  staging ledgers;
-- raw/private analytical objects remain non-public and owner-scoped; and
-- no Production or paid-service authority is implied.
+The next critical-path work is to reduce durable per-row Neon retention while preserving all analytical fidelity, replay protection, rollback and auditability.
 
-## Compact evidence-object control plane
+The existing private R2 evidence boundary provides the natural storage layer for high-volume immutable source/normalized provenance. The next implementation should evaluate and then prove a design in which:
 
-Migration 0045 introduces the first executable part of the replacement design:
-an owner-scoped Neon manifest for immutable private evidence objects. Each manifest
-row binds one import batch and source family to a bounded partition number, object
-format, private object key, SHA-256 checksum, byte count, row count and optional
-natural-key range.
+1. immutable row-level source/normalized provenance remains in private checksummed R2 partitions;
+2. Neon retains compact owner-scoped manifests, version/coverage receipts and the bounded read models needed by the private website;
+3. routine owner pages never scan the full multi-million-row raw history;
+4. replay/conflict detection can use compact deterministic indexes/fingerprints or bounded partition evidence without a multi-million-row `dataset_version_record` ledger;
+5. rollback can switch active version/manifest state and rebuild affected read models without retaining duplicate row-level provenance in Neon;
+6. Search Core, Core Intelligence, Discovery, Breeding and Pro League still receive the exact mode/distance/star/payout evidence required by the approved specifications; and
+7. a revised nine-file projection demonstrates explicit headroom below 512 MiB before any real upload is proposed.
 
-Registration is least-privilege and replay-safe: the same batch, object kind and
-partition returns the same deterministic receipt only when all immutable metadata
-matches. A changed checksum, size, row count, format, key or range fails closed.
-Forced row-level security keeps the compact control plane owner-isolated.
+A real owner upload remains separately gated even after a future capacity proof passes.
 
-This migration does **not** remove either high-volume Neon ledger and therefore does
-not clear the real-upload stop condition. The next slices must make the Worker write
-and verify these private objects, switch acceptance/replay/rollback to the manifest
-boundary, remove duplicated row-level Neon retention, and rerun the complete capacity
-projection including normalized and read-model storage.
+## Private object-storage observation
+
+The current nine-file raw recurring payload audited on 11 August 2026 is approximately **392.5 MB**. Private R2 therefore remains necessary for the raw/evidence boundary. The present stop decision is driven by Neon durable row retention, not by a claim that the raw files should be stored in Git or proxied through ordinary web requests.
+
+No current projection authorises a paid R2 or Neon change. Provider usage and storage must still be checked against the protected free/approved thresholds immediately before the first real upload.
 
 ## Reproducibility
 
-The dedicated `Current real-source storage projection` GitHub Actions workflow uses
-PostgreSQL 18, applies the complete migration chain and executes the measurement SQL.
-The SQL fails if the measured row sizes or the audited projection change unexpectedly,
-so this decision cannot silently become stale after a schema change to the measured
-relations or a source-profile update.
+The `Current real-source storage projection` GitHub Actions workflow uses PostgreSQL 18, applies the complete migration chain and executes `database/measurements/current_real_source_neon_lower_bound.sql`.
+
+The SQL asserts both the measured row shapes and the 939,874,046-byte conservative post-compaction total. A future schema change that materially changes this capacity boundary must therefore update the proof explicitly rather than silently inheriting the old decision.

@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/current-real-source-storage-projection.yml"
       - "database/measurements/current_real_source_neon_lower_bound.sql"
-      - "database/migrations/0002_dataset_acceptance.up.sql"
+      - "database/migrations/**"
       - "docs/AGGREGATE_SOURCE_PROFILE.md"
       - "docs/CURRENT_REAL_SOURCE_STORAGE_PROJECTION.md"
   workflow_dispatch: {}
@@ -43,7 +43,7 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Measure current real-source Neon lower bound
+      - name: Measure current real-source post-compaction Neon lower bound
         run: >-
           psql --set ON_ERROR_STOP=1
           --file database/measurements/current_real_source_neon_lower_bound.sql
