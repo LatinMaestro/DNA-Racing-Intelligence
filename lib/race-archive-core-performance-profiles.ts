@@ -97,7 +97,9 @@ function profile(input: {
   const meanMilliseconds = average(elapsed);
   const trimCount = elapsed.length < 10 ? 0 : Math.floor(elapsed.length * 0.1);
   const trimmed =
-    trimCount === 0 ? elapsed : elapsed.slice(trimCount, elapsed.length - trimCount);
+    trimCount === 0
+      ? elapsed
+      : elapsed.slice(trimCount, elapsed.length - trimCount);
   const medianMilliseconds = percentileCont(elapsed, 0.5);
   const variance =
     elapsed.reduce(
@@ -172,12 +174,22 @@ export function corePerformanceProfilesFromRaceArchive(input: {
   >();
   const naturalKeys = new Set<string>();
   for (const observation of input.observationSet.observations) {
-    if (safeText(observation.sourceCoreId, "observation.sourceCoreId") !== sourceCoreId) {
-      throw new Error("Archive Core Performance observation changed Core identity.");
+    if (
+      safeText(observation.sourceCoreId, "observation.sourceCoreId") !==
+      sourceCoreId
+    ) {
+      throw new Error(
+        "Archive Core Performance observation changed Core identity.",
+      );
     }
-    const naturalKey = safeText(observation.naturalKey, "observation.naturalKey");
+    const naturalKey = safeText(
+      observation.naturalKey,
+      "observation.naturalKey",
+    );
     if (naturalKeys.has(naturalKey)) {
-      throw new Error("Archive Core Performance contains duplicate Race evidence.");
+      throw new Error(
+        "Archive Core Performance contains duplicate Race evidence.",
+      );
     }
     naturalKeys.add(naturalKey);
     if (!RACE_MODES.has(observation.mode)) {
