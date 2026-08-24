@@ -83,10 +83,7 @@ function raceRows(runId: string, runAttempt: string, segment: number): string[] 
 
   const filler = Array.from({ length: 500 }, (_, index) => {
     const row = index + 1;
-    const seconds = String(70 + (row % 20)).padStart(2, "0");
-    return `connected-event-${runId}-${runAttempt}-1-filler-${row},2026-08-${day}T00:${String(
-      Math.floor(index / 60),
-    ).padStart(2, "0")}:${seconds}.000Z,Bike,1000,connected-other,8,false,false,2,72.00,Top 3,0,0,DEZ,Synthetic`;
+    return `connected-event-${runId}-${runAttempt}-1-filler-${row},2026-08-${day}T00:01:00.000Z,Bike,1000,connected-other,8,false,false,2,72.00,Top 3,0,0,DEZ,Synthetic`;
   });
   return [header, selected, ...filler];
 }
