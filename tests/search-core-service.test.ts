@@ -197,7 +197,10 @@ describe("Search Core service", () => {
     } as const;
 
     await expect(
-      loadSearchCorePageState({ ...common, archiveHistoryService: missingArchive }),
+      loadSearchCorePageState({
+        ...common,
+        archiveHistoryService: missingArchive,
+      }),
     ).resolves.toMatchObject({ archiveHistoryStatus: "missing" });
     await expect(loadSearchCorePageState(common)).resolves.toMatchObject({
       archiveHistoryStatus: "not_connected",
