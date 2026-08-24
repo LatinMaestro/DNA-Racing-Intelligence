@@ -155,8 +155,9 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
         </div>
       </dl>
       <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-        Verified private immutable evidence was resolved through this Core&apos;s
-        bounded archive locators. The complete Race archive was not scanned.
+        Verified private immutable evidence was resolved through this
+        Core&apos;s bounded archive locators. The complete Race archive was not
+        scanned.
       </p>
     </div>
   );
