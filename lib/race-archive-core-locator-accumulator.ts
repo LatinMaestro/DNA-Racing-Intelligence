@@ -82,69 +82,84 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
   );
   const locators = new Map<string, MutableLocator>();
   let finished = false;
+  let failed = false;
 
   return Object.freeze({
     append(rows) {
-      if (finished)
+      if (finished) {
         throw new Error("Race archive Core locator accumulator is finished.");
-      for (const row of rows) {
-        if (
-          row.datasetVersionId !== datasetVersionId ||
-          row.importBatchId !== importBatchId
-        ) {
-          throw new Error(
-            "Race archive locator row identity conflicts with the rebuild session.",
-          );
-        }
-        const partitionNumber = nonNegativeSafeInteger(
-          row.partitionNumber,
-          "partitionNumber",
-        );
-        const record = raceRecord(row);
-        if (record === null) continue;
-        const sourceCoreId = identifier(record.sourceCoreId, "sourceCoreId");
-        const sourceRowNumber = positiveSafeInteger(
-          row.stagedRow.sourceRowNumber,
-          "sourceRowNumber",
-        );
-        let locator = locators.get(sourceCoreId);
-        if (locator === undefined) {
-          if (locators.size >= maximumCoreLocators) {
-            throw new Error("Race archive Core locator count exceeds its bound.");
+      }
+      if (failed) {
+        throw new Error("Race archive Core locator accumulator has failed.");
+      }
+      try {
+        for (const row of rows) {
+          if (
+            row.datasetVersionId !== datasetVersionId ||
+            row.importBatchId !== importBatchId
+          ) {
+            throw new Error(
+              "Race archive locator row identity conflicts with the rebuild session.",
+            );
           }
-          locator = {
-            partitionNumbers: new Set<number>(),
-            readyRowCount: 0,
-            firstSourceRowNumber: sourceRowNumber,
-            lastSourceRowNumber: sourceRowNumber,
-          };
-          locators.set(sourceCoreId, locator);
-        }
-        locator.partitionNumbers.add(partitionNumber);
-        if (locator.partitionNumbers.size > maximumPartitionsPerCore) {
-          throw new Error(
-            "Race archive Core partition count exceeds its bound.",
+          const partitionNumber = nonNegativeSafeInteger(
+            row.partitionNumber,
+            "partitionNumber",
+          );
+          const record = raceRecord(row);
+          if (record === null) continue;
+          const sourceCoreId = identifier(record.sourceCoreId, "sourceCoreId");
+          const sourceRowNumber = positiveSafeInteger(
+            row.stagedRow.sourceRowNumber,
+            "sourceRowNumber",
+          );
+          let locator = locators.get(sourceCoreId);
+          if (locator === undefined) {
+            if (locators.size >= maximumCoreLocators) {
+              throw new Error(
+                "Race archive Core locator count exceeds its bound.",
+              );
+            }
+            locator = {
+              partitionNumbers: new Set<number>(),
+              readyRowCount: 0,
+              firstSourceRowNumber: sourceRowNumber,
+              lastSourceRowNumber: sourceRowNumber,
+            };
+            locators.set(sourceCoreId, locator);
+          }
+          locator.partitionNumbers.add(partitionNumber);
+          if (locator.partitionNumbers.size > maximumPartitionsPerCore) {
+            throw new Error(
+              "Race archive Core partition count exceeds its bound.",
+            );
+          }
+          locator.readyRowCount += 1;
+          if (!Number.isSafeInteger(locator.readyRowCount)) {
+            throw new Error(
+              "Race archive Core row count exceeds safe integer bounds.",
+            );
+          }
+          locator.firstSourceRowNumber = Math.min(
+            locator.firstSourceRowNumber,
+            sourceRowNumber,
+          );
+          locator.lastSourceRowNumber = Math.max(
+            locator.lastSourceRowNumber,
+            sourceRowNumber,
           );
         }
-        locator.readyRowCount += 1;
-        if (!Number.isSafeInteger(locator.readyRowCount)) {
-          throw new Error(
-            "Race archive Core row count exceeds safe integer bounds.",
-          );
-        }
-        locator.firstSourceRowNumber = Math.min(
-          locator.firstSourceRowNumber,
-          sourceRowNumber,
-        );
-        locator.lastSourceRowNumber = Math.max(
-          locator.lastSourceRowNumber,
-          sourceRowNumber,
-        );
+      } catch (error) {
+        failed = true;
+        throw error;
       }
     },
     finish() {
       if (finished) {
         throw new Error("Race archive Core locator accumulator is finished.");
+      }
+      if (failed) {
+        throw new Error("Race archive Core locator accumulator has failed.");
       }
       finished = true;
       return Object.freeze(
