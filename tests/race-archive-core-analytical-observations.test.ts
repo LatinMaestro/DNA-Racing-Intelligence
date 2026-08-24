@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { RaceArchiveCoreHistory } from "../lib/race-archive-core-history-service";
-import { analyticalObservationsFromRaceArchiveCoreHistory } from "../lib/race-archive-core-analytical-observations";
+import {
+  analyticalObservationsFromRaceArchiveCoreHistory,
+} from "../lib/race-archive-core-analytical-observations";
 
 function history(input?: {
   sourceCoreId?: string;
