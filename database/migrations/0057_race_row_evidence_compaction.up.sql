@@ -24,8 +24,7 @@ CREATE TABLE dna.race_row_evidence_compaction_receipt (
   FOREIGN KEY (owner_id, import_batch_id)
     REFERENCES dna.import_batch(owner_id, id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id, dataset_version_id)
-    REFERENCES dna.dataset_version_evidence_receipt(owner_id, dataset_version_id)
-    ON DELETE CASCADE
+    REFERENCES dna.dataset_version(owner_id, id) ON DELETE CASCADE
 );
 
 ALTER TABLE dna.race_row_evidence_compaction_receipt
