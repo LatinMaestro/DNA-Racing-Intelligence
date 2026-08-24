@@ -39,10 +39,12 @@ function harness(maximumBufferedPutBytes = 8 * 1024 * 1024) {
       partition: "0",
     },
   });
+  const getObject = vi.fn<CloudflareR2DatasetEvidenceDriver["getObject"]>();
+  getObject.mockImplementation(async () => ({ body: body() }));
   const deleteObject =
     vi.fn<CloudflareR2DatasetEvidenceDriver["deleteObject"]>();
   deleteObject.mockResolvedValue(undefined);
-  const driver = { putObjectIfAbsent, headObject, deleteObject };
+  const driver = { putObjectIfAbsent, headObject, getObject, deleteObject };
   const createDriver = vi.fn(() => driver);
   const fetcher = vi
     .fn()
@@ -166,6 +168,34 @@ describe("Cloudflare R2 dataset evidence port", () => {
         partition: "0",
       },
     });
+  });
+
+  it("maps private object reads without buffering provider data", async () => {
+    const test = harness();
+    const input = {
+      bucketName: "dna-private-preview",
+      key: "evidence/opaque/part-0000.parquet",
+    };
+    const result = await test.port.getObject(input);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") throw new Error("expected ready object");
+    const chunks: number[] = [];
+    for await (const chunk of result.body) chunks.push(...chunk);
+    expect(chunks).toEqual([1, 2, 3]);
+    expect(test.driver.getObject).toHaveBeenCalledWith(input);
+
+    test.driver.getObject.mockRejectedValueOnce({
+      name: "NoSuchKey",
+      $metadata: { httpStatusCode: 404 },
+    });
+    await expect(test.port.getObject(input)).resolves.toEqual({
+      status: "missing",
+    });
+
+    test.driver.getObject.mockRejectedValueOnce(new Error("private detail"));
+    await expect(test.port.getObject(input)).rejects.toThrow(
+      "evidence read failed",
+    );
   });
 
   it("returns missing and rejects absent or malformed checksum evidence", async () => {
