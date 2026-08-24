@@ -8,9 +8,7 @@ import type {
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 
 type RaceArchiveRebuildFailureReason =
-  | "archive_read_failed"
-  | "stage_failed"
-  | "commit_failed";
+  "archive_read_failed" | "stage_failed" | "commit_failed";
 
 class RaceArchiveStageFailure extends Error {
   readonly originalCause: unknown;
@@ -84,7 +82,9 @@ function assertManifest(manifest: SealedRaceArchiveManifest): void {
     manifest.sourceType !== "race_merge" ||
     manifest.evidenceKind !== "staged_rows"
   ) {
-    throw new Error("Race archive rebuild requires sealed staged-row evidence.");
+    throw new Error(
+      "Race archive rebuild requires sealed staged-row evidence.",
+    );
   }
   positiveSafeInteger(manifest.rowCount, "manifest.rowCount");
   positiveSafeInteger(manifest.partitionCount, "manifest.partitionCount");
@@ -193,7 +193,9 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           assertRowIdentity(row, manifest);
           processedRowCount += 1;
           if (processedRowCount > manifest.rowCount) {
-            throw new Error("Race archive rebuild exceeded the sealed row count.");
+            throw new Error(
+              "Race archive rebuild exceeded the sealed row count.",
+            );
           }
           if (row.stagedRow.row.status === "ready") {
             readyRowCount += 1;
