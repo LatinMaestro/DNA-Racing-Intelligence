@@ -111,10 +111,10 @@ function validateRaceSourceRow(value: unknown): AdaptedSourceRow {
   return row as unknown as AdaptedSourceRow;
 }
 
-function decodeStagedRow(input: {
+export function decodeArchivedRaceStagedRow(input: {
   partition: DecodedSealedRaceArchivePartition;
   index: number;
-  expectedSourceRowNumber: number;
+  expectedSourceRowNumber?: number;
 }): DurablePreviewStagedRow {
   const evidenceRow = input.partition.rows[input.index];
   if (evidenceRow === undefined) {
@@ -125,7 +125,10 @@ function decodeStagedRow(input: {
     value.sourceRowNumber,
     "Archived Race sourceRowNumber",
   );
-  if (sourceRowNumber !== input.expectedSourceRowNumber) {
+  if (
+    input.expectedSourceRowNumber !== undefined &&
+    sourceRowNumber !== input.expectedSourceRowNumber
+  ) {
     throw new Error("Archived Race source-row sequence is not contiguous.");
   }
 
@@ -197,7 +200,7 @@ export function createRaceStagedRowRehydrator(input: {
         let observedRowCount = 0;
         for await (const partition of opened.partitions) {
           for (let index = 0; index < partition.rows.length; index += 1) {
-            const stagedRow = decodeStagedRow({
+            const stagedRow = decodeArchivedRaceStagedRow({
               partition,
               index,
               expectedSourceRowNumber,
