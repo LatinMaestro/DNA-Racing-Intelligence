@@ -196,6 +196,20 @@ describe("Cloudflare R2 dataset evidence port", () => {
     await expect(test.port.getObject(input)).rejects.toThrow(
       "evidence read failed",
     );
+
+    test.driver.getObject.mockResolvedValueOnce({
+      body: (async function* () {
+        yield new Uint8Array([1]);
+        throw new Error("private stream detail");
+      })(),
+    });
+    const streaming = await test.port.getObject(input);
+    await expect(
+      (async () => {
+        if (streaming.status !== "ready") throw new Error("expected ready object");
+        for await (const chunk of streaming.body) void chunk;
+      })(),
+    ).rejects.toThrow("evidence read failed");
   });
 
   it("returns missing and rejects absent or malformed checksum evidence", async () => {

@@ -106,6 +106,18 @@ async function collectExactBody(input: {
   return output;
 }
 
+function redactReadBody(
+  body: AsyncIterable<Uint8Array>,
+): AsyncIterable<Uint8Array> {
+  return (async function* () {
+    try {
+      for await (const chunk of body) yield chunk;
+    } catch {
+      throw new Error("Cloudflare R2 evidence read failed.");
+    }
+  })();
+}
+
 function defaultDriver(input: {
   endpoint: string;
   accessKeyId: string;
@@ -299,7 +311,7 @@ export function createCloudflareR2DatasetEvidencePort(
     async getObject(input) {
       try {
         const result = await driver.getObject(input);
-        return { status: "ready", body: result.body };
+        return { status: "ready", body: redactReadBody(result.body) };
       } catch (error) {
         if (status(error, 404)) return { status: "missing" };
         throw new Error("Cloudflare R2 evidence read failed.");
