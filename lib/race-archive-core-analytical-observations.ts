@@ -109,10 +109,7 @@ function starDataStatus(value: StarDataStatus): StarDataStatus {
   return value;
 }
 
-function nullableBoolean(
-  value: boolean | null,
-  field: string,
-): boolean | null {
+function nullableBoolean(value: boolean | null, field: string): boolean | null {
   if (value !== null && typeof value !== "boolean") {
     throw new Error(`${field} must be Boolean or null`);
   }
@@ -161,11 +158,15 @@ function observation(
   sourceCoreId: string,
 ): RaceArchiveCoreAnalyticalObservation {
   if (historyRow.row.status !== "ready" || historyRow.row.record === null) {
-    throw new Error("Archived Core analytical evidence must be a ready Race row.");
+    throw new Error(
+      "Archived Core analytical evidence must be a ready Race row.",
+    );
   }
   const race = historyRow.row.record;
   if (race.sourceType !== "race_merge") {
-    throw new Error("Archived Core analytical evidence is not Race Merge data.");
+    throw new Error(
+      "Archived Core analytical evidence is not Race Merge data.",
+    );
   }
   const rowCoreId = safeText(race.sourceCoreId, "Archived Race sourceCoreId");
   if (rowCoreId !== sourceCoreId) {
@@ -181,7 +182,10 @@ function observation(
   return Object.freeze({
     datasetVersionId: safeText(historyRow.datasetVersionId, "datasetVersionId"),
     importBatchId: safeText(historyRow.importBatchId, "importBatchId"),
-    versionNumber: positiveSafeInteger(historyRow.versionNumber, "versionNumber"),
+    versionNumber: positiveSafeInteger(
+      historyRow.versionNumber,
+      "versionNumber",
+    ),
     partitionNumber: nonNegativeSafeInteger(
       historyRow.partitionNumber,
       "partitionNumber",
@@ -237,7 +241,9 @@ export function analyticalObservationsFromRaceArchiveCoreHistory(
     history.selectedPartitionCount,
     "selectedPartitionCount",
   );
-  const observations = history.rows.map((row) => observation(row, sourceCoreId));
+  const observations = history.rows.map((row) =>
+    observation(row, sourceCoreId),
+  );
   return Object.freeze({
     sourceCoreId,
     locatorVersionCount,
