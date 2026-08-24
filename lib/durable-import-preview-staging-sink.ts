@@ -67,7 +67,10 @@ export type DurableImportPreviewStagingRepository = Readonly<{
     ownerId: string;
     uploadBatchId: string;
     previewDispatchId: string;
-    reason: "object_processing_failed" | "preview_finalization_failed";
+    reason:
+      | "attempt_restart"
+      | "object_processing_failed"
+      | "preview_finalization_failed";
   }) => Promise<void>;
 }>;
 
