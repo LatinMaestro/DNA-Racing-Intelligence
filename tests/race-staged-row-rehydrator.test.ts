@@ -150,9 +150,11 @@ function archiveReader(input: {
       })(),
     };
   });
+  const openSelected = vi.fn(async () => ({ status: "missing" as const }));
   return {
-    reader: { open } as SealedRaceArchiveReader,
+    reader: { open, openSelected } as SealedRaceArchiveReader,
     open,
+    openSelected,
     iterated,
   };
 }
@@ -178,6 +180,7 @@ describe("Race staged-row archive rehydrator", () => {
       datasetVersionId,
       maximumPartitions: 10,
     });
+    expect(archive.openSelected).not.toHaveBeenCalled();
     expect(archive.iterated).not.toHaveBeenCalled();
   });
 
@@ -224,6 +227,7 @@ describe("Race staged-row archive rehydrator", () => {
         row: { status: "quarantined" },
       },
     });
+    expect(archive.openSelected).not.toHaveBeenCalled();
     expect(archive.iterated).toHaveBeenCalledTimes(1);
   });
 
