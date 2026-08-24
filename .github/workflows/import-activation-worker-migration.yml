@@ -65,6 +65,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.smoke.sql
       - name: Run Preview evidence resume smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
+      - name: Run Preview evidence authenticated-owner identity repair smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.smoke.sql
+      - name: Reverse Preview evidence authenticated-owner identity repair
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.down.sql
+      - name: Verify Preview evidence authenticated-owner identity repair removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.removal.sql
       - name: Reverse Preview evidence resume migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.down.sql
       - name: Verify Preview evidence resume removal
