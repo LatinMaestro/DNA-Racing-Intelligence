@@ -295,9 +295,7 @@ export function createDurableImportPreviewStagingSink(input: {
       return input.repository.resumeObject({
         ...resumeInput,
         sourceFamily: resumeInput.sourceFamily as
-          | "race_merge"
-          | "core_details"
-          | "current_arena",
+          "race_merge" | "core_details" | "current_arena",
       });
     },
     async beginObject(beginInput) {

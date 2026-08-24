@@ -598,7 +598,9 @@ export function createNeonDurableImportPreviewStagingRepository(input: {
                 count(receiptRow.recorded_count, "recorded_count") !==
                 verified.evidenceRegistrations.length
               ) {
-                throw new Error("Preview evidence receipt recording is incomplete");
+                throw new Error(
+                  "Preview evidence receipt recording is incomplete",
+                );
               }
             }
             const row = oneRow(
