@@ -104,8 +104,7 @@ function partition(
   values: readonly Record<string, unknown>[],
 ): DecodedSealedRaceArchivePartition {
   const rows = values.map((value) => ({
-    naturalKey:
-      typeof value.naturalKey === "string" ? value.naturalKey : null,
+    naturalKey: typeof value.naturalKey === "string" ? value.naturalKey : null,
     value,
   }));
   return {
@@ -244,7 +243,10 @@ describe("Race staged-row archive rehydrator", () => {
 
   it("fails closed when archived source row numbers are not contiguous", async () => {
     const item = partition(0, [readyValue(2, "event-1", "core-1")]);
-    const archive = archiveReader({ manifest: manifest([item]), partitions: [item] });
+    const archive = archiveReader({
+      manifest: manifest([item]),
+      partitions: [item],
+    });
     const rehydrator = createRaceStagedRowRehydrator({
       archiveReader: archive.reader,
     });
@@ -264,7 +266,10 @@ describe("Race staged-row archive rehydrator", () => {
     const value = readyValue(1, "event-1", "core-1");
     const item = partition(0, [value]);
     value.naturalKey = "event-1:other-core";
-    const archive = archiveReader({ manifest: manifest([item]), partitions: [item] });
+    const archive = archiveReader({
+      manifest: manifest([item]),
+      partitions: [item],
+    });
     const rehydrator = createRaceStagedRowRehydrator({
       archiveReader: archive.reader,
     });
@@ -284,7 +289,10 @@ describe("Race staged-row archive rehydrator", () => {
     const value = readyValue(1, "event-1", "core-1");
     value.fingerprintSha256 = "f".repeat(64);
     const item = partition(0, [value]);
-    const archive = archiveReader({ manifest: manifest([item]), partitions: [item] });
+    const archive = archiveReader({
+      manifest: manifest([item]),
+      partitions: [item],
+    });
     const rehydrator = createRaceStagedRowRehydrator({
       archiveReader: archive.reader,
     });
@@ -305,7 +313,10 @@ describe("Race staged-row archive rehydrator", () => {
     value.naturalKey = "event-1:core-1";
     value.fingerprintSha256 = "a".repeat(64);
     const item = partition(0, [value]);
-    const archive = archiveReader({ manifest: manifest([item]), partitions: [item] });
+    const archive = archiveReader({
+      manifest: manifest([item]),
+      partitions: [item],
+    });
     const rehydrator = createRaceStagedRowRehydrator({
       archiveReader: archive.reader,
     });
