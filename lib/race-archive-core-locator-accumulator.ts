@@ -110,9 +110,7 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
         let locator = locators.get(sourceCoreId);
         if (locator === undefined) {
           if (locators.size >= maximumCoreLocators) {
-            throw new Error(
-              "Race archive Core locator count exceeds its bound.",
-            );
+            throw new Error("Race archive Core locator count exceeds its bound.");
           }
           locator = {
             partitionNumbers: new Set<number>(),
@@ -158,7 +156,9 @@ export function createRaceArchiveCoreLocatorAccumulator(input: {
               importBatchId,
               sourceCoreId,
               partitionNumbers: Object.freeze(
-                [...locator.partitionNumbers].sort((left, right) => left - right),
+                [...locator.partitionNumbers].sort(
+                  (left, right) => left - right,
+                ),
               ),
               readyRowCount: locator.readyRowCount,
               firstSourceRowNumber: locator.firstSourceRowNumber,
