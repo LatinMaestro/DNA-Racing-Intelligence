@@ -63,6 +63,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.smoke.sql
       - name: Run preview processing failure stage smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.smoke.sql
+      - name: Run Preview evidence resume smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
+      - name: Reverse Preview evidence resume migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.down.sql
+      - name: Verify Preview evidence resume removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.removal.sql
       - name: Reverse preview processing failure stage migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.down.sql
       - name: Verify preview processing failure stage removal
