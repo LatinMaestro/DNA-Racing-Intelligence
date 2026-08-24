@@ -18,6 +18,7 @@ import { createNeonImportActivationRepositories } from "../lib/neon-import-activ
 import { createNeonImportConfirmationCleanupRepository } from "../lib/neon-import-confirmation-cleanup-repository";
 import { completePrivateImportUpload } from "../lib/import-upload-completion-service";
 import { createNeonImportPreActivationCleanupRepository } from "../lib/neon-import-pre-activation-cleanup-repository";
+import { createNeonImportPreviewProcessingRepository } from "../lib/neon-import-preview-processing-repository";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -558,6 +559,11 @@ describeConnected(
         databaseOwnerId,
         runtimeRole: "dna_app_runtime",
       });
+      const processingRepository = createNeonImportPreviewProcessingRepository({
+        databaseUrl,
+        databaseOwnerId,
+        runtimeRole: "dna_app_runtime",
+      });
       const confirmationCleanupRepository =
         createNeonImportConfirmationCleanupRepository({
           databaseUrl,
@@ -585,6 +591,7 @@ describeConnected(
         credentials: { accessKeyId, secretAccessKey },
       });
       let uploadBatchId: string | null = null;
+      let previewDispatchId: string | null = null;
       const uploadFileIds: string[] = [];
       let confirmedCleanupContext: Readonly<{
         previewId: string;
@@ -698,6 +705,7 @@ describeConnected(
             "Connected nine-file upload was not queued for Preview",
           );
         }
+        previewDispatchId = queued.previewDispatchId;
 
         const prepared = await waitForPreparedPreview({
           databaseUrl,
@@ -928,6 +936,20 @@ describeConnected(
         let cleanupFailure: unknown;
         if (uploadBatchId !== null) {
           try {
+            if (
+              confirmedCleanupContext === null &&
+              previewDispatchId !== null
+            ) {
+              await processingRepository.recordPreviewFailure({
+                ownerId,
+                uploadBatchId,
+                previewDispatchId,
+                workerId: "dna-racing-import-preview-worker",
+                uploadRequestFingerprint: requestFingerprint,
+                failedAt: new Date().toISOString(),
+                reason: "preview_processor_failed",
+              });
+            }
             cleanupResult =
               confirmedCleanupContext === null
                 ? await waitForCleanup({
