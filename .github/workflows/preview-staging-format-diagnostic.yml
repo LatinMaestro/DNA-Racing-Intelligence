@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/preview-staging-format-diagnostic.yml"
-      - ".github/workflows/connected-preview-r2-acceptance.yml"
       - "tests/hosted-preview-connected-staging-contract.test.ts"
 
 permissions:
@@ -27,13 +26,13 @@ jobs:
       - name: Apply exact Prettier output
         shell: bash
         run: |
-          npx prettier .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts --write
-          if git diff --quiet -- .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts; then
+          npx prettier tests/hosted-preview-connected-staging-contract.test.ts --write
+          if git diff --quiet -- tests/hosted-preview-connected-staging-contract.test.ts; then
             echo "Formatting already exact."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/connected-preview-r2-acceptance.yml tests/hosted-preview-connected-staging-contract.test.ts
+          git add tests/hosted-preview-connected-staging-contract.test.ts
           git commit -m "Format connected staging probe"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
