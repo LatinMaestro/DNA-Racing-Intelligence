@@ -134,7 +134,7 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
   }
   return (
     <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
         <div>
           <dt className="text-[var(--muted)]">Verified rows</dt>
           <dd className="font-semibold">
@@ -151,14 +151,6 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
           <dt className="text-[var(--muted)]">R2 partitions read</dt>
           <dd className="font-semibold">
             {state.archiveHistoryPartitionCount.toLocaleString("en-AU")}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Latest archive version</dt>
-          <dd className="font-semibold">
-            {state.archiveHistoryLatestVersionNumber === null
-              ? "—"
-              : state.archiveHistoryLatestVersionNumber.toLocaleString("en-AU")}
           </dd>
         </div>
       </dl>
