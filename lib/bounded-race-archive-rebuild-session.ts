@@ -1,4 +1,9 @@
 import type { SealedRaceArchiveManifest } from "./neon-sealed-race-archive-manifest-repository";
+import {
+  createRaceArchiveCoreLocatorAccumulator,
+  type RaceArchiveCoreLocator,
+  type RaceArchiveCoreLocatorAccumulator,
+} from "./race-archive-core-locator-accumulator";
 import type {
   RaceStagedRowRehydrator,
   RehydratedRaceStagedRow,
@@ -7,7 +12,7 @@ import type {
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 
 type RaceArchiveRebuildFailureReason =
-  "archive_read_failed" | "stage_failed" | "commit_failed";
+  "archive_read_failed" | "stage_failed" | "locator_failed" | "commit_failed";
 
 class RaceArchiveStageFailure extends Error {
   readonly originalCause: unknown;
@@ -19,12 +24,24 @@ class RaceArchiveStageFailure extends Error {
   }
 }
 
+class RaceArchiveLocatorFailure extends Error {
+  readonly originalCause: unknown;
+
+  constructor(cause: unknown) {
+    super("Race archive Core locator persistence failed.");
+    this.name = "RaceArchiveLocatorFailure";
+    this.originalCause = cause;
+  }
+}
+
 export type RaceArchiveRebuildReceipt = Readonly<{
   datasetVersionId: string;
   importBatchId: string;
   processedRowCount: number;
   readyRowCount: number;
   quarantinedRowCount: number;
+  coreLocatorCount: number;
+  partitionReferenceCount: number;
 }>;
 
 export type RaceArchiveRebuildTransaction = Readonly<{
@@ -48,6 +65,25 @@ export type RaceArchiveRebuildRepository = Readonly<{
     importBatchId: string;
     expectedRowCount: number;
   }) => Promise<RaceArchiveRebuildTransaction>;
+}>;
+
+export type RaceArchiveCoreLocatorPersistenceReceipt = Readonly<{
+  status: "sealed" | "existing";
+  datasetVersionId: string;
+  importBatchId: string;
+  coreLocatorCount: number;
+  readyRowCount: number;
+  partitionReferenceCount: number;
+}>;
+
+export type RaceArchiveCoreLocatorRepository = Readonly<{
+  replace: (input: {
+    ownerId: string;
+    datasetVersionId: string;
+    importBatchId: string;
+    locators: readonly RaceArchiveCoreLocator[];
+    builtAt: string;
+  }) => Promise<RaceArchiveCoreLocatorPersistenceReceipt>;
 }>;
 
 export type BoundedRaceArchiveRebuildSession = Readonly<{
@@ -103,6 +139,40 @@ function assertRowIdentity(
   }
 }
 
+function immutableTimestamp(now: () => Date): string {
+  const value = now();
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    throw new Error("Race archive Core locator build timestamp is invalid.");
+  }
+  return value.toISOString();
+}
+
+function locatorPartitionReferenceCount(
+  locators: readonly RaceArchiveCoreLocator[],
+): number {
+  let count = 0;
+  for (const locator of locators) {
+    count += locator.partitionNumbers.length;
+    if (!Number.isSafeInteger(count)) {
+      throw new Error(
+        "Race archive Core locator partition references exceed safe integer bounds.",
+      );
+    }
+  }
+  return count;
+}
+
+function appendLocators(input: {
+  accumulator: RaceArchiveCoreLocatorAccumulator;
+  rows: readonly RehydratedRaceStagedRow[];
+}): void {
+  try {
+    input.accumulator.append(input.rows);
+  } catch (cause) {
+    throw new RaceArchiveLocatorFailure(cause);
+  }
+}
+
 async function stageRows(input: {
   transaction: RaceArchiveRebuildTransaction;
   manifest: SealedRaceArchiveManifest;
@@ -116,6 +186,48 @@ async function stageRows(input: {
     });
   } catch (cause) {
     throw new RaceArchiveStageFailure(cause);
+  }
+}
+
+async function persistLocators(input: {
+  repository: RaceArchiveCoreLocatorRepository;
+  ownerId: string;
+  manifest: SealedRaceArchiveManifest;
+  locators: readonly RaceArchiveCoreLocator[];
+  readyRowCount: number;
+  builtAt: string;
+}): Promise<RaceArchiveCoreLocatorPersistenceReceipt> {
+  try {
+    if (input.readyRowCount <= 0 || input.locators.length <= 0) {
+      throw new Error(
+        "Race archive rebuild cannot seal Core locators without ready rows.",
+      );
+    }
+    const partitionReferenceCount = locatorPartitionReferenceCount(
+      input.locators,
+    );
+    const receipt = await input.repository.replace({
+      ownerId: input.ownerId,
+      datasetVersionId: input.manifest.datasetVersionId,
+      importBatchId: input.manifest.importBatchId,
+      locators: input.locators,
+      builtAt: input.builtAt,
+    });
+    if (
+      (receipt.status !== "sealed" && receipt.status !== "existing") ||
+      receipt.datasetVersionId !== input.manifest.datasetVersionId ||
+      receipt.importBatchId !== input.manifest.importBatchId ||
+      receipt.coreLocatorCount !== input.locators.length ||
+      receipt.readyRowCount !== input.readyRowCount ||
+      receipt.partitionReferenceCount !== partitionReferenceCount
+    ) {
+      throw new Error(
+        "Race archive Core locator receipt conflicts with the verified rebuild.",
+      );
+    }
+    return receipt;
+  } catch (cause) {
+    throw new RaceArchiveLocatorFailure(cause);
   }
 }
 
@@ -143,12 +255,25 @@ async function rollbackAfterFailure(input: {
 export function createBoundedRaceArchiveRebuildSession(input: {
   rehydrator: RaceStagedRowRehydrator;
   repository: RaceArchiveRebuildRepository;
+  coreLocatorRepository: RaceArchiveCoreLocatorRepository;
   maximumRowsPerWrite: number;
+  maximumCoreLocators: number;
+  maximumPartitionsPerCore: number;
+  now?: () => Date;
 }): BoundedRaceArchiveRebuildSession {
   const maximumRowsPerWrite = positiveSafeInteger(
     input.maximumRowsPerWrite,
     "maximumRowsPerWrite",
   );
+  const maximumCoreLocators = positiveSafeInteger(
+    input.maximumCoreLocators,
+    "maximumCoreLocators",
+  );
+  const maximumPartitionsPerCore = positiveSafeInteger(
+    input.maximumPartitionsPerCore,
+    "maximumPartitionsPerCore",
+  );
+  const now = input.now ?? (() => new Date());
 
   return Object.freeze({
     async rebuild(request) {
@@ -181,6 +306,12 @@ export function createBoundedRaceArchiveRebuildSession(input: {
         importBatchId: manifest.importBatchId,
         expectedRowCount: manifest.rowCount,
       });
+      const locatorAccumulator = createRaceArchiveCoreLocatorAccumulator({
+        datasetVersionId: manifest.datasetVersionId,
+        importBatchId: manifest.importBatchId,
+        maximumCoreLocators,
+        maximumPartitionsPerCore,
+      });
 
       let processedRowCount = 0;
       let readyRowCount = 0;
@@ -205,20 +336,30 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           }
           batch.push(row);
           if (batch.length === maximumRowsPerWrite) {
+            const stagedBatch = Object.freeze(batch);
+            appendLocators({
+              accumulator: locatorAccumulator,
+              rows: stagedBatch,
+            });
             await stageRows({
               transaction,
               manifest,
-              rows: Object.freeze(batch),
+              rows: stagedBatch,
             });
             batch = [];
           }
         }
 
         if (batch.length > 0) {
+          const stagedBatch = Object.freeze(batch);
+          appendLocators({
+            accumulator: locatorAccumulator,
+            rows: stagedBatch,
+          });
           await stageRows({
             transaction,
             manifest,
-            rows: Object.freeze(batch),
+            rows: stagedBatch,
           });
         }
 
@@ -230,11 +371,36 @@ export function createBoundedRaceArchiveRebuildSession(input: {
         }
       } catch (cause) {
         const stageFailure = cause instanceof RaceArchiveStageFailure;
+        const locatorFailure = cause instanceof RaceArchiveLocatorFailure;
         return await rollbackAfterFailure({
           transaction,
           manifest,
-          reason: stageFailure ? "stage_failed" : "archive_read_failed",
-          cause: stageFailure ? cause.originalCause : cause,
+          reason: stageFailure
+            ? "stage_failed"
+            : locatorFailure
+              ? "locator_failed"
+              : "archive_read_failed",
+          cause: stageFailure || locatorFailure ? cause.originalCause : cause,
+        });
+      }
+
+      let locatorReceipt: RaceArchiveCoreLocatorPersistenceReceipt;
+      try {
+        locatorReceipt = await persistLocators({
+          repository: input.coreLocatorRepository,
+          ownerId,
+          manifest,
+          locators: locatorAccumulator.finish(),
+          readyRowCount,
+          builtAt: immutableTimestamp(now),
+        });
+      } catch (cause) {
+        const locatorFailure = cause instanceof RaceArchiveLocatorFailure;
+        return await rollbackAfterFailure({
+          transaction,
+          manifest,
+          reason: "locator_failed",
+          cause: locatorFailure ? cause.originalCause : cause,
         });
       }
 
@@ -244,6 +410,8 @@ export function createBoundedRaceArchiveRebuildSession(input: {
         processedRowCount,
         readyRowCount,
         quarantinedRowCount,
+        coreLocatorCount: locatorReceipt.coreLocatorCount,
+        partitionReferenceCount: locatorReceipt.partitionReferenceCount,
       });
       try {
         await transaction.commit(receipt);

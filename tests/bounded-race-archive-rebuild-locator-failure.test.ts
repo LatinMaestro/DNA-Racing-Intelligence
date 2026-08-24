@@ -31,33 +31,20 @@ function stagedRow(sourceRowNumber: number): DurablePreviewStagedRow {
   };
 }
 
-describe("bounded Race archive rebuild partition provenance", () => {
-  it("passes verified archive partition numbers through bounded staging and locator persistence", async () => {
+describe("bounded Race archive rebuild locator failures", () => {
+  it("classifies locator accumulation bounds separately and rolls back before persistence", async () => {
     const stageRows = vi.fn<RaceArchiveRebuildTransaction["stageRows"]>();
+    const commit = vi.fn<RaceArchiveRebuildTransaction["commit"]>();
+    const rollback = vi.fn<RaceArchiveRebuildTransaction["rollback"]>();
     const transaction: RaceArchiveRebuildTransaction = {
       stageRows,
-      commit: vi.fn(async () => undefined),
-      rollback: vi.fn(async () => undefined),
+      commit,
+      rollback,
     };
     const repository: RaceArchiveRebuildRepository = {
       begin: vi.fn(async () => transaction),
     };
-    const replace = vi.fn<RaceArchiveCoreLocatorRepository["replace"]>(
-      async (request) => ({
-        status: "sealed",
-        datasetVersionId: request.datasetVersionId,
-        importBatchId: request.importBatchId,
-        coreLocatorCount: request.locators.length,
-        readyRowCount: request.locators.reduce(
-          (sum, locator) => sum + locator.readyRowCount,
-          0,
-        ),
-        partitionReferenceCount: request.locators.reduce(
-          (sum, locator) => sum + locator.partitionNumbers.length,
-          0,
-        ),
-      }),
-    );
+    const replace = vi.fn<RaceArchiveCoreLocatorRepository["replace"]>();
     const coreLocatorRepository: RaceArchiveCoreLocatorRepository = { replace };
     const rehydrator: RaceStagedRowRehydrator = {
       open: vi.fn(async () => ({
@@ -67,7 +54,7 @@ describe("bounded Race archive rebuild partition provenance", () => {
           importBatchId,
           sourceType: "race_merge" as const,
           evidenceKind: "staged_rows" as const,
-          partitionCount: 5,
+          partitionCount: 2,
           rowCount: 2,
           byteSize: 200,
           objects: [],
@@ -76,13 +63,13 @@ describe("bounded Race archive rebuild partition provenance", () => {
           yield {
             datasetVersionId,
             importBatchId,
-            partitionNumber: 3,
+            partitionNumber: 0,
             stagedRow: stagedRow(1),
           };
           yield {
             datasetVersionId,
             importBatchId,
-            partitionNumber: 4,
+            partitionNumber: 1,
             stagedRow: stagedRow(2),
           };
         })(),
@@ -92,9 +79,9 @@ describe("bounded Race archive rebuild partition provenance", () => {
       rehydrator,
       repository,
       coreLocatorRepository,
-      maximumRowsPerWrite: 2,
-      maximumCoreLocators: 100,
-      maximumPartitionsPerCore: 10,
+      maximumRowsPerWrite: 1,
+      maximumCoreLocators: 10,
+      maximumPartitionsPerCore: 1,
       now: () => new Date("2026-08-25T00:03:00Z"),
     });
 
@@ -102,30 +89,18 @@ describe("bounded Race archive rebuild partition provenance", () => {
       service.rebuild({
         ownerId: "user_owner",
         datasetVersionId,
-        maximumPartitions: 5,
+        maximumPartitions: 2,
       }),
-    ).resolves.toMatchObject({ status: "rebuilt" });
+    ).rejects.toThrow("Core partition count exceeds its bound");
 
     expect(stageRows).toHaveBeenCalledTimes(1);
-    expect(
-      stageRows.mock.calls[0]?.[0].rows.map((row) => row.partitionNumber),
-    ).toEqual([3, 4]);
-    expect(replace).toHaveBeenCalledWith({
-      ownerId: "user_owner",
+    expect(replace).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
+    expect(rollback).toHaveBeenCalledTimes(1);
+    expect(rollback).toHaveBeenCalledWith({
       datasetVersionId,
       importBatchId,
-      builtAt: "2026-08-25T00:03:00.000Z",
-      locators: [
-        {
-          datasetVersionId,
-          importBatchId,
-          sourceCoreId: "core-1",
-          partitionNumbers: [3, 4],
-          readyRowCount: 2,
-          firstSourceRowNumber: 1,
-          lastSourceRowNumber: 2,
-        },
-      ],
+      reason: "locator_failed",
     });
   });
 });
