@@ -37,7 +37,7 @@ BEGIN
     '51000000-0000-4000-8000-000000000001',
     '51000000-0000-4000-8000-000000000101',
     jsonb_build_array(jsonb_build_object(
-      'ownerId', '51000000-0000-4000-8000-000000000001',
+      'ownerId', 'synthetic_preview_evidence_resume_owner',
       'importBatchId', '51000000-0000-4000-8000-000000000101',
       'sourceType', 'core_details',
       'objectKind', 'staged_rows',
@@ -60,7 +60,7 @@ BEGIN
     '51000000-0000-4000-8000-000000000001',
     '51000000-0000-4000-8000-000000000102',
     jsonb_build_array(jsonb_build_object(
-      'ownerId', '51000000-0000-4000-8000-000000000001',
+      'ownerId', 'synthetic_preview_evidence_resume_owner',
       'importBatchId', '51000000-0000-4000-8000-000000000102',
       'sourceType', 'current_arena',
       'objectKind', 'staged_rows',
@@ -144,7 +144,7 @@ BEGIN
       '51000000-0000-4000-8000-000000000001',
       '51000000-0000-4000-8000-000000000101',
       jsonb_build_array(jsonb_build_object(
-        'ownerId', '51000000-0000-4000-8000-000000000001',
+        'ownerId', 'synthetic_preview_evidence_resume_owner',
         'importBatchId', '51000000-0000-4000-8000-000000000101',
         'sourceType', 'core_details',
         'objectKind', 'staged_rows',
