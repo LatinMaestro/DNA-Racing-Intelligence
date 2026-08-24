@@ -396,7 +396,9 @@ describeConnected("connected Preview immutable evidence object", () => {
     };
     const locatorRepository: NeonRaceArchiveCoreLocatorRepository = {
       replace: async () => {
-        throw new Error("connected archive history read must not replace locators");
+        throw new Error(
+          "connected archive history read must not replace locators",
+        );
       },
       listForCore: async (request) => {
         expect(request).toEqual({
