@@ -7,6 +7,21 @@ import type {
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 
+type RaceArchiveRebuildFailureReason =
+  | "archive_read_failed"
+  | "stage_failed"
+  | "commit_failed";
+
+class RaceArchiveStageFailure extends Error {
+  readonly originalCause: unknown;
+
+  constructor(cause: unknown) {
+    super("Race archive rebuild staging failed.");
+    this.name = "RaceArchiveStageFailure";
+    this.originalCause = cause;
+  }
+}
+
 export type RaceArchiveRebuildReceipt = Readonly<{
   datasetVersionId: string;
   importBatchId: string;
@@ -25,7 +40,7 @@ export type RaceArchiveRebuildTransaction = Readonly<{
   rollback: (input: {
     datasetVersionId: string;
     importBatchId: string;
-    reason: "archive_read_failed" | "stage_failed" | "commit_failed";
+    reason: RaceArchiveRebuildFailureReason;
   }) => Promise<void>;
 }>;
 
@@ -65,7 +80,10 @@ function safeIdentifier(value: string, field: string): string {
 }
 
 function assertManifest(manifest: SealedRaceArchiveManifest): void {
-  if (manifest.sourceType !== "race_merge" || manifest.evidenceKind !== "staged_rows") {
+  if (
+    manifest.sourceType !== "race_merge" ||
+    manifest.evidenceKind !== "staged_rows"
+  ) {
     throw new Error("Race archive rebuild requires sealed staged-row evidence.");
   }
   positiveSafeInteger(manifest.rowCount, "manifest.rowCount");
@@ -80,14 +98,32 @@ function assertRowIdentity(
     row.datasetVersionId !== manifest.datasetVersionId ||
     row.importBatchId !== manifest.importBatchId
   ) {
-    throw new Error("Rehydrated Race row identity conflicts with the sealed manifest.");
+    throw new Error(
+      "Rehydrated Race row identity conflicts with the sealed manifest.",
+    );
+  }
+}
+
+async function stageRows(input: {
+  transaction: RaceArchiveRebuildTransaction;
+  manifest: SealedRaceArchiveManifest;
+  rows: readonly DurablePreviewStagedRow[];
+}): Promise<void> {
+  try {
+    await input.transaction.stageRows({
+      datasetVersionId: input.manifest.datasetVersionId,
+      importBatchId: input.manifest.importBatchId,
+      rows: input.rows,
+    });
+  } catch (cause) {
+    throw new RaceArchiveStageFailure(cause);
   }
 }
 
 async function rollbackAfterFailure(input: {
   transaction: RaceArchiveRebuildTransaction;
   manifest: SealedRaceArchiveManifest;
-  reason: "archive_read_failed" | "stage_failed" | "commit_failed";
+  reason: RaceArchiveRebuildFailureReason;
   cause: unknown;
 }): Promise<never> {
   try {
@@ -136,7 +172,9 @@ export function createBoundedRaceArchiveRebuildSession(input: {
       const manifest = opened.manifest;
       assertManifest(manifest);
       if (manifest.datasetVersionId !== datasetVersionId) {
-        throw new Error("Race archive manifest does not match the requested dataset version.");
+        throw new Error(
+          "Race archive manifest does not match the requested dataset version.",
+        );
       }
       const transaction = await input.repository.begin({
         ownerId,
@@ -166,59 +204,36 @@ export function createBoundedRaceArchiveRebuildSession(input: {
           }
           batch.push(row.stagedRow);
           if (batch.length === maximumRowsPerWrite) {
-            const rows = Object.freeze(batch);
-            try {
-              await transaction.stageRows({
-                datasetVersionId: manifest.datasetVersionId,
-                importBatchId: manifest.importBatchId,
-                rows,
-              });
-            } catch (cause) {
-              return await rollbackAfterFailure({
-                transaction,
-                manifest,
-                reason: "stage_failed",
-                cause,
-              });
-            }
+            await stageRows({
+              transaction,
+              manifest,
+              rows: Object.freeze(batch),
+            });
             batch = [];
           }
         }
-      } catch (cause) {
-        return await rollbackAfterFailure({
-          transaction,
-          manifest,
-          reason: "archive_read_failed",
-          cause,
-        });
-      }
 
-      if (batch.length > 0) {
-        try {
-          await transaction.stageRows({
-            datasetVersionId: manifest.datasetVersionId,
-            importBatchId: manifest.importBatchId,
-            rows: Object.freeze(batch),
-          });
-        } catch (cause) {
-          return await rollbackAfterFailure({
+        if (batch.length > 0) {
+          await stageRows({
             transaction,
             manifest,
-            reason: "stage_failed",
-            cause,
+            rows: Object.freeze(batch),
           });
         }
-      }
 
-      if (
-        processedRowCount !== manifest.rowCount ||
-        readyRowCount + quarantinedRowCount !== processedRowCount
-      ) {
+        if (
+          processedRowCount !== manifest.rowCount ||
+          readyRowCount + quarantinedRowCount !== processedRowCount
+        ) {
+          throw new Error("Race archive rebuild row accounting is incomplete.");
+        }
+      } catch (cause) {
+        const stageFailure = cause instanceof RaceArchiveStageFailure;
         return await rollbackAfterFailure({
           transaction,
           manifest,
-          reason: "archive_read_failed",
-          cause: new Error("Race archive rebuild row accounting is incomplete."),
+          reason: stageFailure ? "stage_failed" : "archive_read_failed",
+          cause: stageFailure ? cause.originalCause : cause,
         });
       }
 
