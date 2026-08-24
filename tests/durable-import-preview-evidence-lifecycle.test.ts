@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { DatasetEvidenceManifestRegistrationService } from "@/lib/dataset-evidence-manifest-registration-service";
 import {
   createDurableImportPreviewEvidenceLifecycle,
   type DurableImportPreviewEvidenceSession,
@@ -14,7 +13,6 @@ import type {
 
 const ownerId = "user_owner";
 const importBatchId = "11111111-1111-4111-8111-111111111111";
-const evidenceObjectId = "22222222-2222-4222-8222-222222222222";
 
 function row(index: number): DurablePreviewStagedRow {
   return {
@@ -60,22 +58,6 @@ function harness() {
       };
     },
   );
-  const validate = vi.fn<
-    DatasetEvidenceManifestRegistrationService["validate"]
-  >(() => {
-    order.push("validate");
-  });
-  const register = vi.fn<
-    DatasetEvidenceManifestRegistrationService["register"]
-  >(async (stored) => {
-    order.push("register");
-    return stored.map((object) => ({
-      evidenceObjectId,
-      objectKey: object.registration.objectKey,
-      status: "created" as const,
-      storageStatus: object.storageStatus,
-    }));
-  });
   const cleanup = vi.fn<
     (
       stored: readonly StoredPrivateDatasetEvidenceObject[],
@@ -90,7 +72,6 @@ function harness() {
   const lifecycle = createDurableImportPreviewEvidenceLifecycle({
     ownerId,
     storageWriter: { store },
-    registrationService: { validate, register },
     recovery: { cleanup },
     maximumUncompressedBytes: 1024,
     maximumRowsPerPartition: 1,
@@ -106,8 +87,6 @@ function harness() {
     session,
     order,
     store,
-    validate,
-    register,
     cleanup,
     failAt(partition: number) {
       failPartition = partition;
@@ -120,34 +99,35 @@ async function appendTwo(session: DurableImportPreviewEvidenceSession) {
 }
 
 describe("durable import Preview evidence lifecycle", () => {
-  it("stores bounded partitions, commits, then registers manifests", async () => {
+  it("stores bounded partitions and passes exact receipts into the database commit", async () => {
     const test = harness();
     await appendTwo(test.session);
-
-    await expect(
-      test.session.commitAndRegister(async () => {
+    const commit = vi.fn(
+      async (stored: readonly StoredPrivateDatasetEvidenceObject[]) => {
         test.order.push("commit");
-        return { importBatchId };
-      }),
-    ).resolves.toEqual({ importBatchId });
+        return { importBatchId, stored };
+      },
+    );
 
-    expect(test.order).toEqual([
-      "store-0",
-      "store-1",
-      "validate",
-      "commit",
-      "register",
+    const result = await test.session.commitWithEvidenceReceipts(commit);
+
+    expect(result.importBatchId).toBe(importBatchId);
+    expect(result.stored).toHaveLength(2);
+    expect(result.stored.map(({ registration }) => registration.partitionNumber)).toEqual([
+      0,
+      1,
     ]);
+    expect(test.order).toEqual(["store-0", "store-1", "commit"]);
     expect(test.cleanup).not.toHaveBeenCalled();
   });
 
-  it("cleans newly created partitions when the database commit fails", async () => {
+  it("cleans newly created partitions when the database receipt commit fails", async () => {
     const test = harness();
     await appendTwo(test.session);
-    const commitError = new Error("Neon commit failed");
+    const commitError = new Error("Neon receipt commit failed");
 
     await expect(
-      test.session.commitAndRegister(async () => {
+      test.session.commitWithEvidenceReceipts(async () => {
         throw commitError;
       }),
     ).rejects.toBe(commitError);
@@ -159,41 +139,30 @@ describe("durable import Preview evidence lifecycle", () => {
         registration: expect.objectContaining({ partitionNumber: 1 }),
       }),
     ]);
-    expect(test.register).not.toHaveBeenCalled();
   });
 
-  it("recovers earlier receipts when a later partition write fails", async () => {
+  it("recovers earlier stored receipts when a later partition write fails", async () => {
     const test = harness();
     test.failAt(1);
     await appendTwo(test.session);
 
     await expect(
-      test.session.commitAndRegister(async () => ({ importBatchId })),
+      test.session.commitWithEvidenceReceipts(async () => ({ importBatchId })),
     ).rejects.toThrow("R2 write interrupted");
     expect(test.cleanup).toHaveBeenCalledWith([
       expect.objectContaining({
         registration: expect.objectContaining({ partitionNumber: 0 }),
       }),
     ]);
-    expect(test.register).not.toHaveBeenCalled();
   });
 
-  it("preserves every object after commit when registration is interrupted", async () => {
+  it("does not clean evidence after the receipt commit completes", async () => {
     const test = harness();
     await appendTwo(test.session);
-    test.register.mockRejectedValueOnce(
-      new Error("manifest registration interrupted"),
-    );
 
-    await expect(
-      test.session.commitAndRegister(async () => {
-        test.order.push("commit");
-        return { importBatchId };
-      }),
-    ).rejects.toThrow("manifest registration interrupted");
+    await test.session.commitWithEvidenceReceipts(async () => ({ importBatchId }));
     await test.session.abort();
 
-    expect(test.order).toContain("commit");
     expect(test.cleanup).not.toHaveBeenCalled();
   });
 
@@ -209,7 +178,6 @@ describe("durable import Preview evidence lifecycle", () => {
         registration: expect.objectContaining({ partitionNumber: 0 }),
       }),
     ]);
-    expect(test.register).not.toHaveBeenCalled();
   });
 
   it("blocks another owner before storing any evidence", () => {
@@ -228,10 +196,10 @@ describe("durable import Preview evidence lifecycle", () => {
   it("rejects a second commit request", async () => {
     const test = harness();
     await test.session.append([row(1)]);
-    await test.session.commitAndRegister(async () => ({ importBatchId }));
+    await test.session.commitWithEvidenceReceipts(async () => ({ importBatchId }));
 
     await expect(
-      test.session.commitAndRegister(async () => ({ importBatchId })),
+      test.session.commitWithEvidenceReceipts(async () => ({ importBatchId })),
     ).rejects.toThrow("already requested");
   });
 });
