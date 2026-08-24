@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 
 import type { DatasetEvidenceObjectRegistration } from "./neon-dataset-evidence-object-repository";
-import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
+import type {
+  PrivateDatasetEvidenceObjectStoragePort,
+} from "./private-dataset-evidence-object-writer";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
