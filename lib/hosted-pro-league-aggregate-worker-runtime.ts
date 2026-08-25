@@ -255,7 +255,9 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
                     databaseOwnerId,
                     runtimeRole,
                     ...(input.dependencies?.neonSessionFactory
-                      ? { sessionFactory: input.dependencies.neonSessionFactory }
+                      ? {
+                          sessionFactory: input.dependencies.neonSessionFactory,
+                        }
                       : {}),
                   }),
                 objectReader:
