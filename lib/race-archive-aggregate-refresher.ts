@@ -227,8 +227,11 @@ function publicationRows(input: {
         analyticalObservationsFromRaceArchiveCoreHistory(history);
       return corePerformanceProfilesFromRaceArchive({
         observationSet,
-        maximumObservations: input.maximumObservations,
-        maximumProfiles: input.maximumCorePerformanceProfiles,
+        maximumObservations: Math.min(input.maximumObservations, 1_000_000),
+        maximumProfiles: Math.min(
+          input.maximumCorePerformanceProfiles,
+          100_000,
+        ),
       });
     })
     .map((profile) =>
