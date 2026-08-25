@@ -34,10 +34,13 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply complete migration chain
+      - name: Apply migration chain through Race archive Core locators
         run: |
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
+            if [ "$(basename "$migration")" = "0059_race_archive_core_locators.up.sql" ]; then
+              break
+            fi
           done
       - name: Run Race archive Core locator smoke test
         run: >-
