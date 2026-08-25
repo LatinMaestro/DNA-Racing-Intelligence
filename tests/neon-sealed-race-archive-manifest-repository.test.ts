@@ -142,6 +142,7 @@ describe("Neon sealed Race archive manifest repository", () => {
         ],
       },
     });
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
     expect(test.query.mock.calls[3]?.[1]).toEqual([
       databaseOwnerId,
       datasetVersionId,
