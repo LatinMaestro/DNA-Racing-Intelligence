@@ -192,6 +192,24 @@ BEGIN
     RAISE EXCEPTION 'active Race Merge aggregate work was not independently claimed';
   END IF;
 
+  INSERT INTO dna.race_archive_aggregate_publication_receipt (
+    owner_id, refresh_id, target_dataset_version_id, race_dataset_version_id,
+    source_version_set_sha256, payload_sha256, aggregate_family_count,
+    core_performance_profile_count, validated_event_count,
+    core_star_profile_count, discovery_benchmark_count,
+    accepted_format_entry_count, payout_format_profile_count,
+    materialized_row_count, refreshed_at, published_at
+  ) VALUES (
+    '43000000-0000-4000-8000-000000000001',
+    '43000000-0000-4000-8000-000000000301',
+    '43000000-0000-4000-8000-000000000201',
+    '43000000-0000-4000-8000-000000000201',
+    v_race_claim.source_version_set_sha256,
+    repeat('9', 64), 4,
+    0, 0, 0, 0, 0, 0, 0,
+    '2026-08-23T00:05:30Z', '2026-08-23T00:05:31Z'
+  );
+
   SELECT * INTO STRICT v_race_prepared
   FROM dna.prepare_pro_league_aggregate_refresh(
     '43000000-0000-4000-8000-000000000001',
