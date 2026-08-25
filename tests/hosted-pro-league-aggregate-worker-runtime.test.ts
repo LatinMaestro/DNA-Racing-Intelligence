@@ -8,6 +8,7 @@ import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
 } from "../lib/neon-import-persistence-driver";
+import type { NeonRaceArchiveAggregateRefreshPlanRepository } from "../lib/neon-race-archive-aggregate-refresh-plan";
 
 const databaseOwnerId = "11111111-1111-4111-8111-111111111111";
 const ownerId = "owner-1";
@@ -22,14 +23,27 @@ function environment(
 ): HostedProLeagueAggregateWorkerEnvironment {
   return {
     workerId: "aggregate-worker-1",
+    authorizedOwnerId: ownerId,
     database: {
       databaseUrl: "postgresql://private.example/dna",
       databaseOwnerId,
       runtimeRole,
     },
     leaseDurationMilliseconds: "300000",
+    cloudflareAccountId: "a".repeat(32),
+    cloudflareApiToken: "preview-token",
+    bucketName: "dna-racing-import-preview",
+    r2AccessKeyId: "preview-access-key",
+    r2SecretAccessKey: "preview-secret-key",
     ...overrides,
   };
+}
+
+function nonRacePlanRepository(): NeonRaceArchiveAggregateRefreshPlanRepository {
+  return Object.freeze({
+    targetSourceType: vi.fn(async () => "core_details" as const),
+    list: vi.fn(async () => []),
+  });
 }
 
 function isolationEvidence() {
@@ -84,7 +98,7 @@ function message() {
 }
 
 describe("hosted Pro League aggregate worker runtime", () => {
-  it("fails closed when identity, lease, or database settings are incomplete", () => {
+  it("fails closed when identity, lease, database, or archive settings are incomplete", () => {
     expect(
       hostedProLeagueAggregateWorkerRuntime({
         environment: environment({ workerId: undefined }),
@@ -106,9 +120,14 @@ describe("hosted Pro League aggregate worker runtime", () => {
         }),
       }),
     ).toEqual({ status: "not_configured" });
+    expect(
+      hostedProLeagueAggregateWorkerRuntime({
+        environment: environment({ r2SecretAccessKey: undefined }),
+      }),
+    ).toEqual({ status: "not_configured" });
   });
 
-  it("consumes one queue delivery through claim, prepare, and publication", async () => {
+  it("keeps rolling current-source refreshes on the archive-preserving SQL path", async () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
@@ -136,9 +155,11 @@ describe("hosted Pro League aggregate worker runtime", () => {
       [isolationEvidence()],
       [{ status: "published", aggregate_set_id: refreshId }],
     ]);
+    const planRepository = nonRacePlanRepository();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
       dependencies: {
+        planRepository,
         neonSessionFactory: database.sessionFactory,
         now: () => new Date("2026-08-21T01:00:00.000Z"),
       },
@@ -149,6 +170,12 @@ describe("hosted Pro League aggregate worker runtime", () => {
     await expect(runtime.consume({ body: message() })).resolves.toEqual({
       disposition: "acknowledge",
       reason: "completed",
+    });
+    expect(planRepository.targetSourceType).toHaveBeenCalledWith({
+      ownerId,
+      updateSessionId: datasetVersionId,
+      refreshId,
+      sourceVersionSetSha256: sourceHash,
     });
     expect(database.query).toHaveBeenCalledWith(
       expect.stringContaining("dna.claim_pro_league_aggregate_refresh"),
@@ -180,7 +207,7 @@ describe("hosted Pro League aggregate worker runtime", () => {
     );
   });
 
-  it("returns retry with the durable lease time without preparing", async () => {
+  it("returns retry with the durable lease time without selecting a refresh path", async () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
@@ -195,9 +222,13 @@ describe("hosted Pro League aggregate worker runtime", () => {
         },
       ],
     ]);
+    const planRepository = nonRacePlanRepository();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
-      dependencies: { neonSessionFactory: database.sessionFactory },
+      dependencies: {
+        planRepository,
+        neonSessionFactory: database.sessionFactory,
+      },
     });
     if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
@@ -211,14 +242,19 @@ describe("hosted Pro League aggregate worker runtime", () => {
       reason: "leased_elsewhere",
       retryAfter: "2026-08-21T01:04:00.000Z",
     });
+    expect(planRepository.targetSourceType).not.toHaveBeenCalled();
     expect(database.query).toHaveBeenCalledTimes(5);
   });
 
-  it("rejects non-aggregate queue deliveries before database work", async () => {
+  it("rejects non-aggregate queue deliveries before database or archive work", async () => {
     const database = sessionHarness([]);
+    const planRepository = nonRacePlanRepository();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
-      dependencies: { neonSessionFactory: database.sessionFactory },
+      dependencies: {
+        planRepository,
+        neonSessionFactory: database.sessionFactory,
+      },
     });
     if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
@@ -231,6 +267,7 @@ describe("hosted Pro League aggregate worker runtime", () => {
         },
       }),
     ).rejects.toThrow("not available in this worker");
+    expect(planRepository.targetSourceType).not.toHaveBeenCalled();
     expect(database.query).not.toHaveBeenCalled();
   });
 });
