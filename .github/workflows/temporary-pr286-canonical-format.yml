@@ -25,9 +25,25 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply canonical formatting and remove temporary workflow
+      - name: Validate inputs, format, test and remove temporary workflow
         shell: bash
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('lib/race-archive-spillable-core-performance.ts')
+          text = path.read_text()
+          marker = '\nfunction profileGroupKey'
+          insert = '''\nfunction validatedObservations(\n  source: AsyncIterable<RaceArchiveCoreAnalyticalObservation>,\n): AsyncIterable<RaceArchiveCoreAnalyticalObservation> {\n  return (async function* () {\n    for await (const observation of source) {\n      yield validatedObservation(observation);\n    }\n  })();\n}\n'''
+          if marker not in text:
+              raise SystemExit('profileGroupKey marker missing')
+          text = text.replace(marker, insert + marker, 1)
+          old = '    records: input.observations,\n'
+          new = '    records: validatedObservations(input.observations),\n'
+          if old not in text:
+              raise SystemExit('sort records marker missing')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
           npx prettier --write lib/race-archive-spillable-core-performance.ts tests/race-archive-spillable-core-performance.test.ts
           npm run format
           npm run typecheck
@@ -37,5 +53,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Format spillable Core Performance reducer'
+          git commit -m 'Validate and format spillable Core Performance reducer'
           git push origin HEAD:agent/spillable-core-performance-reducer
