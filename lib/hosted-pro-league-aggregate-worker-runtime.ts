@@ -7,18 +7,33 @@ import {
   neonProLeagueAggregateRefreshCapabilitiesFromEnvironment,
   type ProLeagueAggregateRefreshEnvironment,
 } from "./neon-pro-league-aggregate-refresh";
+import {
+  hostedRaceArchiveAggregateRefresherRuntime,
+  type HostedRaceArchiveAggregateRefresherDependencies,
+} from "./hosted-race-archive-aggregate-refresher-runtime";
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
+
+export type HostedProLeagueAggregateWorkerArchiveEnvironment = Readonly<{
+  authorizedOwnerId: string | undefined;
+  cloudflareAccountId: string | undefined;
+  cloudflareApiToken: string | undefined;
+  bucketName: string | undefined;
+  r2AccessKeyId: string | undefined;
+  r2SecretAccessKey: string | undefined;
+}>;
 
 export type HostedProLeagueAggregateWorkerEnvironment = Readonly<{
   workerId: string | undefined;
   database: ProLeagueAggregateRefreshEnvironment;
   leaseDurationMilliseconds: string | undefined;
+  archive?: HostedProLeagueAggregateWorkerArchiveEnvironment;
 }>;
 
 export type HostedProLeagueAggregateWorkerDependencies = Readonly<{
   now?: () => Date;
   neonSessionFactory?: NeonImportPersistenceSessionFactory;
+  archive?: HostedRaceArchiveAggregateRefresherDependencies;
 }>;
 
 export type HostedProLeagueAggregateWorkerRuntime =
@@ -66,14 +81,54 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
   }
 
   try {
-    const capabilities =
+    const baseCapabilities =
       neonProLeagueAggregateRefreshCapabilitiesFromEnvironment(
         input.environment.database,
         input.dependencies?.neonSessionFactory,
       );
-    if (capabilities.status !== "ready") {
+    if (baseCapabilities.status !== "ready") {
       return unavailableHostedProLeagueAggregateWorkerRuntime;
     }
+
+    let capabilities = baseCapabilities;
+    if (input.environment.archive !== undefined) {
+      const archiveRuntime = hostedRaceArchiveAggregateRefresherRuntime({
+        environment: {
+          authorizedOwnerId: input.environment.archive.authorizedOwnerId,
+          databaseUrl: input.environment.database.databaseUrl,
+          databaseOwnerId: input.environment.database.databaseOwnerId,
+          runtimeRole: input.environment.database.runtimeRole,
+          workerId,
+          cloudflareAccountId:
+            input.environment.archive.cloudflareAccountId,
+          cloudflareApiToken: input.environment.archive.cloudflareApiToken,
+          bucketName: input.environment.archive.bucketName,
+          r2AccessKeyId: input.environment.archive.r2AccessKeyId,
+          r2SecretAccessKey: input.environment.archive.r2SecretAccessKey,
+        },
+        currentStateRefresher: baseCapabilities.refresher,
+        dependencies: {
+          ...input.dependencies?.archive,
+          ...(input.dependencies?.neonSessionFactory &&
+          input.dependencies?.archive?.neonSessionFactory === undefined
+            ? { neonSessionFactory: input.dependencies.neonSessionFactory }
+            : {}),
+          ...(input.dependencies?.now &&
+          input.dependencies?.archive?.now === undefined
+            ? { now: input.dependencies.now }
+            : {}),
+        },
+      });
+      if (archiveRuntime.status !== "ready") {
+        return unavailableHostedProLeagueAggregateWorkerRuntime;
+      }
+      capabilities = Object.freeze({
+        status: "ready" as const,
+        repository: baseCapabilities.repository,
+        refresher: archiveRuntime.refresher,
+      });
+    }
+
     const now = input.dependencies?.now ?? (() => new Date());
     return Object.freeze({
       status: "ready" as const,
