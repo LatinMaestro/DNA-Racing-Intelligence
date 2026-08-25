@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { RaceArchiveCoreHistory } from "../lib/race-archive-core-history-service";
-import { analyticalObservationsFromRaceArchiveCoreHistory } from "../lib/race-archive-core-analytical-observations";
+import {
+  analyticalObservationFromRaceArchiveCoreHistoryRow,
+  analyticalObservationsFromRaceArchiveCoreHistory,
+} from "../lib/race-archive-core-analytical-observations";
 
 function history(input?: {
   sourceCoreId?: string;
@@ -101,6 +104,17 @@ describe("Race archive Core analytical observations", () => {
           },
         ],
       },
+    );
+  });
+
+  it("converts one archive history row without materializing a Core history", () => {
+    const source = history();
+    const row = source.rows[0];
+    expect(row).toBeDefined();
+    expect(
+      analyticalObservationFromRaceArchiveCoreHistoryRow(row!, source.sourceCoreId),
+    ).toEqual(
+      analyticalObservationsFromRaceArchiveCoreHistory(source).observations[0],
     );
   });
 
