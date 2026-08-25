@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { NeonRaceArchiveAggregatePublicationRepository } from "../lib/neon-race-archive-aggregate-publication";
 import { publishRaceArchiveAggregates } from "../lib/race-archive-aggregate-publication-service";
 
+type StageRowsInput = Parameters<
+  NeonRaceArchiveAggregatePublicationRepository["stageRows"]
+>[0];
+
 const baseInput = {
   ownerId: "owner-1",
   refreshId: "22222222-2222-4222-8222-222222222222",
@@ -23,7 +27,7 @@ function repository(input?: {
 }) {
   const begin = vi.fn(async () => input?.beginStatus ?? "staging");
   const stageRows = vi.fn(
-    async (value: { rows: readonly unknown[] }) =>
+    async (value: StageRowsInput) =>
       input?.stagedCountOverride ?? value.rows.length,
   );
   const publish = vi.fn(async () => ({
