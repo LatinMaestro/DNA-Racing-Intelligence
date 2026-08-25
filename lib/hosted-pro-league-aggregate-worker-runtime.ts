@@ -143,8 +143,7 @@ function archiveConfiguration(
   maximumChunkBytes: number;
 }> {
   const ownerId = owner(environment.authorizedOwnerId);
-  const accountId =
-    environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
+  const accountId = environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
   const apiToken = secret(environment.cloudflareApiToken);
   const bucketName = environment.bucketName?.trim() ?? "";
   const accessKeyId = secret(environment.r2AccessKeyId);
