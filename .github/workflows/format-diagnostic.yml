@@ -8,13 +8,15 @@ on:
       - ".github/workflows/format-diagnostic.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/race-archive-aggregate-reconstruction
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -22,7 +24,14 @@ jobs:
       - run: npm ci
       - name: Format target files
         run: npx prettier --write lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts
-      - name: Emit formatted files
+      - name: Commit formatting only when changed
         run: |
-          echo "SERVICE_B64=$(base64 -w0 lib/race-archive-aggregate-refresher.ts)"
-          echo "TEST_B64=$(base64 -w0 tests/race-archive-aggregate-refresher.test.ts)"
+          if git diff --quiet -- lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts
+          git commit -m "Format Race archive reconstruction"
+          git push origin HEAD:agent/race-archive-aggregate-reconstruction
