@@ -1,0 +1,26 @@
+name: Temporary Prettier diagnostic
+
+on:
+  push:
+    branches:
+      - agent/spillable-race-archive-reconstruction
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Print canonical external sorter
+        run: |
+          npx prettier --write lib/race-archive-external-sort.ts
+          printf '%s\n' '---CANONICAL-BEGIN---'
+          cat lib/race-archive-external-sort.ts
+          printf '%s\n' '---CANONICAL-END---'
