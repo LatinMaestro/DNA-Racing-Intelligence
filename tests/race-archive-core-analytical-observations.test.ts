@@ -112,7 +112,10 @@ describe("Race archive Core analytical observations", () => {
     const row = source.rows[0];
     expect(row).toBeDefined();
     expect(
-      analyticalObservationFromRaceArchiveCoreHistoryRow(row!, source.sourceCoreId),
+      analyticalObservationFromRaceArchiveCoreHistoryRow(
+        row!,
+        source.sourceCoreId,
+      ),
     ).toEqual(
       analyticalObservationsFromRaceArchiveCoreHistory(source).observations[0],
     );
