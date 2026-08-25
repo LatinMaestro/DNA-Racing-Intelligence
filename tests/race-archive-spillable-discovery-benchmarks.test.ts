@@ -77,27 +77,91 @@ async function collect<T>(source: AsyncIterable<T>): Promise<readonly T[]> {
 describe("spillable Race archive Discovery benchmarks", () => {
   it("matches resident exact-distance percentile semantics and removes scratch", async () => {
     const input = [
-      observation({ event: "event-5", core: "core-e", mode: "car", distance: 1200, elapsed: 51_000, finish: 1, eventAt: "2026-04-05T00:00:00Z", row: 5 }),
-      observation({ event: "event-3", core: "core-c", mode: "bike", distance: 1000, elapsed: 43_000, finish: 3, eventAt: "2026-04-03T00:00:00Z", row: 3 }),
-      observation({ event: "event-1", core: "core-a", mode: "bike", distance: 1000, elapsed: 40_000, finish: 1, eventAt: "2026-04-01T00:00:00Z", row: 1 }),
-      observation({ event: "event-6", core: "core-f", mode: "car", distance: 1200, elapsed: 53_000, finish: 4, eventAt: "2026-04-06T00:00:00Z", row: 6 }),
-      observation({ event: "event-2", core: "core-b", mode: "bike", distance: 1000, elapsed: 42_000, finish: 2, eventAt: "2026-04-02T00:00:00Z", row: 2 }),
-      observation({ event: "event-4", core: "core-d", mode: "bike", distance: 1000, elapsed: 44_000, finish: 5, eventAt: "2026-04-04T00:00:00Z", row: 4 }),
-      observation({ event: "event-7", core: "core-g", mode: "horse", distance: 1400, elapsed: 61_000, finish: 4, eventAt: "2026-04-07T00:00:00Z", row: 7 }),
+      observation({
+        event: "event-5",
+        core: "core-e",
+        mode: "car",
+        distance: 1200,
+        elapsed: 51_000,
+        finish: 1,
+        eventAt: "2026-04-05T00:00:00Z",
+        row: 5,
+      }),
+      observation({
+        event: "event-3",
+        core: "core-c",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 43_000,
+        finish: 3,
+        eventAt: "2026-04-03T00:00:00Z",
+        row: 3,
+      }),
+      observation({
+        event: "event-1",
+        core: "core-a",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 40_000,
+        finish: 1,
+        eventAt: "2026-04-01T00:00:00Z",
+        row: 1,
+      }),
+      observation({
+        event: "event-6",
+        core: "core-f",
+        mode: "car",
+        distance: 1200,
+        elapsed: 53_000,
+        finish: 4,
+        eventAt: "2026-04-06T00:00:00Z",
+        row: 6,
+      }),
+      observation({
+        event: "event-2",
+        core: "core-b",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 42_000,
+        finish: 2,
+        eventAt: "2026-04-02T00:00:00Z",
+        row: 2,
+      }),
+      observation({
+        event: "event-4",
+        core: "core-d",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 44_000,
+        finish: 5,
+        eventAt: "2026-04-04T00:00:00Z",
+        row: 4,
+      }),
+      observation({
+        event: "event-7",
+        core: "core-g",
+        mode: "horse",
+        distance: 1400,
+        elapsed: 61_000,
+        finish: 4,
+        eventAt: "2026-04-07T00:00:00Z",
+        row: 7,
+      }),
     ] as const;
     const refreshedAt = "2026-04-08T00:00:00Z";
     const scratch = memoryStore<RaceArchiveCoreAnalyticalObservation>();
-    const spillable = await spillableDiscoveryExactDistanceBenchmarksFromRaceArchive({
-      observations: records(input),
-      store: scratch.store,
-      runPrefix: "test/discovery",
-      refreshedAt,
-      maximumRecordsInMemory: 2,
-      mergeFanIn: 2,
-      maximumObservations: 100,
-      maximumRunObjects: 100,
-      maximumBenchmarks: 20,
-    });
+    const spillable =
+      await spillableDiscoveryExactDistanceBenchmarksFromRaceArchive({
+        observations: records(input),
+        store: scratch.store,
+        runPrefix: "test/discovery",
+        refreshedAt,
+        maximumRecordsInMemory: 2,
+        mergeFanIn: 2,
+        maximumObservations: 100,
+        maximumRunObjects: 100,
+        maximumBenchmarks: 20,
+      });
 
     expect(spillable.inputObservationCount).toBe(input.length);
     expect(spillable.initialRunCount).toBe(4);
@@ -114,21 +178,40 @@ describe("spillable Race archive Discovery benchmarks", () => {
 
   it("fails closed on the benchmark bound and cleans all owned runs", async () => {
     const input = [
-      observation({ event: "event-1", core: "core-a", mode: "bike", distance: 1000, elapsed: 40_000, finish: 1, eventAt: "2026-04-01T00:00:00Z", row: 1 }),
-      observation({ event: "event-2", core: "core-b", mode: "car", distance: 1200, elapsed: 50_000, finish: 1, eventAt: "2026-04-02T00:00:00Z", row: 2 }),
+      observation({
+        event: "event-1",
+        core: "core-a",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 40_000,
+        finish: 1,
+        eventAt: "2026-04-01T00:00:00Z",
+        row: 1,
+      }),
+      observation({
+        event: "event-2",
+        core: "core-b",
+        mode: "car",
+        distance: 1200,
+        elapsed: 50_000,
+        finish: 1,
+        eventAt: "2026-04-02T00:00:00Z",
+        row: 2,
+      }),
     ] as const;
     const scratch = memoryStore<RaceArchiveCoreAnalyticalObservation>();
-    const spillable = await spillableDiscoveryExactDistanceBenchmarksFromRaceArchive({
-      observations: records(input),
-      store: scratch.store,
-      runPrefix: "test/discovery-bound",
-      refreshedAt: "2026-04-03T00:00:00Z",
-      maximumRecordsInMemory: 1,
-      mergeFanIn: 2,
-      maximumObservations: 10,
-      maximumRunObjects: 20,
-      maximumBenchmarks: 1,
-    });
+    const spillable =
+      await spillableDiscoveryExactDistanceBenchmarksFromRaceArchive({
+        observations: records(input),
+        store: scratch.store,
+        runPrefix: "test/discovery-bound",
+        refreshedAt: "2026-04-03T00:00:00Z",
+        maximumRecordsInMemory: 1,
+        mergeFanIn: 2,
+        maximumObservations: 10,
+        maximumRunObjects: 20,
+        maximumBenchmarks: 1,
+      });
 
     await expect(collect(spillable.readBenchmarks())).rejects.toThrow(
       "Race archive Discovery benchmark bound was exceeded.",
@@ -138,7 +221,16 @@ describe("spillable Race archive Discovery benchmarks", () => {
 
   it("rejects invalid natural-key identity before writing sorted scratch", async () => {
     const invalid = {
-      ...observation({ event: "event-1", core: "core-a", mode: "bike", distance: 1000, elapsed: 40_000, finish: 1, eventAt: "2026-04-01T00:00:00Z", row: 1 }),
+      ...observation({
+        event: "event-1",
+        core: "core-a",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 40_000,
+        finish: 1,
+        eventAt: "2026-04-01T00:00:00Z",
+        row: 1,
+      }),
       naturalKey: "event-1:other-core",
     } satisfies RaceArchiveCoreAnalyticalObservation;
     const scratch = memoryStore<RaceArchiveCoreAnalyticalObservation>();

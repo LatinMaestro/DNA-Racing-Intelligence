@@ -62,8 +62,15 @@ function normalizedTimestamp(value: string, field: string): string {
 function validatedObservation(
   value: RaceArchiveCoreAnalyticalObservation,
 ): RaceArchiveCoreAnalyticalObservation {
-  const sourceCoreId = safeText(value.sourceCoreId, "observation.sourceCoreId", 256);
-  const sourceEventId = safeText(value.sourceEventId, "observation.sourceEventId");
+  const sourceCoreId = safeText(
+    value.sourceCoreId,
+    "observation.sourceCoreId",
+    256,
+  );
+  const sourceEventId = safeText(
+    value.sourceEventId,
+    "observation.sourceEventId",
+  );
   const naturalKey = safeText(value.naturalKey, "observation.naturalKey");
   if (naturalKey !== `${sourceEventId}:${sourceCoreId}`) {
     throw new Error("Race archive Discovery natural key is inconsistent.");
@@ -73,7 +80,10 @@ function validatedObservation(
   }
   positiveSafeInteger(value.distance, "observation.distance");
   positiveSafeInteger(value.finishPosition, "observation.finishPosition");
-  positiveSafeInteger(value.elapsedMilliseconds, "observation.elapsedMilliseconds");
+  positiveSafeInteger(
+    value.elapsedMilliseconds,
+    "observation.elapsedMilliseconds",
+  );
   normalizedTimestamp(value.eventAt, "observation.eventAt");
   positiveSafeInteger(value.versionNumber, "observation.versionNumber");
   nonNegativeSafeInteger(value.partitionNumber, "observation.partitionNumber");
@@ -144,7 +154,8 @@ function benchmarksFromSorted(input: {
 }): AsyncIterable<DiscoveryExactDistanceBenchmarkEvidence> {
   return (async function* () {
     const iterator = input.sorted.read()[Symbol.asyncIterator]();
-    let carry: IteratorResult<RaceArchiveCoreAnalyticalObservation> | null = null;
+    let carry: IteratorResult<RaceArchiveCoreAnalyticalObservation> | null =
+      null;
     let activeGroupRunId: string | null = null;
     let groupSequence = 0;
     let benchmarkCount = 0;
@@ -165,7 +176,8 @@ function benchmarksFromSorted(input: {
         let dataCurrentThrough: string | null = null;
 
         const groupRecords = (async function* () {
-          let current: IteratorResult<RaceArchiveCoreAnalyticalObservation> = firstResult;
+          let current: IteratorResult<RaceArchiveCoreAnalyticalObservation> =
+            firstResult;
           while (!current.done) {
             const observation = validatedObservation(current.value);
             if (groupKey(observation) !== expectedGroupKey) {
@@ -174,11 +186,16 @@ function benchmarksFromSorted(input: {
             }
             raceEntryCount += 1;
             if (raceEntryCount > input.maximumObservations) {
-              throw new Error("Race archive Discovery observation bound was exceeded.");
+              throw new Error(
+                "Race archive Discovery observation bound was exceeded.",
+              );
             }
             if (observation.finishPosition === 1) winningEntryCount += 1;
             if (observation.finishPosition <= 3) topThreeEntryCount += 1;
-            const eventAt = normalizedTimestamp(observation.eventAt, "observation.eventAt");
+            const eventAt = normalizedTimestamp(
+              observation.eventAt,
+              "observation.eventAt",
+            );
             if (dataCurrentThrough === null || eventAt > dataCurrentThrough) {
               dataCurrentThrough = eventAt;
             }
@@ -188,7 +205,10 @@ function benchmarksFromSorted(input: {
           carry = current;
         })();
 
-        await input.store.writeRun({ runId: groupRunId, records: groupRecords });
+        await input.store.writeRun({
+          runId: groupRunId,
+          records: groupRecords,
+        });
         if (raceEntryCount < 1 || dataCurrentThrough === null) {
           throw new Error("Race archive Discovery group coverage changed.");
         }
@@ -200,7 +220,9 @@ function benchmarksFromSorted(input: {
 
         benchmarkCount += 1;
         if (benchmarkCount > input.maximumBenchmarks) {
-          throw new Error("Race archive Discovery benchmark bound was exceeded.");
+          throw new Error(
+            "Race archive Discovery benchmark bound was exceeded.",
+          );
         }
         const winning = await exactSortedRaceArchiveStatistics({
           readValues: () =>
