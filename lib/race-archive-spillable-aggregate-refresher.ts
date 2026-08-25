@@ -92,7 +92,9 @@ function canonicalJson(value: unknown): string {
 }
 
 function payloadSha256(input: {
-  rows: Awaited<ReturnType<typeof rebuildSpillableRaceArchivePublicationRows>>["rows"];
+  rows: Awaited<
+    ReturnType<typeof rebuildSpillableRaceArchivePublicationRows>
+  >["rows"];
   validatedEventCount: number;
   acceptedFormatEntryCount: number;
 }): string {
