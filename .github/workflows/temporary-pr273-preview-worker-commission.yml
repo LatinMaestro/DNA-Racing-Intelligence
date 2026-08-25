@@ -1,0 +1,91 @@
+name: Temporary PR 273 Preview Worker commission
+
+on:
+  push:
+    branches:
+      - agent/hosted-race-archive-aggregate-runtime
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-preview-worker-commission
+  cancel-in-progress: false
+
+env:
+  AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DNA_CONNECTED_PREVIEW_ACCEPTANCE: "1"
+  DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+  DNA_IMPORT_DEAD_LETTER_QUEUE_NAME: dna-racing-import-preview-dlq
+  DNA_IMPORT_QUEUE_ID: df7408e1d697475db4dbcdda1aa3e247
+  DNA_IMPORT_QUEUE_NAME: dna-racing-import-preview
+  DNA_R2_BUCKET_NAME: dna-racing-import-preview
+  DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+  DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+  WORKER_SECRETS_FILE: /tmp/dna-racing-preview-worker-secrets.json
+
+jobs:
+  commission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hosted-race-archive-aggregate-runtime
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Validate Worker bundle without deployment
+        run: npm run worker:dry-run
+      - name: Materialize ephemeral Worker secrets
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from "node:fs";
+          const names = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_SECRET_ACCESS_KEY",
+          ];
+          const secrets = Object.fromEntries(
+            names.map((name) => {
+              const value = process.env[name];
+              if (!value || value.trim() !== value || value.length > 4096) {
+                throw new Error("Invalid " + name);
+              }
+              return [name, value];
+            }),
+          );
+          writeFileSync(process.env.WORKER_SECRETS_FILE, JSON.stringify(secrets), {
+            encoding: "utf8",
+            mode: 0o600,
+          });
+          NODE
+      - name: Deploy protected queue-only Preview Worker
+        run: >-
+          npx wrangler deploy
+          --config wrangler.jsonc
+          --strict
+          --experimental-provision=false
+          --experimental-auto-create=false
+          --secrets-file "${WORKER_SECRETS_FILE}"
+      - name: Remove ephemeral Worker secrets
+        if: always()
+        run: rm -f -- "${WORKER_SECRETS_FILE}"
+      - name: Prove exact connected Queue and Worker path
+        run: npx vitest run --no-file-parallelism tests/hosted-preview-connected-queue-worker.test.ts
+      - name: Recover synthetic Preview evidence residue
+        if: always()
+        env:
+          DNA_CONNECTED_PREVIEW_EVIDENCE_RESIDUE_CLEANUP: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-evidence-residue-cleanup.test.ts
