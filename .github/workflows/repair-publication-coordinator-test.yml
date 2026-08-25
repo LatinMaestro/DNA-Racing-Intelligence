@@ -1,0 +1,48 @@
+name: Temporary publication coordinator type repair
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Repair typed staging mock
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/race-archive-aggregate-publication-service.test.ts')
+          text = path.read_text()
+          import_line = 'import { publishRaceArchiveAggregates } from "../lib/race-archive-aggregate-publication-service";\n'
+          type_line = '\ntype StageRowsInput = Parameters<\n  NeonRaceArchiveAggregatePublicationRepository["stageRows"]\n>[0];\n'
+          if type_line.strip() not in text:
+              if text.count(import_line) != 1:
+                  raise SystemExit('expected publication service import exactly once')
+              text = text.replace(import_line, import_line + type_line)
+          old = 'const stageRows = vi.fn(async (value: { rows: readonly unknown[] }) =>'
+          new = 'const stageRows = vi.fn(async (value: StageRowsInput) =>'
+          if text.count(old) != 1:
+              raise SystemExit('expected narrow stageRows mock exactly once')
+          path.write_text(text.replace(old, new))
+          PY
+      - run: npx prettier --write tests/race-archive-aggregate-publication-service.test.ts
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/race-archive-aggregate-publication-service.test.ts
+          git commit -m "Fix publication coordinator staging mock type"
+          git push origin HEAD:${{ github.head_ref }}
