@@ -1,4 +1,6 @@
 DO $smoke$
+DECLARE
+  v_prepare_definition text;
 BEGIN
   IF to_regprocedure(
     'dna.list_import_activation_aggregate_refreshes(uuid,uuid,uuid,integer)'
@@ -65,7 +67,7 @@ BEGIN
      )
      OR has_function_privilege(
        'dna_app_runtime',
-       'dna.list_race_archive_aggregate_refresh_versions_pre_bootstrap(uuid,uuid,uuid,character,integer)',
+       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootstrap(uuid,uuid,uuid,character,integer)',
        'EXECUTE'
      )
      OR has_function_privilege(
@@ -74,6 +76,17 @@ BEGIN
        'EXECUTE'
      ) THEN
     RAISE EXCEPTION 'archive bootstrap predecessor execution leaked to runtime';
+  END IF;
+
+  SELECT pg_get_functiondef(
+    'dna.prepare_pro_league_aggregate_refresh(uuid,uuid,uuid,character)'::regprocedure
+  ) INTO v_prepare_definition;
+
+  IF position('UPDATE dna.dataset_version version' IN v_prepare_definition) = 0
+     OR position('UPDATE dna.aggregate_refresh_job job' IN v_prepare_definition) = 0
+     OR position('version.version_number <= v_target_version_number' IN v_prepare_definition) = 0
+     OR position('race_archive_aggregate_publication_receipt' IN v_prepare_definition) = 0 THEN
+    RAISE EXCEPTION 'archive bootstrap finalizer no longer closes historical Race segment refresh state from the immutable archive publication receipt';
   END IF;
 END
 $smoke$;
