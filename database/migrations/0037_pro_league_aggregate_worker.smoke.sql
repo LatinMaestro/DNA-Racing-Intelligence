@@ -95,6 +95,23 @@ BEGIN
     RAISE EXCEPTION 'aggregate worker did not claim owner-scoped work';
   END IF;
 
+  INSERT INTO dna.race_archive_aggregate_publication_receipt (
+    owner_id, refresh_id, target_dataset_version_id,
+    race_dataset_version_id, source_version_set_sha256, payload_sha256,
+    core_performance_profile_count, validated_event_count,
+    core_star_profile_count, discovery_benchmark_count,
+    accepted_format_entry_count, payout_format_profile_count,
+    materialized_row_count, refreshed_at, published_at
+  ) VALUES (
+    '37000000-0000-4000-8000-000000000001',
+    '37000000-0000-4000-8000-000000000301',
+    '37000000-0000-4000-8000-000000000201',
+    '37000000-0000-4000-8000-000000000201',
+    v_claim.source_version_set_sha256, repeat('9', 64),
+    0, 0, 0, 0, 0, 0, 0,
+    '2026-08-20T00:03:30Z', '2026-08-20T00:03:45Z'
+  );
+
   SELECT * INTO STRICT v_prepared
   FROM dna.prepare_pro_league_aggregate_refresh(
     '37000000-0000-4000-8000-000000000001',
