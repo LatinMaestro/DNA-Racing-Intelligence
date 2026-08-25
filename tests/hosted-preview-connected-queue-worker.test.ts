@@ -165,7 +165,10 @@ async function createRollbackOnlyConnectedSession(
     const client: NeonImportPersistenceClient = {
       async query(statement, values) {
         const normalized = statement.replace(/\s+/g, " ").trim();
-        if (normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE") {
+        if (
+          normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE" ||
+          normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"
+        ) {
           if (open) throw new Error("Nested acceptance transaction is open");
           await outerClient.query(`SAVEPOINT ${savepoint}`);
           open = true;
