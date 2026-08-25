@@ -114,7 +114,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (!databaseUrl) throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -144,7 +145,9 @@ function verifyIsolation(
       "runtime_is_neon_superuser_member",
     )
   ) {
-    throw new Error("Aggregate target source runtime is not least privileged.");
+    throw new Error(
+      "Aggregate target source runtime is not least privileged.",
+    );
   }
 }
 
