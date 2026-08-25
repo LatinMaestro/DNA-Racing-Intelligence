@@ -219,6 +219,59 @@ describe("spillable Race archive Discovery benchmarks", () => {
     expect(scratch.runs.size).toBe(0);
   });
 
+  it("counts non-publishing distance groups against the resident benchmark bound", async () => {
+    const input = [
+      observation({
+        event: "event-1",
+        core: "core-a",
+        mode: "bike",
+        distance: 900,
+        elapsed: 45_000,
+        finish: 4,
+        eventAt: "2026-04-01T00:00:00Z",
+        row: 1,
+      }),
+      observation({
+        event: "event-2",
+        core: "core-b",
+        mode: "bike",
+        distance: 1000,
+        elapsed: 40_000,
+        finish: 1,
+        eventAt: "2026-04-02T00:00:00Z",
+        row: 2,
+      }),
+    ] as const;
+
+    expect(() =>
+      discoveryExactDistanceBenchmarksFromRaceArchive({
+        observations: input,
+        refreshedAt: "2026-04-03T00:00:00Z",
+        maximumObservations: 10,
+        maximumBenchmarks: 1,
+      }),
+    ).toThrow("Archive Discovery benchmark bound was exceeded.");
+
+    const scratch = memoryStore<RaceArchiveCoreAnalyticalObservation>();
+    const spillable =
+      await spillableDiscoveryExactDistanceBenchmarksFromRaceArchive({
+        observations: records(input),
+        store: scratch.store,
+        runPrefix: "test/discovery-nonpublishing-bound",
+        refreshedAt: "2026-04-03T00:00:00Z",
+        maximumRecordsInMemory: 1,
+        mergeFanIn: 2,
+        maximumObservations: 10,
+        maximumRunObjects: 20,
+        maximumBenchmarks: 1,
+      });
+
+    await expect(collect(spillable.readBenchmarks())).rejects.toThrow(
+      "Race archive Discovery benchmark bound was exceeded.",
+    );
+    expect(scratch.runs.size).toBe(0);
+  });
+
   it("rejects invalid natural-key identity before writing sorted scratch", async () => {
     const invalid = {
       ...observation({
