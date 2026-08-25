@@ -125,7 +125,8 @@ function verifyIsolation(
 ): void {
   const row = oneRow(result, "aggregate target source isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
     text(row.authenticated_owner_id, "authenticated_owner_id") !==
       input.ownerId ||
     !bool(row.processing_rls, "processing_rls") ||
@@ -145,9 +146,7 @@ function verifyIsolation(
       "runtime_is_neon_superuser_member",
     )
   ) {
-    throw new Error(
-      "Aggregate target source runtime is not least privileged.",
-    );
+    throw new Error("Aggregate target source runtime is not least privileged.");
   }
 }
 
