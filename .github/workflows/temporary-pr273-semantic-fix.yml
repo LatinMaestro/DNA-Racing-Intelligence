@@ -1,0 +1,55 @@
+name: Temporary PR 273 semantic fix
+
+on:
+  push:
+    branches:
+      - agent/hosted-race-archive-aggregate-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hosted-race-archive-aggregate-runtime
+      - name: Update active aggregate dispatch expectations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          smoke = Path('database/migrations/0039_import_activation_dataset.smoke.sql')
+          text = smoke.read_text()
+          old = """  ) <> 9 THEN\n    RAISE EXCEPTION 'activation aggregate publication set is invalid';\n"""
+          new = """  ) <> 3 THEN\n    RAISE EXCEPTION 'active activation aggregate publication set is invalid';\n"""
+          if text.count(old) != 1:
+              raise SystemExit('0039 aggregate publication assertion was not uniquely matched')
+          smoke.write_text(text.replace(old, new))
+
+          connected = Path('tests/hosted-preview-connected-queue-worker.test.ts')
+          text = connected.read_text()
+          replacements = {
+              'expect(aggregateRefreshes).toHaveLength(9);': 'expect(aggregateRefreshes).toHaveLength(3);',
+              'expect(new Set(firstRefreshIds).size).toBe(9);': 'expect(new Set(firstRefreshIds).size).toBe(3);',
+              'expect(aggregateRefreshes).toHaveLength(18);': 'expect(aggregateRefreshes).toHaveLength(6);',
+              'const replayRefreshes = aggregateRefreshes.slice(9);': 'const replayRefreshes = aggregateRefreshes.slice(3);',
+          }
+          for old_value, new_value in replacements.items():
+              if text.count(old_value) != 1:
+                  raise SystemExit(f'connected expectation was not uniquely matched: {old_value}')
+              text = text.replace(old_value, new_value)
+          connected.write_text(text)
+          PY
+      - name: Commit semantic updates only when needed
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add database/migrations/0039_import_activation_dataset.smoke.sql \
+            tests/hosted-preview-connected-queue-worker.test.ts
+          git commit -m "Align aggregate acceptance with active source dispatch"
+          git push origin HEAD:agent/hosted-race-archive-aggregate-runtime
