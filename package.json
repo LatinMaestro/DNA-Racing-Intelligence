@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write tests/hosted-pro-league-aggregate-worker-runtime.test.ts && git diff --exit-code -- tests/hosted-pro-league-aggregate-worker-runtime.test.ts",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
