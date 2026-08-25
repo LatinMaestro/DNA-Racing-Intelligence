@@ -1,0 +1,37 @@
+name: Prettier diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/prettier-diagnostic.yml"
+      - ".github/workflows/connected-preview-r2-acceptance.yml"
+      - "lib/hosted-pro-league-aggregate-worker-runtime.ts"
+      - "lib/race-staged-row-locator-sealing-rehydrator.ts"
+      - "tests/race-staged-row-locator-sealing-rehydrator.test.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Show canonical formatting diff
+        run: |
+          npx prettier --write \
+            .github/workflows/connected-preview-r2-acceptance.yml \
+            lib/hosted-pro-league-aggregate-worker-runtime.ts \
+            lib/race-staged-row-locator-sealing-rehydrator.ts \
+            tests/race-staged-row-locator-sealing-rehydrator.test.ts
+          git diff --no-color -- \
+            .github/workflows/connected-preview-r2-acceptance.yml \
+            lib/hosted-pro-league-aggregate-worker-runtime.ts \
+            lib/race-staged-row-locator-sealing-rehydrator.ts \
+            tests/race-staged-row-locator-sealing-rehydrator.test.ts
