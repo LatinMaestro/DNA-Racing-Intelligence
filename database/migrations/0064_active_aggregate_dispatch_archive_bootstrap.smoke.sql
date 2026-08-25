@@ -18,18 +18,9 @@ BEGIN
   END IF;
 
   IF to_regprocedure(
-    'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstra(uuid,uuid,uuid,integer)'
-  ) IS NULL
-     OR to_regprocedure(
-       'dna.begin_race_archive_aggregate_publication_pre_bootstrap(uuid,uuid,uuid,text,character,timestamp with time zone)'
-     ) IS NULL
-     OR to_regprocedure(
-       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootst(uuid,uuid,uuid,character,integer)'
-     ) IS NULL
-     OR to_regprocedure(
        'dna.prepare_pro_league_aggregate_refresh_pre_archive_collapse(uuid,uuid,uuid,character)'
      ) IS NULL THEN
-    RAISE EXCEPTION 'archive bootstrap rollback predecessors are incomplete';
+    RAISE EXCEPTION 'archive bootstrap finalizer rollback predecessor is unavailable';
   END IF;
 
   IF NOT has_function_privilege(
@@ -57,25 +48,10 @@ BEGIN
 
   IF has_function_privilege(
        'dna_app_runtime',
-       'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstra(uuid,uuid,uuid,integer)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'dna_app_runtime',
-       'dna.begin_race_archive_aggregate_publication_pre_bootstrap(uuid,uuid,uuid,text,character,timestamp with time zone)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'dna_app_runtime',
-       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootst(uuid,uuid,uuid,character,integer)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'dna_app_runtime',
        'dna.prepare_pro_league_aggregate_refresh_pre_archive_collapse(uuid,uuid,uuid,character)',
        'EXECUTE'
      ) THEN
-    RAISE EXCEPTION 'archive bootstrap predecessor execution leaked to runtime';
+    RAISE EXCEPTION 'archive bootstrap finalizer predecessor execution leaked to runtime';
   END IF;
 
   SELECT pg_get_functiondef(
