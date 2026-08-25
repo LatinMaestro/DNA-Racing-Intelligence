@@ -1,0 +1,53 @@
+name: Race archive Core locator pre-publication evidence migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/race-archive-core-locator-prepublication-evidence-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run Race archive Core locator pre-publication evidence smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0066_race_archive_core_locator_prepublication_evidence.smoke.sql
+      - name: Reverse Race archive Core locator pre-publication evidence migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0066_race_archive_core_locator_prepublication_evidence.down.sql
+      - name: Verify Race archive Core locator pre-publication evidence rollback
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0066_race_archive_core_locator_prepublication_evidence.removal.sql
