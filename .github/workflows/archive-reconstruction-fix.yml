@@ -1,0 +1,51 @@
+name: Archive reconstruction fix
+
+on:
+  pull_request:
+    paths:
+      - "lib/race-archive-aggregate-refresher.ts"
+      - ".github/workflows/archive-reconstruction-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/race-archive-aggregate-reconstruction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply bounded Core Performance adapter limits
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('lib/race-archive-aggregate-refresher.ts')
+          s = p.read_text()
+          old = '''        maximumObservations: input.maximumObservations,
+                  maximumProfiles: input.maximumCorePerformanceProfiles,
+          '''
+          new = '''        maximumObservations: Math.min(input.maximumObservations, 1_000_000),
+                  maximumProfiles: Math.min(input.maximumCorePerformanceProfiles, 100_000),
+          '''
+          if old not in s:
+            raise SystemExit('expected Core Performance call not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          npx prettier --write lib/race-archive-aggregate-refresher.ts
+      - name: Commit focused fix
+        run: |
+          if git diff --quiet -- lib/race-archive-aggregate-refresher.ts; then
+            echo "No changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/race-archive-aggregate-refresher.ts
+          git commit -m "Respect Core Performance reconstruction bounds"
+          git push origin HEAD:agent/race-archive-aggregate-reconstruction
