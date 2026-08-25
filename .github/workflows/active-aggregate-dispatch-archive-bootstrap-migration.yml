@@ -34,11 +34,22 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply complete migration chain
+      - name: Apply migration chain through archive bootstrap
         run: |
-          for migration in database/migrations/*.up.sql; do
+          set -euo pipefail
+          target="database/migrations/0064_active_aggregate_dispatch_archive_bootstrap.up.sql"
+          reached_target=0
+          while IFS= read -r migration; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
-          done
+            if [[ "$migration" == "$target" ]]; then
+              reached_target=1
+              break
+            fi
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' -print | sort)
+          if [[ "$reached_target" -ne 1 ]]; then
+            echo "Archive bootstrap migration boundary was not reached" >&2
+            exit 1
+          fi
       - name: Run archive bootstrap smoke
         run: >-
           psql --set ON_ERROR_STOP=1 --file

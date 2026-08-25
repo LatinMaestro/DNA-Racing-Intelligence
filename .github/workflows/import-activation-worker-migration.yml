@@ -34,100 +34,82 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply complete migration chain
+      - name: Apply and smoke activation migrations at historical boundaries
         run: |
-          for migration in database/migrations/*.up.sql; do
+          set -euo pipefail
+          reached_target=0
+          while IFS= read -r migration; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
+            case "$(basename "$migration")" in
+              0038_import_activation_worker.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.smoke.sql
+                ;;
+              0039_import_activation_dataset.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.smoke.sql
+                ;;
+              0040_runtime_connection_capacity.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.smoke.sql
+                ;;
+              0041_import_pre_activation_cleanup.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.smoke.sql
+                ;;
+              0042_import_confirmation_cleanup.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.smoke.sql
+                ;;
+              0044_import_dataset_rollback.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.smoke.sql
+                ;;
+              0045_dataset_evidence_object_manifest.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.smoke.sql
+                ;;
+              0046_unlinked_dataset_evidence_cleanup.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.smoke.sql
+                ;;
+              0047_accepted_dataset_evidence_compaction.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.smoke.sql
+                ;;
+              0048_import_activation_evidence_compaction.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.smoke.sql
+                ;;
+              0049_staged_evidence_compaction_coverage.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.smoke.sql
+                ;;
+              0050_preview_processing_failure_stage.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.smoke.sql
+                ;;
+              0051_preview_evidence_resume.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
+                ;;
+              0052_preview_evidence_owner_identity.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.smoke.sql
+                reached_target=1
+                break
+                ;;
+            esac
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' -print | sort)
+          if [[ "$reached_target" -ne 1 ]]; then
+            echo "Activation migration boundary 0052 was not reached" >&2
+            exit 1
+          fi
+      - name: Reverse activation migration chain and verify removal
+        run: |
+          set -euo pipefail
+          for stem in \
+            0052_preview_evidence_owner_identity \
+            0051_preview_evidence_resume \
+            0050_preview_processing_failure_stage \
+            0049_staged_evidence_compaction_coverage \
+            0048_import_activation_evidence_compaction \
+            0047_accepted_dataset_evidence_compaction \
+            0046_unlinked_dataset_evidence_cleanup \
+            0045_dataset_evidence_object_manifest \
+            0044_import_dataset_rollback \
+            0042_import_confirmation_cleanup \
+            0041_import_pre_activation_cleanup \
+            0040_runtime_connection_capacity \
+            0039_import_activation_dataset; do
+            psql --set ON_ERROR_STOP=1 --file "database/migrations/${stem}.down.sql"
+            psql --set ON_ERROR_STOP=1 --file "database/migrations/${stem}.removal.sql"
           done
-      - name: Run import activation worker smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.smoke.sql
-      - name: Run atomic import activation dataset smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.smoke.sql
-      - name: Run runtime connection capacity smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.smoke.sql
-      - name: Run pre-activation cleanup smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.smoke.sql
-      - name: Run confirmed import cleanup smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.smoke.sql
-      - name: Run import dataset rollback smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.smoke.sql
-      - name: Run dataset evidence object manifest smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.smoke.sql
-      - name: Run unlinked dataset evidence cleanup smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.smoke.sql
-      - name: Run accepted dataset evidence compaction smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.smoke.sql
-      - name: Run import activation evidence compaction smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.smoke.sql
-      - name: Run staged evidence compaction coverage smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.smoke.sql
-      - name: Run preview processing failure stage smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.smoke.sql
-      - name: Run Preview evidence resume smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
-      - name: Run Preview evidence authenticated-owner identity repair smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.smoke.sql
-      - name: Reverse Preview evidence authenticated-owner identity repair
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.down.sql
-      - name: Verify Preview evidence authenticated-owner identity repair removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.removal.sql
-      - name: Reverse Preview evidence resume migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.down.sql
-      - name: Verify Preview evidence resume removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.removal.sql
-      - name: Reverse preview processing failure stage migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.down.sql
-      - name: Verify preview processing failure stage removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.removal.sql
-      - name: Reverse staged evidence compaction coverage migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.down.sql
-      - name: Verify staged evidence compaction coverage reversal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0049_staged_evidence_compaction_coverage.removal.sql
-      - name: Reverse import activation evidence compaction migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.down.sql
-      - name: Verify import activation evidence compaction removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0048_import_activation_evidence_compaction.removal.sql
-      - name: Reverse accepted dataset evidence compaction migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.down.sql
-      - name: Verify accepted dataset evidence compaction removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0047_accepted_dataset_evidence_compaction.removal.sql
-      - name: Reverse unlinked dataset evidence cleanup migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.down.sql
-      - name: Verify unlinked dataset evidence cleanup removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0046_unlinked_dataset_evidence_cleanup.removal.sql
-      - name: Reverse dataset evidence object manifest migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.down.sql
-      - name: Verify dataset evidence object manifest removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0045_dataset_evidence_object_manifest.removal.sql
-      - name: Reverse import dataset rollback migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.down.sql
-      - name: Verify import dataset rollback removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0044_import_dataset_rollback.removal.sql
-      - name: Reverse confirmed import cleanup migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.down.sql
-      - name: Verify confirmed import cleanup removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0042_import_confirmation_cleanup.removal.sql
-      - name: Reverse pre-activation cleanup migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.down.sql
-      - name: Verify pre-activation cleanup removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0041_import_pre_activation_cleanup.removal.sql
-      - name: Reverse runtime connection capacity migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.down.sql
-      - name: Verify runtime connection capacity reversal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0040_runtime_connection_capacity.removal.sql
-      - name: Reverse atomic import activation dataset migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.down.sql
-      - name: Verify atomic import activation dataset removal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0039_import_activation_dataset.removal.sql
-      - name: Reverse import activation worker migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.down.sql
-      - name: Verify import activation worker removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --command
-          "DO \$\$ BEGIN IF to_regclass(
-          'dna.import_activation_processing'
-          ) IS NOT NULL OR to_regclass(
-          'dna.import_activation_dispatch'
-          ) IS NOT NULL THEN RAISE EXCEPTION
-          'import activation worker ledger still exists';
-          END IF; END \$\$;"
+          psql --set ON_ERROR_STOP=1 --file database/migrations/0038_import_activation_worker.down.sql
+          psql --set ON_ERROR_STOP=1 --command "DO \$\$ BEGIN IF to_regclass('dna.import_activation_processing') IS NOT NULL OR to_regclass('dna.import_activation_dispatch') IS NOT NULL THEN RAISE EXCEPTION 'import activation worker ledger still exists'; END IF; END \$\$;"
