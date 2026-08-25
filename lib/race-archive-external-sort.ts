@@ -85,9 +85,7 @@ function mergedRuns<T>(input: {
         if (selectedIndex < 0) return;
         const selectedHead = heads[selectedIndex];
         if (selectedHead === undefined || selectedHead.done) {
-          throw new Error(
-            "Race archive external-sort merge state is invalid.",
-          );
+          throw new Error("Race archive external-sort merge state is invalid.");
         }
         yield selectedHead.value;
         const iterator = iterators[selectedIndex];
