@@ -173,7 +173,9 @@ function verifyIsolation(
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
     bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
   ) {
-    throw new Error("Race archive aggregate plan runtime is not least privileged.");
+    throw new Error(
+      "Race archive aggregate plan runtime is not least privileged.",
+    );
   }
 }
 
@@ -188,7 +190,9 @@ async function transaction<Result>(input: {
   try {
     await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
     begun = true;
-    await session.client.query(SET_OWNER_SCOPE_SQL, [input.config.databaseOwnerId]);
+    await session.client.query(SET_OWNER_SCOPE_SQL, [
+      input.config.databaseOwnerId,
+    ]);
     verifyIsolation(
       await session.client.query(VERIFY_ISOLATION_SQL, [
         input.config.databaseOwnerId,
@@ -211,17 +215,39 @@ async function transaction<Result>(input: {
 function planVersion(value: unknown): RaceArchiveAggregateRefreshPlanVersion {
   const row = record(value, "Race archive aggregate plan version");
   return Object.freeze({
-    datasetVersionId: uuid(text(row.dataset_version_id, "dataset_version_id"), "dataset_version_id"),
-    importBatchId: uuid(text(row.import_batch_id, "import_batch_id"), "import_batch_id"),
-    versionNumber: positiveCount(row.version_number, "version_number", 1_000_000),
-    sourceRowCount: positiveCount(row.source_row_count, "source_row_count", 5_000_000),
-    acceptedRowCount: positiveCount(row.accepted_row_count, "accepted_row_count", 5_000_000),
+    datasetVersionId: uuid(
+      text(row.dataset_version_id, "dataset_version_id"),
+      "dataset_version_id",
+    ),
+    importBatchId: uuid(
+      text(row.import_batch_id, "import_batch_id"),
+      "import_batch_id",
+    ),
+    versionNumber: positiveCount(
+      row.version_number,
+      "version_number",
+      1_000_000,
+    ),
+    sourceRowCount: positiveCount(
+      row.source_row_count,
+      "source_row_count",
+      5_000_000,
+    ),
+    acceptedRowCount: positiveCount(
+      row.accepted_row_count,
+      "accepted_row_count",
+      5_000_000,
+    ),
     evidencePartitionCount: positiveCount(
       row.evidence_partition_count,
       "evidence_partition_count",
       10_000,
     ),
-    evidenceRowCount: positiveCount(row.evidence_row_count, "evidence_row_count", 5_000_000),
+    evidenceRowCount: positiveCount(
+      row.evidence_row_count,
+      "evidence_row_count",
+      5_000_000,
+    ),
   });
 }
 
