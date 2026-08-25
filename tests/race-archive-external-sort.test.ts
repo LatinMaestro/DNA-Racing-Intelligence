@@ -27,7 +27,9 @@ function memoryStore<T>() {
       if (runs.has(input.runId)) throw new Error("run already exists");
       const records = await collect(input.records);
       runs.set(input.runId, Object.freeze(records));
-      writes.push(Object.freeze({ runId: input.runId, recordCount: records.length }));
+      writes.push(
+        Object.freeze({ runId: input.runId, recordCount: records.length }),
+      );
     },
     readRun(input) {
       const records = runs.get(input.runId);
@@ -90,11 +92,13 @@ describe("Race archive external sort", () => {
 
     expect(result.recordCount).toBe(10);
     expect(result.initialRunCount).toBe(4);
-    expect(await collect(result.read())).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(storage.runs.size).toBe(1);
-    expect(storage.writes.slice(0, 4).map((write) => write.recordCount)).toEqual([
-      3, 3, 3, 1,
+    expect(await collect(result.read())).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
+    expect(storage.runs.size).toBe(1);
+    expect(
+      storage.writes.slice(0, 4).map((write) => write.recordCount),
+    ).toEqual([3, 3, 3, 1]);
 
     await result.cleanup();
     expect(storage.runs.size).toBe(0);
@@ -121,9 +125,9 @@ describe("Race archive external sort", () => {
       maximumRunObjects: 100,
     });
 
-    expect((await collect(result.read())).map((value) => value.sequence)).toEqual([
-      1, 2, 4, 0, 3,
-    ]);
+    expect(
+      (await collect(result.read())).map((value) => value.sequence),
+    ).toEqual([1, 2, 4, 0, 3]);
     await result.cleanup();
   });
 
@@ -162,10 +166,11 @@ describe("Race archive external sort", () => {
 
     expect(deduplicated.inputObservationCount).toBe(3);
     expect(deduplicated.initialRunCount).toBe(3);
-    expect((await collect(deduplicated.readUnique())).map((value) => value.naturalKey)).toEqual([
-      "event-1:core-1",
-      "event-2:core-1",
-    ]);
+    expect(
+      (await collect(deduplicated.readUnique())).map(
+        (value) => value.naturalKey,
+      ),
+    ).toEqual(["event-1:core-1", "event-2:core-1"]);
     expect(storage.runs.size).toBe(0);
   });
 
