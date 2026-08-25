@@ -1,10 +1,10 @@
-name: Race archive Core locator migration
+name: Race archive pre-publication evidence migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/race-archive-core-locator-migration.yml"
+      - ".github/workflows/race-archive-prepublication-evidence-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -34,23 +34,20 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply migration chain through Race archive Core locators
+      - name: Apply complete migration chain
         run: |
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
-            if [ "$(basename "$migration")" = "0059_race_archive_core_locators.up.sql" ]; then
-              break
-            fi
           done
-      - name: Run Race archive Core locator smoke test
+      - name: Run Race archive pre-publication evidence smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0059_race_archive_core_locators.smoke.sql
-      - name: Reverse Race archive Core locator migration
+          database/migrations/0065_race_archive_prepublication_evidence.smoke.sql
+      - name: Reverse Race archive pre-publication evidence migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0059_race_archive_core_locators.down.sql
-      - name: Verify Race archive Core locator removal
+          database/migrations/0065_race_archive_prepublication_evidence.down.sql
+      - name: Verify Race archive pre-publication evidence rollback
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0059_race_archive_core_locators.removal.sql
+          database/migrations/0065_race_archive_prepublication_evidence.removal.sql

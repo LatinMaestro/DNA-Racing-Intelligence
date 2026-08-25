@@ -15,6 +15,12 @@ on:
       - "database/migrations/0050_preview_processing_failure_stage.up.sql"
       - "database/migrations/0051_preview_evidence_resume.up.sql"
       - "database/migrations/0052_preview_evidence_owner_identity.up.sql"
+      - "database/migrations/0059_race_archive_core_locators.up.sql"
+      - "database/migrations/0060_race_archive_aggregate_publication.up.sql"
+      - "database/migrations/0061_preserve_archive_aggregates_on_current_refresh.up.sql"
+      - "database/migrations/0062_race_archive_aggregate_refresh_plan.up.sql"
+      - "database/migrations/0063_aggregate_refresh_target_source.up.sql"
+      - "lib/aggregate-refresh-source-router.ts"
       - "lib/cloudflare-r2-import-object-storage.ts"
       - "lib/cloudflare-r2-s3-port.ts"
       - "lib/cloudflare-r2-dataset-evidence-port.ts"
@@ -30,6 +36,7 @@ on:
       - "lib/import-background-processing-service.ts"
       - "lib/import-queue-consumer.ts"
       - "lib/import-upload-completion-service.ts"
+      - "lib/neon-aggregate-refresh-target-source.ts"
       - "lib/neon-durable-import-preview-staging-repository.ts"
       - "lib/durable-import-preview-staging-sink.ts"
       - "lib/bounded-accepted-dataset-processor.ts"
@@ -42,6 +49,14 @@ on:
       - "lib/neon-import-upload-completion-repository.ts"
       - "lib/neon-import-upload-intake-repository.ts"
       - "lib/neon-pro-league-aggregate-refresh.ts"
+      - "lib/neon-race-archive-aggregate-publication.ts"
+      - "lib/neon-race-archive-aggregate-refresh-plan.ts"
+      - "lib/neon-race-archive-core-locator-repository.ts"
+      - "lib/neon-sealed-race-archive-manifest-repository.ts"
+      - "lib/race-archive-aggregate-refresher.ts"
+      - "lib/race-staged-row-locator-sealing-rehydrator.ts"
+      - "lib/race-staged-row-rehydrator.ts"
+      - "lib/sealed-race-archive-reader.ts"
       - "tests/hosted-preview-evidence-residue-recovery.ts"
       - "tests/hosted-preview-connected-evidence-residue-cleanup.test.ts"
       - "tests/hosted-preview-connected-evidence-object.test.ts"
@@ -52,6 +67,7 @@ on:
       - "tests/hosted-preview-connected-staging-contract.test.ts"
       - "tests/hosted-preview-connected-queue-worker.test.ts"
       - "tests/hosted-preview-connected-r2.test.ts"
+      - "tests/race-staged-row-locator-sealing-rehydrator.test.ts"
   workflow_dispatch: {}
 
 permissions:
@@ -136,6 +152,38 @@ jobs:
             throw new Error("DATABASE_URL is outside the pooled Preview runtime contract");
           }
           console.log("Validated bounded connected Preview acceptance inputs.");
+          NODE
+      - name: Verify archive aggregate Preview schema
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { neon } from "@neondatabase/serverless";
+
+          const sql = neon(process.env.DATABASE_URL);
+          const rows = await sql.query(`
+            SELECT
+              to_regprocedure('dna.pro_league_aggregate_refresh_target_source_type(uuid,uuid,uuid,character)') IS NOT NULL AS target_source,
+              to_regprocedure('dna.list_race_archive_aggregate_refresh_versions(uuid,uuid,uuid,character,integer)') IS NOT NULL AS archive_plan,
+              to_regprocedure('dna.begin_race_archive_aggregate_publication(uuid,uuid,uuid,text,character,timestamp with time zone)') IS NOT NULL AS publication_begin,
+              to_regprocedure('dna.stage_race_archive_aggregate_rows(uuid,uuid,text,text,integer,jsonb)') IS NOT NULL AS publication_stage,
+              to_regprocedure('dna.publish_race_archive_aggregates(uuid,uuid,text,character,bigint,bigint,bigint,bigint,bigint,bigint,timestamp with time zone)') IS NOT NULL AS publication_publish,
+              to_regclass('dna.race_archive_core_locator_receipt') IS NOT NULL AS core_locator_receipt,
+              to_regclass('dna.race_archive_aggregate_publication_receipt') IS NOT NULL AS publication_receipt
+          `);
+          if (rows.length !== 1) {
+            throw new Error("Preview archive aggregate schema probe returned an unexpected row count");
+          }
+          const required = Object.entries(rows[0]);
+          const missing = required
+            .filter(([, available]) => available !== true)
+            .map(([name]) => name);
+          if (missing.length > 0) {
+            throw new Error(
+              "Protected Preview archive aggregate schema is not commissioned: " +
+                missing.join(", "),
+            );
+          }
+          console.log("Verified protected Preview archive aggregate schema prerequisites.");
           NODE
       - name: Prove least-privilege Preview staging contract
         run: >-

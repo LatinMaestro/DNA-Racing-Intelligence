@@ -1,24 +1,90 @@
+import { createAggregateRefreshSourceRouter } from "./aggregate-refresh-source-router";
+import { createCloudflareR2DatasetEvidencePort } from "./cloudflare-r2-dataset-evidence-port";
 import {
   consumeAggregateRefreshQueueMessage,
   type ImportQueueConsumerDecision,
 } from "./import-queue-consumer";
+import type { BoundedAggregateRefresher } from "./import-aggregate-refresh-service";
+import {
+  createNeonAggregateRefreshTargetSourceReader,
+  type AggregateRefreshTargetSourceReader,
+} from "./neon-aggregate-refresh-target-source";
 import type { NeonImportPersistenceSessionFactory } from "./neon-import-persistence-driver";
 import {
-  neonProLeagueAggregateRefreshCapabilitiesFromEnvironment,
+  createNeonProLeagueAggregateRefreshCapabilities,
   type ProLeagueAggregateRefreshEnvironment,
 } from "./neon-pro-league-aggregate-refresh";
+import {
+  createNeonRaceArchiveAggregatePublicationRepository,
+  type NeonRaceArchiveAggregatePublicationRepository,
+} from "./neon-race-archive-aggregate-publication";
+import { createNeonRaceArchiveAggregateRefreshPlanRepository } from "./neon-race-archive-aggregate-refresh-plan";
+import {
+  createNeonRaceArchiveCoreLocatorRepository,
+  type NeonRaceArchiveCoreLocatorRepository,
+} from "./neon-race-archive-core-locator-repository";
+import {
+  createNeonSealedRaceArchiveManifestRepository,
+  type SealedRaceArchiveManifestRepository,
+} from "./neon-sealed-race-archive-manifest-repository";
+import {
+  createPrivateDatasetEvidenceObjectReader,
+  type PrivateDatasetEvidenceObjectReadableStoragePort,
+  type PrivateDatasetEvidenceObjectReader,
+} from "./private-dataset-evidence-object-reader";
+import {
+  createRaceArchiveAggregateRefresher,
+  type RaceArchiveAggregateRefreshPlanRepository,
+} from "./race-archive-aggregate-refresher";
+import {
+  createRaceStagedRowRehydrator,
+  type RaceStagedRowRehydrator,
+} from "./race-staged-row-rehydrator";
+import { createRaceStagedRowLocatorSealingRehydrator } from "./race-staged-row-locator-sealing-rehydrator";
+import { createSealedRaceArchiveReader } from "./sealed-race-archive-reader";
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
+const OWNER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,511}$/;
+const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
+const BUCKET_NAME_PATTERN =
+  /^(?!.*\.\.)(?!.*--)[a-z0-9](?:[a-z0-9.-]{1,61}[a-z0-9])?$/;
+const MAXIMUM_ARCHIVE_VERSIONS = 10_000;
+const MAXIMUM_ARCHIVE_PARTITIONS = 10_000;
+const MAXIMUM_ROWS_PER_PARTITION = 500;
+const MAXIMUM_CORE_LOCATORS = 50_000;
+
+// The current exact-parity archive reconstruction retains observation objects in
+// Worker memory. Keep the hosted Race path deliberately small until the next
+// critical-path slice replaces that representation with a spillable exact rebuild.
+export const HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS = 10_000;
 
 export type HostedProLeagueAggregateWorkerEnvironment = Readonly<{
   workerId: string | undefined;
   database: ProLeagueAggregateRefreshEnvironment;
   leaseDurationMilliseconds: string | undefined;
+  authorizedOwnerId?: string | undefined;
+  cloudflareAccountId?: string | undefined;
+  cloudflareApiToken?: string | undefined;
+  bucketName?: string | undefined;
+  r2AccessKeyId?: string | undefined;
+  r2SecretAccessKey?: string | undefined;
+  maximumObjectBytes?: string | undefined;
+  maximumChunkBytes?: string | undefined;
 }>;
 
 export type HostedProLeagueAggregateWorkerDependencies = Readonly<{
   now?: () => Date;
   neonSessionFactory?: NeonImportPersistenceSessionFactory;
+  targetSourceReader?: AggregateRefreshTargetSourceReader;
+  raceRefresher?: BoundedAggregateRefresher;
+  planRepository?: RaceArchiveAggregateRefreshPlanRepository;
+  publicationRepository?: NeonRaceArchiveAggregatePublicationRepository;
+  coreLocatorRepository?: NeonRaceArchiveCoreLocatorRepository;
+  manifestRepository?: SealedRaceArchiveManifestRepository;
+  objectReader?: PrivateDatasetEvidenceObjectReader;
+  evidencePort?: PrivateDatasetEvidenceObjectReadableStoragePort;
+  rehydrator?: RaceStagedRowRehydrator;
+  fetch?: typeof globalThis.fetch;
 }>;
 
 export type HostedProLeagueAggregateWorkerRuntime =
@@ -39,18 +105,81 @@ function identifier(value: string | undefined): string | null {
   return SAFE_IDENTIFIER_PATTERN.test(normalized) ? normalized : null;
 }
 
-function leaseDuration(value: string | undefined): number | null {
+function owner(value: string | undefined): string | null {
   const normalized = value?.trim() ?? "";
-  if (!/^[1-9][0-9]*$/.test(normalized)) return null;
-  const parsed = Number(normalized);
+  return OWNER_PATTERN.test(normalized) ? normalized : null;
+}
+
+function secret(value: string | undefined): string | null {
+  const normalized = value?.trim() ?? "";
   if (
-    !Number.isSafeInteger(parsed) ||
-    parsed < 1_000 ||
-    parsed > 60 * 60 * 1_000
+    normalized.length < 1 ||
+    normalized.length > 4096 ||
+    /[\u0000-\u001f\u007f]/u.test(normalized)
   ) {
     return null;
   }
+  return normalized;
+}
+
+function positiveInteger(value: string | undefined): number | null {
+  const normalized = value?.trim() ?? "";
+  if (!/^[1-9][0-9]*$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function leaseDuration(value: string | undefined): number | null {
+  const parsed = positiveInteger(value);
+  if (parsed === null || parsed < 1_000 || parsed > 60 * 60 * 1_000) {
+    return null;
+  }
   return parsed;
+}
+
+function archiveConfiguration(
+  environment: HostedProLeagueAggregateWorkerEnvironment,
+): null | Readonly<{
+  ownerId: string;
+  accountId: string;
+  apiToken: string;
+  bucketName: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  maximumObjectBytes: number;
+  maximumChunkBytes: number;
+}> {
+  const ownerId = owner(environment.authorizedOwnerId);
+  const accountId = environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
+  const apiToken = secret(environment.cloudflareApiToken);
+  const bucketName = environment.bucketName?.trim() ?? "";
+  const accessKeyId = secret(environment.r2AccessKeyId);
+  const secretAccessKey = secret(environment.r2SecretAccessKey);
+  const maximumObjectBytes = positiveInteger(environment.maximumObjectBytes);
+  const maximumChunkBytes = positiveInteger(environment.maximumChunkBytes);
+  if (
+    ownerId === null ||
+    !ACCOUNT_ID_PATTERN.test(accountId) ||
+    apiToken === null ||
+    !BUCKET_NAME_PATTERN.test(bucketName) ||
+    accessKeyId === null ||
+    secretAccessKey === null ||
+    maximumObjectBytes === null ||
+    maximumChunkBytes === null ||
+    maximumChunkBytes > maximumObjectBytes
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    ownerId,
+    accountId,
+    apiToken,
+    bucketName,
+    accessKeyId,
+    secretAccessKey,
+    maximumObjectBytes,
+    maximumChunkBytes,
+  });
 }
 
 export function hostedProLeagueAggregateWorkerRuntime(input: {
@@ -61,19 +190,142 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
   const leaseDurationMilliseconds = leaseDuration(
     input.environment.leaseDurationMilliseconds,
   );
-  if (workerId === null || leaseDurationMilliseconds === null) {
+  const archive = archiveConfiguration(input.environment);
+  const databaseUrl = input.environment.database.databaseUrl?.trim();
+  const databaseOwnerId = input.environment.database.databaseOwnerId?.trim();
+  const runtimeRole = input.environment.database.runtimeRole?.trim();
+  if (
+    workerId === null ||
+    leaseDurationMilliseconds === null ||
+    archive === null ||
+    !databaseUrl ||
+    !databaseOwnerId ||
+    !runtimeRole
+  ) {
     return unavailableHostedProLeagueAggregateWorkerRuntime;
   }
 
   try {
-    const capabilities =
-      neonProLeagueAggregateRefreshCapabilitiesFromEnvironment(
-        input.environment.database,
-        input.dependencies?.neonSessionFactory,
-      );
-    if (capabilities.status !== "ready") {
+    const standardCapabilities =
+      createNeonProLeagueAggregateRefreshCapabilities({
+        databaseUrl,
+        databaseOwnerId,
+        runtimeRole,
+        ...(input.dependencies?.neonSessionFactory
+          ? { sessionFactory: input.dependencies.neonSessionFactory }
+          : {}),
+      });
+    if (standardCapabilities.status !== "ready") {
       return unavailableHostedProLeagueAggregateWorkerRuntime;
     }
+
+    const targetSourceReader =
+      input.dependencies?.targetSourceReader ??
+      createNeonAggregateRefreshTargetSourceReader({
+        databaseUrl,
+        databaseOwnerId,
+        runtimeRole,
+        ...(input.dependencies?.neonSessionFactory
+          ? { sessionFactory: input.dependencies.neonSessionFactory }
+          : {}),
+      });
+
+    const raceRefresher =
+      input.dependencies?.raceRefresher ??
+      createRaceArchiveAggregateRefresher({
+        planRepository:
+          input.dependencies?.planRepository ??
+          createNeonRaceArchiveAggregateRefreshPlanRepository({
+            databaseUrl,
+            databaseOwnerId,
+            runtimeRole,
+            ...(input.dependencies?.neonSessionFactory
+              ? { sessionFactory: input.dependencies.neonSessionFactory }
+              : {}),
+          }),
+        rehydrator: createRaceStagedRowLocatorSealingRehydrator({
+          rehydrator:
+            input.dependencies?.rehydrator ??
+            createRaceStagedRowRehydrator({
+              archiveReader: createSealedRaceArchiveReader({
+                manifestRepository:
+                  input.dependencies?.manifestRepository ??
+                  createNeonSealedRaceArchiveManifestRepository({
+                    databaseUrl,
+                    databaseOwnerId,
+                    runtimeRole,
+                    ...(input.dependencies?.neonSessionFactory
+                      ? {
+                          sessionFactory: input.dependencies.neonSessionFactory,
+                        }
+                      : {}),
+                  }),
+                objectReader:
+                  input.dependencies?.objectReader ??
+                  createPrivateDatasetEvidenceObjectReader({
+                    ownerId: archive.ownerId,
+                    bucketName: archive.bucketName,
+                    maximumObjectBytes: archive.maximumChunkBytes,
+                    createPort: () =>
+                      input.dependencies?.evidencePort ??
+                      createCloudflareR2DatasetEvidencePort({
+                        accountId: archive.accountId,
+                        accessKeyId: archive.accessKeyId,
+                        secretAccessKey: archive.secretAccessKey,
+                        apiToken: archive.apiToken,
+                        maximumBufferedPutBytes: archive.maximumChunkBytes,
+                        fetch: input.dependencies?.fetch ?? globalThis.fetch,
+                      }),
+                  }),
+                maximumUncompressedBytesPerPartition: Math.max(
+                  1,
+                  Math.floor(archive.maximumChunkBytes / 2),
+                ),
+                maximumRowsPerPartition: MAXIMUM_ROWS_PER_PARTITION,
+                maximumSelectedPartitions: MAXIMUM_ARCHIVE_PARTITIONS,
+              }),
+            }),
+          coreLocatorRepository:
+            input.dependencies?.coreLocatorRepository ??
+            createNeonRaceArchiveCoreLocatorRepository({
+              databaseUrl,
+              databaseOwnerId,
+              runtimeRole,
+              ...(input.dependencies?.neonSessionFactory
+                ? { sessionFactory: input.dependencies.neonSessionFactory }
+                : {}),
+            }),
+          maximumCoreLocators: MAXIMUM_CORE_LOCATORS,
+          maximumPartitionsPerCore: MAXIMUM_ARCHIVE_PARTITIONS,
+          ...(input.dependencies?.now ? { now: input.dependencies.now } : {}),
+        }),
+        publicationRepository:
+          input.dependencies?.publicationRepository ??
+          createNeonRaceArchiveAggregatePublicationRepository({
+            databaseUrl,
+            databaseOwnerId,
+            runtimeRole,
+            ...(input.dependencies?.neonSessionFactory
+              ? { sessionFactory: input.dependencies.neonSessionFactory }
+              : {}),
+          }),
+        finalizer: standardCapabilities.refresher,
+        workerId,
+        maximumVersions: MAXIMUM_ARCHIVE_VERSIONS,
+        maximumArchivePartitions: MAXIMUM_ARCHIVE_PARTITIONS,
+        maximumObservations: HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS,
+        ...(input.dependencies?.now ? { now: input.dependencies.now } : {}),
+      });
+
+    const capabilities = Object.freeze({
+      status: "ready" as const,
+      repository: standardCapabilities.repository,
+      refresher: createAggregateRefreshSourceRouter({
+        targetSourceReader,
+        raceRefresher,
+        currentStateRefresher: standardCapabilities.refresher,
+      }),
+    });
     const now = input.dependencies?.now ?? (() => new Date());
     return Object.freeze({
       status: "ready" as const,

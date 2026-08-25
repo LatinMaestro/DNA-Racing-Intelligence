@@ -12,6 +12,7 @@ import type {
 const databaseOwnerId = "11111111-1111-4111-8111-111111111111";
 const ownerId = "owner-1";
 const refreshId = "22222222-2222-4222-8222-222222222222";
+const deterministicPostgresRefreshId = "aaaaaaaa-aaaa-faaa-7aaa-aaaaaaaaaaaa";
 const datasetVersionId = "33333333-3333-4333-8333-333333333333";
 const sourceHash = "a".repeat(64);
 const runtimeRole = "dna_app_runtime";
@@ -97,6 +98,35 @@ describe("Neon aggregate target source adapter", () => {
     );
     expect(test.harness.query).toHaveBeenCalledWith("COMMIT");
     expect(test.harness.close).toHaveBeenCalledOnce();
+  });
+
+  it("accepts deterministic PostgreSQL UUIDs without RFC version bits", async () => {
+    const test = reader([
+      [{ owner_scope: databaseOwnerId }],
+      [isolationEvidence()],
+      [{ source_type: "race_merge" }],
+    ]);
+
+    await expect(
+      test.reader.targetSourceType({
+        ownerId,
+        refreshId: deterministicPostgresRefreshId,
+        updateSessionId: datasetVersionId,
+        sourceVersionSetSha256: sourceHash,
+      }),
+    ).resolves.toBe("race_merge");
+
+    expect(test.harness.query).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "pro_league_aggregate_refresh_target_source_type",
+      ),
+      [
+        databaseOwnerId,
+        deterministicPostgresRefreshId,
+        datasetVersionId,
+        sourceHash,
+      ],
+    );
   });
 
   it("fails closed when runtime authority is incomplete", async () => {

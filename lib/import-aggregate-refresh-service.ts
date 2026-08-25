@@ -318,7 +318,7 @@ export async function runAggregateRefreshDispatch(
       }),
       claim.sourceVersionSetSha256,
     );
-  } catch {
+  } catch (cause) {
     await recordFailure(repository, {
       ownerId: claim.ownerId,
       updateSessionId: claim.updateSessionId,
@@ -327,7 +327,7 @@ export async function runAggregateRefreshDispatch(
       failedAt: claimedAt,
       reason: "refresher_failed",
     });
-    throw new Error("Aggregate refresh processing failed.");
+    throw new Error("Aggregate refresh processing failed.", { cause });
   }
 
   let publication: Awaited<
@@ -347,7 +347,7 @@ export async function runAggregateRefreshDispatch(
         completedAt: claimedAt,
       }),
     );
-  } catch {
+  } catch (cause) {
     await recordFailure(repository, {
       ownerId: claim.ownerId,
       updateSessionId: claim.updateSessionId,
@@ -356,7 +356,7 @@ export async function runAggregateRefreshDispatch(
       failedAt: claimedAt,
       reason: "publish_failed",
     });
-    throw new Error("Aggregate refresh publication failed.");
+    throw new Error("Aggregate refresh publication failed.", { cause });
   }
 
   if (publication.status === "superseded") {
