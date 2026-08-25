@@ -377,4 +377,35 @@ describe("Race archive aggregate refresher", () => {
     ).rejects.toThrow(/does not end at the target version/);
     expect(publication.begin).not.toHaveBeenCalled();
   });
+
+  it("fails closed before publication when the resident observation bound is exceeded", async () => {
+    const publication = publicationRepository();
+    const finalizer = {
+      prepare: vi.fn(async () => ({
+        preparedAggregateSetId: REFRESH,
+        sourceVersionSetSha256: SOURCE_HASH,
+        aggregateFamilyCount: 4,
+        materializedRowCount: 0,
+      })),
+    };
+    const refresher = createRaceArchiveAggregateRefresher({
+      planRepository: { list: async () => plan() },
+      rehydrator: rehydrator(),
+      publicationRepository: publication.repository,
+      finalizer,
+      workerId: "aggregate-worker-1",
+      maximumObservations: 2,
+    });
+
+    await expect(
+      refresher.prepare({
+        ownerId: OWNER,
+        updateSessionId: VERSION_2,
+        refreshId: REFRESH,
+        sourceVersionSetSha256: SOURCE_HASH,
+      }),
+    ).rejects.toThrow(/observation bound was exceeded/);
+    expect(publication.begin).not.toHaveBeenCalled();
+    expect(finalizer.prepare).not.toHaveBeenCalled();
+  });
 });
