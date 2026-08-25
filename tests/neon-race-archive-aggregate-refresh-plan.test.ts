@@ -114,44 +114,47 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
     expect(test.harness.close).toHaveBeenCalledOnce();
   });
 
-  it("accepts deterministic PostgreSQL UUIDs without RFC version bits", async () => {
-    const test = repository([
-      [{ owner_scope: databaseOwnerId }],
-      [isolationEvidence()],
-      [
-        {
-          dataset_version_id: datasetVersionId,
-          import_batch_id: importBatchId,
-          version_number: "27",
-          source_row_count: "250000",
-          accepted_row_count: "249999",
-          evidence_partition_count: "500",
-          evidence_row_count: "250000",
-        },
-      ],
-    ]);
+  it(
+    "accepts deterministic PostgreSQL UUIDs without RFC version bits",
+    async () => {
+      const test = repository([
+        [{ owner_scope: databaseOwnerId }],
+        [isolationEvidence()],
+        [
+          {
+            dataset_version_id: datasetVersionId,
+            import_batch_id: importBatchId,
+            version_number: "27",
+            source_row_count: "250000",
+            accepted_row_count: "249999",
+            evidence_partition_count: "500",
+            evidence_row_count: "250000",
+          },
+        ],
+      ]);
 
-    await expect(
-      test.repository.list({
-        ownerId,
-        refreshId: deterministicPostgresRefreshId,
-        updateSessionId: datasetVersionId,
-        sourceVersionSetSha256: sourceHash,
-        maximumVersions: 24,
-      }),
-    ).resolves.toHaveLength(1);
+      await expect(
+        test.repository.list({
+          ownerId,
+          refreshId: deterministicPostgresRefreshId,
+          updateSessionId: datasetVersionId,
+          sourceVersionSetSha256: sourceHash,
+          maximumVersions: 24,
+        }),
+      ).resolves.toHaveLength(1);
 
-    expect(test.harness.query).toHaveBeenCalledWith(
-      expect.stringContaining("list_race_archive_aggregate_refresh_versions"),
-      [
-        databaseOwnerId,
-        deterministicPostgresRefreshId,
-        datasetVersionId,
-        sourceHash,
-        24,
-      ],
-    );
-  });
+      expect(test.harness.query).toHaveBeenCalledWith(
+        expect.stringContaining("list_race_archive_aggregate_refresh_versions"),
+        [
+          databaseOwnerId,
+          deterministicPostgresRefreshId,
+          datasetVersionId,
+          sourceHash,
+          24,
+        ],
+      );
+    },
+  );
 
   it("fails closed and rolls back when runtime authority is incomplete", async () => {
     const test = repository([
