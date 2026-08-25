@@ -64,7 +64,11 @@ function payoutFormat(value: string | null): Readonly<{
 }> | null {
   if (value === null) return null;
   const label = value.trim().replace(/\s+/gu, " ");
-  if (label.length < 1 || label.length > 512 || CONTROL_CHARACTER_PATTERN.test(label)) {
+  if (
+    label.length < 1 ||
+    label.length > 512 ||
+    CONTROL_CHARACTER_PATTERN.test(label)
+  ) {
     throw new Error("Archived payout-format label is invalid.");
   }
   return Object.freeze({ key: label.toLowerCase(), label });
@@ -116,7 +120,9 @@ export function corePayoutFormatProfilesFromRaceArchive(input: {
       "observation.naturalKey",
     );
     if (naturalKeys.has(naturalKey)) {
-      throw new Error("Archive payout-format profiles contain duplicate Race evidence.");
+      throw new Error(
+        "Archive payout-format profiles contain duplicate Race evidence.",
+      );
     }
     naturalKeys.add(naturalKey);
     if (!RACE_MODES.has(observation.mode)) {
@@ -125,7 +131,11 @@ export function corePayoutFormatProfilesFromRaceArchive(input: {
     const format = payoutFormat(observation.payoutMechanismSourceValue);
     if (format === null) continue;
     acceptedFormatEntryCount += 1;
-    const sourceCoreId = safeText(observation.sourceCoreId, "observation.sourceCoreId", 256);
+    const sourceCoreId = safeText(
+      observation.sourceCoreId,
+      "observation.sourceCoreId",
+      256,
+    );
     const distance = positiveSafeInteger(
       observation.distance,
       "observation.distance",
