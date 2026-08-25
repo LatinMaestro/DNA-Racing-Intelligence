@@ -5,6 +5,9 @@ import type { DatasetEvidenceObjectRegistration } from "../lib/neon-dataset-evid
 import type { NeonRaceArchiveAggregatePublicationRepository } from "../lib/neon-race-archive-aggregate-publication";
 import type { SealedRaceArchiveManifest } from "../lib/neon-sealed-race-archive-manifest-repository";
 import type { RaceArchiveCoreAnalyticalObservation } from "../lib/race-archive-core-analytical-observations";
+import type {
+  RaceArchiveAggregateRefreshPlanVersion,
+} from "../lib/race-archive-aggregate-refresher";
 import type { RaceArchiveExternalSortedRunStore } from "../lib/race-archive-external-sort";
 import { createSpillableRaceArchiveAggregateRefresher } from "../lib/race-archive-spillable-aggregate-refresher";
 import type { RaceStagedRowRehydrator } from "../lib/race-staged-row-rehydrator";
@@ -163,18 +166,19 @@ function harness(input?: { finalizerRowDelta?: number }) {
     string,
     readonly Readonly<Record<string, unknown>>[]
   >();
-  const planList = vi.fn(async () =>
-    Object.freeze([
-      Object.freeze({
-        datasetVersionId: VERSION,
-        importBatchId: BATCH,
-        versionNumber: 1,
-        sourceRowCount: 2,
-        acceptedRowCount: 2,
-        evidencePartitionCount: 1,
-        evidenceRowCount: 2,
-      }),
-    ]),
+  const planList = vi.fn(
+    async (): Promise<readonly RaceArchiveAggregateRefreshPlanVersion[]> =>
+      Object.freeze([
+        Object.freeze({
+          datasetVersionId: VERSION,
+          importBatchId: BATCH,
+          versionNumber: 1,
+          sourceRowCount: 2,
+          acceptedRowCount: 2,
+          evidencePartitionCount: 1,
+          evidenceRowCount: 2,
+        }),
+      ]),
   );
   const scratchCreate = vi.fn(async () =>
     Object.freeze({
