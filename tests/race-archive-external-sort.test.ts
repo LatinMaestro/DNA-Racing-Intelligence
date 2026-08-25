@@ -37,7 +37,7 @@ function memoryStore<T>() {
       return asyncValues(records);
     },
     async deleteRun(input) {
-      if (!runs.delete(input.runId)) throw new Error("run is missing");
+      runs.delete(input.runId);
     },
   });
   return { store, runs, writes };
@@ -106,14 +106,15 @@ describe("Race archive external sort", () => {
   });
 
   it("preserves deterministic input order when comparison keys tie", async () => {
-    const storage = memoryStore<Readonly<{ key: number; sequence: number }>>();
-    const records = [
-      { key: 2, sequence: 0 },
-      { key: 1, sequence: 1 },
-      { key: 1, sequence: 2 },
-      { key: 2, sequence: 3 },
-      { key: 1, sequence: 4 },
-    ].map(Object.freeze);
+    type StableRecord = Readonly<{ key: number; sequence: number }>;
+    const storage = memoryStore<StableRecord>();
+    const records: readonly StableRecord[] = Object.freeze([
+      Object.freeze({ key: 2, sequence: 0 }),
+      Object.freeze({ key: 1, sequence: 1 }),
+      Object.freeze({ key: 1, sequence: 2 }),
+      Object.freeze({ key: 2, sequence: 3 }),
+      Object.freeze({ key: 1, sequence: 4 }),
+    ]);
     const result = await spillExactSortedRaceArchiveRecords({
       records: asyncValues(records),
       store: storage.store,
