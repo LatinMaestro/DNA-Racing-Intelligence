@@ -42,6 +42,11 @@ const MAXIMUM_ARCHIVE_PARTITIONS = 10_000;
 const MAXIMUM_OBJECT_BYTES = 1_048_576;
 const MAXIMUM_UNCOMPRESSED_BYTES_PER_PARTITION = 524_288;
 const MAXIMUM_ROWS_PER_PARTITION = 500;
+// The current exact-parity reconstruction retains per-observation JS evidence while
+// rebuilding its read models. Keep the hosted path deliberately small and fail closed
+// until the next critical-path slice replaces that resident representation with a
+// partitioned/spillable reconstruction suitable for the multi-million-row real archive.
+const MAXIMUM_RESIDENT_ARCHIVE_OBSERVATIONS = 10_000;
 
 export type HostedProLeagueAggregateWorkerEnvironment = Readonly<{
   workerId: string | undefined;
@@ -273,6 +278,7 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
       workerId,
       maximumVersions: MAXIMUM_ARCHIVE_VERSIONS,
       maximumArchivePartitions: MAXIMUM_ARCHIVE_PARTITIONS,
+      maximumObservations: MAXIMUM_RESIDENT_ARCHIVE_OBSERVATIONS,
       ...(input.dependencies?.now ? { now: input.dependencies.now } : {}),
     });
     const refresher: BoundedAggregateRefresher = Object.freeze({
