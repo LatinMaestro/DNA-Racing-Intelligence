@@ -65,21 +65,32 @@ function mergedRuns<T>(input: {
       for (const iterator of iterators) heads.push(await iterator.next());
       while (true) {
         let selectedIndex = -1;
-        let selectedValue: T | undefined;
         for (let index = 0; index < heads.length; index += 1) {
           const head = heads[index];
           if (head === undefined || head.done) continue;
-          if (
-            selectedIndex < 0 ||
-            input.compare(head.value, selectedValue as T) < 0
-          ) {
+          if (selectedIndex < 0) {
             selectedIndex = index;
-            selectedValue = head.value;
+            continue;
+          }
+          const selectedHead = heads[selectedIndex];
+          if (selectedHead === undefined || selectedHead.done) {
+            throw new Error("Race archive external-sort merge state is invalid.");
+          }
+          if (input.compare(head.value, selectedHead.value) < 0) {
+            selectedIndex = index;
           }
         }
-        if (selectedIndex < 0 || selectedValue === undefined) return;
-        yield selectedValue;
-        heads[selectedIndex] = await iterators[selectedIndex]?.next();
+        if (selectedIndex < 0) return;
+        const selectedHead = heads[selectedIndex];
+        if (selectedHead === undefined || selectedHead.done) {
+          throw new Error("Race archive external-sort merge state is invalid.");
+        }
+        yield selectedHead.value;
+        const iterator = iterators[selectedIndex];
+        if (iterator === undefined) {
+          throw new Error("Race archive external-sort iterator is unavailable.");
+        }
+        heads[selectedIndex] = await iterator.next();
       }
     } finally {
       await closeIterators(iterators);
@@ -154,10 +165,17 @@ export async function spillExactSortedRaceArchiveRecords<T>(input: {
     cleaned = true;
   };
 
+  const writeRun = async (
+    runId: string,
+    records: AsyncIterable<T>,
+  ): Promise<void> => {
+    ownedRunIds.add(runId);
+    await input.store.writeRun({ runId, records });
+  };
+
   const writeArrayRun = async (values: readonly T[]): Promise<string> => {
     const runId = nextRunId();
-    await input.store.writeRun({ runId, records: recordsFromArray(values) });
-    ownedRunIds.add(runId);
+    await writeRun(runId, recordsFromArray(values));
     return runId;
   };
 
@@ -192,15 +210,14 @@ export async function spillExactSortedRaceArchiveRecords<T>(input: {
           continue;
         }
         const mergedRunId = nextRunId();
-        await input.store.writeRun({
-          runId: mergedRunId,
-          records: mergedRuns({
+        await writeRun(
+          mergedRunId,
+          mergedRuns({
             store: input.store,
             runIds: sourceRunIds,
             compare: input.compare,
           }),
-        });
-        ownedRunIds.add(mergedRunId);
+        );
         for (const sourceRunId of sourceRunIds) {
           await deleteOwnedRun(sourceRunId);
         }
