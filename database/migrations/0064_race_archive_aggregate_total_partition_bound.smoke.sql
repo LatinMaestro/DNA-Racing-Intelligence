@@ -64,23 +64,6 @@ INSERT INTO dna.dataset_version_evidence_receipt (
   6000, 1, 100, '2026-08-25T14:03:50Z'
 );
 
-INSERT INTO dna.race_archive_core_locator_receipt (
-  owner_id, dataset_version_id, import_batch_id, locator_set_sha256,
-  core_locator_count, ready_row_count, partition_reference_count, built_at
-) VALUES
-(
-  '64000000-0000-4000-8000-000000000001',
-  '64000000-0000-4000-8000-000000000020',
-  '64000000-0000-4000-8000-000000000010', repeat('c',64),
-  1, 1, 6000, '2026-08-25T14:01:55Z'
-),
-(
-  '64000000-0000-4000-8000-000000000001',
-  '64000000-0000-4000-8000-000000000021',
-  '64000000-0000-4000-8000-000000000011', repeat('d',64),
-  1, 1, 6000, '2026-08-25T14:03:55Z'
-);
-
 INSERT INTO dna.aggregate_refresh_job (
   id, owner_id, dataset_version_id, status
 ) VALUES (
@@ -107,7 +90,15 @@ DO $bound$
 DECLARE
   v_hash character(64);
   v_versions bigint[];
+  v_locator_count bigint;
 BEGIN
+  SELECT count(*) INTO STRICT v_locator_count
+  FROM dna.race_archive_core_locator_receipt
+  WHERE owner_id = '64000000-0000-4000-8000-000000000001';
+  IF v_locator_count <> 0 THEN
+    RAISE EXCEPTION 'partition-bound smoke unexpectedly has Core locator receipts';
+  END IF;
+
   SELECT source_version_set_sha256 INTO STRICT v_hash
   FROM dna.aggregate_refresh_processing
   WHERE owner_id = '64000000-0000-4000-8000-000000000001'
