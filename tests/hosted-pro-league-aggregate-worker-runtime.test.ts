@@ -155,7 +155,9 @@ describe("hosted Pro League aggregate worker runtime", () => {
       mergeFanIn: 8,
       maximumInputObservations: 5_000_000,
     });
-    expect(HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS.maximumInputObservations).toBeGreaterThan(
+    expect(
+      HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS.maximumInputObservations,
+    ).toBeGreaterThan(
       HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS.maximumRecordsInMemory,
     );
   });
