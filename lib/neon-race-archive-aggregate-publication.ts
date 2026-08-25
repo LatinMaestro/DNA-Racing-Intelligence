@@ -374,7 +374,7 @@ export function createNeonRaceArchiveAggregatePublicationRepository(input: {
         return status;
       });
     },
-    stageRows(input) {
+    async stageRows(input) {
       const ownerId = owner(input.ownerId);
       const refreshId = uuid(input.refreshId, "refreshId");
       const workerId = identifier(input.workerId, "workerId");
