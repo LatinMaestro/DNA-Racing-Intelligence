@@ -136,7 +136,9 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
       },
     ]);
     const bootstrapCall = test.harness.query.mock.calls.findIndex(([sql]) =>
-      String(sql).includes("bootstrap_race_archive_aggregate_evidence_receipts"),
+      String(sql).includes(
+        "bootstrap_race_archive_aggregate_evidence_receipts",
+      ),
     );
     const listCall = test.harness.query.mock.calls.findIndex(([sql]) =>
       String(sql).includes("list_race_archive_aggregate_refresh_versions"),
