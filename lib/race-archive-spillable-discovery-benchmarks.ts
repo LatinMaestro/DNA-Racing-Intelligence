@@ -158,7 +158,6 @@ function benchmarksFromSorted(input: {
       null;
     let activeGroupRunId: string | null = null;
     let groupSequence = 0;
-    let benchmarkCount = 0;
 
     try {
       while (true) {
@@ -168,6 +167,11 @@ function benchmarksFromSorted(input: {
         const first = validatedObservation(firstResult.value);
         const expectedGroupKey = groupKey(first);
         groupSequence += 1;
+        if (groupSequence > input.maximumBenchmarks) {
+          throw new Error(
+            "Race archive Discovery benchmark bound was exceeded.",
+          );
+        }
         const groupRunId = `${input.groupRunPrefix}/group-${String(groupSequence).padStart(8, "0")}`;
         activeGroupRunId = groupRunId;
         let raceEntryCount = 0;
@@ -218,12 +222,6 @@ function benchmarksFromSorted(input: {
           continue;
         }
 
-        benchmarkCount += 1;
-        if (benchmarkCount > input.maximumBenchmarks) {
-          throw new Error(
-            "Race archive Discovery benchmark bound was exceeded.",
-          );
-        }
         const winning = await exactSortedRaceArchiveStatistics({
           readValues: () =>
             qualifyingElapsedValues({
