@@ -45,14 +45,14 @@ const MAXIMUM_ROWS_PER_PARTITION = 500;
 
 export type HostedProLeagueAggregateWorkerEnvironment = Readonly<{
   workerId: string | undefined;
-  authorizedOwnerId: string | undefined;
   database: ProLeagueAggregateRefreshEnvironment;
   leaseDurationMilliseconds: string | undefined;
-  cloudflareAccountId: string | undefined;
-  cloudflareApiToken: string | undefined;
-  bucketName: string | undefined;
-  r2AccessKeyId: string | undefined;
-  r2SecretAccessKey: string | undefined;
+  authorizedOwnerId?: string | undefined;
+  cloudflareAccountId?: string | undefined;
+  cloudflareApiToken?: string | undefined;
+  bucketName?: string | undefined;
+  r2AccessKeyId?: string | undefined;
+  r2SecretAccessKey?: string | undefined;
 }>;
 
 export type HostedProLeagueAggregateWorkerDependencies = Readonly<{
@@ -111,6 +111,17 @@ function leaseDuration(value: string | undefined): number | null {
   return parsed;
 }
 
+function nodeEnvironment(name: string): string | undefined {
+  return typeof process === "undefined" ? undefined : process.env[name];
+}
+
+function configuredValue(
+  explicit: string | undefined,
+  environmentName: string,
+): string | undefined {
+  return explicit ?? nodeEnvironment(environmentName);
+}
+
 function archiveConfiguration(
   environment: HostedProLeagueAggregateWorkerEnvironment,
 ): null | Readonly<{
@@ -121,12 +132,24 @@ function archiveConfiguration(
   accessKeyId: string;
   secretAccessKey: string;
 }> {
-  const ownerId = environment.authorizedOwnerId?.trim() ?? "";
-  const accountId = environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
-  const apiToken = secret(environment.cloudflareApiToken);
-  const bucketName = environment.bucketName?.trim() ?? "";
-  const accessKeyId = secret(environment.r2AccessKeyId);
-  const secretAccessKey = secret(environment.r2SecretAccessKey);
+  const ownerId =
+    configuredValue(environment.authorizedOwnerId, "AUTHORIZED_CLERK_USER_ID")?.trim() ??
+    "";
+  const accountId =
+    configuredValue(environment.cloudflareAccountId, "CLOUDFLARE_ACCOUNT_ID")
+      ?.trim()
+      .toLowerCase() ?? "";
+  const apiToken = secret(
+    configuredValue(environment.cloudflareApiToken, "CLOUDFLARE_API_TOKEN"),
+  );
+  const bucketName =
+    configuredValue(environment.bucketName, "DNA_R2_BUCKET_NAME")?.trim() ?? "";
+  const accessKeyId = secret(
+    configuredValue(environment.r2AccessKeyId, "DNA_R2_ACCESS_KEY_ID"),
+  );
+  const secretAccessKey = secret(
+    configuredValue(environment.r2SecretAccessKey, "DNA_R2_SECRET_ACCESS_KEY"),
+  );
   if (
     !SAFE_IDENTIFIER_PATTERN.test(ownerId) ||
     !ACCOUNT_ID_PATTERN.test(accountId) ||
