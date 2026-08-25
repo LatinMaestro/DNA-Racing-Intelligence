@@ -8,7 +8,8 @@ export function createAggregateRefreshSourceRouter(input: {
 }): BoundedAggregateRefresher {
   return Object.freeze({
     async prepare(request) {
-      const sourceType = await input.targetSourceReader.targetSourceType(request);
+      const sourceType =
+        await input.targetSourceReader.targetSourceType(request);
       if (sourceType === "race_merge") {
         return input.raceRefresher.prepare(request);
       }
