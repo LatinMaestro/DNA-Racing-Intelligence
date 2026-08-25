@@ -132,10 +132,10 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
     expect(test.harness.close).toHaveBeenCalledOnce();
   });
 
-  it("rejects invalid caller bounds before opening a database session", async () => {
+  it("rejects invalid caller bounds before opening a database session", () => {
     const test = repository([]);
 
-    await expect(
+    expect(() =>
       test.repository.list({
         ownerId,
         refreshId,
@@ -143,7 +143,7 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
         sourceVersionSetSha256: sourceHash,
         maximumVersions: 10_001,
       }),
-    ).rejects.toThrow("maximumVersions is invalid");
+    ).toThrow("maximumVersions is invalid");
 
     expect(test.harness.sessionFactory).not.toHaveBeenCalled();
   });
