@@ -1,10 +1,10 @@
-name: Race archive aggregate total partition bound migration
+name: Race archive partition bound migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/race-archive-aggregate-total-partition-bound-migration.yml"
+      - ".github/workflows/*partition-bound*.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,15 +39,15 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run Race archive aggregate total partition bound smoke test
+      - name: Run total partition bound smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0064_race_archive_aggregate_total_partition_bound.smoke.sql
-      - name: Reverse Race archive aggregate total partition bound migration
+      - name: Reverse total partition bound migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0064_race_archive_aggregate_total_partition_bound.down.sql
-      - name: Verify Race archive aggregate total partition bound removal
+      - name: Verify total partition bound removal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0064_race_archive_aggregate_total_partition_bound.removal.sql
