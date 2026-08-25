@@ -34,7 +34,7 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply and smoke activation migrations at historical boundaries
+      - name: Apply and smoke activation migrations at compatible boundaries
         run: |
           set -euo pipefail
           reached_target=0
@@ -78,9 +78,12 @@ jobs:
                 psql --set ON_ERROR_STOP=1 --file database/migrations/0050_preview_processing_failure_stage.smoke.sql
                 ;;
               0051_preview_evidence_resume.up.sql)
-                psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
+                # The checked-in 0051 smoke uses authenticated Clerk owner identity,
+                # which is the contract introduced by 0052. Applying 0051 here still
+                # proves its schema/function migration before the identity repair.
                 ;;
               0052_preview_evidence_owner_identity.up.sql)
+                psql --set ON_ERROR_STOP=1 --file database/migrations/0051_preview_evidence_resume.smoke.sql
                 psql --set ON_ERROR_STOP=1 --file database/migrations/0052_preview_evidence_owner_identity.smoke.sql
                 reached_target=1
                 break
