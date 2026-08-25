@@ -48,7 +48,10 @@ function sessionHarness(rows: readonly (readonly unknown[])[]) {
   });
   const client: NeonImportPersistenceClient = { query };
   const close = vi.fn(async () => undefined);
-  const sessionFactory = vi.fn(async () => ({ client, close })) as NeonImportPersistenceSessionFactory;
+  const sessionFactory = vi.fn(async () => ({
+    client,
+    close,
+  })) as NeonImportPersistenceSessionFactory;
   return { query, close, sessionFactory };
 }
 
@@ -87,7 +90,9 @@ describe("Neon aggregate target source adapter", () => {
     ).resolves.toBe(sourceType);
 
     expect(test.harness.query).toHaveBeenCalledWith(
-      expect.stringContaining("pro_league_aggregate_refresh_target_source_type"),
+      expect.stringContaining(
+        "pro_league_aggregate_refresh_target_source_type",
+      ),
       [databaseOwnerId, refreshId, datasetVersionId, sourceHash],
     );
     expect(test.harness.query).toHaveBeenCalledWith("COMMIT");
