@@ -10,6 +10,7 @@ const databaseOwnerId = "11111111-1111-4111-8111-111111111111";
 const ownerId = "owner-1";
 const runtimeRole = "dna_app_runtime";
 const refreshId = "22222222-2222-4222-8222-222222222222";
+const deterministicPostgresRefreshId = "aaaaaaaa-aaaa-faaa-7aaa-aaaaaaaaaaaa";
 const raceDatasetVersionId = "33333333-3333-4333-8333-333333333333";
 const sourceHash = "a".repeat(64);
 const payloadHash = "b".repeat(64);
@@ -109,6 +110,34 @@ describe("Neon Race archive aggregate publication repository", () => {
       "2026-08-25T00:00:00.000Z",
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("accepts deterministic PostgreSQL refresh UUIDs", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ status: "staging" }],
+    ]);
+
+    await expect(
+      repository(test).begin({
+        ownerId,
+        refreshId: deterministicPostgresRefreshId,
+        raceDatasetVersionId,
+        workerId: "aggregate-worker-1",
+        sourceVersionSetSha256: sourceHash,
+        refreshedAt: "2026-08-25T00:00:00.000Z",
+      }),
+    ).resolves.toBe("staging");
+
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      deterministicPostgresRefreshId,
+      raceDatasetVersionId,
+      "aggregate-worker-1",
+      sourceHash,
+      "2026-08-25T00:00:00.000Z",
+    ]);
   });
 
   it("stages bounded read-model rows without direct table access", async () => {
