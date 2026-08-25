@@ -48,6 +48,7 @@ BEGIN
        'EXECUTE'
      )
      OR NOT has_function_privilege(
+       'dna_app_runtime',
        'dna.prepare_pro_league_aggregate_refresh(uuid,uuid,uuid,character)',
        'EXECUTE'
      ) THEN
