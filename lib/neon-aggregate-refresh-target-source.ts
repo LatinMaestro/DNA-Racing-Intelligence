@@ -45,11 +45,8 @@ const TARGET_SOURCE_SQL = `
 `;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
-
 export type ProLeagueAggregateRefreshTargetSource =
-  | "race_merge"
-  | "core_details"
-  | "current_arena";
+  "race_merge" | "core_details" | "current_arena";
 
 export type AggregateRefreshTargetSourceReader = Readonly<{
   targetSourceType: (input: {
