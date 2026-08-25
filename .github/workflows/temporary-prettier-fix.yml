@@ -1,0 +1,38 @@
+name: Temporary canonical Prettier fix
+
+on:
+  push:
+    branches:
+      - agent/hosted-archive-aggregate-worker-composition
+    paths:
+      - .github/workflows/temporary-prettier-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hosted-archive-aggregate-worker-composition
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Canonically format only the affected test and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx prettier --write tests/neon-sealed-race-archive-manifest-repository.test.ts
+          rm .github/workflows/temporary-prettier-fix.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/neon-sealed-race-archive-manifest-repository.test.ts .github/workflows/temporary-prettier-fix.yml
+          git diff --cached --exit-code && { echo "No formatting delta was produced"; exit 1; } || true
+          git commit -m "Format archive manifest repository test"
+          git push origin HEAD:agent/hosted-archive-aggregate-worker-composition
