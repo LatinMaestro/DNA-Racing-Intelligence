@@ -77,7 +77,10 @@ function assertEventMetadata(
   event: MutableArchiveStarEvent,
   observation: RaceArchiveCoreAnalyticalObservation,
 ): void {
-  const eventAt = normalizedTimestamp(observation.eventAt, "observation.eventAt");
+  const eventAt = normalizedTimestamp(
+    observation.eventAt,
+    "observation.eventAt",
+  );
   if (
     event.eventAt !== eventAt ||
     event.mode !== observation.mode ||
@@ -100,7 +103,11 @@ export function starProfilesFromRaceArchive(input: {
     "maximumObservations",
     5_000_000,
   );
-  const maximumEvents = positiveBound(input.maximumEvents, "maximumEvents", 1_000_000);
+  const maximumEvents = positiveBound(
+    input.maximumEvents,
+    "maximumEvents",
+    1_000_000,
+  );
   const maximumProfiles = positiveBound(
     input.maximumProfiles,
     "maximumProfiles",
@@ -123,7 +130,10 @@ export function starProfilesFromRaceArchive(input: {
     }
     naturalKeys.add(naturalKey);
 
-    const eventId = safeText(observation.sourceEventId, "observation.sourceEventId");
+    const eventId = safeText(
+      observation.sourceEventId,
+      "observation.sourceEventId",
+    );
     const coreId = safeText(
       observation.sourceCoreId,
       "observation.sourceCoreId",
