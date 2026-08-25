@@ -20,6 +20,10 @@ import {
 } from "./neon-race-archive-aggregate-publication";
 import { createNeonRaceArchiveAggregateRefreshPlanRepository } from "./neon-race-archive-aggregate-refresh-plan";
 import {
+  createNeonRaceArchiveCoreLocatorRepository,
+  type NeonRaceArchiveCoreLocatorRepository,
+} from "./neon-race-archive-core-locator-repository";
+import {
   createNeonSealedRaceArchiveManifestRepository,
   type SealedRaceArchiveManifestRepository,
 } from "./neon-sealed-race-archive-manifest-repository";
@@ -36,6 +40,7 @@ import {
   createRaceStagedRowRehydrator,
   type RaceStagedRowRehydrator,
 } from "./race-staged-row-rehydrator";
+import { createRaceStagedRowLocatorSealingRehydrator } from "./race-staged-row-locator-sealing-rehydrator";
 import { createSealedRaceArchiveReader } from "./sealed-race-archive-reader";
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -46,6 +51,7 @@ const BUCKET_NAME_PATTERN =
 const MAXIMUM_ARCHIVE_VERSIONS = 10_000;
 const MAXIMUM_ARCHIVE_PARTITIONS = 10_000;
 const MAXIMUM_ROWS_PER_PARTITION = 500;
+const MAXIMUM_CORE_LOCATORS = 50_000;
 
 // The current exact-parity archive reconstruction retains observation objects in
 // Worker memory. Keep the hosted Race path deliberately small until the next
@@ -73,6 +79,7 @@ export type HostedProLeagueAggregateWorkerDependencies = Readonly<{
   raceRefresher?: BoundedAggregateRefresher;
   planRepository?: RaceArchiveAggregateRefreshPlanRepository;
   publicationRepository?: NeonRaceArchiveAggregatePublicationRepository;
+  coreLocatorRepository?: NeonRaceArchiveCoreLocatorRepository;
   manifestRepository?: SealedRaceArchiveManifestRepository;
   objectReader?: PrivateDatasetEvidenceObjectReader;
   evidencePort?: PrivateDatasetEvidenceObjectReadableStoragePort;
@@ -236,45 +243,60 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
               ? { sessionFactory: input.dependencies.neonSessionFactory }
               : {}),
           }),
-        rehydrator:
-          input.dependencies?.rehydrator ??
-          createRaceStagedRowRehydrator({
-            archiveReader: createSealedRaceArchiveReader({
-              manifestRepository:
-                input.dependencies?.manifestRepository ??
-                createNeonSealedRaceArchiveManifestRepository({
-                  databaseUrl,
-                  databaseOwnerId,
-                  runtimeRole,
-                  ...(input.dependencies?.neonSessionFactory
-                    ? { sessionFactory: input.dependencies.neonSessionFactory }
-                    : {}),
-                }),
-              objectReader:
-                input.dependencies?.objectReader ??
-                createPrivateDatasetEvidenceObjectReader({
-                  ownerId: archive.ownerId,
-                  bucketName: archive.bucketName,
-                  maximumObjectBytes: archive.maximumChunkBytes,
-                  createPort: () =>
-                    input.dependencies?.evidencePort ??
-                    createCloudflareR2DatasetEvidencePort({
-                      accountId: archive.accountId,
-                      accessKeyId: archive.accessKeyId,
-                      secretAccessKey: archive.secretAccessKey,
-                      apiToken: archive.apiToken,
-                      maximumBufferedPutBytes: archive.maximumChunkBytes,
-                      fetch: input.dependencies?.fetch ?? globalThis.fetch,
-                    }),
-                }),
-              maximumUncompressedBytesPerPartition: Math.max(
-                1,
-                Math.floor(archive.maximumChunkBytes / 2),
-              ),
-              maximumRowsPerPartition: MAXIMUM_ROWS_PER_PARTITION,
-              maximumSelectedPartitions: MAXIMUM_ARCHIVE_PARTITIONS,
+        rehydrator: createRaceStagedRowLocatorSealingRehydrator({
+          rehydrator:
+            input.dependencies?.rehydrator ??
+            createRaceStagedRowRehydrator({
+              archiveReader: createSealedRaceArchiveReader({
+                manifestRepository:
+                  input.dependencies?.manifestRepository ??
+                  createNeonSealedRaceArchiveManifestRepository({
+                    databaseUrl,
+                    databaseOwnerId,
+                    runtimeRole,
+                    ...(input.dependencies?.neonSessionFactory
+                      ? { sessionFactory: input.dependencies.neonSessionFactory }
+                      : {}),
+                  }),
+                objectReader:
+                  input.dependencies?.objectReader ??
+                  createPrivateDatasetEvidenceObjectReader({
+                    ownerId: archive.ownerId,
+                    bucketName: archive.bucketName,
+                    maximumObjectBytes: archive.maximumChunkBytes,
+                    createPort: () =>
+                      input.dependencies?.evidencePort ??
+                      createCloudflareR2DatasetEvidencePort({
+                        accountId: archive.accountId,
+                        accessKeyId: archive.accessKeyId,
+                        secretAccessKey: archive.secretAccessKey,
+                        apiToken: archive.apiToken,
+                        maximumBufferedPutBytes: archive.maximumChunkBytes,
+                        fetch: input.dependencies?.fetch ?? globalThis.fetch,
+                      }),
+                  }),
+                maximumUncompressedBytesPerPartition: Math.max(
+                  1,
+                  Math.floor(archive.maximumChunkBytes / 2),
+                ),
+                maximumRowsPerPartition: MAXIMUM_ROWS_PER_PARTITION,
+                maximumSelectedPartitions: MAXIMUM_ARCHIVE_PARTITIONS,
+              }),
             }),
-          }),
+          coreLocatorRepository:
+            input.dependencies?.coreLocatorRepository ??
+            createNeonRaceArchiveCoreLocatorRepository({
+              databaseUrl,
+              databaseOwnerId,
+              runtimeRole,
+              ...(input.dependencies?.neonSessionFactory
+                ? { sessionFactory: input.dependencies.neonSessionFactory }
+                : {}),
+            }),
+          maximumCoreLocators: MAXIMUM_CORE_LOCATORS,
+          maximumPartitionsPerCore: MAXIMUM_ARCHIVE_PARTITIONS,
+          ...(input.dependencies?.now ? { now: input.dependencies.now } : {}),
+        }),
         publicationRepository:
           input.dependencies?.publicationRepository ??
           createNeonRaceArchiveAggregatePublicationRepository({
