@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 
-import type { AdaptedRaceMergeRow } from "@/domain/source-adapters";
 import type {
   BoundedAggregateRefresher,
   PreparedAggregateRefresh,
@@ -198,17 +197,6 @@ function normalizedPlan(input: {
     );
   }
   return Object.freeze(versions);
-}
-
-function readyRaceRecord(row: RaceArchiveCoreHistoryRow): AdaptedRaceMergeRow {
-  if (
-    row.row.status !== "ready" ||
-    row.row.sourceType !== "race_merge" ||
-    row.row.record?.sourceType !== "race_merge"
-  ) {
-    throw new Error("Race archive aggregate evidence is not a ready Race row.");
-  }
-  return row.row.record;
 }
 
 function publicationRows(input: {
