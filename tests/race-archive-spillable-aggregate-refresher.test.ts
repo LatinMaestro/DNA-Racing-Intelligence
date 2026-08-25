@@ -159,7 +159,10 @@ function harness(input?: { finalizerRowDelta?: number }) {
   const starProfiles = memoryStore<CoreStarProfile>();
   const lifecycle: string[] = [];
   let materializedRowCount = 0;
-  const staged = new Map<string, readonly Readonly<Record<string, unknown>>[]>();
+  const staged = new Map<
+    string,
+    readonly Readonly<Record<string, unknown>>[]
+  >();
   const planList = vi.fn(async () =>
     Object.freeze([
       Object.freeze({
