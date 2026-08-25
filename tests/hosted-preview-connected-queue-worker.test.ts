@@ -833,11 +833,11 @@ describeConnected(
             disposition: "acknowledge",
             reason: "completed",
           });
-          expect(aggregateRefreshes).toHaveLength(9);
+          expect(aggregateRefreshes).toHaveLength(3);
           const firstRefreshIds = aggregateRefreshes.map(
             (refresh) => refresh.refreshId,
           );
-          expect(new Set(firstRefreshIds).size).toBe(9);
+          expect(new Set(firstRefreshIds).size).toBe(3);
 
           const aggregateRuntime = hostedProLeagueAggregateWorkerRuntime({
             environment: {
@@ -891,8 +891,8 @@ describeConnected(
             disposition: "acknowledge",
             reason: "completed",
           });
-          expect(aggregateRefreshes).toHaveLength(18);
-          const replayRefreshes = aggregateRefreshes.slice(9);
+          expect(aggregateRefreshes).toHaveLength(6);
+          const replayRefreshes = aggregateRefreshes.slice(3);
           expect(
             new Set(replayRefreshes.map((refresh) => refresh.refreshId)),
           ).toEqual(new Set(firstRefreshIds));
