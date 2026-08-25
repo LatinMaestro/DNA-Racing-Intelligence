@@ -22,15 +22,20 @@ function repository(input?: {
   stagedCountOverride?: number;
 }) {
   const begin = vi.fn(async () => input?.beginStatus ?? "staging");
-  const stageRows = vi.fn(async (value: { rows: readonly unknown[] }) =>
-    input?.stagedCountOverride ?? value.rows.length,
+  const stageRows = vi.fn(
+    async (value: { rows: readonly unknown[] }) =>
+      input?.stagedCountOverride ?? value.rows.length,
   );
   const publish = vi.fn(async () => ({
     status: input?.publishStatus ?? "published",
     materializedRowCount: 80,
   }));
   return {
-    repository: { begin, stageRows, publish } as NeonRaceArchiveAggregatePublicationRepository,
+    repository: {
+      begin,
+      stageRows,
+      publish,
+    } as NeonRaceArchiveAggregatePublicationRepository,
     begin,
     stageRows,
     publish,
@@ -66,11 +71,13 @@ describe("Race archive aggregate publication service", () => {
 
     expect(test.begin).toHaveBeenCalledOnce();
     expect(test.stageRows).toHaveBeenCalledTimes(5);
-    expect(test.stageRows.mock.calls.map(([value]) => [
-      value.family,
-      value.startOrdinal,
-      value.rows.length,
-    ])).toEqual([
+    expect(
+      test.stageRows.mock.calls.map(([value]) => [
+        value.family,
+        value.startOrdinal,
+        value.rows.length,
+      ]),
+    ).toEqual([
       ["core_performance", 0, 2_000],
       ["core_performance", 2_000, 1],
       ["discovery_benchmark", 0, 1],

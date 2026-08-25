@@ -24,11 +24,7 @@ export type RaceArchiveAggregatePublicationResult = Readonly<{
   stagedRowCount: number;
 }>;
 
-function safeInteger(
-  value: number,
-  field: string,
-  maximum: number,
-): number {
+function safeInteger(value: number, field: string, maximum: number): number {
   if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
     throw new Error(`${field} is outside its bound`);
   }
