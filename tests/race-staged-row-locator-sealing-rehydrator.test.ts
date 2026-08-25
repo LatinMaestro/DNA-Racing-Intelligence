@@ -81,8 +81,16 @@ function source(): RaceStagedRowRehydrator {
         status: "ready" as const,
         manifest: manifest(),
         rows: (async function* () {
-          yield readyRow({ sourceRowNumber: 1, partitionNumber: 0, coreId: "core-1" });
-          yield readyRow({ sourceRowNumber: 2, partitionNumber: 1, coreId: "core-1" });
+          yield readyRow({
+            sourceRowNumber: 1,
+            partitionNumber: 0,
+            coreId: "core-1",
+          });
+          yield readyRow({
+            sourceRowNumber: 2,
+            partitionNumber: 1,
+            coreId: "core-1",
+          });
           yield quarantinedRow();
         })(),
       };
@@ -91,16 +99,22 @@ function source(): RaceStagedRowRehydrator {
 }
 
 function repository(input?: { wrongCount?: boolean }) {
-  const replace = vi.fn(async (request: Parameters<NeonRaceArchiveCoreLocatorRepository["replace"]>[0]) => ({
-    status: "sealed" as const,
-    datasetVersionId: request.datasetVersionId,
-    importBatchId: request.importBatchId,
-    locatorSetSha256: "b".repeat(64),
-    coreLocatorCount: input?.wrongCount ? request.locators.length + 1 : request.locators.length,
-    readyRowCount: 2,
-    partitionReferenceCount: 2,
-    builtAt: request.builtAt,
-  }));
+  const replace = vi.fn(
+    async (
+      request: Parameters<NeonRaceArchiveCoreLocatorRepository["replace"]>[0],
+    ) => ({
+      status: "sealed" as const,
+      datasetVersionId: request.datasetVersionId,
+      importBatchId: request.importBatchId,
+      locatorSetSha256: "b".repeat(64),
+      coreLocatorCount: input?.wrongCount
+        ? request.locators.length + 1
+        : request.locators.length,
+      readyRowCount: 2,
+      partitionReferenceCount: 2,
+      builtAt: request.builtAt,
+    }),
+  );
   return {
     replace,
     repository: {
