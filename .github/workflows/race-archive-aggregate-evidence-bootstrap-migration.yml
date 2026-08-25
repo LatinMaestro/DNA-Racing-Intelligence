@@ -1,0 +1,64 @@
+name: Race archive aggregate evidence bootstrap migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/race-archive-aggregate-evidence-bootstrap-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration chain through evidence bootstrap
+        run: |
+          set -euo pipefail
+          target="database/migrations/0065_race_archive_aggregate_evidence_bootstrap.up.sql"
+          reached_target=0
+          while IFS= read -r migration; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+            if [[ "$migration" == "$target" ]]; then
+              reached_target=1
+              break
+            fi
+          done < <(find database/migrations -maxdepth 1 -name '*.up.sql' -print | sort)
+          if [[ "$reached_target" -ne 1 ]]; then
+            echo "Race archive aggregate evidence bootstrap boundary was not reached" >&2
+            exit 1
+          fi
+      - name: Run evidence bootstrap smoke
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0065_race_archive_aggregate_evidence_bootstrap.smoke.sql
+      - name: Reverse evidence bootstrap
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0065_race_archive_aggregate_evidence_bootstrap.down.sql
+      - name: Verify evidence bootstrap removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0065_race_archive_aggregate_evidence_bootstrap.removal.sql
