@@ -2,7 +2,11 @@ import type { NeonRaceArchiveCoreLocatorRepository } from "./neon-race-archive-c
 import { createRaceArchiveCoreLocatorAccumulator } from "./race-archive-core-locator-accumulator";
 import type { RaceStagedRowRehydrator } from "./race-staged-row-rehydrator";
 
-function positiveSafeInteger(value: number, field: string, maximum: number): number {
+function positiveSafeInteger(
+  value: number,
+  field: string,
+  maximum: number,
+): number {
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     throw new Error(`${field} is outside its bound`);
   }
@@ -24,7 +28,9 @@ function partitionReferenceCount(
   for (const locator of locators) {
     count += locator.partitionNumbers.length;
     if (!Number.isSafeInteger(count)) {
-      throw new Error("Race archive Core locator partition references overflowed");
+      throw new Error(
+        "Race archive Core locator partition references overflowed",
+      );
     }
   }
   return count;
