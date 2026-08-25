@@ -74,7 +74,9 @@ function mergedRuns<T>(input: {
           }
           const selectedHead = heads[selectedIndex];
           if (selectedHead === undefined || selectedHead.done) {
-            throw new Error("Race archive external-sort merge state is invalid.");
+            throw new Error(
+              "Race archive external-sort merge state is invalid.",
+            );
           }
           if (input.compare(head.value, selectedHead.value) < 0) {
             selectedIndex = index;
@@ -83,12 +85,16 @@ function mergedRuns<T>(input: {
         if (selectedIndex < 0) return;
         const selectedHead = heads[selectedIndex];
         if (selectedHead === undefined || selectedHead.done) {
-          throw new Error("Race archive external-sort merge state is invalid.");
+          throw new Error(
+            "Race archive external-sort merge state is invalid.",
+          );
         }
         yield selectedHead.value;
         const iterator = iterators[selectedIndex];
         if (iterator === undefined) {
-          throw new Error("Race archive external-sort iterator is unavailable.");
+          throw new Error(
+            "Race archive external-sort iterator is unavailable.",
+          );
         }
         heads[selectedIndex] = await iterator.next();
       }
