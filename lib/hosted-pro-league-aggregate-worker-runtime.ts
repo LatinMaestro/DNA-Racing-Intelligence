@@ -133,8 +133,10 @@ function archiveConfiguration(
   secretAccessKey: string;
 }> {
   const ownerId =
-    configuredValue(environment.authorizedOwnerId, "AUTHORIZED_CLERK_USER_ID")?.trim() ??
-    "";
+    configuredValue(
+      environment.authorizedOwnerId,
+      "AUTHORIZED_CLERK_USER_ID",
+    )?.trim() ?? "";
   const accountId =
     configuredValue(environment.cloudflareAccountId, "CLOUDFLARE_ACCOUNT_ID")
       ?.trim()
