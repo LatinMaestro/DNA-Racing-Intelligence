@@ -153,7 +153,7 @@ function elapsedMilliseconds(value: string): number {
   return Number(milliseconds);
 }
 
-function observation(
+export function analyticalObservationFromRaceArchiveCoreHistoryRow(
   historyRow: RaceArchiveCoreHistoryRow,
   sourceCoreId: string,
 ): RaceArchiveCoreAnalyticalObservation {
@@ -168,8 +168,9 @@ function observation(
       "Archived Core analytical evidence is not Race Merge data.",
     );
   }
+  const normalizedSourceCoreId = safeText(sourceCoreId, "sourceCoreId");
   const rowCoreId = safeText(race.sourceCoreId, "Archived Race sourceCoreId");
-  if (rowCoreId !== sourceCoreId) {
+  if (rowCoreId !== normalizedSourceCoreId) {
     throw new Error("Archived analytical row changed Core identity.");
   }
   const sourceEventId = safeText(
@@ -242,7 +243,7 @@ export function analyticalObservationsFromRaceArchiveCoreHistory(
     "selectedPartitionCount",
   );
   const observations = history.rows.map((row) =>
-    observation(row, sourceCoreId),
+    analyticalObservationFromRaceArchiveCoreHistoryRow(row, sourceCoreId),
   );
   return Object.freeze({
     sourceCoreId,
