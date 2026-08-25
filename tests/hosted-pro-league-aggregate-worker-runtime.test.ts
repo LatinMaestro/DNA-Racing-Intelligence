@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BoundedAggregateRefresher } from "../lib/import-aggregate-refresh-service";
 import {
+  HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS,
   hostedProLeagueAggregateWorkerRuntime,
   type HostedProLeagueAggregateWorkerEnvironment,
 } from "../lib/hosted-pro-league-aggregate-worker-runtime";
+import type { AggregateRefreshTargetSourceReader } from "../lib/neon-aggregate-refresh-target-source";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -22,12 +25,20 @@ function environment(
 ): HostedProLeagueAggregateWorkerEnvironment {
   return {
     workerId: "aggregate-worker-1",
+    authorizedOwnerId: ownerId,
     database: {
       databaseUrl: "postgresql://private.example/dna",
       databaseOwnerId,
       runtimeRole,
     },
     leaseDurationMilliseconds: "300000",
+    cloudflareAccountId: "a".repeat(32),
+    cloudflareApiToken: "least-privilege-provider-token",
+    bucketName: "dna-private-imports",
+    r2AccessKeyId: "r2-access",
+    r2SecretAccessKey: "r2-secret",
+    maximumObjectBytes: "536870912",
+    maximumChunkBytes: "1048576",
     ...overrides,
   };
 }
@@ -74,6 +85,29 @@ function sessionHarness(rows: readonly (readonly unknown[])[]) {
   };
 }
 
+function sourceReader(
+  sourceType: "race_merge" | "core_details" | "current_arena",
+) {
+  const targetSourceType = vi.fn(async () => sourceType);
+  return {
+    targetSourceType,
+    reader: { targetSourceType } as AggregateRefreshTargetSourceReader,
+  };
+}
+
+function raceRefresher() {
+  const prepare = vi.fn(async () => ({
+    preparedAggregateSetId: refreshId,
+    sourceVersionSetSha256: sourceHash,
+    aggregateFamilyCount: 4,
+    materializedRowCount: 42,
+  }));
+  return {
+    prepare,
+    refresher: { prepare } as BoundedAggregateRefresher,
+  };
+}
+
 function message() {
   return {
     version: 1 as const,
@@ -84,7 +118,7 @@ function message() {
 }
 
 describe("hosted Pro League aggregate worker runtime", () => {
-  it("fails closed when identity, lease, or database settings are incomplete", () => {
+  it("fails closed when identity, lease, database, or private archive settings are incomplete", () => {
     expect(
       hostedProLeagueAggregateWorkerRuntime({
         environment: environment({ workerId: undefined }),
@@ -106,9 +140,20 @@ describe("hosted Pro League aggregate worker runtime", () => {
         }),
       }),
     ).toEqual({ status: "not_configured" });
+    expect(
+      hostedProLeagueAggregateWorkerRuntime({
+        environment: environment({ r2SecretAccessKey: undefined }),
+      }),
+    ).toEqual({ status: "not_configured" });
+    expect(
+      hostedProLeagueAggregateWorkerRuntime({
+        environment: environment({ maximumChunkBytes: "536870913" }),
+      }),
+    ).toEqual({ status: "not_configured" });
+    expect(HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS).toBe(10_000);
   });
 
-  it("consumes one queue delivery through claim, prepare, and publication", async () => {
+  it("keeps rolling current-state refreshes on the archive-preserving SQL path", async () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
@@ -136,9 +181,13 @@ describe("hosted Pro League aggregate worker runtime", () => {
       [isolationEvidence()],
       [{ status: "published", aggregate_set_id: refreshId }],
     ]);
+    const source = sourceReader("core_details");
+    const race = raceRefresher();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
       dependencies: {
+        targetSourceReader: source.reader,
+        raceRefresher: race.refresher,
         neonSessionFactory: database.sessionFactory,
         now: () => new Date("2026-08-21T01:00:00.000Z"),
       },
@@ -150,19 +199,63 @@ describe("hosted Pro League aggregate worker runtime", () => {
       disposition: "acknowledge",
       reason: "completed",
     });
-    expect(database.query).toHaveBeenCalledWith(
-      expect.stringContaining("dna.claim_pro_league_aggregate_refresh"),
-      [
-        databaseOwnerId,
-        refreshId,
-        "aggregate-worker-1",
-        "2026-08-21T01:00:00.000Z",
-        "2026-08-21T01:05:00.000Z",
-      ],
-    );
+    expect(source.targetSourceType).toHaveBeenCalledWith({
+      ownerId,
+      updateSessionId: datasetVersionId,
+      refreshId,
+      sourceVersionSetSha256: sourceHash,
+    });
+    expect(race.prepare).not.toHaveBeenCalled();
     expect(database.query).toHaveBeenCalledWith(
       expect.stringContaining("dna.prepare_pro_league_aggregate_refresh"),
       [databaseOwnerId, refreshId, datasetVersionId, sourceHash],
+    );
+  });
+
+  it("routes Race refreshes through the archive refresher before durable publication", async () => {
+    const database = sessionHarness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolationEvidence()],
+      [
+        {
+          status: "claimed",
+          authenticated_owner_id: ownerId,
+          dataset_version_id: datasetVersionId,
+          source_version_set_sha256: sourceHash,
+          retry_after: null,
+          aggregate_set_id: null,
+        },
+      ],
+      [{ owner_scope: databaseOwnerId }],
+      [isolationEvidence()],
+      [{ status: "published", aggregate_set_id: refreshId }],
+    ]);
+    const source = sourceReader("race_merge");
+    const race = raceRefresher();
+    const runtime = hostedProLeagueAggregateWorkerRuntime({
+      environment: environment(),
+      dependencies: {
+        targetSourceReader: source.reader,
+        raceRefresher: race.refresher,
+        neonSessionFactory: database.sessionFactory,
+        now: () => new Date("2026-08-21T01:00:00.000Z"),
+      },
+    });
+    if (runtime.status !== "ready") throw new Error("expected ready runtime");
+
+    await expect(runtime.consume({ body: message() })).resolves.toEqual({
+      disposition: "acknowledge",
+      reason: "completed",
+    });
+    expect(race.prepare).toHaveBeenCalledWith({
+      ownerId,
+      updateSessionId: datasetVersionId,
+      refreshId,
+      sourceVersionSetSha256: sourceHash,
+    });
+    expect(database.query).not.toHaveBeenCalledWith(
+      expect.stringContaining("dna.prepare_pro_league_aggregate_refresh"),
+      expect.anything(),
     );
     expect(database.query).toHaveBeenCalledWith(
       expect.stringContaining("dna.publish_pro_league_aggregate_refresh"),
@@ -180,7 +273,7 @@ describe("hosted Pro League aggregate worker runtime", () => {
     );
   });
 
-  it("returns retry with the durable lease time without preparing", async () => {
+  it("returns retry with the durable lease time without selecting a refresh path", async () => {
     const database = sessionHarness([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
@@ -195,9 +288,15 @@ describe("hosted Pro League aggregate worker runtime", () => {
         },
       ],
     ]);
+    const source = sourceReader("race_merge");
+    const race = raceRefresher();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
-      dependencies: { neonSessionFactory: database.sessionFactory },
+      dependencies: {
+        targetSourceReader: source.reader,
+        raceRefresher: race.refresher,
+        neonSessionFactory: database.sessionFactory,
+      },
     });
     if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
@@ -211,14 +310,22 @@ describe("hosted Pro League aggregate worker runtime", () => {
       reason: "leased_elsewhere",
       retryAfter: "2026-08-21T01:04:00.000Z",
     });
+    expect(source.targetSourceType).not.toHaveBeenCalled();
+    expect(race.prepare).not.toHaveBeenCalled();
     expect(database.query).toHaveBeenCalledTimes(5);
   });
 
-  it("rejects non-aggregate queue deliveries before database work", async () => {
+  it("rejects non-aggregate queue deliveries before database or archive work", async () => {
     const database = sessionHarness([]);
+    const source = sourceReader("race_merge");
+    const race = raceRefresher();
     const runtime = hostedProLeagueAggregateWorkerRuntime({
       environment: environment(),
-      dependencies: { neonSessionFactory: database.sessionFactory },
+      dependencies: {
+        targetSourceReader: source.reader,
+        raceRefresher: race.refresher,
+        neonSessionFactory: database.sessionFactory,
+      },
     });
     if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
@@ -231,6 +338,8 @@ describe("hosted Pro League aggregate worker runtime", () => {
         },
       }),
     ).rejects.toThrow("not available in this worker");
+    expect(source.targetSourceType).not.toHaveBeenCalled();
+    expect(race.prepare).not.toHaveBeenCalled();
     expect(database.query).not.toHaveBeenCalled();
   });
 });
