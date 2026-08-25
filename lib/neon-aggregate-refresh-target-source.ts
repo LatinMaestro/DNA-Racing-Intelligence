@@ -132,14 +132,20 @@ function verifyIsolation(
       input.ownerId ||
     !bool(row.processing_rls, "processing_rls") ||
     !bool(row.processing_force_rls, "processing_force_rls") ||
-    !bool(row.runtime_can_read_target_source, "runtime_can_read_target_source") ||
+    !bool(
+      row.runtime_can_read_target_source,
+      "runtime_can_read_target_source",
+    ) ||
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
     text(row.current_user_name, "current_user_name") !== input.runtimeRole ||
     bool(row.runtime_is_superuser, "runtime_is_superuser") ||
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
     throw new Error("Aggregate target source runtime is not least privileged.");
   }
@@ -166,7 +172,9 @@ export function createNeonAggregateRefreshTargetSourceReader(input: {
       try {
         await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
         begun = true;
-        await session.client.query(SET_OWNER_SCOPE_SQL, [config.databaseOwnerId]);
+        await session.client.query(SET_OWNER_SCOPE_SQL, [
+          config.databaseOwnerId,
+        ]);
         verifyIsolation(
           await session.client.query(VERIFY_ISOLATION_SQL, [
             config.databaseOwnerId,
