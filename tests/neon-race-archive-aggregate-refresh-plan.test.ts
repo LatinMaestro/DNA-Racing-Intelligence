@@ -90,7 +90,9 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
       }),
     ).resolves.toBe(sourceType);
     expect(test.harness.query).toHaveBeenCalledWith(
-      expect.stringContaining("pro_league_aggregate_refresh_target_source_type"),
+      expect.stringContaining(
+        "pro_league_aggregate_refresh_target_source_type",
+      ),
       [databaseOwnerId, refreshId, datasetVersionId, sourceHash],
     );
   });
