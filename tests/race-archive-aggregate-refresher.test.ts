@@ -127,7 +127,9 @@ function asyncRows<T>(values: readonly T[]): AsyncIterable<T> {
   })();
 }
 
-function rehydrator(input?: { conflictReplay?: boolean }): RaceStagedRowRehydrator {
+function rehydrator(input?: {
+  conflictReplay?: boolean;
+}): RaceStagedRowRehydrator {
   const duplicateFingerprint = input?.conflictReplay
     ? "f".repeat(64)
     : "1".repeat(64);
@@ -201,30 +203,37 @@ function rehydrator(input?: { conflictReplay?: boolean }): RaceStagedRowRehydrat
 }
 
 function publicationRepository() {
-  const stagedFamilies = new Map<string, readonly Readonly<Record<string, unknown>>[]>();
+  const stagedFamilies = new Map<
+    string,
+    readonly Readonly<Record<string, unknown>>[]
+  >();
   const begin = vi.fn(async () => "staging" as const);
-  const stageRows = vi.fn(async (input: {
-    family: string;
-    rows: readonly Readonly<Record<string, unknown>>[];
-  }) => {
-    stagedFamilies.set(input.family, input.rows);
-    return input.rows.length;
-  });
-  const publish = vi.fn(async (input: {
-    validatedEventCount: number;
-    corePerformanceProfileCount: number;
-    discoveryBenchmarkCount: number;
-    payoutFormatProfileCount: number;
-    coreStarProfileCount: number;
-  }) => ({
-    status: "published" as const,
-    materializedRowCount:
-      input.validatedEventCount +
-      input.corePerformanceProfileCount +
-      input.discoveryBenchmarkCount +
-      input.payoutFormatProfileCount +
-      input.coreStarProfileCount,
-  }));
+  const stageRows = vi.fn(
+    async (input: {
+      family: string;
+      rows: readonly Readonly<Record<string, unknown>>[];
+    }) => {
+      stagedFamilies.set(input.family, input.rows);
+      return input.rows.length;
+    },
+  );
+  const publish = vi.fn(
+    async (input: {
+      validatedEventCount: number;
+      corePerformanceProfileCount: number;
+      discoveryBenchmarkCount: number;
+      payoutFormatProfileCount: number;
+      coreStarProfileCount: number;
+    }) => ({
+      status: "published" as const,
+      materializedRowCount:
+        input.validatedEventCount +
+        input.corePerformanceProfileCount +
+        input.discoveryBenchmarkCount +
+        input.payoutFormatProfileCount +
+        input.coreStarProfileCount,
+    }),
+  );
   return {
     repository: Object.freeze({
       begin,
@@ -299,7 +308,9 @@ describe("Race archive aggregate refresher", () => {
       }),
     );
     expect(publication.stagedFamilies.get("core_performance")).toHaveLength(2);
-    expect(publication.stagedFamilies.get("discovery_benchmark")).toHaveLength(1);
+    expect(publication.stagedFamilies.get("discovery_benchmark")).toHaveLength(
+      1,
+    );
     expect(publication.stagedFamilies.get("payout_format")).toHaveLength(2);
     expect(publication.stagedFamilies.get("core_star_profile")).toHaveLength(2);
     expect(finalizer.prepare).toHaveBeenCalledOnce();

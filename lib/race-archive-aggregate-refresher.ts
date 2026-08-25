@@ -107,9 +107,7 @@ function payloadSha256(input: {
   validatedEventCount: number;
   acceptedFormatEntryCount: number;
 }): string {
-  return createHash("sha256")
-    .update(canonicalJson(input))
-    .digest("hex");
+  return createHash("sha256").update(canonicalJson(input)).digest("hex");
 }
 
 function planVersion(
@@ -150,7 +148,9 @@ function planVersion(
     5_000_000,
   );
   if (evidenceRowCount !== sourceRowCount) {
-    throw new Error("Race archive aggregate plan row coverage is inconsistent.");
+    throw new Error(
+      "Race archive aggregate plan row coverage is inconsistent.",
+    );
   }
   return Object.freeze({
     datasetVersionId,
@@ -172,7 +172,9 @@ function normalizedPlan(input: {
     input.versions.length < 1 ||
     input.versions.length > input.maximumVersions
   ) {
-    throw new Error("Race archive aggregate plan version count is outside its bound.");
+    throw new Error(
+      "Race archive aggregate plan version count is outside its bound.",
+    );
   }
   const versions = input.versions.map(planVersion);
   let previousVersionNumber: number | undefined;
@@ -191,7 +193,9 @@ function normalizedPlan(input: {
     previousVersionNumber = version.versionNumber;
   }
   if (versions.at(-1)?.datasetVersionId !== input.updateSessionId) {
-    throw new Error("Race archive aggregate plan does not end at the target version.");
+    throw new Error(
+      "Race archive aggregate plan does not end at the target version.",
+    );
   }
   return Object.freeze(versions);
 }
@@ -227,9 +231,12 @@ function publicationRows(input: {
     .flatMap((sourceCoreId) => {
       const history = input.histories.get(sourceCoreId);
       if (history === undefined) {
-        throw new Error("Race archive Core history disappeared during rebuild.");
+        throw new Error(
+          "Race archive Core history disappeared during rebuild.",
+        );
       }
-      const observationSet = analyticalObservationsFromRaceArchiveCoreHistory(history);
+      const observationSet =
+        analyticalObservationsFromRaceArchiveCoreHistory(history);
       return corePerformanceProfilesFromRaceArchive({
         observationSet,
         maximumObservations: input.maximumObservations,
@@ -248,14 +255,17 @@ function publicationRows(input: {
         mean_milliseconds: profile.meanMilliseconds,
         trimmed_mean_milliseconds: profile.trimmedMeanMilliseconds,
         standard_deviation_milliseconds: profile.standardDeviationMilliseconds,
-        interquartile_range_milliseconds: profile.interquartileRangeMilliseconds,
+        interquartile_range_milliseconds:
+          profile.interquartileRangeMilliseconds,
         best_metres_per_second: profile.bestMetresPerSecond,
         median_metres_per_second: profile.medianMetresPerSecond,
       }),
     );
 
   if (corePerformance.length > input.maximumCorePerformanceProfiles) {
-    throw new Error("Race archive Core Performance profile bound was exceeded.");
+    throw new Error(
+      "Race archive Core Performance profile bound was exceeded.",
+    );
   }
 
   const discoveryBenchmarks = discoveryExactDistanceBenchmarksFromRaceArchive({
@@ -455,7 +465,9 @@ export function createRaceArchiveAggregateRefresher(input: {
           maximumPartitions: maximumArchivePartitions,
         });
         if (opened.status === "missing") {
-          throw new Error("Race archive aggregate plan points to missing evidence.");
+          throw new Error(
+            "Race archive aggregate plan points to missing evidence.",
+          );
         }
         if (
           opened.manifest.datasetVersionId !== version.datasetVersionId ||
@@ -465,7 +477,9 @@ export function createRaceArchiveAggregateRefresher(input: {
           opened.manifest.rowCount !== version.evidenceRowCount ||
           opened.manifest.objects.length !== version.evidencePartitionCount
         ) {
-          throw new Error("Race archive aggregate evidence identity or coverage changed.");
+          throw new Error(
+            "Race archive aggregate evidence identity or coverage changed.",
+          );
         }
 
         let sourceRowCount = 0;
@@ -476,7 +490,9 @@ export function createRaceArchiveAggregateRefresher(input: {
             rehydrated.datasetVersionId !== version.datasetVersionId ||
             rehydrated.importBatchId !== version.importBatchId
           ) {
-            throw new Error("Race archive aggregate row version identity changed.");
+            throw new Error(
+              "Race archive aggregate row version identity changed.",
+            );
           }
           const staged = rehydrated.stagedRow;
           if (staged.row.status === "quarantined") continue;
@@ -487,7 +503,9 @@ export function createRaceArchiveAggregateRefresher(input: {
             staged.naturalKey === null ||
             staged.fingerprintSha256 === null
           ) {
-            throw new Error("Race archive aggregate ready-row evidence is incomplete.");
+            throw new Error(
+              "Race archive aggregate ready-row evidence is incomplete.",
+            );
           }
           const naturalKey = safeText(staged.naturalKey, "naturalKey");
           const fingerprintSha256 = sha256(
@@ -506,7 +524,9 @@ export function createRaceArchiveAggregateRefresher(input: {
           fingerprintsByNaturalKey.set(naturalKey, fingerprintSha256);
           totalUniqueObservations += 1;
           if (totalUniqueObservations > maximumObservations) {
-            throw new Error("Race archive aggregate observation bound was exceeded.");
+            throw new Error(
+              "Race archive aggregate observation bound was exceeded.",
+            );
           }
 
           const sourceCoreId = safeText(
@@ -606,14 +626,18 @@ export function createRaceArchiveAggregateRefresher(input: {
         sourceVersionSetSha256,
       });
       if (prepared.sourceVersionSetSha256 !== sourceVersionSetSha256) {
-        throw new Error("Race archive aggregate finalizer changed source versions.");
+        throw new Error(
+          "Race archive aggregate finalizer changed source versions.",
+        );
       }
       nonNegativeSafeInteger(
         prepared.materializedRowCount,
         "prepared.materializedRowCount",
       );
       if (prepared.materializedRowCount !== publication.materializedRowCount) {
-        throw new Error("Race archive aggregate finalizer changed materialized row count.");
+        throw new Error(
+          "Race archive aggregate finalizer changed materialized row count.",
+        );
       }
       return prepared;
     },
