@@ -39,7 +39,9 @@ function positiveBound(value: number, field: string, maximum: number): number {
 function sourceHash(value: string): string {
   const normalized = safeText(value, "sourceVersionSetSha256", 64);
   if (!SHA_256_PATTERN.test(normalized)) {
-    throw new Error("sourceVersionSetSha256 must be a lowercase SHA-256 digest");
+    throw new Error(
+      "sourceVersionSetSha256 must be a lowercase SHA-256 digest",
+    );
   }
   return normalized;
 }
@@ -103,9 +105,7 @@ export function createPrivateR2RaceArchiveSpillableScratchStoreFactory(
         256,
       );
       const refreshId = safeText(request.refreshId, "refreshId", 256);
-      const sourceVersionSetSha256 = sourceHash(
-        request.sourceVersionSetSha256,
-      );
+      const sourceVersionSetSha256 = sourceHash(request.sourceVersionSetSha256);
       const sessionId = scratchSession({
         ownerId,
         updateSessionId,
