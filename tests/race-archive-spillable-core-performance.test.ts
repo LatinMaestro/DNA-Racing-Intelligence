@@ -161,7 +161,9 @@ describe("spillable Race archive Core Performance", () => {
 
     expect(spillable.inputObservationCount).toBe(input.length);
     expect(spillable.initialRunCount).toBe(3);
-    expect(await collect(spillable.readProfiles())).toEqual(residentProfiles(input));
+    expect(await collect(spillable.readProfiles())).toEqual(
+      residentProfiles(input),
+    );
     expect(scratch.runs.size).toBe(0);
   });
 
@@ -230,7 +232,9 @@ describe("spillable Race archive Core Performance", () => {
         maximumRunObjects: 20,
         maximumProfiles: 10,
       }),
-    ).rejects.toThrow("Race archive Core Performance natural key is inconsistent.");
+    ).rejects.toThrow(
+      "Race archive Core Performance natural key is inconsistent.",
+    );
     expect(scratch.runs.size).toBe(0);
   });
 });

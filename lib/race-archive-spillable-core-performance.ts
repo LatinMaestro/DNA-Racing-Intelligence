@@ -62,22 +62,44 @@ function normalizedTimestamp(value: string, field: string): string {
 function validatedObservation(
   value: RaceArchiveCoreAnalyticalObservation,
 ): RaceArchiveCoreAnalyticalObservation {
-  const sourceCoreId = safeText(value.sourceCoreId, "observation.sourceCoreId", 256);
-  const sourceEventId = safeText(value.sourceEventId, "observation.sourceEventId");
+  const sourceCoreId = safeText(
+    value.sourceCoreId,
+    "observation.sourceCoreId",
+    256,
+  );
+  const sourceEventId = safeText(
+    value.sourceEventId,
+    "observation.sourceEventId",
+  );
   const naturalKey = safeText(value.naturalKey, "observation.naturalKey");
   if (naturalKey !== `${sourceEventId}:${sourceCoreId}`) {
-    throw new Error("Race archive Core Performance natural key is inconsistent.");
+    throw new Error(
+      "Race archive Core Performance natural key is inconsistent.",
+    );
   }
   if (!RACE_MODES.has(value.mode)) {
     throw new Error("Race archive Core Performance mode is invalid.");
   }
   positiveSafeInteger(value.distance, "observation.distance");
-  positiveSafeInteger(value.elapsedMilliseconds, "observation.elapsedMilliseconds");
+  positiveSafeInteger(
+    value.elapsedMilliseconds,
+    "observation.elapsedMilliseconds",
+  );
   normalizedTimestamp(value.eventAt, "observation.eventAt");
   positiveSafeInteger(value.versionNumber, "observation.versionNumber");
   nonNegativeSafeInteger(value.partitionNumber, "observation.partitionNumber");
   positiveSafeInteger(value.sourceRowNumber, "observation.sourceRowNumber");
   return value;
+}
+
+function validatedObservations(
+  source: AsyncIterable<RaceArchiveCoreAnalyticalObservation>,
+): AsyncIterable<RaceArchiveCoreAnalyticalObservation> {
+  return (async function* () {
+    for await (const observation of source) {
+      yield validatedObservation(observation);
+    }
+  })();
 }
 
 function profileGroupKey(value: RaceArchiveCoreAnalyticalObservation): string {
@@ -129,7 +151,8 @@ function profilesFromSorted(input: {
 }): AsyncIterable<RaceArchiveCorePerformanceProfile> {
   return (async function* () {
     const iterator = input.sorted.read()[Symbol.asyncIterator]();
-    let carry: IteratorResult<RaceArchiveCoreAnalyticalObservation> | null = null;
+    let carry: IteratorResult<RaceArchiveCoreAnalyticalObservation> | null =
+      null;
     let activeGroupRunId: string | null = null;
     let profileCount = 0;
 
@@ -142,7 +165,9 @@ function profilesFromSorted(input: {
         const groupKey = profileGroupKey(first);
         profileCount += 1;
         if (profileCount > input.maximumProfiles) {
-          throw new Error("Race archive Core Performance profile bound was exceeded.");
+          throw new Error(
+            "Race archive Core Performance profile bound was exceeded.",
+          );
         }
 
         const groupRunId = `${input.groupRunPrefix}/group-${String(profileCount).padStart(8, "0")}`;
@@ -151,7 +176,8 @@ function profilesFromSorted(input: {
         let dataCurrentThrough: string | null = null;
 
         const groupRecords = (async function* () {
-          let current: IteratorResult<RaceArchiveCoreAnalyticalObservation> = firstResult;
+          let current: IteratorResult<RaceArchiveCoreAnalyticalObservation> =
+            firstResult;
           while (!current.done) {
             const observation = validatedObservation(current.value);
             if (profileGroupKey(observation) !== groupKey) {
@@ -160,7 +186,9 @@ function profilesFromSorted(input: {
             }
             groupCount += 1;
             if (groupCount > input.maximumObservations) {
-              throw new Error("Race archive Core Performance observation bound was exceeded.");
+              throw new Error(
+                "Race archive Core Performance observation bound was exceeded.",
+              );
             }
             const eventAt = normalizedTimestamp(
               observation.eventAt,
@@ -175,9 +203,14 @@ function profilesFromSorted(input: {
           carry = current;
         })();
 
-        await input.store.writeRun({ runId: groupRunId, records: groupRecords });
+        await input.store.writeRun({
+          runId: groupRunId,
+          records: groupRecords,
+        });
         if (groupCount < 1 || dataCurrentThrough === null) {
-          throw new Error("Race archive Core Performance group coverage changed.");
+          throw new Error(
+            "Race archive Core Performance group coverage changed.",
+          );
         }
         const statistics = await exactSortedRaceArchiveStatistics({
           readValues: () => elapsedValues(input.store, groupRunId),
@@ -185,7 +218,9 @@ function profilesFromSorted(input: {
           maximumValues: input.maximumObservations,
         });
         if (statistics.count !== groupCount) {
-          throw new Error("Race archive Core Performance statistics coverage changed.");
+          throw new Error(
+            "Race archive Core Performance statistics coverage changed.",
+          );
         }
 
         const profile = Object.freeze({
@@ -253,7 +288,7 @@ export async function spillableCorePerformanceProfilesFromRaceArchive(input: {
   );
 
   const sorted = await spillExactSortedRaceArchiveRecords({
-    records: input.observations,
+    records: validatedObservations(input.observations),
     store: input.store,
     compare: profileOrder,
     runPrefix: `${runPrefix}/core-performance-sort`,
@@ -270,10 +305,14 @@ export async function spillableCorePerformanceProfilesFromRaceArchive(input: {
     initialRunCount: sorted.initialRunCount,
     readProfiles() {
       if (cleaned) {
-        throw new Error("Race archive Core Performance source has been cleaned.");
+        throw new Error(
+          "Race archive Core Performance source has been cleaned.",
+        );
       }
       if (readStarted) {
-        throw new Error("Race archive Core Performance profiles are single-use.");
+        throw new Error(
+          "Race archive Core Performance profiles are single-use.",
+        );
       }
       readStarted = true;
       return profilesFromSorted({
@@ -287,7 +326,9 @@ export async function spillableCorePerformanceProfilesFromRaceArchive(input: {
     async cleanup() {
       if (cleaned) return;
       if (readStarted) {
-        throw new Error("Race archive Core Performance read owns scratch cleanup.");
+        throw new Error(
+          "Race archive Core Performance read owns scratch cleanup.",
+        );
       }
       await sorted.cleanup();
       cleaned = true;
