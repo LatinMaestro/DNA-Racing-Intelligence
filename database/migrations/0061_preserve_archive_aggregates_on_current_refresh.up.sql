@@ -107,7 +107,27 @@ BEGIN
   LIMIT 1;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'current Race archive aggregate publication is unavailable';
+    IF EXISTS (
+      SELECT 1
+      FROM dna.race_archive_core_locator_receipt locator
+      WHERE locator.owner_id = p_owner_id
+        AND locator.dataset_version_id = v_active_race_version_id
+    ) THEN
+      RAISE EXCEPTION 'current Race archive aggregate publication is unavailable';
+    END IF;
+
+    RETURN QUERY
+    SELECT legacy.prepared_aggregate_set_id,
+      legacy.source_version_set_sha256,
+      legacy.aggregate_family_count,
+      legacy.materialized_row_count
+    FROM dna.prepare_pro_league_aggregate_refresh_pre_archive_reuse(
+      p_owner_id,
+      p_refresh_id,
+      p_dataset_version_id,
+      p_source_version_set_sha256
+    ) legacy;
+    RETURN;
   END IF;
 
   SELECT count(*)::bigint INTO v_performance_count
@@ -194,6 +214,6 @@ GRANT EXECUTE ON FUNCTION dna.prepare_pro_league_aggregate_refresh(
 COMMENT ON FUNCTION dna.prepare_pro_league_aggregate_refresh(
   uuid, uuid, uuid, character
 ) IS
-  'Prepares Pro League aggregates. Race Merge currently delegates to the legacy detailed-row refresher until archive reconstruction is wired. Rolling Core Details and Current Arena refreshes reuse the exact current Race archive publication and never erase race-derived analytics.';
+  'Prepares Pro League aggregates. Before Race archive commissioning, existing detailed-row refresh behaviour remains available. Once the active Race version has sealed Core locators, rolling Core Details and Current Arena refreshes require and reuse the exact current Race archive publication so they cannot erase race-derived analytics. Race Merge refresh remains delegated until archive reconstruction is wired.';
 
 COMMIT;
