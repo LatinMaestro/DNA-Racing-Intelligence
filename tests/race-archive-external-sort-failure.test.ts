@@ -50,8 +50,6 @@ describe("Race archive external-sort failure cleanup", () => {
     ).rejects.toThrow("Race archive external-sort input bound was exceeded.");
 
     expect(runs.size).toBe(0);
-    expect(deletedRunIds).toEqual([
-      "refresh-failure/input-bound/run-00000001",
-    ]);
+    expect(deletedRunIds).toEqual(["refresh-failure/input-bound/run-00000001"]);
   });
 });
