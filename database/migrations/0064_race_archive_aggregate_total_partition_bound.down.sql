@@ -86,10 +86,6 @@ BEGIN
       AND evidence.dataset_version_id = version.id
       AND evidence.import_batch_id = version.import_batch_id
       AND evidence.source_type = 'race_merge'
-    LEFT JOIN dna.race_archive_core_locator_receipt locator
-      ON locator.owner_id = version.owner_id
-      AND locator.dataset_version_id = version.id
-      AND locator.import_batch_id = version.import_batch_id
     WHERE version.owner_id = p_owner_id
       AND version.source_type = 'race_merge'
       AND version.rolled_back_at IS NULL
@@ -102,8 +98,6 @@ BEGIN
         OR evidence.evidence_kind <> 'staged_rows'
         OR evidence.evidence_partition_count NOT BETWEEN 1 AND 10000
         OR evidence.evidence_row_count <> batch.source_rows
-        OR locator.dataset_version_id IS NULL
-        OR locator.ready_row_count <> batch.accepted_rows
       )
   ) THEN
     RAISE EXCEPTION 'complete sealed Race archive aggregate evidence is unavailable';
@@ -130,10 +124,6 @@ BEGIN
     AND evidence.import_batch_id = version.import_batch_id
     AND evidence.source_type = 'race_merge'
     AND evidence.evidence_kind = 'staged_rows'
-  JOIN dna.race_archive_core_locator_receipt locator
-    ON locator.owner_id = version.owner_id
-    AND locator.dataset_version_id = version.id
-    AND locator.import_batch_id = version.import_batch_id
   WHERE version.owner_id = p_owner_id
     AND version.source_type = 'race_merge'
     AND version.rolled_back_at IS NULL
