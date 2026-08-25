@@ -196,14 +196,15 @@ export function hostedProLeagueAggregateWorkerRuntime(input: {
   }
 
   try {
-    const standardCapabilities = createNeonProLeagueAggregateRefreshCapabilities({
-      databaseUrl,
-      databaseOwnerId,
-      runtimeRole,
-      ...(input.dependencies?.neonSessionFactory
-        ? { sessionFactory: input.dependencies.neonSessionFactory }
-        : {}),
-    });
+    const standardCapabilities =
+      createNeonProLeagueAggregateRefreshCapabilities({
+        databaseUrl,
+        databaseOwnerId,
+        runtimeRole,
+        ...(input.dependencies?.neonSessionFactory
+          ? { sessionFactory: input.dependencies.neonSessionFactory }
+          : {}),
+      });
     if (standardCapabilities.status !== "ready") {
       return unavailableHostedProLeagueAggregateWorkerRuntime;
     }

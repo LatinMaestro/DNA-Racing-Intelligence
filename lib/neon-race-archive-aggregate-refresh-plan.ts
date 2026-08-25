@@ -66,9 +66,7 @@ const LIST_SQL = `
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 export type ProLeagueAggregateRefreshTargetSource =
-  | "race_merge"
-  | "core_details"
-  | "current_arena";
+  "race_merge" | "core_details" | "current_arena";
 
 export type NeonRaceArchiveAggregateRefreshPlanRepository =
   RaceArchiveAggregateRefreshPlanRepository &
@@ -109,7 +107,8 @@ function bool(value: unknown, field: string): boolean {
 
 function uuid(value: string, field: string): string {
   const normalized = value.trim().toLowerCase();
-  if (!UUID_PATTERN.test(normalized)) throw new Error(`${field} must be a UUID`);
+  if (!UUID_PATTERN.test(normalized))
+    throw new Error(`${field} must be a UUID`);
   return normalized;
 }
 
@@ -149,7 +148,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (!databaseUrl) throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -159,19 +159,27 @@ function verifyIsolation(
 ): void {
   const row = oneRow(result, "Race archive aggregate plan isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
-    text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
+    text(row.authenticated_owner_id, "authenticated_owner_id") !==
+      input.ownerId ||
     !bool(row.processing_rls, "processing_rls") ||
     !bool(row.processing_force_rls, "processing_force_rls") ||
     !bool(row.runtime_can_list_versions, "runtime_can_list_versions") ||
-    !bool(row.runtime_can_read_target_source, "runtime_can_read_target_source") ||
+    !bool(
+      row.runtime_can_read_target_source,
+      "runtime_can_read_target_source",
+    ) ||
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
     text(row.current_user_name, "current_user_name") !== input.runtimeRole ||
     bool(row.runtime_is_superuser, "runtime_is_superuser") ||
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
     throw new Error(
       "Race archive aggregate plan runtime is not least privileged.",
