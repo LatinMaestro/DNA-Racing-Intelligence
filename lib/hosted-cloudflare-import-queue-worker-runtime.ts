@@ -124,9 +124,17 @@ export function hostedCloudflareImportQueueWorkerRuntime(input: {
         },
         aggregate: {
           workerId: bindings.DNA_IMPORT_WORKER_ID,
+          authorizedOwnerId: bindings.AUTHORIZED_CLERK_USER_ID,
           database,
           leaseDurationMilliseconds:
             bindings.DNA_IMPORT_LEASE_DURATION_MILLISECONDS,
+          cloudflareAccountId: bindings.CLOUDFLARE_ACCOUNT_ID,
+          cloudflareApiToken: bindings.CLOUDFLARE_API_TOKEN,
+          bucketName: bindings.DNA_R2_BUCKET_NAME,
+          r2AccessKeyId: bindings.DNA_R2_ACCESS_KEY_ID,
+          r2SecretAccessKey: bindings.DNA_R2_SECRET_ACCESS_KEY,
+          maximumObjectBytes: bindings.DNA_IMPORT_MAXIMUM_OBJECT_BYTES,
+          maximumChunkBytes: bindings.DNA_IMPORT_MAXIMUM_CHUNK_BYTES,
         },
       },
       dependencies: {
