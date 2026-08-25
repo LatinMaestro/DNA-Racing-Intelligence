@@ -1,7 +1,5 @@
 import type { RaceArchiveCoreAnalyticalObservation } from "./race-archive-core-analytical-observations";
-import {
-  raceArchiveObservationsFromRefreshPlan,
-} from "./race-archive-observation-stream";
+import { raceArchiveObservationsFromRefreshPlan } from "./race-archive-observation-stream";
 import type { RaceArchiveAggregateRefreshPlanVersion } from "./race-archive-aggregate-refresher";
 import {
   spillAndDeduplicateRaceArchiveObservations,
