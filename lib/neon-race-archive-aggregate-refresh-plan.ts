@@ -26,6 +26,9 @@ const VERIFY_ISOLATION_SQL = `
       'dna.list_race_archive_aggregate_refresh_versions(uuid,uuid,uuid,character,integer)',
       'EXECUTE') AS runtime_can_list_versions,
     has_function_privilege(session_user,
+      'dna.bootstrap_race_archive_aggregate_evidence_receipts(uuid,uuid,uuid,character)',
+      'EXECUTE') AS runtime_can_bootstrap_evidence,
+    has_function_privilege(session_user,
       'dna.pro_league_aggregate_refresh_target_source_type(uuid,uuid,uuid,character)',
       'EXECUTE') AS runtime_can_read_target_source,
     session_user::text AS session_user_name,
@@ -49,6 +52,12 @@ const TARGET_SOURCE_SQL = `
   SELECT dna.pro_league_aggregate_refresh_target_source_type(
     $1::uuid, $2::uuid, $3::uuid, $4::character(64)
   ) AS source_type
+`;
+
+const BOOTSTRAP_EVIDENCE_SQL = `
+  SELECT dna.bootstrap_race_archive_aggregate_evidence_receipts(
+    $1::uuid, $2::uuid, $3::uuid, $4::character(64)
+  ) AS inserted_count
 `;
 
 const LIST_SQL = `
@@ -166,6 +175,10 @@ function verifyIsolation(
     !bool(row.processing_rls, "processing_rls") ||
     !bool(row.processing_force_rls, "processing_force_rls") ||
     !bool(row.runtime_can_list_versions, "runtime_can_list_versions") ||
+    !bool(
+      row.runtime_can_bootstrap_evidence,
+      "runtime_can_bootstrap_evidence",
+    ) ||
     !bool(
       row.runtime_can_read_target_source,
       "runtime_can_read_target_source",
@@ -311,6 +324,12 @@ export function createNeonRaceArchiveAggregateRefreshPlanRepository(input: {
         10_000,
       );
       return run(ownerId, async (client) => {
+        await client.query(BOOTSTRAP_EVIDENCE_SQL, [
+          config.databaseOwnerId,
+          refreshId,
+          updateSessionId,
+          sourceVersionSetSha256,
+        ]);
         const result = await client.query(LIST_SQL, [
           config.databaseOwnerId,
           refreshId,
