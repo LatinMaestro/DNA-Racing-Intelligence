@@ -22,16 +22,38 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Format target files
-        run: npx prettier --write lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts
-      - name: Commit formatting only when changed
+      - name: Remove temporary unused helper and format target files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('lib/race-archive-aggregate-refresher.ts')
+          s = p.read_text()
+          s = s.replace('import type { AdaptedRaceMergeRow } from "@/domain/source-adapters";\n', '')
+          block = '''function readyRaceRecord(row: RaceArchiveCoreHistoryRow): AdaptedRaceMergeRow {
+            if (
+              row.row.status !== "ready" ||
+              row.row.sourceType !== "race_merge" ||
+              row.row.record?.sourceType !== "race_merge"
+            ) {
+              throw new Error("Race archive aggregate evidence is not a ready Race row.");
+            }
+            return row.row.record;
+          }
+
+          '''
+          if block not in s:
+            raise SystemExit('expected unused helper block not found')
+          p.write_text(s.replace(block, ''))
+          PY
+          npx prettier --write lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts
+      - name: Commit cleanup only when changed
         run: |
           if git diff --quiet -- lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts; then
-            echo "No formatting changes required."
+            echo "No cleanup changes required."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/race-archive-aggregate-refresher.ts tests/race-archive-aggregate-refresher.test.ts
-          git commit -m "Format Race archive reconstruction"
+          git commit -m "Clean Race archive reconstruction"
           git push origin HEAD:agent/race-archive-aggregate-reconstruction
