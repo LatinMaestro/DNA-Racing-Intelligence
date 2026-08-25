@@ -7,8 +7,7 @@ import { spillableCorePerformanceProfilesFromRaceArchive } from "./race-archive-
 import { spillableDiscoveryExactDistanceBenchmarksFromRaceArchive } from "./race-archive-spillable-discovery-benchmarks";
 import { prepareSpillableRaceArchiveObservations } from "./race-archive-spillable-observation-source";
 import { spillableCorePayoutFormatProfilesFromRaceArchive } from "./race-archive-spillable-payout-format-profiles";
-import { spillableStarEventsFromRaceArchive } from "./race-archive-spillable-star-events";
-import { spillableStarProfilesFromEvents } from "./race-archive-spillable-star-profile-reducer";
+import { spillableStarProfilesFromRaceArchive } from "./race-archive-spillable-star-family";
 import type { RaceStagedRowRehydrator } from "./race-staged-row-rehydrator";
 
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -98,14 +97,22 @@ async function writeReplayableObservationRun(input: {
   return uniqueObservationCount;
 }
 
-function assertObservationCoverage(
-  actual: number,
-  expected: number,
-  family: string,
-): void {
-  if (actual !== expected) {
-    throw new Error(`${family} observation coverage changed.`);
+async function assertObservationCoverage(input: {
+  actual: number;
+  expected: number;
+  family: string;
+  cleanup: () => Promise<void>;
+}): Promise<void> {
+  if (input.actual === input.expected) return;
+  try {
+    await input.cleanup();
+  } catch (error) {
+    throw new Error(
+      `${input.family} observation coverage changed and scratch cleanup was incomplete.`,
+      { cause: error },
+    );
   }
+  throw new Error(`${input.family} observation coverage changed.`);
 }
 
 export async function rebuildSpillableRaceArchivePublicationRows(input: {
@@ -218,11 +225,12 @@ export async function rebuildSpillableRaceArchivePublicationRows(input: {
         maximumRunObjects,
         maximumProfiles: maximumCorePerformanceProfiles,
       });
-    assertObservationCoverage(
-      corePerformanceSource.inputObservationCount,
-      uniqueObservationCount,
-      "Race archive Core Performance",
-    );
+    await assertObservationCoverage({
+      actual: corePerformanceSource.inputObservationCount,
+      expected: uniqueObservationCount,
+      family: "Race archive Core Performance",
+      cleanup: corePerformanceSource.cleanup,
+    });
     const corePerformance = await collectRows({
       values: corePerformanceSource.readProfiles(),
       maximumRows: maximumCorePerformanceProfiles,
@@ -257,11 +265,12 @@ export async function rebuildSpillableRaceArchivePublicationRows(input: {
         maximumRunObjects,
         maximumBenchmarks: maximumDiscoveryBenchmarks,
       });
-    assertObservationCoverage(
-      discoverySource.inputObservationCount,
-      uniqueObservationCount,
-      "Race archive Discovery",
-    );
+    await assertObservationCoverage({
+      actual: discoverySource.inputObservationCount,
+      expected: uniqueObservationCount,
+      family: "Race archive Discovery",
+      cleanup: discoverySource.cleanup,
+    });
     const discoveryBenchmarks = await collectRows({
       values: discoverySource.readBenchmarks(),
       maximumRows: maximumDiscoveryBenchmarks,
@@ -295,11 +304,12 @@ export async function rebuildSpillableRaceArchivePublicationRows(input: {
         maximumProfiles: maximumPayoutFormatProfiles,
       },
     );
-    assertObservationCoverage(
-      payoutSource.inputObservationCount,
-      uniqueObservationCount,
-      "Race archive payout-format",
-    );
+    await assertObservationCoverage({
+      actual: payoutSource.inputObservationCount,
+      expected: uniqueObservationCount,
+      family: "Race archive payout-format",
+      cleanup: payoutSource.cleanup,
+    });
     const acceptedFormatEntryCount = payoutSource.acceptedFormatEntryCount;
     const payoutFormatProfiles = await collectRows({
       values: payoutSource.readProfiles(),
@@ -320,33 +330,25 @@ export async function rebuildSpillableRaceArchivePublicationRows(input: {
       }),
     });
 
-    const starEventSource = await spillableStarEventsFromRaceArchive({
+    const starProfileSource = await spillableStarProfilesFromRaceArchive({
       observations: input.observationStore.readRun({ runId: replayRunId }),
-      store: input.observationStore,
-      runPrefix: `${runPrefix}/star-events`,
+      observationStore: input.observationStore,
+      contributionStore: input.starProfileStore,
+      runPrefix: `${runPrefix}/star`,
       maximumRecordsInMemory,
       mergeFanIn,
       maximumObservations: maximumInputObservations,
       maximumRunObjects,
       maximumEvents: maximumStarEvents,
       maximumEntriesPerEvent: maximumStarEntriesPerEvent,
-    });
-    assertObservationCoverage(
-      starEventSource.inputObservationCount,
-      uniqueObservationCount,
-      "Race archive star",
-    );
-    const starProfileSource = await spillableStarProfilesFromEvents({
-      events: starEventSource.readEvents(),
-      store: input.starProfileStore,
-      runPrefix: `${runPrefix}/star-profiles`,
-      maximumRecordsInMemory,
-      mergeFanIn,
-      maximumEvents: maximumStarEvents,
-      maximumEntriesPerEvent: maximumStarEntriesPerEvent,
       maximumContributions: maximumStarContributions,
-      maximumRunObjects,
       maximumProfiles: maximumStarProfiles,
+    });
+    await assertObservationCoverage({
+      actual: starProfileSource.inputObservationCount,
+      expected: uniqueObservationCount,
+      family: "Race archive star",
+      cleanup: starProfileSource.cleanup,
     });
     const validatedEventCount = starProfileSource.validatedEventCount;
     const coreStarProfiles = await collectRows({
