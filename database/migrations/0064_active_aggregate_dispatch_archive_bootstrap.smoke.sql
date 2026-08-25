@@ -18,13 +18,13 @@ BEGIN
   END IF;
 
   IF to_regprocedure(
-    'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstrap(uuid,uuid,uuid,integer)'
+    'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstra(uuid,uuid,uuid,integer)'
   ) IS NULL
      OR to_regprocedure(
        'dna.begin_race_archive_aggregate_publication_pre_bootstrap(uuid,uuid,uuid,text,character,timestamp with time zone)'
      ) IS NULL
      OR to_regprocedure(
-       'dna.list_race_archive_aggregate_refresh_versions_pre_bootstrap(uuid,uuid,uuid,character,integer)'
+       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootst(uuid,uuid,uuid,character,integer)'
      ) IS NULL
      OR to_regprocedure(
        'dna.prepare_pro_league_aggregate_refresh_pre_archive_collapse(uuid,uuid,uuid,character)'
@@ -48,7 +48,6 @@ BEGIN
        'EXECUTE'
      )
      OR NOT has_function_privilege(
-       'dna_app_runtime',
        'dna.prepare_pro_league_aggregate_refresh(uuid,uuid,uuid,character)',
        'EXECUTE'
      ) THEN
@@ -57,7 +56,7 @@ BEGIN
 
   IF has_function_privilege(
        'dna_app_runtime',
-       'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstrap(uuid,uuid,uuid,integer)',
+       'dna.list_import_activation_aggregate_refreshes_pre_archive_bootstra(uuid,uuid,uuid,integer)',
        'EXECUTE'
      )
      OR has_function_privilege(
@@ -67,7 +66,7 @@ BEGIN
      )
      OR has_function_privilege(
        'dna_app_runtime',
-       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootstrap(uuid,uuid,uuid,character,integer)',
+       'dna.list_race_archive_aggregate_refresh_versions_pre_archive_bootst(uuid,uuid,uuid,character,integer)',
        'EXECUTE'
      )
      OR has_function_privilege(
