@@ -137,11 +137,13 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
     ]);
     const bootstrapCall = test.harness.query.mock.calls.findIndex(([sql]) =>
       String(sql).includes(
-        "bootstrap_race_archive_aggregate_evidence_receipts",
+        "SELECT dna.bootstrap_race_archive_aggregate_evidence_receipts(",
       ),
     );
     const listCall = test.harness.query.mock.calls.findIndex(([sql]) =>
-      String(sql).includes("list_race_archive_aggregate_refresh_versions"),
+      String(sql).includes(
+        "FROM dna.list_race_archive_aggregate_refresh_versions(",
+      ),
     );
     expect(bootstrapCall).toBeGreaterThanOrEqual(0);
     expect(listCall).toBeGreaterThan(bootstrapCall);
