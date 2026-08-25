@@ -47,7 +47,9 @@ function harness(rows: readonly (readonly unknown[])[]) {
   const query = vi.fn(
     async (statement: string, values?: readonly unknown[]) => {
       const normalized = statement.replace(/\s+/g, " ").trim();
-      events.push(values ? `${normalized}|${JSON.stringify(values)}` : normalized);
+      events.push(
+        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+      );
       if (
         normalized === "BEGIN ISOLATION LEVEL SERIALIZABLE" ||
         normalized === "COMMIT" ||

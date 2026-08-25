@@ -126,10 +126,12 @@ export type NeonRaceArchiveAggregatePublicationRepository = Readonly<{
     payoutFormatProfileCount: number;
     coreStarProfileCount: number;
     completedAt: string;
-  }) => Promise<Readonly<{
-    status: "published" | "existing";
-    materializedRowCount: number;
-  }>>;
+  }) => Promise<
+    Readonly<{
+      status: "published" | "existing";
+      materializedRowCount: number;
+    }>
+  >;
 }>;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -160,7 +162,8 @@ function bool(value: unknown, field: string): boolean {
 
 function uuid(value: string, field: string): string {
   const normalized = value.trim().toLowerCase();
-  if (!UUID_PATTERN.test(normalized)) throw new Error(`${field} must be a UUID`);
+  if (!UUID_PATTERN.test(normalized))
+    throw new Error(`${field} must be a UUID`);
   return normalized;
 }
 
@@ -184,7 +187,11 @@ function timestamp(value: string, field: string): string {
   return parsed.toISOString();
 }
 
-function count(value: unknown, field: string, maximum = Number.MAX_SAFE_INTEGER): number {
+function count(
+  value: unknown,
+  field: string,
+  maximum = Number.MAX_SAFE_INTEGER,
+): number {
   const parsed =
     typeof value === "number"
       ? value
@@ -214,7 +221,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (!databaseUrl) throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -224,7 +232,8 @@ function verifyIsolation(
 ): void {
   const row = oneRow(result, "Race archive aggregate publication isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
     text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId
   ) {
     throw new Error("Race archive aggregate publication owner scope denied.");
@@ -238,7 +247,9 @@ function verifyIsolation(
     "receipt_force_rls",
   ]) {
     if (!bool(row[field], field)) {
-      throw new Error("Race archive aggregate publication requires forced owner RLS.");
+      throw new Error(
+        "Race archive aggregate publication requires forced owner RLS.",
+      );
     }
   }
   for (const field of [
@@ -247,7 +258,9 @@ function verifyIsolation(
     "runtime_can_access_receipt_table",
   ]) {
     if (bool(row[field], field)) {
-      throw new Error("Race archive aggregate publication table access is not bounded.");
+      throw new Error(
+        "Race archive aggregate publication table access is not bounded.",
+      );
     }
   }
   for (const field of [
@@ -256,7 +269,9 @@ function verifyIsolation(
     "runtime_can_publish",
   ]) {
     if (!bool(row[field], field)) {
-      throw new Error("Race archive aggregate publication function access is incomplete.");
+      throw new Error(
+        "Race archive aggregate publication function access is incomplete.",
+      );
     }
   }
   if (
@@ -266,9 +281,14 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
-    throw new Error("Race archive aggregate publication runtime is not least privileged.");
+    throw new Error(
+      "Race archive aggregate publication runtime is not least privileged.",
+    );
   }
 }
 
@@ -283,7 +303,9 @@ async function transaction<Result>(input: {
   try {
     await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
     begun = true;
-    await session.client.query(SET_OWNER_SCOPE_SQL, [input.config.databaseOwnerId]);
+    await session.client.query(SET_OWNER_SCOPE_SQL, [
+      input.config.databaseOwnerId,
+    ]);
     verifyIsolation(
       await session.client.query(VERIFY_ISOLATION_SQL, [
         input.config.databaseOwnerId,
@@ -345,7 +367,9 @@ export function createNeonRaceArchiveAggregatePublicationRepository(input: {
         );
         const status = text(row.status, "status");
         if (status !== "staging" && status !== "published") {
-          throw new Error("Race archive aggregate publication begin status is invalid");
+          throw new Error(
+            "Race archive aggregate publication begin status is invalid",
+          );
         }
         return status;
       });
@@ -364,7 +388,9 @@ export function createNeonRaceArchiveAggregatePublicationRepository(input: {
         input.rows.length > 2_000 ||
         input.startOrdinal + input.rows.length - 1 > 4_999_999
       ) {
-        throw new Error("Race archive aggregate staged row chunk is outside its bound");
+        throw new Error(
+          "Race archive aggregate staged row chunk is outside its bound",
+        );
       }
       const rows = input.rows.map((rowValue) => {
         if (
@@ -388,7 +414,11 @@ export function createNeonRaceArchiveAggregatePublicationRepository(input: {
           ]),
           "Race archive aggregate row staging",
         );
-        const stagedRowCount = count(row.staged_row_count, "staged_row_count", 2_000);
+        const stagedRowCount = count(
+          row.staged_row_count,
+          "staged_row_count",
+          2_000,
+        );
         if (stagedRowCount !== rows.length) {
           throw new Error("Race archive aggregate staged row count changed");
         }
@@ -455,7 +485,9 @@ export function createNeonRaceArchiveAggregatePublicationRepository(input: {
         );
         const status = text(row.status, "status");
         if (status !== "published" && status !== "existing") {
-          throw new Error("Race archive aggregate publication status is invalid");
+          throw new Error(
+            "Race archive aggregate publication status is invalid",
+          );
         }
         return Object.freeze({
           status,
