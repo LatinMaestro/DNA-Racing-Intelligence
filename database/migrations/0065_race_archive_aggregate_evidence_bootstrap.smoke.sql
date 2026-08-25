@@ -30,7 +30,8 @@ BEGIN
     RAISE EXCEPTION 'Race archive aggregate bootstrap no longer requires exact registered staged-row evidence coverage';
   END IF;
 
-  IF position('compact_race_row_evidence' IN v_definition) <> 0 THEN
+  IF position('FROM dna.compact_race_row_evidence' IN v_definition) <> 0
+     OR position('PERFORM dna.compact_race_row_evidence' IN v_definition) <> 0 THEN
     RAISE EXCEPTION 'Race archive aggregate bootstrap unexpectedly authorizes relational Race-row compaction';
   END IF;
 END
