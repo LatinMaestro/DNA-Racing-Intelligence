@@ -24,6 +24,7 @@ function isolationEvidence() {
     processing_rls: true,
     processing_force_rls: true,
     runtime_can_list_versions: true,
+    runtime_can_bootstrap_evidence: true,
     runtime_can_read_target_source: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
@@ -97,10 +98,11 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
     );
   });
 
-  it("returns the exact ordered sealed Race-version plan through the narrow function", async () => {
+  it("seals registered Race evidence before returning the exact ordered plan", async () => {
     const test = repository([
       [{ owner_scope: databaseOwnerId }],
       [isolationEvidence()],
+      [{ inserted_count: 1 }],
       [
         {
           dataset_version_id: datasetVersionId,
@@ -133,6 +135,20 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
         evidenceRowCount: 250000,
       },
     ]);
+    const bootstrapCall = test.harness.query.mock.calls.findIndex(([sql]) =>
+      String(sql).includes("bootstrap_race_archive_aggregate_evidence_receipts"),
+    );
+    const listCall = test.harness.query.mock.calls.findIndex(([sql]) =>
+      String(sql).includes("list_race_archive_aggregate_refresh_versions"),
+    );
+    expect(bootstrapCall).toBeGreaterThanOrEqual(0);
+    expect(listCall).toBeGreaterThan(bootstrapCall);
+    expect(test.harness.query).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "bootstrap_race_archive_aggregate_evidence_receipts",
+      ),
+      [databaseOwnerId, refreshId, datasetVersionId, sourceHash],
+    );
     expect(test.harness.query).toHaveBeenCalledWith(
       expect.stringContaining("list_race_archive_aggregate_refresh_versions"),
       [databaseOwnerId, refreshId, datasetVersionId, sourceHash, 10_000],
@@ -142,7 +158,7 @@ describe("Neon Race archive aggregate refresh plan adapter", () => {
   it("fails closed when runtime function authority is incomplete", async () => {
     const test = repository([
       [{ owner_scope: databaseOwnerId }],
-      [{ ...isolationEvidence(), runtime_can_read_target_source: false }],
+      [{ ...isolationEvidence(), runtime_can_bootstrap_evidence: false }],
     ]);
 
     await expect(
