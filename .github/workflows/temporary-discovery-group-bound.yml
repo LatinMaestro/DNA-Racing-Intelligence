@@ -30,33 +30,35 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
+          import re
 
           source_path = Path('lib/race-archive-spillable-discovery-benchmarks.ts')
           source = source_path.read_text()
+          if '    let benchmarkCount = 0;\n' not in source:
+              raise SystemExit('benchmark counter changed')
           source = source.replace('    let benchmarkCount = 0;\n', '', 1)
-          anchor = '''        groupSequence += 1;
-                const groupRunId = `${input.groupRunPrefix}/group-${String(groupSequence).padStart(8, "0")}`;'''
-          replacement = '''        groupSequence += 1;
-                if (groupSequence > input.maximumBenchmarks) {
+
+          sequence_anchor = '        groupSequence += 1;\n'
+          if source.count(sequence_anchor) != 1:
+              raise SystemExit('group sequence statement changed')
+          source = source.replace(
+              sequence_anchor,
+              sequence_anchor + '''        if (groupSequence > input.maximumBenchmarks) {
                   throw new Error(
                     "Race archive Discovery benchmark bound was exceeded.",
                   );
                 }
-                const groupRunId = `${input.groupRunPrefix}/group-${String(groupSequence).padStart(8, "0")}`;'''
-          if anchor not in source:
-              raise SystemExit('group sequence anchor changed')
-          source = source.replace(anchor, replacement, 1)
-          old = '''        benchmarkCount += 1;
-                if (benchmarkCount > input.maximumBenchmarks) {
-                  throw new Error(
-                    "Race archive Discovery benchmark bound was exceeded.",
-                  );
-                }
-                const winning = await exactSortedRaceArchiveStatistics({'''
-          new = '''        const winning = await exactSortedRaceArchiveStatistics({'''
-          if old not in source:
+''',
+              1,
+          )
+
+          pattern = re.compile(
+              r'\n\s*benchmarkCount \+= 1;\n\s*if \(benchmarkCount > input\.maximumBenchmarks\) \{\n\s*throw new Error\(\n\s*"Race archive Discovery benchmark bound was exceeded\.",\n\s*\);\n\s*\}\n',
+              re.MULTILINE,
+          )
+          source, substitutions = pattern.subn('\n', source, count=1)
+          if substitutions != 1:
               raise SystemExit('post-filter benchmark bound block changed')
-          source = source.replace(old, new, 1)
           source_path.write_text(source)
 
           test_path = Path('tests/race-archive-spillable-discovery-benchmarks.test.ts')
