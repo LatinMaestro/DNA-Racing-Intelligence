@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import type { RaceArchiveCoreAnalyticalObservation } from "../lib/race-archive-core-analytical-observations";
+import { createPrivateR2ExternalSortedRunStore } from "../lib/private-r2-external-sorted-run-store";
 import {
   createPrivateR2RaceArchiveScratchRunStore,
   type PrivateR2RaceArchiveScratchStoragePort,
@@ -320,5 +321,79 @@ describe("private R2 Race archive scratch run store", () => {
       "Race archive scratch manifest part ownership changed.",
     );
     expect(objects.has(protectedKey)).toBe(true);
+  });
+
+  it("supports bounded exact codecs for derived external-sort records", async () => {
+    const { storage } = memoryStorage();
+    type SummaryRecord = Readonly<{ key: string; count: number }>;
+    const encoder = new TextEncoder();
+    const scratch = createPrivateR2ExternalSortedRunStore<SummaryRecord>({
+      ownerId: "owner-1",
+      sessionId: "refresh-1:summary",
+      bucketName: "private-bucket",
+      storage,
+      maximumPartBytes: 128,
+      maximumPartsPerRun: 10,
+      maximumManifestBytes: 4096,
+      encodeRecord(record) {
+        return encoder.encode(`${JSON.stringify(record)}\n`);
+      },
+      decodeRecordLine(line) {
+        const value = JSON.parse(line) as Partial<SummaryRecord>;
+        const count = value.count;
+        if (
+          typeof value.key !== "string" ||
+          typeof count !== "number" ||
+          !Number.isSafeInteger(count) ||
+          count < 0
+        ) {
+          throw new Error("summary record is invalid");
+        }
+        return Object.freeze({ key: value.key, count });
+      },
+    });
+    const records = Object.freeze([
+      Object.freeze({ key: "bike:1000", count: 3 }),
+      Object.freeze({ key: "horse:1600", count: 7 }),
+    ]);
+    await scratch.writeRun({
+      runId: "summary-run",
+      records: (async function* () {
+        for (const record of records) yield record;
+      })(),
+    });
+    const roundTripped: SummaryRecord[] = [];
+    for await (const record of scratch.readRun({ runId: "summary-run" })) {
+      roundTripped.push(record);
+    }
+    expect(roundTripped).toEqual(records);
+    await scratch.deleteRun({ runId: "summary-run" });
+  });
+
+  it("rejects a generic scratch codec that emits more than one line per record", async () => {
+    const { storage } = memoryStorage();
+    const scratch = createPrivateR2ExternalSortedRunStore<string>({
+      ownerId: "owner-1",
+      sessionId: "refresh-1:summary",
+      bucketName: "private-bucket",
+      storage,
+      maximumPartBytes: 128,
+      maximumPartsPerRun: 10,
+      maximumManifestBytes: 4096,
+      encodeRecord() {
+        return new TextEncoder().encode("first\nsecond\n");
+      },
+      decodeRecordLine(line) {
+        return line;
+      },
+    });
+    await expect(
+      scratch.writeRun({
+        runId: "invalid-codec",
+        records: (async function* () {
+          yield "value";
+        })(),
+      }),
+    ).rejects.toThrow("Race archive scratch encoded record must be one line.");
   });
 });
