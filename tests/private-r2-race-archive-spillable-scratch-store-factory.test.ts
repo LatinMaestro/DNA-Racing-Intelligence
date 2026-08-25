@@ -241,7 +241,9 @@ describe("private R2 Race archive spillable scratch-store factory", () => {
         ...request,
         sourceVersionSetSha256: "not-a-digest",
       }),
-    ).rejects.toThrow("sourceVersionSetSha256 must be a lowercase SHA-256 digest");
+    ).rejects.toThrow(
+      "sourceVersionSetSha256 must be a lowercase SHA-256 digest",
+    );
     expect(objects.size).toBe(0);
   });
 
