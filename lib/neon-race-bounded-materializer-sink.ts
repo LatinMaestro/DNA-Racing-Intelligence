@@ -5,9 +5,7 @@ import type {
   RaceBoundedMaterializationSink,
   RaceBoundedMaterializationSummary,
 } from "./race-bounded-materializer";
-import type {
-  RacePreactivationMaterializationRecord,
-} from "./race-preactivation-materialization-spool";
+import type { RacePreactivationMaterializationRecord } from "./race-preactivation-materialization-spool";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -301,7 +299,10 @@ export function createNeonRaceBoundedMaterializationSink(input: {
   const runtimeRole = requireRuntimeRole(input.runtimeRole);
   const ownerId = requireUuid(input.ownerId, "ownerId");
   const importBatchId = requireUuid(input.importBatchId, "importBatchId");
-  const datasetVersionId = requireUuid(input.datasetVersionId, "datasetVersionId");
+  const datasetVersionId = requireUuid(
+    input.datasetVersionId,
+    "datasetVersionId",
+  );
   const activatedAt = requireTimestamp(input.activatedAt);
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonRaceBoundedMaterializationSession;
@@ -322,7 +323,9 @@ export function createNeonRaceBoundedMaterializationSink(input: {
         await databaseSession.close();
       };
       try {
-        await databaseSession.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+        await databaseSession.client.query(
+          "BEGIN ISOLATION LEVEL SERIALIZABLE",
+        );
         transactionOpen = true;
         const ownerScope = oneRow(
           await databaseSession.client.query(SET_OWNER_SCOPE_SQL, [ownerId]),
@@ -355,7 +358,9 @@ export function createNeonRaceBoundedMaterializationSink(input: {
       return Object.freeze({
         async writeBatch({ records }) {
           if (records.length < 1 || records.length > MAXIMUM_BATCH_RECORDS) {
-            throw new Error("Bounded Race Neon batch is outside its safe bound.");
+            throw new Error(
+              "Bounded Race Neon batch is outside its safe bound.",
+            );
           }
           const payload = records.map(payloadRow);
           const row = oneRow(
@@ -368,15 +373,19 @@ export function createNeonRaceBoundedMaterializationSink(input: {
             "bounded Race batch",
           );
           if (
-            requiredCount(row.materialized_row_count, "materialized_row_count") !==
-            records.length
+            requiredCount(
+              row.materialized_row_count,
+              "materialized_row_count",
+            ) !== records.length
           ) {
             throw new Error("Bounded Race Neon batch coverage changed.");
           }
         },
         async commit(commit: RaceBoundedMaterializationCommit) {
           if (!transactionOpen) {
-            throw new Error("Bounded Race materialization transaction is closed.");
+            throw new Error(
+              "Bounded Race materialization transaction is closed.",
+            );
           }
           const row = oneRow(
             await databaseSession.client.query(COMPLETE_MATERIALIZATION_SQL, [
@@ -389,7 +398,8 @@ export function createNeonRaceBoundedMaterializationSink(input: {
             "bounded Race completion",
           );
           if (
-            requiredString(row.result_status, "result_status") !== "materialized" ||
+            requiredString(row.result_status, "result_status") !==
+              "materialized" ||
             requiredCount(
               row.materialized_entry_count,
               "materialized_entry_count",
