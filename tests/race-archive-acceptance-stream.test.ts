@@ -52,7 +52,9 @@ function stagedRow(input: {
     sourceRowNumber: input.sourceRowNumber,
     naturalKey: input.naturalKey,
     fingerprintSha256: input.fingerprintSha256,
-    row: Object.freeze({ status: input.status }) as DurablePreviewStagedRow["row"],
+    row: Object.freeze({
+      status: input.status,
+    }) as DurablePreviewStagedRow["row"],
   });
 }
 
