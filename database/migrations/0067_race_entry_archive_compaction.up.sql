@@ -350,7 +350,15 @@ BEGIN
     WHERE version.owner_id = p_owner_id
       AND version.id = p_dataset_version_id;
 
-    IF v_source_type = 'race_merge' THEN
+    IF v_source_type = 'race_merge'
+       AND EXISTS (
+         SELECT 1
+         FROM dna.race_archive_aggregate_publication_receipt publication
+         WHERE publication.owner_id = p_owner_id
+           AND publication.refresh_id = p_refresh_id
+           AND publication.target_dataset_version_id = p_dataset_version_id
+           AND publication.race_dataset_version_id = p_dataset_version_id
+       ) THEN
       SELECT compact.status INTO STRICT v_compaction_status
       FROM dna.compact_published_race_entries(
         p_owner_id,
