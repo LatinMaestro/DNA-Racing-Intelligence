@@ -12,7 +12,7 @@ CREATE TABLE dna.race_entry_archive_compaction_receipt (
   compacted_at timestamptz NOT NULL,
   PRIMARY KEY (owner_id, refresh_id),
   FOREIGN KEY (owner_id, refresh_id)
-    REFERENCES dna.race_archive_aggregate_publication_receipt(owner_id, refresh_id)
+    REFERENCES dna.aggregate_refresh_job(owner_id, id)
     ON DELETE RESTRICT,
   FOREIGN KEY (owner_id, race_dataset_version_id)
     REFERENCES dna.dataset_version(owner_id, id)
@@ -358,6 +358,12 @@ BEGIN
            AND publication.refresh_id = p_refresh_id
            AND publication.target_dataset_version_id = p_dataset_version_id
            AND publication.race_dataset_version_id = p_dataset_version_id
+       )
+       AND EXISTS (
+         SELECT 1
+         FROM dna.race_entry entry
+         WHERE entry.owner_id = p_owner_id
+           AND entry.active_in_dataset
        ) THEN
       SELECT compact.status INTO STRICT v_compaction_status
       FROM dna.compact_published_race_entries(
