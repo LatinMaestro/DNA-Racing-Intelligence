@@ -183,6 +183,7 @@ function prepare(input: {
   versions: readonly RaceArchiveAggregateRefreshPlanVersion[];
   rehydrator: RaceStagedRowRehydrator;
   store: RaceArchiveExternalSortedRunStore<RaceArchiveCoreAnalyticalObservation>;
+  maximumInputObservations?: number;
 }) {
   return prepareSpillableRaceArchiveObservations({
     ownerId: OWNER_ID,
@@ -193,13 +194,13 @@ function prepare(input: {
     maximumArchivePartitions: 10,
     maximumRecordsInMemory: 1,
     mergeFanIn: 2,
-    maximumInputObservations: 10,
+    maximumInputObservations: input.maximumInputObservations ?? 10,
     maximumRunObjects: 20,
   });
 }
 
 describe("spillable Race archive observation source", () => {
-  it("streams exact unique observations after spillable replay deduplication", async () => {
+  it("streams exact unique observations after hierarchical replay deduplication", async () => {
     const first = plan({
       datasetVersionId: "version-1",
       importBatchId: "batch-version-1",
@@ -250,6 +251,51 @@ describe("spillable Race archive observation source", () => {
     expect(runs.size).toBe(0);
   });
 
+  it("allows repeated full rolling-version observations above the lifetime-unique bound total", async () => {
+    const versions = [
+      plan({
+        datasetVersionId: "version-1",
+        importBatchId: "batch-version-1",
+        versionNumber: 1,
+      }),
+      plan({
+        datasetVersionId: "version-2",
+        importBatchId: "batch-version-2",
+        versionNumber: 2,
+      }),
+      plan({
+        datasetVersionId: "version-3",
+        importBatchId: "batch-version-3",
+        versionNumber: 3,
+      }),
+    ];
+    const { store, runs } = memoryStore();
+    const repeated = new Map(
+      versions.map((version) => [
+        version.datasetVersionId,
+        stagedRow({
+          sourceEventId: "event-1",
+          sourceCoreId: "core-1",
+          fingerprintSha256: "a".repeat(64),
+        }),
+      ]),
+    );
+
+    const source = await prepare({
+      versions,
+      rehydrator: rehydrator(repeated),
+      store,
+      maximumInputObservations: 1,
+    });
+
+    expect(source.inputObservationCount).toBe(3);
+    expect(source.initialRunCount).toBe(3);
+    const unique = await collect(source.readUnique());
+    expect(unique).toHaveLength(1);
+    expect(unique[0]?.versionNumber).toBe(1);
+    expect(runs.size).toBe(0);
+  });
+
   it("fails closed on conflicting replay evidence and cleans scratch runs", async () => {
     const versions = [
       plan({
@@ -265,74 +311,82 @@ describe("spillable Race archive observation source", () => {
     ];
     const deleted: string[] = [];
     const { store, runs } = memoryStore({ deleted });
-    const source = await prepare({
-      versions,
-      rehydrator: rehydrator(
-        new Map([
-          [
-            "version-1",
-            stagedRow({
-              sourceEventId: "event-1",
-              sourceCoreId: "core-1",
-              fingerprintSha256: "a".repeat(64),
-            }),
-          ],
-          [
-            "version-2",
-            stagedRow({
-              sourceEventId: "event-1",
-              sourceCoreId: "core-1",
-              fingerprintSha256: "b".repeat(64),
-              elapsedTimeSourceValue: "61.251",
-            }),
-          ],
-        ]),
-      ),
-      store,
-    });
 
-    await expect(collect(source.readUnique())).rejects.toThrow(
+    await expect(
+      prepare({
+        versions,
+        rehydrator: rehydrator(
+          new Map([
+            [
+              "version-1",
+              stagedRow({
+                sourceEventId: "event-1",
+                sourceCoreId: "core-1",
+                fingerprintSha256: "a".repeat(64),
+              }),
+            ],
+            [
+              "version-2",
+              stagedRow({
+                sourceEventId: "event-1",
+                sourceCoreId: "core-1",
+                fingerprintSha256: "b".repeat(64),
+                elapsedTimeSourceValue: "61.251",
+              }),
+            ],
+          ]),
+        ),
+        store,
+      }),
+    ).rejects.toThrow(
       "Race archive history contains conflicting replay evidence.",
     );
     expect(deleted.length).toBeGreaterThan(0);
     expect(runs.size).toBe(0);
   });
 
-  it("rejects the total accepted-row plan before archive reads when input exceeds the bound", async () => {
-    const version = {
-      ...plan({
+  it("rejects lifetime-unique observations above the bound and cleans scratch runs", async () => {
+    const versions = [
+      plan({
         datasetVersionId: "version-1",
         importBatchId: "batch-version-1",
         versionNumber: 1,
       }),
-      sourceRowCount: 11,
-      acceptedRowCount: 11,
-      evidenceRowCount: 11,
-    };
-    let opened = false;
-    const { store } = memoryStore();
+      plan({
+        datasetVersionId: "version-2",
+        importBatchId: "batch-version-2",
+        versionNumber: 2,
+      }),
+    ];
+    const { store, runs } = memoryStore();
 
     await expect(
-      prepareSpillableRaceArchiveObservations({
-        ownerId: OWNER_ID,
-        versions: [version],
-        rehydrator: {
-          async open() {
-            opened = true;
-            return { status: "missing" as const };
-          },
-        },
+      prepare({
+        versions,
+        rehydrator: rehydrator(
+          new Map([
+            [
+              "version-1",
+              stagedRow({
+                sourceEventId: "event-1",
+                sourceCoreId: "core-1",
+                fingerprintSha256: "a".repeat(64),
+              }),
+            ],
+            [
+              "version-2",
+              stagedRow({
+                sourceEventId: "event-2",
+                sourceCoreId: "core-2",
+                fingerprintSha256: "b".repeat(64),
+              }),
+            ],
+          ]),
+        ),
         store,
-        runPrefix: "aggregate-refresh-1",
-        maximumArchivePartitions: 10,
-        maximumRecordsInMemory: 1,
-        mergeFanIn: 2,
-        maximumInputObservations: 10,
-        maximumRunObjects: 20,
+        maximumInputObservations: 1,
       }),
-    ).rejects.toThrow(
-      "Race archive spillable observation input bound was exceeded.",
-    );
-    expect(opened).toBe(false);
+    ).rejects.toThrow("Race archive unique observation bound was exceeded.");
+    expect(runs.size).toBe(0);
   });
 });
