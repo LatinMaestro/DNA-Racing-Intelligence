@@ -133,6 +133,7 @@ describe("bounded Race materialization coordinator", () => {
       }),
     ).rejects.toBe(failure);
 
+    expect(target.writeBatch).toHaveBeenCalledTimes(2);
     expect(target.commit).not.toHaveBeenCalled();
     expect(target.rollback).toHaveBeenCalledWith({
       reason: "materialization_failed",
