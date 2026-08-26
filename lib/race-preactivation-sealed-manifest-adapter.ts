@@ -1,6 +1,4 @@
-import type {
-  RacePreactivationEvidenceManifestRepository,
-} from "./neon-race-preactivation-evidence-manifest";
+import type { RacePreactivationEvidenceManifestRepository } from "./neon-race-preactivation-evidence-manifest";
 import type {
   SealedRaceArchiveManifest,
   SealedRaceArchiveManifestRepository,
