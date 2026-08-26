@@ -64,10 +64,14 @@ function materializationSummary(
     throw new Error("Race bounded materialization source coverage is invalid.");
   }
   if (acceptedNaturalKeyCount < 1) {
-    throw new Error("Race bounded materialization has no accepted natural keys.");
+    throw new Error(
+      "Race bounded materialization has no accepted natural keys.",
+    );
   }
   if (acceptedNaturalKeyCount + duplicateReadyRowCount !== readyRowCount) {
-    throw new Error("Race bounded materialization ready-row coverage is invalid.");
+    throw new Error(
+      "Race bounded materialization ready-row coverage is invalid.",
+    );
   }
 
   return Object.freeze({
@@ -129,7 +133,9 @@ export async function materializePreparedRacePreactivation(input: {
         records.length < 1 ||
         records.length > MAXIMUM_MATERIALIZATION_BATCH_RECORDS
       ) {
-        throw new Error("Race materialization batch is outside its safe bound.");
+        throw new Error(
+          "Race materialization batch is outside its safe bound.",
+        );
       }
       materializationBatchCount += 1;
       materializedNaturalKeyCount += records.length;
