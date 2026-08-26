@@ -2,119 +2,181 @@
 
 ## Purpose
 
-This document records the current reproducible Neon capacity decision for the owner’s audited **nine-file** recurring DNA Racing source set after PR #245 connected post-aggregate evidence sealing and Race Merge row/version-ledger compaction.
+This document records the current reproducible Neon capacity decision for the owner’s audited **nine-file** DNA Racing source shape after the archive-backed retention work through migration `0067` removes durable historical `race_entry` detail.
 
-It is a **pre-upload safety gate**. It does not authorise a real upload, a paid provider change, a Production change, a Vercel deployment or any public release.
+It is a **pre-upload safety gate**. It does not authorise a real upload, paid provider capacity, Production changes, Vercel deployment or public release.
 
-The audited source profile remains:
+The protected Neon Preview branch has a logical-size limit of **512 MiB** (**536,870,912 bytes**).
 
-- seven sequential Race Merge files;
-- one Core Details file;
-- one Current Arena file;
-- Race Merge rows / race-entry observations: **2,691,579**;
-- unique race events: **746,648**;
-- Core Details rows: **18,513**;
-- Current Arena rows: **1,474**; and
-- total recurring source rows: **2,711,566**.
+## Audited source shape
 
-The protected Neon Preview branch has a logical-size limit of **512 MiB** (536,870,912 bytes).
+The current source profile contains:
 
-## What PRs #240–#245 changed
+- seven sequential Race Merge segments;
+- one Core Details export;
+- one Current Arena export;
+- **2,691,579** Race Merge rows / race-entry observations;
+- **746,648** unique Race events;
+- **18,513** Core Details rows; and
+- **1,474** Current Arena rows.
 
-The earlier 939,874,046-byte (~896.33 MiB) lower bound was dominated by durable per-row Race Merge provenance and version-ledger duplication. The storage-critical sequence after that proof established a compact evidence boundary:
+The seven current Race segment row counts are:
 
-- dataset versions are sealed against immutable private checksummed evidence manifests;
-- accepted Race Merge identity is retained as a compact 32-byte SHA-256 binding on the durable read model;
-- payout-format evidence required by Pro League is retained in the analytical read model;
-- rollback no longer depends on retained per-row source provenance;
-- guarded Race Merge compaction removes `race_entry_source` and Race Merge `dataset_version_record` rows only after evidence/read-model prerequisites are complete; and
-- aggregate publication now performs the seal/compaction boundary before publication is reported complete.
+1. **252,202** rows;
+2. **283,637** rows;
+3. **504,532** rows;
+4. **491,315** rows;
+5. **503,788** rows;
+6. **501,236** rows; and
+7. **154,869** rows at the audited point in time.
 
-Those removed relations are therefore no longer counted in the durable post-publish lower bound.
+The file count is not a lifetime contract. Older completed Race segments become immutable history and future rollover segments extend the sequence. Normal recurring updates remain the current Race segment plus the latest Core Details and Current Arena exports.
 
-## Corrected Race Merge read-model cardinality
+## Retention changes through migration 0067
 
-The prior proof deliberately counted only one `race_entry` per unique event because it needed only a conclusive lower bound while the much larger provenance ledgers still existed. That understatement is no longer appropriate now that those ledgers are compacted.
+The storage-critical archive sequence now establishes that:
 
-For the current seven Race Merge files, the audited **2,691,579 Race Merge rows are race-entry observations**, so the revised durable lower bound counts **2,691,579 `race_entry` rows**. This is the realistic cardinality required for the current normalized historical read model.
+- immutable Race source evidence is retained in private checksummed R2 objects;
+- archive manifests, source-version receipts, Core locators and publication receipts remain in Neon;
+- Race-derived Core Performance, Discovery, payout-format and star read models are rebuilt exactly from immutable archive evidence;
+- rolling Race reuploads are spillably deduplicated by lifetime Race identity;
+- Core Details and Current Arena refreshes preserve the last valid Race-derived aggregate publication;
+- accepted staging/contribution evidence and detailed source provenance have guarded compaction paths;
+- migration `0067` deletes normalized historical `race_entry` rows only after exact archive publication, evidence/locator coverage, retained event identity, read-model parity and rollback/rebuild prerequisites are satisfied; and
+- `race_event` and `event_star_validation` remain durable because event/star/manual-reconciliation identity is still intentionally retained in Neon.
 
-The measured representative `race_entry` includes the mandatory 32-byte `source_fingerprint_sha256` identity introduced for replay/conflict safety. Optional payout-format text and other nullable values remain omitted, so the measurement is still conservative.
+This closes the earlier **durable historical `race_entry`** capacity blocker. It does not by itself prove that a large Race spreadsheet can be imported without exceeding the branch limit before compaction runs.
 
 ## PostgreSQL 18 measurement
 
-`database/measurements/current_real_source_neon_lower_bound.sql` applies the complete current migration chain and uses `pg_column_size` against the actual PostgreSQL 18 composite row types.
+`database/measurements/current_real_source_neon_lower_bound.sql` applies the complete migration chain on PostgreSQL 18 and measures representative rows with `pg_column_size` against the actual current composite types.
 
-Measured minimal row payloads are:
+### Durable retained rows
+
+Measured minimal payloads are:
 
 - `race_event`: **129 bytes**;
-- `race_entry` with compact SHA identity: **170 bytes**;
 - `event_star_validation`: **158 bytes**; and
 - Core/Arena `dataset_version_record`: **160 bytes**.
 
-The revised durable lower bound is:
+For the current source shape, the retained lower bound is:
 
-- `race_event`: **746,648 rows**, **96,317,592 bytes** (~91.86 MiB);
-- `race_entry`: **2,691,579 rows**, **457,568,430 bytes** (~436.37 MiB);
-- `event_star_validation`: **746,648 rows**, **117,970,384 bytes** (~112.51 MiB);
-- Core/Arena `dataset_version_record`: **19,987 rows**, **3,197,920 bytes** (~3.05 MiB); and
-- conservative durable total: **675,054,326 bytes** (~643.78 MiB).
+- `race_event`: **96,317,592 bytes** (~91.86 MiB);
+- `event_star_validation`: **117,970,384 bytes** (~112.51 MiB);
+- Core/Arena `dataset_version_record`: **3,197,920 bytes** (~3.05 MiB); and
+- total durable post-publication lower bound: **217,485,896 bytes** (~207.41 MiB).
 
-The durable lower bound is **1.257 ×** the entire protected 512 MiB Preview branch limit. Explicit durable headroom is therefore **−138,183,414 bytes (−131.78 MiB)**.
+Explicit lower-bound durable headroom is therefore:
 
-Peak usage can never be lower than the durable state. The reproducible proof therefore also records a **minimum peak lower bound of 675,054,326 bytes** and **minimum peak headroom of −138,183,414 bytes**. Actual peak usage would be higher because transient upload/materialisation state is intentionally excluded.
+**536,870,912 − 217,485,896 = +319,385,016 bytes (~304.59 MiB).**
+
+The prior durable lower bound of **675,054,326 bytes (~643.78 MiB)** is superseded by the implemented `race_entry` archive compaction boundary.
+
+### Per-row transient Race materialisation
+
+The current Race acceptance path still temporarily creates several full-row PostgreSQL relations before its existing compaction/finalisation steps can remove them.
+
+Measured minimal per-source-row payloads are:
+
+- `dataset_staged_record`: **160 bytes**;
+- `normalized_race_staged_fact`: **154 bytes**;
+- `dataset_record_contribution`: **144 bytes**;
+- transient Race `dataset_version_record`: **160 bytes**;
+- `race_entry`: **178 bytes**; and
+- `race_entry_source`: **194 bytes**.
+
+Combined minimum transient Race payload:
+
+**990 bytes per Race source row.**
+
+This still excludes heap/page overhead, line pointers and indexes, so it is a strict lower bound.
+
+## Sequential initial-import peak
+
+The proof evaluates each of the seven historical Race segments sequentially using the actual segment row count and cumulative unique-event count at that point in history.
+
+The worst current initial-import lower bound occurs at **segment 6**, where **501,236** source rows coexist with **695,901** retained cumulative Race events before the transient row ledgers can be compacted.
+
+Minimum initial sequential peak:
+
+**695,947,227 bytes (~663.71 MiB).**
+
+Headroom against the protected 512 MiB branch:
+
+**−159,076,315 bytes (~−151.71 MiB).**
+
+This is already conclusively unsafe before indexes, heap/page overhead, aggregate read models, economics, control rows, receipts or optional populated text are added.
+
+## Full rolling-segment peak
+
+For future recurring updates the proof also evaluates the conservative case where the full retained current history is present and a Race segment as large as the largest observed segment (**504,532 rows**) is uploaded before transient compaction completes.
+
+Minimum rolling-segment peak:
+
+**716,972,576 bytes (~683.76 MiB).**
+
+Headroom:
+
+**−180,101,664 bytes (~−171.76 MiB).**
+
+Therefore merely uploading the spreadsheets sequentially does **not** solve the branch limit while the current per-row Neon staging/materialisation architecture remains intact.
 
 ## Conservatism and omitted storage
 
-The 643.78 MiB figure is a lower bound, not a likely total. It excludes:
+Both durable and peak figures are lower bounds. They omit storage that would only increase actual usage, including:
 
 - PostgreSQL heap/page overhead and line pointers;
-- indexes on the measured relations;
-- optional populated Race Merge fields, including payout-format labels where present;
+- indexes on measured relations;
+- optional populated Race text and economic fields;
+- aggregate/read-model rows such as Core Performance, Discovery, payout-format and Core star profiles;
+- economic transaction, contribution, valuation and exchange-rate state;
 - bounded import/control/evidence-manifest/version/compaction receipts;
-- Core Details and Arena materialized read models beyond the minimal version ledger;
-- economic transaction and exchange-rate rows;
-- Core Performance, star, payout-format, Discovery and other aggregate tables;
-- existing schema/logical footprint before real data is imported;
-- transient upload/normalization/materialisation rows; and
-- future Race Merge rollover files.
+- Core Details and Arena materialized state beyond the minimal version ledger; and
+- the existing schema/logical footprint.
 
-Because the durable lower bound already exceeds the branch limit, none of those omissions can reverse the decision.
+Because the **minimum sequential peak already exceeds the branch limit**, these omissions cannot reverse the current decision.
 
 ## Decision
 
-**Current nine-file real Preview import remains STOP / UNSAFE.**
+**First real owner upload remains STOP / UNSAFE.**
 
-The evidence architecture work through PR #245 materially reduced durable duplication, from the prior ~896.33 MiB conservative lower bound to ~643.78 MiB. However, the normalized historical Race Merge read model itself is still too large: `race_entry` alone contributes ~436.37 MiB before indexes or page overhead, and `race_event` plus `event_star_validation` add another ~204.36 MiB.
+The storage diagnosis is now materially narrower:
 
-There is **no safe headroom** under the protected 512 MiB Preview limit, so the first-real-upload gate must not be presented. No paid Neon/R2 capacity may be inferred or enabled from this result.
+- **durable post-publication retention is no longer the demonstrated blocker**; migration `0067` reduces the measured durable lower bound to ~207.41 MiB;
+- **temporary Race staging/materialisation is the demonstrated blocker**; the current path creates at least **990 bytes of transient Neon row payload per Race source row**, producing a minimum current sequential peak of ~663.71 MiB and a conservative full rolling-segment peak of ~683.76 MiB.
+
+No provider-capacity upgrade should be inferred from this result. The next dependency should reduce or bypass the per-row Race staging/materialisation footprint rather than redesigning immutable archive storage again.
 
 ## Next dependency-critical architecture slice
 
-The next storage target is no longer duplicate provenance. It is the multi-million-row normalized historical Race Merge read model.
+Implement an **archive-first bounded Race acceptance path** that avoids holding a whole large Race segment simultaneously in the current Neon staging/materialisation relations.
 
-The next implementation should preserve immutable private evidence in checksummed R2 while reducing long-lived Neon history to bounded query/read structures. The design must preserve the approved Search Core, Core Intelligence, Discovery, Breeding and Pro League evidence contracts. In particular it should:
+The preferred direction is:
 
-1. keep exact historical race-entry/event evidence recoverable from immutable private R2 partitions;
-2. retain bounded owner-scoped Neon manifests/version receipts and the aggregate/search structures needed for normal pages;
-3. avoid storing every historical race entry as a full PostgreSQL row when the same evidence can be reconstructed or selectively fetched from checksummed partitions;
-4. preserve compact replay/conflict identity and rollback/rebuild semantics;
-5. keep event/star/payout evidence required by aggregate refreshes available without silently degrading analytical fidelity;
-6. provide a bounded path for Search Core history/detail drill-down rather than forcing routine pages to scan the full archive; and
-7. rerun this nine-file durable **and minimum-peak** proof after each material retention change until there is explicit positive safety headroom below 512 MiB.
+1. retain the uploaded full Race spreadsheet / staged immutable evidence in private checksummed R2;
+2. process Race rows in bounded partitions or streams;
+3. validate natural keys, fingerprints, chronology, event consistency, overlap and conflicts without accumulating a full segment in `dataset_staged_record`, `normalized_race_staged_fact`, `dataset_record_contribution`, Race `dataset_version_record`, `race_entry` and `race_entry_source` at the same time;
+4. preserve exact accepted/quarantined row counts and issue semantics;
+5. preserve event/star/economic identity required before archive publication;
+6. keep rollback/rebuild and replay fail-closed;
+7. compact each bounded partition or replace the full-row Neon ledger with compact support state before advancing to the next partition; and
+8. rerun PostgreSQL 18 durable **and physical/minimum-peak** evidence until there is explicit positive safety headroom below 512 MiB.
 
-A real owner upload remains separately gated even if a later proof passes.
+The existing private R2 + spillable aggregate architecture remains the preferred storage architecture. Reading source spreadsheets directly from the owner’s computer is not required.
 
 ## Reproducibility
 
 The `Current real-source storage projection` GitHub Actions workflow uses PostgreSQL 18, applies the complete current migration chain and executes `database/measurements/current_real_source_neon_lower_bound.sql`.
 
-Exact-head run **32725752215** measured:
+PR #302 first exact measurement head `0a8e48013756cbd63043a16f1a98a5681bbfd9b9` / workflow run **32931012381** measured:
 
-- `race_entry`: **170 bytes**;
-- durable post-publish lower bound: **675,054,326 bytes**;
-- minimum peak lower bound: **675,054,326 bytes**;
-- protected Preview limit: **536,870,912 bytes**;
-- durable/minimum-peak headroom: **−138,183,414 bytes**; and
-- result: `UNSAFE_POST_PUBLISH_NEON_RETENTION`.
+- durable post-publication lower bound: **217,485,896 bytes**;
+- durable headroom: **+319,385,016 bytes**;
+- transient Race payload: **990 bytes per source row**;
+- initial sequential peak lower bound: **695,947,227 bytes**;
+- initial sequential peak headroom: **−159,076,315 bytes**;
+- full rolling-segment peak lower bound: **716,972,576 bytes**;
+- full rolling-segment peak headroom: **−180,101,664 bytes**; and
+- result: `UNSAFE_CURRENT_SEQUENTIAL_RACE_PEAK`.
 
-Future changes to the historical retention model must update this proof explicitly rather than inherit an obsolete capacity decision.
+Future retention or Race-ingestion changes must update this proof explicitly rather than inherit an obsolete capacity decision.
