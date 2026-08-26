@@ -1,37 +1,43 @@
 \set ON_ERROR_STOP on
 
--- PostgreSQL 18 capacity proof for the current nine-file source profile after
--- migrations 0053-0058 move immutable Race Merge row/version evidence behind
--- private checksummed object manifests and compact it after aggregate publish.
+-- PostgreSQL 18 capacity proof for the current real Race/Core/Arena source shape
+-- after migration 0067 removes normalized race_entry detail after exact
+-- archive-backed aggregate publication.
 --
--- The revised durable proof deliberately removes the relations that no longer
--- survive successful Race Merge publication:
---   * race_entry_source; and
---   * Race Merge dataset_version_record rows.
+-- The proof now distinguishes:
+--   1. durable post-publication Neon state; and
+--   2. the minimum sequential Race-import peak while one spreadsheet segment is
+--      accepted/materialized before the existing evidence/provenance/entry
+--      compaction steps can remove its transient per-row ledgers.
 --
--- It then fixes the earlier deliberate understatement of race_entry cardinality.
--- Each audited Race Merge source row is one race-entry observation in the current
--- seven-file profile, so the durable race_entry lower bound uses all 2,691,579
--- audited Race Merge rows rather than only one entry per unique event.
+-- The seven current Race segment row counts are privacy-safe aggregate evidence
+-- from the owner's audited exports. Cumulative unique-event counts for segments
+-- 1-5 are reproduced from the source exports; segment 6 and 7 cumulative counts
+-- are the audited six-file and seven-file totals.
 --
--- The race_entry representative includes the 32-byte compact SHA-256 identity
--- that migration 0054 requires on every active accepted Race Merge entry. Optional
--- payout-format text and other nullable values remain omitted, so the result is
--- still a lower bound.
---
--- This proof excludes PostgreSQL page/index overhead, bounded receipts/manifests,
--- import/control rows, economics, Core/Arena materialisation, aggregate tables,
--- Discovery benchmarks, existing schema footprint and future Race Merge growth.
--- A durable lower-bound failure is therefore conclusive. Peak usage can never be
--- lower than the durable state, so the durable result also establishes a minimum
--- peak lower bound without pretending to estimate transient upload overhead.
+-- This remains a lower bound. It deliberately excludes PostgreSQL heap/index
+-- overhead, aggregate/read-model rows, economics, receipts/manifests/control
+-- rows, Core/Arena materialization, and optional populated text fields. If this
+-- lower bound exceeds the protected branch limit, the result is conclusive.
 
-WITH source_profile AS (
+WITH race_segments(segment_number, race_rows, cumulative_unique_events) AS (
+  VALUES
+    (1, 252202::bigint,  69666::bigint),
+    (2, 283637::bigint, 174932::bigint),
+    (3, 504532::bigint, 300209::bigint),
+    (4, 491315::bigint, 412051::bigint),
+    (5, 503788::bigint, 545834::bigint),
+    (6, 501236::bigint, 695901::bigint),
+    (7, 154869::bigint, 746648::bigint)
+), source_profile AS (
   SELECT
-    2691579::bigint AS race_merge_rows,
-    746648::bigint AS unique_race_events,
+    (SELECT sum(race_rows) FROM race_segments)::bigint AS race_merge_rows,
+    (SELECT max(cumulative_unique_events) FROM race_segments)::bigint
+      AS unique_race_events,
     18513::bigint AS core_details_rows,
     1474::bigint AS current_arena_rows,
+    (SELECT max(race_rows) FROM race_segments)::bigint
+      AS maximum_observed_race_segment_rows,
     (512::bigint * 1024 * 1024) AS preview_branch_limit_bytes
 ), measured_rows AS (
   SELECT
@@ -39,23 +45,6 @@ WITH source_profile AS (
       NULL::dna.race_event,
       '{"id":"11111111-1111-4111-8111-111111111111","owner_id":"22222222-2222-4222-8222-222222222222","source_event_id":"x","event_at":"2026-08-24T00:00:00Z","mode":"bike","distance":1,"gate_count":1,"source_import_batch_id":"33333333-3333-4333-8333-333333333333","created_at":"2026-08-24T00:00:00Z","updated_at":"2026-08-24T00:00:00Z","active_in_dataset":true}'::jsonb
     ))::bigint AS race_event_bytes,
-    pg_column_size(jsonb_populate_record(
-      NULL::dna.race_entry,
-      jsonb_build_object(
-        'id', '11111111-1111-4111-8111-111111111111',
-        'owner_id', '22222222-2222-4222-8222-222222222222',
-        'race_event_id', '33333333-3333-4333-8333-333333333333',
-        'source_core_id', 'x',
-        'gate_count', 1,
-        'star_data_status', 'missing',
-        'economic_data_status', 'unvalidated',
-        'source_import_batch_id', '44444444-4444-4444-8444-444444444444',
-        'source_fingerprint_sha256', decode(repeat('a', 64), 'hex'),
-        'created_at', '2026-08-24T00:00:00Z',
-        'updated_at', '2026-08-24T00:00:00Z',
-        'active_in_dataset', true
-      )
-    ))::bigint AS race_entry_bytes,
     pg_column_size(jsonb_populate_record(
       NULL::dna.event_star_validation,
       '{"id":"11111111-1111-4111-8111-111111111111","owner_id":"22222222-2222-4222-8222-222222222222","race_event_id":"33333333-3333-4333-8333-333333333333","gate_count":1,"gold_assignment_count":0,"blue_assignment_count":0,"same_core_received_both":false,"validation_status":"valid","warning_codes":[],"refreshed_at":"2026-08-24T00:00:00Z","entry_count":1,"gold_source_core_ids":[],"blue_source_core_ids":[],"gold_data_complete":true,"blue_data_complete":true,"gold_assignment_opportunity":false,"blue_assignment_opportunity":false}'::jsonb
@@ -71,84 +60,67 @@ WITH source_profile AS (
         'first_accepted_batch_id', '33333333-3333-4333-8333-333333333333',
         'created_at', '2026-08-24T00:00:00Z'
       )
-    ))::bigint AS dataset_version_record_bytes
-), projection AS (
-  SELECT
-    profile.*,
-    measured.*,
-    profile.unique_race_events * measured.race_event_bytes
-      AS race_event_lower_bound_bytes,
-    profile.race_merge_rows * measured.race_entry_bytes
-      AS race_entry_lower_bound_bytes,
-    profile.unique_race_events * measured.event_star_validation_bytes
-      AS event_star_validation_lower_bound_bytes,
-    (
-      profile.core_details_rows
-      + profile.current_arena_rows
-    ) * measured.dataset_version_record_bytes
-      AS dataset_version_record_lower_bound_bytes
-  FROM source_profile profile
-  CROSS JOIN measured_rows measured
-), evidence AS (
-  SELECT
-    projection.*,
-    race_event_lower_bound_bytes
-      + race_entry_lower_bound_bytes
-      + event_star_validation_lower_bound_bytes
-      + dataset_version_record_lower_bound_bytes
-      AS durable_post_publish_lower_bound_bytes
-  FROM projection
-)
-SELECT
-  race_merge_rows,
-  unique_race_events,
-  core_details_rows,
-  current_arena_rows,
-  race_event_bytes,
-  race_entry_bytes,
-  event_star_validation_bytes,
-  dataset_version_record_bytes,
-  race_event_lower_bound_bytes,
-  race_entry_lower_bound_bytes,
-  event_star_validation_lower_bound_bytes,
-  dataset_version_record_lower_bound_bytes,
-  durable_post_publish_lower_bound_bytes,
-  durable_post_publish_lower_bound_bytes AS minimum_peak_lower_bound_bytes,
-  preview_branch_limit_bytes,
-  preview_branch_limit_bytes - durable_post_publish_lower_bound_bytes
-    AS durable_headroom_bytes,
-  preview_branch_limit_bytes - durable_post_publish_lower_bound_bytes
-    AS minimum_peak_headroom_bytes,
-  round(
-    durable_post_publish_lower_bound_bytes::numeric
-      / preview_branch_limit_bytes,
-    3
-  ) AS durable_limit_multiple,
-  CASE
-    WHEN durable_post_publish_lower_bound_bytes > preview_branch_limit_bytes
-      THEN 'UNSAFE_POST_PUBLISH_NEON_RETENTION'
-    ELSE 'LOWER_BOUND_DOES_NOT_PROVE_UNSAFE'
-  END AS capacity_result
-FROM evidence;
-
-DO $capacity_assertion$
-DECLARE
-  v_race_merge_rows bigint := 2691579;
-  v_unique_race_events bigint := 746648;
-  v_core_details_rows bigint := 18513;
-  v_current_arena_rows bigint := 1474;
-  v_limit bigint := 512::bigint * 1024 * 1024;
-  v_event_bytes bigint;
-  v_entry_bytes bigint;
-  v_star_bytes bigint;
-  v_version_record_bytes bigint;
-  v_projection bigint;
-BEGIN
-  SELECT
+    ))::bigint AS current_state_version_record_bytes,
     pg_column_size(jsonb_populate_record(
-      NULL::dna.race_event,
-      '{"id":"11111111-1111-4111-8111-111111111111","owner_id":"22222222-2222-4222-8222-222222222222","source_event_id":"x","event_at":"2026-08-24T00:00:00Z","mode":"bike","distance":1,"gate_count":1,"source_import_batch_id":"33333333-3333-4333-8333-333333333333","created_at":"2026-08-24T00:00:00Z","updated_at":"2026-08-24T00:00:00Z","active_in_dataset":true}'::jsonb
-    ))::bigint,
+      NULL::dna.dataset_staged_record,
+      jsonb_build_object(
+        'owner_id', '11111111-1111-4111-8111-111111111111',
+        'import_batch_id', '22222222-2222-4222-8222-222222222222',
+        'source_row_number', 1,
+        'natural_key', 'x',
+        'fingerprint_sha256', repeat('a', 64),
+        'status', 'ready',
+        'issue_codes', jsonb_build_array(),
+        'created_at', '2026-08-24T00:00:00Z'
+      )
+    ))::bigint AS dataset_staged_record_bytes,
+    pg_column_size(jsonb_populate_record(
+      NULL::dna.normalized_race_staged_fact,
+      jsonb_build_object(
+        'owner_id', '11111111-1111-4111-8111-111111111111',
+        'import_batch_id', '22222222-2222-4222-8222-222222222222',
+        'source_row_number', 1,
+        'source_event_id', 'x',
+        'event_at', '2026-08-24T00:00:00Z',
+        'mode', 'bike',
+        'distance', 1,
+        'source_core_id', 'x',
+        'gate_count', 1,
+        'raw_gold_star', 'false',
+        'raw_blue_star', 'false',
+        'star_data_status', 'complete',
+        'finish_position', 1,
+        'elapsed_time_source_value', '1',
+        'economic_data_status', 'ready',
+        'race_asset', 'DEZ',
+        'entry_fee_amount', 0,
+        'gross_payout_amount', 0,
+        'created_at', '2026-08-24T00:00:00Z'
+      )
+    ))::bigint AS normalized_race_staged_fact_bytes,
+    pg_column_size(jsonb_populate_record(
+      NULL::dna.dataset_record_contribution,
+      jsonb_build_object(
+        'owner_id', '11111111-1111-4111-8111-111111111111',
+        'source_type', 'race_merge',
+        'natural_key', 'x',
+        'import_batch_id', '22222222-2222-4222-8222-222222222222',
+        'fingerprint_sha256', repeat('a', 64),
+        'created_at', '2026-08-24T00:00:00Z'
+      )
+    ))::bigint AS dataset_record_contribution_bytes,
+    pg_column_size(jsonb_populate_record(
+      NULL::dna.dataset_version_record,
+      jsonb_build_object(
+        'owner_id', '11111111-1111-4111-8111-111111111111',
+        'dataset_version_id', '22222222-2222-4222-8222-222222222222',
+        'source_type', 'race_merge',
+        'natural_key', 'x',
+        'fingerprint_sha256', repeat('a', 64),
+        'first_accepted_batch_id', '33333333-3333-4333-8333-333333333333',
+        'created_at', '2026-08-24T00:00:00Z'
+      )
+    ))::bigint AS race_version_record_bytes,
     pg_column_size(jsonb_populate_record(
       NULL::dna.race_entry,
       jsonb_build_object(
@@ -157,7 +129,8 @@ BEGIN
         'race_event_id', '33333333-3333-4333-8333-333333333333',
         'source_core_id', 'x',
         'gate_count', 1,
-        'star_data_status', 'missing',
+        'star_data_status', 'complete',
+        'finish_position', 1,
         'economic_data_status', 'unvalidated',
         'source_import_batch_id', '44444444-4444-4444-8444-444444444444',
         'source_fingerprint_sha256', decode(repeat('a', 64), 'hex'),
@@ -165,54 +138,151 @@ BEGIN
         'updated_at', '2026-08-24T00:00:00Z',
         'active_in_dataset', true
       )
-    ))::bigint,
+    ))::bigint AS race_entry_bytes,
     pg_column_size(jsonb_populate_record(
-      NULL::dna.event_star_validation,
-      '{"id":"11111111-1111-4111-8111-111111111111","owner_id":"22222222-2222-4222-8222-222222222222","race_event_id":"33333333-3333-4333-8333-333333333333","gate_count":1,"gold_assignment_count":0,"blue_assignment_count":0,"same_core_received_both":false,"validation_status":"valid","warning_codes":[],"refreshed_at":"2026-08-24T00:00:00Z","entry_count":1,"gold_source_core_ids":[],"blue_source_core_ids":[],"gold_data_complete":true,"blue_data_complete":true,"gold_assignment_opportunity":false,"blue_assignment_opportunity":false}'::jsonb
-    ))::bigint,
-    pg_column_size(jsonb_populate_record(
-      NULL::dna.dataset_version_record,
+      NULL::dna.race_entry_source,
       jsonb_build_object(
-        'owner_id', '11111111-1111-4111-8111-111111111111',
-        'dataset_version_id', '22222222-2222-4222-8222-222222222222',
-        'source_type', 'core_details',
-        'natural_key', 'x',
-        'fingerprint_sha256', repeat('a', 64),
-        'first_accepted_batch_id', '33333333-3333-4333-8333-333333333333',
+        'id', '11111111-1111-4111-8111-111111111111',
+        'owner_id', '22222222-2222-4222-8222-222222222222',
+        'race_entry_id', '33333333-3333-4333-8333-333333333333',
+        'import_batch_id', '44444444-4444-4444-8444-444444444444',
+        'source_row_number', 1,
+        'source_row_checksum', repeat('a', 64),
+        'raw_gold_star', 'false',
+        'raw_blue_star', 'false',
+        'is_selected_fact', true,
+        'raw_elapsed_time', '1',
         'created_at', '2026-08-24T00:00:00Z'
       )
-    ))::bigint
-  INTO
-    v_event_bytes,
-    v_entry_bytes,
-    v_star_bytes,
-    v_version_record_bytes;
+    ))::bigint AS race_entry_source_bytes
+), row_evidence AS (
+  SELECT
+    measured.*,
+    dataset_staged_record_bytes
+      + normalized_race_staged_fact_bytes
+      + dataset_record_contribution_bytes
+      + race_version_record_bytes
+      + race_entry_bytes
+      + race_entry_source_bytes
+      AS transient_race_bytes_per_source_row
+  FROM measured_rows measured
+), durable AS (
+  SELECT
+    profile.*,
+    row_evidence.*,
+    profile.unique_race_events * row_evidence.race_event_bytes
+      AS race_event_lower_bound_bytes,
+    profile.unique_race_events * row_evidence.event_star_validation_bytes
+      AS event_star_validation_lower_bound_bytes,
+    (profile.core_details_rows + profile.current_arena_rows)
+      * row_evidence.current_state_version_record_bytes
+      AS current_state_version_record_lower_bound_bytes
+  FROM source_profile profile
+  CROSS JOIN row_evidence
+), durable_evidence AS (
+  SELECT
+    durable.*,
+    race_event_lower_bound_bytes
+      + event_star_validation_lower_bound_bytes
+      + current_state_version_record_lower_bound_bytes
+      AS durable_post_publish_lower_bound_bytes
+  FROM durable
+), segment_peaks AS (
+  SELECT
+    segment.segment_number,
+    segment.race_rows,
+    segment.cumulative_unique_events,
+    segment.cumulative_unique_events * evidence.race_event_bytes
+      + segment.cumulative_unique_events * evidence.event_star_validation_bytes
+      + segment.race_rows * evidence.transient_race_bytes_per_source_row
+      AS initial_sequential_peak_lower_bound_bytes
+  FROM race_segments segment
+  CROSS JOIN durable_evidence evidence
+), peak_evidence AS (
+  SELECT
+    evidence.*,
+    peak.segment_number AS initial_peak_segment_number,
+    peak.race_rows AS initial_peak_segment_rows,
+    peak.initial_sequential_peak_lower_bound_bytes,
+    evidence.durable_post_publish_lower_bound_bytes
+      + evidence.maximum_observed_race_segment_rows
+        * evidence.transient_race_bytes_per_source_row
+      AS full_rolling_segment_peak_lower_bound_bytes
+  FROM durable_evidence evidence
+  CROSS JOIN LATERAL (
+    SELECT *
+    FROM segment_peaks
+    ORDER BY initial_sequential_peak_lower_bound_bytes DESC
+    LIMIT 1
+  ) peak
+)
+SELECT
+  race_merge_rows,
+  unique_race_events,
+  core_details_rows,
+  current_arena_rows,
+  maximum_observed_race_segment_rows,
+  race_event_bytes,
+  event_star_validation_bytes,
+  current_state_version_record_bytes,
+  dataset_staged_record_bytes,
+  normalized_race_staged_fact_bytes,
+  dataset_record_contribution_bytes,
+  race_version_record_bytes,
+  race_entry_bytes,
+  race_entry_source_bytes,
+  transient_race_bytes_per_source_row,
+  race_event_lower_bound_bytes,
+  event_star_validation_lower_bound_bytes,
+  current_state_version_record_lower_bound_bytes,
+  durable_post_publish_lower_bound_bytes,
+  initial_peak_segment_number,
+  initial_peak_segment_rows,
+  initial_sequential_peak_lower_bound_bytes,
+  full_rolling_segment_peak_lower_bound_bytes,
+  preview_branch_limit_bytes,
+  preview_branch_limit_bytes - durable_post_publish_lower_bound_bytes
+    AS durable_headroom_bytes,
+  preview_branch_limit_bytes - initial_sequential_peak_lower_bound_bytes
+    AS initial_sequential_peak_headroom_bytes,
+  preview_branch_limit_bytes - full_rolling_segment_peak_lower_bound_bytes
+    AS full_rolling_segment_peak_headroom_bytes,
+  CASE
+    WHEN durable_post_publish_lower_bound_bytes > preview_branch_limit_bytes
+      THEN 'UNSAFE_POST_PUBLISH_NEON_RETENTION'
+    WHEN initial_sequential_peak_lower_bound_bytes > preview_branch_limit_bytes
+      THEN 'UNSAFE_CURRENT_SEQUENTIAL_RACE_PEAK'
+    WHEN full_rolling_segment_peak_lower_bound_bytes > preview_branch_limit_bytes
+      THEN 'UNSAFE_FULL_ROLLING_SEGMENT_PEAK'
+    ELSE 'LOWER_BOUND_DOES_NOT_PROVE_UNSAFE'
+  END AS capacity_result
+FROM peak_evidence;
 
-  IF v_event_bytes <> 129
-     OR v_star_bytes <> 158
-     OR v_version_record_bytes <> 160 THEN
+DO $capacity_assertion$
+DECLARE
+  v_race_rows bigint;
+  v_unique_events bigint;
+  v_max_segment_rows bigint;
+BEGIN
+  SELECT sum(race_rows), max(cumulative_unique_events), max(race_rows)
+  INTO v_race_rows, v_unique_events, v_max_segment_rows
+  FROM (
+    VALUES
+      (1, 252202::bigint,  69666::bigint),
+      (2, 283637::bigint, 174932::bigint),
+      (3, 504532::bigint, 300209::bigint),
+      (4, 491315::bigint, 412051::bigint),
+      (5, 503788::bigint, 545834::bigint),
+      (6, 501236::bigint, 695901::bigint),
+      (7, 154869::bigint, 746648::bigint)
+  ) AS segment(segment_number, race_rows, cumulative_unique_events);
+
+  IF v_race_rows <> 2691579
+     OR v_unique_events <> 746648
+     OR v_max_segment_rows <> 504532 THEN
     RAISE EXCEPTION
-      'Revised row measurement changed: event %, star %, version %',
-      v_event_bytes,
-      v_star_bytes,
-      v_version_record_bytes;
-  END IF;
-
-  IF v_entry_bytes <= 137 THEN
-    RAISE EXCEPTION
-      'Race entry capacity fixture omitted compact SHA identity: %', v_entry_bytes;
-  END IF;
-
-  v_projection :=
-    v_unique_race_events * v_event_bytes
-    + v_race_merge_rows * v_entry_bytes
-    + v_unique_race_events * v_star_bytes
-    + (v_core_details_rows + v_current_arena_rows) * v_version_record_bytes;
-
-  IF v_projection <= v_limit THEN
-    RAISE EXCEPTION
-      'Revised durable Race Merge lower bound unexpectedly fits Preview: %',
-      v_projection;
+      'audited Race segment profile changed unexpectedly: rows %, events %, max %',
+      v_race_rows, v_unique_events, v_max_segment_rows;
   END IF;
 END
 $capacity_assertion$;
