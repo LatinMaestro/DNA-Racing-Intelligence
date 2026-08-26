@@ -5,7 +5,9 @@ import type {
   RaceBoundedMaterializationSink,
   RaceBoundedMaterializationSummary,
 } from "./race-bounded-materializer";
-import type { RacePreactivationMaterializationRecord } from "./race-preactivation-materialization-spool";
+import type {
+  RacePreactivationMaterializationRecord,
+} from "./race-preactivation-materialization-spool";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -205,13 +207,18 @@ function verifyTarget(input: {
     requiredBoolean(row.runtime_is_superuser, "runtime_is_superuser") ||
     requiredBoolean(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     requiredBoolean(row.runtime_can_create_roles, "runtime_can_create_roles") ||
-    requiredBoolean(row.runtime_can_create_databases, "runtime_can_create_databases") ||
+    requiredBoolean(
+      row.runtime_can_create_databases,
+      "runtime_can_create_databases",
+    ) ||
     requiredBoolean(
       row.runtime_is_neon_superuser_member,
       "runtime_is_neon_superuser_member",
     )
   ) {
-    throw new Error("Bounded Race materialization runtime is not least privileged.");
+    throw new Error(
+      "Bounded Race materialization runtime is not least privileged.",
+    );
   }
 }
 
