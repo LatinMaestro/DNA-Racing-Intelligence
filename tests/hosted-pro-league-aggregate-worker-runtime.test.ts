@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { BoundedAggregateRefresher } from "../lib/import-aggregate-refresh-service";
 import {
-  HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS,
+  HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS,
   hostedProLeagueAggregateWorkerRuntime,
   type HostedProLeagueAggregateWorkerEnvironment,
 } from "../lib/hosted-pro-league-aggregate-worker-runtime";
@@ -150,7 +150,16 @@ describe("hosted Pro League aggregate worker runtime", () => {
         environment: environment({ maximumChunkBytes: "536870913" }),
       }),
     ).toEqual({ status: "not_configured" });
-    expect(HOSTED_RACE_ARCHIVE_MAXIMUM_RESIDENT_OBSERVATIONS).toBe(10_000);
+    expect(HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS).toMatchObject({
+      maximumRecordsInMemory: 5_000,
+      mergeFanIn: 8,
+      maximumInputObservations: 5_000_000,
+    });
+    expect(
+      HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS.maximumInputObservations,
+    ).toBeGreaterThan(
+      HOSTED_RACE_ARCHIVE_SPILLABLE_BOUNDS.maximumRecordsInMemory,
+    );
   });
 
   it("keeps rolling current-state refreshes on the archive-preserving SQL path", async () => {

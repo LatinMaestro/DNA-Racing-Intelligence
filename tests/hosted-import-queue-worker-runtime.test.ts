@@ -26,36 +26,95 @@ function readyRuntime() {
   };
 }
 
+const unavailablePreview =
+  unavailableHostedImportQueueWorkerRuntime as HostedImportPreviewWorkerRuntime;
+const unavailableActivation =
+  unavailableHostedImportQueueWorkerRuntime as HostedImportActivationWorkerRuntime;
+const unavailableAggregate =
+  unavailableHostedImportQueueWorkerRuntime as HostedProLeagueAggregateWorkerRuntime;
+
 describe("hosted import queue worker runtime", () => {
-  it("fails closed unless all three import runtimes are configured", () => {
+  it("fails closed only when every import runtime is unavailable", () => {
+    expect(
+      createHostedImportQueueWorkerRuntime({
+        preview: unavailablePreview,
+        activation: unavailableActivation,
+        aggregate: unavailableAggregate,
+      }),
+    ).toEqual({ status: "not_configured" });
+  });
+
+  it("keeps a configured message family available when an unrelated runtime is unavailable", async () => {
     const preview = readyRuntime();
     const activation = readyRuntime();
-    const aggregate = readyRuntime();
+    const runtime = createHostedImportQueueWorkerRuntime({
+      preview: preview.runtime,
+      activation: activation.runtime,
+      aggregate: unavailableAggregate,
+    });
+    expect(runtime.status).toBe("ready");
+    if (runtime.status !== "ready") throw new Error("expected ready runtime");
 
-    expect(
-      createHostedImportQueueWorkerRuntime({
-        preview:
-          unavailableHostedImportQueueWorkerRuntime as HostedImportPreviewWorkerRuntime,
-        activation: activation.runtime,
-        aggregate: aggregate.runtime,
+    const previewBody = {
+      version: 1 as const,
+      kind: "preview" as const,
+      dispatchId: "preview-dispatch-1",
+      uploadRequestFingerprint: "a".repeat(64),
+    };
+    await expect(runtime.consume({ body: previewBody, now })).resolves.toEqual(
+      completed,
+    );
+    expect(preview.consume).toHaveBeenCalledWith({ body: previewBody, now });
+    expect(activation.consume).not.toHaveBeenCalled();
+
+    expect(() =>
+      runtime.consume({
+        body: {
+          version: 1,
+          kind: "aggregate_refresh_retry",
+          dispatchId: "aggregate-dispatch-1",
+          refreshId: "aggregate-refresh-1",
+        },
+        now,
       }),
-    ).toEqual({ status: "not_configured" });
-    expect(
-      createHostedImportQueueWorkerRuntime({
-        preview: preview.runtime,
-        activation:
-          unavailableHostedImportQueueWorkerRuntime as HostedImportActivationWorkerRuntime,
-        aggregate: aggregate.runtime,
+    ).toThrow("Aggregate refresh import queue runtime is not configured.");
+  });
+
+  it("fails closed for an unavailable message family without blocking the others", async () => {
+    const activation = readyRuntime();
+    const aggregate = readyRuntime();
+    const runtime = createHostedImportQueueWorkerRuntime({
+      preview: unavailablePreview,
+      activation: activation.runtime,
+      aggregate: aggregate.runtime,
+    });
+    if (runtime.status !== "ready") throw new Error("expected ready runtime");
+
+    expect(() =>
+      runtime.consume({
+        body: {
+          version: 1,
+          kind: "preview",
+          dispatchId: "preview-dispatch-1",
+          uploadRequestFingerprint: "a".repeat(64),
+        },
+        now,
       }),
-    ).toEqual({ status: "not_configured" });
-    expect(
-      createHostedImportQueueWorkerRuntime({
-        preview: preview.runtime,
-        activation: activation.runtime,
-        aggregate:
-          unavailableHostedImportQueueWorkerRuntime as HostedProLeagueAggregateWorkerRuntime,
-      }),
-    ).toEqual({ status: "not_configured" });
+    ).toThrow("Preview import queue runtime is not configured.");
+
+    const activationBody = {
+      version: 1 as const,
+      kind: "import_activation" as const,
+      dispatchId: "activation-dispatch-1",
+    };
+    await expect(
+      runtime.consume({ body: activationBody, now }),
+    ).resolves.toEqual(completed);
+    expect(activation.consume).toHaveBeenCalledWith({
+      body: activationBody,
+      now,
+    });
+    expect(aggregate.consume).not.toHaveBeenCalled();
   });
 
   it("routes each exact queue kind to only its matching bounded runtime", async () => {
