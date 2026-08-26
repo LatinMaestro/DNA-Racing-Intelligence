@@ -75,28 +75,29 @@ describe("hosted Cloudflare import queue worker runtime", () => {
     ).toEqual({ status: "not_configured" });
   });
 
-  it("fails closed on database or bounded-processing drift", () => {
+  it("fails closed on shared database drift without letting family-local bounds brick the queue", () => {
     expect(
       hostedCloudflareImportQueueWorkerRuntime({
         bindings: bindings({ DATABASE_URL: undefined }),
         dependencies: dependencies(),
       }),
     ).toEqual({ status: "not_configured" });
+
     expect(
       hostedCloudflareImportQueueWorkerRuntime({
         bindings: bindings({
           DNA_IMPORT_MAXIMUM_SOURCE_VERSIONS: "25",
         }),
         dependencies: dependencies(),
-      }),
-    ).toEqual({ status: "not_configured" });
+      }).status,
+    ).toBe("ready");
     expect(
       hostedCloudflareImportQueueWorkerRuntime({
         bindings: bindings({
           DNA_IMPORT_MAXIMUM_CHUNK_BYTES: "536870913",
         }),
         dependencies: dependencies(),
-      }),
-    ).toEqual({ status: "not_configured" });
+      }).status,
+    ).toBe("ready");
   });
 });
