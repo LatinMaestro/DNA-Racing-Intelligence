@@ -122,7 +122,9 @@ describe("bounded Race materialization coordinator", () => {
     });
     const target = sinkHarness();
     const failure = new Error("bounded Neon write failed");
-    target.writeBatch.mockRejectedValueOnce(undefined).mockRejectedValueOnce(failure);
+    target.writeBatch
+      .mockRejectedValueOnce(undefined)
+      .mockRejectedValueOnce(failure);
 
     await expect(
       materializePreparedRacePreactivation({
