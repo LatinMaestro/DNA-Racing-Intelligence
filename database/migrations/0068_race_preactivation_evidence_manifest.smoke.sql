@@ -10,6 +10,8 @@ VALUES
 INSERT INTO dna.import_batch (
   id, owner_id, source_type, source_filename, checksum_sha256,
   detected_encoding, schema_version, status, uploaded_at,
+  minimum_accepted_event_at, maximum_accepted_event_at,
+  dataset_current_through_after_import,
   source_rows, accepted_rows, rejected_rows, warning_rows
 )
 VALUES (
@@ -17,6 +19,7 @@ VALUES (
   '68000000-0000-4000-8000-000000000001',
   'race_merge', 'Race Merge.csv', repeat('1', 64),
   'utf_8', 'race-merge/v1', 'validating', '2026-08-26T00:00:00Z',
+  '2026-08-20T00:00:00Z', '2026-08-25T00:00:00Z', '2026-08-25T00:00:00Z',
   3, 2, 1, 1
 );
 
