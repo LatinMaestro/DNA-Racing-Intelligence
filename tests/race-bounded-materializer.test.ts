@@ -123,7 +123,7 @@ describe("bounded Race materialization coordinator", () => {
     const target = sinkHarness();
     const failure = new Error("bounded Neon write failed");
     target.writeBatch
-      .mockRejectedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(failure);
 
     await expect(
