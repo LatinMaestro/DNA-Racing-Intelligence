@@ -231,7 +231,9 @@ export async function prepareSpillableRaceArchiveAcceptanceStream(input: {
     for await (const rehydrated of opened.rows) {
       sourceRowCount += 1;
       if (sourceRowCount > maximumSourceRows) {
-        throw new Error("Race archive acceptance source-row bound was exceeded.");
+        throw new Error(
+          "Race archive acceptance source-row bound was exceeded.",
+        );
       }
       const stagedRow = rehydrated.stagedRow;
       if (stagedRow.row.status === "quarantined") {
