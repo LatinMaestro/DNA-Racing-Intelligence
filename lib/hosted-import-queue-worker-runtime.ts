@@ -48,6 +48,10 @@ export type HostedImportQueueWorkerRuntime =
 export const unavailableHostedImportQueueWorkerRuntime: HostedImportQueueWorkerRuntime =
   Object.freeze({ status: "not_configured" });
 
+function unavailableRuntime(family: string): never {
+  throw new Error(`${family} import queue runtime is not configured.`);
+}
+
 export function createHostedImportQueueWorkerRuntime(input: {
   preview: HostedImportPreviewWorkerRuntime;
   activation: HostedImportActivationWorkerRuntime;
@@ -57,8 +61,8 @@ export function createHostedImportQueueWorkerRuntime(input: {
   const activation = input.activation;
   const aggregate = input.aggregate;
   if (
-    preview.status !== "ready" ||
-    activation.status !== "ready" ||
+    preview.status !== "ready" &&
+    activation.status !== "ready" &&
     aggregate.status !== "ready"
   ) {
     return unavailableHostedImportQueueWorkerRuntime;
@@ -69,10 +73,19 @@ export function createHostedImportQueueWorkerRuntime(input: {
     consume(delivery: QueueDelivery) {
       const message = parseCloudflareImportQueueMessage(delivery.body);
       if (message.kind === "preview") {
+        if (preview.status !== "ready") {
+          return unavailableRuntime("Preview");
+        }
         return preview.consume(delivery);
       }
       if (message.kind === "import_activation") {
+        if (activation.status !== "ready") {
+          return unavailableRuntime("Activation");
+        }
         return activation.consume(delivery);
+      }
+      if (aggregate.status !== "ready") {
+        return unavailableRuntime("Aggregate refresh");
       }
       return aggregate.consume(delivery);
     },
