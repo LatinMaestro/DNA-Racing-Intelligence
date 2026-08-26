@@ -24,8 +24,16 @@ const VERIFY_TARGET_SQL = `
     batch.owner_id::text AS database_owner_id,
     batch.source_type,
     batch.status AS import_batch_status,
-    version.id::text AS dataset_version_id,
-    version.rolled_back_at,
+    batch.source_rows,
+    batch.accepted_rows,
+    batch.rejected_rows,
+    batch.warning_rows,
+    (
+      SELECT version.import_batch_id::text
+      FROM dna.dataset_version version
+      WHERE version.owner_id = batch.owner_id
+        AND version.id = $2::uuid
+    ) AS requested_version_import_batch_id,
     race_event.relrowsecurity AS race_event_rls,
     race_event.relforcerowsecurity AS race_event_force_rls,
     race_entry.relrowsecurity AS race_entry_rls,
@@ -51,9 +59,6 @@ const VERIFY_TARGET_SQL = `
       false
     ) AS runtime_is_neon_superuser_member
   FROM dna.import_batch batch
-  JOIN dna.dataset_version version
-    ON version.owner_id = batch.owner_id
-    AND version.import_batch_id = batch.id
   JOIN pg_catalog.pg_roles runtime_role
     ON runtime_role.rolname = session_user
   JOIN pg_catalog.pg_class race_event
@@ -64,7 +69,6 @@ const VERIFY_TARGET_SQL = `
     ON race_source.oid = 'dna.race_entry_source'::regclass
   WHERE batch.owner_id = dna.current_owner_id()
     AND batch.id = $1::uuid
-    AND version.id = $2::uuid
 `;
 
 const MATERIALIZE_BATCH_SQL = `
@@ -178,21 +182,33 @@ function requireRuntimeRole(value: string): string {
 function verifyTarget(input: {
   row: Readonly<Record<string, unknown>>;
   ownerId: string;
-  datasetVersionId: string;
+  importBatchId: string;
   runtimeRole: string;
+  summary: RaceBoundedMaterializationSummary;
 }): void {
-  const { row } = input;
+  const { row, summary } = input;
   if (
     requiredString(row.database_owner_id, "database_owner_id") !==
       input.ownerId ||
     requiredString(row.source_type, "source_type") !== "race_merge" ||
-    requiredString(row.dataset_version_id, "dataset_version_id") !==
-      input.datasetVersionId ||
-    row.rolled_back_at !== null
+    requiredString(row.import_batch_status, "import_batch_status") !==
+      "validating" ||
+    row.requested_version_import_batch_id !== null
   ) {
     throw new Error("Bounded Race materialization target is not eligible.");
   }
-  requiredString(row.import_batch_status, "import_batch_status");
+  if (
+    requiredCount(row.source_rows, "source_rows") !== summary.sourceRowCount ||
+    requiredCount(row.accepted_rows, "accepted_rows") !== summary.readyRowCount ||
+    requiredCount(row.rejected_rows, "rejected_rows") !==
+      summary.quarantinedRowCount ||
+    summary.readyRowCount + summary.quarantinedRowCount !==
+      summary.sourceRowCount ||
+    summary.acceptedNaturalKeyCount + summary.duplicateReadyRowCount !==
+      summary.readyRowCount
+  ) {
+    throw new Error("Bounded Race materialization manifest coverage changed.");
+  }
   if (
     !requiredBoolean(row.race_event_rls, "race_event_rls") ||
     !requiredBoolean(row.race_event_force_rls, "race_event_force_rls") ||
@@ -323,8 +339,9 @@ export function createNeonRaceBoundedMaterializationSink(input: {
             "bounded Race target",
           ),
           ownerId,
-          datasetVersionId,
+          importBatchId,
           runtimeRole,
+          summary,
         });
       } catch (error) {
         if (transactionOpen) {
