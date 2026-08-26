@@ -84,7 +84,9 @@ export async function prepareRacePreactivationArchiveAcceptance(input: {
           request.importBatchId !== importBatchId ||
           request.maximumPartitions !== maximumArchivePartitions
         ) {
-          throw new Error("Race preactivation evidence snapshot scope changed.");
+          throw new Error(
+            "Race preactivation evidence snapshot scope changed.",
+          );
         }
         return located;
       },
