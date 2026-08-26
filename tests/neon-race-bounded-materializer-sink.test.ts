@@ -76,8 +76,11 @@ function targetRow(overrides: Readonly<Record<string, unknown>> = {}) {
     database_owner_id: OWNER_ID,
     source_type: "race_merge",
     import_batch_status: "validating",
-    dataset_version_id: DATASET_VERSION_ID,
-    rolled_back_at: null,
+    source_rows: 1,
+    accepted_rows: 1,
+    rejected_rows: 0,
+    warning_rows: 0,
+    requested_version_import_batch_id: null,
     race_event_rls: true,
     race_event_force_rls: true,
     race_entry_rls: true,
@@ -95,13 +98,19 @@ function targetRow(overrides: Readonly<Record<string, unknown>> = {}) {
   };
 }
 
-function commit(): RaceBoundedMaterializationCommit {
+function summary() {
   return Object.freeze({
     sourceRowCount: 1,
     readyRowCount: 1,
     quarantinedRowCount: 0,
     acceptedNaturalKeyCount: 1,
     duplicateReadyRowCount: 0,
+  });
+}
+
+function commit(): RaceBoundedMaterializationCommit {
+  return Object.freeze({
+    ...summary(),
     materializationBatchCount: 1,
     materializedNaturalKeyCount: 1,
   });
@@ -148,13 +157,7 @@ function harness(target = targetRow()) {
 describe("Neon bounded Race materializer sink", () => {
   it("uses one owner-scoped serializable transaction for bounded writes", async () => {
     const target = harness();
-    const session = await target.sink.begin({
-      sourceRowCount: 1,
-      readyRowCount: 1,
-      quarantinedRowCount: 0,
-      acceptedNaturalKeyCount: 1,
-      duplicateReadyRowCount: 0,
-    });
+    const session = await target.sink.begin(summary());
 
     await session.writeBatch({
       batchNumber: 1,
@@ -186,18 +189,41 @@ describe("Neon bounded Race materializer sink", () => {
     expect(target.close).toHaveBeenCalledOnce();
   });
 
+  it("rejects a future dataset-version identity that is already in use", async () => {
+    const target = harness(
+      targetRow({ requested_version_import_batch_id: IMPORT_BATCH_ID }),
+    );
+
+    await expect(target.sink.begin(summary())).rejects.toThrow(
+      "target is not eligible",
+    );
+
+    expect(target.query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+    expect(target.close).toHaveBeenCalledOnce();
+  });
+
+  it("rejects changed import-manifest coverage before any bounded write", async () => {
+    const target = harness(targetRow({ accepted_rows: 2 }));
+
+    await expect(target.sink.begin(summary())).rejects.toThrow(
+      "manifest coverage changed",
+    );
+
+    expect(
+      target.query.mock.calls.some(([statement]) =>
+        String(statement).includes("dna.materialize_bounded_race_batch"),
+      ),
+    ).toBe(false);
+    expect(target.query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+    expect(target.close).toHaveBeenCalledOnce();
+  });
+
   it("rejects a privileged runtime before any bounded write", async () => {
     const target = harness(targetRow({ runtime_bypasses_rls: true }));
 
-    await expect(
-      target.sink.begin({
-        sourceRowCount: 1,
-        readyRowCount: 1,
-        quarantinedRowCount: 0,
-        acceptedNaturalKeyCount: 1,
-        duplicateReadyRowCount: 0,
-      }),
-    ).rejects.toThrow("runtime is not least privileged");
+    await expect(target.sink.begin(summary())).rejects.toThrow(
+      "runtime is not least privileged",
+    );
 
     expect(
       target.query.mock.calls.some(([statement]) =>
@@ -210,13 +236,7 @@ describe("Neon bounded Race materializer sink", () => {
 
   it("rolls back a materialization session without committing", async () => {
     const target = harness();
-    const session = await target.sink.begin({
-      sourceRowCount: 1,
-      readyRowCount: 1,
-      quarantinedRowCount: 0,
-      acceptedNaturalKeyCount: 1,
-      duplicateReadyRowCount: 0,
-    });
+    const session = await target.sink.begin(summary());
 
     await session.writeBatch({
       batchNumber: 1,
