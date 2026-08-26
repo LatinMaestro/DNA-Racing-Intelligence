@@ -199,7 +199,8 @@ function verifyTarget(input: {
   }
   if (
     requiredCount(row.source_rows, "source_rows") !== summary.sourceRowCount ||
-    requiredCount(row.accepted_rows, "accepted_rows") !== summary.readyRowCount ||
+    requiredCount(row.accepted_rows, "accepted_rows") !==
+      summary.readyRowCount ||
     requiredCount(row.rejected_rows, "rejected_rows") !==
       summary.quarantinedRowCount ||
     summary.readyRowCount + summary.quarantinedRowCount !==
