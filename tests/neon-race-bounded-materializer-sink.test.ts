@@ -6,8 +6,12 @@ import {
   createNeonRaceBoundedMaterializationSink,
   type NeonRaceBoundedMaterializationClient,
 } from "../lib/neon-race-bounded-materializer-sink";
-import type { RaceBoundedMaterializationCommit } from "../lib/race-bounded-materializer";
-import type { RacePreactivationMaterializationRecord } from "../lib/race-preactivation-materialization-spool";
+import type {
+  RaceBoundedMaterializationCommit,
+} from "../lib/race-bounded-materializer";
+import type {
+  RacePreactivationMaterializationRecord,
+} from "../lib/race-preactivation-materialization-spool";
 
 const OWNER_ID = "11111111-1111-4111-8111-111111111111";
 const IMPORT_BATCH_ID = "22222222-2222-4222-8222-222222222222";
@@ -152,7 +156,10 @@ describe("Neon bounded Race materializer sink", () => {
       duplicateReadyRowCount: 0,
     });
 
-    await session.writeBatch({ batchNumber: 1, records: [materializationRecord()] });
+    await session.writeBatch({
+      batchNumber: 1,
+      records: [materializationRecord()],
+    });
     await session.commit(commit());
 
     expect(target.query.mock.calls[0]?.[0]).toBe(
@@ -211,7 +218,10 @@ describe("Neon bounded Race materializer sink", () => {
       duplicateReadyRowCount: 0,
     });
 
-    await session.writeBatch({ batchNumber: 1, records: [materializationRecord()] });
+    await session.writeBatch({
+      batchNumber: 1,
+      records: [materializationRecord()],
+    });
     await session.rollback({ reason: "materialization_failed" });
 
     expect(target.query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
