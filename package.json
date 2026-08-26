@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/race-archive-acceptance-stream.ts tests/race-archive-acceptance-stream.test.ts && git diff -- lib/race-archive-acceptance-stream.ts tests/race-archive-acceptance-stream.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
