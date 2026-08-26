@@ -268,7 +268,9 @@ describe("Race preactivation materialization spool", () => {
         acceptance: source.stream,
         store: storage.store,
       }),
-    ).rejects.toThrow("maximumMaterializationBatchRecords is outside its bound");
+    ).rejects.toThrow(
+      "maximumMaterializationBatchRecords is outside its bound",
+    );
     expect(storage.runs.size).toBe(0);
   });
 });
