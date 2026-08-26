@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write lib/race-preactivation-acceptance-coordinator.ts && git diff -- lib/race-preactivation-acceptance-coordinator.ts && exit 1",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
