@@ -46,18 +46,6 @@ INSERT INTO dna.dataset_evidence_object (
   '2026-08-26T00:01:30Z'
 );
 
-INSERT INTO dna.dataset_version_evidence_receipt (
-  owner_id, dataset_version_id, import_batch_id, source_type,
-  evidence_kind, evidence_partition_count, evidence_row_count,
-  evidence_byte_size, sealed_at
-) VALUES (
-  '67000000-0000-4000-8000-000000000001',
-  '67000000-0000-4000-8000-000000000020',
-  '67000000-0000-4000-8000-000000000010',
-  'race_merge', 'staged_rows', 1, 2, 256,
-  '2026-08-26T00:05:00Z'
-);
-
 INSERT INTO dna.dataset_evidence_compaction_receipt (
   owner_id, import_batch_id, source_type, source_row_count,
   evidence_row_count, deleted_staged_record_count,
@@ -103,6 +91,34 @@ INSERT INTO dna.aggregate_refresh_processing (
   ),
   '2026-08-26T00:03:00Z', '2099-08-26T00:03:00Z'
 );
+
+DO $prepare_prepublication_evidence$
+DECLARE
+  v_source_hash character(64);
+  v_result record;
+BEGIN
+  v_source_hash := dna.active_pro_league_source_version_set_sha256(
+    '67000000-0000-4000-8000-000000000001'
+  );
+
+  SELECT * INTO STRICT v_result
+  FROM dna.prepare_race_archive_prepublication_evidence(
+    '67000000-0000-4000-8000-000000000001',
+    '67000000-0000-4000-8000-000000000030',
+    '67000000-0000-4000-8000-000000000020',
+    v_source_hash,
+    '67000000-0000-4000-8000-000000000020',
+    '2026-08-26T00:04:00Z'
+  );
+
+  IF v_result.status NOT IN ('prepared', 'existing')
+     OR v_result.evidence_partition_count <> 1
+     OR v_result.evidence_row_count <> 2
+     OR v_result.evidence_byte_size <> 256 THEN
+    RAISE EXCEPTION 'Race archive pre-publication evidence fixture is invalid';
+  END IF;
+END
+$prepare_prepublication_evidence$;
 
 INSERT INTO dna.core_performance_profile (
   owner_id, source_core_id, mode, distance, data_current_through, race_count,
@@ -171,6 +187,37 @@ INSERT INTO dna.race_archive_aggregate_publication_receipt (
   repeat('c',64), 1, 0, 1, 1, 2, 1, 4,
   '2026-08-26T00:05:00Z', '2026-08-26T00:05:00Z'
 );
+
+DO $seal_published_archive_evidence$
+DECLARE
+  v_result record;
+BEGIN
+  SELECT * INTO STRICT v_result
+  FROM dna.seal_dataset_version_evidence(
+    '67000000-0000-4000-8000-000000000001',
+    '67000000-0000-4000-8000-000000000020',
+    '2026-08-26T00:05:00Z'
+  );
+
+  IF v_result.status NOT IN ('sealed', 'existing')
+     OR v_result.evidence_kind <> 'staged_rows'
+     OR v_result.evidence_partition_count <> 1
+     OR v_result.evidence_row_count <> 2
+     OR v_result.evidence_byte_size <> 256 THEN
+    RAISE EXCEPTION 'Race archive final evidence sealing fixture is invalid';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM dna.race_archive_prepublication_evidence_receipt receipt
+    WHERE receipt.owner_id = '67000000-0000-4000-8000-000000000001'
+      AND receipt.dataset_version_id = '67000000-0000-4000-8000-000000000020'
+      AND receipt.final_receipt_required
+  ) THEN
+    RAISE EXCEPTION 'Race archive pre-publication receipt was not finalized';
+  END IF;
+END
+$seal_published_archive_evidence$;
 
 INSERT INTO dna.race_event (
   id, owner_id, source_event_id, event_at, mode, distance, gate_count,
