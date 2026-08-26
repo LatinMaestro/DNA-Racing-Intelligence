@@ -93,7 +93,9 @@ function validateMergedObservation(
 function childRunPrefix(root: string, suffix: string): string {
   const value = `${root}/${suffix}`;
   if (value.length > 256) {
-    throw new Error("runPrefix is too long for hierarchical Race archive spill");
+    throw new Error(
+      "runPrefix is too long for hierarchical Race archive spill",
+    );
   }
   return value;
 }
