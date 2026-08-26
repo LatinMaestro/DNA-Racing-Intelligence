@@ -136,7 +136,8 @@ function count(value: unknown, field: string): number {
 
 function uuid(value: string, field: string): string {
   const normalized = value.trim().toLowerCase();
-  if (!UUID_PATTERN.test(normalized)) throw new Error(`${field} must be a UUID`);
+  if (!UUID_PATTERN.test(normalized))
+    throw new Error(`${field} must be a UUID`);
   return normalized;
 }
 
@@ -169,9 +170,11 @@ function timestamp(value: unknown): string {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value.toISOString();
   }
-  if (typeof value !== "string") throw new Error("created_at must be a timestamp");
+  if (typeof value !== "string")
+    throw new Error("created_at must be a timestamp");
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) throw new Error("created_at must be a timestamp");
+  if (Number.isNaN(parsed.getTime()))
+    throw new Error("created_at must be a timestamp");
   return parsed.toISOString();
 }
 
@@ -191,7 +194,8 @@ function configuration(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const runtimeRole = input.runtimeRole.trim();
   if (!databaseUrl) throw new Error("databaseUrl is required");
-  if (!ROLE_PATTERN.test(runtimeRole)) throw new Error("runtimeRole is invalid");
+  if (!ROLE_PATTERN.test(runtimeRole))
+    throw new Error("runtimeRole is invalid");
   return { databaseUrl, databaseOwnerId, runtimeRole };
 }
 
@@ -205,7 +209,8 @@ function verifyIsolation(
 ): void {
   const row = oneRow(result, "Race preactivation evidence isolation");
   if (
-    text(row.database_owner_id, "database_owner_id") !== input.databaseOwnerId ||
+    text(row.database_owner_id, "database_owner_id") !==
+      input.databaseOwnerId ||
     text(row.authenticated_owner_id, "authenticated_owner_id") !== input.ownerId
   ) {
     throw new Error("Race preactivation evidence owner scope denied.");
@@ -223,7 +228,9 @@ function verifyIsolation(
     !bool(row.runtime_can_read_receipts, "runtime_can_read_receipts") ||
     !bool(row.runtime_can_read_manifest, "runtime_can_read_manifest")
   ) {
-    throw new Error("Race preactivation evidence runtime privilege is incomplete.");
+    throw new Error(
+      "Race preactivation evidence runtime privilege is incomplete.",
+    );
   }
   if (
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
@@ -232,9 +239,14 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
-    bool(row.runtime_is_neon_superuser_member, "runtime_is_neon_superuser_member")
+    bool(
+      row.runtime_is_neon_superuser_member,
+      "runtime_is_neon_superuser_member",
+    )
   ) {
-    throw new Error("Race preactivation evidence runtime role is not least privileged.");
+    throw new Error(
+      "Race preactivation evidence runtime role is not least privileged.",
+    );
   }
 }
 
@@ -246,7 +258,9 @@ function normalizeManifest(input: {
 }): RacePreactivationEvidenceManifest | null {
   if (input.rows.length === 0) return null;
   if (input.rows.length > input.maximumPartitions) {
-    throw new Error("Race preactivation partition count exceeds the read bound.");
+    throw new Error(
+      "Race preactivation partition count exceeds the read bound.",
+    );
   }
 
   const first = record(input.rows[0], "Race preactivation manifest");
@@ -258,8 +272,14 @@ function normalizeManifest(input: {
     throw new Error("Race preactivation import batch identity changed.");
   }
   const sourceRowCount = count(first.source_row_count, "source_row_count");
-  const acceptedRowCount = count(first.accepted_row_count, "accepted_row_count");
-  const rejectedRowCount = count(first.rejected_row_count, "rejected_row_count");
+  const acceptedRowCount = count(
+    first.accepted_row_count,
+    "accepted_row_count",
+  );
+  const rejectedRowCount = count(
+    first.rejected_row_count,
+    "rejected_row_count",
+  );
   const warningRowCount = count(first.warning_row_count, "warning_row_count");
   const partitionCount = count(first.partition_count, "partition_count");
   const byteSize = count(first.evidence_byte_size, "evidence_byte_size");
@@ -283,8 +303,10 @@ function normalizeManifest(input: {
       uuid(text(row.import_batch_id, "import_batch_id"), "import_batch_id") !==
         importBatchId ||
       count(row.source_row_count, "source_row_count") !== sourceRowCount ||
-      count(row.accepted_row_count, "accepted_row_count") !== acceptedRowCount ||
-      count(row.rejected_row_count, "rejected_row_count") !== rejectedRowCount ||
+      count(row.accepted_row_count, "accepted_row_count") !==
+        acceptedRowCount ||
+      count(row.rejected_row_count, "rejected_row_count") !==
+        rejectedRowCount ||
       count(row.warning_row_count, "warning_row_count") !== warningRowCount ||
       count(row.partition_count, "partition_count") !== partitionCount ||
       count(row.evidence_byte_size, "evidence_byte_size") !== byteSize
@@ -310,10 +332,16 @@ function normalizeManifest(input: {
     }
     observedRows += rowCount;
     observedBytes += objectByteSize;
-    if (!Number.isSafeInteger(observedRows) || !Number.isSafeInteger(observedBytes)) {
+    if (
+      !Number.isSafeInteger(observedRows) ||
+      !Number.isSafeInteger(observedBytes)
+    ) {
       throw new Error("Race preactivation evidence totals are unsafe.");
     }
-    const firstNaturalKey = naturalKey(row.first_natural_key, "first_natural_key");
+    const firstNaturalKey = naturalKey(
+      row.first_natural_key,
+      "first_natural_key",
+    );
     const lastNaturalKey = naturalKey(row.last_natural_key, "last_natural_key");
     if ((firstNaturalKey === null) !== (lastNaturalKey === null)) {
       throw new Error("Race preactivation natural-key range is incomplete.");
@@ -336,7 +364,9 @@ function normalizeManifest(input: {
   });
 
   if (observedRows !== sourceRowCount || observedBytes !== byteSize) {
-    throw new Error("Race preactivation evidence coverage conflicts with its manifest.");
+    throw new Error(
+      "Race preactivation evidence coverage conflicts with its manifest.",
+    );
   }
 
   return Object.freeze({
@@ -369,9 +399,13 @@ export function createNeonRacePreactivationEvidenceManifestRepository(input: {
       const session = await sessionFactory(config.databaseUrl);
       let begun = false;
       try {
-        await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+        await session.client.query(
+          "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY",
+        );
         begun = true;
-        await session.client.query(SET_OWNER_SCOPE_SQL, [config.databaseOwnerId]);
+        await session.client.query(SET_OWNER_SCOPE_SQL, [
+          config.databaseOwnerId,
+        ]);
         verifyIsolation(
           await session.client.query(VERIFY_ISOLATION_SQL, [
             config.databaseOwnerId,
@@ -396,7 +430,8 @@ export function createNeonRacePreactivationEvidenceManifestRepository(input: {
           ? Object.freeze({ status: "missing" as const })
           : Object.freeze({ status: "ready" as const, manifest });
       } catch (error) {
-        if (begun) await session.client.query("ROLLBACK").catch(() => undefined);
+        if (begun)
+          await session.client.query("ROLLBACK").catch(() => undefined);
         throw error;
       } finally {
         await session.close();
