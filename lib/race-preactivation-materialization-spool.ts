@@ -62,7 +62,9 @@ function validateMaterializationRecord(
     value.canonicalRow.naturalKey !== naturalKey ||
     value.canonicalRow.fingerprintSha256 !== fingerprintSha256
   ) {
-    throw new Error("Race preactivation materialization record is inconsistent.");
+    throw new Error(
+      "Race preactivation materialization record is inconsistent.",
+    );
   }
   return value;
 }
@@ -121,7 +123,9 @@ export async function prepareRacePreactivationMaterializationSpool(input: {
         !Number.isSafeInteger(acceptedNaturalKeyCount) ||
         !Number.isSafeInteger(duplicateReadyRowCount)
       ) {
-        throw new Error("Race preactivation materialization totals are unsafe.");
+        throw new Error(
+          "Race preactivation materialization totals are unsafe.",
+        );
       }
       yield acceptedRecord(group);
     }
