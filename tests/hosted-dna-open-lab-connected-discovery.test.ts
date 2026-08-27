@@ -53,7 +53,9 @@ function safeLaneId(value: string): SafeLaneId {
   if (value === "key-1" || value === "key-2" || value === "key-3") {
     return value;
   }
-  throw new Error("DNA Open Lab connected discovery selected an unsafe lane id");
+  throw new Error(
+    "DNA Open Lab connected discovery selected an unsafe lane id",
+  );
 }
 
 function boundedShapeValue(value: unknown): unknown {
@@ -88,11 +90,15 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
       ] as const;
       for (const key of apiKeys) {
         if (!API_KEY_PATTERN.test(key)) {
-          throw new Error("DNA Open Lab connected discovery key shape is invalid");
+          throw new Error(
+            "DNA Open Lab connected discovery key shape is invalid",
+          );
         }
       }
       if (new Set(apiKeys).size !== apiKeys.length) {
-        throw new Error("DNA Open Lab connected discovery requires three distinct keys");
+        throw new Error(
+          "DNA Open Lab connected discovery requires three distinct keys",
+        );
       }
       const vault = requiredEnvironment("DNA_OPEN_LAB_VAULT");
       if (vault.length > 512 || /[\u0000-\u001f\u007f]/u.test(vault)) {
@@ -102,7 +108,9 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         "DNA_OPEN_LAB_SPLICE_REQUEST_ID",
       );
 
-      const clients = apiKeys.map((apiKey) => createDnaOpenLabV1Client({ apiKey }));
+      const clients = apiKeys.map((apiKey) =>
+        createDnaOpenLabV1Client({ apiKey }),
+      );
       const telemetryClients = apiKeys.map((apiKey) =>
         createDnaOpenLabV1TelemetryClient({ apiKey }),
       );
@@ -190,7 +198,9 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
             }),
           );
           if (selectedLane === null) {
-            throw new Error("DNA Open Lab connected discovery did not select a lane");
+            throw new Error(
+              "DNA Open Lab connected discovery did not select a lane",
+            );
           }
           evidence.push(
             Object.freeze({
@@ -304,7 +314,9 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         .filter((hid) => Number.isSafeInteger(hid) && hid > 0)
         .slice(0, 5);
       if (sampleCoreIds.length < 1) {
-        throw new Error("DNA Open Lab connected discovery found no owned Core ids");
+        throw new Error(
+          "DNA Open Lab connected discovery found no owned Core ids",
+        );
       }
       const sampleCoreId = sampleCoreIds[0]!;
 
@@ -419,7 +431,8 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         endpoint: "cores.telemetry_benchmark",
         scope: "cores",
         laneId: "key-3",
-        request: () => telemetryClients[2]!.coreTelemetryBenchmark(sampleCoreId),
+        request: () =>
+          telemetryClients[2]!.coreTelemetryBenchmark(sampleCoreId),
       });
 
       const activeRaces = await poolProbe({
@@ -477,20 +490,24 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         endpoint: "splice.arena",
         scope: "splice",
         request: (client) =>
-          client.spliceArena({ filter: { rvmode: "bike", use_powerstats: true } }),
+          client.spliceArena({
+            filter: { rvmode: "bike", use_powerstats: true },
+          }),
         required: true,
       });
 
       const ownedCores: readonly DnaVaultCore[] = vaultCoresFull ?? [];
-      const father = [
-        ...ownedCores,
-        ...(arena ?? []),
-      ].find((core) => core.gender.toLowerCase() === "male");
-      const mother = [
-        ...ownedCores,
-        ...(arena ?? []),
-      ].find((core) => core.gender.toLowerCase() === "female");
-      if (father !== undefined && mother !== undefined && father.hid !== mother.hid) {
+      const father = [...ownedCores, ...(arena ?? [])].find(
+        (core) => core.gender.toLowerCase() === "male",
+      );
+      const mother = [...ownedCores, ...(arena ?? [])].find(
+        (core) => core.gender.toLowerCase() === "female",
+      );
+      if (
+        father !== undefined &&
+        mother !== undefined &&
+        father.hid !== mother.hid
+      ) {
         await poolProbe({
           endpoint: "splice.pair_info",
           scope: "splice",
@@ -543,7 +560,8 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
       const serialized = JSON.stringify(safeOutput);
       for (const key of apiKeys) expect(serialized).not.toContain(key);
       expect(serialized).not.toContain(vault);
-      for (const hid of sampleCoreIds) expect(serialized).not.toContain(String(hid));
+      for (const hid of sampleCoreIds)
+        expect(serialized).not.toContain(String(hid));
       expect(evidence.length).toBeGreaterThan(20);
       expect(
         evidence.filter((entry) => entry.outcome === "success").length,
