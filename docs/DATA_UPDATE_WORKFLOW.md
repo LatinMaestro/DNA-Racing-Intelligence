@@ -28,14 +28,14 @@ A partial cycle cannot replace the previous last-good dataset.
 
 ## Source-family plans
 
-| Family | Normal API behavior | Publication behavior |
-| --- | --- | --- |
-| Vault/ownership | bounded current ownership/info refresh | publish only after the family refresh validates; local strategy state is never overwritten |
-| Cores | bounded identity/current supplemental-family refresh | timestamp current observations separately from historical analytics |
-| Finished races | adaptive time-window crawl plus <=20 race-document hydration batches | backfill is checkpointed and idempotent; a saturated 200-result window is recursively split |
-| Active races/fills | short-current-window refresh using documented bounded endpoints | used for read-only opportunities/field intelligence; stale state remains clearly labelled |
-| Splice Arena/pairs | current Arena plus official pair-info/validation reads | never performs a splice; local breeding shortlist remains separate |
-| Tokens | bounded current/reference refresh | reference/current display only; not historical valuation |
+| Family             | Normal API behavior                                                  | Publication behavior                                                                        |
+| ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Vault/ownership    | bounded current ownership/info refresh                               | publish only after the family refresh validates; local strategy state is never overwritten  |
+| Cores              | bounded identity/current supplemental-family refresh                 | timestamp current observations separately from historical analytics                         |
+| Finished races     | adaptive time-window crawl plus <=20 race-document hydration batches | backfill is checkpointed and idempotent; a saturated 200-result window is recursively split |
+| Active races/fills | short-current-window refresh using documented bounded endpoints      | used for read-only opportunities/field intelligence; stale state remains clearly labelled   |
+| Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                          |
+| Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                    |
 
 ## Tier-1-safe scheduling
 
