@@ -88,9 +88,9 @@ describe("DNA Open Lab race document hydrator", () => {
     expect(requestCount).toBe(3);
     expect(result.batchCount).toBe(3);
     expect(result.requestedRaceCount).toBe(45);
-    expect(result.documents.map((entry) => entry.canonical.sourceRaceId)).toEqual(
-      raceIds.map(String),
-    );
+    expect(
+      result.documents.map((entry) => entry.canonical.sourceRaceId),
+    ).toEqual(raceIds.map(String));
     expect(result.documents[0]).toMatchObject({
       source: "dna_open_lab",
       sourceVersion: "v1",
