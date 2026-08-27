@@ -41,7 +41,9 @@ describe("DNA Open Lab current-state sync plan", () => {
       spliceModes: [],
     });
 
-    const coreRequests = plan.hydrate.filter((entry) => entry.scope === "cores");
+    const coreRequests = plan.hydrate.filter(
+      (entry) => entry.scope === "cores",
+    );
     expect(coreRequests).toHaveLength(24);
     expect(coreRequests.slice(0, 8).map((entry) => entry.endpoint)).toEqual([
       "cores.info_bulk",
@@ -68,7 +70,10 @@ describe("DNA Open Lab current-state sync plan", () => {
   it("hydrates active race fills in batches of at most twenty", () => {
     const plan = createDnaCurrentStateSyncPlan({
       vault: "owner-vault",
-      activeRaceIds: Array.from({ length: 41 }, (_, index) => `race-${index + 1}`),
+      activeRaceIds: Array.from(
+        { length: 41 },
+        (_, index) => `race-${index + 1}`,
+      ),
       spliceModes: [],
     });
 
@@ -76,8 +81,12 @@ describe("DNA Open Lab current-state sync plan", () => {
       (entry) => entry.endpoint === "races.fills",
     );
     expect(fillRequests).toHaveLength(3);
-    expect((fillRequests[0]?.payload.rids as readonly string[]).length).toBe(20);
-    expect((fillRequests[1]?.payload.rids as readonly string[]).length).toBe(20);
+    expect((fillRequests[0]?.payload.rids as readonly string[]).length).toBe(
+      20,
+    );
+    expect((fillRequests[1]?.payload.rids as readonly string[]).length).toBe(
+      20,
+    );
     expect(fillRequests[2]?.payload.rids).toEqual(["race-41"]);
   });
 
@@ -98,11 +107,12 @@ describe("DNA Open Lab current-state sync plan", () => {
       plan.bootstrap.filter((entry) => entry.endpoint === "splice.arena"),
     ).toHaveLength(1);
     expect(
-      plan.hydrate.find((entry) => entry.endpoint === "cores.info_bulk")?.payload
-        .hids,
+      plan.hydrate.find((entry) => entry.endpoint === "cores.info_bulk")
+        ?.payload.hids,
     ).toEqual([9, 10]);
     expect(
-      plan.hydrate.find((entry) => entry.endpoint === "races.fills")?.payload.rids,
+      plan.hydrate.find((entry) => entry.endpoint === "races.fills")?.payload
+        .rids,
     ).toEqual([1, 2]);
     expect(
       plan.hydrate.filter((entry) => entry.endpoint.startsWith("splice.pair_")),
