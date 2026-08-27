@@ -6,6 +6,7 @@ This record contains only redacted structural evidence from the read-only DNA Op
 
 - first successful contract run: [`33078637484`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33078637484) at `4e2f958f6a406183b36f1e69294ed18733a10d0e`
 - independent-counter proof run: [`33079595784`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33079595784) at `d381ed2e8bb8f7b85aa24a11a79638c8f00cdc5d`
+- bounded follow-up run: [`33088733045`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33088733045) at `a2352494e307af955d0a4b59a3f873880f9fed00`
 - observed on: 27 August 2026
 - evidence format: endpoint/outcome, HTTP status, bounded rate metadata, root kind, path/type summary and SHA-256 shape fingerprint
 - persistence: none; the run wrote no API data and uploaded no artifact
@@ -26,17 +27,35 @@ The equal clean starting counters followed by one decrement on each individual l
 
 The observed Tier Badge payload exposed only `vault` and `tot_score`; it did not expose a tier-level or rate-entitlement field. The 150-per-key allowance therefore cannot be attributed specifically to being above TierBadge level 4 from this evidence alone.
 
+## Bounded history and semantic-error follow-up
+
+The follow-up run made 66 read-only probes under the same 30 requests/minute combined gate: 42 succeeded, 22 returned valid API-error envelopes, two optional Splice document calls remained unprobed and none was rate limited.
+
+Five finished-race windows were accepted and returned records whose `start_time` values fell inside the requested bands:
+
+| Window age    | Request bound | Redacted result class | Timestamp check |
+| ------------- | ------------- | --------------------- | --------------- |
+| 0–7 days      | 200           | at request limit      | verified        |
+| 30–90 days    | 1             | at request limit      | verified        |
+| 90–365 days   | 1             | at request limit      | verified        |
+| 365–730 days  | 1             | at request limit      | verified        |
+| 730–1095 days | 1             | at request limit      | verified        |
+
+This proves bounded finished-race availability at least into the two-to-three-year band. It does not prove complete counts for any band: the recent request saturated at 200, and the older probes deliberately requested only one record. The adaptive split/deduplication crawler remains required for complete backfill.
+
+Ten distinct bounded telemetry-benchmark candidates and twelve diversified Splice-pair candidates each returned a valid HTTP-200 API-error envelope. Single and bulk telemetry endpoints still succeeded. The benchmark and pair-validation observations are therefore semantic/provider rejections rather than malformed transport contracts. Telemetry benchmark is classified as optional/unavailable for the observed sample and must not block normal Core sync. A successful currently valid `pair_validate` example remains open before official pair viability can be promoted.
+
 ## Endpoint-family observations
 
-| Family         | Successful observations                                                                                  | Other observations                                                                    | Root contracts established                          |
-| -------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Authentication | six paired calls                                                                                         | none                                                                                  | object with scopes and nested rate metadata         |
-| Vault          | info, bulk info, search, Core IDs/full Cores, tier badge, recent races                                   | none                                                                                  | objects, keyed bulk object and arrays               |
-| Core           | info, racing stats, power, listing, assets, owner, stamina and splicing; all corresponding bulk families | telemetry benchmark returned an API-error envelope                                    | single objects and bulk arrays                      |
-| Telemetry      | single and bulk                                                                                          | benchmark returned an API-error envelope                                              | object and array with mode/career statistic groups  |
-| Races          | active, finished, documents and fills                                                                    | none                                                                                  | arrays; race IDs observed as strings in this sample |
-| Tokens         | current prices                                                                                           | none                                                                                  | object of numeric current/reference prices          |
-| Splice         | Arena and pair info                                                                                      | pair validation returned an API-error envelope; optional document GET/POST not probed | paginated Arena object and nested pair-info object  |
+| Family         | Successful observations                                                                                  | Other observations                                                                                   | Root contracts established                          |
+| -------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Authentication | six paired calls                                                                                         | none                                                                                                 | object with scopes and nested rate metadata         |
+| Vault          | info, bulk info, search, Core IDs/full Cores, tier badge, recent races                                   | none                                                                                                 | objects, keyed bulk object and arrays               |
+| Core           | info, racing stats, power, listing, assets, owner, stamina and splicing; all corresponding bulk families | ten telemetry-benchmark candidates returned semantic API-error envelopes                             | single objects and bulk arrays                      |
+| Telemetry      | single and bulk                                                                                          | benchmark returned an API-error envelope                                                             | object and array with mode/career statistic groups  |
+| Races          | active, finished, documents and fills                                                                    | none                                                                                                 | arrays; race IDs observed as strings in this sample |
+| Tokens         | current prices                                                                                           | none                                                                                                 | object of numeric current/reference prices          |
+| Splice         | Arena and pair info                                                                                      | twelve pair validations returned semantic API-error envelopes; optional document GET/POST not probed | paginated Arena object and nested pair-info object  |
 
 The two API-error observations were valid, redacted API envelopes over HTTP 200. They do not prove endpoint unavailability: telemetry benchmark can be sample/data dependent, while pair validation can reject the selected pair. The optional Splice document calls require a real read-only request ID and were intentionally skipped because none was configured.
 
@@ -53,17 +72,17 @@ The two API-error observations were valid, redacted API envelopes over HTTP 200.
 
 ## Source-authority matrix
 
-| Canonical fact family                 | Current class         | Reason                                              | Required before promotion                                                      |
-| ------------------------------------- | --------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Current ownership                     | API supplements       | Vault/Core ownership shapes succeeded               | compare representative API ownership to retained current/reference evidence    |
-| Historical race metadata              | API supplements       | active/finished/document/fill shapes succeeded      | compare IDs, entrants, mode, gates, stars and economics; prove history depth   |
-| Historical race outcomes/performance  | CSV-only fallback     | no direct elapsed/position/distance fields observed | retain Race Merge unless another authoritative API result contract is proven   |
-| Core identity and lineage             | API supplements       | identity and splicing shapes succeeded              | compare durable identity and representative non-null lineage to Core Details   |
-| Current Arena and Splice              | API supplements       | paginated Arena and pair info succeeded             | compare current Arena membership and obtain a successful valid-pair validation |
-| Current Core operational state        | API supplements       | power/stamina/assets/listing/stats shapes succeeded | keep timestamped and establish predictive use separately                       |
-| Current token prices                  | API supplements       | numeric current price object succeeded              | current/reference display only; no historical substitution                     |
-| Historical dated valuation            | CSV-only fallback     | no historical price endpoint was observed           | retain dated evidence unless an authoritative historical source appears        |
-| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts       | never overwritten by API reconciliation                                        |
+| Canonical fact family                 | Current class         | Reason                                                                                    | Required before promotion                                                      |
+| ------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Current ownership                     | API supplements       | Vault/Core ownership shapes succeeded                                                     | compare representative API ownership to retained current/reference evidence    |
+| Historical race metadata              | API supplements       | active/finished/document/fill shapes and two-to-three-year bounded availability succeeded | compare IDs, entrants, mode, gates, stars and economics; prove private values  |
+| Historical race outcomes/performance  | CSV-only fallback     | no direct elapsed/position/distance fields observed                                       | retain Race Merge unless another authoritative API result contract is proven   |
+| Core identity and lineage             | API supplements       | identity and splicing shapes succeeded                                                    | compare durable identity and representative non-null lineage to Core Details   |
+| Current Arena and Splice              | API supplements       | paginated Arena and pair info succeeded                                                   | compare current Arena membership and obtain a successful valid-pair validation |
+| Current Core operational state        | API supplements       | power/stamina/assets/listing/stats shapes succeeded                                       | keep timestamped and establish predictive use separately                       |
+| Current token prices                  | API supplements       | numeric current price object succeeded                                                    | current/reference display only; no historical substitution                     |
+| Historical dated valuation            | CSV-only fallback     | no historical price endpoint was observed                                                 | retain dated evidence unless an authoritative historical source appears        |
+| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts                                             | never overwritten by API reconciliation                                        |
 
 No family is yet classified as `API supersedes`.
 
@@ -72,10 +91,9 @@ No family is yet classified as `API supersedes`.
 P3 is not complete until the following are resolved privately without committing source values:
 
 1. Run representative API-vs-known-CSV equivalence for race, Core, ownership and economics values.
-2. Prove bounded historical depth/window behavior and determine whether another authoritative endpoint supplies elapsed time, position and distance; the observed finished/document contract did not.
-3. Exercise `pair_validate` with a currently valid pair and distinguish semantic rejection from contract failure.
-4. Exercise telemetry benchmark with a compatible sample, or formally classify its data-dependent error behavior.
-5. Optionally inspect Splice document GET/POST only if the owner supplies a safe existing request ID through the repository secret.
+2. Determine whether another authoritative endpoint supplies elapsed time, position and distance; the observed finished/document contract still does not.
+3. Exercise `pair_validate` with a currently valid pair; twelve diversified candidates were semantically rejected without a transport failure.
+4. Optionally inspect Splice document GET/POST only if the owner supplies a safe existing request ID through the repository secret.
 
 The equivalence harness now has a count-only redaction boundary for connected evidence. It rejects duplicate entity reports and inconsistent field contracts, and it cannot emit entity keys, paths, filenames, checksums or source values. This is safety infrastructure only; it does not count as value-equivalence evidence until representative private CSV rows are supplied to the ephemeral comparison boundary.
 

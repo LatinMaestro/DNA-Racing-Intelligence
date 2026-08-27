@@ -2,9 +2,6 @@ name: DNA Open Lab connected discovery
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - codex/p3-connected-followup
 
 permissions:
   contents: read
