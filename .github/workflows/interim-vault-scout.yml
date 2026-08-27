@@ -1,0 +1,127 @@
+name: Interim Pro League vault scout
+
+on:
+  push:
+    branches:
+      - codex/pro-league-map-authority
+    paths:
+      - .github/workflows/interim-vault-scout.yml
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_API_KEY: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Read-only Vault scout
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://api.dnaracing.run/fbike/pub/v1';
+          const apiKey = process.env.DNA_API_KEY;
+          const vault = process.env.DNA_VAULT;
+          if (!apiKey || !vault) throw new Error('Required DNA Open Lab secrets are unavailable');
+
+          async function request(path, method='GET', body) {
+            const response = await fetch(`${base}${path}`, {
+              method,
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                Accept: 'application/json',
+                ...(body === undefined ? {} : {'Content-Type':'application/json'}),
+              },
+              ...(body === undefined ? {} : {body: JSON.stringify(body)}),
+            });
+            const payload = await response.json();
+            if (!response.ok || payload?.status !== 'success') {
+              throw new Error(`Open Lab request failed (${response.status}) at ${path}: ${payload?.err ?? 'unknown error'}`);
+            }
+            return payload.result;
+          }
+
+          function chunks(values, size=20) {
+            const out=[];
+            for (let i=0;i<values.length;i+=size) out.push(values.slice(i,i+size));
+            return out;
+          }
+
+          function finiteNumber(value) {
+            if (typeof value === 'number' && Number.isFinite(value)) return value;
+            if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
+            return null;
+          }
+
+          function flattenNumbers(value, prefix='', out={}) {
+            if (out && Object.keys(out).length >= 80) return out;
+            const n = finiteNumber(value);
+            if (n !== null) {
+              if (prefix) out[prefix]=n;
+              return out;
+            }
+            if (Array.isArray(value)) {
+              value.slice(0,20).forEach((item,index)=>flattenNumbers(item, `${prefix}[${index}]`, out));
+              return out;
+            }
+            if (value && typeof value === 'object') {
+              Object.entries(value).slice(0,80).forEach(([key,item])=>flattenNumbers(item, prefix ? `${prefix}.${key}` : key, out));
+            }
+            return out;
+          }
+
+          const cores = await request(`/vault/${encodeURIComponent(vault)}/cores_full`);
+          const hids = cores.map((c)=>c.hid);
+          const powerRows=[];
+          const statRows=[];
+          for (const batch of chunks(hids,20)) {
+            powerRows.push(...await request('/cores/power_bulk','POST',{hids:batch}));
+            statRows.push(...await request('/cores/racing_stats_bulk','POST',{hids:batch}));
+          }
+
+          const powerById=new Map(powerRows.map((row)=>[row.hid,row]));
+          const statsById=new Map(statRows.map((row)=>[row.hid,row]));
+          const summaries=cores.map((core)=>{
+            const p=powerById.get(core.hid) ?? {};
+            const s=statsById.get(core.hid) ?? {};
+            const bike=p?.power?.bike ?? {};
+            return {
+              hid: core.hid,
+              name: core.name,
+              type: core.type,
+              element: core.element,
+              gender: core.gender,
+              fno: core.fno,
+              bike: {
+                power: bike.power ?? null,
+                adjodds: bike.adjodds ?? null,
+                variance: bike.variance ?? null,
+                races_n: bike.races_n ?? null,
+              },
+              maiden: s.is_maiden ?? null,
+              bikeStatsNumbers: flattenNumbers(s.hstats_bike),
+              ageingNumbers: flattenNumbers(s.ageing),
+              tournamentNumbers: flattenNumbers(s.tourney_profits),
+            };
+          });
+
+          const numericPower=(row)=>finiteNumber(row.bike.power);
+          summaries.sort((a,b)=>{
+            const pa=numericPower(a), pb=numericPower(b);
+            if (pa===null && pb===null) return a.hid-b.hid;
+            if (pa===null) return 1;
+            if (pb===null) return -1;
+            return pb-pa || a.hid-b.hid;
+          });
+
+          const report={
+            vaultCoreCount:summaries.length,
+            elementCounts:Object.fromEntries([...new Set(summaries.map(r=>r.element))].sort().map(element=>[element,summaries.filter(r=>r.element===element).length])),
+            fnoCounts:Object.fromEntries([...new Set(summaries.map(r=>String(r.fno)))].sort((a,b)=>Number(a)-Number(b)).map(fno=>[fno,summaries.filter(r=>String(r.fno)===fno).length])),
+            cores:summaries,
+          };
+          console.log(`INTERIM_VAULT_SCOUT=${JSON.stringify(report)}`);
+          NODE
