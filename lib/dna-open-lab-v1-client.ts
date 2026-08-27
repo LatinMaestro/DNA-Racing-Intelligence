@@ -1,12 +1,7 @@
 export const DNA_OPEN_LAB_V1_BASE_URL =
   "https://api.dnaracing.run/fbike/pub/v1" as const;
 
-export type DnaOpenLabScope =
-  | "vault"
-  | "races"
-  | "cores"
-  | "tokens"
-  | "splice";
+export type DnaOpenLabScope = "vault" | "races" | "cores" | "tokens" | "splice";
 
 export type DnaRaceMode = "bike" | "car" | "horse";
 export type DnaRaceIdentifier = string | number;
@@ -342,7 +337,11 @@ function invalidRequest(message: string): never {
   throw new DnaOpenLabApiError({ kind: "invalid_request", message });
 }
 
-function requiredText(value: string, field: string, maximumLength = 512): string {
+function requiredText(
+  value: string,
+  field: string,
+  maximumLength = 512,
+): string {
   const normalized = value.trim();
   if (normalized.length < 1 || normalized.length > maximumLength) {
     invalidRequest(`${field} is invalid`);
@@ -363,7 +362,9 @@ function boundedList<T>(
   maximumLength: number,
 ): readonly T[] {
   if (values.length < 1 || values.length > maximumLength) {
-    invalidRequest(`${field} must contain between 1 and ${maximumLength} values`);
+    invalidRequest(
+      `${field} must contain between 1 and ${maximumLength} values`,
+    );
   }
   return values;
 }
@@ -404,7 +405,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function readEnvelope<T>(response: Response): Promise<DnaOpenLabResponse<T>> {
+async function readEnvelope<T>(
+  response: Response,
+): Promise<DnaOpenLabResponse<T>> {
   const rateLimit = readDnaOpenLabRateLimit(response.headers);
   let payload: unknown;
   try {
@@ -468,7 +471,10 @@ function buildQuery(
   return query === "" ? path : `${path}?${query}`;
 }
 
-function isoTimestamp(value: string | undefined, field: string): string | undefined {
+function isoTimestamp(
+  value: string | undefined,
+  field: string,
+): string | undefined {
   if (value === undefined) return undefined;
   const normalized = requiredText(value, field, 64);
   if (!Number.isFinite(Date.parse(normalized))) {
@@ -486,7 +492,10 @@ export function createDnaOpenLabV1Client(input: {
     invalidConfiguration("DNA Open Lab API key format is invalid");
   }
   const transport = input.transport ?? fetch;
-  const baseUrl = (input.baseUrl ?? DNA_OPEN_LAB_V1_BASE_URL).replace(/\/+$/u, "");
+  const baseUrl = (input.baseUrl ?? DNA_OPEN_LAB_V1_BASE_URL).replace(
+    /\/+$/u,
+    "",
+  );
   if (!/^https:\/\//u.test(baseUrl)) {
     invalidConfiguration("DNA Open Lab base URL must use HTTPS");
   }
@@ -554,8 +563,12 @@ export function createDnaOpenLabV1Client(input: {
       }),
     vaultSearch: ({ query, limit }) => {
       const normalizedQuery = requiredText(query, "query", 256);
-      if (normalizedQuery.length < 2) invalidRequest("query must have at least 2 characters");
-      if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 1 || limit > 50)) {
+      if (normalizedQuery.length < 2)
+        invalidRequest("query must have at least 2 characters");
+      if (
+        limit !== undefined &&
+        (!Number.isSafeInteger(limit) || limit < 1 || limit > 50)
+      ) {
         invalidRequest("limit must be between 1 and 50");
       }
       return request<readonly DnaVaultInfo[]>({
@@ -605,7 +618,10 @@ export function createDnaOpenLabV1Client(input: {
         invalidRequest("startTime cannot be after endTime");
       }
       const limit = finishedInput.limit;
-      if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 1 || limit > 200)) {
+      if (
+        limit !== undefined &&
+        (!Number.isSafeInteger(limit) || limit < 1 || limit > 200)
+      ) {
         invalidRequest("limit must be between 1 and 200");
       }
       return request<readonly DnaRaceDocument[]>({
@@ -670,7 +686,11 @@ export function createDnaOpenLabV1Client(input: {
         method: "GET",
       }),
     spliceArena: ({ filter, search, vault, page }) => {
-      if (filter.rvmode !== "bike" && filter.rvmode !== "car" && filter.rvmode !== "horse") {
+      if (
+        filter.rvmode !== "bike" &&
+        filter.rvmode !== "car" &&
+        filter.rvmode !== "horse"
+      ) {
         invalidRequest("filter.rvmode is invalid");
       }
       if (page !== undefined && (!Number.isSafeInteger(page) || page < 1)) {
@@ -682,8 +702,12 @@ export function createDnaOpenLabV1Client(input: {
         method: "POST",
         body: {
           f: filter,
-          ...(search === undefined ? {} : { search: requiredText(search, "search") }),
-          ...(vault === undefined ? {} : { vault: requiredText(vault, "vault") }),
+          ...(search === undefined
+            ? {}
+            : { search: requiredText(search, "search") }),
+          ...(vault === undefined
+            ? {}
+            : { vault: requiredText(vault, "vault") }),
           ...(page === undefined ? {} : { page }),
         },
       });

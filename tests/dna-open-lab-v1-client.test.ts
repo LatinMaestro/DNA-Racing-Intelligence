@@ -25,7 +25,9 @@ function jsonResponse(
 }
 
 function clientWith(response: Response) {
-  const transport = vi.fn(async () => response) as unknown as DnaOpenLabTransport;
+  const transport = vi.fn(
+    async () => response,
+  ) as unknown as DnaOpenLabTransport;
   const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
   return { client, transport: transport as ReturnType<typeof vi.fn> };
 }
@@ -151,8 +153,8 @@ describe("DNA Open Lab v1 client", () => {
       kind: "malformed_response",
     });
 
-    const transport = vi.fn(async () =>
-      new Response("not json", { status: 200 }),
+    const transport = vi.fn(
+      async () => new Response("not json", { status: 200 }),
     ) as unknown as DnaOpenLabTransport;
     const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
     await expect(client.testAuth()).rejects.toMatchObject({
@@ -178,15 +180,21 @@ describe("DNA Open Lab v1 client", () => {
     ) as unknown as DnaOpenLabTransport;
     const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
 
-    await expect(client.coreInfoBulk(Array.from({ length: 21 }, (_, i) => i + 1))).rejects.toMatchObject({
+    await expect(
+      client.coreInfoBulk(Array.from({ length: 21 }, (_, i) => i + 1)),
+    ).rejects.toMatchObject({
       kind: "invalid_request",
       message: "hids must contain between 1 and 20 values",
     });
-    await expect(client.raceDocs(Array.from({ length: 21 }, (_, i) => i + 1))).rejects.toMatchObject({
+    await expect(
+      client.raceDocs(Array.from({ length: 21 }, (_, i) => i + 1)),
+    ).rejects.toMatchObject({
       kind: "invalid_request",
       message: "rids must contain between 1 and 20 values",
     });
-    await expect(client.vaultInfoBulk(Array.from({ length: 101 }, (_, i) => `vault-${i}`))).rejects.toMatchObject({
+    await expect(
+      client.vaultInfoBulk(Array.from({ length: 101 }, (_, i) => `vault-${i}`)),
+    ).rejects.toMatchObject({
       kind: "invalid_request",
       message: "vaults must contain between 1 and 100 values",
     });
@@ -269,9 +277,7 @@ describe("DNA Open Lab v1 client", () => {
       "https://api.dnaracing.run/fbike/pub/v1/splice/pair_validate?father_coreid=10&mother_coreid=20",
     );
 
-    const arena = clientWith(
-      jsonResponse({ status: "success", result: [] }),
-    );
+    const arena = clientWith(jsonResponse({ status: "success", result: [] }));
     await arena.client.spliceArena({
       filter: { rvmode: "bike", use_powerstats: true },
       search: "water",
