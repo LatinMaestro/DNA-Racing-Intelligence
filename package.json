@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/dna-open-lab-r2-race-evidence.ts tests/dna-open-lab-r2-race-evidence.test.ts && git diff -- lib/dna-open-lab-r2-race-evidence.ts tests/dna-open-lab-r2-race-evidence.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
