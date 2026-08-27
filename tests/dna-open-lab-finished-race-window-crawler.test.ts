@@ -7,7 +7,10 @@ import {
 } from "../lib/dna-open-lab-finished-race-window-crawler";
 import type { DnaRaceDocument } from "../lib/dna-open-lab-v1-client";
 
-function race(rid: number, extra: Record<string, unknown> = {}): DnaRaceDocument {
+function race(
+  rid: number,
+  extra: Record<string, unknown> = {},
+): DnaRaceDocument {
   return { rid, ...extra };
 }
 
@@ -112,7 +115,9 @@ describe("DNA Open Lab finished-race window crawler", () => {
   });
 
   it("fails closed when a minimum-width window is still saturated", async () => {
-    const fetchWindow = vi.fn(async () => saturated()) as DnaFinishedRaceWindowFetch;
+    const fetchWindow = vi.fn(
+      async () => saturated(),
+    ) as DnaFinishedRaceWindowFetch;
 
     await expect(
       crawlDnaFinishedRaceWindows({
