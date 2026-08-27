@@ -1,9 +1,34 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasProvenDnaOpenLabIndependentRateBuckets,
   safeDnaOpenLabRateLimitEvidence,
   summarizeDnaOpenLabShape,
+  type DnaOpenLabConnectedProbeEvidence,
 } from "../lib/dna-open-lab-discovery-evidence";
+
+function authEvidence(
+  laneId: "key-1" | "key-2" | "key-3",
+  endpoint: "test_auth.initial" | "test_auth.repeat",
+  remaining: number,
+): DnaOpenLabConnectedProbeEvidence {
+  return {
+    endpoint,
+    scope: "vault",
+    laneId,
+    outcome: "success",
+    httpStatus: 200,
+    errorKind: null,
+    rateLimit: {
+      limit: 150,
+      remaining,
+      resetSeconds: 40,
+      rateClass: "api_key",
+      retryAfterSeconds: null,
+    },
+    shape: null,
+  };
+}
 
 describe("DNA Open Lab discovery evidence", () => {
   it("summarizes field structure without retaining scalar values or dynamic ids", () => {
@@ -119,5 +144,24 @@ describe("DNA Open Lab discovery evidence", () => {
         retryAfterSeconds: null,
       }).rateClass,
     ).toBe("redacted");
+  });
+
+  it("proves three independent API-key counters from paired auth observations", () => {
+    const evidence = (["key-1", "key-2", "key-3"] as const).flatMap(
+      (laneId) => [
+        authEvidence(laneId, "test_auth.initial", 149),
+        authEvidence(laneId, "test_auth.repeat", 148),
+      ],
+    );
+
+    expect(hasProvenDnaOpenLabIndependentRateBuckets(evidence)).toBe(true);
+    expect(
+      hasProvenDnaOpenLabIndependentRateBuckets([
+        ...evidence.slice(0, 2),
+        authEvidence("key-2", "test_auth.initial", 147),
+        authEvidence("key-2", "test_auth.repeat", 146),
+        ...evidence.slice(4),
+      ]),
+    ).toBe(false);
   });
 });

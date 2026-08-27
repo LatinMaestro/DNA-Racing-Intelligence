@@ -2,8 +2,8 @@ name: DNA Open Lab connected discovery
 
 on:
   workflow_dispatch: {}
-  # Temporary P3 evidence trigger. This revision reruns the corrected redaction
-  # assertion; remove after the successful evidence run is inspected.
+  # Temporary P3 evidence trigger. This revision verifies the independently
+  # observed key counters; remove after that evidence run is inspected.
   push:
     branches:
       - main
