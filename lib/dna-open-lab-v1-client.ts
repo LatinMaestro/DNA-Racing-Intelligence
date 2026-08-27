@@ -218,13 +218,15 @@ export type DnaSpliceArenaCore = DnaOpenLabRecord<{
 }>;
 
 /**
- * Connected P3 evidence shows that the Arena endpoint can return a paginated
- * object rather than the array documented by the original keyless contract.
- * Keep the object shape opaque until the redacted connected discovery records
- * its real fields; callers must not assume that the response root is iterable.
+ * Paginated Arena shape observed by the redacted connected P3 discovery. The
+ * endpoint returns its Core rows under `cores`; it does not return a root array.
  */
-export type DnaSpliceArenaResult =
-  readonly DnaSpliceArenaCore[] | DnaOpenLabRecord<Record<string, unknown>>;
+export type DnaSpliceArenaResult = DnaOpenLabRecord<{
+  cores: readonly DnaSpliceArenaCore[];
+  has_more: boolean;
+  limit: number;
+  page: number;
+}>;
 
 export type DnaSplicePairInfo = DnaOpenLabRecord<{
   f: DnaOpenLabRecord<Record<string, unknown>>;
