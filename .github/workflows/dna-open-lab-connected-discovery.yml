@@ -1,0 +1,65 @@
+name: DNA Open Lab connected discovery
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-connected-discovery
+  cancel-in-progress: false
+
+jobs:
+  discovery:
+    name: Read-only redacted API discovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_CONNECTED_DISCOVERY: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_OPEN_LAB_SPLICE_REQUEST_ID: ${{ secrets.DNA_OPEN_LAB_SPLICE_REQUEST_ID }}
+    steps:
+      - name: Checkout exact main
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private connected input presence
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_VAULT",
+          ];
+          const keyPattern = /^dna_[A-Za-z0-9_-]{43}$/;
+          for (const name of required) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing, padded, or unexpectedly large");
+            }
+          }
+          for (const name of required.slice(0, 3)) {
+            if (!keyPattern.test(process.env[name])) {
+              throw new Error(name + " has an invalid key shape");
+            }
+          }
+          if (new Set(required.slice(0, 3).map((name) => process.env[name])).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required");
+          }
+          console.log("Validated private DNA Open Lab connected-discovery inputs without printing values.");
+          NODE
+      - name: Run read-only redacted DNA API discovery
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-dna-open-lab-connected-discovery.test.ts
