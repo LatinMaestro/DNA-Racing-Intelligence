@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/dna-open-lab-v1-client.ts tests/dna-open-lab-v1-client.test.ts >/dev/null && echo __DNA_LIB_BASE64__ && base64 -w0 lib/dna-open-lab-v1-client.ts && echo && echo __DNA_TEST_BASE64__ && base64 -w0 tests/dna-open-lab-v1-client.test.ts && echo && exit 1",
+    "format": "prettier --write lib/dna-open-lab-v1-client.ts tests/dna-open-lab-v1-client.test.ts >/dev/null && echo __DNA_LIB_BASE64__ && base64 -w76 lib/dna-open-lab-v1-client.ts && echo __DNA_TEST_BASE64__ && base64 -w76 tests/dna-open-lab-v1-client.test.ts && exit 1",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
