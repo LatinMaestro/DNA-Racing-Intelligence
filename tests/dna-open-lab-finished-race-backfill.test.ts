@@ -104,7 +104,8 @@ function clientWith(input: {
   const docCalls: DnaRaceIdentifier[][] = [];
   return {
     client: {
-      racesFinished: async ({ startTime, endTime }) => {
+      racesFinished: async (finishedInput = {}) => {
+        const { startTime, endTime } = finishedInput;
         const window = Object.freeze({
           startTime: startTime ?? "",
           endTime: endTime ?? "",
@@ -145,7 +146,9 @@ async function run(input: {
     checkpointRepository: input.repository,
     publisher: input.publisher.publish,
     observedAt: "2026-08-27T09:00:00Z",
-    minimumWindowMilliseconds: input.minimumWindowMilliseconds,
+    ...(input.minimumWindowMilliseconds === undefined
+      ? {}
+      : { minimumWindowMilliseconds: input.minimumWindowMilliseconds }),
   });
 }
 
@@ -380,7 +383,7 @@ describe("DNA Open Lab finished-race backfill", () => {
     repository.stored = Object.freeze({
       revision: "seed",
       checkpoint: {
-        version: 1,
+        version: 1 as const,
         rootWindow: {
           startTime: "2026-08-01T00:00:00Z",
           endTime: "2026-08-01T00:01:00Z",
