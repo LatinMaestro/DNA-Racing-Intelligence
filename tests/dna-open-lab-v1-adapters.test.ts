@@ -244,7 +244,9 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         raw: { ...raceFill, hs_in: 4 },
         observedAt: OBSERVED_AT,
       }),
-    ).toThrowError("raceFill entrant count must equal raceFill.filledGateCount");
+    ).toThrowError(
+      "raceFill entrant count must equal raceFill.filledGateCount",
+    );
 
     expect(() =>
       adaptDnaRaceFill({

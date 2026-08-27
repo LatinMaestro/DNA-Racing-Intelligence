@@ -53,9 +53,7 @@ export type CanonicalActiveRaceSnapshot = Readonly<{
 }>;
 
 export type DnaRaceDocumentEndpoint =
-  | "races.finished"
-  | "races.docs"
-  | "vault.recent_races";
+  "races.finished" | "races.docs" | "vault.recent_races";
 
 export type CanonicalRaceDocumentReference = Readonly<{
   sourceType: "race_document";
