@@ -109,7 +109,8 @@ function canonicalJson(value: unknown): string {
     return JSON.stringify(value);
   }
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) fail("comparison value contains a non-finite number");
+    if (!Number.isFinite(value))
+      fail("comparison value contains a non-finite number");
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
@@ -156,7 +157,11 @@ function readPath(
 ): PathValue {
   let current: unknown = facts;
   for (const segment of path) {
-    if (current === null || typeof current !== "object" || Array.isArray(current)) {
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      Array.isArray(current)
+    ) {
       return Object.freeze({ present: false, value: undefined });
     }
     const record = current as Readonly<Record<string, unknown>>;
@@ -199,7 +204,9 @@ function validateSpecs(
   specs: readonly DnaCsvEquivalenceFieldSpec[],
 ): readonly DnaCsvEquivalenceFieldSpec[] {
   if (specs.length < 1 || specs.length > MAXIMUM_EQUIVALENCE_FIELDS) {
-    fail(`field specification count must be between 1 and ${MAXIMUM_EQUIVALENCE_FIELDS}`);
+    fail(
+      `field specification count must be between 1 and ${MAXIMUM_EQUIVALENCE_FIELDS}`,
+    );
   }
   const seen = new Set<string>();
   return Object.freeze(
