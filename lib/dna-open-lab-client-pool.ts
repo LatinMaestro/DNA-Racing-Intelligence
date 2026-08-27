@@ -13,7 +13,7 @@ import {
 const MAXIMUM_POOL_LANES = 3;
 const DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE = 30;
 const DEFAULT_MAXIMUM_LANE_REQUESTS_PER_MINUTE = 150;
-const LANE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
+const SAFE_LANE_ID_PATTERN = /^key-[1-3]$/u;
 const scopes = new Set<DnaOpenLabScope>([
   "vault",
   "races",
@@ -78,11 +78,10 @@ function positiveSafeInteger(value: number, field: string): number {
 
 function laneId(value: string): string {
   const normalized = value.trim();
-  if (
-    !LANE_ID_PATTERN.test(normalized) ||
-    normalized.toLowerCase().startsWith("dna_")
-  ) {
-    poolError("lane id is invalid or credential-like");
+  if (!SAFE_LANE_ID_PATTERN.test(normalized)) {
+    poolError(
+      "lane id is invalid or credential-like; use only key-1, key-2 or key-3",
+    );
   }
   return normalized;
 }
@@ -128,9 +127,11 @@ function firstRoundRobinCandidate(input: {
  * Creates a secret-free client pool for one to three already-authenticated DNA
  * Open Lab clients. In the default conservative mode every request passes both
  * a lane-local budget and one fixed aggregate vault budget, so adding keys does
- * not silently multiply request volume. `allowIndependentRateBuckets` is an
- * explicit future P3 switch: when true, the aggregate gate is removed and a
- * rate-limited lane may fail over once to another eligible lane.
+ * not silently multiply request volume. Lane identifiers are deliberately
+ * restricted to key-1/key-2/key-3 so a credential cannot be surfaced through
+ * snapshots or callback metadata. `allowIndependentRateBuckets` is an explicit
+ * future P3 switch: when true, the aggregate gate is removed and a rate-limited
+ * lane may fail over once to another eligible lane.
  */
 export function createDnaOpenLabClientPool(input: {
   lanes: readonly DnaOpenLabClientPoolLaneInput[];
