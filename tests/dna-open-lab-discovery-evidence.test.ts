@@ -18,7 +18,10 @@ describe("DNA Open Lab discovery evidence", () => {
     });
 
     expect(summary.paths).toContainEqual({ path: "$.hid", kinds: ["number"] });
-    expect(summary.paths).toContainEqual({ path: "$.owner", kinds: ["string"] });
+    expect(summary.paths).toContainEqual({
+      path: "$.owner",
+      kinds: ["string"],
+    });
     expect(summary.paths).toContainEqual({
       path: "$.entries.*",
       kinds: ["boolean"],
@@ -34,7 +37,9 @@ describe("DNA Open Lab discovery evidence", () => {
     const serialized = JSON.stringify(summary);
     expect(serialized).not.toContain("12345");
     expect(serialized).not.toContain("private-value");
-    expect(serialized).not.toContain("0x1111111111111111111111111111111111111111");
+    expect(serialized).not.toContain(
+      "0x1111111111111111111111111111111111111111",
+    );
   });
 
   it("produces the same fingerprint for different values with the same observed shape", () => {
@@ -84,10 +89,7 @@ describe("DNA Open Lab discovery evidence", () => {
       "maximumDepth",
     );
     expect(() =>
-      summarizeDnaOpenLabShape(
-        { a: 1, b: 2 },
-        { maximumPaths: 1 },
-      ),
+      summarizeDnaOpenLabShape({ a: 1, b: 2 }, { maximumPaths: 1 }),
     ).toThrow("shape path bound");
   });
 
