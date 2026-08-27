@@ -1,272 +1,257 @@
 # Build Plan
 
-## Delivery approach
+Status: **current delivery authority**  
+Effective: **27 August 2026**
 
-Use focused pull requests, online-only development and hosted previews. Continue autonomously through approved work until a review gate or external account action is required.
+## Delivery objective
 
-## Phase 0 — Governance and architecture
+Deliver the earliest safe **private owner-usable Pro League** experience first, then continue directly to complete private website commissioning.
 
-Deliver:
+Work in dependency order with one dependency-critical pull request active at a time. Every merge requires exact-head canonical validation, complete diff/review/thread review and verification of resulting `main` before the next dependent slice starts.
 
-- repository control documents;
-- architecture decision record;
-- threat/privacy model;
-- application scaffold;
-- CI, lint, typecheck and tests;
-- private-by-default deployment configuration;
-- synthetic test fixtures;
-- database design for raw and normalized Gold/Blue star fields;
-- Gold-star eligibility design using gate count greater than three;
-- event-level star assignment validation design;
-- durable star-profile and pre-race field-quality aggregate strategy;
-- two-stage Open Race design separating pre-entry selection from optional post-lock star observation;
-- reconciliation design for optional manual post-lock star observations against later authoritative imports;
-- import timestamp, latest accepted event timestamp and freshness-state design;
-- historical-snapshot UI rules that prohibit live-data wording;
-- architecture for a currency-aware auditable economic ledger;
-- exact-value storage strategy for currencies, crypto assets and BGC;
-- private manual transaction and tournament-payout entry design; and
-- placeholder navigation for Vault Performance.
+The normal source path is now DNA Open Lab v1 API. CSV ingestion remains an internal fallback and equivalence source until API completeness is proven and through the transition period.
 
-Exit: documentation accepted, scaffold verified, star-signal, Open Race timing, freshness and accounting architecture are documented and no private data is committed.
+## Target architecture
 
-## Phase 1 — Data foundation
+`DNA Open Lab API -> server-only client/sync planner -> private R2 raw/cache/evidence where useful -> canonical source adapters -> compact owner-scoped Neon read models/aggregates -> private authenticated website`
+
+The browser never calls DNA Open Lab directly and never receives the Bearer key.
+
+## P0 — Authority reconciliation
 
 Deliver:
 
-- schema and migrations;
-- upload interface;
-- file-type detection and validation;
-- batch provenance;
-- import and source coverage timestamps;
-- idempotent race deduplication;
-- raw and normalized `gold_star`/`blue_star` preservation;
-- normalized `gold_star_eligible` derived from gate count;
-- distinction between false, missing, ineligible and invalid star data;
-- event-level assignment-count validation and anomaly warnings;
-- explicit warning for any source Gold assignment at three gates or fewer;
-- optional manual post-lock star-observation source type kept separate from imported race facts;
-- idempotent reconciliation keys for later imported authoritative events;
-- core, vault and arena imports;
-- lineage graph;
-- import summaries and rollback;
-- aggregate refresh jobs;
-- current-through, last-imported and data-age derivation;
-- economic transaction, allocation, asset/currency and reconciliation foundations;
-- race-derived entry-fee and payout transaction pipeline;
-- import-safe economic natural keys; and
-- manual transaction source/provenance foundations.
+- complete the initial DNA Open Lab v1 client contract;
+- reconcile `README`, `BUILD_PLAN`, `ARCHITECTURE`, `DATA_CONTRACT`, `DATA_UPDATE_WORKFLOW`, `ESPORTS_PRO_LEAGUE_PREPARATION`, `GAME_RULES` and `DECISION_LOG` to one current API-first authority;
+- retain spreadsheet-first design and prior Pro League rules only as labelled historical evidence/fallback context; and
+- remove current-rule ambiguity where the owner has supplied newer authority.
 
-Exit: synthetic and representative sanitized imports pass, repeated imports produce no duplicate race/star/economic records, 1–3 gate races are correctly Gold-ineligible, optional manual observations reconcile without duplicate analytical evidence, freshness metadata is accurate, anomalies are surfaced, economic entries do not double count and lineage rules test correctly.
+Exit: one authoritative current architecture/rule set.
 
-## Phase 2 — Vault and core intelligence
+## P1 — Keyless API contract, fixtures and canonical adapters
 
 Deliver:
 
-- current vault lock and manual edits;
-- ME overrides;
-- core profiles;
-- bike/car/horse separation;
-- exact-distance and band summaries;
-- time, speed, variance and benchmark percentiles;
-- Gold/Blue counts and rates by mode and exact distance;
-- Gold-eligible counts and explicit denominators;
-- both-star, exclusive-star and neither-star summaries;
-- strong-field star and weak-field eligible no-star context;
-- trend and detected algorithm-era views;
-- data current-through and freshness display;
-- family tree explorer;
-- evidence confidence.
+- complete typed server client coverage for documented `vault`, `races`, `cores`, `tokens` and `splice` endpoints;
+- strict `status: success|error` body-envelope handling, including authoritative error bodies returned with HTTP 305;
+- rate-limit metadata, `Retry-After` handling and explicit 429/backoff behavior;
+- documented request bounds: vault info 100, core bulk 20, race docs/fills 20, finished-race window 200 and vault search 50;
+- optional additive-field tolerance without silently accepting invalid required fields;
+- secret-safe transport behavior and server-only Bearer use;
+- deterministic synthetic fixtures/mock transport for success, error, empty, null, additive-field and boundary cases; and
+- canonical API-neutral adapters so DNA transport names such as `hid`, `rvmode` and `cb` do not leak into analytics/UI.
 
-Exit: all active owned cores resolve to profiles or clear data warnings, every Gold/Blue rate is auditable with eligibility and denominator, and no race-derived view implies live coverage.
+Canonical provenance must retain stable source/entity identifiers, source/retrieval timestamps, endpoint/version, deterministic raw checksum and enough evidence to replay/compare.
 
-## Phase 2A — Vault Performance and accounting
+Exit: complete credential-free API boundary.
+
+## P2 — Keyless Tier-1-safe sync/backfill architecture
+
+Assume the minimum supported tier of **30 requests/minute**. Higher 80/150 request tiers may improve speed but must not be required for correctness.
 
 Deliver:
 
-- private economic ledger;
-- manual income, expense, transfer, opening-balance and adjustment entry;
-- normal open-racing entry-fee, payout and net reporting;
-- currency/asset-separated totals;
-- separate BGC ledger and opening balance;
-- BGC burn-credit and arena-fee-spend recording;
-- manual game-owner tournament payout entry;
-- breeding income and expense entry;
-- core purchase, sale, burn and cost-basis entry;
-- duplicate detection, reversal and reconciliation controls;
-- Vault Performance dashboard;
-- core economic profile;
-- completeness and partial-result warnings;
-- data coverage/freshness display; and
-- timeframe, core, mode, distance, category and currency filters.
+- bulk-first scheduler with rate-budget accounting;
+- adaptive `/races/finished` crawler that recursively splits any saturated 200-result time window until completeness is demonstrable;
+- race-document hydration in batches of at most 20;
+- vault ownership, Core supplemental families, active races/fills, Splice Arena/pairs and token sync plans;
+- durable cursors/checkpoints, idempotency, retries/backoff and catch-up semantics;
+- last-good publication so an incomplete refresh cannot replace a valid dataset;
+- private R2 API-evidence writer/manifests where useful;
+- API-vs-CSV equivalence harness; and
+- outage/tier-loss behavior where sync pauses but the website remains usable from retained data.
 
-Do not infer completed breeding income from arena listings. Do not silently value BGC or unsold cores as cash. Exclude deposits, withdrawals and internal transfers from operating P/L.
+Exit: all safe foundations are ready before a live key is required.
 
-Exit: synthetic multi-currency, BGC, manual payout, sale-without-cost-basis and cumulative-import scenarios reconcile correctly and no report overstates completeness or freshness.
+## K1 — API key provisioning point
 
-## Phase 3 — Discovery
+Reach K1 after P1/P2 are complete.
 
-Deliver:
+Configure one private hosted website key with `vault+races+cores+tokens+splice` scopes. The raw key must never be pasted into chat, Git, CI logs, Issue comments or browser-visible configuration.
 
-- evidence matrix by core × mode × distance;
-- minimum-10 rule;
-- lineage-informed hypotheses;
-- targeted probe recommendations;
-- early stop/continue logic;
-- unexpected-outlier probes;
-- Gold/Blue star evidence in early samples;
-- Gold eligibility handling;
-- field-relative star strength using historical pre-race information only;
-- negative no-star evidence against weak eligible fields without automatic rejection;
-- time/star agreement and mismatch explanations;
-- imported-data freshness in each recommendation;
-- tournament-driven and ME-priority discovery.
+K1 authorises **read-only connected contract/equivalence testing only**. It does not authorise persistent real API backfill.
 
-Exit: recommendations are explainable and backtested against historical holdout periods, current-event outcomes never leak into field-strength features, 1–3 gate races never count against Gold performance, and no-star evidence alone cannot stop or burn a core.
+If the key is unavailable at K1, continue all remaining keyless work and mocked UI/read-model work. Pause only when the next dependency truly requires live payload evidence.
 
-## Phase 4 — Tournament configuration and optimiser
+## P3 — Connected read-only discovery and source authority
 
-Deliver:
+After the key is privately configured, prove:
 
-- tournament and bracket builder;
-- element/breed/F-number grouping;
-- fastest, median, points and custom qualification metrics;
-- candidate ranking;
-- imported historical star evidence as supporting rationale;
-- Auto-Entry allocation suggestions;
-- adaptive stop/continue guidance;
-- 50%-gate cap warning without targeting the cap;
-- qualification dashboard;
-- explicit warning that imported data is not the live qualifying field;
-- classification of imported races into qualification, automated rounds and finals;
-- tournament campaign linking and correction workflow;
-- tournament campaign economic reporting;
-- bracket and leaderboard financial attribution where supportable; and
-- manual external prize reconciliation with imported payouts.
+- `test_auth`, scopes, rate headers and real error behavior;
+- representative vault/core/tier/recent-race shapes;
+- all Core bulk families;
+- active races, fills, finished windows and full race documents;
+- tokens;
+- Splice Arena, `pair_info` and `pair_validate`;
+- real optional/null/nested behavior, identifiers, timestamps, natural keys and history depth; and
+- API-vs-known-CSV equivalence for representative race, Core, ownership and economics facts.
 
-Exit: recent Horse Maiden example can be represented without code changes, star evidence never replaces the configured ranking metric, the UI does not imply live occupancy, and a synthetic tournament campaign reconciles without double counting.
+Produce a source-authority matrix classifying each fact as:
 
-## Phase 5 — Maiden strategy
+- API supersedes;
+- API supplements;
+- CSV-only fallback; or
+- local strategic state.
 
-Deliver:
+Never commit real payloads. Private evidence belongs in approved private storage.
 
-- ME inventory and lifecycle;
-- cross-mode Maiden comparison;
-- preserve-ME recommendations;
-- bracket-specific suitability;
-- commitment warnings;
-- planned/committed/consumed tracking;
-- strong-field star support for limited-sample ME cores;
-- protection against star-only recommendations where time evidence is poor;
-- data freshness warning for Maiden decisions;
-- entire-vault opportunity allocation.
+Exit: persistence and UI design can safely follow real payloads rather than guesses.
 
-Exit: a core with stronger Car than Horse potential is correctly held from a Horse Maiden, star evidence is supporting only, and the recommendation discloses the imported-data cutoff.
+## P4 — API-first persistence, R2 and incremental sync
 
-## Phase 6 — Breeding intelligence
+Deliver migrations/read models only from P3 evidence.
 
-Deliver:
+- keep compact Neon sync checkpoints/current state;
+- place raw/full evidence in private R2 where useful;
+- reuse existing historical analytical read models rather than duplicating them;
+- ingest historical races through bounded API windows/batches rather than whole-sheet Neon staging;
+- refresh current Core/Vault/Splice/Tokens with endpoint-appropriate cadence;
+- separate current observations from historical backtest facts so today's power/stamina/assets/listing/game stats cannot leak into past recommendations;
+- publish only complete last-good refreshes; and
+- keep the CSV importer as an internal fallback.
 
-- breeding-rule engine;
-- family eligibility;
-- class, element and F-number outcomes;
-- cycles and splice caps;
-- base and arena fee calculator;
-- latest-import arena scanner with freshness/expiry warnings;
-- parent-offspring research pipeline;
-- parent and lineage Gold/Blue star-profile features;
-- chronological test of whether star features add predictive lift beyond time-only baselines;
-- elite-upside, vault-gap and balanced rankings;
-- probabilistic exceptional-offspring analysis;
-- actual breeding-income and expense ledger integration; and
-- optional offspring cost-basis assignment from actual pairing costs.
+Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
-Exit: saturated vault categories do not suppress high-upside pairings, imported arena listings are never presented as live or completed income, and star propensity is not described as inherited unless validated.
+## P5 — Storage, capacity, recovery and first persistent real-sync gate
 
-## Phase 7 — Lifecycle adviser
+Deliver evidence for:
 
-Deliver:
+- PostgreSQL 18 physical storage and peak behavior for API paging/batching, including heap/index/TOAST/transient overlap;
+- private R2 footprint and cost projection;
+- restart/replay/idempotency;
+- partial failure and rate-limit recovery;
+- API/tier loss and reinstatement catch-up;
+- stale-but-usable cached website operation; and
+- explicit positive headroom below **536,870,912 bytes** before persistent real API backfill.
 
-- race/discover/Maiden/breed/hold/sell/burn recommendations;
-- Genesis burn exclusion;
-- unresolved-evidence protections;
-- duplicate-role and vault-depth analysis;
-- star-supported lifecycle explanations;
-- rule preventing no-star or Gold-ineligible evidence alone from causing a burn recommendation;
-- sale, burn and BGC ledger integration; and
-- clear separation between strategic burn advice and actual manually recorded burn credit.
+Present the exact cost/recovery/capacity evidence and **STOP for explicit owner approval** before the first persistent real Preview sync.
 
-Exit: every active core has an explainable lifecycle status or an explicit insufficient-evidence state.
+Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
-## Phase 8 — Open Race tool
+## P6 — Current Pro League domain, validator and persistence
 
-Deliver:
+Implement the current roster authority:
 
-### Stage A — Pre-entry core selection
+- My Vault remains unlimited;
+- legal roster size is **12–25**;
+- quality-first nucleus; never force 25;
+- maximum 10 substitutions per year;
+- initial-roster substitution counting remains explicit/configurable until DNA clarifies;
+- maximum 7 Metal, 8 Fire and 10 Earth;
+- maximum 2 Genesis per element;
+- maximum 5 Cores at F5 or below;
+- maximum 12 Cores at F10 or below;
+- minimum 2 Cores above F15;
+- minimum 8 females; and
+- every rostered Core has a name.
 
-- manual race and already-entered opponent entry;
-- mode, distance, gate count, format, eligibility and available-gate inputs;
-- no current-race Gold/Blue input because stars are not visible while the field is forming;
-- eligibility filtering;
-- pairwise and field time comparison;
-- imported historical Gold/Blue profiles as supporting prior evidence only;
-- explicit statement that current-race stars are not yet available;
-- recommended owned core, alternatives and avoid signal;
-- data-current-through and freshness disclosure.
+Deliver roster versions, nucleus/optional slots/alternates, reason/evidence snapshots and annual substitution ledger. API ownership reconciles game holdings but never erases local notes, ME, roster, substitution or lifecycle strategy state.
 
-### Stage B — Field locked / optional observation
+Exit: synthetic rule-valid Pro League roster workflow.
 
-- activation only after the user confirms all gates are filled and the race is set to run;
-- optional manual recording of the revealed Gold and Blue cores;
-- Gold not applicable at gate count three or fewer;
-- observation-only labeling;
-- comparison of revealed stars with the earlier website ranking;
-- no replacement-core recommendation and no implication that the committed entry can be changed;
-- temporary/manual source storage separate from authoritative race history;
-- later idempotent reconciliation with the Race Merge event;
-- mismatch review where manual and imported assignments differ.
+## P7 — Pro League intelligence enrichment
 
-Exit: the selection stage works without current-race stars, the locked stage cannot recommend switching cores, synthetic observations reconcile without duplicate counts, and source labels distinguish manual current-race observations from imported history.
+Keep audited historical Core Performance, exact-distance, star, payout/sample/recency and cross-mode evidence as the primary historical base.
 
-## Phase 9 — Validation and hardening
+Add separately presented current API dimensions where available:
 
-Deliver:
+- power;
+- adjusted odds/variance;
+- game racing stats;
+- stamina;
+- equipped assets;
+- owner/listing state; and
+- current splicing/lineage state.
 
-- chronological backtests;
-- benchmark comparisons;
-- calibration and uncertainty reports;
-- Gold top-three and Blue win conversion reports;
-- incremental predictive-lift reports;
-- strong-field star and weak-field eligible no-star validation;
-- Gold gate-eligibility tests;
-- star-algorithm era/change detection;
-- explicit current-event and future-leakage tests;
-- Open Race pre-entry/post-lock boundary tests;
-- manual observation reconciliation and duplicate-prevention tests;
-- freshness and stale-data behavior tests;
-- no-live-wording checks for imported views;
-- performance optimisation for multi-million-row history;
-- security review;
-- import recovery tests;
-- economic reconciliation and multi-currency audit tests;
-- incomplete-data and duplicate-payout tests;
-- private production-readiness checklist.
+Do not blend these blindly into one opaque score. Timestamp current observations, prevent historical leakage and statistically evaluate predictive lift before adding ranking weight.
 
-Exit: all Definition of Done requirements pass and Production remains gated pending owner approval.
+Exit: transparent current-rule roster advice identifying strongest nucleus, marginal slots, structural gaps, uncertain candidates and Discovery gaps.
 
-## Suggested architecture to validate in Phase 0
+## P8 — Pro League targeted Discovery acceleration
 
-- Next.js App Router, TypeScript strict mode, Tailwind and accessible component primitives.
-- PostgreSQL/Neon for application state, economic ledger and durable aggregates.
-- Nullable normalized Gold/Blue fields plus raw source provenance.
-- Gold eligibility derived from gate count and tested at import/analytics boundaries.
-- Precomputed core star profiles and time-aware pre-race field-quality features.
-- Optional manual post-lock observations in a separate reconcilable table or source model.
-- Durable import/current-through timestamps and freshness-state derivation.
-- Exact decimal/numeric or integer minor-unit storage appropriate to each asset.
-- Object storage for private raw uploads if needed.
-- Python plus DuckDB/Polars for batch analytics where this materially improves large-file processing.
-- Background or queued import/aggregate jobs rather than request-time full-history analysis.
-- Vercel Preview deployments.
+Convert roster uncertainty into ranked experiments:
 
-Codex may propose a different low-cost architecture, but must document why it better satisfies privacy, scale, analytical no-leakage, Open Race timing integrity, snapshot freshness, accounting correctness, maintainability and online-only operation before changing this direction.
+- prioritise tests capable of changing roster membership or replacing marginal slots;
+- retain the ten-race exact-distance minimum for minimally analytical conclusions;
+- use lineage/adjacent-distance hypotheses and stop weak paths early;
+- use active race/fill API data to surface suitable manual racing opportunities without entering races; and
+- ingest finished results automatically after sync and update readiness.
+
+Exit: daily owner Discovery queue for Pro League.
+
+## P9 — Pro League breeding acceleration
+
+Derive breeding objectives from roster structural/performance gaps without suppressing exceptional upside.
+
+Use:
+
+- current Splice Arena;
+- official `pair_info` baby element/F/type/cost;
+- official `pair_validate` eligibility;
+- historical lineage/performance/upside research; and
+- pair shortlist/offspring tracking after later sync.
+
+No splice or wallet transaction is permitted.
+
+Exit: official-validation-backed breeding queue.
+
+## P10 — Private Pro League Preview commissioning
+
+After owner-approved persistent API sync:
+
+- backfill sufficient historical API evidence plus current Vault/Core/Splice state;
+- verify API-vs-CSV equivalence, counts, aggregates, freshness, no leakage, RLS, recovery and secret safety;
+- commission `/pro-league` with nucleus/current roster/alternates, compliance, roster-size rationale, evidence dimensions, substitution budget/history, Discovery queue, active-race opportunities, breeding queue, official pair viability/cost, structural gaps/marginal slots and sync/freshness/stale-but-usable status;
+- integrate only the My Vault/Core Intelligence/Discovery/Breeding flows required for daily Pro League use;
+- allow one deliberate protected private Vercel Preview deployment at this major milestone if required; automatic Git deployment remains disabled; and
+- perform owner acceptance and immediately correct commissioning blockers.
+
+Milestone: **PRO LEAGUE COMMISSIONED FOR PRIVATE OWNER USE**.
+
+# Full private website after P10
+
+## F1 — API-native My Vault and Core Intelligence
+
+Ownership reconciliation plus rich current Core profile: power/adjusted odds/variance/stamina/assets/listing/owner/racing stats/recent races/splicing together with historical analytics, with explicit current-vs-historical separation.
+
+## F2 — API-native Open Race Intelligence
+
+Active-race browser, restrictions/status/times/fees/token, fill ticker/current entrants, automatic owned-Core field analysis and alternatives/avoid guidance. Retain manual fallback. Never enter a race.
+
+## F3 — Full Breeding/Splice
+
+Current Arena, official pair info/validation/costs, lineage/upside rankings, cycle/lifetime counts, read-only request-ID tracking after owner-manual splice and offspring/cost-basis reconciliation.
+
+## F4 — Tournament and Maiden completion
+
+Finish the canonical Tournament editor/persistence/candidate/campaign work. Use API race freshness/classification where useful. API `is_maiden` is observed game state; local strategic/ME state remains separate and auditable.
+
+## F5 — Vault Performance/economics
+
+Complete asset-separated ledger, reconciliation and reporting. API token prices are current/reference displays only. Historical dated valuation remains authoritative. Listing price is a listing fact, not automatic fair value or income. Keep only a future Market adapter placeholder until DNA publishes that scope.
+
+## F6 — Lifecycle adviser enrichment
+
+Race/discover/Maiden/breed/hold/sell/burn guidance with separated current API context, Genesis burn exclusion and no game/market actions.
+
+## F7 — Unified Dashboard, readiness and API operations
+
+Show last sync by family, current-through/stale/backfill state, recent races, active opportunities, Discovery, Pro League, breeding, Tournament/Maiden and economics, with simple sync-paused/tier state and recovery/catch-up observability.
+
+## F8 — Whole-product validation and hardening
+
+Prove chronological/no-leakage behavior, calibration, additive-schema/error/rate/outage/tier handling, backfill completeness, R2/Neon backup/recovery/idempotency/RLS/auth/key secrecy, accessibility/mobile/performance, economics, CSV fallback, DNA attribution and non-commercial policy.
+
+## F9 — Full private website commissioning and handover
+
+Freeze the exact candidate, run connected Preview acceptance for every workflow, present final provider/storage/cost/security/recovery evidence and **STOP for explicit owner Production approval**. Only after approval may controlled private Production deployment/migrations/API secret and real sync verification occur. Retire normal CSV upload only after API completeness proof and a transition period. Complete operator docs and Definition of Done.
+
+## Safety and approval boundaries
+
+- No Production deployment, schema or real-data change without explicit owner approval.
+- No persistent real API backfill before the P5 owner gate.
+- No public routes/domains, paid capacity, commercial API use or wallet/game/team/race/betting/splice transaction.
+- Bounded reversible synthetic/private Preview operations are allowed when configured; clean all residue.
+- Vercel automatic Git deployments remain disabled. Deliberate protected Preview deployment is reserved for major milestones such as P10 unless development genuinely requires it.
+- API access loss pauses sync only; it must not make the website unusable.
+- Exact-head validation includes dependency audit, secret scan, Prettier, ESLint, strict TypeScript, complete tests/build, Worker bindings/dry-run and relevant migration apply/smoke/reverse/removal plus connected acceptance when the slice changes a hosted boundary.
