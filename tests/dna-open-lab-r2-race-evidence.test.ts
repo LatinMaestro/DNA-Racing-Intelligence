@@ -108,10 +108,9 @@ function response<T>(result: T): DnaOpenLabResponse<T> {
   });
 }
 
-function sourceClient(documents: readonly DnaRaceDocument[]): Pick<
-  DnaOpenLabClient,
-  "raceDocs"
-> {
+function sourceClient(
+  documents: readonly DnaRaceDocument[],
+): Pick<DnaOpenLabClient, "raceDocs"> {
   return Object.freeze({
     raceDocs: async () => response(documents),
   });
@@ -230,7 +229,9 @@ describe("DNA Open Lab private R2 Race evidence", () => {
 
   it("fails closed when an existing full race archive has inconsistent metadata", async () => {
     const storage = new MemoryR2Storage();
-    const documents = [{ rid: 77, payload: "correct" }] satisfies readonly DnaRaceDocument[];
+    const documents = [
+      { rid: 77, payload: "correct" },
+    ] satisfies readonly DnaRaceDocument[];
     const client = createDnaOpenLabR2RaceDocumentClient({
       client: sourceClient(documents),
       configuration: configuration(storage),
