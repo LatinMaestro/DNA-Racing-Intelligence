@@ -34,7 +34,9 @@ Persistent real Preview synchronization remains blocked by P5 capacity/recovery 
 
 ## Deferred P4 work
 
-- persistent finished-race backfill checkpoints and R2 receipt binding;
+- persistent finished-race backfill checkpoints and R2 receipt binding are
+  delivered by migration `0070`; see
+  `PHASE_4_FINISHED_RACE_BACKFILL_PERSISTENCE.md`;
 - canonical API read-model tables for proven current facts;
 - current-state generation materialization;
 - worker scheduling and family cadences; and

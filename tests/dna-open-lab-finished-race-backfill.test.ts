@@ -35,6 +35,9 @@ class MemoryCheckpointRepository implements DnaFinishedRaceBackfillCheckpointRep
   stored: StoredDnaFinishedRaceBackfillCheckpoint | null = null;
   saveCount = 0;
   failOnSaveCount: number | null = null;
+  lastPublication: Parameters<
+    DnaFinishedRaceBackfillCheckpointRepository["save"]
+  >[0]["publication"] = undefined;
 
   async load(): Promise<StoredDnaFinishedRaceBackfillCheckpoint | null> {
     return this.stored;
@@ -43,6 +46,9 @@ class MemoryCheckpointRepository implements DnaFinishedRaceBackfillCheckpointRep
   async save(input: {
     expectedRevision: string | null;
     checkpoint: DnaFinishedRaceBackfillCheckpoint;
+    publication?: Parameters<
+      DnaFinishedRaceBackfillCheckpointRepository["save"]
+    >[0]["publication"];
   }): Promise<StoredDnaFinishedRaceBackfillCheckpoint> {
     this.saveCount += 1;
     if (this.failOnSaveCount === this.saveCount) {
@@ -54,6 +60,7 @@ class MemoryCheckpointRepository implements DnaFinishedRaceBackfillCheckpointRep
     } else if (this.stored?.revision !== input.expectedRevision) {
       throw new Error("synthetic checkpoint revision conflict");
     }
+    this.lastPublication = input.publication;
     this.stored = Object.freeze({
       revision: `r${this.saveCount}`,
       checkpoint: input.checkpoint,
@@ -88,6 +95,9 @@ class IdempotentPublisher {
       windowKey: publication.windowKey,
       contentSha256: publication.contentSha256,
       documentCount: publication.hydratedDocuments.length,
+      manifestObjectKey: `dna-open-lab/v1/${"a".repeat(64)}/races/finished-windows/${publication.windowKey}.json`,
+      manifestBodySha256: "b".repeat(64),
+      manifestByteLength: 256,
     });
   };
 }
@@ -170,10 +180,15 @@ describe("DNA Open Lab finished-race backfill", () => {
     });
 
     expect(first.kind).toBe("published");
+    if (first.kind !== "published") throw new Error("expected publication");
     expect(source.finishedCalls).toHaveLength(1);
     expect(source.docCalls.map((batch) => batch.length)).toEqual([20, 5]);
     expect(publisher.callCount).toBe(1);
     expect(publisher.publications.size).toBe(1);
+    expect(repository.lastPublication).toEqual({
+      window: first.window,
+      receipt: first.publicationReceipt,
+    });
     expect(first.stored.checkpoint).toMatchObject({
       pendingWindows: [],
       completedWindowCount: 1,
@@ -327,6 +342,9 @@ describe("DNA Open Lab finished-race backfill", () => {
         windowKey: publication.windowKey,
         contentSha256: "0".repeat(64),
         documentCount: publication.hydratedDocuments.length,
+        manifestObjectKey: `dna-open-lab/v1/${"a".repeat(64)}/races/finished-windows/${publication.windowKey}.json`,
+        manifestBodySha256: "b".repeat(64),
+        manifestByteLength: 256,
       });
     const source = clientWith({ finished: () => [{ rid: 1 }] });
 
