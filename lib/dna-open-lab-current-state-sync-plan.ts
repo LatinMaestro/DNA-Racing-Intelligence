@@ -6,6 +6,11 @@ import type {
 
 const MAXIMUM_CORE_BULK = 20;
 const MAXIMUM_RACE_BULK = 20;
+const DEFERRED_TELEMETRY_ENDPOINTS = Object.freeze([
+  "cores.telemetry",
+  "cores.telemetry_bulk",
+  "cores.telemetry_benchmark",
+] as const);
 
 export type DnaCurrentStateEndpoint =
   | "vault.info"
@@ -41,11 +46,7 @@ export type DnaSplicePairCandidate = Readonly<{
 export type DnaCurrentStateSyncPlan = Readonly<{
   bootstrap: readonly DnaCurrentStateRequest[];
   hydrate: readonly DnaCurrentStateRequest[];
-  deferredUntilP3: readonly [
-    "cores.telemetry",
-    "cores.telemetry_bulk",
-    "cores.telemetry_benchmark",
-  ];
+  deferredUntilP3: typeof DEFERRED_TELEMETRY_ENDPOINTS;
 }>;
 
 const CORE_BULK_ENDPOINTS = Object.freeze([
@@ -213,10 +214,6 @@ export function createDnaCurrentStateSyncPlan(input: {
   return Object.freeze({
     bootstrap: Object.freeze(bootstrap),
     hydrate: Object.freeze(hydrate),
-    deferredUntilP3: Object.freeze([
-      "cores.telemetry",
-      "cores.telemetry_bulk",
-      "cores.telemetry_benchmark",
-    ]),
+    deferredUntilP3: DEFERRED_TELEMETRY_ENDPOINTS,
   });
 }
