@@ -2,155 +2,150 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditProLeagueRoster,
-  proLeagueAnnouncementRules,
+  proLeagueCurrentRules,
   type ProLeagueRosterCore,
 } from "@/domain/pro-league-roster";
 
 const elements = ["Metal", "Fire", "Earth", "Water"] as const;
 
-function compliantRoster(): ProLeagueRosterCore[] {
-  return Array.from({ length: 25 }, (_, index) => {
-    const element = elements[index % elements.length] ?? "Metal";
-    return {
-      coreId: "core-" + (index + 1),
-      displayName: "Core " + (index + 1),
-      element,
-      coreClass: index < 8 ? "Genesis" : "Morphed",
-      sex: index < 8 ? "female" : "male",
-      fNumber: index < 5 ? 15 + index : 10,
-      inMyVault: true,
-    };
-  });
+function compliantRoster(size = 12): ProLeagueRosterCore[] {
+  return Array.from({ length: size }, (_, index) => ({
+    coreId: `core-${index + 1}`,
+    displayName: `Core ${index + 1}`,
+    element: elements[index % elements.length] ?? "Water",
+    coreClass: index < 4 ? "Genesis" : "Morphed",
+    sex: index < 8 ? "female" : "male",
+    fNumber: index < 2 ? 16 + index : 11,
+    inMyVault: true,
+  }));
 }
 
 describe("Pro League roster audit", () => {
-  it("captures the published provisional requirements and labels the gens interpretation", () => {
-    expect(proLeagueAnnouncementRules).toMatchObject({
-      evidenceStatus: "provisional",
-      primaryMode: "bike",
-      rosterSize: 25,
-      minimumPerElement: 5,
+  it("captures the current owner-confirmed roster and substitution authority", () => {
+    expect(proLeagueCurrentRules).toMatchObject({
+      evidenceStatus: "owner_confirmed",
+      minimumRosterSize: 12,
+      maximumRosterSize: 25,
+      maximumSubstitutionsPerYear: 10,
+      initialRosterCountsAsSubstitutions: "unresolved",
+      maximumPerElement: { Metal: 7, Fire: 8, Earth: 10 },
       maximumGenesisPerElement: 2,
-      maximumGenesisInterpretation: "working_interpretation",
+      maximumF5OrBelow: 5,
+      maximumF10OrBelow: 12,
+      minimumAboveF15: 2,
       minimumFemales: 8,
-      minimumF15Plus: 5,
+      namesRequired: true,
     });
   });
 
-  it("accepts a unique owned roster that meets every hard boundary", () => {
-    const audit = auditProLeagueRoster(compliantRoster());
+  it.each([12, 25])("accepts a compliant %i-Core roster", (size) => {
+    const roster = compliantRoster(size).map((core, index) => ({
+      ...core,
+      element:
+        size === 25
+          ? index < 7
+            ? ("Metal" as const)
+            : index < 15
+              ? ("Fire" as const)
+              : ("Earth" as const)
+          : core.element,
+      coreClass: "Morphed" as const,
+      fNumber: index < 2 ? 16 + index : 11,
+    }));
+    const audit = auditProLeagueRoster(roster);
 
     expect(audit.readiness).toBe("compliant");
-    expect(audit.selectedCoreCount).toBe(25);
+    expect(audit.selectedCoreCount).toBe(size);
     expect(audit.issues).toEqual([]);
-    expect(audit.breedingPriorities).toEqual([]);
   });
 
-  it("uses confirmed element and F-number inheritance while keeping offspring sex non-deterministic", () => {
-    const roster = compliantRoster()
-      .slice(0, 20)
-      .map((core, index) => ({
-        ...core,
-        element: index < 14 ? ("Metal" as const) : core.element,
-        sex: "male" as const,
-        fNumber: 10,
-        coreClass: "Morphed" as const,
-      }));
-    const audit = auditProLeagueRoster(roster);
-
-    expect(audit.readiness).toBe("incomplete");
-    expect(audit.issues.map(({ code }) => code)).toEqual(
+  it("enforces both roster-size boundaries", () => {
+    expect(auditProLeagueRoster(compliantRoster(11)).issues).toEqual(
       expect.arrayContaining([
-        "ROSTER_SIZE",
-        "ELEMENT_MINIMUM",
-        "FEMALE_MINIMUM",
-        "F15_PLUS_MINIMUM",
+        expect.objectContaining({ code: "ROSTER_MINIMUM", actual: 11 }),
       ]),
     );
-    expect(audit.breedingPriorities.map(({ target }) => target)).toEqual(
-      expect.arrayContaining(["element", "female", "f15_plus"]),
-    );
-    expect(
-      audit.breedingPriorities.find(({ target }) => target === "f15_plus")
-        ?.guidance,
-    ).toContain("sum");
-    expect(
-      audit.breedingPriorities.find(({ target }) => target === "female")
-        ?.guidance,
-    ).toContain("no confirmed rule");
-  });
-
-  it("adds a non-Genesis breeding priority when a selected element depends on too many Genesis cores", () => {
-    const roster = compliantRoster();
-    for (const index of [8, 12, 16]) {
-      roster[index] = {
-        ...roster[index]!,
-        element: "Metal",
-        coreClass: "Genesis",
-      };
-    }
-    const audit = auditProLeagueRoster(roster);
-    expect(audit.breedingPriorities).toEqual(
+    expect(auditProLeagueRoster(compliantRoster(26)).issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          target: "non_genesis_element",
-          element: "Metal",
-        }),
+        expect.objectContaining({ code: "ROSTER_MAXIMUM", actual: 26 }),
       ]),
     );
   });
 
-  it("fails closed for duplicate, unowned and over-cap Genesis selections", () => {
-    const roster = compliantRoster();
-    roster[0] = { ...roster[0]!, inMyVault: false };
-    roster[8] = {
-      ...roster[8]!,
-      element: "Metal",
-      coreClass: "Genesis",
-    };
-    roster[12] = {
-      ...roster[12]!,
-      element: "Metal",
-      coreClass: "Genesis",
-    };
-    roster.push({ ...roster[1]! });
-
+  it("enforces element, Genesis, F-number, female and naming rules", () => {
+    const roster = compliantRoster().map((core, index) => ({
+      ...core,
+      element: index < 8 ? ("Metal" as const) : ("Water" as const),
+      coreClass: index < 3 ? ("Genesis" as const) : ("Morphed" as const),
+      sex: index < 7 ? ("female" as const) : ("male" as const),
+      fNumber: index < 6 ? 5 : index < 11 ? 10 : 15,
+      displayName: index === 0 ? " " : core.displayName,
+    }));
     const audit = auditProLeagueRoster(roster);
 
     expect(audit.readiness).toBe("incomplete");
-    expect(audit.selectedCoreCount).toBe(24);
     expect(audit.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: "NOT_IN_MY_VAULT" }),
-        expect.objectContaining({ code: "DUPLICATE_CORE" }),
-        expect.objectContaining({
-          code: "ROSTER_SIZE",
-          actual: 24,
-        }),
+        expect.objectContaining({ code: "CORE_NAME_REQUIRED" }),
+        expect.objectContaining({ code: "ELEMENT_MAXIMUM", element: "Metal" }),
         expect.objectContaining({
           code: "GENESIS_ELEMENT_CAP",
           element: "Metal",
         }),
+        expect.objectContaining({ code: "F5_OR_BELOW_MAXIMUM", actual: 6 }),
+        expect.objectContaining({ code: "ABOVE_F15_MINIMUM", actual: 0 }),
+        expect.objectContaining({ code: "FEMALE_MINIMUM", actual: 7 }),
       ]),
     );
   });
 
-  it("rejects malformed core identity and F-number evidence", () => {
-    expect(() =>
-      auditProLeagueRoster([
-        {
-          ...compliantRoster()[0]!,
-          coreId: " ",
-        },
+  it("enforces the maximum 12 Cores at F10 or below", () => {
+    const roster = compliantRoster(13).map((core) => ({
+      ...core,
+      coreClass: "Morphed" as const,
+      fNumber: 10,
+    }));
+    expect(auditProLeagueRoster(roster).issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "F10_OR_BELOW_MAXIMUM", actual: 13 }),
       ]),
-    ).toThrow("identity");
-    expect(() =>
-      auditProLeagueRoster([
-        {
-          ...compliantRoster()[0]!,
-          fNumber: 0,
-        },
+    );
+  });
+
+  it("counts F15 as not above F15", () => {
+    const roster = compliantRoster().map((core) => ({
+      ...core,
+      fNumber: 15,
+    }));
+    expect(auditProLeagueRoster(roster).issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "ABOVE_F15_MINIMUM", actual: 0 }),
       ]),
+    );
+  });
+
+  it("fails closed for duplicate and unowned selections", () => {
+    const roster = compliantRoster();
+    roster[0] = { ...roster[0]!, inMyVault: false };
+    roster.push({ ...roster[1]! });
+    const audit = auditProLeagueRoster(roster);
+
+    expect(audit.selectedCoreCount).toBe(11);
+    expect(audit.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "NOT_IN_MY_VAULT" }),
+        expect.objectContaining({ code: "DUPLICATE_CORE" }),
+        expect.objectContaining({ code: "ROSTER_MINIMUM", actual: 11 }),
+      ]),
+    );
+  });
+
+  it("rejects malformed Core ID and F-number evidence", () => {
+    expect(() =>
+      auditProLeagueRoster([{ ...compliantRoster()[0]!, coreId: " " }]),
+    ).toThrow("Core ID");
+    expect(() =>
+      auditProLeagueRoster([{ ...compliantRoster()[0]!, fNumber: 0 }]),
     ).toThrow("F-number");
   });
 });

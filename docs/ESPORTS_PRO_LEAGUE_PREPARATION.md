@@ -60,6 +60,50 @@ Implementation must therefore:
 - never silently consume or preserve substitutions based on an assumption; and
 - show the owner which interpretation is currently active when substitution budget is displayed.
 
+## Team registration and map setup
+
+The current owner-confirmed setup sequence is:
+
+1. create the team manually at `https://esports.dnaracing.run/teams`;
+2. set a 12–25 Core roster manually;
+3. open `https://esports.dnaracing.run/maps`, choose a map and scroll to its ordered race list;
+4. use the DNA Esports Set control to assign a rostered Core either to one race line or to every line on that map with the same race type and exact distance; and
+5. after a match is scheduled, return and choose the match map manually.
+
+The private website may recommend, stage and validate this work. It must not create the team, submit the roster, click Set, submit a race-line mapping or choose a match map.
+
+## Published map authority
+
+The public Maps page observed 27 August 2026 states:
+
+- a match is best-of-three maps;
+- each map is a fixed sequence of 42 races that does not change;
+- the first team to 16 race points wins the map and must win by two;
+- races after line 16 are reached only while the score remains close enough; and
+- four of five planned maps are currently defined.
+
+| Map | Name     | Composition                                                          | First 16 avg | All 42 avg |
+| --: | -------- | -------------------------------------------------------------------- | -----------: | ---------: |
+|   1 | Anchor   | 21 × 6-gate Madness, 19 × 1v1, 2 × 12-gate WTA                       |       1488 m |     1586 m |
+|   2 | Glory    | 11 × 4-gate WTA, 11 × 6-gate WTA, 10 × 16-gate WTA, 10 × 24-gate WTA |       1600 m |     1586 m |
+|   3 | Measure  | six race types, seven lines each                                     |       1600 m |     1610 m |
+|   4 | Miracles | 21 × 22-gate WTA, 21 × 24-gate Madness                               |       1688 m |     1610 m |
+
+All four maps use the seven published distances from 1000 m to 2200 m. The domain catalogue preserves every exact race line and its order; aggregate summaries are not a substitute for that catalogue. Map 5 remains unavailable and must not be invented.
+
+## Mapping-planner contract
+
+For every staged assignment retain:
+
+- map identity and catalogue version;
+- source race number;
+- exact race type and distance;
+- rostered Core ID;
+- assignment scope: `single_race` or `same_type_and_distance`; and
+- every race line affected by the expansion.
+
+The planner must reject unknown maps/races, non-roster Cores and conflicting assignments. It must report both total map coverage and first-16 coverage. Applying `same_type_and_distance` is scoped to the selected map; it never silently changes another map.
+
 ## Quality-first roster objective
 
 Do **not** force the roster to 25.
@@ -292,7 +336,8 @@ The first owner-usable Pro League page should provide:
 - breeding queue;
 - official pair viability/cost when connected;
 - structural gaps;
-- marginal slots; and
+- marginal slots;
+- published map definitions, first-16 coverage and staged race-line mappings; and
 - sync/freshness/stale-but-usable status.
 
 ## Safety and scope
@@ -302,6 +347,8 @@ The Pro League workspace is private, owner-only and advisory.
 It must not:
 
 - create or submit a team;
+- submit a roster or map assignment;
+- choose a map for a scheduled match;
 - enter races;
 - mint;
 - trade;

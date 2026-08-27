@@ -1,18 +1,26 @@
 import type { CoreClass, CoreElement, CoreSex } from "@/domain/source-adapters";
 
-export const proLeagueAnnouncementRules = Object.freeze({
-  rulesetId: "dna-pro-league/community-update-2026-08-20",
-  evidenceStatus: "provisional" as const,
-  sourceLabel: "DNA Community Update supplied by the owner",
-  receivedAt: "2026-08-20",
-  publicAccessEstimate: "2026-09-01",
-  primaryMode: "bike" as const,
-  rosterSize: 25,
-  minimumPerElement: 5,
+export const proLeagueCurrentRules = Object.freeze({
+  rulesetId: "dna-pro-league/owner-confirmed-2026-08-27",
+  evidenceStatus: "owner_confirmed" as const,
+  sourceLabel: "Owner-confirmed DNA Pro League setup update",
+  receivedAt: "2026-08-27",
+  minimumRosterSize: 12,
+  maximumRosterSize: 25,
+  maximumSubstitutionsPerYear: 10,
+  initialRosterCountsAsSubstitutions: "unresolved" as const,
+  maximumPerElement: Object.freeze({
+    Metal: 7,
+    Fire: 8,
+    Earth: 10,
+    Water: null,
+  }) satisfies Readonly<Record<CoreElement, number | null>>,
   maximumGenesisPerElement: 2,
-  maximumGenesisInterpretation: "working_interpretation" as const,
+  maximumF5OrBelow: 5,
+  maximumF10OrBelow: 12,
+  minimumAboveF15: 2,
   minimumFemales: 8,
-  minimumF15Plus: 5,
+  namesRequired: true,
 });
 
 export type ProLeagueRosterCore = Readonly<{
@@ -27,55 +35,41 @@ export type ProLeagueRosterCore = Readonly<{
 
 export type ProLeagueRosterIssue =
   | Readonly<{
-      code: "DUPLICATE_CORE" | "NOT_IN_MY_VAULT";
+      code: "DUPLICATE_CORE" | "NOT_IN_MY_VAULT" | "CORE_NAME_REQUIRED";
       coreId: string;
       detail: string;
     }>
   | Readonly<{
       code:
-        | "ROSTER_SIZE"
-        | "ELEMENT_MINIMUM"
+        | "ROSTER_MINIMUM"
+        | "ROSTER_MAXIMUM"
+        | "ELEMENT_MAXIMUM"
         | "GENESIS_ELEMENT_CAP"
-        | "FEMALE_MINIMUM"
-        | "F15_PLUS_MINIMUM";
+        | "F5_OR_BELOW_MAXIMUM"
+        | "F10_OR_BELOW_MAXIMUM"
+        | "ABOVE_F15_MINIMUM"
+        | "FEMALE_MINIMUM";
       element: CoreElement | null;
       actual: number;
       required: number;
       detail: string;
     }>;
 
-export type ProLeagueBreedingPriority = Readonly<{
-  priorityId: string;
-  target: "element" | "non_genesis_element" | "female" | "f15_plus";
-  element: CoreElement | null;
-  remaining: number;
-  guidance: string;
-}>;
-
 export type ProLeagueRosterAudit = Readonly<{
   rulesetId: string;
-  evidenceStatus: "provisional";
+  evidenceStatus: "owner_confirmed";
   readiness: "compliant" | "incomplete";
   selectedCoreCount: number;
   elementCounts: Readonly<Record<CoreElement, number>>;
   genesisCounts: Readonly<Record<CoreElement, number>>;
   femaleCount: number;
-  f15PlusCount: number;
+  f5OrBelowCount: number;
+  f10OrBelowCount: number;
+  aboveF15Count: number;
   issues: readonly ProLeagueRosterIssue[];
-  breedingPriorities: readonly ProLeagueBreedingPriority[];
 }>;
 
 const elements = ["Metal", "Fire", "Earth", "Water"] as const;
-
-const elementBreedingGuidance: Readonly<Record<CoreElement, string>> = {
-  Metal:
-    "Confirmed DNA inheritance requires Metal × Metal for a Metal offspring target.",
-  Fire: "Confirmed DNA inheritance permits Fire × Fire or Metal × Fire for a Fire offspring target.",
-  Earth:
-    "Confirmed DNA inheritance requires an Earth parent with Metal, Fire or Earth for an Earth target; a Water parent would produce Water.",
-  Water:
-    "Confirmed DNA inheritance means any otherwise eligible pairing with a Water parent produces Water.",
-};
 
 function blankElementCounts(): Record<CoreElement, number> {
   return { Metal: 0, Fire: 0, Earth: 0, Water: 0 };
@@ -83,9 +77,8 @@ function blankElementCounts(): Record<CoreElement, number> {
 
 function normalizedCore(core: ProLeagueRosterCore): ProLeagueRosterCore {
   const coreId = core.coreId.trim();
-  const displayName = core.displayName.trim();
-  if (coreId === "" || displayName === "") {
-    throw new Error("Pro League roster identity must not be blank.");
+  if (coreId === "") {
+    throw new Error("Pro League roster Core ID must not be blank.");
   }
   if (!elements.includes(core.element)) {
     throw new Error("Pro League roster element is unsupported.");
@@ -97,86 +90,7 @@ function normalizedCore(core: ProLeagueRosterCore): ProLeagueRosterCore {
   ) {
     throw new Error("Pro League roster F-number is invalid.");
   }
-  return { ...core, coreId, displayName };
-}
-
-function breedingPriorities(input: {
-  elementCounts: Readonly<Record<CoreElement, number>>;
-  genesisCounts: Readonly<Record<CoreElement, number>>;
-  femaleCount: number;
-  f15PlusCount: number;
-}): readonly ProLeagueBreedingPriority[] {
-  const priorities: ProLeagueBreedingPriority[] = [];
-  for (const element of elements) {
-    const remaining = Math.max(
-      0,
-      proLeagueAnnouncementRules.minimumPerElement -
-        input.elementCounts[element],
-    );
-    if (remaining > 0) {
-      priorities.push({
-        priorityId: "element-" + element.toLowerCase(),
-        target: "element",
-        element,
-        remaining,
-        guidance: elementBreedingGuidance[element],
-      });
-    }
-    const nonGenesisCount =
-      input.elementCounts[element] - input.genesisCounts[element];
-    const requiredNonGenesis =
-      proLeagueAnnouncementRules.minimumPerElement -
-      proLeagueAnnouncementRules.maximumGenesisPerElement;
-    const nonGenesisDepthGap = Math.max(
-      0,
-      requiredNonGenesis - nonGenesisCount,
-    );
-    const genesisCapExcess = Math.max(
-      0,
-      input.genesisCounts[element] -
-        proLeagueAnnouncementRules.maximumGenesisPerElement,
-    );
-    const nonGenesisRemaining = Math.max(nonGenesisDepthGap, genesisCapExcess);
-    if (nonGenesisRemaining > 0) {
-      priorities.push({
-        priorityId: "non-genesis-" + element.toLowerCase(),
-        target: "non_genesis_element",
-        element,
-        remaining: nonGenesisRemaining,
-        guidance:
-          "Breeding adds non-Genesis roster depth and provides replacement options when a selected element exceeds the working two-Genesis-per-element cap.",
-      });
-    }
-  }
-  const femaleRemaining = Math.max(
-    0,
-    proLeagueAnnouncementRules.minimumFemales - input.femaleCount,
-  );
-  if (femaleRemaining > 0) {
-    priorities.push({
-      priorityId: "female",
-      target: "female",
-      element: null,
-      remaining: femaleRemaining,
-      guidance:
-        "The roster needs more female outcomes, but no confirmed rule allows offspring sex to be targeted. Manage this gap through actual breeding outcomes and retention, not a claimed female-producing pairing.",
-    });
-  }
-  const f15Remaining = Math.max(
-    0,
-    proLeagueAnnouncementRules.minimumF15Plus - input.f15PlusCount,
-  );
-  if (f15Remaining > 0) {
-    priorities.push({
-      priorityId: "f15-plus",
-      target: "f15_plus",
-      element: null,
-      remaining: f15Remaining,
-      guidance:
-        "Confirmed DNA rules set offspring F-number to the sum of both parents, so a structural F15+ target requires parent F-numbers summing to at least 15.",
-    });
-  }
-  return priorities;
+  return { ...core, coreId, displayName: core.displayName.trim() };
 }
 
 export function auditProLeagueRoster(
@@ -190,16 +104,18 @@ export function auditProLeagueRoster(
   const genesisCounts = blankElementCounts();
   const issues: ProLeagueRosterIssue[] = [];
   const seen = new Set<string>();
-  let ownedSelectedCount = 0;
+  let selectedCoreCount = 0;
   let femaleCount = 0;
-  let f15PlusCount = 0;
+  let f5OrBelowCount = 0;
+  let f10OrBelowCount = 0;
+  let aboveF15Count = 0;
 
   for (const core of normalized) {
     if (seen.has(core.coreId)) {
       issues.push({
         code: "DUPLICATE_CORE",
         coreId: core.coreId,
-        detail: "Core " + core.coreId + " is selected more than once.",
+        detail: `Core ${core.coreId} is selected more than once.`,
       });
       continue;
     }
@@ -208,101 +124,115 @@ export function auditProLeagueRoster(
       issues.push({
         code: "NOT_IN_MY_VAULT",
         coreId: core.coreId,
-        detail:
-          "Core " +
-          core.coreId +
-          " is not in the owner-maintained My Vault registry.",
+        detail: `Core ${core.coreId} is not in My Vault.`,
       });
       continue;
     }
-    ownedSelectedCount += 1;
+    selectedCoreCount += 1;
+    if (core.displayName === "") {
+      issues.push({
+        code: "CORE_NAME_REQUIRED",
+        coreId: core.coreId,
+        detail: `Core ${core.coreId} must be named before it can join the roster.`,
+      });
+    }
     elementCounts[core.element] += 1;
     if (core.coreClass === "Genesis") genesisCounts[core.element] += 1;
     if (core.sex === "female") femaleCount += 1;
-    if (core.fNumber >= 15) f15PlusCount += 1;
+    if (core.fNumber <= 5) f5OrBelowCount += 1;
+    if (core.fNumber <= 10) f10OrBelowCount += 1;
+    if (core.fNumber > 15) aboveF15Count += 1;
   }
 
-  if (ownedSelectedCount !== proLeagueAnnouncementRules.rosterSize) {
+  if (selectedCoreCount < proLeagueCurrentRules.minimumRosterSize) {
     issues.push({
-      code: "ROSTER_SIZE",
+      code: "ROSTER_MINIMUM",
       element: null,
-      actual: ownedSelectedCount,
-      required: proLeagueAnnouncementRules.rosterSize,
-      detail:
-        "Select exactly " +
-        proLeagueAnnouncementRules.rosterSize +
-        " unique owned cores.",
+      actual: selectedCoreCount,
+      required: proLeagueCurrentRules.minimumRosterSize,
+      detail: `Select at least ${proLeagueCurrentRules.minimumRosterSize} unique owned Cores.`,
+    });
+  }
+  if (selectedCoreCount > proLeagueCurrentRules.maximumRosterSize) {
+    issues.push({
+      code: "ROSTER_MAXIMUM",
+      element: null,
+      actual: selectedCoreCount,
+      required: proLeagueCurrentRules.maximumRosterSize,
+      detail: `Select no more than ${proLeagueCurrentRules.maximumRosterSize} unique owned Cores.`,
     });
   }
   for (const element of elements) {
-    if (elementCounts[element] < proLeagueAnnouncementRules.minimumPerElement) {
+    const maximum = proLeagueCurrentRules.maximumPerElement[element];
+    if (maximum !== null && elementCounts[element] > maximum) {
       issues.push({
-        code: "ELEMENT_MINIMUM",
+        code: "ELEMENT_MAXIMUM",
         element,
         actual: elementCounts[element],
-        required: proLeagueAnnouncementRules.minimumPerElement,
-        detail:
-          element +
-          " requires at least " +
-          proLeagueAnnouncementRules.minimumPerElement +
-          " roster cores.",
+        required: maximum,
+        detail: `${element} exceeds its ${maximum}-Core roster ceiling.`,
       });
     }
     if (
-      genesisCounts[element] >
-      proLeagueAnnouncementRules.maximumGenesisPerElement
+      genesisCounts[element] > proLeagueCurrentRules.maximumGenesisPerElement
     ) {
       issues.push({
         code: "GENESIS_ELEMENT_CAP",
         element,
         actual: genesisCounts[element],
-        required: proLeagueAnnouncementRules.maximumGenesisPerElement,
-        detail:
-          element +
-          " exceeds the working interpretation of the two-Genesis cap.",
+        required: proLeagueCurrentRules.maximumGenesisPerElement,
+        detail: `${element} exceeds the two-Genesis-per-element ceiling.`,
       });
     }
   }
-  if (femaleCount < proLeagueAnnouncementRules.minimumFemales) {
+  if (f5OrBelowCount > proLeagueCurrentRules.maximumF5OrBelow) {
+    issues.push({
+      code: "F5_OR_BELOW_MAXIMUM",
+      element: null,
+      actual: f5OrBelowCount,
+      required: proLeagueCurrentRules.maximumF5OrBelow,
+      detail: `The roster may contain at most ${proLeagueCurrentRules.maximumF5OrBelow} Cores at F5 or below.`,
+    });
+  }
+  if (f10OrBelowCount > proLeagueCurrentRules.maximumF10OrBelow) {
+    issues.push({
+      code: "F10_OR_BELOW_MAXIMUM",
+      element: null,
+      actual: f10OrBelowCount,
+      required: proLeagueCurrentRules.maximumF10OrBelow,
+      detail: `The roster may contain at most ${proLeagueCurrentRules.maximumF10OrBelow} Cores at F10 or below.`,
+    });
+  }
+  if (aboveF15Count < proLeagueCurrentRules.minimumAboveF15) {
+    issues.push({
+      code: "ABOVE_F15_MINIMUM",
+      element: null,
+      actual: aboveF15Count,
+      required: proLeagueCurrentRules.minimumAboveF15,
+      detail: `The roster requires at least ${proLeagueCurrentRules.minimumAboveF15} Cores above F15.`,
+    });
+  }
+  if (femaleCount < proLeagueCurrentRules.minimumFemales) {
     issues.push({
       code: "FEMALE_MINIMUM",
       element: null,
       actual: femaleCount,
-      required: proLeagueAnnouncementRules.minimumFemales,
-      detail:
-        "The roster requires at least " +
-        proLeagueAnnouncementRules.minimumFemales +
-        " females.",
-    });
-  }
-  if (f15PlusCount < proLeagueAnnouncementRules.minimumF15Plus) {
-    issues.push({
-      code: "F15_PLUS_MINIMUM",
-      element: null,
-      actual: f15PlusCount,
-      required: proLeagueAnnouncementRules.minimumF15Plus,
-      detail:
-        "The roster requires at least " +
-        proLeagueAnnouncementRules.minimumF15Plus +
-        " F15+ cores.",
+      required: proLeagueCurrentRules.minimumFemales,
+      detail: `The roster requires at least ${proLeagueCurrentRules.minimumFemales} female Cores.`,
     });
   }
 
   return {
-    rulesetId: proLeagueAnnouncementRules.rulesetId,
-    evidenceStatus: "provisional",
+    rulesetId: proLeagueCurrentRules.rulesetId,
+    evidenceStatus: "owner_confirmed",
     readiness: issues.length === 0 ? "compliant" : "incomplete",
-    selectedCoreCount: ownedSelectedCount,
+    selectedCoreCount,
     elementCounts,
     genesisCounts,
     femaleCount,
-    f15PlusCount,
+    f5OrBelowCount,
+    f10OrBelowCount,
+    aboveF15Count,
     issues,
-    breedingPriorities: breedingPriorities({
-      elementCounts,
-      genesisCounts,
-      femaleCount,
-      f15PlusCount,
-    }),
   };
 }

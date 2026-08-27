@@ -4,8 +4,9 @@ import type {
   ProLeagueCandidate,
   ProLeaguePreparation,
 } from "@/domain/pro-league-preparation";
+import { proLeagueMapAuthority, proLeagueMaps } from "@/domain/pro-league-maps";
 import {
-  proLeagueAnnouncementRules,
+  proLeagueCurrentRules,
   type ProLeagueRosterAudit,
 } from "@/domain/pro-league-roster";
 import type { ProLeaguePreparationConnectionStatus } from "@/lib/pro-league-preparation-service";
@@ -144,9 +145,9 @@ function Preparation({
             </h2>
             <p className="mt-2 text-sm text-[var(--muted)]">
               {preparation.ownedCoreCount} owned · {preparation.femaleCount}
-              /8 females · {preparation.f15PlusCount}/5 F15+ ·{" "}
+              /8 females · {preparation.f15PlusCount}/2 above F15 ·{" "}
               {preparation.selectableUnderGenesisCaps} selectable under the
-              working Genesis caps.
+              current element and Genesis ceilings.
             </p>
           </div>
           <span className="rounded-full border border-[var(--warning)]/50 px-3 py-1 text-xs font-semibold text-[var(--warning)]">
@@ -172,8 +173,8 @@ function Preparation({
                 {item.nonGenesisOwned} non-Genesis
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
-                {item.femaleOwned} female · {item.f15PlusOwned} F15+ · quality
-                depth gap {item.powerDepthGap}
+                {item.femaleOwned} female · {item.f15PlusOwned} above F15 ·
+                quality depth gap {item.powerDepthGap}
               </p>
             </article>
           ))}
@@ -225,8 +226,8 @@ function Preparation({
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
               No additional Genesis minting. Breed to close genuine structural
               gaps and, once compliant, to improve elite all-round upside. A
-              weak core should not be retained simply because the roster needs
-              25 names.
+              weak Core should not be retained simply to fill the 25-Core
+              ceiling.
             </p>
           </div>
           <Link
@@ -241,10 +242,10 @@ function Preparation({
             <h3 className="font-semibold">Global breeding targets</h3>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--muted)]">
               <li>
-                F15+ gap: {preparation.breeding.f15PlusGap}. Confirmed offspring
-                F-number is the parent sum, so an F15+ structural target
-                requires a sum of at least{" "}
-                {preparation.breeding.minimumParentFSumForF15}.
+                Above-F15 gap: {preparation.breeding.aboveF15Gap}. Confirmed
+                offspring F-number is the parent sum, so an above-F15 structural
+                target requires a sum of at least{" "}
+                {preparation.breeding.minimumParentFSumForAboveF15}.
               </li>
               <li>
                 Female gap: {preparation.breeding.femaleGap}. Offspring sex is
@@ -265,7 +266,7 @@ function Preparation({
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                 Every element has structural and current multi-mode quality
                 depth. Continue breeding only where the expected upside can
-                improve the top 25.
+                improve the strongest compliant roster nucleus.
               </p>
             ) : (
               <ul className="mt-3 space-y-3 text-sm leading-6 text-[var(--muted)]">
@@ -274,9 +275,7 @@ function Preparation({
                     <strong className="text-[var(--foreground)]">
                       {target.element}:
                     </strong>{" "}
-                    {label(target.breedingPriority)} · roster gap{" "}
-                    {target.rosterFloorGap} · non-Genesis gap{" "}
-                    {target.nonGenesisDepthGap} · multi-mode quality gap{" "}
+                    {label(target.breedingPriority)} · multi-mode quality gap{" "}
                     {target.powerDepthGap}. {target.breedingGuidance}
                   </li>
                 ))}
@@ -410,6 +409,65 @@ function Preparation({
   );
 }
 
+function MapAuthority() {
+  return (
+    <section aria-labelledby="pro-map-authority">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold" id="pro-map-authority">
+            Published map race lines
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+            Four of five planned maps are currently defined. Each contains a
+            fixed sequence of 42 races. A mapping can target only one race line
+            or every line on that map with the same race type and exact
+            distance.
+          </p>
+        </div>
+        <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+          Advisory mapping only
+        </span>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {proLeagueMaps.map((map) => {
+          const raceTypes = [
+            ...new Set(map.races.map(({ raceType }) => raceType)),
+          ];
+          const distances = [
+            ...new Set(map.races.map(({ distanceMetres }) => distanceMetres)),
+          ].sort((left, right) => left - right);
+          return (
+            <article
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+              key={map.mapId}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                Map {map.mapNumber}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold">{map.name}</h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                {map.races.length} fixed races · {raceTypes.length} race type
+                {raceTypes.length === 1 ? "" : "s"} · {distances[0]}–
+                {distances.at(-1)} metres
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                {raceTypes.join(" · ")}
+              </p>
+            </article>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+        Match authority: best of {proLeagueMapAuthority.matchFormat.bestOfMaps}{" "}
+        maps; first to {proLeagueMapAuthority.matchFormat.firstToRacePoints}{" "}
+        race points wins a map and must win by{" "}
+        {proLeagueMapAuthority.matchFormat.winByRacePoints}. Map choice for a
+        scheduled match remains a manual owner action on DNA Esports.
+      </p>
+    </section>
+  );
+}
+
 export function ProLeagueWorkspace({
   audit,
   connectionStatus,
@@ -432,10 +490,10 @@ export function ProLeagueWorkspace({
           Pro League
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Build the strongest possible 25-core roster from the existing Vault
-          and breeding. Prefer cores that prove power across multiple modes,
-          distances and race formats. No additional Genesis minting is part of
-          this plan.
+          Build the strongest compliant 12–25 Core roster from the existing
+          Vault and breeding, then map rostered Cores to the published race
+          lines. Prefer Cores that prove power for the exact race type and
+          distance required. No additional Genesis minting is part of this plan.
         </p>
       </header>
 
@@ -444,11 +502,12 @@ export function ProLeagueWorkspace({
           Rule and performance authority
         </h2>
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-          Source: {proLeagueAnnouncementRules.sourceLabel}, received{" "}
-          {proLeagueAnnouncementRules.receivedAt}. Roster mechanics remain
-          provisional where DNA has not clarified them. The owner has confirmed
-          that Pro League uses the same underlying DNA Racing core stats and
-          performance, so accepted DNA Racing history is valid power evidence.
+          Source: {proLeagueCurrentRules.sourceLabel}, received{" "}
+          {proLeagueCurrentRules.receivedAt}. Current roster limits and the
+          public four-map catalogue are configured; the fifth planned map and
+          initial-roster substitution counting remain unresolved. Pro League
+          uses the same underlying DNA Racing Core performance, so accepted
+          history remains valid evidence where the API exposes it.
         </p>
       </section>
 
@@ -458,6 +517,8 @@ export function ProLeagueWorkspace({
           {connection.detail}
         </p>
       </section>
+
+      <MapAuthority />
 
       {preparation === null ? null : (
         <Preparation
@@ -471,9 +532,9 @@ export function ProLeagueWorkspace({
           Exact selected-roster validation
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-          The deterministic 25-core validator remains available for the later
-          owner selection workflow. Structural compliance is necessary but does
-          not make a core powerful: current placeholder audit status is{" "}
+          The deterministic 12–25 Core validator remains available for the owner
+          selection workflow. Structural compliance is necessary but does not
+          make a Core powerful: current placeholder audit status is{" "}
           {audit.readiness === "compliant" ? "compliant" : "not selected"}.
         </p>
       </section>
