@@ -8,9 +8,7 @@ import {
   type DnaFinishedRaceWindowPublicationReceipt,
   type StoredDnaFinishedRaceBackfillCheckpoint,
 } from "../lib/dna-open-lab-finished-race-backfill";
-import {
-  type DnaFinishedRaceWindow,
-} from "../lib/dna-open-lab-finished-race-window-crawler";
+import { type DnaFinishedRaceWindow } from "../lib/dna-open-lab-finished-race-window-crawler";
 import type {
   DnaOpenLabClient,
   DnaOpenLabResponse,
@@ -33,9 +31,7 @@ function response<T>(result: T): DnaOpenLabResponse<T> {
   return Object.freeze({ result, httpStatus: 200, rateLimit: rateLimit() });
 }
 
-class MemoryCheckpointRepository
-  implements DnaFinishedRaceBackfillCheckpointRepository
-{
+class MemoryCheckpointRepository implements DnaFinishedRaceBackfillCheckpointRepository {
   stored: StoredDnaFinishedRaceBackfillCheckpoint | null = null;
   saveCount = 0;
   failOnSaveCount: number | null = null;
@@ -53,7 +49,8 @@ class MemoryCheckpointRepository
       throw new Error("synthetic checkpoint save failure");
     }
     if (input.expectedRevision === null) {
-      if (this.stored !== null) throw new Error("synthetic checkpoint already exists");
+      if (this.stored !== null)
+        throw new Error("synthetic checkpoint already exists");
     } else if (this.stored?.revision !== input.expectedRevision) {
       throw new Error("synthetic checkpoint revision conflict");
     }
@@ -69,7 +66,9 @@ class IdempotentPublisher {
   readonly publications = new Map<string, DnaFinishedRaceWindowPublication>();
   callCount = 0;
   receiptOverride:
-    | ((publication: DnaFinishedRaceWindowPublication) => DnaFinishedRaceWindowPublicationReceipt)
+    | ((
+        publication: DnaFinishedRaceWindowPublication,
+      ) => DnaFinishedRaceWindowPublicationReceipt)
     | null = null;
 
   publish = async (
@@ -155,8 +154,10 @@ describe("DNA Open Lab finished-race backfill", () => {
     const repository = new MemoryCheckpointRepository();
     const publisher = new IdempotentPublisher();
     const source = clientWith({
-      finished: () => Array.from({ length: 25 }, (_, index) => ({ rid: index + 1 })),
-      docs: (raceIds) => [...raceIds].reverse().map((rid) => ({ rid, full: true })),
+      finished: () =>
+        Array.from({ length: 25 }, (_, index) => ({ rid: index + 1 })),
+      docs: (raceIds) =>
+        [...raceIds].reverse().map((rid) => ({ rid, full: true })),
     });
 
     const first = await run({
@@ -222,7 +223,9 @@ describe("DNA Open Lab finished-race backfill", () => {
       raceDocumentRequestCount: 0,
       publishedWindowDocumentCount: 0,
     });
-    expect(result.stored.checkpoint.pendingWindows).toEqual(result.childWindows);
+    expect(result.stored.checkpoint.pendingWindows).toEqual(
+      result.childWindows,
+    );
     expect(source.docCalls).toHaveLength(0);
     expect(publisher.callCount).toBe(0);
   });
