@@ -29,11 +29,7 @@ function response<T>(
   return Object.freeze({ result, httpStatus: 200, rateLimit: limit });
 }
 
-function fakeClock(): {
-  nowMilliseconds: () => number;
-  sleep: ReturnType<typeof vi.fn>;
-  now: () => number;
-} {
+function fakeClock() {
   let now = 0;
   const sleep = vi.fn(async (milliseconds: number) => {
     now += milliseconds;
