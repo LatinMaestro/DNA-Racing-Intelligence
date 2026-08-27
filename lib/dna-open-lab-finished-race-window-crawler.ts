@@ -70,7 +70,10 @@ function raceKey(race: DnaRaceDocument): string {
   const rid = race.rid;
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
-      crawlerError("conflicting_duplicate", "race rid must be a positive safe integer");
+      crawlerError(
+        "conflicting_duplicate",
+        "race rid must be a positive safe integer",
+      );
     }
     return String(rid);
   }
@@ -115,9 +118,9 @@ export async function crawlDnaFinishedRaceWindows(input: {
     );
   }
 
-  const pending: Array<Readonly<{ startMilliseconds: number; endMilliseconds: number }>> = [
-    root,
-  ];
+  const pending: Array<
+    Readonly<{ startMilliseconds: number; endMilliseconds: number }>
+  > = [root];
   const completedWindows: DnaFinishedRaceWindow[] = [];
   const racesByKey = new Map<
     string,
@@ -208,7 +211,9 @@ export async function crawlDnaFinishedRaceWindows(input: {
 
   const races = Object.freeze(
     [...racesByKey.entries()]
-      .sort(([left], [right]) => left.localeCompare(right, undefined, { numeric: true }))
+      .sort(([left], [right]) =>
+        left.localeCompare(right, undefined, { numeric: true }),
+      )
       .map(([, entry]) => entry.race),
   );
 
