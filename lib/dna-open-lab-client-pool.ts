@@ -87,7 +87,9 @@ function laneId(value: string): string {
   return normalized;
 }
 
-function laneScopes(values: readonly DnaOpenLabScope[]): readonly DnaOpenLabScope[] {
+function laneScopes(
+  values: readonly DnaOpenLabScope[],
+): readonly DnaOpenLabScope[] {
   if (values.length < 1) poolError("each lane requires at least one scope");
   const unique = new Set<DnaOpenLabScope>();
   for (const value of values) {
@@ -214,7 +216,10 @@ export function createDnaOpenLabClientPool(input: {
       input.lane.successCount += 1;
       return response;
     } catch (error) {
-      if (error instanceof DnaOpenLabApiError && error.kind === "rate_limited") {
+      if (
+        error instanceof DnaOpenLabApiError &&
+        error.kind === "rate_limited"
+      ) {
         input.lane.rateLimitedCount += 1;
       }
       throw error;
@@ -264,8 +269,7 @@ export function createDnaOpenLabClientPool(input: {
       cursor = (selectedIndex + 1) % laneStates.length;
 
       try {
-        const run = () =>
-          executeLane({ lane, request: requestInput.request });
+        const run = () => executeLane({ lane, request: requestInput.request });
         return aggregateBudget === null
           ? await run()
           : await aggregateBudget.execute(run);
