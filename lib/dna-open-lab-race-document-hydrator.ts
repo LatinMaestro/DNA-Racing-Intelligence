@@ -1,7 +1,7 @@
 import {
   adaptDnaRaceDocument,
   dnaOpenLabRawEvidenceSha256,
-  type CanonicalRaceDocumentReference,
+  type CanonicalRaceDocumentMetadata,
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 import type {
@@ -14,7 +14,7 @@ import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 export const DNA_RACE_DOCUMENT_BATCH_LIMIT = 20 as const;
 
 export type DnaRaceDocumentHydrationResult = Readonly<{
-  documents: readonly DnaOpenLabEvidence<CanonicalRaceDocumentReference>[];
+  documents: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
   requestedRaceCount: number;
   batchCount: number;
 }>;
@@ -98,7 +98,7 @@ export async function hydrateDnaRaceDocuments(input: {
     string,
     Readonly<{
       hash: string;
-      evidence: DnaOpenLabEvidence<CanonicalRaceDocumentReference>;
+      evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
     }>
   >();
   const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);

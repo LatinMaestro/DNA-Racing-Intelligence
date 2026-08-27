@@ -102,6 +102,8 @@ The typed server client and sync plan must cover documented read operations requ
 - race-document hydration; and
 - recent/history evidence required for analytics and automatic post-race ingestion.
 
+Connected evidence currently supports race metadata, entrants, fees, tags and scheduling fields. It does not yet expose direct elapsed-time, finishing-position or explicit distance fields. `track` remains a source value and must not be treated as canonical distance without authority. Race Merge therefore remains the fallback authority for historical outcomes/performance.
+
 ### Cores
 
 - identity/basic Core data;
@@ -340,7 +342,8 @@ P3 must produce and maintain a table with one row per canonical fact family:
 | Canonical fact                 | P3 authority class    | CSV fallback         | Local state               | Evidence/equivalence status                                     |
 | ------------------------------ | --------------------- | -------------------- | ------------------------- | --------------------------------------------------------------- |
 | Current ownership              | API supplements       | historical/reference | local strategy separate   | live shapes proven; representative value equivalence still open |
-| Historical race facts          | API supplements       | Race Merge           | none                      | rich race shapes proven; results/history-depth equivalence open |
+| Historical race metadata       | API supplements       | Race Merge           | none                      | metadata/entrant/economic shapes proven; value/depth proof open |
+| Historical race outcomes       | CSV-only fallback     | Race Merge           | none                      | no direct elapsed/position/explicit-distance fields observed    |
 | Core identity/lineage          | API supplements       | Core Details         | none                      | identity shapes proven; non-null lineage/value equivalence open |
 | Current Arena/splice           | API supplements       | Current Arena        | shortlist/local decisions | Arena and pair-info shapes proven; valid pair validation open   |
 | Current Core operational state | API supplements       | none                 | none                      | current-only power/stamina/assets/listing/stats observations    |

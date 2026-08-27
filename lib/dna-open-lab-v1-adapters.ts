@@ -44,20 +44,40 @@ export type CanonicalActiveRaceSnapshot = Readonly<{
   displayName: string;
   mode: RaceMode;
   format: string | null;
-  raceClass: string | null;
+  raceClassSourceValue: string | number | null;
   fixedFeesByAsset: Readonly<Record<string, number>>;
   entryFeeUsd: number;
   paymentAsset: string;
-  startAt: string;
+  startAt: string | null;
   endAt: string | null;
 }>;
 
 export type DnaRaceDocumentEndpoint =
   "races.finished" | "races.docs" | "vault.recent_races";
 
-export type CanonicalRaceDocumentReference = Readonly<{
+export type CanonicalRaceDocumentMetadata = Readonly<{
   sourceType: "race_document";
   sourceRaceId: string;
+  status?: string;
+  displayName?: string;
+  mode?: RaceMode;
+  format?: string | null;
+  raceClassSourceValue?: string | number | null;
+  gateCount?: number;
+  filledGateCount?: number;
+  entrantCoreIds?: readonly string[];
+  fixedFeesByAsset?: Readonly<Record<string, number>>;
+  entryFeeUsd?: number;
+  paymentAsset?: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  eventTagsSourceValues?: readonly string[];
+  payoutSourceValue?: string;
+  prizeSourceValue?: number;
+  prizeUsdSourceValue?: number;
+  trackSourceValue?: string;
+  yellowStarSourceCoreIds?: readonly string[];
+  blueStarSourceCoreIds?: readonly string[];
 }>;
 
 export type CanonicalRaceFillSnapshot = Readonly<{
@@ -119,6 +139,50 @@ function timestamp(value: string, field: string): string {
 
 function optionalTimestamp(value: string | null, field: string): string | null {
   return value === null ? null : timestamp(value, field);
+}
+
+function optionalText(value: string | null, field: string): string | null {
+  return value === null ? null : requiredText(value, field);
+}
+
+function raceClassSourceValue(
+  value: string | number | null,
+  field: string,
+): string | number | null {
+  if (value === null) return null;
+  if (typeof value === "string") return requiredText(value, field);
+  if (!Number.isFinite(value)) adapterError(`${field} must be finite`);
+  return value;
+}
+
+function sourceCoreIds(
+  values: readonly number[],
+  field: string,
+): readonly string[] {
+  return Object.freeze(
+    values.map((value) => String(positiveInteger(value, field))),
+  );
+}
+
+function sourceTextValues(
+  values: readonly string[],
+  field: string,
+): readonly string[] {
+  return Object.freeze(values.map((value) => requiredText(value, field)));
+}
+
+function fixedFeesByAsset(
+  values: Readonly<Record<string, number>>,
+  field: string,
+): Readonly<Record<string, number>> {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(values).map(([asset, amount]) => [
+        requiredText(asset, `${field}.asset`),
+        nonNegativeFinite(amount, `${field}.${asset}`),
+      ]),
+    ),
+  );
 }
 
 function coreClass(value: string): CoreClass {
@@ -297,12 +361,6 @@ export function adaptDnaActiveRace(input: {
   raw: DnaActiveRace;
   observedAt: string;
 }): DnaOpenLabEvidence<CanonicalActiveRaceSnapshot> {
-  const fixedFeesByAsset = Object.fromEntries(
-    Object.entries(input.raw.fee_fixed).map(([asset, amount]) => [
-      requiredText(asset, "race.fixedFee.asset"),
-      nonNegativeFinite(amount, `race.fixedFee.${asset}`),
-    ]),
-  );
   const sourceRaceId = raceIdentifier(input.raw.rid);
   const canonical: CanonicalActiveRaceSnapshot = Object.freeze({
     sourceType: "active_race_snapshot",
@@ -314,15 +372,12 @@ export function adaptDnaActiveRace(input: {
       input.raw.format === null
         ? null
         : requiredText(input.raw.format, "race.format"),
-    raceClass:
-      input.raw.class === null
-        ? null
-        : requiredText(input.raw.class, "race.class"),
-    fixedFeesByAsset: Object.freeze(fixedFeesByAsset),
+    raceClassSourceValue: raceClassSourceValue(input.raw.class, "race.class"),
+    fixedFeesByAsset: fixedFeesByAsset(input.raw.fee_fixed, "race.fixedFee"),
     entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
     paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
-    startAt: timestamp(input.raw.start_time, "race.startAt"),
-    endAt: optionalTimestamp(input.raw.end_time, "race.endAt"),
+    startAt: optionalTimestamp(input.raw.start_time, "race.startAt"),
+    endAt: optionalTimestamp(input.raw.end_time ?? null, "race.endAt"),
   });
   return evidence({
     scope: "races",
@@ -338,11 +393,120 @@ export function adaptDnaRaceDocument(input: {
   raw: DnaRaceDocument;
   observedAt: string;
   endpoint: DnaRaceDocumentEndpoint;
-}): DnaOpenLabEvidence<CanonicalRaceDocumentReference> {
+}): DnaOpenLabEvidence<CanonicalRaceDocumentMetadata> {
   const sourceRaceId = raceIdentifier(input.raw.rid);
-  const canonical: CanonicalRaceDocumentReference = Object.freeze({
+  const canonical: CanonicalRaceDocumentMetadata = Object.freeze({
     sourceType: "race_document",
     sourceRaceId,
+    ...(input.raw.status === undefined
+      ? {}
+      : { status: requiredText(input.raw.status, "race.status") }),
+    ...(input.raw.race_name === undefined
+      ? {}
+      : { displayName: requiredText(input.raw.race_name, "race.name") }),
+    ...(input.raw.rvmode === undefined
+      ? {}
+      : { mode: raceMode(input.raw.rvmode) }),
+    ...(input.raw.format === undefined
+      ? {}
+      : { format: optionalText(input.raw.format, "race.format") }),
+    ...(input.raw.class === undefined
+      ? {}
+      : {
+          raceClassSourceValue: raceClassSourceValue(
+            input.raw.class,
+            "race.class",
+          ),
+        }),
+    ...(input.raw.rgate === undefined
+      ? {}
+      : { gateCount: positiveInteger(input.raw.rgate, "race.gateCount") }),
+    ...(input.raw.hs_in === undefined
+      ? {}
+      : {
+          filledGateCount: nonNegativeInteger(
+            input.raw.hs_in,
+            "race.filledGateCount",
+          ),
+        }),
+    ...(input.raw.hids === undefined
+      ? {}
+      : {
+          entrantCoreIds: sourceCoreIds(input.raw.hids, "race.entrantCoreId"),
+        }),
+    ...(input.raw.fee_fixed === undefined
+      ? {}
+      : {
+          fixedFeesByAsset: fixedFeesByAsset(
+            input.raw.fee_fixed,
+            "race.fixedFee",
+          ),
+        }),
+    ...(input.raw.feeusd === undefined
+      ? {}
+      : {
+          entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
+        }),
+    ...(input.raw.paytoken === undefined
+      ? {}
+      : {
+          paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
+        }),
+    ...(input.raw.start_time === undefined
+      ? {}
+      : {
+          startAt: optionalTimestamp(input.raw.start_time, "race.startAt"),
+        }),
+    ...(input.raw.end_time === undefined
+      ? {}
+      : { endAt: optionalTimestamp(input.raw.end_time, "race.endAt") }),
+    ...(input.raw.eventtags === undefined
+      ? {}
+      : {
+          eventTagsSourceValues: sourceTextValues(
+            input.raw.eventtags,
+            "race.eventTag",
+          ),
+        }),
+    ...(input.raw.payout === undefined
+      ? {}
+      : {
+          payoutSourceValue: requiredText(input.raw.payout, "race.payout"),
+        }),
+    ...(input.raw.prize === undefined
+      ? {}
+      : {
+          prizeSourceValue: nonNegativeFinite(input.raw.prize, "race.prize"),
+        }),
+    ...(input.raw.prizeusd === undefined
+      ? {}
+      : {
+          prizeUsdSourceValue: nonNegativeFinite(
+            input.raw.prizeusd,
+            "race.prizeUsd",
+          ),
+        }),
+    ...(input.raw.track === undefined
+      ? {}
+      : {
+          trackSourceValue: requiredText(input.raw.track, "race.track"),
+        }),
+    ...(input.raw.yellowstars === undefined
+      ? {}
+      : {
+          yellowStarSourceCoreIds: sourceCoreIds(
+            input.raw.yellowstars,
+            "race.yellowStarCoreId",
+          ),
+        }),
+    ...(input.raw.bluestars === undefined
+      ? {}
+      : {
+          blueStarSourceCoreIds: sourceCoreIds(
+            input.raw.bluestars,
+            "race.blueStarCoreId",
+          ),
+        }),
   });
   return evidence({
     scope: raceDocumentScope(input.endpoint),
