@@ -77,9 +77,9 @@ describe("DNA Open Lab / CSV equivalence harness", () => {
       requiredFieldCount: 4,
       requiredMatchedFieldCount: 4,
     });
-    expect(report.fields.every((field) => field.implication === "equivalent_fact")).toBe(
-      true,
-    );
+    expect(
+      report.fields.every((field) => field.implication === "equivalent_fact"),
+    ).toBe(true);
   });
 
   it("leaves conflicts unresolved instead of choosing API or CSV authority", () => {
@@ -133,7 +133,9 @@ describe("DNA Open Lab / CSV equivalence harness", () => {
       ]),
     });
 
-    expect(report.fields.map(({ status, implication }) => ({ status, implication }))).toEqual([
+    expect(
+      report.fields.map(({ status, implication }) => ({ status, implication })),
+    ).toEqual([
       { status: "match", implication: "equivalent_fact" },
       { status: "api_only", implication: "api_supplement_candidate" },
       { status: "csv_only", implication: "csv_fallback_candidate" },
@@ -248,8 +250,16 @@ describe("DNA Open Lab / CSV equivalence harness", () => {
         api: entity("core", "core:1", { hid: 1 }),
         csv: entity("core", "core:1", { hid: 1 }),
         fields: fields([
-          { canonicalField: "core.identity", apiPath: ["hid"], csvPath: ["hid"] },
-          { canonicalField: "core.identity", apiPath: ["hid"], csvPath: ["hid"] },
+          {
+            canonicalField: "core.identity",
+            apiPath: ["hid"],
+            csvPath: ["hid"],
+          },
+          {
+            canonicalField: "core.identity",
+            apiPath: ["hid"],
+            csvPath: ["hid"],
+          },
         ]),
       }),
     ).toThrow("duplicate canonical field core.identity");
@@ -259,7 +269,11 @@ describe("DNA Open Lab / CSV equivalence harness", () => {
         api: entity("core", "core:1", { value: Number.POSITIVE_INFINITY }),
         csv: entity("core", "core:1", { value: 1 }),
         fields: fields([
-          { canonicalField: "core.value", apiPath: ["value"], csvPath: ["value"] },
+          {
+            canonicalField: "core.value",
+            apiPath: ["value"],
+            csvPath: ["value"],
+          },
         ]),
       }),
     ).toThrow("non-finite number");
