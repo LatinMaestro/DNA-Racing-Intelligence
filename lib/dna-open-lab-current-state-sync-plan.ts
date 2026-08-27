@@ -140,7 +140,10 @@ function uniquePairs(
   return Object.freeze(result);
 }
 
-function batches<T>(values: readonly T[], size: number): readonly (readonly T[])[] {
+function batches<T>(
+  values: readonly T[],
+  size: number,
+): readonly (readonly T[])[] {
   const result: (readonly T[])[] = [];
   for (let offset = 0; offset < values.length; offset += size) {
     result.push(Object.freeze(values.slice(offset, offset + size)));
@@ -176,7 +179,9 @@ export function createDnaCurrentStateSyncPlan(input: {
   const vault = requiredText(input.vault, "vault");
   const ownedCoreIds = uniqueCoreIds(input.ownedCoreIds ?? []);
   const activeRaceIds = uniqueRaceIds(input.activeRaceIds ?? []);
-  const spliceModes = uniqueModes(input.spliceModes ?? ["bike", "car", "horse"]);
+  const spliceModes = uniqueModes(
+    input.spliceModes ?? ["bike", "car", "horse"],
+  );
   const splicePairs = uniquePairs(input.splicePairs ?? []);
 
   const bootstrap: DnaCurrentStateRequest[] = [
