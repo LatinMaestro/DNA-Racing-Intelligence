@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasProvenDnaOpenLabIndependentRateBuckets,
   safeDnaOpenLabRateLimitEvidence,
   summarizeDnaOpenLabShape,
   type DnaOpenLabConnectedProbeEvidence,
@@ -570,10 +571,14 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         evidence.push(notProbed("splice.doc.post", "splice", "key-3"));
       }
 
+      const independentRateBucketsProven =
+        hasProvenDnaOpenLabIndependentRateBuckets(evidence);
+      expect(independentRateBucketsProven).toBe(true);
+
       const safeOutput = Object.freeze({
         version: 1,
         independentRateBucketsEnabled: false,
-        independentRateBucketsProven: false,
+        independentRateBucketsProven,
         globalBudget: globalBudget.snapshot(),
         pool: pool.snapshot(),
         probes: Object.freeze(evidence),

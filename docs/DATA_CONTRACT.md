@@ -336,16 +336,18 @@ Spreadsheet-specific optimisation is not part of the critical path unless a demo
 
 P3 must produce and maintain a table with one row per canonical fact family:
 
-| Canonical fact        | API authority         | CSV fallback         | Local state               | Notes/equivalence status                                             |
-| --------------------- | --------------------- | -------------------- | ------------------------- | -------------------------------------------------------------------- |
-| Current ownership     | to prove in P3        | historical/reference | local strategy separate   | do not overwrite local notes/strategy                                |
-| Historical race facts | to prove in P3        | Race Merge           | none                      | compare IDs/times/positions/mode/distance/gates/stars/economics/tags |
-| Core identity/lineage | to prove in P3        | Core Details         | none                      | preserve durable IDs                                                 |
-| Current Arena/splice  | to prove in P3        | Current Arena        | shortlist/local decisions | official pair info/validation when available                         |
-| Current token price   | API current/reference | none                 | none                      | not historical valuation                                             |
-| Pro League roster     | none                  | none                 | authoritative local state | owner-managed/advisory                                               |
+| Canonical fact                 | P3 authority class    | CSV fallback         | Local state               | Evidence/equivalence status                                     |
+| ------------------------------ | --------------------- | -------------------- | ------------------------- | --------------------------------------------------------------- |
+| Current ownership              | API supplements       | historical/reference | local strategy separate   | live shapes proven; representative value equivalence still open |
+| Historical race facts          | API supplements       | Race Merge           | none                      | rich race shapes proven; results/history-depth equivalence open |
+| Core identity/lineage          | API supplements       | Core Details         | none                      | identity shapes proven; non-null lineage/value equivalence open |
+| Current Arena/splice           | API supplements       | Current Arena        | shortlist/local decisions | Arena and pair-info shapes proven; valid pair validation open   |
+| Current Core operational state | API supplements       | none                 | none                      | current-only power/stamina/assets/listing/stats observations    |
+| Current token price            | API supplements       | none                 | none                      | current/reference only; never historical valuation              |
+| Historical dated valuation     | CSV-only fallback     | retained evidence    | owner evidence separate   | current token endpoint cannot reconstruct historical valuation  |
+| Pro League roster/strategy     | local strategic state | none                 | authoritative local state | API ownership must not overwrite roster, notes or strategy      |
 
-No API-vs-CSV source is declared superseding until representative equivalence and field authority are proven.
+No API-vs-CSV source is declared superseding until representative equivalence and field authority are proven. The redacted connected observations and remaining P3 gaps are recorded in `DNA_OPEN_LAB_CONNECTED_DISCOVERY.md`.
 
 ## 22. Privacy and secret safety
 

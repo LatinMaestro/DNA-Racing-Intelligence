@@ -51,6 +51,8 @@ export type DnaOpenLabConnectedProbeEvidence = Readonly<{
   shape: DnaOpenLabShapeSummary | null;
 }>;
 
+const CONNECTED_DISCOVERY_LANES = ["key-1", "key-2", "key-3"] as const;
+
 function positiveSafeInteger(
   value: number,
   field: string,
@@ -207,4 +209,63 @@ export function safeDnaOpenLabRateLimitEvidence(
         : "redacted",
     retryAfterSeconds: value.retryAfterSeconds,
   });
+}
+
+/**
+ * Recognizes the conservative connected proof that each configured API key has
+ * its own advertised quota counter. Every lane must begin at `limit - 1`, then
+ * decrement only its own counter once within the same reset window.
+ */
+export function hasProvenDnaOpenLabIndependentRateBuckets(
+  evidence: readonly DnaOpenLabConnectedProbeEvidence[],
+): boolean {
+  let sharedLimit: number | null = null;
+  let sharedInitialRemaining: number | null = null;
+
+  for (const laneId of CONNECTED_DISCOVERY_LANES) {
+    const initial = evidence.find(
+      (entry) =>
+        entry.endpoint === "test_auth.initial" && entry.laneId === laneId,
+    );
+    const repeat = evidence.find(
+      (entry) =>
+        entry.endpoint === "test_auth.repeat" && entry.laneId === laneId,
+    );
+    if (
+      initial?.outcome !== "success" ||
+      repeat?.outcome !== "success" ||
+      initial.rateLimit === null ||
+      repeat.rateLimit === null
+    ) {
+      return false;
+    }
+
+    const first = initial.rateLimit;
+    const second = repeat.rateLimit;
+    if (
+      first.rateClass !== "api_key" ||
+      second.rateClass !== "api_key" ||
+      first.limit === null ||
+      first.limit < 2 ||
+      second.limit !== first.limit ||
+      first.remaining !== first.limit - 1 ||
+      second.remaining !== first.remaining - 1 ||
+      first.resetSeconds === null ||
+      second.resetSeconds === null ||
+      Math.abs(first.resetSeconds - second.resetSeconds) > 2
+    ) {
+      return false;
+    }
+
+    sharedLimit ??= first.limit;
+    sharedInitialRemaining ??= first.remaining;
+    if (
+      first.limit !== sharedLimit ||
+      first.remaining !== sharedInitialRemaining
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }

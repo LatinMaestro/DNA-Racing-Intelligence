@@ -132,6 +132,15 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - Classify canonical fact families as `API supersedes`, `API supplements`, `CSV-only fallback` or `local strategic state`.
 - Differences are explicit review evidence; do not silently choose a source.
 
+## 2026-08-27 — First successful connected discovery remains non-persistent
+
+- Connected run `33078637484` completed against main commit `4e2f958f6a406183b36f1e69294ed18733a10d0e` using three distinct private keys and one private Vault address.
+- The workflow retained only endpoint outcomes, bounded rate metadata, field paths/types and shape fingerprints. It committed no payload values and created no artifact.
+- The observed Splice Arena root is a paginated object with `cores`, `has_more`, `limit` and `page`, not a root array.
+- Paired authentication calls observed three independent `api_key` counters, each advertising 150 requests/minute. Operational connected discovery remains capped at 30 combined requests/minute; later P4 scheduling may use the proven per-key boundaries deliberately.
+- The run proves representative transport and shape contracts, not API-vs-CSV value equivalence, full history depth, successful `pair_validate` semantics or optional Splice document shapes.
+- Until those remaining P3 checks are complete, no API fact family is classified as `API supersedes`, and persistent real API sync remains unauthorised.
+
 ## 2026-08-27 — Current API observations cannot leak into historical evidence
 
 - Current power, adjusted odds, variance, stamina, equipped assets, owner/listing state, game racing statistics and current splice state are timestamped current observations.
