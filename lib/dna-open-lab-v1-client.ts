@@ -217,6 +217,15 @@ export type DnaSpliceArenaCore = DnaOpenLabRecord<{
   price_usd: number;
 }>;
 
+/**
+ * Connected P3 evidence shows that the Arena endpoint can return a paginated
+ * object rather than the array documented by the original keyless contract.
+ * Keep the object shape opaque until the redacted connected discovery records
+ * its real fields; callers must not assume that the response root is iterable.
+ */
+export type DnaSpliceArenaResult =
+  readonly DnaSpliceArenaCore[] | DnaOpenLabRecord<Record<string, unknown>>;
+
 export type DnaSplicePairInfo = DnaOpenLabRecord<{
   f: DnaOpenLabRecord<Record<string, unknown>>;
   m: DnaOpenLabRecord<Record<string, unknown>>;
@@ -316,7 +325,7 @@ export type DnaOpenLabClient = Readonly<{
     search?: string;
     vault?: string;
     page?: number;
-  }) => Promise<DnaOpenLabResponse<readonly DnaSpliceArenaCore[]>>;
+  }) => Promise<DnaOpenLabResponse<DnaSpliceArenaResult>>;
   splicePairInfo: (input: {
     fatherCoreId: number;
     motherCoreId: number;
@@ -696,7 +705,7 @@ export function createDnaOpenLabV1Client(input: {
       if (page !== undefined && (!Number.isSafeInteger(page) || page < 1)) {
         invalidRequest("page must be a positive safe integer");
       }
-      return request<readonly DnaSpliceArenaCore[]>({
+      return request<DnaSpliceArenaResult>({
         scope: "splice",
         path: "/splice/arena",
         method: "POST",
