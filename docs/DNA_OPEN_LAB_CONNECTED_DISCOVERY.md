@@ -4,8 +4,8 @@
 
 This record contains only redacted structural evidence from the read-only DNA Open Lab connected workflow. It contains no API key, Vault address, Core ID, race ID, payload value or raw response.
 
-- successful run: [`33078637484`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33078637484)
-- exact main commit: `4e2f958f6a406183b36f1e69294ed18733a10d0e`
+- first successful contract run: [`33078637484`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33078637484) at `4e2f958f6a406183b36f1e69294ed18733a10d0e`
+- independent-counter proof run: [`33079595784`](https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33079595784) at `d381ed2e8bb8f7b85aa24a11a79638c8f00cdc5d`
 - observed on: 27 August 2026
 - evidence format: endpoint/outcome, HTTP status, bounded rate metadata, root kind, path/type summary and SHA-256 shape fingerprint
 - persistence: none; the run wrote no API data and uploaded no artifact
@@ -22,7 +22,7 @@ All three distinct configured keys authenticated successfully twice with the req
 | key-2 | 149               | 148              | 150 req/min      | `api_key`  | 0            |
 | key-3 | 149               | 148              | 150 req/min      | `api_key`  | 0            |
 
-The equal clean starting counters followed by one decrement on each individual lane prove that the observed quota buckets are per key. This proof does not itself change operational scheduling: connected discovery remains under its conservative 30 combined requests/minute budget until a focused P4 change deliberately enables independent lanes.
+The equal clean starting counters followed by one decrement on each individual lane prove that the observed quota buckets are per key. The confirming run recorded `independentRateBucketsProven: true` and `independentRateBucketsEnabled: false`. This proof does not itself change operational scheduling: connected discovery remains under its conservative 30 combined requests/minute budget until a focused P4 change deliberately enables independent lanes.
 
 ## Endpoint-family observations
 
