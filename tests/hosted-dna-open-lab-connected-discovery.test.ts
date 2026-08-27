@@ -497,10 +497,12 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
       });
 
       const ownedCores: readonly DnaVaultCore[] = vaultCoresFull ?? [];
-      const father = [...ownedCores, ...(arena ?? [])].find(
+      const arenaCores = Array.isArray(arena) ? arena : [];
+      const pairCandidates = [...ownedCores, ...arenaCores];
+      const father = pairCandidates.find(
         (core) => core.gender.toLowerCase() === "male",
       );
-      const mother = [...ownedCores, ...(arena ?? [])].find(
+      const mother = pairCandidates.find(
         (core) => core.gender.toLowerCase() === "female",
       );
       if (

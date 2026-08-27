@@ -287,13 +287,20 @@ describe("DNA Open Lab v1 client", () => {
       "https://api.dnaracing.run/fbike/pub/v1/splice/pair_validate?father_coreid=10&mother_coreid=20",
     );
 
-    const arena = clientWith(jsonResponse({ status: "success", result: [] }));
-    await arena.client.spliceArena({
+    const arenaResult = {
+      page: 1,
+      synthetic_entries: [],
+    };
+    const arena = clientWith(
+      jsonResponse({ status: "success", result: arenaResult }),
+    );
+    const arenaResponse = await arena.client.spliceArena({
       filter: { rvmode: "bike", use_powerstats: true },
       search: "water",
       vault: "0xabc",
       page: 2,
     });
+    expect(arenaResponse.result).toEqual(arenaResult);
     const arenaRequest = requestFrom(arena.transport);
     expect(arenaRequest.url).toBe(
       "https://api.dnaracing.run/fbike/pub/v1/splice/arena",
