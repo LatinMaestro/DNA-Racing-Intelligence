@@ -73,13 +73,13 @@ The client/scheduler must:
 
 ## 5. Documented request bounds
 
-| Endpoint family/use | Maximum per request/window |
-| --- | ---: |
-| Vault info bulk | 100 |
-| Core bulk families | 20 |
-| Race docs/fills bulk | 20 |
-| Finished races per time window | 200 |
-| Vault search | 50 |
+| Endpoint family/use            | Maximum per request/window |
+| ------------------------------ | -------------------------: |
+| Vault info bulk                |                        100 |
+| Core bulk families             |                         20 |
+| Race docs/fills bulk           |                         20 |
+| Finished races per time window |                        200 |
+| Vault search                   |                         50 |
 
 Request builders must reject out-of-bounds work before transport where practical. Fail-fast local validation must remain synchronous where that is the client contract.
 
@@ -336,14 +336,14 @@ Spreadsheet-specific optimisation is not part of the critical path unless a demo
 
 P3 must produce and maintain a table with one row per canonical fact family:
 
-| Canonical fact | API authority | CSV fallback | Local state | Notes/equivalence status |
-| --- | --- | --- | --- | --- |
-| Current ownership | to prove in P3 | historical/reference | local strategy separate | do not overwrite local notes/strategy |
-| Historical race facts | to prove in P3 | Race Merge | none | compare IDs/times/positions/mode/distance/gates/stars/economics/tags |
-| Core identity/lineage | to prove in P3 | Core Details | none | preserve durable IDs |
-| Current Arena/splice | to prove in P3 | Current Arena | shortlist/local decisions | official pair info/validation when available |
-| Current token price | API current/reference | none | none | not historical valuation |
-| Pro League roster | none | none | authoritative local state | owner-managed/advisory |
+| Canonical fact        | API authority         | CSV fallback         | Local state               | Notes/equivalence status                                             |
+| --------------------- | --------------------- | -------------------- | ------------------------- | -------------------------------------------------------------------- |
+| Current ownership     | to prove in P3        | historical/reference | local strategy separate   | do not overwrite local notes/strategy                                |
+| Historical race facts | to prove in P3        | Race Merge           | none                      | compare IDs/times/positions/mode/distance/gates/stars/economics/tags |
+| Core identity/lineage | to prove in P3        | Core Details         | none                      | preserve durable IDs                                                 |
+| Current Arena/splice  | to prove in P3        | Current Arena        | shortlist/local decisions | official pair info/validation when available                         |
+| Current token price   | API current/reference | none                 | none                      | not historical valuation                                             |
+| Pro League roster     | none                  | none                 | authoritative local state | owner-managed/advisory                                               |
 
 No API-vs-CSV source is declared superseding until representative equivalence and field authority are proven.
 
