@@ -113,7 +113,10 @@ function raceIdentityHash(sourceRaceId: string): string {
     .digest("hex");
 }
 
-function objectBody(value: unknown, maximumObjectBytes: number): Readonly<{
+function objectBody(
+  value: unknown,
+  maximumObjectBytes: number,
+): Readonly<{
   bytes: Uint8Array;
   bodySha256: string;
 }> {
@@ -180,7 +183,9 @@ async function verifyStoredObject(input: {
   }
   for (const [key, value] of Object.entries(input.expectedMetadata)) {
     if (metadataValue(head.metadata, key) !== value) {
-      evidenceError(`evidence object metadata ${key} does not match publication`);
+      evidenceError(
+        `evidence object metadata ${key} does not match publication`,
+      );
     }
   }
 }
@@ -290,7 +295,9 @@ export function createDnaOpenLabR2RaceDocumentClient(input: {
   });
 
   return Object.freeze({
-    raceDocs: async (raceIds): Promise<DnaOpenLabResponse<readonly DnaRaceDocument[]>> => {
+    raceDocs: async (
+      raceIds,
+    ): Promise<DnaOpenLabResponse<readonly DnaRaceDocument[]>> => {
       await ensurePrivateBucket();
       const response = await input.client.raceDocs(raceIds);
       for (const document of response.result) {
@@ -298,7 +305,9 @@ export function createDnaOpenLabR2RaceDocumentClient(input: {
         const rawEvidenceSha256 = dnaOpenLabRawEvidenceSha256(document);
         const body = objectBody(document, maximumObjectBytes);
         if (body.bodySha256 !== rawEvidenceSha256) {
-          evidenceError("canonical Race document checksum drifted from API evidence hash");
+          evidenceError(
+            "canonical Race document checksum drifted from API evidence hash",
+          );
         }
         const key = raceDocumentObjectKey({
           ownerPrefix: prefix,
@@ -388,7 +397,9 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
         metadataValue(head.metadata, "dna-race-id-sha256") !==
           raceIdentityHash(sourceRaceId)
       ) {
-        evidenceError(`full Race document ${sourceRaceId} archive is inconsistent`);
+        evidenceError(
+          `full Race document ${sourceRaceId} archive is inconsistent`,
+        );
       }
       raceDocumentObjects.push(
         Object.freeze({
