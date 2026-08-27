@@ -1,136 +1,321 @@
-# DNA Pro Esports League Preparation
+# DNA Pro League Preparation
+
+Status: **current Pro League preparation authority**  
+Effective: **27 August 2026**
 
 ## Authority
 
-This document records the DNA Community Update supplied by the owner on 20 August 2026 plus the owner's subsequent clarification of how Pro League relates to DNA Racing.
+This document combines:
 
-The announcement remains provisional for roster and competition mechanics until DNA publishes more detail. The owner intends to participate but will **not mint additional Genesis cores**. Preparation must use the existing owner-maintained My Vault plus breeding.
+- the DNA Community Update supplied by the owner on 20 August 2026;
+- later owner-provided/confirmed Pro League roster rules that supersede the initial announcement assumptions; and
+- the 27 August 2026 API-first architecture decision.
+
+Where current rules below conflict with the older announcement snapshot, the current rules govern validation and recommendations. The older announcement remains recorded later in this document as historical evidence.
 
 ## Owner-confirmed performance relationship
 
-The Pro League is part of the DNA Racing ecosystem. A core has the **same underlying stats and performance characteristics** in normal DNA Racing and Pro League. Treat Pro League analytically like a dedicated high-value tournament/competition layer, not like a separate game with unrelated core ability.
+Pro League is part of the DNA Racing ecosystem. A Core has the **same underlying stats and performance characteristics** in normal DNA Racing and Pro League.
 
-Therefore accepted DNA Racing history is authoritative performance evidence for Pro League preparation. Existing Bike, Car and Horse evidence, exact-distance times, finishing performance, Gold/Blue supporting signals and race-format history may all inform selection subject to their normal evidence-quality and freshness rules.
+Therefore accepted DNA Racing historical evidence remains the primary audited performance base for Pro League preparation, including:
 
-The Pro League still has a dedicated private website section because roster construction, all-rounder selection, Discovery workload and competition preparation are materially different from ordinary tournament qualification.
+- exact-distance times and speed;
+- finishing evidence;
+- Gold/Blue pre-race star signals;
+- race/payout-format evidence;
+- mode breadth;
+- sample size and recency; and
+- lineage/Discovery evidence.
 
-## Selection objective
+Current DNA Open Lab API fields may add useful current context but do not replace historical performance evidence automatically.
 
-The roster should contain the **most powerful overall cores available**, while satisfying every published structural roster rule.
+## Current roster rules
 
-Prefer cores that demonstrate strength across:
+My Vault is unlimited. The Pro League roster is a separate constrained selection from that vault.
 
-- multiple modes, ideally Bike, Car and Horse rather than a single specialist mode;
-- multiple exact distances or distance bands;
-- both winning-level and top-three-level benchmark ranges;
-- multiple historical payout/race formats, including formats such as Winner Take All and Top 3 where supported by accepted `rpayout` evidence;
-- sufficiently large and fresh samples; and
-- different competitive contexts without relying on one isolated outlier result.
+A legal current roster must satisfy all of the following:
 
-Do not collapse this into one opaque score. The website should show the evidence dimensions and use a deterministic lexicographic review order so the owner can see why one core ranks ahead of another.
+- **12 to 25 Cores** total;
+- maximum **10 substitutions per year**;
+- maximum **7 Metal**;
+- maximum **8 Fire**;
+- maximum **10 Earth**;
+- maximum **2 Genesis per element**;
+- maximum **5 Cores at F5 or below**;
+- maximum **12 Cores at F10 or below**;
+- minimum **2 Cores above F15**;
+- minimum **8 female Cores**; and
+- every rostered Core must have a name.
 
-A genuinely dominant specialist may still deserve a roster slot, but broad multi-mode/multi-format power is the primary Pro League preference.
+There is no current minimum Water count supplied. Water therefore remains constrained only by the total roster and other applicable rules unless DNA supplies a later rule.
 
-## Published roster and competition information
+## Initial roster and substitution allowance
 
-- 12 Pro teams.
-- 25 cores per roster.
-- Minimum 5 Metal, 5 Fire, 5 Earth and 5 Water.
-- Maximum 2 “gens” per element.
-- Minimum 8 females.
-- At least 5 F15+ cores.
-- Current announced focus is Bike mode.
-- Two Pro matches per week, Tuesday and Friday at 9:00 PM ET.
-- Open-entry lower league with seasonal promotion/relegation: top three lower-league teams move up and bottom three Pro teams move down.
-- Matches are best-of-three maps; maps are first to 16, win by two, with up to 42 races.
-- Pro players are paid, have no entry or badge fees, and may obtain sponsors.
-- Public access was estimated for 1 September 2026, but DNA explicitly described the estimate as non-rushed.
+Whether the first/initial roster selection consumes any part of the annual maximum-10 substitution allowance is unresolved.
 
-The announcement also mentions live betting markets. Betting functionality is outside this private website’s preparation scope.
+Implementation must therefore:
 
-## Working interpretation of “gens”
+- represent the initial-roster counting rule explicitly;
+- default it to an unresolved/configurable authority state until DNA clarifies;
+- never silently consume or preserve substitutions based on an assumption; and
+- show the owner which interpretation is currently active when substitution budget is displayed.
 
-Until DNA clarifies the shorthand, the website interprets “maximum 2 gens per element” as **maximum two Genesis cores per element** because Genesis is the matching published core-class term in the same announcement and existing game vocabulary.
+## Quality-first roster objective
 
-This interpretation must remain visibly labelled provisional and versioned. A later clarification must invalidate and recalculate affected roster advice.
+Do **not** force the roster to 25.
 
-## Breeding-first preparation
+The objective is:
 
-The special Genesis mint is excluded from the owner strategy.
+1. construct the strongest rule-compliant nucleus;
+2. maintain at least 12 Cores;
+3. add additional Cores only when they provide meaningful incremental competitive/structural value; and
+4. stop before 25 if extra slots would dilute quality or consume future flexibility without a credible purpose.
 
-Use confirmed DNA breeding mechanics where they genuinely help roster construction:
+A 12-Core roster is legal if every other rule is satisfied. A 25-Core roster is not inherently better.
 
-- offspring F-number equals the sum of both parent F-numbers, so a structural F15+ target requires a parent sum of at least 15;
-- offspring takes the lower-ranked element in the confirmed Metal > Fire > Earth > Water order;
-- Metal target: Metal × Metal;
-- Fire target: Fire × Fire or Metal × Fire;
-- Earth target: an Earth parent with Metal, Fire or Earth; pairing with Water produces Water;
-- Water target: any otherwise eligible pairing involving a Water parent; and
-- bred offspring are non-Genesis, which can improve roster flexibility under the working Genesis cap.
+The website should distinguish:
 
-Racing quality remains probabilistic. No confirmed rule currently allows offspring sex to be deterministically targeted, so a female roster gap is managed through actual offspring outcomes and retention rather than a claimed female-producing pairing.
+- nucleus;
+- optional value-adding slots;
+- alternates/candidates outside the current roster;
+- marginal replaceable slots; and
+- structural gaps.
 
-Breeding is not only for structural minimums. Once the pool is structurally compliant, the Pro League objective should influence the normal Breeding workspace so high-upside pairings that could produce stronger **all-round** roster candidates remain visible. Existing weak quantity must never be preferred over elite quality merely to fill 25 slots.
+## Evidence model
+
+Do not collapse Pro League advice into one opaque universal score.
+
+For each candidate show separate evidence dimensions, including:
+
+- class;
+- element;
+- sex;
+- F-number;
+- name/current ownership;
+- total historical race sample;
+- modes with evidence;
+- exact distances with minimally analytical samples;
+- winning-range and top-three-range evidence;
+- sample sizes and freshness;
+- Gold/Blue historical signal evidence;
+- payout/race-format coverage;
+- current API observations where available;
+- Discovery gaps;
+- structural roster contribution; and
+- confidence/uncertainty.
+
+Candidate ordering may use a transparent deterministic review order but must expose the underlying dimensions.
+
+## Historical performance remains the audited base
+
+Primary Pro League evidence remains historical and chronological:
+
+- Core Performance;
+- exact-distance distributions;
+- star profiles;
+- payout-format profiles;
+- sample/recency evidence;
+- cross-mode breadth;
+- Discovery outcomes; and
+- lineage evidence.
+
+Current API state must not leak backward into historical backtests.
+
+## DNA Open Lab API enrichment
+
+Once connected payload authority is proven, current API evidence may include separate dimensions such as:
+
+- power;
+- adjusted odds;
+- variance;
+- current game racing stats;
+- stamina;
+- equipped assets;
+- owner/listing state;
+- recent races; and
+- current splicing/lineage state.
+
+These observations must be timestamped and displayed as **current context**.
+
+Before any of these fields receive ranking weight, the project should test whether they add predictive lift beyond the existing historical model. A current field must not be blended into one hidden score merely because it is available.
+
+## Roster persistence and audit
+
+Persist:
+
+- roster version;
+- effective dates;
+- nucleus membership;
+- optional slots;
+- alternates;
+- reason/evidence snapshot per membership decision;
+- current compliance result;
+- structural gaps;
+- substitution ledger; and
+- unresolved authority/configuration state.
+
+API ownership can reconcile whether the owner currently holds a Core in the game but must not erase local roster history, notes, ME state, Discovery plans or lifecycle strategy.
+
+## Substitution ledger
+
+Track at minimum:
+
+- year/season boundary used for the allowance;
+- substitution number;
+- outgoing Core;
+- incoming Core;
+- effective timestamp;
+- reason/evidence snapshot;
+- whether the change counts toward the allowance under the active authority interpretation; and
+- remaining budget.
+
+The maximum is 10 substitutions per year under current authority.
 
 ## Discovery preparation
 
-Pro League should be one of the most Discovery-intensive workflows in the site.
+Pro League should be one of the most Discovery-intensive workflows.
 
-The goal is not to run every core blindly across every combination. Use the existing lineage-informed Discovery method to find high-value unknowns efficiently:
+The goal is not to race every Core blindly. Convert roster uncertainty into ranked probes.
 
-1. Start with owned cores that already show winning/top-three-range evidence in at least one mode or exact distance.
-2. Test promising missing modes and adjacent/lineage-supported distances to determine whether a specialist is actually an all-rounder.
-3. Prioritise cores that could materially improve a weak element group or replace a lower-ranked provisional roster core.
-4. Continue promising paths toward the 10-race exact-distance analytical minimum; stop weak paths early.
-5. Add payout-format robustness testing once the historical `rpayout` read model is materialised, prioritising formats such as Winner Take All and Top 3 rather than assuming format neutrality from one sample.
-6. Preserve separate evidence for Bike, Car and Horse. Cross-mode breadth is valuable, but one strong mode must not fabricate strength in another.
+Prioritise:
 
-The announced Bike focus can increase immediate relevance of Bike evidence, but it does not change the owner's longer-term objective of finding the strongest overall cores across the ecosystem.
+1. candidates that could enter the nucleus;
+2. candidates that could replace a marginal roster Core;
+3. tests that resolve a structural gap;
+4. promising missing modes/adjacent distances for known strong Cores; and
+5. lineage-supported hypotheses with credible upside.
 
-## Power and versatility review
+Retain the existing minimum of **10 races per Core × mode × exact distance** for a minimally analytical conclusion. Earlier evidence may support continue/stop hypotheses but not fabricate confidence.
 
-For every owned Pro League candidate, show at minimum:
+Stop weak paths early. Preserve separate Bike/Car/Horse evidence.
 
-- class, element, sex and F-number;
-- total accepted races;
-- modes with any evidence;
-- modes with a minimally analytical exact-distance sample;
-- modes and distances reaching winning benchmark range;
-- modes and distances reaching top-three-or-better benchmark range;
-- exact-distance sample counts and freshness;
-- historical payout-format coverage and win/top-three performance once the aggregate is available;
-- Discovery gaps and recommended next tests; and
-- structural roster relevance.
+## Active-race opportunity matching
 
-Candidate ordering should first reward **breadth of winning-level evidence across modes**, then top-three breadth, then winning/top-three distance breadth, analytical coverage and sample depth. This is a review order, not a claim that a hidden universal core rating exists.
+DNA Open Lab active-race/fill data may be used to show suitable **manual** racing opportunities for Pro League Discovery.
 
-## Payout/race-format evidence
+The website may:
 
-Race Merge already preserves the authoritative payout mechanism label (`rpayout`) as payout-mechanism source evidence. Migration 0035 materialises a bounded owner/core/mode/payout-format read model rather than scanning multi-million-row history on every page.
+- identify active races matching a target mode/distance/restriction;
+- compare current field/owned candidates where supported;
+- show which Discovery objective the race could advance; and
+- update readiness after the finished result is later synced.
 
-The aggregate stores the conservatively normalised label key while retaining a display label, race/win/top-three numerators, exact-distance coverage, timed-race coverage, first/latest event timestamps and refresh/import timestamps. It is owner-isolated, replay-safe and rebuilt only from selected facts in non-rolled-back Race Merge versions.
+It must never enter a race or submit a game action.
 
-This is descriptive context, not proof that payout format changes intrinsic core ability. The UI must expose sample sizes and freshness, derive rates from the stored numerators, and keep format strength pending until the repository layer and evidence-quality thresholds are connected. Raw times from different exact distances must not be blended into a misleading format-wide time score; exact-distance timing remains in Core Performance profiles.
+## Breeding acceleration
 
-## Unknowns that must remain unconfigured
+Breeding objectives should be derived from:
 
-- How initial places in the 12 Pro teams are allocated versus starting in the lower league.
-- Formal meaning of “gens”.
-- Exact Pro League map distances and track characteristics.
-- Roster locks, substitutions, transfers and per-map/core-use rules.
-- Exact mix of payout/race formats used by Pro League matches.
-- Registration dates, first-season timing and sponsorship administration details.
+- structural roster gaps;
+- performance gaps;
+- weak/marginal roster slots;
+- uncertain future needs; and
+- exceptional-upside opportunities.
 
-The relationship between DNA Racing core performance and Pro League performance is **not** an unresolved item: the owner has confirmed the same core stats and performance characteristics apply.
+Do not breed only to satisfy a numeric quota if the expected candidate quality is poor.
+
+When connected, use official DNA Open Lab Splice evidence:
+
+- current Arena;
+- `pair_info` for official baby element/F/type/cost preview; and
+- `pair_validate` for current official pair eligibility/validation.
+
+Combine those official current facts with the website's historical lineage/performance/upside research.
+
+The website may rank/shortlist pairs but must not execute a splice or wallet transaction.
+
+## Current-rule structural interpretation
+
+The following constraints are ceilings:
+
+- 7 Metal;
+- 8 Fire;
+- 10 Earth;
+- 2 Genesis per element;
+- 5 at F5 or below;
+- 12 at F10 or below.
+
+The following are minimums:
+
+- 12 total Cores;
+- 2 above F15;
+- 8 females.
+
+There is no authority to treat the maximum values as targets. The strongest roster may sit well below one or more ceilings.
+
+## Roster-size rationale
+
+Every recommendation to expand beyond the nucleus should state the incremental reason, for example:
+
+- unique high-level mode/distance strength;
+- material coverage of a structural weakness;
+- credible all-round breadth;
+- substitution-risk hedge;
+- strategic specialist value; or
+- evidence-backed upside that is not duplicated by the current roster.
+
+"There is space remaining" is not a sufficient reason to add a Core.
+
+## API access loss
+
+Pro League must remain usable if DNA Open Lab access pauses.
+
+On API/tier loss:
+
+- retain last-good roster evidence/read models;
+- show current API-derived fields as stale where appropriate;
+- continue historical analytics and local roster/substitution strategy normally; and
+- resume current-state catch-up when API access returns.
+
+Do not invalidate the roster merely because the newest current-state fields cannot refresh.
+
+## Private `/pro-league` commissioning target
+
+The first owner-usable Pro League page should provide:
+
+- current roster and nucleus;
+- alternates;
+- compliance validator;
+- roster-size rationale;
+- evidence dimensions;
+- substitution budget/history;
+- Discovery queue;
+- active-race opportunities;
+- breeding queue;
+- official pair viability/cost when connected;
+- structural gaps;
+- marginal slots; and
+- sync/freshness/stale-but-usable status.
 
 ## Safety and scope
 
-The Pro League workspace is private, owner-only and advisory. It must not:
+The Pro League workspace is private, owner-only and advisory.
 
+It must not:
+
+- create or submit a team;
+- enter races;
 - mint;
 - trade;
-- connect or sign with a wallet;
-- enter teams or races automatically;
+- connect/sign with a wallet;
+- execute a splice;
 - place bets;
-- administer public sponsors or team pages; or
-- turn the application into a multi-user/team SaaS platform.
+- administer public sponsors/team pages; or
+- turn the application into a multi-user/team SaaS product.
+
+## Historical announcement snapshot — superseded roster assumptions
+
+The 20 August 2026 Community Update was initially recorded with the following provisional roster assumptions:
+
+- exactly 25 Cores;
+- minimum 5 Metal, 5 Fire, 5 Earth and 5 Water;
+- maximum 2 "gens" per element, interpreted provisionally as Genesis;
+- minimum 8 females;
+- at least 5 F15+ Cores; and
+- current announced focus on Bike.
+
+The announcement also described 12 Pro teams, an open-entry lower league with promotion/relegation, two Pro matches per week, best-of-three maps and first-to-16 map scoring, and referenced live betting markets.
+
+These statements remain historical evidence of the earlier announcement. **They do not control current roster validation where they conflict with the current rules above.** In particular, exactly-25, minimum-five-per-element and minimum-five-F15+ assumptions are superseded.
+
+Competition-format statements not contradicted by later authority remain provisional context until DNA publishes/clarifies the final rulebook.
