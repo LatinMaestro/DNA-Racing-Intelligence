@@ -11,6 +11,8 @@ import type {
   DnaActiveRace,
   DnaCoreInfo,
   DnaOpenLabScope,
+  DnaRaceDocument,
+  DnaRaceFill,
   DnaVaultCore,
 } from "@/lib/dna-open-lab-v1-client";
 
@@ -50,6 +52,24 @@ export type CanonicalActiveRaceSnapshot = Readonly<{
   endAt: string | null;
 }>;
 
+export type DnaRaceDocumentEndpoint =
+  "races.finished" | "races.docs" | "vault.recent_races";
+
+export type CanonicalRaceDocumentReference = Readonly<{
+  sourceType: "race_document";
+  sourceRaceId: string;
+}>;
+
+export type CanonicalRaceFillSnapshot = Readonly<{
+  sourceType: "race_fill_snapshot";
+  sourceRaceId: string;
+  status: string;
+  gateCount: number;
+  filledGateCount: number;
+  entrantCoreIds: readonly string[];
+  entryConfirmationsBySourceKey: Readonly<Record<string, boolean>>;
+}>;
+
 function adapterError(message: string): never {
   throw new DnaOpenLabAdapterError(message);
 }
@@ -63,6 +83,13 @@ function requiredText(value: string, field: string): string {
 function positiveInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 1) {
     adapterError(`${field} must be a positive safe integer`);
+  }
+  return value;
+}
+
+function nonNegativeInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    adapterError(`${field} must be a non-negative safe integer`);
   }
   return value;
 }
@@ -138,6 +165,10 @@ function raceIdentifier(value: string | number): string {
   if (typeof value === "number")
     return String(positiveInteger(value, "race.id"));
   return requiredText(value, "race.id");
+}
+
+function raceDocumentScope(endpoint: DnaRaceDocumentEndpoint): DnaOpenLabScope {
+  return endpoint === "vault.recent_races" ? "vault" : "races";
 }
 
 function canonicalJson(value: unknown): string {
@@ -296,6 +327,78 @@ export function adaptDnaActiveRace(input: {
   return evidence({
     scope: "races",
     endpoint: "races.active",
+    entityKey: `race:${sourceRaceId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaRaceDocument(input: {
+  raw: DnaRaceDocument;
+  observedAt: string;
+  endpoint: DnaRaceDocumentEndpoint;
+}): DnaOpenLabEvidence<CanonicalRaceDocumentReference> {
+  const sourceRaceId = raceIdentifier(input.raw.rid);
+  const canonical: CanonicalRaceDocumentReference = Object.freeze({
+    sourceType: "race_document",
+    sourceRaceId,
+  });
+  return evidence({
+    scope: raceDocumentScope(input.endpoint),
+    endpoint: input.endpoint,
+    entityKey: `race:${sourceRaceId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaRaceFill(input: {
+  raw: DnaRaceFill;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalRaceFillSnapshot> {
+  const sourceRaceId = raceIdentifier(input.raw.rid);
+  const gateCount = positiveInteger(input.raw.rgate, "raceFill.gateCount");
+  const filledGateCount = nonNegativeInteger(
+    input.raw.hs_in,
+    "raceFill.filledGateCount",
+  );
+  if (filledGateCount > gateCount) {
+    adapterError("raceFill.filledGateCount cannot exceed raceFill.gateCount");
+  }
+
+  const entrantCoreIds = Object.freeze(
+    input.raw.hids.map((hid) => String(positiveInteger(hid, "raceFill.hid"))),
+  );
+  if (entrantCoreIds.length !== filledGateCount) {
+    adapterError("raceFill entrant count must equal raceFill.filledGateCount");
+  }
+
+  const entryConfirmationsBySourceKey = Object.freeze(
+    Object.fromEntries(
+      Object.entries(input.raw.entry_txns_confirmed)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([sourceKey, confirmed]) => [
+          requiredText(sourceKey, "raceFill.entryConfirmation.sourceKey"),
+          confirmed,
+        ]),
+    ),
+  );
+
+  const canonical: CanonicalRaceFillSnapshot = Object.freeze({
+    sourceType: "race_fill_snapshot",
+    sourceRaceId,
+    status: requiredText(input.raw.status, "raceFill.status"),
+    gateCount,
+    filledGateCount,
+    entrantCoreIds,
+    entryConfirmationsBySourceKey,
+  });
+
+  return evidence({
+    scope: "races",
+    endpoint: "races.fills",
     entityKey: `race:${sourceRaceId}`,
     observedAt: input.observedAt,
     raw: input.raw,
