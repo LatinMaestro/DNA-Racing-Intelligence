@@ -132,6 +132,14 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - Classify canonical fact families as `API supersedes`, `API supplements`, `CSV-only fallback` or `local strategic state`.
 - Differences are explicit review evidence; do not silently choose a source.
 
+## 2026-08-27 — Connected equivalence output is aggregate-only
+
+- Detailed API-vs-CSV reports may contain private entity identities and remain inside the approved ephemeral/private comparison boundary.
+- CI logs and repository documentation may receive only count-only summaries grouped by canonical field and entity family.
+- Redacted summaries omit entity keys, API/CSV paths, filenames, checksums and scalar values.
+- Duplicate entity reports and inconsistent field contracts fail closed before aggregation.
+- A safe redaction summary is infrastructure, not equivalence proof; promotion still requires representative private value comparison.
+
 ## 2026-08-27 — First successful connected discovery remains non-persistent
 
 - Connected run `33078637484` completed against main commit `4e2f958f6a406183b36f1e69294ed18733a10d0e` using three distinct private keys and one private Vault address.

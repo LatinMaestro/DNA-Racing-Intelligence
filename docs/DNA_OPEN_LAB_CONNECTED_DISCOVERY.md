@@ -77,4 +77,6 @@ P3 is not complete until the following are resolved privately without committing
 4. Exercise telemetry benchmark with a compatible sample, or formally classify its data-dependent error behavior.
 5. Optionally inspect Splice document GET/POST only if the owner supplies a safe existing request ID through the repository secret.
 
+The equivalence harness now has a count-only redaction boundary for connected evidence. It rejects duplicate entity reports and inconsistent field contracts, and it cannot emit entity keys, paths, filenames, checksums or source values. This is safety infrastructure only; it does not count as value-equivalence evidence until representative private CSV rows are supplied to the ephemeral comparison boundary.
+
 Persistent real API backfill remains outside K1/P3 authority and still requires the separate P5 owner gate.

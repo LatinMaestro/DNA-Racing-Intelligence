@@ -221,6 +221,8 @@ During P3/P4/P10, representative facts are compared privately, including where a
 
 Differences are classified rather than silently resolved. The source-authority matrix must state whether API supersedes, supplements or cannot yet replace the CSV fact.
 
+Detailed comparison reports contain private entity identities and remain inside the approved ephemeral/private processing boundary. Connected CI and repository documentation may receive only count-only redacted summaries grouped by canonical field and entity family. Those summaries must omit entity keys, API/CSV paths, filenames, checksums and all scalar source values. Duplicate entity reports and inconsistent field contracts fail closed before aggregation so counts cannot be inflated or compared under different semantics.
+
 ## Owner-facing operations
 
 After API commissioning, the owner should normally see a compact API operations/freshness panel rather than an upload-first workflow.
