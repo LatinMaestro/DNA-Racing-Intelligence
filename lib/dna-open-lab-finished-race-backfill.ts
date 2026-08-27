@@ -22,6 +22,8 @@ import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 
 export const DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION = 1 as const;
 export const DNA_FINISHED_RACE_BACKFILL_MAX_PENDING_WINDOWS = 128 as const;
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
+const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export type DnaFinishedRaceBackfillCheckpoint = Readonly<{
   version: typeof DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION;
@@ -49,6 +51,10 @@ export type DnaFinishedRaceBackfillCheckpointRepository = Readonly<{
   save: (input: {
     expectedRevision: string | null;
     checkpoint: DnaFinishedRaceBackfillCheckpoint;
+    publication?: Readonly<{
+      window: DnaFinishedRaceWindow;
+      receipt: DnaFinishedRaceWindowPublicationReceipt;
+    }>;
   }) => Promise<StoredDnaFinishedRaceBackfillCheckpoint>;
 }>;
 
@@ -64,6 +70,9 @@ export type DnaFinishedRaceWindowPublicationReceipt = Readonly<{
   windowKey: string;
   contentSha256: string;
   documentCount: number;
+  manifestObjectKey: string;
+  manifestBodySha256: string;
+  manifestByteLength: number;
 }>;
 
 /**
@@ -74,6 +83,33 @@ export type DnaFinishedRaceWindowPublicationReceipt = Readonly<{
 export type DnaFinishedRaceWindowPublisher = (
   publication: DnaFinishedRaceWindowPublication,
 ) => Promise<DnaFinishedRaceWindowPublicationReceipt>;
+
+export function validateDnaFinishedRaceWindowPublicationReceipt(
+  receipt: DnaFinishedRaceWindowPublicationReceipt,
+): DnaFinishedRaceWindowPublicationReceipt {
+  const manifestObjectKey = receipt.manifestObjectKey.trim();
+  if (
+    !SHA_256_PATTERN.test(receipt.windowKey) ||
+    !SHA_256_PATTERN.test(receipt.contentSha256) ||
+    !SHA_256_PATTERN.test(receipt.manifestBodySha256) ||
+    !Number.isSafeInteger(receipt.documentCount) ||
+    receipt.documentCount < 0 ||
+    !Number.isSafeInteger(receipt.manifestByteLength) ||
+    receipt.manifestByteLength < 1 ||
+    manifestObjectKey.length < 1 ||
+    manifestObjectKey.length > 4096 ||
+    CONTROL_PATTERN.test(manifestObjectKey) ||
+    !manifestObjectKey.endsWith(
+      `/races/finished-windows/${receipt.windowKey}.json`,
+    )
+  ) {
+    backfillError(
+      "publication_mismatch",
+      "finished-race publisher receipt is invalid",
+    );
+  }
+  return Object.freeze({ ...receipt, manifestObjectKey });
+}
 
 export type DnaFinishedRaceBackfillStepResult =
   | Readonly<{
@@ -181,7 +217,7 @@ function windowIdentity(window: DnaFinishedRaceWindow): string {
   return `${window.startTime}|${window.endTime}`;
 }
 
-function validateCheckpoint(
+export function validateDnaFinishedRaceBackfillCheckpoint(
   checkpoint: DnaFinishedRaceBackfillCheckpoint,
 ): DnaFinishedRaceBackfillCheckpoint {
   if (checkpoint.version !== DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION) {
@@ -260,7 +296,10 @@ function checkpointWith(
   checkpoint: DnaFinishedRaceBackfillCheckpoint,
   changes: Partial<DnaFinishedRaceBackfillCheckpoint>,
 ): DnaFinishedRaceBackfillCheckpoint {
-  return validateCheckpoint({ ...checkpoint, ...changes });
+  return validateDnaFinishedRaceBackfillCheckpoint({
+    ...checkpoint,
+    ...changes,
+  });
 }
 
 function raceKey(rid: DnaRaceIdentifier): string {
@@ -373,7 +412,7 @@ function initialCheckpoint(input: {
     { startTime: input.startTime, endTime: input.endTime },
     "rootWindow",
   );
-  return validateCheckpoint({
+  return validateDnaFinishedRaceBackfillCheckpoint({
     version: DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION,
     rootWindow,
     pendingWindows: Object.freeze([rootWindow]),
@@ -394,7 +433,9 @@ async function loadOrCreateCheckpoint(input: {
 }): Promise<StoredDnaFinishedRaceBackfillCheckpoint> {
   const existing = await input.repository.load();
   if (existing !== null) {
-    const checkpoint = validateCheckpoint(existing.checkpoint);
+    const checkpoint = validateDnaFinishedRaceBackfillCheckpoint(
+      existing.checkpoint,
+    );
     const requestedRoot = normalizeWindow(
       { startTime: input.startTime, endTime: input.endTime },
       "requestedRootWindow",
@@ -505,13 +546,15 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
     discoveredRaces: races,
     hydration,
   });
-  const publicationReceipt = await input.publisher(
-    Object.freeze({
-      ...hashes,
-      window: currentWindow,
-      discoveredRaces: races,
-      hydratedDocuments,
-    }),
+  const publicationReceipt = validateDnaFinishedRaceWindowPublicationReceipt(
+    await input.publisher(
+      Object.freeze({
+        ...hashes,
+        window: currentWindow,
+        discoveredRaces: races,
+        hydratedDocuments,
+      }),
+    ),
   );
   if (
     publicationReceipt.windowKey !== hashes.windowKey ||
@@ -537,6 +580,10 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
   const nextStored = await input.checkpointRepository.save({
     expectedRevision: stored.revision,
     checkpoint: nextCheckpoint,
+    publication: Object.freeze({
+      window: currentWindow,
+      receipt: publicationReceipt,
+    }),
   });
   return Object.freeze({
     kind: "published",

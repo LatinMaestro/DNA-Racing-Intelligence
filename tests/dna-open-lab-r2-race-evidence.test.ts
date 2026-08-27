@@ -197,17 +197,22 @@ describe("DNA Open Lab private R2 Race evidence", () => {
     const receipt: DnaFinishedRaceWindowPublicationReceipt =
       await publish(expected);
     const replay = await publish(expected);
+    const manifest = [...storage.objects.entries()].find(([key]) =>
+      key.endsWith(`/finished-windows/${expected.windowKey}.json`),
+    );
 
     expect(receipt).toEqual({
       windowKey: expected.windowKey,
       contentSha256: expected.contentSha256,
       documentCount: 2,
+      manifestObjectKey: expect.stringMatching(
+        new RegExp(`/finished-windows/${expected.windowKey}\\.json$`, "u"),
+      ),
+      manifestBodySha256: manifest?.[1].checksumSha256,
+      manifestByteLength: manifest?.[1].body.byteLength,
     });
     expect(replay).toEqual(receipt);
     expect(storage.objects.size).toBe(3);
-    const manifest = [...storage.objects.entries()].find(([key]) =>
-      key.endsWith(`/finished-windows/${expected.windowKey}.json`),
-    );
     expect(manifest).toBeDefined();
     expect(manifest?.[1].metadata["dna-content-sha256"]).toBe(
       expected.contentSha256,

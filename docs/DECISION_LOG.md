@@ -283,3 +283,22 @@ After the private Pro League milestone, continue in this order:
 - Use forced RLS, function-only least-privilege runtime access and serializable stage/publish transactions.
 - Reject observation/time regression and make published-generation replay idempotent.
 - This migration/repository slice is synthetic only. It does not authorise or perform persistent real API backfill; the P5 owner gate remains unchanged.
+
+## 2026-08-27 — Durable finished-race checkpoint and R2 receipt binding
+
+- Persist the existing P2 finished-race checkpoint as compact owner-scoped Neon
+  state with compare-and-swap revisions; do not store raw API payloads in Neon.
+- A saturated-window split may advance without an R2 receipt because it publishes
+  no evidence. A completed non-saturated window may advance only while the verified
+  private R2 manifest receipt is recorded atomically in the same serializable
+  transaction.
+- Bind each immutable receipt to the exact window key, content checksum, document
+  count, manifest object key, manifest checksum and manifest byte length.
+- Reject checkpoint authority changes, invalid split transitions, counter drift,
+  revision conflicts and conflicting receipt replay. Exact retry after an uncertain
+  client response remains idempotent.
+- Protect checkpoint and receipt tables with forced RLS and function-only
+  least-privilege runtime access.
+- This is synthetic/replayable P4 infrastructure only. It does not run a real API
+  backfill, mutate hosted Neon/R2, deploy Vercel or weaken the P5 owner approval
+  gate.

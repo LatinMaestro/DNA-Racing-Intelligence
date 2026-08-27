@@ -448,6 +448,9 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       windowKey: publication.windowKey,
       contentSha256: publication.contentSha256,
       documentCount: publication.hydratedDocuments.length,
+      manifestObjectKey: objectKey,
+      manifestBodySha256: body.bodySha256,
+      manifestByteLength: body.bytes.byteLength,
     });
   };
 }
