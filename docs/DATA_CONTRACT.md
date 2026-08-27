@@ -1,343 +1,368 @@
-# Data Contract and Import Requirements
+# API-First Data Contract
 
-## Input types
+Status: **current source-data authority**  
+Effective: **27 August 2026**
 
-1. Race Merge CSV — cumulative or sequential race-entry history.
-2. Core Details CSV — identity, lineage and core attributes.
-3. Current Vault CSV — active owned cores and current ME state where available.
-4. Current Arena CSV — time-sensitive externally available breeding listings.
-5. Tournament configuration — manually entered structured rules.
-6. Manual economic transaction — payout, fee, sale, purchase, burn, transfer, opening balance, adjustment or reconciliation entry.
-7. Future authoritative economic export — only where the game or marketplace provides a supported transaction history.
+## 1. Source hierarchy
 
-The currently inspected private source set contains six sequential Race Merge exports and one export each for Core Details, Current Vault and Current Arena. Privacy-safe counts, overlap and coverage evidence are recorded in `docs/AGGREGATE_SOURCE_PROFILE.md`; exact filenames and source records remain outside Git.
+The preferred source is **DNA Open Lab v1 API**.
 
-## Import principles
+Normal path:
 
-- Detect file type from headers and explicit user selection.
-- Validate required columns before persistence.
-- Preserve an import batch record: filename, checksum, type, upload time, source date where available, latest accepted event time, row counts, accepted/rejected counts, warnings and schema version.
-- Deduplicate race entries using stable source identifiers, with `event_id + token/core_id` as the initial expected natural key where available.
-- Derive race economic transactions idempotently from the accepted race-entry natural key plus transaction type.
-- Imports must be idempotent.
-- Never delete previously accepted history merely because a newer file omits it without an explicit reconciliation workflow.
-- Support rollback of one import batch without corrupting prior batches.
-- Store raw source values and normalized values separately where practical.
-- Ignore race class in analytical models but preserve the source field for provenance if inexpensive.
-- Preserve manually entered economic transactions separately from source-derived transactions.
-- Corrections to accepted economic facts must use auditable overrides, exclusions, reversals or reconciliation records rather than silent destructive mutation.
-- Implement the owner-facing upload, preview, confirmation, processing, completion and rollback flow in `docs/DATA_UPDATE_WORKFLOW.md`.
+`DNA Open Lab API -> server-only typed client -> canonical adapters -> private R2 evidence/cache where useful -> owner-scoped Neon read models/aggregates -> private authenticated website`
 
-## Analytical fidelity and private retention
+CSV sources remain supported as:
 
-- The private raw-data boundary must retain original uploaded files and source values for provenance, reproducibility and future analysis, subject to approved capacity limits.
-- Do not remove or suppress a field merely because it may be identifiable or sensitive; privacy controls protect access and logging and must not reduce analytical quality.
-- Normalize and index every field required or plausibly useful for current analysis, recommendations, identity, lineage, accounting, freshness, reconciliation or validation.
-- Redundant or currently unused values may be omitted from compact application tables only when they remain recoverable from the private raw source and the omission cannot reduce current analysis.
-- Unknown extra columns remain preserved in raw provenance and produce a schema warning for later assessment.
-- Authenticated owner review may expose exact filename, row and field details where useful. Routine logs, Git, CI, public surfaces and synthetic fixtures remain redacted.
+- internal fallback;
+- API-equivalence evidence;
+- historical-gap evidence where the API does not expose an equivalent fact; and
+- recovery/transition tooling until API completeness has been demonstrated.
 
-## Normalisation
+Local owner strategy state is never replaced by API or CSV game data.
 
-Normalize without losing source values:
+## 2. DNA Open Lab connection contract
 
-Race distances are metres. Race elapsed-time values are seconds (for example,
-`52.500` is 52.500 seconds). Derive
-`elapsed_time_milliseconds = elapsed_time_seconds * 1000` and speed in metres per
-second as `distance_metres / elapsed_time_seconds`; reject values that cannot be
-represented at the chosen integer-millisecond boundary rather than silently
-rounding them.
+Base URL:
 
-- core IDs;
-- names and casing;
+`https://api.dnaracing.run/fbike/pub/v1`
+
+Authentication:
+
+- Bearer API key;
+- server-side only;
+- never sent to browser code;
+- never committed to Git;
+- never printed to CI/application logs, Issue comments or chat.
+
+Expected scopes for the hosted website key:
+
+- `vault`;
+- `races`;
+- `cores`;
+- `tokens`; and
+- `splice`.
+
+Market data is future scope only after DNA implements/publishes it.
+
+## 3. Response-envelope authority
+
+The response body envelope is authoritative.
+
+Every documented endpoint response must be parsed as one of:
+
+- `status: success`; or
+- `status: error`.
+
+An HTTP success code does not override an error body. A documented error body returned with **HTTP 305** remains an API error and must be represented as such.
+
+Malformed/missing envelopes fail closed and cannot publish canonical data.
+
+## 4. Rate-limit contract
+
+The application must work correctly at the minimum supported design tier of **30 requests/minute**.
+
+Higher tiers of 80 or 150 requests/minute may shorten catch-up time but must not change correctness.
+
+The client/scheduler must:
+
+- capture available rate-limit response metadata;
+- respect `Retry-After` on HTTP 429;
+- avoid blind immediate retry loops;
+- preserve durable progress before backing off; and
+- expose enough metadata for sync/recovery observability without exposing secrets.
+
+## 5. Documented request bounds
+
+| Endpoint family/use | Maximum per request/window |
+| --- | ---: |
+| Vault info bulk | 100 |
+| Core bulk families | 20 |
+| Race docs/fills bulk | 20 |
+| Finished races per time window | 200 |
+| Vault search | 50 |
+
+Request builders must reject out-of-bounds work before transport where practical. Fail-fast local validation must remain synchronous where that is the client contract.
+
+## 6. Endpoint-family coverage
+
+The typed server client and sync plan must cover documented read operations required from:
+
+### Vault
+
+- authentication/account scope proof;
+- owned-Core/current-vault facts;
+- search and bounded bulk info where required.
+
+### Races
+
+- active/current races;
+- fill/current entrant state;
+- finished races by bounded time window;
+- race-document hydration; and
+- recent/history evidence required for analytics and automatic post-race ingestion.
+
+### Cores
+
+- identity/basic Core data;
+- documented bulk supplemental families;
+- current power/adjusted-odds/variance where exposed;
+- racing stats;
+- stamina;
+- equipped assets;
+- owner/listing state; and
+- current splice/lineage-related state where exposed.
+
+### Tokens
+
+- current/reference token prices or metadata exposed by the API.
+
+Current token prices are reference/current context only. Historical economic valuation continues to use dated historical rates.
+
+### Splice
+
+- current Arena/listing state;
+- `pair_info` official baby element/F/type/cost evidence;
+- `pair_validate` official eligibility/viability evidence; and
+- read-only request/status evidence where available after owner-manual splices.
+
+No endpoint is used to initiate a splice, race, team, bet, wallet or market action.
+
+## 7. Canonical-adapter contract
+
+Provider transport names must not become analytics/UI vocabulary by accident.
+
+Canonical adapters translate provider fields into stable domain records while retaining provenance.
+
+Every canonical observation must retain, directly or by evidence reference where appropriate:
+
+- source provider: `dna_open_lab`;
+- API version: `v1`;
+- endpoint family;
+- authoritative source/entity ID(s);
+- stable canonical entity/natural key;
+- source timestamp when provided;
+- retrieval timestamp;
+- deterministic checksum of canonicalized raw JSON evidence;
+- optional/private evidence-object reference; and
+- canonical validation status.
+
+Provider-specific names such as `hid`, `rvmode`, `cb` and future transport aliases stay inside the provider boundary.
+
+## 8. Optional and additive fields
+
+The API is allowed to add optional fields without breaking the client.
+
+Rules:
+
+- preserve additive fields in raw evidence/checksum provenance where possible;
+- do not silently promote a new field into analytical meaning;
+- continue parsing known required/current fields;
+- accept documented nullable/optional states;
+- fail closed where an existing required field becomes invalid or structurally incompatible; and
+- add a versioned canonical mapping only after meaning is established.
+
+## 9. Historical race backfill completeness
+
+`/races/finished` is bounded to 200 results per time window.
+
+A 200-result response is treated as **potentially saturated**, not complete.
+
+The crawler must recursively split time windows until each accepted leaf window is demonstrably below saturation or another documented completeness proof exists. Full race documents are then hydrated in batches of at most 20.
+
+The crawler retains durable window/checkpoint state so restart and access loss do not restart history blindly.
+
+## 10. Idempotency and last-good publication
+
+Every sync/backfill family must support replay.
+
+- stable natural keys prevent duplicate facts;
+- the same accepted evidence may be replayed without duplicating state;
+- partial refreshes do not replace last-good publication;
+- checkpoint advancement is durable and bounded;
+- a failed downstream write cannot advance publication incorrectly; and
+- catch-up resumes from the last successful cursor/window/checkpoint.
+
+## 11. API access loss and stale-but-usable behavior
+
+If the key/tier/API becomes unavailable:
+
+- background sync pauses;
+- the last successfully synced dataset remains active;
+- analytics and owner workflows continue using retained local read models;
+- affected current-state views show freshness/stale status; and
+- catch-up resumes when access returns.
+
+The application must not fail simply because current API access is unavailable.
+
+## 12. Current observations versus historical evidence
+
+Current API facts may include power, adjusted odds, variance, stamina, equipped assets, owner/listing state, current racing stats and splice state.
+
+These are **timestamped current observations**. They are not automatically historical features.
+
+Historical backtests/recommendations may use a current-style field only if an observation of that field existed before the historical event cutoff. Otherwise it is excluded to prevent leakage.
+
+Historical race time/speed/exact-distance evidence, Gold/Blue star evidence, payout-format context and accepted economic facts retain their existing chronological rules.
+
+## 13. Race-performance fidelity
+
+Canonical historical race evidence must preserve enough information to support existing analytics, including where available:
+
+- event/race ID;
+- Core ID;
 - mode;
-- distance;
+- exact distance;
 - gate count;
-- breed/class;
-- element;
-- F-number;
-- sex;
-- event and payout labels;
-- timestamps and time zones;
-- currencies and asset identifiers;
-- transaction direction and category;
-- race time and speed units;
-- tournament, bracket and stage identifiers;
-- wallet/account labels;
-- external transaction references where supplied;
-- Gold-star and Blue-star flags;
-- Gold-star eligibility; and
-- star-data completeness and validation status.
-
-Do not combine currencies without an explicit conversion source and effective date.
-
-Treat BGC as a separate asset type. Do not silently convert it into cash or crypto.
-
-## Race star source fields
-
-The Race Merge exports include:
-
-- `gold_star` — the Gold star;
-- `blue_star` — the Blue star.
-
-Owner-confirmed meanings:
-
-- Gold star: the core assessed by the game as having the strongest chance to finish in the top three in that entered field.
-- Blue star: the core assessed by the game as having the strongest chance to win and finish first in that entered field.
+- event/start timestamp;
+- elapsed time/finishing position;
+- Gold/Blue source evidence;
+- fee/prize/token;
+- payout mechanism/format;
+- restrictions/tags;
+- current-through/source provenance; and
+- deterministic identity/fingerprint.
 
-Owner-confirmed Gold eligibility rule:
+Lower elapsed time and higher speed remain primary performance evidence by exact mode/distance. Gold/Blue and finish/payout context remain supporting evidence under `GAME_RULES.md`, `STAR_SIGNAL_SPECIFICATION.md` and `ANALYTICS_METHOD.md`.
 
-- Gold stars are not assigned in races with three gates or fewer.
-- Derive `gold_star_eligible = gate_count > 3` unless a later owner-confirmed rule changes it.
-- A false Gold value in a 1-, 2- or 3-gate race is structurally ineligible, not negative evidence.
+## 14. Ownership authority
 
-Import requirements:
+Current DNA-owned Core state should be reconciled from the API once connected evidence proves the exact ownership contract.
 
-- preserve `gold_star` and `blue_star` raw values in staging or provenance storage;
-- normalize both to nullable Booleans using the same Gold and Blue terminology;
-- derive or persist `gold_star_eligible`;
-- distinguish `false` from absent, blank, malformed or unavailable;
-- record a `star_data_status` such as `complete`, `partial`, `missing` or `invalid`;
-- never silently treat a missing column or value as `false`;
-- preserve source batch and row provenance;
-- validate event-level assignment counts for each star type;
-- flag a source Gold assignment in a race with three gates or fewer as an anomaly;
-- retain and flag anomalies rather than silently rewriting them.
+API ownership may update game-holding facts but must not erase local state including:
 
-Initial supplied data indicates that no event has more than one Gold or one Blue assignment. Treat that as an import validation expectation and observed source characteristic, not an immutable game rule beyond the confirmed Gold gate restriction.
+- owner notes;
+- manually maintained/strategic Maiden state;
+- Pro League roster versions;
+- annual substitution ledger;
+- Discovery plans;
+- lifecycle state;
+- manual accounting/reconciliation; or
+- Tournament configuration.
 
-The same core may receive both stars in one event and the model must support that state.
+Ownership history remains auditable.
 
-## Proposed normalized race-entry star fields
+## 15. Pro League data requirements
 
-Each normalized race-entry record should support:
+The Pro League domain requires enough current and historical evidence to validate and explain:
 
-- `gold_star` nullable Boolean;
-- `blue_star` nullable Boolean;
-- `gold_star_eligible` Boolean;
-- `gold_star_source_value` optional raw value;
-- `blue_star_source_value` optional raw value;
-- `star_data_status`;
-- star validation warning code where applicable;
-- import batch ID.
-
-A derived event-level view or table should expose:
-
-- event ID;
-- gate count;
-- Gold-star eligibility;
-- whether a Gold star was assigned;
-- Gold-star core ID where assigned;
-- whether a Blue star was assigned;
-- Blue-star core ID where assigned;
-- whether the same core received both;
-- event star validation status.
+- roster membership and name;
+- class/element/F-number/sex;
+- current ownership;
+- exact-distance/mode historical strength;
+- sample counts and recency;
+- star/payout-format evidence;
+- current API dimensions kept separate from historical evidence;
+- structural gaps;
+- alternates;
+- substitution usage/history;
+- Discovery opportunities; and
+- breeding opportunity/pair validation evidence.
 
-## Star aggregate requirements
+No API response may automatically create a roster substitution or overwrite owner strategy history.
 
-Precomputed or efficiently queryable aggregates should support each core × mode × exact distance and broader profile levels:
+## 16. Splice and breeding data authority
 
-- total races with valid star data;
-- Gold-eligible races;
-- Gold assignment-opportunity races;
-- Blue assignment-opportunity races;
-- Gold count and rate;
-- Blue count and rate;
-- both count and rate;
-- Gold-only count and rate;
-- Blue-only count and rate;
-- neither count and rate where the relevant signals were genuinely available;
-- rolling recent rates;
-- rates by gate count and relevant historical format;
-- rates by pre-race field-quality band;
-- sample size, recency and confidence.
+Where the API exposes official values:
 
-Where the UI shows a rate, store or calculate enough information to identify whether the denominator is:
+- `pair_info` is the authority for the current official baby element/F/type/cost preview returned for that pair/request context;
+- `pair_validate` is the authority for current official pair eligibility/validation returned for that pair/request context.
 
-1. all races with valid star data;
-2. Gold-eligible races with more than three gates; or
-3. only races where that star type was assigned to someone in the field.
+Historical lineage/performance analysis remains this application's strategic evidence. Official viability/cost does not by itself imply a high-quality racing outcome.
 
-Do not combine the denominators silently. Never include a 1–3 gate race as a negative Gold opportunity.
+The website never performs a splice transaction.
 
-## Pre-race field context
+## 17. Token/economic separation
 
-Historical star strength must be assessed against the quality of the entered field using information available before the event start time.
+API token prices are used only for current/reference displays unless a separate dated source contract explicitly supports historical valuation.
 
-Derived field-quality features may use opponents’ prior:
+Historical fees/payouts preserve original asset amounts and use the existing dated-valuation rules. A current listing price is a listing fact, not realised income, fair value or cost basis.
 
-- mode-distance time distributions;
-- successful-time percentiles;
-- star profiles;
-- sample sizes;
-- recency-weighted form; and
-- lineage evidence available before the event.
+BGC remains a separate non-cash game credit under the existing economic rules.
 
-The following must not enter a historical event’s pre-race field-quality calculation:
+## 18. R2 evidence contract
 
-- the event’s eventual finishing positions;
-- the event’s times;
-- the event’s prizes or payouts;
-- any later race result.
+Private R2 may retain:
 
-Persist a feature timestamp or cutoff reference sufficient to audit no-leakage behavior.
+- raw/full API payload evidence where useful;
+- manifests/checksums;
+- bounded cache objects;
+- replay artifacts;
+- retained CSV raw/fallback evidence; and
+- large analytical objects not suited to Neon.
 
-## Data freshness and snapshot status
+Requirements:
 
-Race data will normally be refreshed by a newer export every few days. It is not live data.
+- private bucket only;
+- no public `r2.dev` access;
+- opaque/owner-scoped keys;
+- checksum verification;
+- no raw API payloads in Git/CI artifacts; and
+- bounded cleanup/recovery rules.
 
-Persist for each accepted import and current dataset state:
+## 19. Neon contract
 
-- uploaded/imported timestamp;
-- source filename and checksum;
-- minimum and maximum accepted event timestamps;
-- latest accepted event timestamp across the active dataset;
-- source row count and accepted row count;
-- derived data-age value or inputs;
-- aggregate refresh completion time.
+Neon should contain only compact state that benefits from relational transactions/RLS, including:
 
-The application must expose:
+- owner mapping;
+- sync/checkpoint/publication state;
+- current canonical read models;
+- compact historical analytical aggregates;
+- Pro League local state;
+- Tournament/Maiden state;
+- economics/reconciliation; and
+- recovery/operation metadata.
 
-- `Data current through` based on the latest accepted event time;
-- `Last imported` based on import time;
-- a freshness state such as current, ageing or stale;
-- an explicit historical-snapshot label.
+Persistent API schema/migrations must follow connected P3 payload evidence rather than guessed wire shapes.
 
-Do not describe periodic race, vault, core or arena data as live. Do not infer that events after the latest accepted timestamp did not occur.
+## 20. CSV fallback contract
 
-## Economic transaction requirements
+The existing importer remains supported but secondary.
 
-Every economic transaction must retain:
+Known fallback families include historical Race Merge, Core Details and Arena evidence plus prior owner-maintained/retired vault evidence where retained for reconciliation.
 
-- unique stable identifier;
-- source type and source provenance;
-- transaction date/time;
-- original asset/currency;
-- exact amount and debit/credit direction;
-- category and subcategory;
-- tournament/core/race links where applicable;
-- manual or inferred classification status;
-- duplicate/exclusion status;
-- notes and external reference where supplied; and
-- created/edited/reversed audit metadata.
+CSV behavior remains:
 
-Use exact decimal/numeric storage or integer minor units appropriate to each asset. Never use binary floating point for monetary, token or BGC amounts.
+- immutable private raw evidence;
+- deterministic schema/version detection;
+- provenance/checksum retention;
+- idempotent replay;
+- conflict quarantine;
+- rollback/recovery; and
+- API-vs-CSV equivalence comparison.
 
-Imported race entries may derive separate entry-fee expense and payout-income records. Validate whether the source fee is per-core before treating it as such in production data.
+Spreadsheet-specific optimisation is not part of the critical path unless a demonstrated API gap requires it.
 
-## Economic classification
+## 21. Source-authority matrix
 
-Race economic activity may be classified as:
+P3 must produce and maintain a table with one row per canonical fact family:
 
-- normal open racing;
-- tournament qualification;
-- automated tournament round;
-- tournament final; or
-- unknown/unclassified.
+| Canonical fact | API authority | CSV fallback | Local state | Notes/equivalence status |
+| --- | --- | --- | --- | --- |
+| Current ownership | to prove in P3 | historical/reference | local strategy separate | do not overwrite local notes/strategy |
+| Historical race facts | to prove in P3 | Race Merge | none | compare IDs/times/positions/mode/distance/gates/stars/economics/tags |
+| Core identity/lineage | to prove in P3 | Core Details | none | preserve durable IDs |
+| Current Arena/splice | to prove in P3 | Current Arena | shortlist/local decisions | official pair info/validation when available |
+| Current token price | API current/reference | none | none | not historical valuation |
+| Pro League roster | none | none | authoritative local state | owner-managed/advisory |
 
-Classification may be inferred from event labels, configured tournament windows and rules, but uncertain matches must remain reviewable and correctable.
+No API-vs-CSV source is declared superseding until representative equivalence and field authority are proven.
 
-Arena listings do not represent completed breeding transactions. Do not create breeding income from a listing alone.
+## 22. Privacy and secret safety
 
-Manual tournament payouts sent directly to a crypto wallet must be supported as a separate source type and linked to the applicable tournament without requiring per-core allocation.
+- real API payloads, CSVs, database dumps and owner-specific exports stay outside Git;
+- deterministic synthetic fixtures are used in tests;
+- secrets are server-side only;
+- logs use stable issue codes/metadata rather than full raw records;
+- private R2/Neon remain owner-scoped;
+- never request/store private keys, seed phrases or signing credentials; and
+- never expose a game/API credential to client-side JavaScript.
 
-## Ownership
+## 23. Licensing/attribution
 
-- Current Vault is the source of truth for active owned cores at import time.
-- Every accepted Current Vault row represents an owned core; `me` is a separate Maiden-eligibility field and must never be used as the ownership filter.
-- The inspected current snapshot resolves all 195 owner-confirmed rows deterministically to Core Details. Future unmatched, inconsistent or genuinely ambiguous identities remain review-required.
-- Allow manual additions, removals and ME overrides.
-- Burnt cores are absent from active vault data but remain in historical core and lineage records.
-- Do not infer current ownership solely from race history.
-- Display when the current-vault snapshot was last imported.
+DNA Open Lab API use is currently authorised only for non-commercial use under the owner's stated scope. Do not introduce commercial use without explicit approval. API-backed website surfaces must attribute DNA Racing.
 
-## Arena freshness
+## 24. Historical spreadsheet-first evidence
 
-- Arena listings commonly last 5 or 10 days.
-- Store listing import time and source expiry where available.
-- Mark recommendations stale when the arena export is no longer current.
-- Never silently recommend an expired listing.
-- Never treat listing presence or expiry as evidence that a fee was earned.
-- Never label imported arena listings as live.
+Before 27 August 2026, CSV imports were the primary data path. That detailed contract remains preserved in Git history and specialised phase documents and continues to inform fallback, recovery, RLS, evidence retention, race economics and equivalence testing.
 
-## Lineage graph
-
-Construct parent-child relationships from core details.
-
-Derived relationships:
-
-- parents;
-- grandparents;
-- full siblings;
-- half siblings;
-- offspring;
-- wider lineage.
-
-Validate family restrictions before a pairing recommendation.
-
-Star profiles may be joined to lineage research as historical features, but the data layer must not label them as inherited traits without validated analysis.
-
-## Reconciliation and duplication
-
-- Re-importing cumulative Race Merge data must not duplicate race, star or economic records.
-- Star aggregates must derive from the deduplicated accepted race-entry set.
-- A newer import must update dataset freshness and recalculate affected aggregates safely.
-- Warn about manual transactions with matching date, amount, asset and tournament/reference.
-- Permit mark-as-duplicate or excluded status without deleting provenance.
-- Support reversal entries for incorrect manual records.
-- Exclude deposits, withdrawals and internal transfers from operating P/L.
-- Preserve opening balances separately from income.
-- Allow unclassified records to remain in a review queue.
-
-## Privacy and repository rules
-
-- Real CSVs, database dumps, wallet activity and derived user-specific exports must be gitignored.
-- Tests use synthetic fixtures.
-- Uploaded raw files must be private and access-controlled.
-- Production logs must not print complete raw records, credentials, private file content, complete wallet addresses or transaction references unnecessarily.
-- Never request or store private keys, seed phrases or signing credentials.
-
-## Owner-confirmed Race Merge economics
-
-The Race Merge economic columns have these normalized meanings:
-
-| Source column | Meaning                           | Normalized treatment                                                                                                                            |
-| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rpayout`     | Payout format/mechanism label     | Preserve as a versionable label; never parse as an amount                                                                                       |
-| `rfee`        | Per-core race-entry fee           | Exact non-negative source decimal; create at most one entry-fee debit per accepted owned-core entry when greater than zero                      |
-| `prize`       | Per-core gross race payout        | Exact non-negative source decimal; create at most one payout credit per accepted owned-core entry when greater than zero                        |
-| `toke_curr`   | Entry and payout asset            | Normalize ordinary race economics to ETH or DEZ; apply the confirmed historical BGC non-economic exception; other assets remain review-required |
-| `r_tags`      | Race eligibility/restriction tags | Preserve raw text and parse only versioned, tested tag rules                                                                                    |
-
-A numeric zero is an authoritative zero. Blank, missing, malformed and negative values are not equivalent to zero. The fee and prize use the same row asset. Race-derived natural keys remain the accepted race-entry key plus `entry_fee` or `payout`, so cumulative imports cannot duplicate them.
-
-Persist exact source decimals and use exact database numerics; do not convert through JavaScript binary floating point. Entry fees are stored as expenses/debits and prizes as income/credits. Refunds, reversals and adjustments require an explicit source event or auditable manual entry.
-
-### Historical BGC race exception
-
-A Race Merge entry whose `toke_curr` is BGC remains accepted race-performance evidence but has an effective entry fee and payout of zero. It creates no race-derived transaction in ETH, DEZ or BGC, contributes no source fee or prize to an economic aggregate, and does not enter an unsupported-asset review queue merely because the race asset is BGC. Preserve its source provenance only inside the approved private import boundary.
-
-This exception is limited to historical race economics. Genuine BGC breeding costs, arena spending, burn credits, opening balances and adjustments remain separate BGC-ledger activity.
-
-### USD valuation
-
-Race reports must preserve original ETH/DEZ values and also calculate a USD reporting value from a dated rate for the event's UTC calendar day.
-
-Each valuation must retain:
-
-- asset and original exact amount;
-- UTC rate date;
-- exact USD-per-asset rate;
-- provider and provider-series identifier;
-- retrieval time;
-- source timestamp;
-- valuation method;
-- converted exact USD amount;
-- status such as available, missing, stale, manually overridden or superseded; and
-- correction/supersession history.
-
-Use one canonical daily rate per asset and UTC date for all races on that date. The initial free provider is CoinGecko historical market data: coin ID `ethereum` for ETH and the Polygon contract-pinned DEZ series for `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`. Fetch rates only in the background import workflow, cache them durably and never make routine page requests depend on a third-party price API.
-
-A missing provider rate must leave USD unavailable and visible; it must not silently use today's price, interpolate across a gap or substitute another asset. Manual rates and later corrections are auditable overrides, not destructive replacements.
-
-BGC has an owner-confirmed USD 1 = BGC 1 reference rate. It remains a separate non-cash ledger and is excluded from ETH/DEZ operating P/L totals unless a separately labelled BGC-equivalent view is selected.
+Where those historical documents describe CSV as the normal source or periodic snapshot as the only source of current state, this API-first contract supersedes that statement.
