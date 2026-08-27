@@ -67,7 +67,9 @@ describe("DNA Open Lab splice document POST client", () => {
     });
 
     const result = await client.spliceDocumentPost("request-1");
-    expect(observedUrl).toBe("https://api.dnaracing.run/fbike/pub/v1/splice/doc");
+    expect(observedUrl).toBe(
+      "https://api.dnaracing.run/fbike/pub/v1/splice/doc",
+    );
     expect(observedInit?.method).toBe("POST");
     expect(new Headers(observedInit?.headers).get("Authorization")).toBe(
       `Bearer ${API_KEY}`,
@@ -83,11 +85,9 @@ describe("DNA Open Lab splice document POST client", () => {
 
   it("treats the DNA body error envelope as authoritative even on HTTP 305", async () => {
     const client = createClient(async () =>
-      response(
-        { status: "error", err: "forbidden" },
-        305,
-        { "X-RateLimit-Limit": "30" },
-      ),
+      response({ status: "error", err: "forbidden" }, 305, {
+        "X-RateLimit-Limit": "30",
+      }),
     );
 
     await expect(client.spliceDocumentPost("request-1")).rejects.toMatchObject({
@@ -101,11 +101,10 @@ describe("DNA Open Lab splice document POST client", () => {
     let calls = 0;
     const client = createClient(async () => {
       calls += 1;
-      return response(
-        { status: "error", err: "rate limited" },
-        429,
-        { "Retry-After": "22", "X-RateLimit-Remaining": "0" },
-      );
+      return response({ status: "error", err: "rate limited" }, 429, {
+        "Retry-After": "22",
+        "X-RateLimit-Remaining": "0",
+      });
     });
 
     await expect(client.spliceDocumentPost("request-1")).rejects.toMatchObject({
