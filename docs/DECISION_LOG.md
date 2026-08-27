@@ -149,6 +149,13 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - Higher advertised limits are retained only as redacted observability evidence and cannot automatically raise the default lane or aggregate budget.
 - Any future throughput increase requires a separate owner decision and focused reviewed configuration change; it must never alter correctness.
 
+## 2026-08-27 — Connected race metadata must not be mistaken for result coverage
+
+- The successful connected run observed active-race `class` as numeric, `start_time` as null and `end_time` omitted, so canonical adapters preserve those real optional/source-value contracts.
+- Hydrated race documents exposed entrants, economics, payout, tags and scheduling metadata but no direct elapsed-time, finishing-position or explicit distance field in the sample.
+- `track` remains an unclassified source value and is not interpreted as distance.
+- Historical race metadata remains `API supplements`; historical race outcomes/performance remain `CSV-only fallback` unless another authoritative API result contract and private value equivalence are proven.
+
 ## 2026-08-27 — Current API observations cannot leak into historical evidence
 
 - Current power, adjusted odds, variance, stamina, equipped assets, owner/listing state, game racing statistics and current splice state are timestamped current observations.

@@ -24,6 +24,8 @@ All three distinct configured keys authenticated successfully twice with the req
 
 The equal clean starting counters followed by one decrement on each individual lane prove that the observed quota buckets are per key. The confirming run recorded `independentRateBucketsProven: true` and `independentRateBucketsEnabled: false`. The owner has chosen a standing website policy of 30 requests/minute combined across all keys. Advertised higher limits remain observability metadata and cannot raise the default lane or aggregate gate automatically.
 
+The observed Tier Badge payload exposed only `vault` and `tot_score`; it did not expose a tier-level or rate-entitlement field. The 150-per-key allowance therefore cannot be attributed specifically to being above TierBadge level 4 from this evidence alone.
+
 ## Endpoint-family observations
 
 | Family         | Successful observations                                                                                  | Other observations                                                                    | Root contracts established                          |
@@ -46,20 +48,22 @@ The two API-error observations were valid, redacted API envelopes over HTTP 200.
 - Observed nullability includes recent/active race start times, tournament profits in some bulk Core statistics, stamina refill time, lineage fields, off-chain Splice state and pair pricing.
 - Core identifiers were numeric. Race identifiers were strings in the observed sample; the transport boundary continues to accept the existing string-or-number race identifier type until broader evidence justifies narrowing it.
 - Timestamp fields were ISO-like strings or null in game records; authentication metadata used a numeric timestamp. Exact semantic/timezone authority remains a mapping concern rather than something inferred from field names alone.
-- Race documents expose rich entry, economics, payout, tag and scheduling structure. This run does not prove complete finished-result timing/position coverage or the available historical horizon.
+- Active-race `class` was numeric in the sample, `start_time` was null and `end_time` was omitted. Canonical current-race mapping therefore preserves the class source type, accepts a null start and treats an omitted end as unknown/null rather than enforcing the earlier synthetic-only shape.
+- Race documents expose rich entry, economics, payout, tag and scheduling structure. The observed finished/document shapes did not expose a direct elapsed-time field, finishing-position field or explicit distance field. `track` remains an unclassified source value; it is not silently interpreted as distance.
 
 ## Source-authority matrix
 
-| Canonical fact family                 | Current class         | Reason                                              | Required before promotion                                                                      |
-| ------------------------------------- | --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Current ownership                     | API supplements       | Vault/Core ownership shapes succeeded               | compare representative API ownership to retained current/reference evidence                    |
-| Historical race facts                 | API supplements       | active/finished/document/fill shapes succeeded      | compare IDs, entrants, times, positions, mode, gates, stars and economics; prove history depth |
-| Core identity and lineage             | API supplements       | identity and splicing shapes succeeded              | compare durable identity and representative non-null lineage to Core Details                   |
-| Current Arena and Splice              | API supplements       | paginated Arena and pair info succeeded             | compare current Arena membership and obtain a successful valid-pair validation                 |
-| Current Core operational state        | API supplements       | power/stamina/assets/listing/stats shapes succeeded | keep timestamped and establish predictive use separately                                       |
-| Current token prices                  | API supplements       | numeric current price object succeeded              | current/reference display only; no historical substitution                                     |
-| Historical dated valuation            | CSV-only fallback     | no historical price endpoint was observed           | retain dated evidence unless an authoritative historical source appears                        |
-| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts       | never overwritten by API reconciliation                                                        |
+| Canonical fact family                 | Current class         | Reason                                              | Required before promotion                                                      |
+| ------------------------------------- | --------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Current ownership                     | API supplements       | Vault/Core ownership shapes succeeded               | compare representative API ownership to retained current/reference evidence    |
+| Historical race metadata              | API supplements       | active/finished/document/fill shapes succeeded      | compare IDs, entrants, mode, gates, stars and economics; prove history depth   |
+| Historical race outcomes/performance  | CSV-only fallback     | no direct elapsed/position/distance fields observed | retain Race Merge unless another authoritative API result contract is proven   |
+| Core identity and lineage             | API supplements       | identity and splicing shapes succeeded              | compare durable identity and representative non-null lineage to Core Details   |
+| Current Arena and Splice              | API supplements       | paginated Arena and pair info succeeded             | compare current Arena membership and obtain a successful valid-pair validation |
+| Current Core operational state        | API supplements       | power/stamina/assets/listing/stats shapes succeeded | keep timestamped and establish predictive use separately                       |
+| Current token prices                  | API supplements       | numeric current price object succeeded              | current/reference display only; no historical substitution                     |
+| Historical dated valuation            | CSV-only fallback     | no historical price endpoint was observed           | retain dated evidence unless an authoritative historical source appears        |
+| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts       | never overwritten by API reconciliation                                        |
 
 No family is yet classified as `API supersedes`.
 
@@ -68,7 +72,7 @@ No family is yet classified as `API supersedes`.
 P3 is not complete until the following are resolved privately without committing source values:
 
 1. Run representative API-vs-known-CSV equivalence for race, Core, ownership and economics values.
-2. Prove finished-result time/position coverage and bounded historical depth/window behavior.
+2. Prove bounded historical depth/window behavior and determine whether another authoritative endpoint supplies elapsed time, position and distance; the observed finished/document contract did not.
 3. Exercise `pair_validate` with a currently valid pair and distinguish semantic rejection from contract failure.
 4. Exercise telemetry benchmark with a compatible sample, or formally classify its data-dependent error behavior.
 5. Optionally inspect Splice document GET/POST only if the owner supplies a safe existing request ID through the repository secret.

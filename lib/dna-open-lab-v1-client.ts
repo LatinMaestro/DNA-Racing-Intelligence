@@ -75,21 +75,43 @@ export type DnaActiveRace = DnaOpenLabRecord<{
   status: string;
   race_name: string;
   format: string | null;
-  class: string | null;
+  class: string | number | null;
   cb: number | null;
   rgate: number;
   hs_in: number;
   fee_fixed: Readonly<Record<string, number>>;
   feeusd: number;
   paytoken: string;
-  start_time: string;
-  end_time: string | null;
+  start_time: string | null;
+  end_time?: string | null;
   version: number | string;
   rvmode: DnaRaceMode;
 }>;
 
 export type DnaRaceDocument = DnaOpenLabRecord<{
   rid: DnaRaceIdentifier;
+  status?: string;
+  race_name?: string;
+  format?: string | null;
+  class?: string | number | null;
+  cb?: number | null;
+  rgate?: number;
+  hs_in?: number;
+  fee_fixed?: Readonly<Record<string, number>>;
+  feeusd?: number;
+  paytoken?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  version?: number | string;
+  rvmode?: DnaRaceMode;
+  hids?: readonly number[];
+  eventtags?: readonly string[];
+  payout?: string;
+  prize?: number;
+  prizeusd?: number;
+  track?: string;
+  yellowstars?: readonly number[];
+  bluestars?: readonly number[];
 }>;
 
 export type DnaRaceFill = DnaOpenLabRecord<{
@@ -166,7 +188,11 @@ export type DnaCoreStamina = DnaOpenLabRecord<{
     next_refill: string | null;
     last_event: string | null;
   }>;
-  spstamina: DnaOpenLabRecord<{ giveid: number; stamina: number }> | null;
+  spstamina: DnaOpenLabRecord<{
+    giveid: string | number;
+    stamina: number;
+    max_stamina?: number;
+  }> | null;
 }>;
 
 export type DnaCoreSplicingInfo = DnaOpenLabRecord<{

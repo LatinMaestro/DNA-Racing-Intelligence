@@ -62,7 +62,25 @@ const activeRace: DnaActiveRace = {
 
 const raceDocument: DnaRaceDocument = {
   rid: 101,
+  status: "finished",
+  race_name: "Synthetic Hydrated Race",
   rvmode: "bike",
+  format: "normal",
+  class: 2,
+  rgate: 4,
+  hs_in: 3,
+  hids: [42, 43, 44],
+  fee_fixed: { DEZ: 0.5 },
+  feeusd: 4,
+  paytoken: "DEZ",
+  start_time: null,
+  eventtags: ["synthetic-tag"],
+  payout: "winner_take_all",
+  prize: 5,
+  prizeusd: 6.25,
+  track: "synthetic-track",
+  yellowstars: [42],
+  bluestars: [43],
   future_nested_result: { intentionally_not_mapped_before_p3: true },
 };
 
@@ -156,7 +174,7 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         displayName: "Synthetic Sprint",
         mode: "bike",
         format: "normal",
-        raceClass: "open",
+        raceClassSourceValue: "open",
         fixedFeesByAsset: { DEZ: 0.25, ETH: 0.0001 },
         entryFeeUsd: 2.5,
         paymentAsset: "DEZ",
@@ -169,7 +187,26 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(adapted.canonical).not.toHaveProperty("future_optional_field");
   });
 
-  it("canonicalizes race-document identity without guessing unproven P3 field semantics", () => {
+  it("accepts the connected active-race numeric class, null start, and omitted end contract", () => {
+    const { end_time, ...withoutEndTime } = activeRace;
+    expect(end_time).toBeNull();
+    const adapted = adaptDnaActiveRace({
+      raw: {
+        ...withoutEndTime,
+        class: 3,
+        start_time: null,
+      },
+      observedAt: OBSERVED_AT,
+    });
+
+    expect(adapted.canonical).toMatchObject({
+      raceClassSourceValue: 3,
+      startAt: null,
+      endAt: null,
+    });
+  });
+
+  it("maps only connected race-document metadata without inventing results, distance, or star semantics", () => {
     const finished = adaptDnaRaceDocument({
       raw: raceDocument,
       observedAt: OBSERVED_AT,
@@ -193,6 +230,25 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       canonical: {
         sourceType: "race_document",
         sourceRaceId: "101",
+        status: "finished",
+        displayName: "Synthetic Hydrated Race",
+        mode: "bike",
+        format: "normal",
+        raceClassSourceValue: 2,
+        gateCount: 4,
+        filledGateCount: 3,
+        entrantCoreIds: ["42", "43", "44"],
+        fixedFeesByAsset: { DEZ: 0.5 },
+        entryFeeUsd: 4,
+        paymentAsset: "DEZ",
+        startAt: null,
+        eventTagsSourceValues: ["synthetic-tag"],
+        payoutSourceValue: "winner_take_all",
+        prizeSourceValue: 5,
+        prizeUsdSourceValue: 6.25,
+        trackSourceValue: "synthetic-track",
+        yellowStarSourceCoreIds: ["42"],
+        blueStarSourceCoreIds: ["43"],
       },
     });
     expect(hydrated).toMatchObject({
@@ -203,7 +259,10 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       scope: "vault",
       endpoint: "vault.recent_races",
     });
-    expect(finished.canonical).not.toHaveProperty("rvmode");
+    expect(finished.canonical).not.toHaveProperty("distance");
+    expect(finished.canonical).not.toHaveProperty("finishPosition");
+    expect(finished.canonical).not.toHaveProperty("elapsedTime");
+    expect(finished.canonical).not.toHaveProperty("goldStarCoreIds");
     expect(finished.canonical).not.toHaveProperty("future_nested_result");
     expect(finished.rawEvidenceSha256).toBe(hydrated.rawEvidenceSha256);
   });

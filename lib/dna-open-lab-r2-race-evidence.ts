@@ -7,7 +7,7 @@ import type {
 } from "./dna-open-lab-finished-race-backfill";
 import {
   dnaOpenLabRawEvidenceSha256,
-  type CanonicalRaceDocumentReference,
+  type CanonicalRaceDocumentMetadata,
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 import type {
@@ -261,7 +261,7 @@ function finishedWindowObjectKey(input: {
 }
 
 function assertHydratedEvidence(input: {
-  evidence: DnaOpenLabEvidence<CanonicalRaceDocumentReference>;
+  evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
 }): void {
   if (
     input.evidence.source !== "dna_open_lab" ||

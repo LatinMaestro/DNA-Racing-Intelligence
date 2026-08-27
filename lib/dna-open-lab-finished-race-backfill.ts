@@ -10,7 +10,7 @@ import {
 } from "./dna-open-lab-race-document-hydrator";
 import {
   dnaOpenLabRawEvidenceSha256,
-  type CanonicalRaceDocumentReference,
+  type CanonicalRaceDocumentMetadata,
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 import type {
@@ -57,7 +57,7 @@ export type DnaFinishedRaceWindowPublication = Readonly<{
   contentSha256: string;
   window: DnaFinishedRaceWindow;
   discoveredRaces: readonly DnaRaceDocument[];
-  hydratedDocuments: readonly DnaOpenLabEvidence<CanonicalRaceDocumentReference>[];
+  hydratedDocuments: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
 }>;
 
 export type DnaFinishedRaceWindowPublicationReceipt = Readonly<{
