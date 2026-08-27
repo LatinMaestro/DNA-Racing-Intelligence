@@ -18,7 +18,9 @@ export type DnaCurrentStateFamilyStatus = Readonly<{
 export type DnaCurrentStateCandidate = Readonly<{
   generationId: string;
   observedAt: string;
-  families: Readonly<Record<DnaCurrentStateFamily, DnaCurrentStateFamilyStatus>>;
+  families: Readonly<
+    Record<DnaCurrentStateFamily, DnaCurrentStateFamilyStatus>
+  >;
 }>;
 
 export type DnaSyncInterruptionReason =
