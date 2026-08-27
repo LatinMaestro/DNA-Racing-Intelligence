@@ -1,266 +1,246 @@
-# Phase 0 Architecture Decision Record
+# API-First Architecture Decision Record
 
-Status: **Accepted at Gate A**  
-Date: 22 July 2026  
-Scope: private single-user Preview architecture only; Production remains disabled.
+Status: **Accepted current architecture authority**  
+Effective: **27 August 2026**  
+Scope: private single-owner application; Production remains explicit owner approval only.
 
 ## 1. Decision summary
 
-DNA Racing Intelligence will use a deliberately split application and analytics architecture:
+DNA Racing Intelligence now uses DNA Open Lab v1 as the preferred source of game data.
 
-- **Next.js App Router with strict TypeScript** for the private responsive web application;
-- **Tailwind CSS with accessible native/component primitives** for a consistent dashboard UI;
-- **Clerk** for single-user authentication, with an explicit authorised-user ID allowlist in addition to successful sign-in;
-- **Neon PostgreSQL** for application state, import manifests, user configuration, durable aggregates, reconciliation records and the economic ledger;
-- **Cloudflare R2 Standard storage** for encrypted private raw uploads and partitioned analytical files;
-- **Python with Polars and DuckDB** in an ephemeral batch worker for import validation, normalization, chronological features and aggregate refreshes;
-- **GitHub Actions** as the initial low-frequency hosted batch runner, with manual dispatch fallback and no raw-data artifacts;
-- **Vercel Preview deployments only** during development; Production builds and requests fail closed.
+Target topology:
 
-This separates confidential large files and batch computation from the request path. Normal pages read compact, indexed PostgreSQL aggregates rather than scanning multi-million-row race history.
-
-## 2. Repository and supplied-data findings
-
-The repository contained governance and specification documents only when Phase 0 began. No application package, route, CI workflow, deployment configuration or ignore rules existed.
-
-Private supplied exports were inspected only in the remote working environment. They were not copied into the repository and no source rows are recorded here. The inspection confirmed the architectural need to handle:
-
-- approximately 2.5 million race-entry rows and roughly 695,000 events, consistent with the master specification;
-- sequential source files that can overlap and therefore require stable natural-key deduplication;
-- legacy text encodings as well as UTF-8-compatible content;
-- Boolean spelling/casing variation;
-- Unix-second event timestamps;
-- vault files that may require identity resolution rather than unsafe name-only joins; and
-- a legacy file/column name that says `Bike`/`bikeid` even though the file is the cross-mode **Core Details** source.
-
-The source alias will be preserved in raw provenance while normalized application terminology uses `core_id` and **Core Details**. The obsolete race-class column remains provenance-only and is excluded from analytical features.
-
-## 3. System topology
-
-```mermaid
-flowchart TD
-    U["Authorised owner"] --> V["Vercel Preview app"]
-    V --> C["Clerk sign-in + owner allowlist"]
-    V --> N["Neon app database"]
-    U -->|"private upload"| R["Private R2 raw bucket"]
-    R --> W["Ephemeral Python batch worker"]
-    W -->|"validated aggregates + manifests"| N
-    W -->|"partitioned normalized analytics"| R
-    N --> V
+```text
+DNA Open Lab v1 API
+        |
+        v
+server-only typed client + rate-aware sync/backfill planner
+        |
+        +--> private R2 raw/cache/evidence objects where useful
+        |
+        v
+canonical API-neutral source adapters
+        |
+        v
+compact owner-scoped Neon read models / aggregates / local strategy state
+        |
+        v
+private authenticated Next.js website
 ```
 
-No browser receives R2 credentials. Uploads use short-lived, content-length-limited signed requests. Download links are short lived and owner-authorised. Raw objects are private, never served from a public `r2.dev` endpoint and never stored as GitHub Actions artifacts.
+The existing CSV pipeline remains an internal fallback, historical evidence source and equivalence harness. It is no longer the normal critical path.
 
-## 4. Application boundaries
+## 2. Core application stack
 
-The application uses route groups and domain modules with the following separation:
+- **Next.js App Router + strict TypeScript** for the private responsive web application.
+- **Clerk** for authentication plus the existing server-side owner allowlist.
+- **Neon PostgreSQL** for compact owner-scoped current state, checkpoints, application state, local strategy state, durable aggregates, reconciliation, economics and other relational state requiring transactions/RLS.
+- **Private Cloudflare R2** for raw/full API evidence, immutable cache/evidence objects, retained CSV fallback evidence and other large replayable data where relational storage is unnecessary.
+- **Cloudflare Worker/Queue and existing hosted job infrastructure** where background processing is required.
+- **GitHub Actions** for repository validation and bounded operational workflows where already established.
+- **Vercel** for the private website. Automatic Git deployment remains disabled. Deliberate protected Preview deployments are reserved for major commissioning milestones unless a development dependency genuinely requires one.
 
-| Boundary                 | Responsibility                                                                               |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| `app/` and `components/` | Private pages, accessibility, responsive presentation and explicit snapshot language         |
-| `domain/`                | Deterministic confirmed game rules, star boundaries, freshness and ledger invariants         |
-| import service           | File detection, encoding/schema validation, provenance, quarantine and idempotent acceptance |
-| analytics worker         | Polars transforms, DuckDB/Parquet queries, chronological feature generation and aggregates   |
-| repository layer         | Parameterised Neon access, transactions and owner scoping                                    |
-| recommendation layer     | Later phase, only after chronological validation and Gate C                                  |
+## 3. DNA Open Lab boundary
 
-The Phase 0 UI deliberately contains no fabricated recommendations, rankings, balances or profit figures.
+Base URL: `https://api.dnaracing.run/fbike/pub/v1`.
 
-## 5. Private single-user access
+The API boundary must:
 
-The accepted design is defence in depth:
+- use a Bearer API key only on the server;
+- never expose the key to browser code, Git, CI logs, Issue comments or chat;
+- treat the response body envelope `status: success|error` as authoritative, including documented error bodies returned with HTTP 305;
+- surface rate-limit metadata and respect `Retry-After` on 429;
+- assume correctness at the minimum supported tier of 30 requests/minute;
+- use documented bulk bounds rather than relying on higher-tier throughput;
+- tolerate optional additive response fields while failing closed on invalid required contract data; and
+- preserve endpoint/version/retrieval provenance plus deterministic raw checksums at the canonical boundary.
 
-1. Vercel Preview deployment protection must be enabled before `ENABLE_PHASE0_REVIEW=true` is set.
-2. Clerk authenticates the user in Phase 1.
-3. Every private request must also match one server-side `AUTHORIZED_CLERK_USER_ID`.
-4. Missing authentication configuration denies access; it never creates an anonymous mode.
-5. `DNA_DATABASE_OWNER_ID` identifies the corresponding internal PostgreSQL owner record without exposing it to the browser.
-6. Each private repository read sets that internal owner only for one read-only transaction, verifies the Clerk-to-database owner mapping and remains protected by forced row-level security.
-7. Robots metadata, `robots.txt` and response headers deny indexing.
+Current documented request bounds:
 
-The scaffold currently implements the deployment boundary, route structure and fail-closed defaults. Clerk integration is an account/secret action that must occur after Gate A acceptance. It is not bypassed with a public demo mode.
+| Operation                      | Maximum |
+| ------------------------------ | ------: |
+| Vault bulk info                |     100 |
+| Core bulk families             |      20 |
+| Race docs/fills bulk           |      20 |
+| Finished races per time window |     200 |
+| Vault search                   |      50 |
 
-## 6. Production and Preview controls
+## 4. Browser and trust boundaries
 
-- A Vercel Production build exits unsuccessfully unless `ALLOW_PRODUCTION_DEPLOYMENT=true` is explicitly supplied after Gate F approval.
-- Runtime access also returns a non-indexable 404 for Production while approval is absent.
-- A Preview returns the same 404 until `ENABLE_PHASE0_REVIEW=true` is set in the protected Preview environment.
-- CI and the remote development environment may build without either Vercel flag.
-- No custom domain, Production database, Production bucket or Production secret is part of Phase 0.
+The browser may call only this application's authenticated server routes/actions. It must not call DNA Open Lab directly.
 
-Repository configuration is an additional control, not a substitute for confirming Vercel project settings before connection.
+The application server/worker is responsible for:
 
-## 7. Import and storage design
+- API authentication;
+- rate budgeting;
+- payload validation;
+- canonicalization;
+- storage/checkpoint transactions;
+- owner isolation;
+- freshness publication; and
+- secret-safe failure handling.
 
-### 7.1 Raw objects
+No game/wallet action boundary is introduced. The application remains advisory/read-only with respect to DNA Racing actions.
 
-Each upload receives an immutable object key containing a generated batch ID rather than a user-controlled path. The import manifest stores:
+## 5. Canonical source adapters
 
-- original filename as private metadata;
-- SHA-256 checksum;
-- detected source type and schema version;
-- upload/import timestamps;
-- source byte and row counts;
-- minimum and maximum accepted event timestamps;
-- accepted, rejected and warning counts;
-- object key, processing status and aggregate-refresh status.
+Analytics and UI must not depend directly on provider transport names such as `hid`, `rvmode`, `cb` or other DNA-specific wire vocabulary.
 
-Uploads enter a quarantine prefix. Only a validated batch is promoted logically to accepted status. A failed batch remains isolated and can be deleted under the documented retention policy.
+Canonical adapters translate provider shapes into stable domain records while retaining:
 
-### 7.2 Encoding and schema handling
+- authoritative source/entity IDs;
+- source timestamp where available;
+- retrieval timestamp;
+- endpoint family and API version;
+- deterministic raw-payload checksum;
+- canonical observation identity/natural key; and
+- optional raw evidence reference where retained privately.
 
-The importer checks byte-order marks and attempts strict UTF-8 first. Legacy single-byte encodings are detected and decoded explicitly with a warning. Invalid byte sequences, malformed rows or ambiguous schemas are quarantined; they are never silently replaced.
+Unknown additive fields remain attributable through raw evidence without silently becoming analytical features.
 
-Source-specific aliases are versioned. In particular, the historical Core Details export may use a Bike-labelled filename and `bikeid`; normalization maps this to `core_id` while preserving the raw source name/value.
+## 6. Source authority
 
-### 7.3 Deduplication and rollback
+After connected P3 discovery, each fact is classified into one of four authority classes:
 
-The expected race-entry natural key is `event_id + token/core_id`. Accepted analytical partitions and economic derivations add source/version and transaction-type keys as appropriate. A repeated or overlapping export can update provenance and freshness without creating duplicate race, star or economic evidence.
+1. **API supersedes** — API becomes the normal current/historical authority.
+2. **API supplements** — API adds current or richer facts to existing historical evidence.
+3. **CSV-only fallback** — fact remains available only through retained export evidence until/unless API support exists.
+4. **Local strategic state** — owner-managed state that game data must never overwrite.
 
-Acceptance is transactional at manifest level. New partitions and aggregates are written to versioned locations, validated, then atomically made current. Rollback repoints the active dataset version and reverses only records derived exclusively from the rejected batch; prior accepted facts remain intact.
+Examples of local strategic state include notes, manual ME strategy, Pro League roster versions, substitution ledger, Discovery plans, lifecycle recommendations, manual accounting/reconciliation and owner-entered Tournament configuration.
 
-### 7.4 Serving multi-million-row history
+## 7. Sync and backfill architecture
 
-The application does not synchronously scan raw CSV or full Parquet history during ordinary page requests. Batch jobs produce:
+The scheduler is designed for 30 requests/minute and uses bulk endpoints first.
 
-- core × mode × exact-distance time/speed summaries;
-- historical benchmark distributions;
-- event-level star validation results;
-- core star profiles with explicit denominators;
-- chronological field-quality features;
-- lineage adjacency and aggregate tables;
-- freshness/source-coverage state;
-- economic ledger derivations and reconciliation candidates; and
-- bounded drill-down records needed by the UI.
+Historical race backfill uses an adaptive finished-race crawler:
 
-Raw and normalized partitioned analytical history remains in R2 for audit and recomputation. Neon contains manifests, user state, indexed aggregates and bounded operational detail. This keeps the initial database small and predictable while preserving the ability to rebuild.
+1. request a bounded time window;
+2. if the window returns fewer than 200 records, treat that window as non-saturated subject to normal contract checks;
+3. if it returns exactly 200, recursively split the time window;
+4. continue until every leaf window is demonstrably non-saturated; and
+5. hydrate race documents in batches no larger than 20.
 
-## 8. Gold and Blue star model
+All source families use durable checkpoints/cursors, idempotent writes and retry/backoff rules. A partial run cannot replace the last-good published dataset.
 
-Normalized race-entry facts retain:
+## 8. Availability and API-tier loss
 
-- nullable `gold_star` and `blue_star`;
-- raw source values and source-column provenance;
-- `gold_star_eligible = gate_count > 3`;
-- `star_data_status` distinguishing complete, partial, missing and invalid;
-- batch and source-row references; and
-- anomaly codes without rewriting anomalous source values.
+API access loss is a **sync pause**, not an application outage.
 
-Event-level validation records gate count, eligibility, assignment counts, assigned core IDs, same-core-both state and warnings. More than one Gold or Blue assignment is surfaced. A source Gold assignment at three gates or fewer is retained and flagged.
+If TierBadge/API-key eligibility is lost or the API is temporarily unavailable:
 
-Precomputed core profiles keep distinct denominators for:
+- stop background sync safely;
+- keep the last successfully published dataset active;
+- continue serving analytics/read models normally;
+- mark affected current-state data with clear freshness/staleness status; and
+- resume from the last durable checkpoint/window when access returns.
 
-1. all races with valid star data;
-2. Gold-eligible races; and
-3. races where the relevant star was actually assigned to someone.
+Do not build a separate degraded-mode product and do not require immediate tier restoration for the website to remain usable.
 
-One-, two- and three-gate races cannot become negative Gold evidence.
+## 9. Current versus historical data and no-leakage
 
-## 9. Chronological field quality and leakage prevention
+Current API observations such as power, adjusted odds, variance, stamina, equipped assets, owner/listing state, current racing stats and current splice state must be timestamped observations.
 
-All predictive feature tables have an `as_of_event_time` and source-dataset version. For an event at time `T`, opponent and lineage features are computed only from facts with event time strictly earlier than `T`. Processing is ordered by event timestamp with deterministic tie handling and as-of joins.
+They must not be joined backward into historical race backtests unless a historical observation existed before the event cutoff. Historical performance models continue to use information available strictly before the event being evaluated.
 
-The current event's time, finish, payout and star conversion outcome are unavailable to its pre-race field-quality feature. Later events cannot enter through current aggregate tables because training extracts read versioned chronological features rather than today's core summary.
+Current observations and historical facts therefore use separate time semantics and are displayed separately where necessary.
 
-Post-race Gold top-three and Blue win conversion are diagnostic tables with a separate namespace and cannot be joined into pre-race features without an explicit test failure. Chronological train/validation/test splits and cutoff assertions are mandatory before Gate C.
+## 10. R2 and Neon placement
 
-## 10. Open Race two-stage model
+### Neon
 
-Stage A accepts manually visible non-star race parameters and opponent IDs. Its input contract contains no current-race Gold or Blue field. Imported historical star profiles can be supporting prior evidence.
+Use Neon for compact relational state requiring strong transactional semantics, including:
 
-Stage B can begin only after the user confirms the field is locked and about to run. A manual observation uses a separate `manual_pre_run_star_observation` source with reconciliation status. It is observation-only, cannot produce a replacement-core recommendation and remains excluded from permanent aggregates until an authoritative Race Merge event matches it.
+- owner/account mapping and forced-RLS application state;
+- sync checkpoints and last-good publication pointers;
+- current canonical read models;
+- durable compact analytical aggregates;
+- local strategy state;
+- Pro League roster/substitution history;
+- Tournament/Maiden configuration and state;
+- economic ledger/reconciliation; and
+- recovery/operation metadata.
 
-Matching prefers event ID; a cautious composite match is reviewable. Exact matches reconcile idempotently, mismatches enter review and unresolved observations remain excluded. Gold is not applicable when gate count is three or fewer.
+### R2
 
-## 11. Freshness and snapshot language
+Use private R2 where large immutable/replayable evidence is more appropriate, including:
 
-Each source state stores import completion time, latest accepted event/snapshot time and aggregate refresh completion time. The UI always separates:
+- raw/full API evidence where retained;
+- API evidence manifests;
+- private cache objects;
+- retained CSV fallback/raw evidence;
+- large analytical/replay artifacts; and
+- bounded scratch/evidence objects already proven by the existing import architecture.
 
-- **Data current through**;
-- **Last imported**;
-- calculated data age; and
-- current, ageing, stale or unknown state.
+Public R2 access remains prohibited.
 
-Initial configurable thresholds are 0–3 days current, 4–7 days ageing and more than 7 days stale. These labels describe imported history only. UI copy and tests prohibit describing imported races, opponents, stars, vault records, arena listings or tournaments as live.
+## 11. Last-good publication and recovery
 
-## 12. Economic ledger
+A refresh/backfill becomes visible only after the required family/batch is complete and validated.
 
-Neon stores an immutable-source/auditable-classification ledger. Each asset has an identifier, display code and scale. Transactions store signed atomic units as exact PostgreSQL `NUMERIC(78,0)` (or another reviewed exact integer representation) rather than binary floating point. Original asset and amount are never overwritten by a conversion.
+- incomplete refresh does not replace last-good state;
+- checkpoint advancement is atomic with accepted progress;
+- replay is idempotent;
+- restart resumes from durable progress;
+- provider/rate failure preserves the previous active dataset;
+- recovery proof must cover partial failure, rate limiting, tier loss, reinstatement and catch-up.
 
-Separate records cover transaction allocation, classification, duplicate/exclusion status, reversal, manual correction and reconciliation. Race-derived entry fee and payout transactions use the accepted race-entry key plus transaction type, preventing cumulative-import duplication.
+## 12. Pro League architecture priority
 
-Default reports:
+The first owner-usable commissioning target is `/pro-league`.
 
-- group each currency/asset independently;
-- keep BGC as non-cash in-game credit;
-- exclude deposits, withdrawals, opening balances and internal transfers from operating P/L;
-- keep vault-level prizes unallocated where appropriate;
-- report proceeds without invented gain/loss when cost basis is missing; and
-- exclude unsold-core estimates from realised P/L.
+Its domain includes:
 
-Any conversion is a separate dated record with rate source and actual/estimated status. The system never requests or stores crypto private keys, seed phrases or signing credentials and never initiates wallet or game transactions.
+- 12–25 Core roster versions;
+- strongest nucleus plus optional incremental slots;
+- alternates and structural gaps;
+- every current rule validator;
+- annual substitution ledger;
+- evidence snapshots;
+- Discovery queue;
+- active-race opportunities;
+- breeding queue using official pair info/validation when connected; and
+- sync/freshness/stale-but-usable state.
 
-## 13. Cost envelope as at 22 July 2026
+API ownership may reconcile current game holdings but must never erase owner-maintained roster, notes, ME, substitution or lifecycle strategy.
 
-Prices and limits can change and must be rechecked before Gate B or any paid activation.
+## 13. Capacity and persistent-real-data gate
 
-| Service                                                        | Initial expectation                                                                                                                                                                      | Likely paid trigger                                                                                                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Vercel](https://vercel.com/pricing)                           | Hobby can support personal Preview work within usage caps. Current listed included usage includes 1M edge requests, 4 active CPU hours and 360 GB-hours of provisioned memory per month. | Pro is listed at US$20 per developer seat/month with included usage credit when commercial or higher-limit use is required. No upgrade is approved.         |
-| [Clerk](https://clerk.com/pricing)                             | Hobby is free and supports up to 50,000 monthly retained users per app; this product has one user.                                                                                       | Pro is listed at US$25/month or US$20/month billed annually. No upgrade is expected for single-user use.                                                    |
-| [Neon](https://neon.com/pricing)                               | Free includes 100 CU-hours per project/month and scales compute to zero. Store compact application state and aggregates first.                                                           | Storage/compute growth from detailed operational data may require a paid plan; confirm the current dashboard quote before Gate B rather than assume a cost. |
-| [Cloudflare R2](https://developers.cloudflare.com/r2/pricing/) | Standard storage includes 10 GB-month, 1M Class A and 10M Class B operations monthly with free egress. The supplied raw data is well below this storage allowance.                       | Beyond free usage, Standard storage is US$0.015/GB-month, Class A US$4.50/million and Class B US$0.36/million.                                              |
-| GitHub Actions                                                 | Use the repository owner's existing included private-repository minutes for low-frequency imports, with a timeout and manual fallback.                                                   | Stop before paid overage; migrate the worker only after a measured workload and owner approval.                                                             |
+A live API key alone does not authorise persistent real backfill.
 
-Expected Phase 0 cost is **US$0**. The initial operational target is also US$0 while free-tier limits suffice. Paid infrastructure, recurring billing and Production remain review-gated.
+Before the first persistent real Preview sync, P5 must prove:
 
-## 14. Alternatives considered
+- PostgreSQL 18 physical storage and peak behavior including heap/index/TOAST/transient overlap;
+- private R2 footprint/cost;
+- restart/replay/idempotency;
+- partial failure/rate limit/tier loss/reinstatement/catch-up; and
+- explicit positive headroom below `536870912` bytes for the relevant Neon limit.
 
-- **Store all raw rows in Neon:** simpler querying, but increases free-tier pressure and encourages request-time coupling to the full history. Rejected for initial delivery.
-- **Process large CSVs in Vercel request functions:** creates timeout/memory risk and blocks user requests. Rejected.
-- **Commit sanitized or private exports to Git:** conflicts with privacy controls and repository history permanence. Rejected.
-- **Public demo mode:** conflicts with private single-user boundaries. Rejected.
-- **Combine all assets into a reporting currency by default:** would make incomplete conversions look authoritative. Rejected.
+The owner must then explicitly approve the first persistent real Preview sync.
 
-## 15. Gate A decision
+## 14. Security, licensing and deployment controls
 
-Gate A is accepted for:
+- Production deployment/schema/data changes require explicit owner approval.
+- No public route/domain is authorised.
+- No paid-capacity change is authorised automatically.
+- No commercial API use is authorised without explicit approval.
+- API-backed UI must attribute DNA Racing.
+- No wallet signing, betting, team creation, race entry, mint, trade or splice transaction is permitted.
+- Real payloads and credentials remain out of Git.
+- Vercel automatic Git deployment remains disabled.
 
-- Clerk plus owner-ID allowlisting;
-- Neon aggregate/application storage;
-- private R2 raw/analytical storage;
-- hosted Python batch processing;
-- Preview-only fail-closed delivery;
-- star, Open Race, freshness, no-leakage and ledger representations; and
-- the cost envelope.
+## 15. Historical architecture evidence
 
-This acceptance authorises Phase 1 repository and synthetic-data work. Provider account configuration, secrets, paid activation and full private-data upload remain subject to their separate client-action and Gate B requirements.
+Before 27 August 2026, the project was spreadsheet-first: periodic Race Merge/Core Details/Arena exports were uploaded into a guarded private pipeline, with private R2 evidence, Neon materialization/read models, queue processing, replay/rollback and extensive synthetic/connected proofs.
 
-## 2026-07-23 Gate B storage and valuation amendment
+That work is **not discarded**. It remains valuable for:
 
-The owner requires the existing GitHub, Vercel, Neon and Cloudflare stack to remain within published free allowances and has approved the R2 analytical-storage path.
+- CSV fallback;
+- API-vs-CSV equivalence;
+- proven owner isolation/RLS;
+- private R2 evidence handling;
+- replay/recovery primitives;
+- analytical read models; and
+- migration/CI safety patterns.
 
-### Detailed-history placement
-
-- Private Cloudflare R2 stores encrypted-at-rest raw uploads and partitioned Parquet detail/analytical files.
-- Neon Free stores owner/application state, import manifests, object checksums and partitions, identity/reconciliation queues, exact economic ledger entries, cached daily rates and compact aggregates.
-- The hosted batch worker reads only the required private R2 partitions and writes compact Neon results. Routine Vercel requests never scan multi-million-row CSV or Parquet history.
-- Object keys are opaque and owner-scoped. Buckets are private, public access is disabled and signed access is short-lived and server-generated.
-- A dataset version is not active until every expected object checksum and compact Neon manifest is committed. Rollback moves the selected manifest pointer; immutable prior objects remain recoverable pending explicit deletion.
-- No GroveKind or other custom domain is attached. The application remains a protected Vercel Preview and Production stays fail-closed.
-
-This amendment replaces the assumption that every normalized historical entry must be retained as a durable Neon row. Existing PostgreSQL migrations remain the executable contract and synthetic proof for relational invariants; the hosted detailed-history adapter will materialize equivalent owner-scoped facts in Parquet while Neon retains only data requiring transactional application behavior.
-
-### Free-tier guardrail
-
-The target is US$0, not an unconditional claim that providers can never charge. Imports must estimate projected R2 storage/operations and Neon aggregate growth before activation. If a published free allowance would be exceeded, the job stops before upload/activation and reports the estimate; it cannot opt into a paid tier automatically.
-
-### Historical USD rates
-
-- Preserve ETH and DEZ source amounts exactly.
-- Cache one auditable USD-per-asset rate for each UTC event date.
-- Use background CoinGecko historical endpoints initially; identify ETH as `ethereum` and pin DEZ to Polygon contract `0xdc4F4eD9872571d5eC8986a502A0D88F3a175f1E`.
-- Provider responses are validated and converted to exact decimal text before persistence.
-- Missing, rate-limited or unavailable dates remain explicit gaps. Routine pages use cached rates only.
-- Provider adapters are replaceable and manual corrections create superseding records.
-- CoinGecko's free historical window is limited; dates outside available free coverage require an owner-supplied rate file or another approved free authoritative source. No paid market-data plan is enabled automatically.
+The pre-API architecture is historical implementation evidence in Git history and specialised phase documents. Where it conflicts with this file, this API-first architecture is the current authority.

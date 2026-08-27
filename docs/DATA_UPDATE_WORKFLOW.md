@@ -1,138 +1,244 @@
-# Periodic Data Update Workflow
+# API-First Data Update Workflow
+
+Status: **current update authority**  
+Effective: **27 August 2026**
 
 ## Purpose
 
-The website database is refreshed by uploading newer DNA Racing exports through the private authenticated **Data Updates** workspace. The owner does not edit database tables and does not need to replace files in GitHub.
+DNA Racing Intelligence normally refreshes itself from DNA Open Lab v1 through a server-side background sync/backfill process. The owner should not need to download or upload routine exports for ordinary operation once API commissioning is complete.
 
-The normal owner task is:
+The existing private CSV Data Updates workflow is retained as an internal fallback, equivalence tool and historical-gap path. It is not the normal critical path unless API evidence proves a missing source family or API access remains unavailable for an extended period.
 
-1. download the latest exports from the DNA Racing file share;
-2. open **Data Updates** in the private website;
-3. drag in one or more files;
-4. review the detected update plan;
-5. confirm the import; and
-6. wait for the completion summary before relying on refreshed recommendations.
+## Normal update lifecycle
 
-The upload feature is an approved implementation contract. It remains unavailable until the Preview-only identity, private object storage and database configuration satisfy Gate B. Production remains separately gated.
+A normal background cycle is:
 
-## What to upload
+1. load the last durable checkpoint for the source family;
+2. prove API access/scope/rate budget where needed;
+3. fetch bounded pages/windows/bulk groups within the 30 requests/minute design tier;
+4. validate the authoritative response envelope and provider contract;
+5. canonicalize provider payloads while retaining provenance/checksum evidence;
+6. write private R2 evidence/cache objects where useful;
+7. apply bounded idempotent updates to owner-scoped Neon read models/aggregates;
+8. verify expected coverage/completeness;
+9. atomically publish the completed last-good state and advance checkpoints; and
+10. update freshness/current-through/status observability.
 
-| Source family            | When to upload                                                                                                                                                        | Update treatment                                                                                                                                                                           |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Race Merge               | Add every new sequential export. Several files may be uploaded together. Re-uploading an earlier file is safe.                                                        | Append accepted entries in event-time order, retain prior history, ignore exact replay and boundary duplicates, quarantine conflicting facts and refresh only affected aggregates.         |
-| Core Details and lineage | Upload the latest export whenever DNA publishes meaningful identity, attribute, parentage or new-core updates.                                                        | Versioned upsert by authoritative durable core ID. Omitted older cores are not silently deleted, and parent relationships are never inferred from names.                                   |
-| My Vault                 | Maintain ownership and Maiden eligibility directly in the authenticated Vault workspace. The retired Current Vault spreadsheet is reference-only and is not uploaded. | Owner-maintained state keyed to durable Core ID; removing an active core retains its historical racing, lineage, lifecycle, breeding and economic evidence.                                |
-| Current Arena            | Upload before relying on current external breeding options and whenever a newer listing snapshot is available.                                                        | Replace the current listing snapshot while retaining earlier snapshots. Listings absent from the accepted replacement are no longer current; freshness and expiry warnings remain visible. |
+A partial cycle cannot replace the previous last-good dataset.
 
-Race Merge is the only source family that normally grows by adding more files. Core Details is cumulative/upserted, while Vault and Arena are current replacement snapshots.
+## Source-family plans
 
-## Upload and preview experience
+| Family             | Normal API behavior                                                  | Publication behavior                                                                        |
+| ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Vault/ownership    | bounded current ownership/info refresh                               | publish only after the family refresh validates; local strategy state is never overwritten  |
+| Cores              | bounded identity/current supplemental-family refresh                 | timestamp current observations separately from historical analytics                         |
+| Finished races     | adaptive time-window crawl plus <=20 race-document hydration batches | backfill is checkpointed and idempotent; a saturated 200-result window is recursively split |
+| Active races/fills | short-current-window refresh using documented bounded endpoints      | used for read-only opportunities/field intelligence; stale state remains clearly labelled   |
+| Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                          |
+| Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                    |
 
-The owner may upload the three imported source families individually or together. The number of Race Merge files is variable because the series grows over time. The workspace detects the file family from its headers, while allowing an explicit source choice only when the headers also match.
+## Tier-1-safe scheduling
 
-Before any active dataset changes, the preview shows:
+The scheduler is designed around 30 requests/minute.
 
-- filename inside the authenticated owner workspace;
-- detected source family, schema version and encoding;
-- source and accepted row counts;
-- event or snapshot date coverage where available;
-- new, exact-duplicate, conflicting, rejected and warning counts;
-- the active dataset version that would be superseded;
-- current My Vault and Maiden-state impact, without treating the retired Current Vault spreadsheet as an import source;
-- Core Details and lineage coverage changes;
-- Arena identity/history coverage and freshness;
-- historical BGC race rows that will retain performance evidence with zero effective fee and payout;
-- aggregates and analytical profiles that will be refreshed; and
-- projected storage or processing usage, including a stop-before-paid-limit warning.
+It must:
 
-Authenticated row-level error details may be shown to the owner when needed to correct or understand a source problem. Raw values must not be printed to routine application logs, CI output, GitHub, public routes or unauthenticated error pages.
+- prefer bulk endpoints;
+- keep an explicit request budget;
+- parse available rate-limit headers;
+- respect `Retry-After` on 429;
+- persist progress before backing off;
+- avoid retry storms; and
+- continue correctly if a higher 80/150 request tier later becomes available.
 
-The preview does not mutate the active dataset. The user confirms the displayed plan before processing begins.
+Higher tiers may reduce catch-up duration but do not change data semantics.
 
-## Processing and atomicity
+## Finished-race backfill completeness
 
-Each file is processed as an auditable import batch. A multi-file upload is one update session, but each source file retains its own status and rollback boundary.
+The finished-race endpoint may return up to 200 races for a time window.
 
-For each accepted file, the background process:
+The crawler treats exactly 200 results as possible saturation:
 
-1. stores the original upload privately with checksum and import metadata;
-2. detects schema and encoding;
-3. validates and normalizes rows without discarding the source values;
-4. compares natural keys and fingerprints with accepted history;
-5. quarantines malformed or conflicting records without overwriting accepted facts;
-6. activates the new source version only after its transaction succeeds;
-7. derives or refreshes affected facts, exact economics and compact aggregates;
-8. records data-current-through, import-completion and aggregate-refresh timestamps separately; and
-9. publishes a completion report.
+1. request a time window;
+2. if result count is below 200, retain the leaf as non-saturated subject to validation;
+3. if result count equals 200, split the window deterministically;
+4. recurse until every accepted leaf is demonstrably non-saturated;
+5. deduplicate by authoritative race identity across adjacent windows; and
+6. hydrate full race documents in batches of at most 20.
 
-If processing fails before activation, the previous accepted dataset remains current. A failed or quarantined newer upload cannot make the site appear fresher than its accepted data.
+The checkpoint records enough information to restart without losing or duplicating accepted coverage.
 
-Race Merge files uploaded together are ordered by event coverage. Older backfills are allowed when they add non-conflicting history. Exact replays and the known small boundary overlaps are idempotent.
+## Last-good publication
 
-## Completion report
+Every family has a last-good state.
 
-The owner receives a private completion result showing:
+- downloaded data is not automatically published;
+- validation/canonicalization/storage must complete first;
+- expected coverage checks must pass;
+- the family checkpoint/publication pointer advances atomically;
+- failure leaves the prior publication active; and
+- downstream pages continue to use the prior published state.
 
-- accepted, duplicate, quarantined and conflict counts;
-- source coverage and any explicit gaps;
-- the active version for each source family;
-- **Data current through**;
-- **Last imported**;
-- aggregate refresh completion;
-- current, ageing, stale or unknown status;
-- economic coverage and any missing historical USD rates;
-- unresolved review items; and
-- whether recommendations and reports are ready to use or remain partial/experimental.
+The website must never appear fresher merely because a failed sync attempt occurred later.
 
-The website must not silently present refreshed recommendations until the required aggregate refresh succeeds.
+## API eligibility/key loss
 
-## Recovery
+Loss of TierBadge eligibility, API-key validity or temporary API availability pauses sync only.
 
-The owner can inspect import history and:
+The website must:
 
-- roll back one accepted source version with a recorded reason;
-- restore the prior Arena snapshot; owner-maintained Vault changes use their guarded versioned mutation history;
-- review and resolve genuine identity or conflict issues;
-- retry aggregate processing without re-uploading the source file; and
-- re-upload a corrected export safely.
+- continue serving the last successfully synced data and all retained analytics/read models;
+- show a simple sync-paused/stale/current-through indicator where current-state information may now be old;
+- retain checkpoints/cursors/windows unchanged except for fully committed work; and
+- resume/catch up automatically from the last successful checkpoint when access returns.
 
-Rollback preserves the uploaded object, accepted provenance and audit record unless the owner separately invokes an explicit deletion workflow. It does not rewrite Git history.
+Do not clear current data, disable the website or require immediate owner tier restoration.
 
-## Analytical fidelity and data retention
+## Error handling
 
-This is a private, single-user analytical website. Source selection and field retention must maximise analytical quality and auditability.
+The body envelope `status: success|error` is authoritative, including DNA's documented HTTP 305 error behavior.
 
-- Do not remove or suppress a source field merely because it might be personal, identifiable or sensitive.
-- Preserve each original uploaded file in the private raw-data boundary and retain its source columns and values for provenance, reproducibility and future feature development, subject to approved capacity limits.
-- Normalize and index every field that is required or plausibly useful for current analytics, recommendations, identity, lineage, accounting, freshness, reconciliation or validation.
-- A field may be omitted from compact application tables when it is redundant or currently unused, provided it remains recoverable from the private raw source and the omission cannot reduce current analysis.
-- Preserve unknown new columns in raw provenance and surface a schema warning so their usefulness can be assessed.
-- Preserve obsolete race class for provenance while excluding it from analytical models.
-- Redaction applies to Git, automated logs, public surfaces and synthetic fixtures. It must not reduce the data available to authenticated owner workflows or private analytical processing.
-- Real exports and derived user-specific records remain outside Git because Git is source-code history, not the private website data store.
+A sync attempt fails closed when:
 
-DNA Racing source exports and observable game ownership are public game data, not confidential records. Authentication and ordinary infrastructure security remain required to prevent unauthorised writes, protect service credentials and keep the single-owner application reliable.
+- the envelope is missing/malformed;
+- an error envelope is returned;
+- required canonical fields are invalid;
+- a request exceeds documented bounds;
+- rate-limit rules cannot be respected safely;
+- expected coverage is incomplete;
+- R2/Neon write verification fails; or
+- publication/checkpoint identity drifts.
 
-## Source changes
+Optional additive fields do not fail the sync merely because the canonical model does not yet use them; they remain attributable through raw evidence where retained.
 
-The owner should not manually reshape a normal export to fit the website. If DNA Racing changes a header, encoding or field format beyond a supported schema version, the importer must fail closed, keep the last accepted dataset active and show a clear unsupported-schema review item. The implementation is then updated with a versioned adapter and synthetic regression coverage before that source is accepted.
+## Private evidence handling
 
-## Acceptance requirements
+Real API payloads never go to Git, CI artifacts, public logs or Issue comments.
 
-The implemented workflow is complete when synthetic and hosted Preview evidence demonstrates:
+Where private raw/full evidence is retained in R2:
 
-- one owner can upload any supported source family without local development;
-- grouped multi-file previews are accurate before mutation;
-- exact replay is a no-op;
-- sequential Race Merge additions and older backfills are idempotent;
-- conflicting Race Merge facts cannot overwrite accepted history;
-- Core Details upserts preserve durable identity and lineage provenance;
-- Arena replacements retain historical snapshots and rollback, while owner-maintained Vault changes retain versioned history;
-- the retired Current Vault spreadsheet is rejected as an import source;
-- owner-authenticated error review can show useful exact details without logging them;
-- all analytically relevant source fields remain available inside the private data boundary;
-- aggregate refresh and freshness states are accurate;
-- historical BGC races contribute performance but no economics;
-- failure and rollback preserve the previous accepted state;
-- usage checks stop before an unapproved paid threshold; and
-- Production remains disabled until Gate F approval.
+- use private buckets only;
+- use opaque owner-scoped keys;
+- store endpoint/version/retrieval/checksum manifests;
+- verify object checksums/metadata on replay; and
+- clean bounded scratch/cache residue according to the applicable recovery contract.
+
+## Neon write behavior
+
+Neon writes are owner-scoped and use existing least-privilege/RLS patterns.
+
+Normal sync stores compact state only:
+
+- checkpoints/cursors;
+- current canonical records/read models;
+- compact historical/analytical aggregates;
+- publication/freshness state; and
+- local strategy/application state.
+
+Large raw/full evidence remains outside relational tables where R2 is the safer/more economical replay store.
+
+## Persistent real Preview gate
+
+A configured API key does **not** authorise persistent real backfill.
+
+Before the first persistent real Preview sync:
+
+1. connected P3 read-only discovery proves real shapes/authority/equivalence;
+2. API-first persistence is based on that evidence;
+3. P5 proves PostgreSQL 18 physical/peak capacity and R2 footprint/cost;
+4. recovery/replay/partial failure/rate limit/tier loss/catch-up are proven;
+5. explicit positive Neon headroom below 536,870,912 bytes is demonstrated; and
+6. the owner explicitly approves the first persistent real Preview sync.
+
+Until that approval, connected reads may be used only within the authorised read-only evidence boundary and synthetic/replay work may continue.
+
+## Freshness model
+
+Every relevant family exposes:
+
+- last successful sync time;
+- source/current-through time where meaningful;
+- backfill coverage/current window where meaningful;
+- current/ageing/stale/unknown state;
+- sync paused/error state where needed; and
+- last-good publication identity.
+
+Current API facts should be described as current observations only when their timestamp/freshness supports that wording. Historical analytics retain their own event/current-through cutoff.
+
+## Automatic post-race ingestion
+
+When the owner has participated in a race, no special manual upload should be required after API commissioning.
+
+The normal finished-race sync/backfill path should:
+
+- discover the completed race through bounded finished windows;
+- hydrate the race document;
+- reconcile owned-Core participation;
+- update canonical historical evidence and affected aggregates idempotently; and
+- expose recent-race/readiness changes after last-good publication.
+
+The website remains read-only and never enters the race.
+
+## CSV fallback workflow
+
+The pre-existing private Data Updates workspace remains available as a guarded fallback for supported export families.
+
+Use it when:
+
+- API equivalence is still being proven;
+- an API gap has been demonstrated;
+- retained historical evidence is needed to fill a missing API horizon; or
+- recovery/validation requires comparison against known exports.
+
+Fallback imports preserve the established controls:
+
+- private raw object storage;
+- checksum/schema/version detection;
+- preview before activation;
+- idempotent replay/deduplication;
+- conflict quarantine;
+- rollback/recovery;
+- freshness/current-through separation; and
+- no unapproved paid-capacity or Production change.
+
+Spreadsheet-specific optimisation is not a delivery priority unless a demonstrated API gap requires it.
+
+## API-vs-CSV equivalence workflow
+
+During P3/P4/P10, representative facts are compared privately, including where applicable:
+
+- race IDs;
+- entrants/Core IDs;
+- event times;
+- elapsed times and positions;
+- mode/distance/gates;
+- Gold/Blue evidence;
+- fees/prizes/token;
+- payout format/tags;
+- Core identity/lineage;
+- Arena/current ownership; and
+- relevant counts/aggregates.
+
+Differences are classified rather than silently resolved. The source-authority matrix must state whether API supersedes, supplements or cannot yet replace the CSV fact.
+
+## Owner-facing operations
+
+After API commissioning, the owner should normally see a compact API operations/freshness panel rather than an upload-first workflow.
+
+It should show:
+
+- last sync by family;
+- current-through/backfill state;
+- sync paused/stale state;
+- recent completed races;
+- current active opportunities where available;
+- unresolved equivalence/schema issues; and
+- recovery/catch-up status.
+
+Routine operation should not require direct database access or manual file replacement.
+
+## Historical upload-first evidence
+
+Before 27 August 2026, the project was designed around periodic CSV uploads. That implementation remains valuable fallback/recovery evidence and is preserved in Git history and the specialised Phase 1 documents.
+
+Where earlier documentation states that the owner must routinely download/upload Race Merge/Core Details/Arena exports, this API-first workflow supersedes that operating model.
