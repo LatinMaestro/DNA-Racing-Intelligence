@@ -39,6 +39,20 @@ function requestFrom(transport: ReturnType<typeof vi.fn>) {
   return { url, init };
 }
 
+function expectInvalidRequest(action: () => unknown, message: string) {
+  let error: unknown;
+  try {
+    action();
+  } catch (caught) {
+    error = caught;
+  }
+  expect(error).toMatchObject({
+    name: "DnaOpenLabApiError",
+    kind: "invalid_request",
+    message,
+  });
+}
+
 describe("DNA Open Lab v1 client", () => {
   it("uses server-side bearer auth, preserves future optional fields, and exposes rate metadata", async () => {
     const { client, transport } = clientWith(
@@ -174,56 +188,52 @@ describe("DNA Open Lab v1 client", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
-  it("enforces documented bulk and finished-race request limits before transport", async () => {
+  it("enforces documented bulk and finished-race request limits before transport", () => {
     const transport = vi.fn(async () =>
       jsonResponse({ status: "success", result: [] }),
     ) as unknown as DnaOpenLabTransport;
     const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
 
-    await expect(
-      client.coreInfoBulk(Array.from({ length: 21 }, (_, i) => i + 1)),
-    ).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "hids must contain between 1 and 20 values",
-    });
-    await expect(
-      client.raceDocs(Array.from({ length: 21 }, (_, i) => i + 1)),
-    ).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "rids must contain between 1 and 20 values",
-    });
-    await expect(
-      client.vaultInfoBulk(Array.from({ length: 101 }, (_, i) => `vault-${i}`)),
-    ).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "vaults must contain between 1 and 100 values",
-    });
-    await expect(client.racesFinished({ limit: 201 })).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "limit must be between 1 and 200",
-    });
+    expectInvalidRequest(
+      () => client.coreInfoBulk(Array.from({ length: 21 }, (_, i) => i + 1)),
+      "hids must contain between 1 and 20 values",
+    );
+    expectInvalidRequest(
+      () => client.raceDocs(Array.from({ length: 21 }, (_, i) => i + 1)),
+      "rids must contain between 1 and 20 values",
+    );
+    expectInvalidRequest(
+      () =>
+        client.vaultInfoBulk(
+          Array.from({ length: 101 }, (_, i) => `vault-${i}`),
+        ),
+      "vaults must contain between 1 and 100 values",
+    );
+    expectInvalidRequest(
+      () => client.racesFinished({ limit: 201 }),
+      "limit must be between 1 and 200",
+    );
     expect(transport).not.toHaveBeenCalled();
   });
 
-  it("enforces vault-search and finished-race chronology bounds", async () => {
+  it("enforces vault-search and finished-race chronology bounds", () => {
     const transport = vi.fn(async () =>
       jsonResponse({ status: "success", result: [] }),
     ) as unknown as DnaOpenLabTransport;
     const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
 
-    await expect(client.vaultSearch({ query: "x" })).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "query must have at least 2 characters",
-    });
-    await expect(
-      client.racesFinished({
-        startTime: "2026-08-27T12:00:00Z",
-        endTime: "2026-08-27T11:00:00Z",
-      }),
-    ).rejects.toMatchObject({
-      kind: "invalid_request",
-      message: "startTime cannot be after endTime",
-    });
+    expectInvalidRequest(
+      () => client.vaultSearch({ query: "x" }),
+      "query must have at least 2 characters",
+    );
+    expectInvalidRequest(
+      () =>
+        client.racesFinished({
+          startTime: "2026-08-27T12:00:00Z",
+          endTime: "2026-08-27T11:00:00Z",
+        }),
+      "startTime cannot be after endTime",
+    );
     expect(transport).not.toHaveBeenCalled();
   });
 
