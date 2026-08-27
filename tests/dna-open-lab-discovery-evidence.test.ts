@@ -187,6 +187,7 @@ describe("DNA Open Lab discovery evidence", () => {
         {
           rid: "private-race-id",
           start_time: "2026-01-15T12:00:00.000Z",
+          end_time: "2030-01-15T12:00:00.000Z",
         },
       ],
     });
@@ -255,6 +256,25 @@ describe("DNA Open Lab discovery evidence", () => {
       { fatherCoreId: 3, motherCoreId: 2 },
       { fatherCoreId: 1, motherCoreId: 2 },
       { fatherCoreId: 3, motherCoreId: 4 },
+    ]);
+    expect(
+      buildDnaOpenLabPairCandidates({
+        owned: [
+          { hid: 10, gender: "Male" },
+          { hid: 11, gender: "Male" },
+          { hid: 12, gender: "Male" },
+        ],
+        arena: [
+          { hid: 20, gender: "Female" },
+          { hid: 21, gender: "Female" },
+        ],
+        maximum: 4,
+      }),
+    ).toEqual([
+      { fatherCoreId: 10, motherCoreId: 20 },
+      { fatherCoreId: 11, motherCoreId: 20 },
+      { fatherCoreId: 12, motherCoreId: 20 },
+      { fatherCoreId: 10, motherCoreId: 21 },
     ]);
     expect(() =>
       buildDnaOpenLabPairCandidates({

@@ -217,20 +217,22 @@ export function buildDnaOpenLabPairCandidates(input: {
     fathers: readonly Readonly<{ hid: number }>[],
     mothers: readonly Readonly<{ hid: number }>[],
   ) => {
-    for (const father of fathers) {
-      for (const mother of mothers) {
-        if (candidates.length >= maximum) return;
-        if (father.hid === mother.hid) continue;
-        const key = `${father.hid}:${mother.hid}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        candidates.push(
-          Object.freeze({
-            fatherCoreId: father.hid,
-            motherCoreId: mother.hid,
-          }),
-        );
-      }
+    const pairCount = fathers.length * mothers.length;
+    for (let index = 0; index < pairCount; index += 1) {
+      if (candidates.length >= maximum) return;
+      const father = fathers[index % fathers.length];
+      const mother = mothers[Math.floor(index / fathers.length)];
+      if (father === undefined || mother === undefined) return;
+      if (father.hid === mother.hid) continue;
+      const key = `${father.hid}:${mother.hid}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push(
+        Object.freeze({
+          fatherCoreId: father.hid,
+          motherCoreId: mother.hid,
+        }),
+      );
     }
   };
 
@@ -279,7 +281,10 @@ export function summarizeDnaOpenLabHistoryWindow(input: {
 
   let missingTimestamp = false;
   for (const race of input.races) {
-    const timestamp = race.end_time ?? race.start_time;
+    // The documented request fields are `st`/`ed`; connected evidence verifies
+    // their behavior against race `start_time`. `end_time` is only a fallback
+    // where the provider omits the start value.
+    const timestamp = race.start_time ?? race.end_time;
     if (timestamp === undefined || timestamp === null) {
       missingTimestamp = true;
       continue;
