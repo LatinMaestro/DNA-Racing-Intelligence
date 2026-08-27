@@ -135,7 +135,8 @@ function raceMode(value: string): RaceMode {
 }
 
 function raceIdentifier(value: string | number): string {
-  if (typeof value === "number") return String(positiveInteger(value, "race.id"));
+  if (typeof value === "number")
+    return String(positiveInteger(value, "race.id"));
   return requiredText(value, "race.id");
 }
 
@@ -158,9 +159,7 @@ function canonicalJson(value: unknown): string {
       ([left], [right]) => left.localeCompare(right),
     );
     return `{${entries
-      .map(
-        ([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`,
-      )
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
       .join(",")}}`;
   }
   return adapterError("raw API evidence contains a non-JSON value");

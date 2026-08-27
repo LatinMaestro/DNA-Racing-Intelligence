@@ -58,7 +58,10 @@ const activeRace: DnaActiveRace = {
 
 describe("DNA Open Lab v1 canonical adapters", () => {
   it("maps Core info into the existing canonical Core Details model with API provenance", () => {
-    const adapted = adaptDnaCoreInfo({ raw: coreInfo, observedAt: OBSERVED_AT });
+    const adapted = adaptDnaCoreInfo({
+      raw: coreInfo,
+      observedAt: OBSERVED_AT,
+    });
 
     expect(adapted).toMatchObject({
       source: "dna_open_lab",
@@ -81,11 +84,16 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       },
     });
     expect(adapted.rawEvidenceSha256).toMatch(/^[a-f0-9]{64}$/u);
-    expect(JSON.stringify(adapted.canonical)).not.toContain("future_optional_field");
+    expect(JSON.stringify(adapted.canonical)).not.toContain(
+      "future_optional_field",
+    );
   });
 
   it("maps vault cores into the same Core Details model without inventing missing lineage or colour", () => {
-    const adapted = adaptDnaVaultCore({ raw: vaultCore, observedAt: OBSERVED_AT });
+    const adapted = adaptDnaVaultCore({
+      raw: vaultCore,
+      observedAt: OBSERVED_AT,
+    });
 
     expect(adapted).toMatchObject({
       scope: "vault",
@@ -107,7 +115,10 @@ describe("DNA Open Lab v1 canonical adapters", () => {
   });
 
   it("maps active races into API-neutral current-race fields while retaining only a raw evidence hash", () => {
-    const adapted = adaptDnaActiveRace({ raw: activeRace, observedAt: OBSERVED_AT });
+    const adapted = adaptDnaActiveRace({
+      raw: activeRace,
+      observedAt: OBSERVED_AT,
+    });
 
     expect(adapted).toMatchObject({
       source: "dna_open_lab",
@@ -182,8 +193,8 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(() =>
       dnaOpenLabRawEvidenceSha256({ value: Number.POSITIVE_INFINITY }),
     ).toThrowError("raw API evidence contains a non-finite number");
-    expect(() => dnaOpenLabRawEvidenceSha256({ value: undefined })).toThrowError(
-      "raw API evidence contains a non-JSON value",
-    );
+    expect(() =>
+      dnaOpenLabRawEvidenceSha256({ value: undefined }),
+    ).toThrowError("raw API evidence contains a non-JSON value");
   });
 });
