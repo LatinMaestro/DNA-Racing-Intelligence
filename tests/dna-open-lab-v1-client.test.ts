@@ -288,8 +288,22 @@ describe("DNA Open Lab v1 client", () => {
     );
 
     const arenaResult = {
+      cores: [
+        {
+          hid: 31,
+          name: "Synthetic Core",
+          type: "Pacer",
+          gender: "Male",
+          element: "Water",
+          color: "Blue",
+          hex_code: "#0000ff",
+          fno: 2,
+          price_usd: 12.5,
+        },
+      ],
+      has_more: false,
+      limit: 20,
       page: 1,
-      synthetic_entries: [],
     };
     const arena = clientWith(
       jsonResponse({ status: "success", result: arenaResult }),
