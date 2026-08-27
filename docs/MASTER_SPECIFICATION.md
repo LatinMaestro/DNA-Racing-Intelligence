@@ -433,27 +433,33 @@ Required views include:
 
 ### 4.16 Pro League preparation
 
-Provide a protected, owner-only Pro League preparation workspace based on the
-owner-supplied DNA Community Update received 20 August 2026.
+Provide a protected, owner-only Pro League preparation and mapping workspace
+based on the current owner-confirmed rules and published DNA Esports map list.
 
 The workspace must:
 
-- audit an owner-selected 25-core roster against the provisional published element,
-  per-element Genesis, female and F15+ boundaries;
+- audit an owner-selected 12–25 Core roster against current element ceilings,
+  per-element Genesis, F-number, female and naming boundaries;
 - use My Vault as the only ownership authority and reject duplicate or unowned cores;
 - identify structural gaps that may inform Breeding review without guaranteeing
   inheritance outcomes;
 - use accepted Bike evidence, sample sizes, confidence and freshness for Discovery
   prioritisation only after structural compliance is considered;
-- keep unknown maps, distances, scoring and esports performance mechanics visibly
-  unconfigured;
+- preserve the exact ordered 42-race definitions for the four currently
+  published maps and keep the fifth planned map unavailable until defined;
+- model both supported mapping scopes: one selected race line, or every race on
+  the selected map with the same race type and exact distance;
+- show first-16 mapping coverage separately because a map can finish at race 16;
+- treat best-of-three, first-to-16 and win-by-two as current map authority;
+- record that the owner must return after a match is scheduled to choose the map;
 - exclude additional Genesis minting from the owner's preparation strategy; and
-- remain advisory: no team entry, race entry, betting, minting, trading, signing or
-  wallet action.
+- remain advisory: no team creation/submission, roster submission, mapping
+  submission, match-map selection, race entry, betting, minting, trading,
+  signing or wallet action.
 
-The announcement rules remain provisional and versioned until DNA publishes a complete
-rule source. A roster that meets them is only structurally compliant, never described
-as competitively proven.
+Published map definitions are versioned observations and must be refreshed only
+after owner-confirmed/live authority changes. A roster or map lineup that meets
+the structural rules is never described as competitively proven.
 
 ## 5. Data refresh workflow
 

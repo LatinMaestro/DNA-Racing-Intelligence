@@ -258,6 +258,17 @@ The Pro League domain requires enough current and historical evidence to validat
 - Discovery opportunities; and
 - breeding opportunity/pair validation evidence.
 
+The published Pro League map catalogue and the owner's staged mappings are not
+DNA Open Lab race-history facts. Keep them in the local strategic/configuration
+boundary:
+
+- version the four observed 42-race map definitions and their public source;
+- keep the fifth planned map unavailable until published;
+- retain exact map, race number, type and distance for every line;
+- expand `same_type_and_distance` only within the selected map;
+- require mapped Cores to belong to the selected roster; and
+- keep match-map choice and every DNA Esports submission manual.
+
 No API response may automatically create a roster substitution or overwrite owner strategy history.
 
 ## 16. Splice and breeding data authority

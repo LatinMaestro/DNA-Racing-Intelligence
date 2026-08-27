@@ -272,6 +272,30 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 - Current API evidence may enrich advice but must not be blindly blended into one opaque score or leak backward into historical backtests.
 - Pro League preparation remains advisory only. The website must never create a team, enter a race, place a bet, mint, trade, sign with a wallet or execute a splice.
 
+### Team setup and map assignment
+
+- The owner creates the team manually on `https://esports.dnaracing.run/teams`.
+- The owner manually sets a roster of 12–25 Cores.
+- The current Maps page defines four of five planned maps: **Anchor**, **Glory**, **Measure** and **Miracles**.
+- Every defined map is a fixed ordered sequence of 42 races.
+- A match is best-of-three maps.
+- A map is first to 16 race points and must be won by two race points.
+- Race lines below 16 are reached only when the score remains close enough for the map to continue.
+- Each race line has an exact race type and distance in metres.
+- When assigning a Core, the owner can apply it only to the selected race or to every race on that selected map with the same race type and exact distance.
+- The website may prepare and validate these lineups but must never click Set, submit a mapping, create a team, set a roster or choose a match map.
+- Matches are expected to be scheduled about one day in advance. The owner must return to DNA Esports and choose the map for each scheduled match manually.
+- The fifth planned map remains unavailable/unconfigured until DNA publishes it.
+
+Published map catalogue observed 27 August 2026:
+
+| Map | Name | Published race composition | First-16 average | All-42 average | Distance range |
+| ---: | --- | --- | ---: | ---: | ---: |
+| 1 | Anchor | 21 × 6-gate Madness, 19 × 1v1, 2 × 12-gate WTA | 1488 m | 1586 m | 1000–2200 m |
+| 2 | Glory | 11 × 4-gate WTA, 11 × 6-gate WTA, 10 × 16-gate WTA, 10 × 24-gate WTA | 1600 m | 1586 m | 1000–2200 m |
+| 3 | Measure | 7 each of 4-gate WTA, 6-gate WTA, 1v1, 6-gate Madness, 12-gate Madness and 24-gate Madness | 1600 m | 1610 m | 1000–2200 m |
+| 4 | Miracles | 21 × 22-gate WTA, 21 × 24-gate Madness | 1688 m | 1610 m | 1000–2200 m |
+
 ## Historical Pro League announcement snapshot — superseded where noted
 
 The owner supplied a DNA Community Update on 20 August 2026. The initial recorded provisional roster assumptions were:

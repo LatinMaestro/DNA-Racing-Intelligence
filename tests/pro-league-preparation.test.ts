@@ -57,7 +57,7 @@ describe("Pro League preparation", () => {
       "most_powerful_overall_cross_mode_and_format",
     );
     expect(result.formatEvidenceStatus).toBe("descriptive_context_connected");
-    expect(result.genesisInterpretationStatus).toBe("working_interpretation");
+    expect(result.genesisInterpretationStatus).toBe("confirmed");
   });
 
   it("exposes only fresh minimally-supported payout-format context without changing power tiers", () => {
@@ -101,7 +101,7 @@ describe("Pro League preparation", () => {
     expect(candidate.reasons.join(" ")).toContain("descriptive context only");
   });
 
-  it("detects non-Genesis depth needed under the provisional per-element Genesis cap", () => {
+  it("limits selectable pool depth using current element and Genesis ceilings", () => {
     const result = buildProLeaguePreparation([
       core("m1", "Metal", { coreClass: "Genesis" }),
       core("m2", "Metal", { coreClass: "Genesis" }),
@@ -113,8 +113,8 @@ describe("Pro League preparation", () => {
 
     expect(metal).toMatchObject({
       rosterFloorGap: 0,
-      nonGenesisDepthGap: 2,
-      breedingPriority: "critical",
+      nonGenesisDepthGap: 0,
+      breedingPriority: "quality",
     });
     expect(result.selectableUnderGenesisCaps).toBe(3);
   });
@@ -211,7 +211,7 @@ describe("Pro League preparation", () => {
         pool.push(
           core(`${element}-${index}`, element, {
             sex: sequence <= 8 ? "female" : "male",
-            fNumber: sequence <= 5 ? 15 + sequence : 10,
+            fNumber: sequence <= 2 ? 15 + sequence : 11,
           }),
         );
       }
@@ -226,15 +226,15 @@ describe("Pro League preparation", () => {
       ),
     ).toBe(true);
     expect(
-      result.elements.every(({ powerDepthGap }) => powerDepthGap === 5),
+      result.elements.every(({ powerDepthGap }) => powerDepthGap === 1),
     ).toBe(true);
   });
 
-  it("keeps female outcomes non-targetable and uses the confirmed parent-sum threshold for F15+", () => {
+  it("keeps female outcomes non-targetable and uses the parent-sum threshold for above F15", () => {
     const result = buildProLeaguePreparation([core("one", "Fire")]);
 
     expect(result.breeding.femaleOutcomeTargetable).toBe(false);
-    expect(result.breeding.minimumParentFSumForF15).toBe(15);
+    expect(result.breeding.minimumParentFSumForAboveF15).toBe(16);
     expect(result.breeding.genesisMintExcluded).toBe(true);
     expect(result.breeding.qualityObjective).toBe("elite_all_rounder_upside");
   });

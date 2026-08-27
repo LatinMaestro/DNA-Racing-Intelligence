@@ -302,3 +302,14 @@ After the private Pro League milestone, continue in this order:
 - This is synthetic/replayable P4 infrastructure only. It does not run a real API
   backfill, mutate hosted Neon/R2, deploy Vercel or weaken the P5 owner approval
   gate.
+
+## 2026-08-27 — Pro League team setup and map-line authority
+
+- The owner creates the team and sets the 12–25 Core roster manually on DNA Esports.
+- The public Maps page currently defines four of five planned maps: Anchor, Glory, Measure and Miracles.
+- Each defined map is an immutable ordered 42-race catalogue for this authority version.
+- A match is best-of-three maps; a map is first to 16 race points and must be won by two.
+- A staged Core mapping can apply to only one race line or to every line on the selected map with the same exact race type and distance.
+- The private website validates and recommends mappings, including first-16 coverage, but never creates a team, submits a roster/mapping or chooses the map for a scheduled match.
+- Match schedules are expected about one day in advance and final map choice remains a manual owner action.
+- Map 5 remains unavailable and must not be fabricated.

@@ -1,7 +1,7 @@
 import { raceModes, type RaceMode } from "@/domain/core-performance";
 import type { FreshnessState } from "@/domain/freshness";
 import { elements, type CoreClass, type Element } from "@/domain/game-rules";
-import { proLeagueAnnouncementRules } from "@/domain/pro-league-roster";
+import { proLeagueCurrentRules } from "@/domain/pro-league-roster";
 
 export type ProLeagueBenchmarkAssessment =
   | "winning_range"
@@ -92,8 +92,8 @@ export type ProLeagueElementPreparation = Readonly<{
 
 export type ProLeaguePreparation = Readonly<{
   rulesetId: string;
-  evidenceStatus: "provisional";
-  genesisInterpretationStatus: "working_interpretation";
+  evidenceStatus: "owner_confirmed";
+  genesisInterpretationStatus: "confirmed";
   performanceAuthority: "shared_dna_racing_core_stats";
   selectionObjective: "most_powerful_overall_cross_mode_and_format";
   formatEvidenceStatus: "descriptive_context_connected";
@@ -111,8 +111,8 @@ export type ProLeaguePreparation = Readonly<{
   breeding: Readonly<{
     femaleGap: number;
     femaleOutcomeTargetable: false;
-    f15PlusGap: number;
-    minimumParentFSumForF15: 15;
+    aboveF15Gap: number;
+    minimumParentFSumForAboveF15: 16;
     genesisMintExcluded: true;
     qualityObjective: "elite_all_rounder_upside";
   }>;
@@ -312,12 +312,14 @@ function assess(
   if (core.sex === "female") {
     reasons.push("Supports the published eight-female roster floor.");
   }
-  if (core.fNumber >= 15) {
-    reasons.push("Supports the published five-core F15+ roster floor.");
+  if (core.fNumber > 15) {
+    reasons.push(
+      "Supports the owner-confirmed two-Core above-F15 roster floor.",
+    );
   }
   if (core.coreClass !== "Genesis") {
     reasons.push(
-      "Non-Genesis depth preserves flexibility under the provisional per-element Genesis cap.",
+      "Non-Genesis depth preserves flexibility under the confirmed per-element Genesis cap.",
     );
   }
   if (supportedPayoutFormatCount > 0) {
@@ -371,7 +373,7 @@ function comparePower(a: ProLeagueCandidate, b: ProLeagueCandidate): number {
     b.analyticalDistances - a.analyticalDistances ||
     b.totalRaceCount - a.totalRaceCount ||
     Number(b.sex === "female") - Number(a.sex === "female") ||
-    Number(b.fNumber >= 15) - Number(a.fNumber >= 15) ||
+    Number(b.fNumber > 15) - Number(a.fNumber > 15) ||
     a.coreId.localeCompare(b.coreId)
   );
 }
@@ -415,25 +417,17 @@ export function buildProLeaguePreparation(
     ({ coreClass }) => coreClass !== "Genesis",
   );
   const females = countByElement(input, ({ sex }) => sex === "female");
-  const f15 = countByElement(input, ({ fNumber }) => fNumber >= 15);
+  const f15 = countByElement(input, ({ fNumber }) => fNumber > 15);
   const femaleCount = input.filter(({ sex }) => sex === "female").length;
-  const f15PlusCount = input.filter(({ fNumber }) => fNumber >= 15).length;
+  const f15PlusCount = input.filter(({ fNumber }) => fNumber > 15).length;
   const needs = {
-    female: femaleCount < proLeagueAnnouncementRules.minimumFemales,
-    f15: f15PlusCount < proLeagueAnnouncementRules.minimumF15Plus,
+    female: femaleCount < proLeagueCurrentRules.minimumFemales,
+    f15: f15PlusCount < proLeagueCurrentRules.minimumAboveF15,
     element: Object.fromEntries(
-      elements.map((element) => [
-        element,
-        totals[element] < proLeagueAnnouncementRules.minimumPerElement,
-      ]),
+      elements.map((element) => [element, false]),
     ) as Record<Element, boolean>,
     nonGenesis: Object.fromEntries(
-      elements.map((element) => [
-        element,
-        nonGenesis[element] <
-          proLeagueAnnouncementRules.minimumPerElement -
-            proLeagueAnnouncementRules.maximumGenesisPerElement,
-      ]),
+      elements.map((element) => [element, false]),
     ) as Record<Element, boolean>,
   };
   const candidates = input.map((core) => assess(core, needs));
@@ -443,16 +437,8 @@ export function buildProLeaguePreparation(
 
   const elementPreparation = elements.map(
     (element): ProLeagueElementPreparation => {
-      const rosterFloorGap = Math.max(
-        0,
-        proLeagueAnnouncementRules.minimumPerElement - totals[element],
-      );
-      const nonGenesisDepthGap = Math.max(
-        0,
-        proLeagueAnnouncementRules.minimumPerElement -
-          proLeagueAnnouncementRules.maximumGenesisPerElement -
-          nonGenesis[element],
-      );
+      const rosterFloorGap = 0;
+      const nonGenesisDepthGap = 0;
       const multiModeStrongOwned = input.filter((core) => {
         if (core.element !== element) return false;
         const candidate = candidateById.get(core.coreId);
@@ -460,10 +446,7 @@ export function buildProLeaguePreparation(
           candidate !== undefined && candidate.topThreeOrBetterModes.length >= 2
         );
       }).length;
-      const powerDepthGap = Math.max(
-        0,
-        proLeagueAnnouncementRules.minimumPerElement - multiModeStrongOwned,
-      );
+      const powerDepthGap = Math.max(0, 1 - multiModeStrongOwned);
       return {
         element,
         totalOwned: totals[element],
@@ -475,53 +458,42 @@ export function buildProLeaguePreparation(
         rosterFloorGap,
         nonGenesisDepthGap,
         powerDepthGap,
-        breedingPriority:
-          rosterFloorGap > 0 || nonGenesisDepthGap > 0
-            ? "critical"
-            : powerDepthGap > 0
-              ? "quality"
-              : "maintain",
+        breedingPriority: powerDepthGap > 0 ? "quality" : "maintain",
         breedingGuidance: offspringGuidance[element],
       };
     },
   );
 
-  const selectableUnderGenesisCaps = elements.reduce(
-    (total, element) =>
-      total +
+  const selectableUnderGenesisCaps = elements.reduce((total, element) => {
+    const withinGenesisCap =
       nonGenesis[element] +
       Math.min(
         genesis[element],
-        proLeagueAnnouncementRules.maximumGenesisPerElement,
-      ),
-    0,
-  );
+        proLeagueCurrentRules.maximumGenesisPerElement,
+      );
+    return (
+      total +
+      Math.min(
+        withinGenesisCap,
+        proLeagueCurrentRules.maximumPerElement[element] ??
+          proLeagueCurrentRules.maximumRosterSize,
+      )
+    );
+  }, 0);
   const structuralIssues: string[] = [];
-  for (const element of elementPreparation) {
-    if (element.rosterFloorGap > 0) {
-      structuralIssues.push(
-        `${element.element} is short ${element.rosterFloorGap} core(s) against the five-core floor.`,
-      );
-    }
-    if (element.nonGenesisDepthGap > 0) {
-      structuralIssues.push(
-        `${element.element} needs ${element.nonGenesisDepthGap} more non-Genesis core(s) to support five slots under the working two-Genesis cap.`,
-      );
-    }
-  }
-  if (femaleCount < proLeagueAnnouncementRules.minimumFemales) {
+  if (femaleCount < proLeagueCurrentRules.minimumFemales) {
     structuralIssues.push(
-      `Owned pool is short ${proLeagueAnnouncementRules.minimumFemales - femaleCount} female core(s).`,
+      `Owned pool is short ${proLeagueCurrentRules.minimumFemales - femaleCount} female Core(s).`,
     );
   }
-  if (f15PlusCount < proLeagueAnnouncementRules.minimumF15Plus) {
+  if (f15PlusCount < proLeagueCurrentRules.minimumAboveF15) {
     structuralIssues.push(
-      `Owned pool is short ${proLeagueAnnouncementRules.minimumF15Plus - f15PlusCount} F15+ core(s).`,
+      `Owned pool is short ${proLeagueCurrentRules.minimumAboveF15 - f15PlusCount} Core(s) above F15.`,
     );
   }
-  if (selectableUnderGenesisCaps < proLeagueAnnouncementRules.rosterSize) {
+  if (selectableUnderGenesisCaps < proLeagueCurrentRules.minimumRosterSize) {
     structuralIssues.push(
-      `Only ${selectableUnderGenesisCaps} owned cores remain selectable under the working Genesis caps, below 25.`,
+      `Only ${selectableUnderGenesisCaps} owned Cores remain selectable under the current element and Genesis ceilings, below the 12-Core roster floor.`,
     );
   }
 
@@ -548,9 +520,9 @@ export function buildProLeaguePreparation(
   };
 
   return {
-    rulesetId: proLeagueAnnouncementRules.rulesetId,
-    evidenceStatus: "provisional",
-    genesisInterpretationStatus: "working_interpretation",
+    rulesetId: proLeagueCurrentRules.rulesetId,
+    evidenceStatus: "owner_confirmed",
+    genesisInterpretationStatus: "confirmed",
     performanceAuthority: "shared_dna_racing_core_stats",
     selectionObjective: "most_powerful_overall_cross_mode_and_format",
     formatEvidenceStatus: "descriptive_context_connected",
@@ -568,23 +540,23 @@ export function buildProLeaguePreparation(
     breeding: {
       femaleGap: Math.max(
         0,
-        proLeagueAnnouncementRules.minimumFemales - femaleCount,
+        proLeagueCurrentRules.minimumFemales - femaleCount,
       ),
       femaleOutcomeTargetable: false,
-      f15PlusGap: Math.max(
+      aboveF15Gap: Math.max(
         0,
-        proLeagueAnnouncementRules.minimumF15Plus - f15PlusCount,
+        proLeagueCurrentRules.minimumAboveF15 - f15PlusCount,
       ),
-      minimumParentFSumForF15: 15,
+      minimumParentFSumForAboveF15: 16,
       genesisMintExcluded: true,
       qualityObjective: "elite_all_rounder_upside",
     },
     unresolvedRules: [
-      "How the initial 12 Pro teams are selected versus entry through the lower league.",
-      "Formal confirmation that the announcement shorthand 'gens' means Genesis cores.",
-      "Exact Pro League map distances, track characteristics, roster lock/substitution and core-use rules.",
+      "The fifth planned map has not yet been published.",
+      "Whether initial roster selection consumes the annual substitution allowance.",
+      "Exact roster-lock and match-day Core replacement rules.",
       "Exact payout/race-format mix used by Pro League matches.",
-      "Registration dates, initial season timing and sponsorship administration details.",
+      "Exact season schedule and promotion/relegation administration details.",
     ],
   };
 }
