@@ -12,7 +12,7 @@
 - Keep unlike currencies/assets separate unless a dated explicit conversion is supplied.
 - Distinguish source-derived facts, inferred classifications and manual entries.
 - Treat Gold and Blue stars as pre-race, field-relative signals rather than guaranteed outcomes or absolute ratings.
-- Treat each periodic import as a historical snapshot, never as live game state.
+- Treat each API publication as a timestamped snapshot, never as guaranteed continuously live game state.
 
 ## Core performance features
 
@@ -254,26 +254,28 @@ Store:
 
 ## Data freshness methodology
 
-Race Merge, Core Details, Current Vault and Arena data are periodically imported, normally every few days. They are not live feeds.
+DNA Open Lab families are synchronized periodically and published only after last-good validation. They are not guaranteed continuously live feeds.
 
 For all race-derived recommendations and reports:
 
 - expose the latest accepted event timestamp as `Data current through`;
-- expose import completion time as `Last imported`;
+- expose successful publication time as `Last synced`;
 - calculate data age from the latest event timestamp;
 - show a current/ageing/stale label using configurable thresholds;
-- show the source import batch or coverage period where relevant;
-- do not describe imported opponents, star assignments, arena listings or tournament state as live;
+- show the source sync/publication identity or coverage period where relevant;
+- do not describe synchronized opponents, star assignments, arena listings or tournament state as live beyond the applicable freshness contract;
 - do not infer that no later game events occurred;
-- recalculate only affected aggregates after an idempotent cumulative import where practical.
+- recalculate only affected aggregates after an idempotent API publication where practical.
 
 Suggested initial thresholds:
 
-- current import: 0–3 days old;
+- current sync: 0–3 days old;
 - ageing: 4–7 days old;
 - stale: more than 7 days old.
 
-Freshness affects confidence and user warnings, not the historical facts already imported.
+Freshness affects confidence and user warnings, not the historical facts already accepted.
+
+Analytics that require elapsed time, finishing position, explicit distance or dated historical valuation remain unavailable on the API-only path until an authoritative API contract exposes those facts. Current API dimensions may be shown separately, but they cannot be relabelled as missing historical evidence or leaked backward into backtests.
 
 ## Vault economic analytics
 

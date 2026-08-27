@@ -4,13 +4,15 @@ Private, single-owner decision-support and analytics platform for improving the 
 
 ## Current data-source authority
 
-DNA Racing Intelligence is now **API-first**. The target data path is:
+DNA Racing Intelligence is now **API-only on the delivery critical path**. The target data path is:
 
 `DNA Open Lab v1 API -> server-only client and sync planner -> private R2 evidence/cache where useful -> canonical source adapters -> owner-scoped Neon read models and aggregates -> private authenticated website`
 
 The DNA Open Lab base URL is `https://api.dnaracing.run/fbike/pub/v1`. API authentication is server-side Bearer only. The browser must never receive the API key or call the DNA API directly.
 
-The existing CSV importer is retained as an **internal fallback and equivalence source**, not the normal critical path. It remains available until connected API coverage and equivalence are proven and through a transition period after API commissioning.
+The existing CSV importer and equivalence harness are preserved but **benched**. They are optional future integrations and are not prerequisites for API persistence, Pro League commissioning or private website commissioning. No new CSV export is required from the owner for current delivery.
+
+Where DNA Open Lab does not expose a required fact, the API-only product must show that dimension as unavailable or limited. It must not fabricate the value or silently restore CSV as a critical-path dependency.
 
 If API eligibility or the key becomes unavailable, background sync pauses only. The website must continue serving the last successfully synced dataset and its analytical read models, with clear freshness/staleness indicators. Catch-up resumes from durable checkpoints when access returns.
 
@@ -69,8 +71,8 @@ The delivery priority is the earliest safe **private owner-usable Pro League com
 - [`AGENTS.md`](AGENTS.md) — autonomous delivery and safety instructions
 - [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) — current API-first phased delivery plan
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current API-first architecture and storage boundaries
-- [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — API/client/canonical data contract and CSV fallback rules
-- [`docs/DATA_UPDATE_WORKFLOW.md`](docs/DATA_UPDATE_WORKFLOW.md) — API sync, backfill, outage and fallback workflow
+- [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — API/client/canonical data contract and optional CSV boundary
+- [`docs/DATA_UPDATE_WORKFLOW.md`](docs/DATA_UPDATE_WORKFLOW.md) — API sync, backfill and outage workflow
 - [`docs/ESPORTS_PRO_LEAGUE_PREPARATION.md`](docs/ESPORTS_PRO_LEAGUE_PREPARATION.md) — current Pro League rules and preparation strategy
 - [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics and current Pro League rule authority
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — current decisions and supersession record

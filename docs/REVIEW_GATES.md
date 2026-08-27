@@ -9,7 +9,7 @@ A self-accepted gate must be recorded in the decision log or phase handoff, supp
 Before implementation beyond the scaffold, confirm:
 
 - private single-user access approach;
-- database and raw-upload storage choice;
+- database and raw-evidence storage choice;
 - expected free/paid service costs;
 - no requirement for local user development;
 - no real data committed to Git;
@@ -18,34 +18,32 @@ Before implementation beyond the scaffold, confirm:
 - Gold eligibility derived from gate count greater than three;
 - event-level star validation and aggregate strategy;
 - pre-race field-quality no-leakage design;
-- import timestamp, latest accepted event timestamp and freshness-state design;
+- sync timestamp, latest accepted event timestamp and freshness-state design;
 - historical-snapshot UI treatment with no live-data wording;
 - currency/asset and BGC ledger storage approach;
 - manual transaction audit/reversal design; and
 - no storage of crypto private keys, seed phrases or signing credentials.
 
-## Gate B — First real-data import
+## Gate B — First persistent real API sync
 
-Before importing the owner’s full private exports or economic records into a hosted environment, provide:
+Before persisting real API data or economic records into a hosted environment, provide:
 
 - schema summary;
 - retention and deletion behaviour;
 - access controls;
 - estimated storage/processing costs;
 - rollback plan;
-- confirmation logs will not expose source rows, wallet references or economic records;
-- validated `gold_star`, `blue_star` and `gold_star_eligible` handling;
-- proof that false, missing, invalid and Gold-ineligible states remain distinguishable;
-- proof that 1–3 gate races are excluded from negative Gold denominators;
-- event-level star anomaly handling;
-- import/current-through timestamp and stale-data behavior;
-- validated interpretation of race entry-fee and payout fields;
+- confirmation logs will not expose payload values, wallet references or economic records;
+- validated handling for each API fact family being persisted;
+- explicit unavailable/limited status for historical elapsed time, position, distance, stars or economics not exposed by the API;
+- sync/current-through timestamp and stale-data behavior;
+- validated interpretation of any persisted race entry-fee and payout fields;
 - economic deduplication keys; and
 - manual payout reconciliation approach.
 
 ## Gate C — Analytical and accounting baseline
 
-Before presenting recommendations as actionable, provide holdout results for:
+Before presenting an evidence family as an actionable analytical recommendation, provide the applicable holdout results for:
 
 - time/speed benchmarks;
 - discovery ranking;
@@ -58,11 +56,13 @@ Before presenting recommendations as actionable, provide holdout results for:
 - explicit proof that current-event outcomes and future races do not enter historical star field-quality features;
 - time-period or algorithm-era stability analysis;
 - evidence that no-star or Gold-ineligible data alone cannot cause a stop, poor-core or burn recommendation;
-- correct disclosure of the imported data cutoff and freshness.
+- correct disclosure of the synchronized data cutoff and freshness.
+
+An unavailable API evidence family does not block structural Pro League validation or clearly separated current-observation views. It does block claims and recommendations that require that missing evidence.
 
 Before presenting Vault Performance totals as dependable, demonstrate:
 
-- cumulative import idempotency;
+- cumulative sync idempotency;
 - separate currency/asset totals;
 - separate BGC treatment;
 - exclusion of transfers from operating P/L;
@@ -71,7 +71,7 @@ Before presenting Vault Performance totals as dependable, demonstrate:
 - missing-cost-basis behaviour; and
 - completeness/partial-result warnings.
 
-Low-performing or unvalidated models must remain labelled experimental. Incomplete or unreconciled economic reports must remain labelled partial. Stale imported data must remain visibly labelled stale.
+Low-performing or unvalidated models must remain labelled experimental. Incomplete or unreconciled economic reports must remain labelled partial. Stale synchronized data must remain visibly labelled stale.
 
 ## Gate D — Maiden recommendations
 
@@ -96,7 +96,7 @@ Before presenting breeding recommendations as more than exploratory, demonstrate
 - chronological parent-offspring validation;
 - comparison of time-only models with models containing parent/lineage star features;
 - no claim that star propensity is inherited unless independently validated;
-- current arena import freshness and expiry handling;
+- current Arena sync freshness and expiry handling;
 - separation of elite-upside and vault-fit scores;
 - honest uncertainty reporting.
 
