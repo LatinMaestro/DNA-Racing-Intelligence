@@ -57,13 +57,13 @@ The API boundary must:
 
 Current documented request bounds:
 
-| Operation | Maximum |
-| --- | ---: |
-| Vault bulk info | 100 |
-| Core bulk families | 20 |
-| Race docs/fills bulk | 20 |
-| Finished races per time window | 200 |
-| Vault search | 50 |
+| Operation                      | Maximum |
+| ------------------------------ | ------: |
+| Vault bulk info                |     100 |
+| Core bulk families             |      20 |
+| Race docs/fills bulk           |      20 |
+| Finished races per time window |     200 |
+| Vault search                   |      50 |
 
 ## 4. Browser and trust boundaries
 
