@@ -5,8 +5,11 @@ import {
 } from "./dna-open-lab-v1-client";
 
 const WINDOW_MILLISECONDS = 60_000;
-const DEFAULT_INITIAL_REQUESTS_PER_MINUTE = 30;
-const DEFAULT_MAXIMUM_REQUESTS_PER_MINUTE = 150;
+export const DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE = 30 as const;
+const DEFAULT_INITIAL_REQUESTS_PER_MINUTE =
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+const DEFAULT_MAXIMUM_REQUESTS_PER_MINUTE =
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
 
 export type DnaOpenLabRequestBudgetSnapshot = Readonly<{
   effectiveRequestsPerMinute: number;
@@ -30,9 +33,10 @@ function positiveSafeInteger(value: number, field: string): number {
 }
 
 /**
- * Creates a local sliding-window request gate that is safe at DNA's minimum
- * eligible 30 requests/minute tier and can increase its local allowance only
- * after the API explicitly advertises a higher limit.
+ * Creates a local sliding-window request gate fixed by default at DNA's base
+ * 30 requests/minute allowance. Advertised higher limits are recorded by the
+ * response boundary but cannot increase this gate unless a caller explicitly
+ * supplies a higher maximum under a separately approved policy.
  *
  * The gate deliberately does not retry failed requests. A 429 is surfaced to
  * the caller unchanged, while Retry-After/reset metadata blocks later requests

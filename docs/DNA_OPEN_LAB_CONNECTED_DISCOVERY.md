@@ -22,7 +22,7 @@ All three distinct configured keys authenticated successfully twice with the req
 | key-2 | 149               | 148              | 150 req/min      | `api_key`  | 0            |
 | key-3 | 149               | 148              | 150 req/min      | `api_key`  | 0            |
 
-The equal clean starting counters followed by one decrement on each individual lane prove that the observed quota buckets are per key. The confirming run recorded `independentRateBucketsProven: true` and `independentRateBucketsEnabled: false`. This proof does not itself change operational scheduling: connected discovery remains under its conservative 30 combined requests/minute budget until a focused P4 change deliberately enables independent lanes.
+The equal clean starting counters followed by one decrement on each individual lane prove that the observed quota buckets are per key. The confirming run recorded `independentRateBucketsProven: true` and `independentRateBucketsEnabled: false`. The owner has chosen a standing website policy of 30 requests/minute combined across all keys. Advertised higher limits remain observability metadata and cannot raise the default lane or aggregate gate automatically.
 
 ## Endpoint-family observations
 

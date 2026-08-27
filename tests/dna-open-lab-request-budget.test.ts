@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createDnaOpenLabRequestBudget,
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "../lib/dna-open-lab-request-budget";
 import {
@@ -74,11 +75,29 @@ describe("DNA Open Lab request budget", () => {
     expect(clock.now()).toBe(60_000);
   });
 
-  it("uses an advertised higher tier only after DNA reports it", async () => {
+  it("does not raise the default allowance when DNA advertises a higher tier", () => {
+    const budget = createDnaOpenLabRequestBudget();
+
+    budget.observeRateLimit(
+      rateLimit({
+        limit: 150,
+        remaining: 149,
+        resetSeconds: 30,
+        rateClass: "api_key",
+      }),
+    );
+
+    expect(budget.snapshot().effectiveRequestsPerMinute).toBe(
+      DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+    );
+  });
+
+  it("uses an advertised higher tier only with an explicit higher maximum", async () => {
     const clock = fakeClock();
     const budget = createDnaOpenLabRequestBudget({
       nowMilliseconds: clock.nowMilliseconds,
       sleep: clock.sleep,
+      maximumRequestsPerMinute: 80,
     });
     let call = 0;
     const request = vi.fn(async () => {

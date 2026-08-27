@@ -202,7 +202,7 @@ describe("DNA Open Lab client pool", () => {
     ]);
   });
 
-  it("retains each lane's own advertised rate state without multiplying the aggregate gate", async () => {
+  it("does not let advertised lane limits raise the conservative aggregate policy", async () => {
     const pool = createDnaOpenLabClientPool({
       lanes: [lane("key-1"), lane("key-2"), lane("key-3")],
       aggregateRequestsPerMinute: 30,
@@ -218,7 +218,7 @@ describe("DNA Open Lab client pool", () => {
     });
 
     const snapshot = pool.snapshot();
-    expect(snapshot.lanes[0]?.budget.effectiveRequestsPerMinute).toBe(80);
+    expect(snapshot.lanes[0]?.budget.effectiveRequestsPerMinute).toBe(30);
     expect(snapshot.aggregateBudget?.effectiveRequestsPerMinute).toBe(30);
   });
 

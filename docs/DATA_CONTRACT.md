@@ -61,11 +61,12 @@ Malformed/missing envelopes fail closed and cannot publish canonical data.
 
 The application must work correctly at the minimum supported design tier of **30 requests/minute**.
 
-Higher tiers of 80 or 150 requests/minute may shorten catch-up time but must not change correctness.
+The website uses one fixed **30 requests/minute combined cap across all configured keys**. Higher advertised limits, including the observed 150 requests/minute per key, are metadata only and must not automatically raise either a lane or aggregate allowance. Any future increase requires a separate owner decision and focused configuration change.
 
 The client/scheduler must:
 
 - capture available rate-limit response metadata;
+- cap default lane and aggregate execution at 30 requests/minute;
 - respect `Retry-After` on HTTP 429;
 - avoid blind immediate retry loops;
 - preserve durable progress before backing off; and
