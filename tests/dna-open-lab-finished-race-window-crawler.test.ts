@@ -56,7 +56,9 @@ describe("DNA Open Lab finished-race window crawler", () => {
       if (window.startTime === midpoint && window.endTime === rootEnd) {
         return [race(2, { stable: true }), race(3)];
       }
-      throw new Error(`unexpected window ${window.startTime} ${window.endTime}`);
+      throw new Error(
+        `unexpected window ${window.startTime} ${window.endTime}`,
+      );
     }) as DnaFinishedRaceWindowFetch;
 
     const result = await crawlDnaFinishedRaceWindows({
@@ -115,8 +117,8 @@ describe("DNA Open Lab finished-race window crawler", () => {
   });
 
   it("fails closed when a minimum-width window is still saturated", async () => {
-    const fetchWindow = vi.fn(
-      async () => saturated(),
+    const fetchWindow = vi.fn(async () =>
+      saturated(),
     ) as DnaFinishedRaceWindowFetch;
 
     await expect(
