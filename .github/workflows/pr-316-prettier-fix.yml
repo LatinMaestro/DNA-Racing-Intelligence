@@ -1,0 +1,34 @@
+name: Temporary PR 316 Prettier fix
+
+on:
+  push:
+    branches:
+      - agent/api-race-canonical-adapters
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.head_commit.message != 'Format PR 316 with Prettier'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/api-race-canonical-adapters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --write lib/dna-open-lab-v1-adapters.ts tests/dna-open-lab-v1-adapters.test.ts
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet -- lib/dna-open-lab-v1-adapters.ts tests/dna-open-lab-v1-adapters.test.ts; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/dna-open-lab-v1-adapters.ts tests/dna-open-lab-v1-adapters.test.ts
+          git commit -m 'Format PR 316 with Prettier'
+          git push origin HEAD:agent/api-race-canonical-adapters
