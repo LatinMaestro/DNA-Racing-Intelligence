@@ -38,12 +38,14 @@ function positiveSafeInteger(value: number, field: string): number {
  * the caller unchanged, while Retry-After/reset metadata blocks later requests
  * from starting too early.
  */
-export function createDnaOpenLabRequestBudget(input: {
-  nowMilliseconds?: () => number;
-  sleep?: (milliseconds: number) => Promise<void>;
-  initialRequestsPerMinute?: number;
-  maximumRequestsPerMinute?: number;
-} = {}): DnaOpenLabRequestBudget {
+export function createDnaOpenLabRequestBudget(
+  input: {
+    nowMilliseconds?: () => number;
+    sleep?: (milliseconds: number) => Promise<void>;
+    initialRequestsPerMinute?: number;
+    maximumRequestsPerMinute?: number;
+  } = {},
+): DnaOpenLabRequestBudget {
   const nowMilliseconds = input.nowMilliseconds ?? Date.now;
   const sleep =
     input.sleep ??
