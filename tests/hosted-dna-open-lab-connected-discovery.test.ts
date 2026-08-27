@@ -7,7 +7,10 @@ import {
   type DnaOpenLabConnectedProbeEvidence,
 } from "../lib/dna-open-lab-discovery-evidence";
 import { createDnaOpenLabClientPool } from "../lib/dna-open-lab-client-pool";
-import { createDnaOpenLabRequestBudget } from "../lib/dna-open-lab-request-budget";
+import {
+  createDnaOpenLabRequestBudget,
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+} from "../lib/dna-open-lab-request-budget";
 import {
   createDnaOpenLabV1Client,
   DnaOpenLabApiError,
@@ -138,8 +141,8 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         createDnaOpenLabV1SpliceDocumentPostClient({ apiKey }),
       );
       const globalBudget = createDnaOpenLabRequestBudget({
-        initialRequestsPerMinute: 30,
-        maximumRequestsPerMinute: 30,
+        initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+        maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
       });
       const pool = createDnaOpenLabClientPool({
         lanes: clients.map((client, index) => ({
@@ -147,7 +150,8 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
           client,
           scopes: ["vault", "races", "cores", "tokens", "splice"] as const,
         })),
-        aggregateRequestsPerMinute: 30,
+        aggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+        maximumLaneRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
         allowIndependentRateBuckets: false,
       });
       const evidence: DnaOpenLabConnectedProbeEvidence[] = [];

@@ -6,13 +6,16 @@ import {
 } from "./dna-open-lab-v1-client";
 import {
   createDnaOpenLabRequestBudget,
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
   type DnaOpenLabRequestBudgetSnapshot,
 } from "./dna-open-lab-request-budget";
 
 const MAXIMUM_POOL_LANES = 3;
-const DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE = 30;
-const DEFAULT_MAXIMUM_LANE_REQUESTS_PER_MINUTE = 150;
+const DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE =
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+const DEFAULT_MAXIMUM_LANE_REQUESTS_PER_MINUTE =
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
 const SAFE_LANE_ID_PATTERN = /^key-[1-3]$/u;
 const scopes = new Set<DnaOpenLabScope>([
   "vault",
@@ -126,8 +129,9 @@ function firstRoundRobinCandidate(input: {
 /**
  * Creates a secret-free client pool for one to three already-authenticated DNA
  * Open Lab clients. In the default conservative mode every request passes both
- * a lane-local budget and one fixed aggregate vault budget, so adding keys does
- * not silently multiply request volume. Lane identifiers are deliberately
+ * a lane-local budget and one fixed 30 requests/minute aggregate Vault budget,
+ * so adding keys or observing a higher allowance cannot silently multiply
+ * request volume. Lane identifiers are deliberately
  * restricted to key-1/key-2/key-3 so a credential cannot be surfaced through
  * snapshots or callback metadata. `allowIndependentRateBuckets` is an explicit
  * future P3 switch: when true, the aggregate gate is removed and a rate-limited

@@ -142,6 +142,13 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - The run proves representative transport and shape contracts, not API-vs-CSV value equivalence, full history depth, successful `pair_validate` semantics or optional Splice document shapes.
 - Until those remaining P3 checks are complete, no API fact family is classified as `API supersedes`, and persistent real API sync remains unauthorised.
 
+## 2026-08-27 — Website remains at the base combined API rate
+
+- The connected evidence proves three independent API-key counters advertising 150 requests/minute each, but does not prove that TierBadge level alone determines that entitlement.
+- At the owner's direction, normal website and sync execution remains capped at 30 requests/minute combined across all configured keys.
+- Higher advertised limits are retained only as redacted observability evidence and cannot automatically raise the default lane or aggregate budget.
+- Any future throughput increase requires a separate owner decision and focused reviewed configuration change; it must never alter correctness.
+
 ## 2026-08-27 — Current API observations cannot leak into historical evidence
 
 - Current power, adjusted odds, variance, stamina, equipped assets, owner/listing state, game racing statistics and current splice state are timestamped current observations.
