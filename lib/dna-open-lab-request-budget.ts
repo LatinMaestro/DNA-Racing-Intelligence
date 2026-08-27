@@ -123,7 +123,8 @@ export function createDnaOpenLabRequestBudget(input: {
       const serverWait = Math.max(0, blockedUntilMilliseconds - now);
       const oldest = requestStarts[0];
       const localWait =
-        requestStarts.length >= effectiveRequestsPerMinute && oldest !== undefined
+        requestStarts.length >= effectiveRequestsPerMinute &&
+        oldest !== undefined
           ? Math.max(0, oldest + WINDOW_MILLISECONDS - now)
           : 0;
       const waitMilliseconds = Math.max(serverWait, localWait);
