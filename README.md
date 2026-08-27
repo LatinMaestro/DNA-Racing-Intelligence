@@ -1,76 +1,89 @@
 # DNA Racing Intelligence
 
-Private, single-user decision-support and analytics platform for improving the repository owner’s DNA Racing vault.
+Private, single-owner decision-support and analytics platform for improving the repository owner's DNA Racing vault.
 
-The product will analyse periodically imported historical race times, Gold/Blue pre-race star signals, lineage, current-vault snapshots, latest arena snapshots, user-configured tournament qualification rules and recorded economic activity to support:
+## Current data-source authority
 
-- tournament and Auto-Entry selection;
-- Maiden Eligible strategy;
-- targeted mode and distance discovery;
-- whole-core and field-relative star analysis;
-- vault profit/loss and economic performance tracking;
-- breeding and arena partner selection;
-- open-race comparison; and
-- race, retain, breed, sell or burn decisions.
+DNA Racing Intelligence is now **API-first**. The target data path is:
 
-The application is not connected to live DNA Racing data. Race exports are expected to be refreshed approximately every few days, and all imported-data views must display their current-through date and freshness.
+`DNA Open Lab v1 API -> server-only client and sync planner -> private R2 evidence/cache where useful -> canonical source adapters -> owner-scoped Neon read models and aggregates -> private authenticated website`
 
-For an Open Race, current-race Gold and Blue stars are unavailable while the field is forming. They appear only after all gates are filled and the race is set to run, so they cannot be used to choose or switch the entered core.
+The DNA Open Lab base URL is `https://api.dnaracing.run/fbike/pub/v1`. API authentication is server-side Bearer only. The browser must never receive the API key or call the DNA API directly.
+
+The existing CSV importer is retained as an **internal fallback and equivalence source**, not the normal critical path. It remains available until connected API coverage and equivalence are proven and through a transition period after API commissioning.
+
+If API eligibility or the key becomes unavailable, background sync pauses only. The website must continue serving the last successfully synced dataset and its analytical read models, with clear freshness/staleness indicators. Catch-up resumes from durable checkpoints when access returns.
+
+API-backed use remains non-commercial unless the owner explicitly approves a different licensing/commercial position. API-backed UI must attribute DNA Racing.
+
+## Product scope
+
+The product supports:
+
+- Pro League roster preparation and ongoing readiness;
+- My Vault and Core Intelligence;
+- exact-distance and cross-mode historical performance analysis;
+- Gold/Blue pre-race star-signal analysis;
+- targeted Discovery;
+- breeding and lineage research;
+- official Splice Arena/pair validation and cost preview where exposed by the API;
+- read-only Open Race intelligence and current-field analysis;
+- tournament and Maiden strategy;
+- Vault Performance and asset-separated economics; and
+- lifecycle advice covering race/discover/Maiden/breed/hold/sell/burn.
+
+Recommendations are advisory only. The website must not create teams, enter races, place bets, mint, trade, sign with a wallet, perform splices or initiate any other game/wallet transaction.
+
+## Pro League authority
+
+The current owner-confirmed Pro League roster rules are:
+
+- My Vault is unlimited;
+- a legal roster contains **12 to 25 Cores**;
+- roster construction is quality-first: build the strongest nucleus and add only Cores with meaningful incremental value while remaining at or above 12;
+- maximum 10 substitutions per year;
+- whether the initial roster selection consumes the substitution allowance remains unresolved/configurable until DNA clarifies;
+- maximum 7 Metal, 8 Fire and 10 Earth;
+- maximum 2 Genesis per element;
+- maximum 5 Cores at F5 or below;
+- maximum 12 Cores at F10 or below;
+- minimum 2 Cores above F15;
+- minimum 8 females; and
+- every rostered Core must be named.
+
+The older announcement assumptions of exactly 25 Cores, minimum five of each element and minimum five F15+ Cores are retained as historical evidence but are **superseded** for current validation and recommendations.
 
 ## Repository status
 
-The private Vercel application is active with Clerk owner authentication, while automatic Git deployments remain disabled in `vercel.json`. The repository contains the guarded owner workspaces, import/recovery services, analytical domains and economic write boundaries described by the private-owner scope. Hosted Neon Production and Preview databases still contain no application tables or private data. The next delivery focus is Preview-first persistence and provider commissioning; Production schema changes and the first real private-data import remain explicit owner approval boundaries.
+The application remains private/authenticated with automatic Vercel Git deployments disabled. Production remains an explicit owner-approval boundary.
+
+The API-first transition has begun with:
+
+- the typed DNA Open Lab v1 server client contract; and
+- initial API-neutral canonical adapters with deterministic raw-evidence checksums and provenance.
+
+The delivery priority is the earliest safe **private owner-usable Pro League commissioning**, followed by complete private website commissioning. Persistent real API backfill remains blocked until the documented capacity/recovery proof is complete and the owner explicitly approves the first persistent real Preview sync.
 
 ## Source-of-truth documents
 
-- [`AGENTS.md`](AGENTS.md) — autonomous agent operating instructions
+- [`AGENTS.md`](AGENTS.md) — autonomous delivery and safety instructions
+- [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) — current API-first phased delivery plan
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current API-first architecture and storage boundaries
+- [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — API/client/canonical data contract and CSV fallback rules
+- [`docs/DATA_UPDATE_WORKFLOW.md`](docs/DATA_UPDATE_WORKFLOW.md) — API sync, backfill, outage and fallback workflow
+- [`docs/ESPORTS_PRO_LEAGUE_PREPARATION.md`](docs/ESPORTS_PRO_LEAGUE_PREPARATION.md) — current Pro League rules and preparation strategy
+- [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics and current Pro League rule authority
+- [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — current decisions and supersession record
 - [`docs/MASTER_SPECIFICATION.md`](docs/MASTER_SPECIFICATION.md) — complete product requirements
-- [`docs/GAME_RULES.md`](docs/GAME_RULES.md) — confirmed DNA Racing mechanics
-- [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Gold/Blue database, Gold gate eligibility, field-relative analytics, freshness and no-leakage requirements
-- [`docs/OPEN_RACE_WORKFLOW.md`](docs/OPEN_RACE_WORKFLOW.md) — pre-entry selection, post-lock star observation and import-reconciliation requirements
+- [`docs/STAR_SIGNAL_SPECIFICATION.md`](docs/STAR_SIGNAL_SPECIFICATION.md) — Gold/Blue signal requirements
 - [`docs/ANALYTICS_METHOD.md`](docs/ANALYTICS_METHOD.md) — statistical and recommendation methodology
-- [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) — imports, provenance and privacy controls
-- [`docs/DATA_UPDATE_WORKFLOW.md`](docs/DATA_UPDATE_WORKFLOW.md) — owner-facing periodic upload, preview, activation, retention and rollback workflow
-- [`docs/AGGREGATE_SOURCE_PROFILE.md`](docs/AGGREGATE_SOURCE_PROFILE.md) — privacy-safe source counts, coverage, overlap and confirmed import treatment
-- [`docs/VAULT_PERFORMANCE_ACCOUNTING.md`](docs/VAULT_PERFORMANCE_ACCOUNTING.md) — vault P/L, BGC, manual payouts and economic-ledger requirements
-- [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) — phased implementation plan
-- [`docs/REVIEW_GATES.md`](docs/REVIEW_GATES.md) — points requiring owner approval
+- [`docs/VAULT_PERFORMANCE_ACCOUNTING.md`](docs/VAULT_PERFORMANCE_ACCOUNTING.md) — economic/accounting requirements
+- [`docs/REVIEW_GATES.md`](docs/REVIEW_GATES.md) — owner-approval boundaries
 - [`docs/DEFINITION_OF_DONE.md`](docs/DEFINITION_OF_DONE.md) — completion and quality standard
-- [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — confirmed decisions and corrections
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Phase 0 system, data, no-leakage and cost decisions
-- [`docs/PRIVACY_AND_THREAT_MODEL.md`](docs/PRIVACY_AND_THREAT_MODEL.md) — private data flow, threats, controls and retention proposal
-- [`docs/PHASE_0_HANDOFF.md`](docs/PHASE_0_HANDOFF.md) — Phase 0 validation, limitations and Gate A status
-- [`docs/PHASE_1_IMPLEMENTATION_PLAN.md`](docs/PHASE_1_IMPLEMENTATION_PLAN.md) — focused data-foundation delivery slices and Gate B boundary
-- [`docs/PHASE_1_DATA_MODEL.md`](docs/PHASE_1_DATA_MODEL.md) — owner-scoped PostgreSQL schema, migration and verification contract
-- [`docs/PHASE_1_SCHEMA_DETECTION.md`](docs/PHASE_1_SCHEMA_DETECTION.md) — versioned header detection, encoding and fail-closed quarantine contract
-- [`docs/PHASE_1_SOURCE_ADAPTERS.md`](docs/PHASE_1_SOURCE_ADAPTERS.md) — conservative typed row adapters and private provenance boundary
-- [`docs/PHASE_1_STAR_INTEGRITY.md`](docs/PHASE_1_STAR_INTEGRITY.md) — event validation and deterministic star-profile refresh contract
-- [`docs/PHASE_1_RACE_MATERIALIZATION.md`](docs/PHASE_1_RACE_MATERIALIZATION.md) — transaction-safe normalized Race Merge persistence and rollback
-- [`docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md`](docs/PHASE_1_STAR_PROFILE_MATERIALIZATION.md) — durable event validation and count-based star profiles
-- [`docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md`](docs/PHASE_1_STAR_OBSERVATION_RECONCILIATION.md) — idempotent post-lock observation reconciliation
-- [`docs/PHASE_1_LINEAGE_GRAPH.md`](docs/PHASE_1_LINEAGE_GRAPH.md) — owner-scoped lineage graph and exact confirmed family restrictions
-- [`docs/PHASE_1_CORE_MATERIALIZATION.md`](docs/PHASE_1_CORE_MATERIALIZATION.md) — atomic Core Details and parent-edge persistence with rollback
-- [`docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md`](docs/PHASE_1_SNAPSHOT_MATERIALIZATION.md) — reversible Current Vault and Arena historical snapshots
-- [`docs/PHASE_1_IMPORT_RECOVERY_UI.md`](docs/PHASE_1_IMPORT_RECOVERY_UI.md) — private import status, freshness and recovery workspace contract
-- [`docs/PHASE_1_DATA_UPDATE_PREVIEW.md`](docs/PHASE_1_DATA_UPDATE_PREVIEW.md) — grouped owner upload preview and explicit confirmation contract
-- [`docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md`](docs/PHASE_1_IMPORT_READ_MODEL_SERVICE.md) — owner-scoped fail-closed application service for historical import status
-- [`docs/PHASE_1_PRIVATE_RAW_OBJECT_STREAMING.md`](docs/PHASE_1_PRIVATE_RAW_OBJECT_STREAMING.md) — bounded private raw-object integrity and transactional staging contract
-- [`docs/PHASE_1_IMPORT_UPLOAD_INTAKE_SERVICE.md`](docs/PHASE_1_IMPORT_UPLOAD_INTAKE_SERVICE.md) — owner-scoped guarded direct private-object upload intake contract
-- [`docs/PHASE_1_IMPORT_UPLOAD_COMPLETION_SERVICE.md`](docs/PHASE_1_IMPORT_UPLOAD_COMPLETION_SERVICE.md) — owner-scoped direct-upload verification and idempotent preview-dispatch contract
-- [`docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md`](docs/PHASE_1_IMPORT_PREVIEW_PROCESSING_SERVICE.md) — bounded manifest-verified background preview processing contract
-- [`docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md`](docs/PHASE_1_AGGREGATE_REFRESH_SERVICE.md) — source-version-bound analytical refresh and atomic publication contract
-- [`docs/PHASE_1_GATE_B_EVIDENCE.md`](docs/PHASE_1_GATE_B_EVIDENCE.md) — Gate B evidence, cost boundary and consolidated client actions
-- [`docs/PHASE_1_RACE_ECONOMICS.md`](docs/PHASE_1_RACE_ECONOMICS.md) — owner-confirmed race economics, USD valuation and R2/Neon placement
-- [`docs/PHASE_2_CORE_PERFORMANCE.md`](docs/PHASE_2_CORE_PERFORMANCE.md) — exact mode-distance performance profile contract and evidence boundary
-- [`docs/PHASE_2_CORE_READ_WORKSPACE.md`](docs/PHASE_2_CORE_READ_WORKSPACE.md) — owner-scoped compact-profile application service and historical interface
-- [`docs/PHASE_2_VAULT_REGISTRY.md`](docs/PHASE_2_VAULT_REGISTRY.md) — confirmed-ID ownership, manual edit and Maiden override projection contract
-- [`docs/PHASE_2_VAULT_READ_WORKSPACE.md`](docs/PHASE_2_VAULT_READ_WORKSPACE.md) — owner-scoped Vault application service and historical-snapshot interface
-- [`docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md`](docs/PHASE_2A_VAULT_PERFORMANCE_SUMMARY.md) — exact asset-separated Vault Performance aggregation contract
-- [`docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md`](docs/PHASE_2A_VAULT_PERFORMANCE_WORKSPACE.md) — owner-scoped historical economic summary service and private interface
-- [`docs/PHASE_3_DISCOVERY_PROBE_PLAN.md`](docs/PHASE_3_DISCOVERY_PROBE_PLAN.md) — exact-distance, mode-separated and non-actionable Discovery probe plan
-- [`docs/PHASE_3_DISCOVERY_WORKSPACE.md`](docs/PHASE_3_DISCOVERY_WORKSPACE.md) — owner-scoped exact-distance probe review service and private interface
-- [`CODEX_START_PROMPT.md`](CODEX_START_PROMPT.md) — initial autonomous Codex handover prompt
+- [`docs/PRIVACY_AND_THREAT_MODEL.md`](docs/PRIVACY_AND_THREAT_MODEL.md) — privacy and threat controls
 
-## Privacy
+Specialised historical phase documents remain useful implementation evidence. Where a specialised document conflicts with the eight current authority documents above, the current API-first authority takes precedence.
 
-Real race, vault, core, arena and economic exports are confidential and must not be committed to Git. Development and tests must use synthetic fixtures. The deployed product is private, authenticated and non-indexed. The application must never request crypto private keys or seed phrases and must not initiate wallet or game transactions.
+## Privacy and secrecy
+
+Real API payloads, raw exports, database dumps, owner-specific derived records and service credentials must not be committed to Git. Tests use deterministic synthetic fixtures. Private R2/Neon data remains owner-scoped and access-controlled. API keys, crypto private keys, seed phrases and signing credentials must never be exposed to the browser, Git, CI logs, Issue comments or chat.
