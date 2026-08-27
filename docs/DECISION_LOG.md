@@ -274,3 +274,12 @@ After the private Pro League milestone, continue in this order:
 - Connected API families with proven shapes may proceed into persistence without representative CSV value equivalence.
 - The observed API still lacks direct elapsed time, finishing position, explicit distance and historical price authority. API-only features must disclose those limitations and must not fabricate values or silently substitute CSV.
 - A successful valid `pair_validate` remains required before promoting official pair-viability advice in P9, but it does not block P4 API persistence or P6 Pro League domain work.
+
+## 2026-08-27 — First P4 API sync publication boundary
+
+- Persist API current-state work as immutable owner-scoped generations with separate receipts for Vault, Cores, active races, race fills, Tokens and Splice Arena.
+- Publish a generation only when all six required families are complete; a partial candidate never replaces last-good serving data.
+- Preserve the accepted/serving generation across rate-limit, API availability and tier-eligibility pauses.
+- Use forced RLS, function-only least-privilege runtime access and serializable stage/publish transactions.
+- Reject observation/time regression and make published-generation replay idempotent.
+- This migration/repository slice is synthetic only. It does not authorise or perform persistent real API backfill; the P5 owner gate remains unchanged.
