@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
-import type { DnaOpenLabRateLimit, DnaOpenLabScope } from "./dna-open-lab-v1-client";
+import type {
+  DnaOpenLabRateLimit,
+  DnaOpenLabScope,
+} from "./dna-open-lab-v1-client";
 
 const DEFAULT_MAXIMUM_DEPTH = 10;
 const DEFAULT_MAXIMUM_PATHS = 1_024;
@@ -15,12 +18,7 @@ const SENSITIVE_DYNAMIC_KEY_PATTERNS = [
 ] as const;
 
 export type DnaOpenLabJsonKind =
-  | "null"
-  | "boolean"
-  | "number"
-  | "string"
-  | "array"
-  | "object";
+  "null" | "boolean" | "number" | "string" | "array" | "object";
 
 export type DnaOpenLabShapePath = Readonly<{
   path: string;
