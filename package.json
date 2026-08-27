@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/dna-open-lab-discovery-evidence.ts tests/dna-open-lab-discovery-evidence.test.ts tests/dna-open-lab-v1-splice-doc-post-client.test.ts tests/hosted-dna-open-lab-connected-discovery.test.ts && git diff -- lib/dna-open-lab-discovery-evidence.ts tests/dna-open-lab-discovery-evidence.test.ts tests/dna-open-lab-v1-splice-doc-post-client.test.ts tests/hosted-dna-open-lab-connected-discovery.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
