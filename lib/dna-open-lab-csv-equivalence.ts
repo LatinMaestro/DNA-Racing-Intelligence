@@ -4,15 +4,10 @@ const FIELD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 export type DnaCsvEquivalenceEntityType = "race" | "core" | "arena";
 
 export type DnaCsvEquivalenceComparison =
-  | "canonical_json"
-  | "unordered_scalar_multiset";
+  "canonical_json" | "unordered_scalar_multiset";
 
 export type DnaCsvEquivalenceStatus =
-  | "match"
-  | "mismatch"
-  | "api_only"
-  | "csv_only"
-  | "both_missing";
+  "match" | "mismatch" | "api_only" | "csv_only" | "both_missing";
 
 export type DnaCsvEquivalenceImplication =
   | "equivalent_fact"
@@ -281,16 +276,21 @@ export function compareDnaOpenLabToCsv(input: {
   const required = results.filter((field) => field.requiredForApiReplacement);
   const summary: DnaCsvEquivalenceSummary = Object.freeze({
     comparedFieldCount: results.length,
-    matchedFieldCount: results.filter((field) => field.status === "match").length,
+    matchedFieldCount: results.filter((field) => field.status === "match")
+      .length,
     mismatchedFieldCount: results.filter((field) => field.status === "mismatch")
       .length,
-    apiOnlyFieldCount: results.filter((field) => field.status === "api_only").length,
-    csvOnlyFieldCount: results.filter((field) => field.status === "csv_only").length,
-    unverifiedFieldCount: results.filter((field) => field.status === "both_missing")
+    apiOnlyFieldCount: results.filter((field) => field.status === "api_only")
       .length,
+    csvOnlyFieldCount: results.filter((field) => field.status === "csv_only")
+      .length,
+    unverifiedFieldCount: results.filter(
+      (field) => field.status === "both_missing",
+    ).length,
     requiredFieldCount: required.length,
-    requiredMatchedFieldCount: required.filter((field) => field.status === "match")
-      .length,
+    requiredMatchedFieldCount: required.filter(
+      (field) => field.status === "match",
+    ).length,
   });
 
   return Object.freeze({
@@ -299,6 +299,7 @@ export function compareDnaOpenLabToCsv(input: {
     fields: results,
     summary,
     apiReplacementEvidenceReady:
-      required.length > 0 && required.every((field) => field.status === "match"),
+      required.length > 0 &&
+      required.every((field) => field.status === "match"),
   });
 }
