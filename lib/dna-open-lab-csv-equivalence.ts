@@ -1,4 +1,5 @@
 const MAXIMUM_EQUIVALENCE_FIELDS = 128;
+const MAXIMUM_EQUIVALENCE_REPORTS = 1_000;
 const FIELD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 
 export type DnaCsvEquivalenceEntityType = "race" | "core" | "arena";
@@ -59,6 +60,36 @@ export type DnaCsvEquivalenceReport = Readonly<{
   fields: readonly DnaCsvEquivalenceFieldResult[];
   summary: DnaCsvEquivalenceSummary;
   apiReplacementEvidenceReady: boolean;
+}>;
+
+export type DnaCsvEquivalenceRedactedFieldSummary = Readonly<{
+  canonicalField: string;
+  comparison: DnaCsvEquivalenceComparison;
+  requiredForApiReplacement: boolean;
+  matchedEntityCount: number;
+  mismatchedEntityCount: number;
+  apiOnlyEntityCount: number;
+  csvOnlyEntityCount: number;
+  unverifiedEntityCount: number;
+}>;
+
+export type DnaCsvEquivalenceRedactedEntitySummary = Readonly<{
+  entityType: DnaCsvEquivalenceEntityType;
+  entityCount: number;
+  apiReplacementEvidenceReadyEntityCount: number;
+  fields: readonly DnaCsvEquivalenceRedactedFieldSummary[];
+}>;
+
+/**
+ * Aggregate-only evidence safe for a redacted connected-discovery log. It
+ * deliberately contains no entity key, API/CSV path, scalar value, filename,
+ * checksum or source payload.
+ */
+export type DnaCsvEquivalenceRedactedSummary = Readonly<{
+  version: 1;
+  entityCount: number;
+  allEntitiesApiReplacementEvidenceReady: boolean;
+  entities: readonly DnaCsvEquivalenceRedactedEntitySummary[];
 }>;
 
 export class DnaCsvEquivalenceError extends Error {
@@ -301,5 +332,161 @@ export function compareDnaOpenLabToCsv(input: {
     apiReplacementEvidenceReady:
       required.length > 0 &&
       required.every((field) => field.status === "match"),
+  });
+}
+
+function entityTypeOrder(
+  left: DnaCsvEquivalenceEntityType,
+  right: DnaCsvEquivalenceEntityType,
+): number {
+  const order: readonly DnaCsvEquivalenceEntityType[] = [
+    "race",
+    "core",
+    "arena",
+  ];
+  return order.indexOf(left) - order.indexOf(right);
+}
+
+/**
+ * Collapses private per-entity comparison reports into count-only evidence.
+ * The caller may retain the detailed reports inside an approved ephemeral or
+ * private boundary; only this aggregate is suitable for CI logs or repository
+ * documentation. Duplicate entity identities are rejected so one observation
+ * cannot inflate the evidence counts silently.
+ */
+export function summarizeDnaCsvEquivalenceReports(
+  reports: readonly DnaCsvEquivalenceReport[],
+): DnaCsvEquivalenceRedactedSummary {
+  if (reports.length < 1 || reports.length > MAXIMUM_EQUIVALENCE_REPORTS) {
+    fail(`report count must be between 1 and ${MAXIMUM_EQUIVALENCE_REPORTS}`);
+  }
+
+  const seenEntities = new Set<string>();
+  const grouped = new Map<
+    DnaCsvEquivalenceEntityType,
+    DnaCsvEquivalenceReport[]
+  >();
+  for (const report of reports) {
+    if (
+      report.entityType !== "race" &&
+      report.entityType !== "core" &&
+      report.entityType !== "arena"
+    ) {
+      fail("report entity type is invalid");
+    }
+    const entityKey = safeText(report.entityKey, "report.entityKey");
+    const deduplicationKey = `${report.entityType}\u0000${entityKey}`;
+    if (seenEntities.has(deduplicationKey)) {
+      fail("duplicate report entity");
+    }
+    seenEntities.add(deduplicationKey);
+    const entityReports = grouped.get(report.entityType) ?? [];
+    entityReports.push(report);
+    grouped.set(report.entityType, entityReports);
+  }
+
+  const entities = Object.freeze(
+    [...grouped.entries()]
+      .sort(([left], [right]) => entityTypeOrder(left, right))
+      .map(([entityType, entityReports]) => {
+        const fieldContracts = new Map<
+          string,
+          Readonly<{
+            comparison: DnaCsvEquivalenceComparison;
+            requiredForApiReplacement: boolean;
+          }>
+        >();
+        const statusCounts = new Map<
+          string,
+          Record<DnaCsvEquivalenceStatus, number>
+        >();
+        let expectedReportFields: ReadonlySet<string> | null = null;
+
+        for (const report of entityReports) {
+          const reportFields = new Set<string>();
+          for (const field of report.fields) {
+            const canonicalField = safeFieldName(field.canonicalField);
+            if (reportFields.has(canonicalField)) {
+              fail(`duplicate report field ${canonicalField}`);
+            }
+            reportFields.add(canonicalField);
+            const contract = fieldContracts.get(canonicalField);
+            if (
+              contract !== undefined &&
+              (contract.comparison !== field.comparison ||
+                contract.requiredForApiReplacement !==
+                  field.requiredForApiReplacement)
+            ) {
+              fail(`inconsistent report field contract ${canonicalField}`);
+            }
+            fieldContracts.set(
+              canonicalField,
+              Object.freeze({
+                comparison: field.comparison,
+                requiredForApiReplacement:
+                  field.requiredForApiReplacement === true,
+              }),
+            );
+            const counts = statusCounts.get(canonicalField) ?? {
+              match: 0,
+              mismatch: 0,
+              api_only: 0,
+              csv_only: 0,
+              both_missing: 0,
+            };
+            if (!Object.hasOwn(counts, field.status)) {
+              fail(`unsupported report field status ${field.status}`);
+            }
+            counts[field.status] += 1;
+            statusCounts.set(canonicalField, counts);
+          }
+          if (expectedReportFields === null) {
+            expectedReportFields = reportFields;
+          } else if (
+            reportFields.size !== expectedReportFields.size ||
+            [...reportFields].some(
+              (canonicalField) => !expectedReportFields!.has(canonicalField),
+            )
+          ) {
+            fail(`inconsistent report field set for ${entityType}`);
+          }
+        }
+
+        const fields = Object.freeze(
+          [...fieldContracts.entries()]
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([canonicalField, contract]) => {
+              const counts = statusCounts.get(canonicalField)!;
+              return Object.freeze({
+                canonicalField,
+                comparison: contract.comparison,
+                requiredForApiReplacement: contract.requiredForApiReplacement,
+                matchedEntityCount: counts.match,
+                mismatchedEntityCount: counts.mismatch,
+                apiOnlyEntityCount: counts.api_only,
+                csvOnlyEntityCount: counts.csv_only,
+                unverifiedEntityCount: counts.both_missing,
+              });
+            }),
+        );
+
+        return Object.freeze({
+          entityType,
+          entityCount: entityReports.length,
+          apiReplacementEvidenceReadyEntityCount: entityReports.filter(
+            (report) => report.apiReplacementEvidenceReady,
+          ).length,
+          fields,
+        });
+      }),
+  );
+
+  return Object.freeze({
+    version: 1 as const,
+    entityCount: reports.length,
+    allEntitiesApiReplacementEvidenceReady: reports.every(
+      (report) => report.apiReplacementEvidenceReady,
+    ),
+    entities,
   });
 }

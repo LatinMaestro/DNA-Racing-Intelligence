@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareDnaOpenLabToCsv,
   DnaCsvEquivalenceError,
+  summarizeDnaCsvEquivalenceReports,
   type DnaCsvEquivalenceEntity,
   type DnaCsvEquivalenceFieldSpec,
 } from "../lib/dna-open-lab-csv-equivalence";
@@ -277,5 +278,163 @@ describe("DNA Open Lab / CSV equivalence harness", () => {
         ]),
       }),
     ).toThrow("non-finite number");
+  });
+
+  it("produces count-only multi-entity evidence without identifiers, paths, or values", () => {
+    const privateName = "Private Synthetic Name";
+    const privateRaceKey = "race:private-1001";
+    const race = compareDnaOpenLabToCsv({
+      api: entity("race", privateRaceKey, {
+        rid: 1001,
+        name: privateName,
+        prize: 1.25,
+      }),
+      csv: entity("race", privateRaceKey, {
+        event_id: 1001,
+        name: privateName,
+        prize: 1.5,
+      }),
+      fields: fields([
+        {
+          canonicalField: "race.identity",
+          apiPath: ["rid"],
+          csvPath: ["event_id"],
+          requiredForApiReplacement: true,
+        },
+        {
+          canonicalField: "race.name",
+          apiPath: ["name"],
+          csvPath: ["name"],
+        },
+        {
+          canonicalField: "race.prize",
+          apiPath: ["prize"],
+          csvPath: ["prize"],
+          requiredForApiReplacement: true,
+        },
+      ]),
+    });
+    const core = compareDnaOpenLabToCsv({
+      api: entity("core", "core:private-42", { hid: 42 }),
+      csv: entity("core", "core:private-42", { hid: 42 }),
+      fields: fields([
+        {
+          canonicalField: "core.identity",
+          apiPath: ["hid"],
+          csvPath: ["hid"],
+          requiredForApiReplacement: true,
+        },
+      ]),
+    });
+
+    const summary = summarizeDnaCsvEquivalenceReports([race, core]);
+
+    expect(summary).toEqual({
+      version: 1,
+      entityCount: 2,
+      allEntitiesApiReplacementEvidenceReady: false,
+      entities: [
+        {
+          entityType: "race",
+          entityCount: 1,
+          apiReplacementEvidenceReadyEntityCount: 0,
+          fields: [
+            {
+              canonicalField: "race.identity",
+              comparison: "canonical_json",
+              requiredForApiReplacement: true,
+              matchedEntityCount: 1,
+              mismatchedEntityCount: 0,
+              apiOnlyEntityCount: 0,
+              csvOnlyEntityCount: 0,
+              unverifiedEntityCount: 0,
+            },
+            {
+              canonicalField: "race.name",
+              comparison: "canonical_json",
+              requiredForApiReplacement: false,
+              matchedEntityCount: 1,
+              mismatchedEntityCount: 0,
+              apiOnlyEntityCount: 0,
+              csvOnlyEntityCount: 0,
+              unverifiedEntityCount: 0,
+            },
+            {
+              canonicalField: "race.prize",
+              comparison: "canonical_json",
+              requiredForApiReplacement: true,
+              matchedEntityCount: 0,
+              mismatchedEntityCount: 1,
+              apiOnlyEntityCount: 0,
+              csvOnlyEntityCount: 0,
+              unverifiedEntityCount: 0,
+            },
+          ],
+        },
+        {
+          entityType: "core",
+          entityCount: 1,
+          apiReplacementEvidenceReadyEntityCount: 1,
+          fields: [
+            {
+              canonicalField: "core.identity",
+              comparison: "canonical_json",
+              requiredForApiReplacement: true,
+              matchedEntityCount: 1,
+              mismatchedEntityCount: 0,
+              apiOnlyEntityCount: 0,
+              csvOnlyEntityCount: 0,
+              unverifiedEntityCount: 0,
+            },
+          ],
+        },
+      ],
+    });
+
+    const serialized = JSON.stringify(summary);
+    expect(serialized).not.toContain(privateRaceKey);
+    expect(serialized).not.toContain("private-42");
+    expect(serialized).not.toContain(privateName);
+    expect(serialized).not.toContain("event_id");
+    expect(serialized).not.toContain("1.25");
+    expect(serialized).not.toContain("1.5");
+  });
+
+  it("rejects duplicate entities and inconsistent field contracts before aggregation", () => {
+    const report = compareDnaOpenLabToCsv({
+      api: entity("race", "race:duplicate", { rid: 1 }),
+      csv: entity("race", "race:duplicate", { rid: 1 }),
+      fields: fields([
+        {
+          canonicalField: "race.identity",
+          apiPath: ["rid"],
+          csvPath: ["rid"],
+          requiredForApiReplacement: true,
+        },
+      ]),
+    });
+
+    expect(() => summarizeDnaCsvEquivalenceReports([report, report])).toThrow(
+      "duplicate report entity",
+    );
+    expect(() => summarizeDnaCsvEquivalenceReports([])).toThrow(
+      "report count must be between 1 and 1000",
+    );
+
+    const inconsistent = compareDnaOpenLabToCsv({
+      api: entity("race", "race:other", { rid: 2 }),
+      csv: entity("race", "race:other", { rid: 2 }),
+      fields: fields([
+        {
+          canonicalField: "race.identity",
+          apiPath: ["rid"],
+          csvPath: ["rid"],
+          requiredForApiReplacement: false,
+        },
+      ]),
+    });
+    expect(() =>
+      summarizeDnaCsvEquivalenceReports([report, inconsistent]),
+    ).toThrow("inconsistent report field contract race.identity");
   });
 });

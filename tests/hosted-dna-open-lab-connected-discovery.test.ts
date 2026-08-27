@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildDnaOpenLabPairCandidates,
   hasProvenDnaOpenLabIndependentRateBuckets,
+  planDnaOpenLabHistoryWindows,
   safeDnaOpenLabRateLimitEvidence,
+  summarizeDnaOpenLabHistoryWindow,
   summarizeDnaOpenLabShape,
   type DnaOpenLabConnectedProbeEvidence,
+  type DnaOpenLabHistoryWindowEvidence,
+  type DnaOpenLabPairCandidate,
 } from "../lib/dna-open-lab-discovery-evidence";
 import { createDnaOpenLabClientPool } from "../lib/dna-open-lab-client-pool";
 import {
@@ -27,6 +32,17 @@ import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-teleme
 const API_KEY_PATTERN = /^dna_[A-Za-z0-9_-]{43}$/u;
 const SAFE_LANE_IDS = ["key-1", "key-2", "key-3"] as const;
 type SafeLaneId = (typeof SAFE_LANE_IDS)[number];
+
+type SafeHistoryWindowEvidence =
+  | Readonly<
+      DnaOpenLabHistoryWindowEvidence & {
+        outcome: "success";
+      }
+    >
+  | Readonly<{
+      windowId: DnaOpenLabHistoryWindowEvidence["windowId"];
+      outcome: "api_error";
+    }>;
 
 const connected = process.env.DNA_OPEN_LAB_CONNECTED_DISCOVERY === "1";
 const describeConnected = connected ? describe : describe.skip;
@@ -100,6 +116,14 @@ function notProbed(
     rateLimit: null,
     shape: null,
   });
+}
+
+function uniquePositiveCoreIds(values: readonly number[]): readonly number[] {
+  return Object.freeze(
+    [...new Set(values)].filter(
+      (value) => Number.isSafeInteger(value) && value > 0,
+    ),
+  );
 }
 
 describeConnected("hosted DNA Open Lab connected discovery", () => {
@@ -451,14 +475,6 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         laneId: "key-2",
         request: () => telemetryClients[1]!.coreTelemetryBulk(sampleCoreIds),
       });
-      await directProbe({
-        endpoint: "cores.telemetry_benchmark",
-        scope: "cores",
-        laneId: "key-3",
-        request: () =>
-          telemetryClients[2]!.coreTelemetryBenchmark(sampleCoreId),
-      });
-
       const activeRaces = await poolProbe({
         endpoint: "races.active",
         scope: "races",
@@ -471,6 +487,46 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         request: (client) => client.racesFinished({ limit: 20 }),
         required: true,
       });
+      const historyWindows: SafeHistoryWindowEvidence[] = [];
+      for (const plan of planDnaOpenLabHistoryWindows(new Date())) {
+        const endpoint = `races.finished.history.${plan.windowId}`;
+        const windowRaces = await poolProbe({
+          endpoint,
+          scope: "races",
+          request: (client) =>
+            client.racesFinished({
+              startTime: plan.startTime,
+              endTime: plan.endTime,
+              limit: plan.limit,
+            }),
+        });
+        const observation = evidence[evidence.length - 1];
+        if (observation?.endpoint !== endpoint) {
+          throw new Error(
+            "DNA Open Lab history discovery evidence ordering drifted",
+          );
+        }
+        if (observation.outcome === "api_error") {
+          historyWindows.push(
+            Object.freeze({ windowId: plan.windowId, outcome: "api_error" }),
+          );
+          continue;
+        }
+        if (observation.outcome !== "success" || windowRaces === null) {
+          throw new Error(
+            "DNA Open Lab history discovery returned an invalid success contract",
+          );
+        }
+        historyWindows.push(
+          Object.freeze({
+            outcome: "success",
+            ...summarizeDnaOpenLabHistoryWindow({
+              plan,
+              races: windowRaces,
+            }),
+          }),
+        );
+      }
 
       const candidateRaceIds: DnaRaceIdentifier[] = [];
       const appendRaceIds = (races: readonly DnaRaceDocument[] | null) => {
@@ -520,42 +576,119 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         required: true,
       });
 
+      const benchmarkCandidateIds = uniquePositiveCoreIds([
+        ...sampleCoreIds,
+        ...(arena?.cores ?? []).map((core) => core.hid),
+      ]).slice(0, 10);
+      let telemetryBenchmarkSucceeded = false;
+      let telemetryBenchmarkSemanticRejectionCount = 0;
+      let telemetryBenchmarkAttemptCount = 0;
+      for (const [index, candidateCoreId] of benchmarkCandidateIds.entries()) {
+        const laneIndex = index % telemetryClients.length;
+        const endpoint = `cores.telemetry_benchmark.attempt_${index + 1}`;
+        telemetryBenchmarkAttemptCount += 1;
+        await directProbe({
+          endpoint,
+          scope: "cores",
+          laneId: SAFE_LANE_IDS[laneIndex]!,
+          request: () =>
+            telemetryClients[laneIndex]!.coreTelemetryBenchmark(
+              candidateCoreId,
+            ),
+        });
+        const observation = evidence[evidence.length - 1];
+        if (observation?.endpoint !== endpoint) {
+          throw new Error(
+            "DNA Open Lab telemetry benchmark evidence ordering drifted",
+          );
+        }
+        if (observation.outcome === "success") {
+          telemetryBenchmarkSucceeded = true;
+          break;
+        }
+        if (
+          observation.outcome === "api_error" &&
+          observation.errorKind === "api_error" &&
+          observation.httpStatus === 200
+        ) {
+          telemetryBenchmarkSemanticRejectionCount += 1;
+        }
+      }
+      const telemetryBenchmark = Object.freeze({
+        attemptCount: telemetryBenchmarkAttemptCount,
+        success: telemetryBenchmarkSucceeded,
+        classification: telemetryBenchmarkSucceeded
+          ? ("compatible_sample_found" as const)
+          : telemetryBenchmarkAttemptCount > 0 &&
+              telemetryBenchmarkSemanticRejectionCount ===
+                telemetryBenchmarkAttemptCount
+            ? ("bounded_candidates_semantically_rejected" as const)
+            : ("inconclusive" as const),
+      });
+
       const ownedCores: readonly DnaVaultCore[] = vaultCoresFull ?? [];
       const arenaCores = arena?.cores ?? [];
-      const pairCandidates = [...ownedCores, ...arenaCores];
-      const father = pairCandidates.find(
-        (core) => core.gender.toLowerCase() === "male",
-      );
-      const mother = pairCandidates.find(
-        (core) => core.gender.toLowerCase() === "female",
-      );
-      if (
-        father !== undefined &&
-        mother !== undefined &&
-        father.hid !== mother.hid
-      ) {
-        await poolProbe({
-          endpoint: "splice.pair_info",
+      const pairCandidates = buildDnaOpenLabPairCandidates({
+        owned: ownedCores,
+        arena: arenaCores,
+        maximum: 12,
+      });
+      let validatedPair: DnaOpenLabPairCandidate | null = null;
+      let pairValidationSemanticRejectionCount = 0;
+      let pairValidationAttemptCount = 0;
+      for (const [index, candidate] of pairCandidates.entries()) {
+        const endpoint = `splice.pair_validate.attempt_${index + 1}`;
+        pairValidationAttemptCount += 1;
+        const validation = await poolProbe({
+          endpoint,
           scope: "splice",
-          request: (client) =>
-            client.splicePairInfo({
-              fatherCoreId: father.hid,
-              motherCoreId: mother.hid,
-            }),
+          request: (client) => client.splicePairValidate(candidate),
         });
-        await poolProbe({
-          endpoint: "splice.pair_validate",
-          scope: "splice",
-          request: (client) =>
-            client.splicePairValidate({
-              fatherCoreId: father.hid,
-              motherCoreId: mother.hid,
-            }),
-        });
-      } else {
-        evidence.push(notProbed("splice.pair_info", "splice", "key-2"));
-        evidence.push(notProbed("splice.pair_validate", "splice", "key-3"));
+        const observation = evidence[evidence.length - 1];
+        if (observation?.endpoint !== endpoint) {
+          throw new Error(
+            "DNA Open Lab pair-validation evidence ordering drifted",
+          );
+        }
+        if (observation.outcome === "api_error") {
+          if (
+            observation.errorKind === "api_error" &&
+            observation.httpStatus === 200
+          ) {
+            pairValidationSemanticRejectionCount += 1;
+          }
+          continue;
+        }
+        if (observation.outcome === "success" && validation?.valid === true) {
+          validatedPair = candidate;
+          break;
+        }
       }
+
+      let validatedPairInfoSucceeded = false;
+      if (validatedPair !== null) {
+        await poolProbe({
+          endpoint: "splice.pair_info.validated_pair",
+          scope: "splice",
+          request: (client) => client.splicePairInfo(validatedPair!),
+        });
+        validatedPairInfoSucceeded =
+          evidence[evidence.length - 1]?.outcome === "success";
+      }
+      const pairValidation = Object.freeze({
+        attemptCount: pairValidationAttemptCount,
+        validPairFound: validatedPair !== null,
+        validatedPairInfoSucceeded,
+        classification:
+          validatedPair !== null
+            ? ("valid_pair_found" as const)
+            : pairValidationAttemptCount === 0
+              ? ("no_candidate_pair" as const)
+              : pairValidationSemanticRejectionCount ===
+                  pairValidationAttemptCount
+                ? ("bounded_candidates_semantically_rejected" as const)
+                : ("bounded_candidates_not_valid" as const),
+      });
 
       if (spliceRequestId !== null) {
         await poolProbe({
@@ -580,11 +713,16 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
       expect(independentRateBucketsProven).toBe(true);
 
       const safeOutput = Object.freeze({
-        version: 1,
+        version: 2,
         independentRateBucketsEnabled: false,
         independentRateBucketsProven,
         globalBudget: globalBudget.snapshot(),
         pool: pool.snapshot(),
+        followup: Object.freeze({
+          historyWindows: Object.freeze(historyWindows),
+          telemetryBenchmark,
+          pairValidation,
+        }),
         probes: Object.freeze(evidence),
       });
       const serialized = JSON.stringify(safeOutput);
@@ -595,6 +733,15 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
         // Short numeric ids can occur innocently inside bounded counters or a
         // SHA-256 fingerprint. Assert against complete retained string values
         // instead of treating such substrings as leaked Core identifiers.
+        expect(redactedStringLeaves).not.toContain(String(hid));
+      }
+      for (const hid of uniquePositiveCoreIds([
+        ...benchmarkCandidateIds,
+        ...pairCandidates.flatMap((candidate) => [
+          candidate.fatherCoreId,
+          candidate.motherCoreId,
+        ]),
+      ])) {
         expect(redactedStringLeaves).not.toContain(String(hid));
       }
       expect(evidence.length).toBeGreaterThan(20);

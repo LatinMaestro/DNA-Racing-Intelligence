@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type {
   DnaOpenLabRateLimit,
   DnaOpenLabScope,
+  DnaRaceDocument,
 } from "./dna-open-lab-v1-client";
 
 const DEFAULT_MAXIMUM_DEPTH = 10;
@@ -51,7 +52,70 @@ export type DnaOpenLabConnectedProbeEvidence = Readonly<{
   shape: DnaOpenLabShapeSummary | null;
 }>;
 
+export type DnaOpenLabHistoryWindowId =
+  | "recent_0_7d"
+  | "historical_30_90d"
+  | "historical_90_365d"
+  | "historical_365_730d"
+  | "historical_730_1095d";
+
+export type DnaOpenLabHistoryWindowPlan = Readonly<{
+  windowId: DnaOpenLabHistoryWindowId;
+  startTime: string;
+  endTime: string;
+  limit: number;
+}>;
+
+export type DnaOpenLabHistoryWindowEvidence = Readonly<{
+  windowId: DnaOpenLabHistoryWindowId;
+  resultCountClass: "zero" | "below_request_limit" | "at_request_limit";
+  timestampVerification:
+    | "not_applicable"
+    | "verified_within_window"
+    | "unverified_missing_timestamp"
+    | "invalid_timestamp"
+    | "outside_requested_window";
+}>;
+
+export type DnaOpenLabPairCandidate = Readonly<{
+  fatherCoreId: number;
+  motherCoreId: number;
+}>;
+
 const CONNECTED_DISCOVERY_LANES = ["key-1", "key-2", "key-3"] as const;
+const DAY_MILLISECONDS = 24 * 60 * 60 * 1_000;
+const HISTORY_WINDOW_SPECS = Object.freeze([
+  Object.freeze({
+    windowId: "recent_0_7d" as const,
+    olderAgeDays: 7,
+    newerAgeDays: 0,
+    limit: 200,
+  }),
+  Object.freeze({
+    windowId: "historical_30_90d" as const,
+    olderAgeDays: 90,
+    newerAgeDays: 30,
+    limit: 1,
+  }),
+  Object.freeze({
+    windowId: "historical_90_365d" as const,
+    olderAgeDays: 365,
+    newerAgeDays: 90,
+    limit: 1,
+  }),
+  Object.freeze({
+    windowId: "historical_365_730d" as const,
+    olderAgeDays: 730,
+    newerAgeDays: 365,
+    limit: 1,
+  }),
+  Object.freeze({
+    windowId: "historical_730_1095d" as const,
+    olderAgeDays: 1_095,
+    newerAgeDays: 730,
+    limit: 1,
+  }),
+]);
 
 function positiveSafeInteger(
   value: number,
@@ -104,6 +168,163 @@ function stableKindOrder(left: DnaOpenLabJsonKind, right: DnaOpenLabJsonKind) {
     "object",
   ];
   return order.indexOf(left) - order.indexOf(right);
+}
+
+export function planDnaOpenLabHistoryWindows(
+  now: Date,
+): readonly DnaOpenLabHistoryWindowPlan[] {
+  const nowMilliseconds = now.getTime();
+  if (!Number.isFinite(nowMilliseconds)) {
+    throw new Error("DNA Open Lab discovery evidence: now is invalid");
+  }
+  return Object.freeze(
+    HISTORY_WINDOW_SPECS.map((window) =>
+      Object.freeze({
+        windowId: window.windowId,
+        startTime: new Date(
+          nowMilliseconds - window.olderAgeDays * DAY_MILLISECONDS,
+        ).toISOString(),
+        endTime: new Date(
+          nowMilliseconds - window.newerAgeDays * DAY_MILLISECONDS,
+        ).toISOString(),
+        limit: window.limit,
+      }),
+    ),
+  );
+}
+
+export function buildDnaOpenLabPairCandidates(input: {
+  owned: readonly Readonly<{ hid: number; gender: string }>[];
+  arena: readonly Readonly<{ hid: number; gender: string }>[];
+  maximum: number;
+}): readonly DnaOpenLabPairCandidate[] {
+  const maximum = positiveSafeInteger(input.maximum, "maximum", 20);
+  const valid = (core: Readonly<{ hid: number; gender: string }>) => {
+    if (!Number.isSafeInteger(core.hid) || core.hid < 1) {
+      throw new Error(
+        "DNA Open Lab discovery evidence: pair candidate identity is invalid",
+      );
+    }
+    return core.gender.trim().toLowerCase();
+  };
+  const ownedMales = input.owned.filter((core) => valid(core) === "male");
+  const ownedFemales = input.owned.filter((core) => valid(core) === "female");
+  const arenaMales = input.arena.filter((core) => valid(core) === "male");
+  const arenaFemales = input.arena.filter((core) => valid(core) === "female");
+  const candidates: DnaOpenLabPairCandidate[] = [];
+  const seen = new Set<string>();
+  const append = (
+    fathers: readonly Readonly<{ hid: number }>[],
+    mothers: readonly Readonly<{ hid: number }>[],
+  ) => {
+    const pairCount = fathers.length * mothers.length;
+    for (let index = 0; index < pairCount; index += 1) {
+      if (candidates.length >= maximum) return;
+      const father = fathers[index % fathers.length];
+      const mother = mothers[Math.floor(index / fathers.length)];
+      if (father === undefined || mother === undefined) return;
+      if (father.hid === mother.hid) continue;
+      const key = `${father.hid}:${mother.hid}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push(
+        Object.freeze({
+          fatherCoreId: father.hid,
+          motherCoreId: mother.hid,
+        }),
+      );
+    }
+  };
+
+  // Prefer one owned Core plus one currently listed Arena Core, then bounded
+  // owned-owned and Arena-Arena fallbacks. Identities remain in memory only.
+  append(ownedMales, arenaFemales);
+  append(arenaMales, ownedFemales);
+  append(ownedMales, ownedFemales);
+  append(arenaMales, arenaFemales);
+  return Object.freeze(candidates);
+}
+
+/**
+ * Verifies a finished-race window without retaining race identities or scalar
+ * timestamps. Only the fixed age-band label, a bounded count class and a
+ * timestamp-verification classification are safe to serialize.
+ */
+export function summarizeDnaOpenLabHistoryWindow(input: {
+  plan: DnaOpenLabHistoryWindowPlan;
+  races: readonly DnaRaceDocument[];
+}): DnaOpenLabHistoryWindowEvidence {
+  if (input.races.length > input.plan.limit) {
+    throw new Error(
+      "DNA Open Lab discovery evidence: history result exceeds request limit",
+    );
+  }
+  if (input.races.length === 0) {
+    return Object.freeze({
+      windowId: input.plan.windowId,
+      resultCountClass: "zero",
+      timestampVerification: "not_applicable",
+    });
+  }
+
+  const startMilliseconds = Date.parse(input.plan.startTime);
+  const endMilliseconds = Date.parse(input.plan.endTime);
+  if (
+    !Number.isFinite(startMilliseconds) ||
+    !Number.isFinite(endMilliseconds) ||
+    startMilliseconds > endMilliseconds
+  ) {
+    throw new Error(
+      "DNA Open Lab discovery evidence: history plan timestamps are invalid",
+    );
+  }
+
+  let missingTimestamp = false;
+  for (const race of input.races) {
+    // The documented request fields are `st`/`ed`; connected evidence verifies
+    // their behavior against race `start_time`. `end_time` is only a fallback
+    // where the provider omits the start value.
+    const timestamp = race.start_time ?? race.end_time;
+    if (timestamp === undefined || timestamp === null) {
+      missingTimestamp = true;
+      continue;
+    }
+    const observedMilliseconds = Date.parse(timestamp);
+    if (!Number.isFinite(observedMilliseconds)) {
+      return Object.freeze({
+        windowId: input.plan.windowId,
+        resultCountClass:
+          input.races.length === input.plan.limit
+            ? "at_request_limit"
+            : "below_request_limit",
+        timestampVerification: "invalid_timestamp",
+      });
+    }
+    if (
+      observedMilliseconds < startMilliseconds ||
+      observedMilliseconds > endMilliseconds
+    ) {
+      return Object.freeze({
+        windowId: input.plan.windowId,
+        resultCountClass:
+          input.races.length === input.plan.limit
+            ? "at_request_limit"
+            : "below_request_limit",
+        timestampVerification: "outside_requested_window",
+      });
+    }
+  }
+
+  return Object.freeze({
+    windowId: input.plan.windowId,
+    resultCountClass:
+      input.races.length === input.plan.limit
+        ? "at_request_limit"
+        : "below_request_limit",
+    timestampVerification: missingTimestamp
+      ? "unverified_missing_timestamp"
+      : "verified_within_window",
+  });
 }
 
 /**

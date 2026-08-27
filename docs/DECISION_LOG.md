@@ -132,6 +132,14 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - Classify canonical fact families as `API supersedes`, `API supplements`, `CSV-only fallback` or `local strategic state`.
 - Differences are explicit review evidence; do not silently choose a source.
 
+## 2026-08-27 — Connected equivalence output is aggregate-only
+
+- Detailed API-vs-CSV reports may contain private entity identities and remain inside the approved ephemeral/private comparison boundary.
+- CI logs and repository documentation may receive only count-only summaries grouped by canonical field and entity family.
+- Redacted summaries omit entity keys, API/CSV paths, filenames, checksums and scalar values.
+- Duplicate entity reports and inconsistent field contracts fail closed before aggregation.
+- A safe redaction summary is infrastructure, not equivalence proof; promotion still requires representative private value comparison.
+
 ## 2026-08-27 — First successful connected discovery remains non-persistent
 
 - Connected run `33078637484` completed against main commit `4e2f958f6a406183b36f1e69294ed18733a10d0e` using three distinct private keys and one private Vault address.
@@ -155,6 +163,15 @@ The API-first master delivery authority was also recorded in Issue #120 comment 
 - Hydrated race documents exposed entrants, economics, payout, tags and scheduling metadata but no direct elapsed-time, finishing-position or explicit distance field in the sample.
 - `track` remains an unclassified source value and is not interpreted as distance.
 - Historical race metadata remains `API supplements`; historical race outcomes/performance remain `CSV-only fallback` unless another authoritative API result contract and private value equivalence are proven.
+
+## 2026-08-27 — Bounded connected history and semantic rejections
+
+- Redacted follow-up run `33088733045` completed 66 read-only probes under the standing 30 requests/minute combined cap with no rate-limit event.
+- Finished-race records were returned with verified in-window `start_time` values across five fixed bands from 0–7 days through 730–1095 days old.
+- This proves bounded availability into the two-to-three-year band, not complete counts; recent history saturated the 200-record request and older probes were intentionally limited to one record.
+- Ten distinct telemetry-benchmark candidates returned HTTP-200 API-error envelopes while ordinary single/bulk telemetry succeeded. Treat benchmark as optional/unavailable for the observed sample rather than a normal-sync dependency.
+- Twelve diversified `pair_validate` candidates returned HTTP-200 API-error envelopes. This is semantic rejection rather than transport/schema failure, but it is not successful valid-pair evidence.
+- No real payload value, entity identifier, key or Vault address was retained, and no API data was persisted.
 
 ## 2026-08-27 — Current API observations cannot leak into historical evidence
 
