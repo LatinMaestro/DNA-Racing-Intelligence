@@ -121,14 +121,20 @@ function backfillError(
 
 function nonNegativeSafeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 0) {
-    backfillError("invalid_checkpoint", `${field} must be a non-negative safe integer`);
+    backfillError(
+      "invalid_checkpoint",
+      `${field} must be a non-negative safe integer`,
+    );
   }
   return value;
 }
 
 function positiveSafeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 1) {
-    backfillError("invalid_configuration", `${field} must be a positive safe integer`);
+    backfillError(
+      "invalid_configuration",
+      `${field} must be a positive safe integer`,
+    );
   }
   return value;
 }
@@ -139,7 +145,10 @@ function timestampMilliseconds(value: string, field: string): number {
   }
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) {
-    backfillError("invalid_checkpoint", `${field} must be a valid ISO timestamp`);
+    backfillError(
+      "invalid_checkpoint",
+      `${field} must be a valid ISO timestamp`,
+    );
   }
   return milliseconds;
 }
@@ -148,10 +157,19 @@ function normalizeWindow(
   window: DnaFinishedRaceWindow,
   field: string,
 ): DnaFinishedRaceWindow {
-  const startMilliseconds = timestampMilliseconds(window.startTime, `${field}.startTime`);
-  const endMilliseconds = timestampMilliseconds(window.endTime, `${field}.endTime`);
+  const startMilliseconds = timestampMilliseconds(
+    window.startTime,
+    `${field}.startTime`,
+  );
+  const endMilliseconds = timestampMilliseconds(
+    window.endTime,
+    `${field}.endTime`,
+  );
   if (startMilliseconds > endMilliseconds) {
-    backfillError("invalid_checkpoint", `${field}.startTime cannot be after ${field}.endTime`);
+    backfillError(
+      "invalid_checkpoint",
+      `${field}.startTime cannot be after ${field}.endTime`,
+    );
   }
   return Object.freeze({
     startTime: new Date(startMilliseconds).toISOString(),
@@ -167,7 +185,10 @@ function validateCheckpoint(
   checkpoint: DnaFinishedRaceBackfillCheckpoint,
 ): DnaFinishedRaceBackfillCheckpoint {
   if (checkpoint.version !== DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION) {
-    backfillError("invalid_checkpoint", "finished-race backfill checkpoint version is unsupported");
+    backfillError(
+      "invalid_checkpoint",
+      "finished-race backfill checkpoint version is unsupported",
+    );
   }
 
   const rootWindow = normalizeWindow(checkpoint.rootWindow, "rootWindow");
@@ -178,7 +199,10 @@ function validateCheckpoint(
     "minimumWindowMilliseconds",
   );
 
-  if (checkpoint.pendingWindows.length > DNA_FINISHED_RACE_BACKFILL_MAX_PENDING_WINDOWS) {
+  if (
+    checkpoint.pendingWindows.length >
+    DNA_FINISHED_RACE_BACKFILL_MAX_PENDING_WINDOWS
+  ) {
     backfillError(
       "invalid_checkpoint",
       `pendingWindows exceeds the ${DNA_FINISHED_RACE_BACKFILL_MAX_PENDING_WINDOWS}-window safety bound`,
@@ -191,11 +215,17 @@ function validateCheckpoint(
     const start = Date.parse(normalized.startTime);
     const end = Date.parse(normalized.endTime);
     if (start < rootStart || end > rootEnd) {
-      backfillError("invalid_checkpoint", "pending window falls outside the root backfill range");
+      backfillError(
+        "invalid_checkpoint",
+        "pending window falls outside the root backfill range",
+      );
     }
     const identity = windowIdentity(normalized);
     if (seen.has(identity)) {
-      backfillError("invalid_checkpoint", "pendingWindows contains a duplicate window");
+      backfillError(
+        "invalid_checkpoint",
+        "pendingWindows contains a duplicate window",
+      );
     }
     seen.add(identity);
     return normalized;
@@ -236,18 +266,26 @@ function checkpointWith(
 function raceKey(rid: DnaRaceIdentifier): string {
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
-      backfillError("duplicate_race", "finished-race response contains an invalid race id");
+      backfillError(
+        "duplicate_race",
+        "finished-race response contains an invalid race id",
+      );
     }
     return String(rid);
   }
   const normalized = rid.trim();
   if (normalized === "") {
-    backfillError("duplicate_race", "finished-race response contains an empty race id");
+    backfillError(
+      "duplicate_race",
+      "finished-race response contains an empty race id",
+    );
   }
   return normalized;
 }
 
-function uniqueRaceIds(races: readonly DnaRaceDocument[]): readonly DnaRaceIdentifier[] {
+function uniqueRaceIds(
+  races: readonly DnaRaceDocument[],
+): readonly DnaRaceIdentifier[] {
   const seen = new Map<string, string>();
   return Object.freeze(
     races.map((race) => {
@@ -255,8 +293,12 @@ function uniqueRaceIds(races: readonly DnaRaceDocument[]): readonly DnaRaceIdent
       const hash = dnaOpenLabRawEvidenceSha256(race);
       const existingHash = seen.get(key);
       if (existingHash !== undefined) {
-        const suffix = existingHash === hash ? "duplicate" : "conflicting duplicate";
-        backfillError("duplicate_race", `finished-race response contains ${suffix} race ${key}`);
+        const suffix =
+          existingHash === hash ? "duplicate" : "conflicting duplicate";
+        backfillError(
+          "duplicate_race",
+          `finished-race response contains ${suffix} race ${key}`,
+        );
       }
       seen.set(key, hash);
       return race.rid;
@@ -302,7 +344,10 @@ function publicationHashes(input: {
   hydration: DnaRaceDocumentHydrationResult | null;
 }): Readonly<{ windowKey: string; contentSha256: string }> {
   const windowKey = createHash("sha256")
-    .update(`dna_open_lab|v1|races.finished|${windowIdentity(input.window)}`, "utf8")
+    .update(
+      `dna_open_lab|v1|races.finished|${windowIdentity(input.window)}`,
+      "utf8",
+    )
     .digest("hex");
   const contentSha256 = dnaOpenLabRawEvidenceSha256({
     source: "dna_open_lab",
@@ -312,7 +357,9 @@ function publicationHashes(input: {
       dnaOpenLabRawEvidenceSha256(race),
     ),
     hydratedDocumentHashes:
-      input.hydration?.documents.map((document) => document.rawEvidenceSha256) ?? [],
+      input.hydration?.documents.map(
+        (document) => document.rawEvidenceSha256,
+      ) ?? [],
   });
   return Object.freeze({ windowKey, contentSha256 });
 }
@@ -352,10 +399,17 @@ async function loadOrCreateCheckpoint(input: {
       { startTime: input.startTime, endTime: input.endTime },
       "requestedRootWindow",
     );
-    if (windowIdentity(checkpoint.rootWindow) !== windowIdentity(requestedRoot)) {
-      backfillError("invalid_configuration", "requested backfill range differs from persisted checkpoint");
+    if (
+      windowIdentity(checkpoint.rootWindow) !== windowIdentity(requestedRoot)
+    ) {
+      backfillError(
+        "invalid_configuration",
+        "requested backfill range differs from persisted checkpoint",
+      );
     }
-    if (checkpoint.minimumWindowMilliseconds !== input.minimumWindowMilliseconds) {
+    if (
+      checkpoint.minimumWindowMilliseconds !== input.minimumWindowMilliseconds
+    ) {
       backfillError(
         "invalid_configuration",
         "minimumWindowMilliseconds differs from persisted checkpoint",
