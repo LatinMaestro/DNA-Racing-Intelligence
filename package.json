@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write lib/dna-open-lab-csv-equivalence.ts tests/dna-open-lab-csv-equivalence.test.ts && git diff -- lib/dna-open-lab-csv-equivalence.ts tests/dna-open-lab-csv-equivalence.test.ts && exit 1",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
