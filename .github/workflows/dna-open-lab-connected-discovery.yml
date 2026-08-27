@@ -2,6 +2,13 @@ name: DNA Open Lab connected discovery
 
 on:
   workflow_dispatch: {}
+  # Temporary P3 evidence trigger. Remove after the corrected connected run is
+  # inspected so this workflow returns to explicit manual dispatch only.
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/dna-open-lab-connected-discovery.yml
 
 permissions:
   contents: read
