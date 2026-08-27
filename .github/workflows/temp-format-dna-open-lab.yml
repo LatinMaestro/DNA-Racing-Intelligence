@@ -1,0 +1,35 @@
+name: TEMP format DNA Open Lab client
+
+on:
+  push:
+    branches:
+      - agent/dna-open-lab-v1-client
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/dna-open-lab-v1-client
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply canonical Prettier
+        run: npx prettier --write lib/dna-open-lab-v1-client.ts tests/dna-open-lab-v1-client.test.ts
+      - name: Commit formatting only when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- lib/dna-open-lab-v1-client.ts tests/dna-open-lab-v1-client.test.ts; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/dna-open-lab-v1-client.ts tests/dna-open-lab-v1-client.test.ts
+          git commit -m "Format DNA Open Lab v1 client"
+          git push origin HEAD:agent/dna-open-lab-v1-client
