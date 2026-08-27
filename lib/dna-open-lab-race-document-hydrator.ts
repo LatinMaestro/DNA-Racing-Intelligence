@@ -47,7 +47,10 @@ function hydrationError(
 function raceKey(rid: DnaRaceIdentifier): string {
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
-      hydrationError("invalid_request", "race id must be a positive safe integer");
+      hydrationError(
+        "invalid_request",
+        "race id must be a positive safe integer",
+      );
     }
     return String(rid);
   }
@@ -58,7 +61,10 @@ function raceKey(rid: DnaRaceIdentifier): string {
   return normalized;
 }
 
-function batches<T>(values: readonly T[], size: number): readonly (readonly T[])[] {
+function batches<T>(
+  values: readonly T[],
+  size: number,
+): readonly (readonly T[])[] {
   const result: T[][] = [];
   for (let offset = 0; offset < values.length; offset += size) {
     result.push(values.slice(offset, offset + size));
