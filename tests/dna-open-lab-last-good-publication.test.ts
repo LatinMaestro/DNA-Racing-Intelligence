@@ -7,18 +7,20 @@ import {
   inspectDnaCurrentStateCandidate,
   pauseDnaCurrentStateSync,
   type DnaCurrentStateCandidate,
+  type DnaCurrentStateFamily,
+  type DnaCurrentStateFamilyStatus,
 } from "../lib/dna-open-lab-last-good-publication";
 
 function candidate(input?: {
   generationId?: string;
   observedAt?: string;
-  partialFamily?: "vault" | "cores" | "active_races" | "race_fills" | "tokens" | "splice_arena";
+  partialFamily?: DnaCurrentStateFamily;
 }): DnaCurrentStateCandidate {
-  const complete = (itemCount: number) => ({
-    status: "complete" as const,
+  const complete = (itemCount: number): DnaCurrentStateFamilyStatus => ({
+    status: "complete",
     itemCount,
   });
-  const families = {
+  const families: Record<DnaCurrentStateFamily, DnaCurrentStateFamilyStatus> = {
     vault: complete(1),
     cores: complete(24),
     active_races: complete(6),
@@ -178,8 +180,14 @@ describe("DNA Open Lab last-good publication", () => {
   });
 
   it("fails closed on invalid timestamps, counts and catch-up transitions", () => {
-    const invalidCount = candidate();
-    invalidCount.families.cores.itemCount = -1;
+    const base = candidate();
+    const invalidCount: DnaCurrentStateCandidate = {
+      ...base,
+      families: {
+        ...base.families,
+        cores: { status: "complete", itemCount: -1 },
+      },
+    };
 
     expect(() => inspectDnaCurrentStateCandidate(invalidCount)).toThrow(
       "cores.itemCount must be a non-negative safe integer",
