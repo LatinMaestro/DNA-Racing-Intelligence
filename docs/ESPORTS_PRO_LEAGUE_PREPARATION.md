@@ -106,9 +106,9 @@ For each candidate show separate evidence dimensions, including:
 
 Candidate ordering may use a transparent deterministic review order but must expose the underlying dimensions.
 
-## Historical performance remains the audited base
+## API-only evidence hierarchy
 
-Primary Pro League evidence remains historical and chronological:
+Historical and chronological performance remains the preferred analytical evidence when an authoritative API contract supplies it:
 
 - Core Performance;
 - exact-distance distributions;
@@ -119,7 +119,15 @@ Primary Pro League evidence remains historical and chronological:
 - Discovery outcomes; and
 - lineage evidence.
 
-Current API state must not leak backward into historical backtests.
+The observed API does not currently expose direct elapsed time, finishing position or explicit distance in finished/document race shapes. Until that changes, the first API-only Pro League commissioning must:
+
+- prioritize structural roster compliance and owner strategy state;
+- present current API observations as separate timestamped dimensions;
+- label historical time/distance, star and outcome-dependent advice unavailable where the API cannot support it;
+- avoid claiming the strongest historical-performance roster from incomplete evidence; and
+- never reactivate CSV implicitly.
+
+Current API state must not leak backward into historical backtests if historical observations become available later.
 
 ## DNA Open Lab API enrichment
 
@@ -264,7 +272,7 @@ On API/tier loss:
 
 - retain last-good roster evidence/read models;
 - show current API-derived fields as stale where appropriate;
-- continue historical analytics and local roster/substitution strategy normally; and
+- continue retained last-good analytics and local roster/substitution strategy normally; and
 - resume current-state catch-up when API access returns.
 
 Do not invalidate the roster merely because the newest current-state fields cannot refresh.

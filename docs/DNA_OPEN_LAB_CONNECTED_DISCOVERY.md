@@ -72,29 +72,29 @@ The two API-error observations were valid, redacted API envelopes over HTTP 200.
 
 ## Source-authority matrix
 
-| Canonical fact family                 | Current class         | Reason                                                                                    | Required before promotion                                                      |
-| ------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Current ownership                     | API supplements       | Vault/Core ownership shapes succeeded                                                     | compare representative API ownership to retained current/reference evidence    |
-| Historical race metadata              | API supplements       | active/finished/document/fill shapes and two-to-three-year bounded availability succeeded | compare IDs, entrants, mode, gates, stars and economics; prove private values  |
-| Historical race outcomes/performance  | CSV-only fallback     | no direct elapsed/position/distance fields observed                                       | retain Race Merge unless another authoritative API result contract is proven   |
-| Core identity and lineage             | API supplements       | identity and splicing shapes succeeded                                                    | compare durable identity and representative non-null lineage to Core Details   |
-| Current Arena and Splice              | API supplements       | paginated Arena and pair info succeeded                                                   | compare current Arena membership and obtain a successful valid-pair validation |
-| Current Core operational state        | API supplements       | power/stamina/assets/listing/stats shapes succeeded                                       | keep timestamped and establish predictive use separately                       |
-| Current token prices                  | API supplements       | numeric current price object succeeded                                                    | current/reference display only; no historical substitution                     |
-| Historical dated valuation            | CSV-only fallback     | no historical price endpoint was observed                                                 | retain dated evidence unless an authoritative historical source appears        |
-| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts                                             | never overwritten by API reconciliation                                        |
+| Canonical fact family                 | Critical-path class   | Reason                                                                                    | Critical-path disposition                                                    |
+| ------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Current ownership                     | API authority         | Vault/Core ownership shapes succeeded                                                     | persist from API; preserve local strategy separately                         |
+| Historical race metadata              | API authority         | active/finished/document/fill shapes and two-to-three-year bounded availability succeeded | persist proven fields only                                                   |
+| Historical race outcomes/performance  | API unavailable       | no direct elapsed/position/distance fields observed                                       | disclose limitation unless another authoritative API result contract appears |
+| Core identity and lineage             | API authority         | identity and splicing shapes succeeded                                                    | persist proven identity/splicing fields                                      |
+| Current Arena and Splice              | API authority         | paginated Arena and pair info succeeded                                                   | persist current Arena/pair info; valid-pair success remains a P9 dependency  |
+| Current Core operational state        | API authority         | power/stamina/assets/listing/stats shapes succeeded                                       | keep timestamped and establish predictive use separately                     |
+| Current token prices                  | API authority         | numeric current price object succeeded                                                    | current/reference display only; no historical substitution                   |
+| Historical dated valuation            | API unavailable       | no historical price endpoint was observed                                                 | disclose limitation unless an authoritative historical source appears        |
+| Pro League roster, notes and strategy | local strategic state | owner-maintained decisions are not game facts                                             | never overwritten by API reconciliation                                      |
 
-No family is yet classified as `API supersedes`.
+Connected shapes are sufficient to treat the successful families above as API authority for API-only persistence. This does not claim that unavailable historical outcome or valuation facts exist.
 
-## Remaining P3 evidence
+## Critical-path disposition
 
-P3 is not complete until the following are resolved privately without committing source values:
+At the owner's direction, CSV comparison is benched and no longer blocks P3, P4, P10 or private website commissioning. The API-only critical path proceeds with these explicit limitations and deferred items:
 
-1. Run representative API-vs-known-CSV equivalence for race, Core, ownership and economics values.
-2. Determine whether another authoritative endpoint supplies elapsed time, position and distance; the observed finished/document contract still does not.
-3. Exercise `pair_validate` with a currently valid pair; twelve diversified candidates were semantically rejected without a transport failure.
-4. Optionally inspect Splice document GET/POST only if the owner supplies a safe existing request ID through the repository secret.
+1. Elapsed time, finishing position and explicit distance are unavailable in the observed API contract. Affected historical-performance features must say so.
+2. A successful currently valid `pair_validate` remains a P9 Splice dependency, not a blocker for API persistence or P6 Pro League domain work.
+3. Optional Splice document GET/POST remains deferred unless a safe existing request ID is later supplied through a repository secret.
+4. API-vs-CSV equivalence remains optional post-critical-path work.
 
-The equivalence harness now has a count-only redaction boundary for connected evidence. It rejects duplicate entity reports and inconsistent field contracts, and it cannot emit entity keys, paths, filenames, checksums or source values. This is safety infrastructure only; it does not count as value-equivalence evidence until representative private CSV rows are supplied to the ephemeral comparison boundary.
+The existing equivalence harness remains preserved with its count-only redaction boundary. No representative CSV rows are required for current delivery.
 
 Persistent real API backfill remains outside K1/P3 authority and still requires the separate P5 owner gate.

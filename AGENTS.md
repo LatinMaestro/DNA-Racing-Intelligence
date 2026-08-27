@@ -4,7 +4,7 @@
 
 Build and maintain **DNA Racing Intelligence**, a private single-user decision-support platform for the repository owner’s DNA Racing vault.
 
-The platform must turn uploaded historical race, core, vault and arena exports plus user-entered tournament rules and economic transactions into defensible recommendations and reporting for:
+The platform must turn DNA Open Lab API observations plus user-entered tournament rules, strategy state and economic transactions into defensible recommendations and reporting for:
 
 - tournament qualification;
 - Maiden Eligible strategy;
@@ -14,14 +14,14 @@ The platform must turn uploaded historical race, core, vault and arena exports p
 - open-race selection; and
 - retain, breed, sell or burn decisions.
 
-The product must improve decisions without presenting uncertain inferences as known game mechanics, periodic imports as live data or incomplete cashflow as complete lifetime profit.
+The product must improve decisions without presenting uncertain inferences as known game mechanics, API snapshots as continuously live data or incomplete cashflow as complete lifetime profit.
 
 ## Source of truth order
 
 When sources conflict, use this order:
 
 1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/OPEN_RACE_WORKFLOW.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
-2. Current uploaded exports and observable historical data.
+2. Current DNA Open Lab API observations and accepted observable historical data.
 3. Official DNA Racing documentation or screenshots recorded in the repository.
 4. Modelled or inferred rules, which must be labelled with confidence.
 
@@ -62,11 +62,13 @@ Before changing code or data models, read:
 - Search-engine indexing disabled.
 - Raw exports, processed data, economic records and recommendations are confidential.
 - Do not commit private CSV exports, database dumps, credentials or generated personal vault data to Git.
+- DNA Open Lab is the sole game-data source on the current delivery critical path. CSV import/equivalence work is benched as an optional future integration and must not block API persistence, Pro League commissioning or private website commissioning.
+- If an API fact is unavailable, expose the limitation; do not fabricate it or silently reintroduce CSV as a dependency.
 - Use synthetic fixtures for tests.
 - Do not scrape authenticated game pages or bypass access controls.
 - Tournament and open-race parameters are manually entered until an approved supported integration exists.
-- Race, vault, core and arena data are periodically imported snapshots, not live game data.
-- Never describe imported opponents, listings, stars or recommendations as live unless a future approved live integration exists.
+- Race, vault, core and arena data are periodically synchronized API snapshots, not a guaranteed continuous live feed.
+- Never describe synchronized opponents, listings, stars or recommendations as live unless the applicable API freshness contract supports that wording.
 - Never request or store crypto private keys, seed phrases or signing credentials.
 - The website records and analyses transactions but does not initiate wallet, blockchain or game transactions.
 
@@ -104,13 +106,12 @@ Before changing code or data models, read:
 
 ### Data freshness
 
-- Race exports are expected approximately every few days, not continuously.
-- Store both import time and latest accepted event time.
-- Display `Data current through` and `Last imported` separately.
+- Store both sync time and latest accepted event/source time.
+- Display `Data current through` and `Last synced` separately.
 - Display data age and a configurable freshness state.
-- Treat imported data as a historical snapshot.
-- Do not infer that races after the latest imported event did not occur.
-- Recompute affected aggregates idempotently after each accepted cumulative import.
+- Treat synchronized data as a timestamped snapshot.
+- Do not infer that races after the latest synchronized event did not occur.
+- Recompute affected aggregates idempotently after each accepted API publication.
 
 ## Economic and accounting integrity
 

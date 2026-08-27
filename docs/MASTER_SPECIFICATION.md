@@ -31,20 +31,19 @@ No single objective permanently overrides the others. Recommendations must show 
 - Never request or store crypto private keys, seed phrases or signing credentials.
 - The application may record wallet/account labels and transaction references but must not initiate blockchain or game transactions.
 
-## 3. Source datasets
+## 3. Source data
 
-The initial supplied exports include:
+The current delivery-critical sources are:
 
-- cumulative or sequential race-merge CSV exports;
-- core-details CSV export;
-- current-vault CSV export;
-- current-arena/splicing CSV export;
-- season/tournament calendars and rule screenshots; and
-- user-entered economic transactions, manual tournament payouts and reconciliation records.
+- DNA Open Lab v1 API for supported Vault, Core, Race, Token and Splice facts;
+- season/tournament calendars and rule evidence; and
+- user-entered strategy state, economic transactions, manual tournament payouts and reconciliation records.
 
 Approved aggregate profiling of the current nine-export source set identified 2,536,710 race-entry records across 695,901 events, 18,127 Core Details records, 195 owner-confirmed current-Vault cores of which 68 are Maiden Eligible, and 792 current-Arena listings. Coverage gaps and boundary-overlap statistics are recorded in `docs/AGGREGATE_SOURCE_PROFILE.md`. These are privacy-safe observations of the inspected source snapshot, not hardcoded product limits.
 
-The user will periodically upload newer versions through the private owner-facing workflow in `docs/DATA_UPDATE_WORKFLOW.md`. Imports must be incremental, idempotent, validated and auditable. Privacy safeguards must not remove analytically relevant source fields from the private processing boundary.
+Historical CSV exports and their aggregate profile remain preserved evidence, but CSV work is benched as an optional future integration. The owner is not required to upload files for current delivery.
+
+API synchronization must be incremental, idempotent, validated and auditable. Where the API does not expose a required field, the affected output remains unavailable or limited rather than fabricated.
 
 ## 4. Core product modules
 
@@ -60,7 +59,7 @@ Show:
 - breeding recommendations;
 - cores requiring lifecycle decisions;
 - selected Vault Performance indicators; and
-- data freshness, reconciliation and import warnings.
+- data freshness, reconciliation and sync warnings.
 
 ### 4.2 Vault registration and ownership lock
 
@@ -68,11 +67,11 @@ Allow the user to establish and maintain the active vault using core ID and name
 
 Requirements:
 
-- import current-vault CSV;
+- reconcile current ownership from the API while preserving local strategy state;
 - manually add or remove owned cores;
 - manually confirm or override ME status;
 - link owned IDs to core details, race results and family tree;
-- retain historical ownership/import provenance;
+- retain historical ownership/sync provenance;
 - assume owned active cores are available for breeding unless marked unavailable;
 - do not include burnt cores in active-vault recommendations;
 - preserve burnt cores in historical lineage analysis.
@@ -458,30 +457,21 @@ as competitively proven.
 
 ## 5. Data refresh workflow
 
-The complete owner upload, preview, confirmation, background-processing, retention, completion and rollback contract is defined in `docs/DATA_UPDATE_WORKFLOW.md` and forms part of this specification.
+The complete API sync, backfill, background-processing, retention, publication and recovery contract is defined in `docs/DATA_UPDATE_WORKFLOW.md` and forms part of this specification.
 
-Support periodic uploads of:
+Support bounded API refreshes for Vault/ownership, Cores, finished and active Races, Splice/Arena and Tokens, plus owner-maintained tournament rules and economic records.
 
-- newer cumulative race-merge exports;
-- updated core-details exports;
-- current-vault exports;
-- current arena exports;
-- tournament calendars and manual rules;
-- manual economic transactions and external tournament payouts; and
-- future authoritative economic exports where supported.
+The synchronization path must:
 
-The importer must:
-
-- identify source type;
-- validate schema;
-- store import metadata;
+- validate provider envelopes and canonical shapes;
+- store sync/checkpoint metadata;
 - deduplicate cumulative history;
-- derive race economic entries without duplication;
-- preserve previous valid records;
-- warn on conflicts;
+- derive supported economic entries without duplication;
+- preserve previous last-good records;
+- warn on conflicts and capability gaps;
 - update aggregates;
-- allow safe rollback of an import batch;
-- never expose raw source files publicly.
+- recover safely from partial work; and
+- never expose raw API payloads publicly.
 
 Arena data is highly time-sensitive and listings commonly last 5 or 10 days. Display freshness prominently and do not treat old arena listings as active or as completed breeding transactions.
 
@@ -528,7 +518,7 @@ Every economic report must provide:
 
 The product is successful when it can reliably:
 
-- import refreshed data without duplication;
+- synchronize refreshed API data without duplication;
 - reconstruct lineage and enforce breeding rules;
 - identify mode-distance specialists using time evidence;
 - prioritise worthwhile discovery races;

@@ -5,18 +5,15 @@ Effective: **27 August 2026**
 
 ## 1. Source hierarchy
 
-The preferred source is **DNA Open Lab v1 API**.
+The sole game-data source on the current delivery critical path is **DNA Open Lab v1 API**.
 
 Normal path:
 
 `DNA Open Lab API -> server-only typed client -> canonical adapters -> private R2 evidence/cache where useful -> owner-scoped Neon read models/aggregates -> private authenticated website`
 
-CSV sources remain supported as:
+Existing CSV code and historical evidence are preserved but benched. CSV ingestion, upload and API-equivalence work are optional future integrations and are not commissioning prerequisites.
 
-- internal fallback;
-- API-equivalence evidence;
-- historical-gap evidence where the API does not expose an equivalent fact; and
-- recovery/transition tooling until API completeness has been demonstrated.
+If the API does not expose a fact, canonical state records that capability as unavailable/limited. The product must not fabricate the fact or silently substitute CSV on the critical path.
 
 Local owner strategy state is never replaced by API or CSV game data.
 
@@ -290,7 +287,7 @@ Private R2 may retain:
 - manifests/checksums;
 - bounded cache objects;
 - replay artifacts;
-- retained CSV raw/fallback evidence; and
+- dormant retained CSV evidence, if already present; and
 - large analytical objects not suited to Neon.
 
 Requirements:
@@ -317,13 +314,13 @@ Neon should contain only compact state that benefits from relational transaction
 
 Persistent API schema/migrations must follow connected P3 payload evidence rather than guessed wire shapes.
 
-## 20. CSV fallback contract
+## 20. Optional CSV integration boundary
 
-The existing importer remains supported but secondary.
+The existing importer remains preserved but inactive for current delivery.
 
-Known fallback families include historical Race Merge, Core Details and Arena evidence plus prior owner-maintained/retired vault evidence where retained for reconciliation.
+No new CSV file is required from the owner. New upload, equivalence, spreadsheet optimisation and CSV persistence work is deferred to an optional post-critical-path backlog.
 
-CSV behavior remains:
+If CSV integration is explicitly resumed later, its existing safety behavior remains:
 
 - immutable private raw evidence;
 - deterministic schema/version detection;
@@ -331,27 +328,27 @@ CSV behavior remains:
 - idempotent replay;
 - conflict quarantine;
 - rollback/recovery; and
-- API-vs-CSV equivalence comparison.
+- separately approved comparison or reconciliation.
 
-Spreadsheet-specific optimisation is not part of the critical path unless a demonstrated API gap requires it.
+An API gap is disclosed as a product limitation; it does not automatically reactivate CSV work.
 
 ## 21. Source-authority matrix
 
-P3 must produce and maintain a table with one row per canonical fact family:
+Connected discovery maintains one row per canonical fact family:
 
-| Canonical fact                 | P3 authority class    | CSV fallback         | Local state               | Evidence/equivalence status                                                      |
-| ------------------------------ | --------------------- | -------------------- | ------------------------- | -------------------------------------------------------------------------------- |
-| Current ownership              | API supplements       | historical/reference | local strategy separate   | live shapes proven; representative value equivalence still open                  |
-| Historical race metadata       | API supplements       | Race Merge           | none                      | shapes and bounded two-to-three-year availability proven; value equivalence open |
-| Historical race outcomes       | CSV-only fallback     | Race Merge           | none                      | no direct elapsed/position/explicit-distance fields observed                     |
-| Core identity/lineage          | API supplements       | Core Details         | none                      | identity shapes proven; non-null lineage/value equivalence open                  |
-| Current Arena/splice           | API supplements       | Current Arena        | shortlist/local decisions | Arena and pair-info shapes proven; valid pair validation open                    |
-| Current Core operational state | API supplements       | none                 | none                      | current-only power/stamina/assets/listing/stats observations                     |
-| Current token price            | API supplements       | none                 | none                      | current/reference only; never historical valuation                               |
-| Historical dated valuation     | CSV-only fallback     | retained evidence    | owner evidence separate   | current token endpoint cannot reconstruct historical valuation                   |
-| Pro League roster/strategy     | local strategic state | none                 | authoritative local state | API ownership must not overwrite roster, notes or strategy                       |
+| Canonical fact                 | Critical-path class   | Local state               | Connected status                                                                  |
+| ------------------------------ | --------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| Current ownership              | API authority         | local strategy separate   | Vault/Core ownership shapes proven                                                |
+| Historical race metadata       | API authority         | none                      | shapes and bounded two-to-three-year availability proven                          |
+| Historical race outcomes       | API unavailable       | none                      | no direct elapsed/position/explicit-distance fields observed; disclose limitation |
+| Core identity/lineage          | API authority         | none                      | identity and splicing shapes proven                                               |
+| Current Arena/splice           | API authority         | shortlist/local decisions | Arena and pair-info shapes proven; valid-pair success remains a P9 concern        |
+| Current Core operational state | API authority         | none                      | timestamped power/stamina/assets/listing/stats observations                       |
+| Current token price            | API authority         | none                      | current/reference only; never historical valuation                                |
+| Historical dated valuation     | API unavailable       | owner evidence separate   | current token endpoint cannot reconstruct historical valuation                    |
+| Pro League roster/strategy     | local strategic state | authoritative local state | API ownership must not overwrite roster, notes or strategy                        |
 
-No API-vs-CSV source is declared superseding until representative equivalence and field authority are proven. The redacted connected observations and remaining P3 gaps are recorded in `DNA_OPEN_LAB_CONNECTED_DISCOVERY.md`.
+API persistence may proceed from proven connected contracts without representative CSV equivalence. The redacted connected observations and known limitations are recorded in `DNA_OPEN_LAB_CONNECTED_DISCOVERY.md`.
 
 ## 22. Privacy and secret safety
 
@@ -369,6 +366,6 @@ DNA Open Lab API use is currently authorised only for non-commercial use under t
 
 ## 24. Historical spreadsheet-first evidence
 
-Before 27 August 2026, CSV imports were the primary data path. That detailed contract remains preserved in Git history and specialised phase documents and continues to inform fallback, recovery, RLS, evidence retention, race economics and equivalence testing.
+Before 27 August 2026, CSV imports were the primary data path. That detailed contract remains preserved in Git history and specialised phase documents as historical engineering evidence and an optional future integration.
 
 Where those historical documents describe CSV as the normal source or periodic snapshot as the only source of current state, this API-first contract supersedes that statement.

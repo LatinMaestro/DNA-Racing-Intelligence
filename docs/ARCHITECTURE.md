@@ -6,7 +6,7 @@ Scope: private single-owner application; Production remains explicit owner appro
 
 ## 1. Decision summary
 
-DNA Racing Intelligence now uses DNA Open Lab v1 as the preferred source of game data.
+DNA Racing Intelligence now uses DNA Open Lab v1 as the sole game-data source on the delivery critical path.
 
 Target topology:
 
@@ -28,14 +28,14 @@ compact owner-scoped Neon read models / aggregates / local strategy state
 private authenticated Next.js website
 ```
 
-The existing CSV pipeline remains an internal fallback, historical evidence source and equivalence harness. It is no longer the normal critical path.
+The existing CSV pipeline remains preserved but benched. It is an optional future integration and cannot block API persistence, Pro League commissioning or full private website commissioning.
 
 ## 2. Core application stack
 
 - **Next.js App Router + strict TypeScript** for the private responsive web application.
 - **Clerk** for authentication plus the existing server-side owner allowlist.
 - **Neon PostgreSQL** for compact owner-scoped current state, checkpoints, application state, local strategy state, durable aggregates, reconciliation, economics and other relational state requiring transactions/RLS.
-- **Private Cloudflare R2** for raw/full API evidence, immutable cache/evidence objects, retained CSV fallback evidence and other large replayable data where relational storage is unnecessary.
+- **Private Cloudflare R2** for raw/full API evidence, immutable cache/evidence objects and other large replayable data where relational storage is unnecessary. Retained CSV objects, if any, remain dormant historical evidence.
 - **Cloudflare Worker/Queue and existing hosted job infrastructure** where background processing is required.
 - **GitHub Actions** for repository validation and bounded operational workflows where already established.
 - **Vercel** for the private website. Automatic Git deployment remains disabled. Deliberate protected Preview deployments are reserved for major commissioning milestones unless a development dependency genuinely requires one.
@@ -100,12 +100,13 @@ Unknown additive fields remain attributable through raw evidence without silentl
 
 ## 6. Source authority
 
-After connected P3 discovery, each fact is classified into one of four authority classes:
+After connected discovery, each fact is classified into one of three critical-path capability classes:
 
-1. **API supersedes** — API becomes the normal current/historical authority.
-2. **API supplements** — API adds current or richer facts to existing historical evidence.
-3. **CSV-only fallback** — fact remains available only through retained export evidence until/unless API support exists.
-4. **Local strategic state** — owner-managed state that game data must never overwrite.
+1. **API authority** — the API exposes the fact with sufficient connected contract evidence for the intended use.
+2. **API unavailable/limited** — the API does not currently expose enough authority; the affected feature must disclose the limitation.
+3. **Local strategic state** — owner-managed state that game data must never overwrite.
+
+CSV is not an authority class on the current critical path. Optional later CSV work may add supplemental historical evidence only after separate approval.
 
 Examples of local strategic state include notes, manual ME strategy, Pro League roster versions, substitution ledger, Discovery plans, lifecycle recommendations, manual accounting/reconciliation and owner-entered Tournament configuration.
 
@@ -168,7 +169,7 @@ Use private R2 where large immutable/replayable evidence is more appropriate, in
 - raw/full API evidence where retained;
 - API evidence manifests;
 - private cache objects;
-- retained CSV fallback/raw evidence;
+- dormant retained CSV evidence, if already present;
 - large analytical/replay artifacts; and
 - bounded scratch/evidence objects already proven by the existing import architecture.
 
@@ -233,10 +234,10 @@ The owner must then explicitly approve the first persistent real Preview sync.
 
 Before 27 August 2026, the project was spreadsheet-first: periodic Race Merge/Core Details/Arena exports were uploaded into a guarded private pipeline, with private R2 evidence, Neon materialization/read models, queue processing, replay/rollback and extensive synthetic/connected proofs.
 
-That work is **not discarded**. It remains valuable for:
+That work is **not discarded**, but it is benched and preserved as historical implementation evidence for possible later reuse, including:
 
-- CSV fallback;
-- API-vs-CSV equivalence;
+- optional CSV integration;
+- optional API-vs-CSV investigation;
 - proven owner isolation/RLS;
 - private R2 evidence handling;
 - replay/recovery primitives;

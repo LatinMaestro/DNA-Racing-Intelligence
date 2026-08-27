@@ -264,3 +264,13 @@ After the private Pro League milestone, continue in this order:
 7. Unified Dashboard/readiness/API operations.
 8. Whole-product validation/hardening.
 9. Full private website commissioning/handover, with explicit owner Production approval required before controlled Production schema/data/deployment changes.
+
+## 2026-08-27 — API-only critical path; CSV work benched
+
+- At the owner's direction, DNA Open Lab is the sole game-data source on the current delivery critical path.
+- Do not request CSV exports or make CSV upload, ingestion, equivalence or fallback proof a prerequisite for P3/P4/P10, Pro League commissioning or full private website commissioning.
+- Preserve existing CSV code, synthetic tests and historical implementation evidence without extending or deleting them.
+- Move CSV integration and API-vs-CSV comparison to an optional post-critical-path backlog requiring a separate owner decision to resume.
+- Connected API families with proven shapes may proceed into persistence without representative CSV value equivalence.
+- The observed API still lacks direct elapsed time, finishing position, explicit distance and historical price authority. API-only features must disclose those limitations and must not fabricate values or silently substitute CSV.
+- A successful valid `pair_validate` remains required before promoting official pair-viability advice in P9, but it does not block P4 API persistence or P6 Pro League domain work.

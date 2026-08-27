@@ -4,19 +4,30 @@
 
 DNA Racing Intelligence is a basic private website for one owner. It is not a SaaS product, team platform, public service, enterprise governance system or general-purpose data platform.
 
-The implementation goal is the minimum architecture and interface required to deliver the already-agreed owner functionality safely and reliably against the known private datasets.
+The implementation goal is the minimum architecture and interface required to deliver the already-agreed owner functionality safely and reliably through DNA Open Lab API data and owner-maintained private state.
+
+## Owner-approved API-only critical path — 27 August 2026
+
+This decision supersedes older requirements that make CSV upload, API-vs-CSV equivalence or CSV fallback proof a prerequisite for Pro League or website commissioning.
+
+- DNA Open Lab is the sole game-data source on the current delivery critical path.
+- Bench all new CSV ingestion, upload, equivalence and spreadsheet-optimisation work.
+- Preserve existing CSV code and historical evidence without extending or deleting it.
+- CSV support may return later as an optional integration through a separately approved backlog item.
+- Do not request CSV files from the owner for current delivery.
+- If the API does not expose elapsed time, finishing position, explicit distance, historical valuation or another desired fact, show the affected feature/evidence dimension as unavailable or limited. Do not fabricate it and do not make CSV a hidden dependency.
 
 ## Build only what is needed
 
 Retain or build a component only when it is necessary for one or more of:
 
 - the agreed owner-facing racing, breeding, lifecycle, tournament, Maiden, Open Race, Vault, Discovery, Core Intelligence, Pro League preparation or Vault Performance functionality;
-- correct import and processing of the agreed periodically imported game-data sources, including the multi-million-row Race Merge history;
+- correct bounded synchronization and processing of the agreed DNA Open Lab API source families;
 - basic owner authentication and private access;
 - data integrity, deterministic replay, rollback or duplicate prevention that is necessary to avoid corrupting the owner's data;
 - basic accounting correctness for the agreed ledger and economic features;
 - practical privacy and security for a private hosted website;
-- enough background processing or private object storage to make the known large imports work reliably on hosted infrastructure.
+- enough background processing or private object storage to make API backfill and incremental synchronization work reliably on hosted infrastructure.
 
 Do not add functionality merely because it would be useful to a larger public or commercial product.
 

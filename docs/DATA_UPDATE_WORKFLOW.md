@@ -7,7 +7,7 @@ Effective: **27 August 2026**
 
 DNA Racing Intelligence normally refreshes itself from DNA Open Lab v1 through a server-side background sync/backfill process. The owner should not need to download or upload routine exports for ordinary operation once API commissioning is complete.
 
-The existing private CSV Data Updates workflow is retained as an internal fallback, equivalence tool and historical-gap path. It is not the normal critical path unless API evidence proves a missing source family or API access remains unavailable for an extended period.
+The existing private CSV Data Updates workflow is preserved but benched. It is an optional future integration and is not a prerequisite for API persistence, Pro League commissioning or private website commissioning.
 
 ## Normal update lifecycle
 
@@ -143,7 +143,7 @@ A configured API key does **not** authorise persistent real backfill.
 
 Before the first persistent real Preview sync:
 
-1. connected P3 read-only discovery proves real shapes/authority/equivalence;
+1. connected discovery proves the real API shapes and intended authority needed by the persistence slice;
 2. API-first persistence is based on that evidence;
 3. P5 proves PostgreSQL 18 physical/peak capacity and R2 footprint/cost;
 4. recovery/replay/partial failure/rate limit/tier loss/catch-up are proven;
@@ -179,16 +179,11 @@ The normal finished-race sync/backfill path should:
 
 The website remains read-only and never enters the race.
 
-## CSV fallback workflow
+## Optional CSV workflow — benched
 
-The pre-existing private Data Updates workspace remains available as a guarded fallback for supported export families.
+The pre-existing private Data Updates implementation is preserved for possible later use, but new CSV work is paused. No CSV is required from the owner for current delivery.
 
-Use it when:
-
-- API equivalence is still being proven;
-- an API gap has been demonstrated;
-- retained historical evidence is needed to fill a missing API horizon; or
-- recovery/validation requires comparison against known exports.
+An API gap is shown as an unavailable/limited capability. It does not automatically reactivate the CSV workflow. Resuming CSV integration requires a separate owner-approved backlog decision.
 
 Fallback imports preserve the established controls:
 
@@ -203,9 +198,9 @@ Fallback imports preserve the established controls:
 
 Spreadsheet-specific optimisation is not a delivery priority unless a demonstrated API gap requires it.
 
-## API-vs-CSV equivalence workflow
+## Optional API-vs-CSV equivalence — deferred
 
-During P3/P4/P10, representative facts are compared privately, including where applicable:
+The existing equivalence harness remains safety-tested and preserved, but equivalence is not an exit criterion for P3, P4, P10 or full website commissioning. If the owner later resumes this optional work, representative facts may be compared privately, including where applicable:
 
 - race IDs;
 - entrants/Core IDs;
@@ -219,7 +214,7 @@ During P3/P4/P10, representative facts are compared privately, including where a
 - Arena/current ownership; and
 - relevant counts/aggregates.
 
-Differences are classified rather than silently resolved. The source-authority matrix must state whether API supersedes, supplements or cannot yet replace the CSV fact.
+Differences must be classified rather than silently resolved. Optional CSV evidence must not overwrite the API critical-path authority or local strategic state automatically.
 
 Detailed comparison reports contain private entity identities and remain inside the approved ephemeral/private processing boundary. Connected CI and repository documentation may receive only count-only redacted summaries grouped by canonical field and entity family. Those summaries must omit entity keys, API/CSV paths, filenames, checksums and all scalar source values. Duplicate entity reports and inconsistent field contracts fail closed before aggregation so counts cannot be inflated or compared under different semantics.
 
@@ -234,13 +229,13 @@ It should show:
 - sync paused/stale state;
 - recent completed races;
 - current active opportunities where available;
-- unresolved equivalence/schema issues; and
+- unresolved API schema/capability issues; and
 - recovery/catch-up status.
 
 Routine operation should not require direct database access or manual file replacement.
 
 ## Historical upload-first evidence
 
-Before 27 August 2026, the project was designed around periodic CSV uploads. That implementation remains valuable fallback/recovery evidence and is preserved in Git history and the specialised Phase 1 documents.
+Before 27 August 2026, the project was designed around periodic CSV uploads. That implementation remains preserved as historical engineering evidence and a possible optional future integration in Git history and the specialised Phase 1 documents.
 
 Where earlier documentation states that the owner must routinely download/upload Race Merge/Core Details/Arena exports, this API-first workflow supersedes that operating model.

@@ -9,7 +9,7 @@ Deliver the earliest safe **private owner-usable Pro League** experience first, 
 
 Work in dependency order with one dependency-critical pull request active at a time. Every merge requires exact-head canonical validation, complete diff/review/thread review and verification of resulting `main` before the next dependent slice starts.
 
-The normal source path is now DNA Open Lab v1 API. CSV ingestion remains an internal fallback and equivalence source until API completeness is proven and through the transition period.
+DNA Open Lab v1 is the sole game-data source on the delivery critical path. Existing CSV ingestion/equivalence code is preserved but benched as an optional future integration. CSV proof cannot block API persistence, Pro League commissioning or private website commissioning.
 
 ## Target architecture
 
@@ -58,7 +58,7 @@ Deliver:
 - durable cursors/checkpoints, idempotency, retries/backoff and catch-up semantics;
 - last-good publication so an incomplete refresh cannot replace a valid dataset;
 - private R2 API-evidence writer/manifests where useful;
-- API-vs-CSV equivalence harness; and
+- preserve the existing API-vs-CSV equivalence harness without extending it on the critical path; and
 - outage/tier-loss behavior where sync pauses but the website remains usable from retained data.
 
 Exit: all safe foundations are ready before a live key is required.
@@ -69,7 +69,7 @@ Reach K1 after P1/P2 are complete.
 
 Configure one private hosted website key with `vault+races+cores+tokens+splice` scopes. The raw key must never be pasted into chat, Git, CI logs, Issue comments or browser-visible configuration.
 
-K1 authorises **read-only connected contract/equivalence testing only**. It does not authorise persistent real API backfill.
+K1 authorises **read-only connected contract/capability testing only**. It does not authorise persistent real API backfill.
 
 If the key is unavailable at K1, continue all remaining keyless work and mocked UI/read-model work. Pause only when the next dependency truly requires live payload evidence.
 
@@ -84,18 +84,17 @@ After the key is privately configured, prove:
 - tokens;
 - Splice Arena, `pair_info` and `pair_validate`;
 - real optional/null/nested behavior, identifiers, timestamps, natural keys and history depth; and
-- API-vs-known-CSV equivalence for representative race, Core, ownership and economics facts.
+- an explicit capability matrix that marks any unexposed API fact as unavailable/limited.
 
 Produce a source-authority matrix classifying each fact as:
 
-- API supersedes;
-- API supplements;
-- CSV-only fallback; or
+- API authority;
+- API unavailable/limited; or
 - local strategic state.
 
 Never commit real payloads. Private evidence belongs in approved private storage.
 
-Exit: persistence and UI design can safely follow real payloads rather than guesses.
+Exit: persistence and UI design can safely follow real payloads rather than guesses. CSV equivalence is not required. A valid `pair_validate` success is a P9 dependency, not a blocker for P4/P6.
 
 ## P4 — API-first persistence, R2 and incremental sync
 
@@ -108,7 +107,7 @@ Deliver migrations/read models only from P3 evidence.
 - refresh current Core/Vault/Splice/Tokens with endpoint-appropriate cadence;
 - separate current observations from historical backtest facts so today's power/stamina/assets/listing/game stats cannot leak into past recommendations;
 - publish only complete last-good refreshes; and
-- keep the CSV importer as an internal fallback.
+- leave the benched CSV importer unchanged.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
@@ -200,7 +199,7 @@ Exit: official-validation-backed breeding queue.
 After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;
-- verify API-vs-CSV equivalence, counts, aggregates, freshness, no leakage, RLS, recovery and secret safety;
+- verify API counts/coverage, aggregates, freshness, disclosed capability limits, no leakage, RLS, recovery and secret safety;
 - commission `/pro-league` with nucleus/current roster/alternates, compliance, roster-size rationale, evidence dimensions, substitution budget/history, Discovery queue, active-race opportunities, breeding queue, official pair viability/cost, structural gaps/marginal slots and sync/freshness/stale-but-usable status;
 - integrate only the My Vault/Core Intelligence/Discovery/Breeding flows required for daily Pro League use;
 - allow one deliberate protected private Vercel Preview deployment at this major milestone if required; automatic Git deployment remains disabled; and
@@ -240,11 +239,20 @@ Show last sync by family, current-through/stale/backfill state, recent races, ac
 
 ## F8 — Whole-product validation and hardening
 
-Prove chronological/no-leakage behavior, calibration, additive-schema/error/rate/outage/tier handling, backfill completeness, R2/Neon backup/recovery/idempotency/RLS/auth/key secrecy, accessibility/mobile/performance, economics, CSV fallback, DNA attribution and non-commercial policy.
+Prove chronological/no-leakage behavior, calibration, additive-schema/error/rate/outage/tier handling, backfill completeness, R2/Neon backup/recovery/idempotency/RLS/auth/key secrecy, accessibility/mobile/performance, economics, disclosed API limitations, DNA attribution and non-commercial policy.
 
 ## F9 — Full private website commissioning and handover
 
-Freeze the exact candidate, run connected Preview acceptance for every workflow, present final provider/storage/cost/security/recovery evidence and **STOP for explicit owner Production approval**. Only after approval may controlled private Production deployment/migrations/API secret and real sync verification occur. Retire normal CSV upload only after API completeness proof and a transition period. Complete operator docs and Definition of Done.
+Freeze the exact candidate, run connected Preview acceptance for every workflow, present final provider/storage/cost/security/recovery evidence and **STOP for explicit owner Production approval**. Only after approval may controlled private Production deployment/migrations/API secret and real sync verification occur. Keep CSV integration in the optional backlog unless the owner separately reactivates it. Complete operator docs and Definition of Done.
+
+## Optional backlog — CSV integration
+
+After the API-only private website is commissioned, the owner may separately approve CSV upload, historical-gap ingestion or API-vs-CSV comparison. Until then:
+
+- do not request CSV files;
+- do not extend spreadsheet-specific code;
+- preserve existing implementation and synthetic tests; and
+- expose API data gaps honestly rather than using CSV implicitly.
 
 ## Safety and approval boundaries
 
