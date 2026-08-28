@@ -131,8 +131,10 @@ client pool, requires idempotently persisted evidence receipts and advances an
 exact-schedule compare-and-swap checkpoint after every accepted request. The
 compact migration `0075` and its Neon adapter now enforce owner-RLS,
 function-only access, append-only progress, idempotent replay, immutable cycle
-authority and serializable compare-and-swap updates. The private current-state
-evidence sink and dynamic ownership/Arena continuation remain incomplete.
+authority and serializable compare-and-swap updates. The private R2 current-state
+evidence sink now writes one immutable object per cycle/request, verifies bucket
+privacy and exact object metadata, and returns the first durable receipt on a
+crash replay. Dynamic ownership and Arena continuation remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
