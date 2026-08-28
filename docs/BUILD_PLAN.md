@@ -126,8 +126,11 @@ families, Token prices and complete Arena pagination before one `0074` staging
 transaction; retired partial-stage privileges fail closed. Acquisition-worker
 scheduling now has a deterministic local cadence and recovery policy with
 30-request batches, complete cached-or-refreshed evidence guards and on-demand
-pair reads. The bounded request dispatcher and durable cycle checkpoint remain
-incomplete.
+pair reads. A one-request bounded runner dispatches through the conservative
+client pool, requires idempotently persisted evidence receipts and advances an
+exact-schedule compare-and-swap checkpoint after every accepted request. The
+owner-RLS Neon checkpoint adapter, private current-state evidence sink and
+dynamic ownership/Arena continuation remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

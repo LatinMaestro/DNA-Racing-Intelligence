@@ -49,13 +49,33 @@ error is classified as eligibility loss only during the explicit eligibility
 probe (or on HTTP 401/403); the same HTTP 305 quirk during an ordinary payload
 request is not invented as proof of eligibility loss.
 
+## Bounded runner and cycle safety
+
+The acquisition runner now advances at most one scheduled request per step. It
+routes that request through the existing conservative client pool and records a
+content-addressed evidence receipt before advancing a compare-and-swap cycle
+checkpoint. The checkpoint binds the exact schedule-evaluation boundary, due
+groups, ordered request keys, accepted receipts, completed groups, pause reason
+and retry boundary. Each receipt retains its actual attempt/observation time; a
+restart with a changed plan or schedule fails closed.
+
+Evidence persistence is deliberately injected. Its implementation must be
+durable and idempotent by request key; a crash after evidence storage but before
+checkpoint advancement may replay the same key. Raw response bodies never enter
+the checkpoint. The runner excludes pair reads, advances no more than one
+request/checkpoint at a time, and cannot mark a cycle ready until all due
+requests plus cached-or-refreshed evidence are complete.
+
+The runner contract is implemented and synthetically proven. The owner-RLS
+Neon cycle-checkpoint adapter and private R2 evidence sink remain the next P4
+slice; neither has been applied to a hosted provider.
+
 ## Safety and next step
 
 All evidence is synthetic and local. No DNA API call, hosted Neon/R2 mutation,
 deployment, Production change or persistent owner-data write occurs. Persistent
 real owner-data synchronization remains blocked by the P5 owner-approval gate.
 
-The next P4 slice is the bounded acquisition runner: dispatch scheduled requests
-through the conservative client pool, retain validated family evidence, persist
-pause/catch-up state through the publication repository and prove restart-safe
-cycle checkpoints.
+The next P4 slice is the compact owner-RLS Neon cycle-checkpoint migration and
+adapter, followed by the private immutable evidence-sink contract and dynamic
+ownership/Arena-pagination assembly. These remain synthetic until the P5 gate.

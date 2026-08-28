@@ -251,15 +251,25 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
 /**
  * A cycle may publish only when every due group completed during this attempt
  * and every current-state group has cached-or-refreshed evidence no newer than
- * the cycle time. A failed due group therefore preserves the prior last-good
- * generation instead of publishing a mixed partial refresh.
+ * the completion time. Callers that acquire after schedule evaluation must pass
+ * that later completion time explicitly. A failed due group therefore
+ * preserves the prior last-good generation instead of publishing a mixed
+ * partial refresh.
  */
 export function inspectDnaCurrentStateAcquisitionCompletion(input: {
   schedule: DnaCurrentStateAcquisitionSchedule;
+  completedAt?: string;
   completedGroups: readonly DnaCurrentStateAcquisitionGroup[];
   evidenceObservedAt: Partial<Record<DnaCurrentStateAcquisitionGroup, string>>;
 }): DnaCurrentStateAcquisitionCompletion {
-  const evaluatedMilliseconds = Date.parse(input.schedule.evaluatedAt);
+  const completedAt =
+    input.completedAt === undefined
+      ? input.schedule.evaluatedAt
+      : timestamp(input.completedAt, "completedAt");
+  const evaluatedMilliseconds = Date.parse(completedAt);
+  if (evaluatedMilliseconds < Date.parse(input.schedule.evaluatedAt)) {
+    acquisitionError("completedAt cannot precede the schedule evaluation");
+  }
   const completed = new Set(input.completedGroups);
   for (const group of completed) {
     if (!DNA_CURRENT_STATE_ACQUISITION_GROUPS.includes(group)) {
@@ -273,7 +283,7 @@ export function inspectDnaCurrentStateAcquisitionCompletion(input: {
       if (observedAt === undefined) return true;
       const normalized = timestamp(observedAt, `${group}.evidenceObservedAt`);
       if (Date.parse(normalized) > evaluatedMilliseconds) {
-        acquisitionError(`${group} evidence cannot follow the cycle time`);
+        acquisitionError(`${group} evidence cannot follow the completion time`);
       }
       return input.schedule.dueGroups.includes(group) && !completed.has(group);
     },

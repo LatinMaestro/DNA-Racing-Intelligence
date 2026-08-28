@@ -62,6 +62,13 @@ must complete before a generation can publish; non-due groups may contribute
 timestamped last-good evidence, but missing or future-dated evidence fails
 closed.
 
+Each acquisition-runner step executes at most one scheduled request through the
+shared conservative client pool. Validated evidence must be stored idempotently
+before its content-addressed receipt advances the exact-schedule cycle
+checkpoint by compare-and-swap. A process crash can therefore replay one
+evidence key safely, while plan drift, duplicate receipts and concurrent worker
+advancement fail closed. Raw response bodies are not stored in the checkpoint.
+
 ## Finished-race backfill completeness
 
 The finished-race endpoint may return up to 200 races for a time window.
