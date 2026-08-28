@@ -313,3 +313,21 @@ After the private Pro League milestone, continue in this order:
 - The private website validates and recommends mappings, including first-16 coverage, but never creates a team, submits a roster/mapping or chooses the map for a scheduled match.
 - Match schedules are expected about one day in advance and final map choice remains a manual owner action.
 - Map 5 remains unavailable and must not be fabricated.
+
+## 2026-08-28 — Generation-bound owned-Core API read model
+
+- Materialize only the P3-proven `vault.cores_full` identity/ownership fields:
+  Core ID, display name, class, element, F-number, sex and optional source color.
+- Bind every compact row to an immutable API sync generation and its raw-evidence
+  checksum; keep the raw response itself outside Neon.
+- Require the owned-Core row count to equal the complete `cores` family receipt
+  before a materialized generation may publish.
+- Revoke runtime access to the older count-only staging function. The runtime may
+  stage new generations only through the materialized wrapper, and reads only
+  the accepted serving generation through a narrow function.
+- Preserve the serving owned-Core snapshot while API/rate/tier sync is paused.
+- Do not treat current ownership as local strategy authority: notes, Pro League
+  roster versions, substitutions, Discovery and Maiden state remain separate.
+- This is synthetic P4 infrastructure only. It does not apply the migration to a
+  hosted database, persist a real owner payload, deploy a website or open the P5
+  first-real-sync gate.

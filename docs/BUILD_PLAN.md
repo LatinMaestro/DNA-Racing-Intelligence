@@ -109,6 +109,13 @@ Deliver migrations/read models only from P3 evidence.
 - publish only complete last-good refreshes; and
 - leave the benched CSV importer unchanged.
 
+Current implementation state: migrations `0069` and `0070` provide atomic
+last-good generation publication plus durable finished-race/R2 receipt
+checkpoints. Migration `0071` adds the first generation-bound current read
+model for API-authoritative owned-Core identity. Supplemental current Core,
+active-race, fill, Token and Splice Arena materialization plus scheduling remain
+incomplete.
+
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
 ## P5 — Storage, capacity, recovery and first persistent real-sync gate

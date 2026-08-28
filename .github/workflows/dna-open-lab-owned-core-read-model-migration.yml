@@ -1,10 +1,10 @@
-name: DNA Open Lab sync publication migration
+name: DNA Open Lab owned Core read-model migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/dna-open-lab-sync-publication-migration.yml"
+      - ".github/workflows/dna-open-lab-owned-core-read-model-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   migration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:18
@@ -39,11 +40,11 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run DNA Open Lab sync publication smoke test
+      - name: Run owned Core read-model smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0069_dna_open_lab_sync_publication.smoke.sql
-      - name: Reverse dependent owned Core read-model migration
+          database/migrations/0071_dna_open_lab_owned_core_read_model.smoke.sql
+      - name: Reverse owned Core read-model migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0071_dna_open_lab_owned_core_read_model.down.sql
@@ -51,11 +52,3 @@ jobs:
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0071_dna_open_lab_owned_core_read_model.removal.sql
-      - name: Reverse DNA Open Lab sync publication migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0069_dna_open_lab_sync_publication.down.sql
-      - name: Verify DNA Open Lab sync publication removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0069_dna_open_lab_sync_publication.removal.sql
