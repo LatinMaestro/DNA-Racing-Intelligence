@@ -40,6 +40,14 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
+      - name: Reverse dependent supplemental Core read-model migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0073_dna_open_lab_supplemental_core_read_model.down.sql
+      - name: Verify supplemental Core read-model removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0073_dna_open_lab_supplemental_core_read_model.removal.sql
       - name: Reverse dependent current-race read-model migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
