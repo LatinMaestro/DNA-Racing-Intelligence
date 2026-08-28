@@ -66,6 +66,10 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
   readServingCurrentRaces: (input: {
     ownerId: string;
   }) => Promise<DnaOpenLabServingCurrentRaces>;
+  readServingCurrentStateEvidenceIndex: (input: {
+    ownerId: string;
+    validatedAt: string;
+  }) => Promise<DnaCurrentStateEvidenceIndex | null>;
 }>;
 
 export type DnaOpenLabServingOwnedCore = Readonly<{
@@ -279,6 +283,11 @@ const READ_SERVING_RACE_FILLS_SQL = [
   "ORDER BY source_race_id",
 ].join("\n");
 
+const READ_SERVING_CURRENT_STATE_EVIDENCE_INDEX_SQL = [
+  "SELECT generation_id::text, plan_sha256, indexed_at, receipt_count, receipt_index",
+  "FROM dna.read_dna_open_lab_serving_current_state_evidence_index($1::uuid)",
+].join("\n");
+
 function record(value: unknown, field: string): DbRow {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${field} must be a database record`);
@@ -344,6 +353,14 @@ function retryAfter(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 86_400) {
     throw new Error("retry_after_seconds is invalid");
+  }
+  return parsed;
+}
+
+function nonNegativeInteger(value: unknown, field: string): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${field} is invalid`);
   }
   return parsed;
 }
@@ -429,6 +446,34 @@ function servingOwnedCore(rowValue: unknown): DnaOpenLabServingOwnedCore {
       motherNameSourceValue: null,
     }),
   });
+}
+
+function servingEvidenceIndex(
+  result: QueryResult,
+  validatedAt: string,
+): DnaCurrentStateEvidenceIndex | null {
+  if (result.rows.length === 0) return null;
+  const row = oneRow(result, "DNA Open Lab serving evidence index");
+  const stored = validateDnaCurrentStateEvidenceIndexDocument({
+    index: record(
+      row.receipt_index,
+      "receipt_index",
+    ) as DnaCurrentStateEvidenceIndex,
+    validatedAt,
+  });
+  if (
+    stored.generationId !==
+      uuid(text(row.generation_id, "generation_id"), "generation_id") ||
+    stored.planSha256 !== text(row.plan_sha256, "plan_sha256") ||
+    stored.indexedAt !== timestamp(row.indexed_at, "indexed_at") ||
+    stored.receipts.length !==
+      nonNegativeInteger(row.receipt_count, "receipt_count")
+  ) {
+    throw new Error(
+      "DNA Open Lab serving evidence index metadata is inconsistent",
+    );
+  }
+  return stored;
 }
 
 function jsonRecord(value: unknown, field: string): DbRow {
@@ -1002,6 +1047,22 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
             activeRaces: Object.freeze(activeRaces),
             raceFills: Object.freeze(raceFills),
           });
+        },
+      });
+    },
+
+    async readServingCurrentStateEvidenceIndex(request) {
+      const validatedAt = timestamp(request.validatedAt, "validatedAt");
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          return servingEvidenceIndex(
+            await client.query(READ_SERVING_CURRENT_STATE_EVIDENCE_INDEX_SQL, [
+              databaseOwnerId,
+            ]),
+            validatedAt,
+          );
         },
       });
     },

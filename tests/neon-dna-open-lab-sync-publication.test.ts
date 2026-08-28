@@ -757,6 +757,31 @@ describe("Neon DNA Open Lab sync publication", () => {
     });
   });
 
+  it("reads and revalidates the serving generation's receipt index", async () => {
+    const index = completeCurrentStateEvidence().evidenceIndex;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          plan_sha256: index.planSha256,
+          indexed_at: new Date(index.indexedAt),
+          receipt_count: index.receipts.length,
+          receipt_index: index,
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.readServingCurrentStateEvidenceIndex({
+        ownerId,
+        validatedAt: "2026-08-27T12:01:00.000Z",
+      }),
+    ).resolves.toEqual(index);
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+  });
+
   it("rolls back when forced-RLS or least-privilege evidence is unsafe", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],

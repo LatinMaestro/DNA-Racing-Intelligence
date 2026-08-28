@@ -14,6 +14,11 @@ import {
   assembleDnaCurrentStatePublication,
   publishDnaCurrentStateAcquisitionCycle,
 } from "@/lib/dna-open-lab-current-state-publication-runner";
+import { createDnaCurrentStateEvidenceIndex } from "@/lib/dna-open-lab-current-state-evidence-index";
+import {
+  assembleDnaStaggeredCurrentStatePublication,
+  publishDnaStaggeredCurrentStateAcquisitionCycle,
+} from "@/lib/dna-open-lab-staggered-current-state-publication";
 import type { DnaOpenLabStoredCurrentStateEvidence } from "@/lib/dna-open-lab-r2-current-state-evidence";
 import { createDnaCurrentStateSyncPlan } from "@/lib/dna-open-lab-current-state-sync-plan";
 import type { DnaLastGoodSyncState } from "@/lib/dna-open-lab-last-good-publication";
@@ -98,7 +103,7 @@ function fixture() {
       });
     },
   );
-  return { schedule, checkpoint, readEvidence };
+  return { plan, schedule, checkpoint, readEvidence };
 }
 
 function result(endpoint: string): unknown {
@@ -329,6 +334,7 @@ describe("DNA Open Lab current-state publication runner", () => {
       read: vi.fn(),
       readServingOwnedCores: vi.fn(),
       readServingCurrentRaces: vi.fn(),
+      readServingCurrentStateEvidenceIndex: vi.fn(),
     } as unknown as NeonDnaOpenLabSyncPublicationRepository;
 
     const state = await publishDnaCurrentStateAcquisitionCycle({
@@ -434,5 +440,158 @@ describe("DNA Open Lab current-state publication runner", () => {
     ).rejects.toThrow(
       "only a complete all-current-state acquisition may publish",
     );
+  });
+
+  it("reconstructs and publishes staggered due and last-good receipts", async () => {
+    const first = fixture();
+    const priorIndex = createDnaCurrentStateEvidenceIndex({
+      plan: first.plan,
+      schedule: first.schedule,
+      checkpoint: first.checkpoint,
+      prior: null,
+      indexedAt: observedAt,
+    });
+    const nextCycleId = "22222222-2222-4222-8222-222222222222";
+    const nextAt = "2026-08-28T12:02:00.000Z";
+    const nextObservedAt = "2026-08-28T12:02:30.000Z";
+    const schedule = createDnaCurrentStateAcquisitionSchedule({
+      evaluatedAt: nextAt,
+      plan: first.plan,
+      checkpoints: {
+        race_activity: { completedAt: observedAt },
+        token_prices: { completedAt: nextAt },
+        vault_identity: { completedAt: nextAt },
+        core_current_state: { completedAt: nextAt },
+        splice_arena: { completedAt: nextAt },
+      },
+    });
+    const scheduled = schedule.requestBatches.flat();
+    const key = (entry: DnaScheduledCurrentStateRequest) =>
+      dnaOpenLabRawEvidenceSha256({
+        group: entry.group,
+        request: entry.request,
+      });
+    const checkpoint: DnaCurrentStateAcquisitionCycleCheckpoint = Object.freeze(
+      {
+        version: 1,
+        cycleId: nextCycleId,
+        evaluatedAt: nextAt,
+        scheduleSha256: dnaOpenLabRawEvidenceSha256({
+          evaluatedAt: nextAt,
+          completionScope: schedule.completionScope,
+          dueGroups: schedule.dueGroups,
+          requests: scheduled,
+        }),
+        status: "ready_to_publish",
+        scheduledRequestKeys: Object.freeze(scheduled.map(key)),
+        receipts: Object.freeze(
+          scheduled.map((entry) => ({
+            requestKey: key(entry),
+            observedAt: nextObservedAt,
+            contentSha256: "b".repeat(64),
+            evidenceObjectKey: `private/${nextCycleId}/${key(entry)}.json`,
+          })),
+        ),
+        completedGroups: schedule.dueGroups,
+        pauseReason: null,
+        retryNotBefore: null,
+      },
+    );
+    const assembled = await assembleDnaStaggeredCurrentStatePublication({
+      plan: first.plan,
+      schedule,
+      checkpoint,
+      priorIndex,
+      indexedAt: nextObservedAt,
+      validatedAt: nextObservedAt,
+      readEvidence: first.readEvidence,
+    });
+
+    expect(schedule.dueGroups).toEqual(["race_activity"]);
+    expect(assembled.assembly.candidate).toMatchObject({
+      generationId: nextCycleId,
+      observedAt: nextObservedAt,
+    });
+    expect(
+      new Set(
+        assembled.evidenceIndex.receipts
+          .filter((receipt) => receipt.group === "race_activity")
+          .map((receipt) => receipt.cycleId),
+      ),
+    ).toEqual(new Set([nextCycleId]));
+    expect(
+      new Set(
+        assembled.evidenceIndex.receipts
+          .filter((receipt) => receipt.group !== "race_activity")
+          .map((receipt) => receipt.cycleId),
+      ),
+    ).toEqual(new Set([cycleId]));
+    expect(
+      new Set(first.readEvidence.mock.calls.map(([call]) => call.cycleId)),
+    ).toEqual(new Set([cycleId, nextCycleId]));
+
+    const publishCandidate = vi.fn(
+      async (
+        input: Parameters<
+          NeonDnaOpenLabSyncPublicationRepository["publishCandidate"]
+        >[0],
+      ) => {
+        void input;
+        return publicationState();
+      },
+    );
+    const repository = {
+      publishCandidate,
+      pause: vi.fn(),
+      read: vi.fn(),
+      readServingOwnedCores: vi.fn(),
+      readServingCurrentRaces: vi.fn(),
+      readServingCurrentStateEvidenceIndex: vi.fn(async () => priorIndex),
+    } as unknown as NeonDnaOpenLabSyncPublicationRepository;
+    await publishDnaStaggeredCurrentStateAcquisitionCycle({
+      ownerId: "private-owner",
+      plan: first.plan,
+      schedule,
+      checkpoint,
+      validatedAt: nextObservedAt,
+      recordedAt: nextObservedAt,
+      acceptedAt: nextObservedAt,
+      readEvidence: first.readEvidence,
+      publicationRepository: repository,
+    });
+    expect(publishCandidate).toHaveBeenCalledTimes(1);
+    expect(publishCandidate.mock.calls[0]?.[0]).toMatchObject({
+      candidate: { generationId: nextCycleId },
+      evidenceIndex: { generationId: nextCycleId },
+    });
+  });
+
+  it("preserves last-good when a staggered cycle has no serving receipt index", async () => {
+    const { plan, schedule, checkpoint, readEvidence } = fixture();
+    const publishCandidate = vi.fn();
+    const repository = {
+      publishCandidate,
+      pause: vi.fn(),
+      read: vi.fn(),
+      readServingOwnedCores: vi.fn(),
+      readServingCurrentRaces: vi.fn(),
+      readServingCurrentStateEvidenceIndex: vi.fn(async () => null),
+    } as unknown as NeonDnaOpenLabSyncPublicationRepository;
+
+    await expect(
+      publishDnaStaggeredCurrentStateAcquisitionCycle({
+        ownerId: "private-owner",
+        plan,
+        schedule: { ...schedule, dueGroups: ["race_activity"] },
+        checkpoint,
+        validatedAt: observedAt,
+        recordedAt: observedAt,
+        acceptedAt: observedAt,
+        readEvidence,
+        publicationRepository: repository,
+      }),
+    ).rejects.toThrow("serving last-good receipt index is unavailable");
+    expect(readEvidence).not.toHaveBeenCalled();
+    expect(publishCandidate).not.toHaveBeenCalled();
   });
 });

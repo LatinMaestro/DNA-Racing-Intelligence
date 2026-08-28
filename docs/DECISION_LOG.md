@@ -516,3 +516,19 @@ After the private Pro League milestone, continue in this order:
   only through the current last-good generation pointer.
 - This remains synthetic/local evidence. It makes no API or hosted-provider
   change and does not open the P5 first-real-sync gate.
+
+## 2026-08-28 — Staggered publication replays every carried receipt
+
+- Read cached-family authority only from the owner-scoped serving-generation
+  index; caller timestamps or an arbitrary prior document are not authority.
+- Build one new full-plan index by replacing due groups from the current exact
+  checkpoint and retaining non-due groups from that validated last-good index.
+- Re-read every referenced private R2 object using the receipt's original cycle
+  and require its group, request key, observation and request body to match the
+  reconstructed full plan.
+- Run the same complete Core, race/fill, supplemental, Token and terminal Arena
+  materialization checks as a first/full cycle, then publish exactly once
+  through the indexed atomic repository.
+- Any missing prior index, receipt drift, incomplete family or publication
+  error leaves the existing serving generation unchanged. This remains
+  synthetic and does not open P5.
