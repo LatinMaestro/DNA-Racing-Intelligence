@@ -80,6 +80,15 @@ the same request to run again, the first immutable observation remains
 authoritative and its original receipt is returned; later response bytes cannot
 silently replace it.
 
+Current-state plan assembly is evidence-driven. Validated `vault.cores_full`
+and `races.active` observations determine the exact Core bulk and race-fill
+requests; caller-supplied stale identity lists are not authoritative. Arena
+pages must be contiguous from page 1 with stable page limits and no repeated
+Core across pages. A mode with `has_more: true` yields exactly one next-page
+request, and the immutable runner schedule is withheld until every selected
+mode has one terminal page. The complete schedule is capped at the durable
+checkpoint limit of 512 requests.
+
 ## Finished-race backfill completeness
 
 The finished-race endpoint may return up to 200 races for a time window.
