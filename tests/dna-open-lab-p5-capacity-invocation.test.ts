@@ -11,6 +11,7 @@ import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
 } from "@/lib/neon-import-persistence-driver";
+import { createP5SyntheticCycleFixture } from "./helpers/dna-open-lab-p5-synthetic-cycle-fixture";
 
 const codeHeadSha = "a".repeat(40);
 const databaseOwnerId = "11111111-1111-4111-8111-111111111111";
@@ -93,12 +94,24 @@ function fixture(input: { failDatabaseRead?: boolean } = {}) {
     ],
     truncated: false as const,
   }));
-  const cleanupSyntheticEvidence = vi.fn(async () => ({
-    persistentOwnerDataWriteCount: 0,
-    residueObjectCount: 0,
-    rawPayloadIncluded: false,
-    secretMaterialIncluded: false,
-  }));
+  const synthetic = createP5SyntheticCycleFixture({
+    codeHeadSha,
+    measuredAt: "2026-08-28T20:00:00.000Z",
+    ownerId,
+    databaseOwnerId,
+    databaseUrl,
+    runtimeRole: "dna_app_runtime",
+    bucketName,
+  });
+  let connectedSessionCount = 0;
+  const connectedSessionFactory = vi.fn<NeonImportPersistenceSessionFactory>(
+    async (url) => {
+      connectedSessionCount += 1;
+      return connectedSessionCount === 3 || connectedSessionCount === 7
+        ? synthetic.configuration.sessionFactory!(url)
+        : sessionFactory(url);
+    },
+  );
   const emitEvidence = vi.fn(async (canonicalJson: string) => {
     if (typeof canonicalJson !== "string") throw new Error("invalid evidence");
   });
@@ -112,7 +125,7 @@ function fixture(input: { failDatabaseRead?: boolean } = {}) {
       databaseOwnerId,
       databaseUrl,
       runtimeRole: "dna_app_runtime",
-      sessionFactory,
+      sessionFactory: connectedSessionFactory,
     },
     r2: {
       ownerId,
@@ -124,14 +137,7 @@ function fixture(input: { failDatabaseRead?: boolean } = {}) {
         customDomainCount: 0,
       }),
     },
-    runSyntheticCycle: async ({
-      captureTransientSample,
-    }: {
-      captureTransientSample: () => Promise<number>;
-    }) => {
-      await captureTransientSample();
-    },
-    cleanupSyntheticEvidence,
+    syntheticR2Storage: synthetic.configuration.r2Storage,
     projectedMonthlyClassAOperations: 100,
     projectedMonthlyClassBOperations: 200,
     priceAuthorityRef,
@@ -146,7 +152,7 @@ function fixture(input: { failDatabaseRead?: boolean } = {}) {
     emitEvidence,
     sessionFactory,
     list,
-    cleanupSyntheticEvidence,
+    synthetic,
   };
 }
 
@@ -220,7 +226,8 @@ describe("DNA Open Lab P5 connected capacity invocation", () => {
     ).rejects.toThrow("capacity invocation failed");
     expect(test.sessionFactory).not.toHaveBeenCalled();
     expect(test.list).not.toHaveBeenCalled();
-    expect(test.cleanupSyntheticEvidence).not.toHaveBeenCalled();
+    expect(test.synthetic.sessionFactory).not.toHaveBeenCalled();
+    expect(test.synthetic.deleteObject).not.toHaveBeenCalled();
     expect(test.emitEvidence).not.toHaveBeenCalled();
   });
 
@@ -236,7 +243,8 @@ describe("DNA Open Lab P5 connected capacity invocation", () => {
     ).rejects.toThrow(
       "DNA Open Lab P5 private Preview capacity invocation failed.",
     );
-    expect(providerFailure.cleanupSyntheticEvidence).toHaveBeenCalledOnce();
+    expect(providerFailure.synthetic.headObject).not.toHaveBeenCalled();
+    expect(providerFailure.synthetic.sessionFactory).not.toHaveBeenCalled();
     expect(providerFailure.emitEvidence).not.toHaveBeenCalled();
 
     const emitterFailure = fixture();

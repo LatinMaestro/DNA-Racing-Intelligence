@@ -30,6 +30,13 @@ missing relations fail the measurement rather than silently reducing it.
 The allowlist is the fixed complete DNA Open Lab schema inventory through
 migration `0076`; a measurement caller cannot replace it with a smaller set.
 
+The synthetic workload itself is also fixed. It uses the production all-family
+publication repository with generated, non-owner fixture values, samples while
+the serializable publication transaction is still open, and replaces the final
+commit with `ROLLBACK`. Cleanup then proves that the synthetic generation is not
+accepted or serving. Callers can no longer substitute a callback that merely
+claims a synthetic cycle completed.
+
 The approved boundary remains `536870912` bytes. Peak—not settled size—is used
 for headroom. Zero headroom is blocking.
 
@@ -63,12 +70,18 @@ reproducible. Empty footprint or operation observations fail closed.
   values; they do not claim to represent undocumented provider-internal
   overhead. Pricing authority remains responsible for the applicable provider
   billing semantics.
+- The workload creates one bounded JSON marker below that same hashed owner
+  prefix, verifies its checksum and metadata, includes it in the measured
+  footprint, and deletes it during mandatory cleanup. A pre-existing marker,
+  failed rollback, retained marker or accepted synthetic generation fails the
+  measurement.
 
 ## Current state
 
-The measurement contract, bounded synthetic runner and least-privilege
-PostgreSQL/R2 adapters are implemented. A single guarded composition fixes the
-provider scope to private Preview and constructs both concrete adapters. No
+The measurement contract, rollback-only full-publication workload and
+least-privilege PostgreSQL/R2 adapters are implemented. A single guarded
+composition fixes the provider scope to private Preview, constructs the
+measurement adapters and constructs the synthetic cycle/cleanup adapter. No
 connected measurement has been performed, so PostgreSQL physical/peak storage,
 private R2 footprint/cost and positive Neon headroom remain pending P5 evidence.
 
