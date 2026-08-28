@@ -77,11 +77,18 @@ cycle-and-request identity, requires a private bucket, verifies immutable object
 metadata and returns the original stored receipt on crash replay. No checkpoint
 schema or evidence object has been applied to a hosted provider.
 
+Dynamic plan assembly now consumes validated ownership, active-race and Arena
+page observations. It sorts the discovered identities, expands bounded Core and
+fill batches, emits only the next missing Arena page, and refuses a final plan
+until every selected mode has contiguous terminal coverage. Duplicate
+identities, page/limit drift, post-terminal pages and schedules above the
+512-request durable-cycle capacity fail closed.
+
 ## Safety and next step
 
 All evidence is synthetic and local. No DNA API call, hosted Neon/R2 mutation,
 deployment, Production change or persistent owner-data write occurs. Persistent
 real owner-data synchronization remains blocked by the P5 owner-approval gate.
 
-The next P4 slice is dynamic ownership and Arena-pagination assembly. It remains
-synthetic until the P5 gate.
+The next P4 slice is durable bootstrap/continuation execution feeding the
+assembler and final bounded runner. It remains synthetic until the P5 gate.

@@ -419,7 +419,10 @@ function raceListPayload(
   return value as readonly DnaRaceIdentifier[];
 }
 
-function spliceModePayload(request: DnaCurrentStateRequest): DnaRaceMode {
+function spliceArenaPayload(request: DnaCurrentStateRequest): {
+  mode: DnaRaceMode;
+  page: number;
+} {
   const filter = request.payload.filter;
   if (typeof filter !== "object" || filter === null || Array.isArray(filter)) {
     return runnerError("splice.arena.filter is invalid");
@@ -428,7 +431,11 @@ function spliceModePayload(request: DnaCurrentStateRequest): DnaRaceMode {
   if (value !== "bike" && value !== "car" && value !== "horse") {
     return runnerError("splice.arena.filter.rvmode is invalid");
   }
-  return value;
+  const page = request.payload.page ?? 1;
+  if (!Number.isSafeInteger(page) || Number(page) < 1) {
+    return runnerError("splice.arena.page is invalid");
+  }
+  return { mode: value, page: Number(page) };
 }
 
 /** Dispatches one already-scheduled request through the conservative pool. */
@@ -496,8 +503,10 @@ export function dispatchDnaCurrentStateRequest(input: {
         case "tokens.prices":
           return client.tokenPrices();
         case "splice.arena":
+          const arena = spliceArenaPayload(request);
           return client.spliceArena({
-            filter: { rvmode: spliceModePayload(request) },
+            filter: { rvmode: arena.mode },
+            page: arena.page,
           });
         default:
           return runnerError(
