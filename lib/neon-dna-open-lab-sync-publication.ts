@@ -5,6 +5,8 @@ import {
   type DnaLastGoodSyncState,
   type DnaSyncInterruptionReason,
 } from "./dna-open-lab-last-good-publication";
+import type { AdaptedCoreDetailsRow } from "../domain/source-adapters";
+import type { DnaOpenLabEvidence } from "./dna-open-lab-v1-adapters";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -22,6 +24,7 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
   publishCandidate: (input: {
     ownerId: string;
     candidate: DnaCurrentStateCandidate;
+    ownedCores: readonly DnaOpenLabEvidence<AdaptedCoreDetailsRow>[];
     recordedAt: string;
     acceptedAt: string;
   }) => Promise<DnaLastGoodSyncState>;
@@ -32,6 +35,16 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
     retryAfterSeconds?: number | null;
   }) => Promise<DnaLastGoodSyncState>;
   read: (input: { ownerId: string }) => Promise<DnaLastGoodSyncState>;
+  readServingOwnedCores: (input: {
+    ownerId: string;
+  }) => Promise<readonly DnaOpenLabServingOwnedCore[]>;
+}>;
+
+export type DnaOpenLabServingOwnedCore = Readonly<{
+  generationId: string;
+  observedAt: string;
+  rawEvidenceSha256: string;
+  canonical: AdaptedCoreDetailsRow;
 }>;
 
 const SET_OWNER_SCOPE_SQL =
@@ -47,6 +60,8 @@ const VERIFY_ISOLATION_SQL = [
   "  family.relforcerowsecurity AS family_force_rls,",
   "  state.relrowsecurity AS state_rls,",
   "  state.relforcerowsecurity AS state_force_rls,",
+  "  core.relrowsecurity AS core_rls,",
+  "  core.relforcerowsecurity AS core_force_rls,",
   "  (has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'INSERT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'UPDATE')",
@@ -62,8 +77,16 @@ const VERIFY_ISOLATION_SQL = [
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_state', 'UPDATE')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_state', 'DELETE'))",
   "    AS runtime_can_access_state,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_owned_core_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_owned_core_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_owned_core_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_owned_core_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_core,",
   "  has_function_privilege(session_user,",
   "    'dna.stage_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb)', 'EXECUTE')",
+  "    AS runtime_can_stage_legacy,",
+  "  has_function_privilege(session_user,",
+  "    'dna.stage_dna_open_lab_materialized_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb)', 'EXECUTE')",
   "    AS runtime_can_stage,",
   "  has_function_privilege(session_user,",
   "    'dna.publish_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone)', 'EXECUTE')",
@@ -73,6 +96,8 @@ const VERIFY_ISOLATION_SQL = [
   "    AS runtime_can_pause,",
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_sync_state(uuid)', 'EXECUTE') AS runtime_can_read,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_owned_cores(uuid)', 'EXECUTE') AS runtime_can_read_cores,",
   "  session_user::text AS session_user_name, current_user::text AS current_user_name,",
   "  role.rolsuper AS runtime_is_superuser, role.rolbypassrls AS runtime_bypasses_rls,",
   "  role.rolcreaterole AS runtime_can_create_roles, role.rolcreatedb AS runtime_can_create_databases,",
@@ -85,6 +110,8 @@ const VERIFY_ISOLATION_SQL = [
   "  ON family.oid = 'dna.dna_open_lab_sync_family'::regclass",
   "JOIN pg_catalog.pg_class state",
   "  ON state.oid = 'dna.dna_open_lab_sync_state'::regclass",
+  "JOIN pg_catalog.pg_class core",
+  "  ON core.oid = 'dna.dna_open_lab_owned_core_snapshot'::regclass",
   "JOIN pg_catalog.pg_roles role ON role.rolname = session_user",
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
@@ -95,6 +122,13 @@ const READ_STATE_SQL = [
   "  last_interruption_reason, last_interruption_at, retry_after_seconds,",
   "  last_catch_up_completed_at",
   "FROM dna.read_dna_open_lab_sync_state($1::uuid)",
+].join("\n");
+
+const READ_SERVING_OWNED_CORES_SQL = [
+  "SELECT generation_id::text, source_core_id::text, display_name, core_class,",
+  "  element, f_number, sex, color_source_value, observed_at, raw_evidence_sha256",
+  "FROM dna.read_dna_open_lab_serving_owned_cores($1::uuid)",
+  "ORDER BY source_core_id",
 ].join("\n");
 
 function record(value: unknown, field: string): DbRow {
@@ -164,6 +198,147 @@ function retryAfter(value: unknown): number | null {
     throw new Error("retry_after_seconds is invalid");
   }
   return parsed;
+}
+
+function optionalNullableText(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return text(value, field);
+}
+
+function positiveSafeIntegerText(value: unknown, field: string): string {
+  const normalized = text(value, field);
+  if (!/^[1-9][0-9]*$/u.test(normalized)) {
+    throw new Error(`${field} must be a positive integer`);
+  }
+  const parsed = Number(normalized);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${field} exceeds the safe integer range`);
+  }
+  return normalized;
+}
+
+function servingOwnedCore(rowValue: unknown): DnaOpenLabServingOwnedCore {
+  const row = record(rowValue, "DNA Open Lab serving owned Core");
+  const sourceCoreId = positiveSafeIntegerText(
+    row.source_core_id,
+    "source_core_id",
+  );
+  const coreClass = text(row.core_class, "core_class");
+  if (
+    coreClass !== "Genesis" &&
+    coreClass !== "Morphed" &&
+    coreClass !== "Freak" &&
+    coreClass !== "X-Class"
+  ) {
+    throw new Error("core_class is invalid");
+  }
+  const element = text(row.element, "element");
+  if (
+    element !== "Metal" &&
+    element !== "Fire" &&
+    element !== "Earth" &&
+    element !== "Water"
+  ) {
+    throw new Error("element is invalid");
+  }
+  const sex = text(row.sex, "sex");
+  if (sex !== "male" && sex !== "female") {
+    throw new Error("sex is invalid");
+  }
+  const fNumber = Number(row.f_number);
+  if (!Number.isSafeInteger(fNumber) || fNumber < 1) {
+    throw new Error("f_number is invalid");
+  }
+  const rawEvidenceSha256 = text(
+    row.raw_evidence_sha256,
+    "raw_evidence_sha256",
+  );
+  if (!/^[a-f0-9]{64}$/u.test(rawEvidenceSha256)) {
+    throw new Error("raw_evidence_sha256 is invalid");
+  }
+  return Object.freeze({
+    generationId: uuid(
+      text(row.generation_id, "generation_id"),
+      "generation_id",
+    ),
+    observedAt: timestamp(row.observed_at, "observed_at"),
+    rawEvidenceSha256,
+    canonical: Object.freeze({
+      sourceType: "core_details",
+      sourceCoreId,
+      displayName: text(row.display_name, "display_name"),
+      coreClass,
+      element,
+      fNumber,
+      sex,
+      colorSourceValue: optionalNullableText(
+        row.color_source_value,
+        "color_source_value",
+      ),
+      fatherSourceCoreId: null,
+      fatherNameSourceValue: null,
+      motherSourceCoreId: null,
+      motherNameSourceValue: null,
+    }),
+  });
+}
+
+function ownedCoreRows(input: {
+  candidate: DnaCurrentStateCandidate;
+  ownedCores: readonly DnaOpenLabEvidence<AdaptedCoreDetailsRow>[];
+}): readonly Record<string, unknown>[] {
+  if (input.ownedCores.length !== input.candidate.families.cores.itemCount) {
+    throw new Error(
+      "DNA Open Lab owned Core count must match the complete Core family count",
+    );
+  }
+  const seen = new Set<string>();
+  return Object.freeze(
+    input.ownedCores.map((entry) => {
+      if (
+        entry.source !== "dna_open_lab" ||
+        entry.sourceVersion !== "v1" ||
+        entry.scope !== "vault" ||
+        entry.endpoint !== "vault.cores_full" ||
+        entry.canonical.sourceType !== "core_details"
+      ) {
+        throw new Error(
+          "DNA Open Lab owned Core evidence authority is invalid",
+        );
+      }
+      const sourceCoreId = positiveSafeIntegerText(
+        entry.canonical.sourceCoreId,
+        "owned Core sourceCoreId",
+      );
+      if (entry.entityKey !== `core:${sourceCoreId}`) {
+        throw new Error("DNA Open Lab owned Core entity key is invalid");
+      }
+      if (seen.has(sourceCoreId)) {
+        throw new Error("DNA Open Lab owned Core IDs must be unique");
+      }
+      seen.add(sourceCoreId);
+      const observedAt = timestamp(entry.observedAt, "owned Core observedAt");
+      if (Date.parse(observedAt) > Date.parse(input.candidate.observedAt)) {
+        throw new Error(
+          "DNA Open Lab owned Core observation cannot follow its generation",
+        );
+      }
+      if (!/^[a-f0-9]{64}$/u.test(entry.rawEvidenceSha256)) {
+        throw new Error("DNA Open Lab owned Core evidence checksum is invalid");
+      }
+      return Object.freeze({
+        sourceCoreId,
+        displayName: entry.canonical.displayName,
+        coreClass: entry.canonical.coreClass,
+        element: entry.canonical.element,
+        fNumber: entry.canonical.fNumber,
+        sex: entry.canonical.sex,
+        colorSourceValue: entry.canonical.colorSourceValue,
+        observedAt,
+        rawEvidenceSha256: entry.rawEvidenceSha256,
+      });
+    }),
+  );
 }
 
 function state(result: QueryResult): DnaLastGoodSyncState {
@@ -250,6 +425,8 @@ function verifyIsolation(
     "family_force_rls",
     "state_rls",
     "state_force_rls",
+    "core_rls",
+    "core_force_rls",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -260,7 +437,8 @@ function verifyIsolation(
   if (
     bool(row.runtime_can_access_generation, "runtime_can_access_generation") ||
     bool(row.runtime_can_access_family, "runtime_can_access_family") ||
-    bool(row.runtime_can_access_state, "runtime_can_access_state")
+    bool(row.runtime_can_access_state, "runtime_can_access_state") ||
+    bool(row.runtime_can_access_core, "runtime_can_access_core")
   ) {
     throw new Error("DNA Open Lab sync table access is not bounded.");
   }
@@ -269,10 +447,14 @@ function verifyIsolation(
     "runtime_can_publish",
     "runtime_can_pause",
     "runtime_can_read",
+    "runtime_can_read_cores",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error("DNA Open Lab sync function privilege is incomplete.");
     }
+  }
+  if (bool(row.runtime_can_stage_legacy, "runtime_can_stage_legacy")) {
+    throw new Error("DNA Open Lab legacy staging privilege is not bounded.");
   }
   if (
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
@@ -353,19 +535,24 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
       const generationId = uuid(request.candidate.generationId, "generationId");
       const recordedAt = timestamp(request.recordedAt, "recordedAt");
       const acceptedAt = timestamp(request.acceptedAt, "acceptedAt");
+      const cores = ownedCoreRows({
+        candidate: request.candidate,
+        ownedCores: request.ownedCores,
+      });
       return transaction({
         ownerId: request.ownerId,
         readOnly: false,
         async run(client) {
           const staged = oneRow(
             await client.query(
-              "SELECT dna.stage_dna_open_lab_sync_candidate($1::uuid,$2::uuid,$3::timestamptz,$4::timestamptz,$5::jsonb) AS status",
+              "SELECT dna.stage_dna_open_lab_materialized_candidate($1::uuid,$2::uuid,$3::timestamptz,$4::timestamptz,$5::jsonb,$6::jsonb) AS status",
               [
                 databaseOwnerId,
                 generationId,
                 request.candidate.observedAt,
                 recordedAt,
                 JSON.stringify(request.candidate.families),
+                JSON.stringify(cores),
               ],
             ),
             "DNA Open Lab candidate staging",
@@ -423,6 +610,19 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
         readOnly: true,
         run: async (client) =>
           state(await client.query(READ_STATE_SQL, [databaseOwnerId])),
+      });
+    },
+
+    async readServingOwnedCores(request) {
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          const result = await client.query(READ_SERVING_OWNED_CORES_SQL, [
+            databaseOwnerId,
+          ]);
+          return Object.freeze(result.rows.map(servingOwnedCore));
+        },
       });
     },
   });

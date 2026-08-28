@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { DnaCurrentStateCandidate } from "@/lib/dna-open-lab-last-good-publication";
 import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import type { DnaOpenLabEvidence } from "@/lib/dna-open-lab-v1-adapters";
+import type { AdaptedCoreDetailsRow } from "@/domain/source-adapters";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -29,6 +31,57 @@ function candidate(
   };
 }
 
+function ownedCores(): readonly DnaOpenLabEvidence<AdaptedCoreDetailsRow>[] {
+  return [
+    {
+      source: "dna_open_lab",
+      sourceVersion: "v1",
+      scope: "vault",
+      endpoint: "vault.cores_full",
+      entityKey: "core:101",
+      observedAt: "2026-08-27T11:59:00.000Z",
+      rawEvidenceSha256: "a".repeat(64),
+      canonical: {
+        sourceType: "core_details",
+        sourceCoreId: "101",
+        displayName: "Synthetic Alpha",
+        coreClass: "Genesis",
+        element: "Metal",
+        fNumber: 1,
+        sex: "female",
+        colorSourceValue: null,
+        fatherSourceCoreId: null,
+        fatherNameSourceValue: null,
+        motherSourceCoreId: null,
+        motherNameSourceValue: null,
+      },
+    },
+    {
+      source: "dna_open_lab",
+      sourceVersion: "v1",
+      scope: "vault",
+      endpoint: "vault.cores_full",
+      entityKey: "core:202",
+      observedAt: "2026-08-27T11:59:30.000Z",
+      rawEvidenceSha256: "b".repeat(64),
+      canonical: {
+        sourceType: "core_details",
+        sourceCoreId: "202",
+        displayName: "Synthetic Beta",
+        coreClass: "Morphed",
+        element: "Fire",
+        fNumber: 12,
+        sex: "male",
+        colorSourceValue: null,
+        fatherSourceCoreId: null,
+        fatherNameSourceValue: null,
+        motherSourceCoreId: null,
+        motherNameSourceValue: null,
+      },
+    },
+  ];
+}
+
 function isolation(overrides: Record<string, unknown> = {}) {
   return {
     database_owner_id: databaseOwnerId,
@@ -39,13 +92,18 @@ function isolation(overrides: Record<string, unknown> = {}) {
     family_force_rls: true,
     state_rls: true,
     state_force_rls: true,
+    core_rls: true,
+    core_force_rls: true,
     runtime_can_access_generation: false,
     runtime_can_access_family: false,
     runtime_can_access_state: false,
+    runtime_can_access_core: false,
+    runtime_can_stage_legacy: false,
     runtime_can_stage: true,
     runtime_can_publish: true,
     runtime_can_pause: true,
     runtime_can_read: true,
+    runtime_can_read_cores: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -121,6 +179,7 @@ describe("Neon DNA Open Lab sync publication", () => {
       test.repository.publishCandidate({
         ownerId,
         candidate: candidate(),
+        ownedCores: ownedCores(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -138,6 +197,19 @@ describe("Neon DNA Open Lab sync publication", () => {
       "2026-08-27T12:00:00.000Z",
       "2026-08-27T12:01:00.000Z",
       JSON.stringify(candidate().families),
+      JSON.stringify(
+        ownedCores().map((entry) => ({
+          sourceCoreId: entry.canonical.sourceCoreId,
+          displayName: entry.canonical.displayName,
+          coreClass: entry.canonical.coreClass,
+          element: entry.canonical.element,
+          fNumber: entry.canonical.fNumber,
+          sex: entry.canonical.sex,
+          colorSourceValue: entry.canonical.colorSourceValue,
+          observedAt: entry.observedAt,
+          rawEvidenceSha256: entry.rawEvidenceSha256,
+        })),
+      ),
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
@@ -148,10 +220,36 @@ describe("Neon DNA Open Lab sync publication", () => {
       test.repository.publishCandidate({
         ownerId,
         candidate: candidate("partial"),
+        ownedCores: ownedCores(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
     ).rejects.toThrow("active_races");
+    expect(test.sessionFactory).not.toHaveBeenCalled();
+  });
+
+  it("rejects incomplete or duplicate owned Core materialization before SQL", async () => {
+    const test = harness([]);
+    await expect(
+      test.repository.publishCandidate({
+        ownerId,
+        candidate: candidate(),
+        ownedCores: ownedCores().slice(0, 1),
+        recordedAt: "2026-08-27T12:01:00.000Z",
+        acceptedAt: "2026-08-27T12:02:00.000Z",
+      }),
+    ).rejects.toThrow("owned Core count must match");
+
+    const duplicate = [ownedCores()[0]!, ownedCores()[0]!];
+    await expect(
+      test.repository.publishCandidate({
+        ownerId,
+        candidate: candidate(),
+        ownedCores: duplicate,
+        recordedAt: "2026-08-27T12:01:00.000Z",
+        acceptedAt: "2026-08-27T12:02:00.000Z",
+      }),
+    ).rejects.toThrow("owned Core IDs must be unique");
     expect(test.sessionFactory).not.toHaveBeenCalled();
   });
 
@@ -204,6 +302,52 @@ describe("Neon DNA Open Lab sync publication", () => {
       lastInterruption: null,
       lastCatchUpCompletedAt: null,
     });
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+  });
+
+  it("reads the serving generation's compact owned Core snapshot", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          source_core_id: "101",
+          display_name: "Synthetic Alpha",
+          core_class: "Genesis",
+          element: "Metal",
+          f_number: 1,
+          sex: "female",
+          color_source_value: null,
+          observed_at: new Date("2026-08-27T11:59:00.000Z"),
+          raw_evidence_sha256: "a".repeat(64),
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.readServingOwnedCores({ ownerId }),
+    ).resolves.toEqual([
+      {
+        generationId,
+        observedAt: "2026-08-27T11:59:00.000Z",
+        rawEvidenceSha256: "a".repeat(64),
+        canonical: {
+          sourceType: "core_details",
+          sourceCoreId: "101",
+          displayName: "Synthetic Alpha",
+          coreClass: "Genesis",
+          element: "Metal",
+          fNumber: 1,
+          sex: "female",
+          colorSourceValue: null,
+          fatherSourceCoreId: null,
+          fatherNameSourceValue: null,
+          motherSourceCoreId: null,
+          motherNameSourceValue: null,
+        },
+      },
+    ]);
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
   });
 

@@ -37,7 +37,9 @@ Persistent real Preview synchronization remains blocked by P5 capacity/recovery 
 - persistent finished-race backfill checkpoints and R2 receipt binding are
   delivered by migration `0070`; see
   `PHASE_4_FINISHED_RACE_BACKFILL_PERSISTENCE.md`;
-- canonical API read-model tables for proven current facts;
-- current-state generation materialization;
+- current owned-Core identity/ownership materialization is delivered by
+  migration `0071`; see `PHASE_4_OWNED_CORE_READ_MODEL.md`;
+- canonical current read models for supplemental Core, active-race, fill, Token
+  and Splice Arena facts;
 - worker scheduling and family cadences; and
 - storage/capacity/recovery measurement for the P5 gate.
