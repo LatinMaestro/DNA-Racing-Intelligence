@@ -129,8 +129,10 @@ scheduling now has a deterministic local cadence and recovery policy with
 pair reads. A one-request bounded runner dispatches through the conservative
 client pool, requires idempotently persisted evidence receipts and advances an
 exact-schedule compare-and-swap checkpoint after every accepted request. The
-owner-RLS Neon checkpoint adapter, private current-state evidence sink and
-dynamic ownership/Arena continuation remain incomplete.
+compact migration `0075` and its Neon adapter now enforce owner-RLS,
+function-only access, append-only progress, idempotent replay, immutable cycle
+authority and serializable compare-and-swap updates. The private current-state
+evidence sink and dynamic ownership/Arena continuation remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

@@ -211,22 +211,24 @@ export function validateDnaCurrentStateAcquisitionCycleCheckpoint(input: {
   validatedAt: string;
 }): DnaCurrentStateAcquisitionCycleCheckpoint {
   const validatedAt = timestamp(input.validatedAt, "validatedAt");
+  const checkpoint = validateDnaCurrentStateAcquisitionCycleCheckpointDocument({
+    checkpoint: input.checkpoint,
+    validatedAt,
+  });
   const expectedScheduleSha256 = scheduleSha256(input.schedule);
   const expectedKeys = scheduledEntries(input.schedule).map(requestKey);
   if (
-    input.checkpoint.version !== DNA_CURRENT_STATE_ACQUISITION_CYCLE_VERSION ||
-    !cycleStatuses.has(input.checkpoint.status) ||
-    input.checkpoint.cycleId !== input.cycleId ||
-    input.checkpoint.evaluatedAt !== input.schedule.evaluatedAt ||
-    input.checkpoint.scheduleSha256 !== expectedScheduleSha256 ||
-    JSON.stringify(input.checkpoint.scheduledRequestKeys) !==
+    checkpoint.cycleId !== input.cycleId ||
+    checkpoint.evaluatedAt !== input.schedule.evaluatedAt ||
+    checkpoint.scheduleSha256 !== expectedScheduleSha256 ||
+    JSON.stringify(checkpoint.scheduledRequestKeys) !==
       JSON.stringify(expectedKeys)
   ) {
     runnerError("stored cycle authority does not match the requested schedule");
   }
 
   const seen = new Set<string>();
-  const receipts = input.checkpoint.receipts.map((item) => {
+  const receipts = checkpoint.receipts.map((item) => {
     if (seen.has(item.requestKey)) runnerError("checkpoint repeats a receipt");
     seen.add(item.requestKey);
     if (!expectedKeys.includes(item.requestKey)) {
@@ -244,33 +246,103 @@ export function validateDnaCurrentStateAcquisitionCycleCheckpoint(input: {
     completedRequestKeys: seen,
   });
   if (
-    JSON.stringify(input.checkpoint.completedGroups) !==
+    JSON.stringify(checkpoint.completedGroups) !==
     JSON.stringify(expectedCompletedGroups)
   ) {
     runnerError("checkpoint completed-group evidence has drifted");
   }
+  return Object.freeze({
+    ...checkpoint,
+    receipts: Object.freeze(receipts),
+    completedGroups: expectedCompletedGroups,
+  });
+}
+
+/**
+ * Validates the self-contained durable document before schedule-specific
+ * authority is available. Repository adapters use this at the trust boundary;
+ * the runner performs the stricter schedule comparison above before acting.
+ */
+export function validateDnaCurrentStateAcquisitionCycleCheckpointDocument(input: {
+  checkpoint: DnaCurrentStateAcquisitionCycleCheckpoint;
+  validatedAt: string;
+}): DnaCurrentStateAcquisitionCycleCheckpoint {
+  const validatedAt = timestamp(input.validatedAt, "validatedAt");
+  const value = input.checkpoint;
+  if (
+    value.version !== DNA_CURRENT_STATE_ACQUISITION_CYCLE_VERSION ||
+    !cycleStatuses.has(value.status)
+  ) {
+    runnerError("stored cycle document version or status is invalid");
+  }
+  const normalizedCycleId = cycleId(value.cycleId);
+  const evaluatedAt = timestamp(value.evaluatedAt, "evaluatedAt");
+  if (
+    typeof value.scheduleSha256 !== "string" ||
+    !SHA_256_PATTERN.test(value.scheduleSha256) ||
+    !Array.isArray(value.scheduledRequestKeys) ||
+    value.scheduledRequestKeys.length > 512 ||
+    value.scheduledRequestKeys.some(
+      (key) => typeof key !== "string" || !SHA_256_PATTERN.test(key),
+    ) ||
+    new Set(value.scheduledRequestKeys).size !==
+      value.scheduledRequestKeys.length
+  ) {
+    runnerError("stored cycle schedule evidence is invalid");
+  }
+  const scheduledKeys = new Set(value.scheduledRequestKeys);
+  if (
+    !Array.isArray(value.receipts) ||
+    value.receipts.length > scheduledKeys.size
+  ) {
+    runnerError("stored cycle receipt count is invalid");
+  }
+  const seen = new Set<string>();
+  const receipts = value.receipts.map((item) => {
+    if (!scheduledKeys.has(item.requestKey) || seen.has(item.requestKey)) {
+      runnerError("stored cycle receipt coverage is invalid");
+    }
+    seen.add(item.requestKey);
+    return receipt(item, item.requestKey, evaluatedAt, validatedAt);
+  });
+  if (!Array.isArray(value.completedGroups)) {
+    runnerError("stored cycle completed groups are invalid");
+  }
+  const expectedGroupOrder = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter(
+    (group) => value.completedGroups.includes(group),
+  );
+  if (
+    JSON.stringify(value.completedGroups) !== JSON.stringify(expectedGroupOrder)
+  ) {
+    runnerError("stored cycle completed groups are invalid");
+  }
   const retryNotBefore =
-    input.checkpoint.retryNotBefore === null
+    value.retryNotBefore === null
       ? null
-      : timestamp(input.checkpoint.retryNotBefore, "retryNotBefore");
-  if (input.checkpoint.status === "paused" && retryNotBefore === null) {
-    // Availability and eligibility pauses can be indefinite. This is valid.
-  } else if (input.checkpoint.status !== "paused" && retryNotBefore !== null) {
+      : timestamp(value.retryNotBefore, "retryNotBefore");
+  if (value.status !== "paused" && retryNotBefore !== null) {
     runnerError("only a paused checkpoint may carry retryNotBefore");
   }
   if (
-    (input.checkpoint.status === "paused") !==
-      (input.checkpoint.pauseReason !== null) ||
-    (input.checkpoint.pauseReason !== null &&
-      !interruptionReasons.has(input.checkpoint.pauseReason))
+    (value.status === "paused") !== (value.pauseReason !== null) ||
+    (value.pauseReason !== null && !interruptionReasons.has(value.pauseReason))
   ) {
     runnerError("pauseReason must match paused checkpoint status");
   }
+  if (
+    (value.status === "awaiting_evidence" ||
+      value.status === "ready_to_publish") &&
+    receipts.length !== value.scheduledRequestKeys.length
+  ) {
+    runnerError("terminal acquisition state requires every request receipt");
+  }
   return Object.freeze({
-    ...input.checkpoint,
+    ...value,
+    cycleId: normalizedCycleId,
+    evaluatedAt,
+    scheduledRequestKeys: Object.freeze([...value.scheduledRequestKeys]),
     receipts: Object.freeze(receipts),
-    completedGroups: expectedCompletedGroups,
-    pauseReason: input.checkpoint.pauseReason,
+    completedGroups: Object.freeze([...value.completedGroups]),
     retryNotBefore,
   });
 }

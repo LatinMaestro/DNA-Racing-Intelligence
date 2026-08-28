@@ -67,7 +67,10 @@ shared conservative client pool. Validated evidence must be stored idempotently
 before its content-addressed receipt advances the exact-schedule cycle
 checkpoint by compare-and-swap. A process crash can therefore replay one
 evidence key safely, while plan drift, duplicate receipts and concurrent worker
-advancement fail closed. Raw response bodies are not stored in the checkpoint.
+advancement fail closed. Migration `0075` stores this compact control document
+under forced owner RLS and function-only runtime access; its Neon adapter uses
+serializable owner-scoped transactions and verifies exact response content.
+Raw response bodies are not stored in the checkpoint.
 
 ## Finished-race backfill completeness
 
