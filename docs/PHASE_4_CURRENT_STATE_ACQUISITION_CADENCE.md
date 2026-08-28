@@ -103,5 +103,8 @@ and selects full or staggered publication only after the durable checkpoint is
 ready. API interruptions update both the cycle checkpoint and last-good pause
 state. One operator boundary now composes durable identity/Arena discovery with
 that scheduled coordinator without increasing the one-request-per-invocation
-bound. The next P4 slice is the explicit P4/P5 readiness and recovery evidence
-matrix. This remains synthetic until the P5 gate.
+bound. The explicit P4/P5 readiness and recovery matrix now distinguishes local
+implementation evidence from connected acceptance, physical/cost measurements
+and owner approval. The current gate remains closed. The next safe slice is the
+bounded synthetic recovery harness and API-only capacity measurement design.
+This remains synthetic until the P5 gate.

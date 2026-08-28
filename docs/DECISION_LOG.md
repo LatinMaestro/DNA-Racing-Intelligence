@@ -559,3 +559,15 @@ After the private Pro League milestone, continue in this order:
   to one API request per invocation.
 - Both discovery and scheduled interruptions use the same owner-scoped
   last-good pause path. This remains synthetic and does not open P5.
+
+## 2026-08-28 — P4/P5 readiness is an explicit evidence matrix
+
+- Keep locally proven recovery implementation distinct from connected private
+  Preview acceptance and physical/cost measurements.
+- Require all seven P5 technical requirements to be satisfied before asking the
+  owner for first-persistent-sync approval.
+- Even complete technical evidence does not authorise persistence: the owner
+  approval remains a separate positive gate.
+- P5 can never authorise Production; Production remains a later separate gate.
+- The current matrix is closed because connected recovery, PostgreSQL 18
+  physical/peak, private R2 cost and positive Neon headroom evidence are pending.
