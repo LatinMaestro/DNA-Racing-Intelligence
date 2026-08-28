@@ -53,6 +53,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-r2-current-state-evidence.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
       "tests/dna-open-lab-p5-local-recovery-adapters.test.ts",
+      "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
       "CAS checkpoints, immutable first-write evidence and conflict-safe replay are proven locally; connected Preview restart evidence is outstanding.",
@@ -66,6 +67,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-current-state-cycle-coordinator.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
       "tests/dna-open-lab-p5-local-recovery-adapters.test.ts",
+      "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
       "Rate limits, invalid payloads, API outages and partial cycles preserve last-good state locally; connected Preview recovery evidence is outstanding.",
@@ -78,6 +80,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-current-state-acquisition-cadence.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
       "tests/dna-open-lab-p5-local-recovery-adapters.test.ts",
+      "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
       "Eligibility loss pauses non-destructively and requires catch-up locally; connected loss/reinstatement evidence is outstanding.",
@@ -90,6 +93,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/neon-dna-open-lab-sync-publication.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
       "tests/dna-open-lab-p5-local-recovery-adapters.test.ts",
+      "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
       "Owner-scoped last-good reads remain available while sync is paused locally; protected Preview acceptance is outstanding.",
