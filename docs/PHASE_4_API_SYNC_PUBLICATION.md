@@ -49,3 +49,7 @@ Persistent real Preview synchronization remains blocked by P5 capacity/recovery 
   explicitly rejecting runtime access to retired partial-stage functions;
 - acquisition-worker scheduling and endpoint-appropriate family cadences; and
 - storage/capacity/recovery measurement for the P5 gate.
+
+The deterministic local cadence/recovery policy is now delivered by
+`PHASE_4_CURRENT_STATE_ACQUISITION_CADENCE.md`. Hosted dispatch and durable cycle
+checkpoint wiring remain deferred.
