@@ -124,7 +124,10 @@ pagination publication guards and last-good reads. The Neon publication
 adapter now validates owned Cores, races/fills, all seven supplemental Core
 families, Token prices and complete Arena pagination before one `0074` staging
 transaction; retired partial-stage privileges fail closed. Acquisition-worker
-scheduling and endpoint-appropriate family cadence remain incomplete.
+scheduling now has a deterministic local cadence and recovery policy with
+30-request batches, complete cached-or-refreshed evidence guards and on-demand
+pair reads. The bounded request dispatcher and durable cycle checkpoint remain
+incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
