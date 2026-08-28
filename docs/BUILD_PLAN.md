@@ -150,7 +150,12 @@ authority and call the atomic `0074` publication repository exactly once. It
 fails closed before publication on request/evidence drift, incomplete Core or
 race coverage, partial Arena pagination or a non-ready checkpoint. Staggered
 cadence publication remains incomplete until a durable cached-family receipt
-index can prove the exact carried-forward evidence for every non-due group.
+index can prove the exact carried-forward evidence for every non-due group. The
+deterministic index contract now rebuilds full-plan receipt authority by taking
+due groups only from the current ready checkpoint and non-due groups only from
+a validated prior last-good index. It rejects plan/request drift, missing
+cached receipts, duplicate identities and future observations. Owner-RLS Neon
+persistence and atomic binding of this compact index to publication remain.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

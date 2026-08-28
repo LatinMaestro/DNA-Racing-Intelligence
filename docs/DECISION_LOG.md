@@ -485,3 +485,19 @@ After the private Pro League milestone, continue in this order:
   index identifies and verifies each cached family observation.
 - This slice is synthetic/replay only. It performs no DNA request or hosted
   write and does not open the P5 first-real-sync approval gate.
+
+## 2026-08-28 — Staggered cadence carries receipt authority, not timestamps
+
+- Define the complete expected receipt set from the immutable current-state
+  plan, excluding on-demand pair requests.
+- For each due group, accept receipts only from the current exact-schedule
+  `ready_to_publish` checkpoint. For each non-due group, accept receipts only
+  from the validated prior last-good receipt index.
+- Preserve source cycle, logical request key, observation time, content
+  checksum and private evidence object key per entry so every carried family
+  can be re-read and verified.
+- Reject missing prior authority, plan/request drift, duplicate keys, future
+  observations and partial due-group coverage. A family freshness timestamp is
+  never enough to reconstruct a generation.
+- This contract is synthetic and provider-neutral. Owner-RLS Neon persistence
+  and atomic publication binding are the next P4 slice; P5 remains closed.

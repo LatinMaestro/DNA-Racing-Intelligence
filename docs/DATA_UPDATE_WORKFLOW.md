@@ -136,6 +136,11 @@ verified private R2 receipt. Canonicalization and complete-family coverage run
 before the single atomic Neon publication call. A later staggered cadence cycle
 must not publish until durable cached-family receipt authority proves every
 carried-forward non-due group; a timestamp alone is not sufficient evidence.
+The receipt index contract preserves the exact source cycle, logical request,
+observation time, content checksum and private object key for each full-plan
+request. A staggered candidate replaces due-group entries from its current
+ready checkpoint and carries non-due entries only from the prior validated
+last-good index.
 
 The website must never appear fresher merely because a failed sync attempt occurred later.
 
