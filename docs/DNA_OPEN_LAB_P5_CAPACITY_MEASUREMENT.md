@@ -71,3 +71,11 @@ PostgreSQL/R2 adapters are implemented. A single guarded composition fixes the
 provider scope to private Preview and constructs both concrete adapters. No
 connected measurement has been performed, so PostgreSQL physical/peak storage,
 private R2 footprint/cost and positive Neon headroom remain pending P5 evidence.
+
+The connected invocation is separately opt-in, exact-head bound and limited to
+the guarded composition. It emits one canonical record no larger than 16 KiB.
+The record contains only reviewed counts, timestamps, hashes, costs and safety
+conclusions: authority references are domain-separated hashes, while provider
+configuration, credentials, owner/database/bucket/object identities, cursors,
+payloads and provider error details are never emitted. A connected invocation
+has not yet been run and this emission contract does not open P5.
