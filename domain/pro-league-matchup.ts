@@ -12,6 +12,40 @@ import {
 export type ProLeagueMatchupAssessment =
   "winning_range" | "top_three_range" | "outside_top_three_range";
 
+export type ProLeagueExactFormatPopulationBenchmark = Readonly<{
+  raceEntryCount: number;
+  winningEntryCount: number;
+  topThreeEntryCount: number;
+  winningMedianMilliseconds: number;
+  winningP75Milliseconds: number;
+  topThreeMedianMilliseconds: number;
+  topThreeP75Milliseconds: number;
+}>;
+
+export type ProLeagueExactFormatSupportingEvidence = Readonly<{
+  outcomes: Readonly<{
+    status: "available" | "unavailable";
+    winCount: number;
+    topThreeCount: number;
+  }>;
+  goldStar: Readonly<{
+    status: "available" | "unavailable";
+    assignedCount: number;
+    eligibleRaceCount: number;
+  }>;
+  blueStar: Readonly<{
+    status: "available" | "unavailable";
+    assignedCount: number;
+    opportunityCount: number;
+  }>;
+  strongOpposition: Readonly<{
+    status: "available" | "unavailable";
+    raceCount: number;
+    winCount: number;
+    topThreeCount: number;
+  }>;
+}>;
+
 export type ProLeagueExactFormatEvidence = Readonly<{
   raceType: string;
   distanceMetres: number;
@@ -20,6 +54,19 @@ export type ProLeagueExactFormatEvidence = Readonly<{
   freshness: FreshnessState;
   dataCurrentThrough: string;
   benchmarkAssessment: ProLeagueMatchupAssessment;
+  elapsedTime: Readonly<{
+    bestMilliseconds: number;
+    medianMilliseconds: number;
+    trimmedMeanMilliseconds: number;
+    standardDeviationMilliseconds: number;
+    interquartileRangeMilliseconds: number;
+  }>;
+  speed: Readonly<{
+    bestMetresPerSecond: number;
+    medianMetresPerSecond: number;
+  }>;
+  populationBenchmark: ProLeagueExactFormatPopulationBenchmark;
+  supportingEvidence: ProLeagueExactFormatSupportingEvidence;
 }>;
 
 export type ProLeagueMatchupCore = Pick<
@@ -45,6 +92,8 @@ export type ProLeagueMatchupLine = ProLeagueMapRace &
     mapId: ProLeagueMapId;
     ourRecommendedCoreId: string | null;
     oppositionLikelyCoreId: string | null;
+    ourEvidence: ProLeagueExactFormatEvidence | null;
+    oppositionEvidence: ProLeagueExactFormatEvidence | null;
     edge: ProLeagueMatchupLineEdge;
     evidenceWarning: string | null;
   }>;
@@ -94,6 +143,12 @@ export type ProLeagueMatchupAnalysis = Readonly<{
   homeVaultId: string;
   mapControl: "ours" | "opposition";
   gateAllocation: "equal_halves";
+  selectionMethod: Readonly<{
+    primaryEvidence: "exact_format_distance_time_speed_consistency";
+    populationComparison: "same_bike_race_type_and_exact_distance";
+    resultEvidenceRole: "supporting_only";
+    missingOppositionQuality: "unknown_never_favourable";
+  }>;
   maps: readonly ProLeagueMatchupMapAnalysis[];
   coverageGaps: readonly ProLeagueCoverageGap[];
   substitutionStrategy: Readonly<{
@@ -126,6 +181,139 @@ function usable(profile: ProLeagueExactFormatEvidence): boolean {
   );
 }
 
+function nonNegativeInteger(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+function positiveFinite(value: number): boolean {
+  return Number.isFinite(value) && value > 0;
+}
+
+function nonNegativeFinite(value: number): boolean {
+  return Number.isFinite(value) && value >= 0;
+}
+
+function derivedSpeed(distanceMetres: number, elapsedMilliseconds: number) {
+  return (
+    Math.round((distanceMetres / (elapsedMilliseconds / 1_000)) * 1_000) / 1_000
+  );
+}
+
+function derivedAssessment(
+  profile: ProLeagueExactFormatEvidence,
+): ProLeagueMatchupAssessment {
+  const { elapsedTime, populationBenchmark } = profile;
+  if (
+    elapsedTime.medianMilliseconds <=
+      populationBenchmark.winningMedianMilliseconds &&
+    elapsedTime.trimmedMeanMilliseconds <=
+      populationBenchmark.winningP75Milliseconds
+  ) {
+    return "winning_range";
+  }
+  if (
+    elapsedTime.medianMilliseconds <=
+      populationBenchmark.topThreeMedianMilliseconds &&
+    elapsedTime.trimmedMeanMilliseconds <=
+      populationBenchmark.topThreeP75Milliseconds
+  ) {
+    return "top_three_range";
+  }
+  return "outside_top_three_range";
+}
+
+function validSupportingEvidence(
+  evidence: ProLeagueExactFormatSupportingEvidence,
+  raceCount: number,
+): boolean {
+  const { outcomes, goldStar, blueStar, strongOpposition } = evidence;
+  return (
+    ["available", "unavailable"].includes(outcomes.status) &&
+    nonNegativeInteger(outcomes.winCount) &&
+    nonNegativeInteger(outcomes.topThreeCount) &&
+    outcomes.winCount <= outcomes.topThreeCount &&
+    outcomes.topThreeCount <= raceCount &&
+    (outcomes.status === "available" ||
+      (outcomes.winCount === 0 && outcomes.topThreeCount === 0)) &&
+    ["available", "unavailable"].includes(goldStar.status) &&
+    nonNegativeInteger(goldStar.assignedCount) &&
+    nonNegativeInteger(goldStar.eligibleRaceCount) &&
+    goldStar.assignedCount <= goldStar.eligibleRaceCount &&
+    goldStar.eligibleRaceCount <= raceCount &&
+    (goldStar.status === "available" ||
+      (goldStar.assignedCount === 0 && goldStar.eligibleRaceCount === 0)) &&
+    ["available", "unavailable"].includes(blueStar.status) &&
+    nonNegativeInteger(blueStar.assignedCount) &&
+    nonNegativeInteger(blueStar.opportunityCount) &&
+    blueStar.assignedCount <= blueStar.opportunityCount &&
+    blueStar.opportunityCount <= raceCount &&
+    (blueStar.status === "available" ||
+      (blueStar.assignedCount === 0 && blueStar.opportunityCount === 0)) &&
+    ["available", "unavailable"].includes(strongOpposition.status) &&
+    nonNegativeInteger(strongOpposition.raceCount) &&
+    nonNegativeInteger(strongOpposition.winCount) &&
+    nonNegativeInteger(strongOpposition.topThreeCount) &&
+    strongOpposition.winCount <= strongOpposition.topThreeCount &&
+    strongOpposition.topThreeCount <= strongOpposition.raceCount &&
+    strongOpposition.raceCount <= raceCount &&
+    ((strongOpposition.status === "available" &&
+      strongOpposition.raceCount > 0) ||
+      (strongOpposition.raceCount === 0 &&
+        strongOpposition.winCount === 0 &&
+        strongOpposition.topThreeCount === 0))
+  );
+}
+
+function validIntrinsicEvidence(
+  profile: ProLeagueExactFormatEvidence,
+): boolean {
+  const { elapsedTime, speed, populationBenchmark } = profile;
+  return (
+    positiveFinite(elapsedTime.bestMilliseconds) &&
+    positiveFinite(elapsedTime.medianMilliseconds) &&
+    positiveFinite(elapsedTime.trimmedMeanMilliseconds) &&
+    nonNegativeFinite(elapsedTime.standardDeviationMilliseconds) &&
+    nonNegativeFinite(elapsedTime.interquartileRangeMilliseconds) &&
+    elapsedTime.bestMilliseconds <= elapsedTime.medianMilliseconds &&
+    elapsedTime.bestMilliseconds <= elapsedTime.trimmedMeanMilliseconds &&
+    positiveFinite(speed.bestMetresPerSecond) &&
+    positiveFinite(speed.medianMetresPerSecond) &&
+    speed.bestMetresPerSecond >= speed.medianMetresPerSecond &&
+    Math.abs(
+      speed.bestMetresPerSecond -
+        derivedSpeed(profile.distanceMetres, elapsedTime.bestMilliseconds),
+    ) <= 0.001 &&
+    Math.abs(
+      speed.medianMetresPerSecond -
+        derivedSpeed(profile.distanceMetres, elapsedTime.medianMilliseconds),
+    ) <= 0.001 &&
+    Number.isSafeInteger(populationBenchmark.raceEntryCount) &&
+    populationBenchmark.raceEntryCount > 0 &&
+    Number.isSafeInteger(populationBenchmark.winningEntryCount) &&
+    populationBenchmark.winningEntryCount > 0 &&
+    Number.isSafeInteger(populationBenchmark.topThreeEntryCount) &&
+    populationBenchmark.topThreeEntryCount > 0 &&
+    populationBenchmark.winningEntryCount <=
+      populationBenchmark.topThreeEntryCount &&
+    populationBenchmark.topThreeEntryCount <=
+      populationBenchmark.raceEntryCount &&
+    positiveFinite(populationBenchmark.winningMedianMilliseconds) &&
+    positiveFinite(populationBenchmark.winningP75Milliseconds) &&
+    positiveFinite(populationBenchmark.topThreeMedianMilliseconds) &&
+    positiveFinite(populationBenchmark.topThreeP75Milliseconds) &&
+    populationBenchmark.winningMedianMilliseconds <=
+      populationBenchmark.winningP75Milliseconds &&
+    populationBenchmark.topThreeMedianMilliseconds <=
+      populationBenchmark.topThreeP75Milliseconds &&
+    populationBenchmark.winningMedianMilliseconds <=
+      populationBenchmark.topThreeMedianMilliseconds &&
+    populationBenchmark.winningP75Milliseconds <=
+      populationBenchmark.topThreeP75Milliseconds &&
+    validSupportingEvidence(profile.supportingEvidence, profile.raceCount) &&
+    derivedAssessment(profile) === profile.benchmarkAssessment
+  );
+}
+
 function validateCore(core: ProLeagueMatchupCore): string {
   const coreId = identity(core.coreId, "Pro League matchup Core ID");
   if (coreId !== core.coreId) {
@@ -152,10 +340,14 @@ function validateCore(core: ProLeagueMatchupCore): string {
       !["hypothesis_only", "minimally_analytical"].includes(
         profile.sampleStatus,
       ) ||
+      (profile.sampleStatus === "minimally_analytical" &&
+        profile.raceCount < 10) ||
+      (profile.sampleStatus === "hypothesis_only" && profile.raceCount >= 10) ||
       !["current", "ageing", "stale", "unknown"].includes(profile.freshness) ||
       !["winning_range", "top_three_range", "outside_top_three_range"].includes(
         profile.benchmarkAssessment,
       ) ||
+      !validIntrinsicEvidence(profile) ||
       Number.isNaN(observedAt.getTime()) ||
       observedAt.toISOString() !== profile.dataCurrentThrough
     ) {
@@ -169,6 +361,28 @@ type RankedCore = Readonly<{
   core: ProLeagueMatchupCore;
   profile: ProLeagueExactFormatEvidence;
 }>;
+
+function compareRanked(left: RankedCore, right: RankedCore): number {
+  return (
+    assessmentPower[right.profile.benchmarkAssessment] -
+      assessmentPower[left.profile.benchmarkAssessment] ||
+    left.profile.elapsedTime.medianMilliseconds -
+      right.profile.elapsedTime.medianMilliseconds ||
+    left.profile.elapsedTime.trimmedMeanMilliseconds -
+      right.profile.elapsedTime.trimmedMeanMilliseconds ||
+    left.profile.elapsedTime.standardDeviationMilliseconds -
+      right.profile.elapsedTime.standardDeviationMilliseconds ||
+    left.profile.elapsedTime.interquartileRangeMilliseconds -
+      right.profile.elapsedTime.interquartileRangeMilliseconds ||
+    left.profile.elapsedTime.bestMilliseconds -
+      right.profile.elapsedTime.bestMilliseconds ||
+    right.profile.raceCount - left.profile.raceCount ||
+    right.profile.dataCurrentThrough.localeCompare(
+      left.profile.dataCurrentThrough,
+    ) ||
+    left.core.coreId.localeCompare(right.core.coreId)
+  );
+}
 
 function rankedCores(
   cores: readonly ProLeagueMatchupCore[],
@@ -189,18 +403,18 @@ function rankedCores(
           (left, right) =>
             assessmentPower[right.benchmarkAssessment] -
               assessmentPower[left.benchmarkAssessment] ||
+            left.elapsedTime.medianMilliseconds -
+              right.elapsedTime.medianMilliseconds ||
+            left.elapsedTime.trimmedMeanMilliseconds -
+              right.elapsedTime.trimmedMeanMilliseconds ||
+            left.elapsedTime.standardDeviationMilliseconds -
+              right.elapsedTime.standardDeviationMilliseconds ||
             right.raceCount - left.raceCount ||
             right.dataCurrentThrough.localeCompare(left.dataCurrentThrough),
         );
       return profiles[0] === undefined ? [] : [{ core, profile: profiles[0] }];
     })
-    .sort(
-      (left, right) =>
-        assessmentPower[right.profile.benchmarkAssessment] -
-          assessmentPower[left.profile.benchmarkAssessment] ||
-        right.profile.raceCount - left.profile.raceCount ||
-        left.core.coreId.localeCompare(right.core.coreId),
-    );
+    .sort(compareRanked);
 }
 
 function lineEdge(
@@ -231,6 +445,8 @@ function analyseMap(
       mapId: map.mapId,
       ourRecommendedCoreId: ourBest?.core.coreId ?? null,
       oppositionLikelyCoreId: oppositionBest?.core.coreId ?? null,
+      ourEvidence: ourBest?.profile ?? null,
+      oppositionEvidence: oppositionBest?.profile ?? null,
       edge,
       evidenceWarning:
         edge === "unknown"
@@ -304,8 +520,7 @@ function coverageGaps(
         bestPower === null
           ? []
           : ranked.filter(
-              ({ profile }) =>
-                assessmentPower[profile.benchmarkAssessment] === bestPower,
+              (candidate) => compareRanked(ranked[0]!, candidate) === 0,
             );
       const status: ProLeagueCoverageStatus =
         bestPower === 3
@@ -416,6 +631,12 @@ export function buildProLeagueMatchupAnalysis(
     homeVaultId,
     mapControl,
     gateAllocation: "equal_halves",
+    selectionMethod: {
+      primaryEvidence: "exact_format_distance_time_speed_consistency",
+      populationComparison: "same_bike_race_type_and_exact_distance",
+      resultEvidenceRole: "supporting_only",
+      missingOppositionQuality: "unknown_never_favourable",
+    },
     maps: analysed.map((map) => ({
       ...map,
       selectionRank: mapControl === "ours" ? rank.get(map.mapId)! : null,

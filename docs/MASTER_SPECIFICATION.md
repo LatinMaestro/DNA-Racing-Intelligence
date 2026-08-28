@@ -461,6 +461,10 @@ The workspace must:
 - compare our rostered Core and the opposition's selected or likely Core for
   every exact race type and distance without treating missing evidence as an
   advantage;
+- rank exact-format candidates primarily by population-relative Bike elapsed
+  time, valid derived speed and consistency, with sample/freshness disclosed;
+  raw win/Top-3 rates, stars and evidenced strong-opposition results remain
+  supporting context and cannot override materially weaker intrinsic evidence;
 - identify weak/unproven format-distance coverage, distinguish genuinely strong
   Cores from weak best-available options, and connect each gap to efficient
   Discovery, breeding or provisional replacement guidance;

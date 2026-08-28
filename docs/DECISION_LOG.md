@@ -392,3 +392,25 @@ After the private Pro League milestone, continue in this order:
   bundles.
 - Continue avoiding committed raw provider responses. Persist compact canonical
   read models in Neon and immutable evidence in the approved R2 boundary.
+
+## 2026-08-28 — Pro League selection is performance-led, not win-rate-led
+
+- Raw win and Top-3 rates are descriptive supporting evidence only. Weak
+  opposition and off-distance Discovery entries can make those rates misleading.
+- For every published Bike race type and exact distance, compare Cores against
+  the matching overall DNA population using authoritative elapsed-time central
+  tendency, valid derived speed, variance/consistency, sample size and freshness.
+- Candidate ordering uses population benchmark band, median and trimmed-mean
+  elapsed time, standard deviation/interquartile range, then sample/freshness.
+  A single fastest run and raw outcomes cannot override materially weaker
+  sustained performance.
+- Gold/Blue stars and wins or Top-3s against independently evidenced strong
+  opposition may support confidence but remain separate from intrinsic
+  performance. Missing opposition-quality evidence is unknown, never favourable.
+- “Best currently owned” is not a population strength label. A weak
+  best-available Core remains provisional/test-before-lock and routes to focused
+  Discovery or breeding so the annual 10-substitution budget is not wasted.
+- The current API observation still lacks authoritative finished-race elapsed
+  time, result and explicit distance fields. The API-only website must disclose
+  that limitation until a supported contract exists; this decision does not
+  re-authorise CSV ingestion on the critical path.
