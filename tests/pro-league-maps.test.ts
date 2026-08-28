@@ -11,6 +11,7 @@ import {
 describe("Pro League maps", () => {
   it("preserves the four published 42-race maps and leaves map five undefined", () => {
     expect(proLeagueMapAuthority).toMatchObject({
+      raceMode: "bike",
       plannedMapCount: 5,
       definedMapCount: 4,
       matchFormat: {
@@ -29,7 +30,10 @@ describe("Pro League maps", () => {
     expect(proLeagueMaps.every(({ races }) => races.length === 42)).toBe(true);
     expect(
       proLeagueMaps.every(({ races }) =>
-        races.every(({ raceNumber }, index) => raceNumber === index + 1),
+        races.every(
+          ({ raceNumber, mode }, index) =>
+            raceNumber === index + 1 && mode === "bike",
+        ),
       ),
     ).toBe(true);
   });
@@ -37,21 +41,25 @@ describe("Pro League maps", () => {
   it("keeps exact race type and distance authority for representative lines", () => {
     expect(proLeagueMaps[0]?.races[0]).toEqual({
       raceNumber: 1,
+      mode: "bike",
       raceType: "1v1",
       distanceMetres: 1000,
     });
     expect(proLeagueMaps[1]?.races[41]).toEqual({
       raceNumber: 42,
+      mode: "bike",
       raceType: "6 gate WTA",
       distanceMetres: 2000,
     });
     expect(proLeagueMaps[2]?.races[21]).toEqual({
       raceNumber: 22,
+      mode: "bike",
       raceType: "6 gate madness",
       distanceMetres: 1600,
     });
     expect(proLeagueMaps[3]?.races[40]).toEqual({
       raceNumber: 41,
+      mode: "bike",
       raceType: "22 gate WTA",
       distanceMetres: 1400,
     });

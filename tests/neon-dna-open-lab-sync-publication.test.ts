@@ -5,6 +5,10 @@ import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-op
 import type { DnaOpenLabEvidence } from "@/lib/dna-open-lab-v1-adapters";
 import type { AdaptedCoreDetailsRow } from "@/domain/source-adapters";
 import type {
+  CanonicalActiveRaceSnapshot,
+  CanonicalRaceFillSnapshot,
+} from "@/lib/dna-open-lab-v1-adapters";
+import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
 } from "@/lib/neon-import-persistence-driver";
@@ -82,6 +86,56 @@ function ownedCores(): readonly DnaOpenLabEvidence<AdaptedCoreDetailsRow>[] {
   ];
 }
 
+function currentRaceEvidence() {
+  const activeRaces: readonly DnaOpenLabEvidence<CanonicalActiveRaceSnapshot>[] =
+    [
+      {
+        source: "dna_open_lab",
+        sourceVersion: "v1",
+        scope: "races",
+        endpoint: "races.active",
+        entityKey: "race:race-100",
+        observedAt: "2026-08-27T11:59:40.000Z",
+        rawEvidenceSha256: "c".repeat(64),
+        canonical: {
+          sourceType: "active_race_snapshot",
+          sourceRaceId: "race-100",
+          status: "filling",
+          displayName: "Synthetic Bike Race",
+          mode: "bike",
+          format: "normal",
+          raceClassSourceValue: 3,
+          fixedFeesByAsset: { DEZ: 0.25 },
+          entryFeeUsd: 2.5,
+          paymentAsset: "DEZ",
+          startAt: null,
+          endAt: null,
+        },
+      },
+    ];
+  const raceFills: readonly DnaOpenLabEvidence<CanonicalRaceFillSnapshot>[] = [
+    {
+      source: "dna_open_lab",
+      sourceVersion: "v1",
+      scope: "races",
+      endpoint: "races.fills",
+      entityKey: "race:race-100",
+      observedAt: "2026-08-27T11:59:50.000Z",
+      rawEvidenceSha256: "d".repeat(64),
+      canonical: {
+        sourceType: "race_fill_snapshot",
+        sourceRaceId: "race-100",
+        status: "filling",
+        gateCount: 4,
+        filledGateCount: 1,
+        entrantCoreIds: ["101"],
+        entryConfirmationsBySourceKey: { "101": true },
+      },
+    },
+  ];
+  return { activeRaces, raceFills };
+}
+
 function isolation(overrides: Record<string, unknown> = {}) {
   return {
     database_owner_id: databaseOwnerId,
@@ -94,16 +148,25 @@ function isolation(overrides: Record<string, unknown> = {}) {
     state_force_rls: true,
     core_rls: true,
     core_force_rls: true,
+    active_rls: true,
+    active_force_rls: true,
+    fill_rls: true,
+    fill_force_rls: true,
     runtime_can_access_generation: false,
     runtime_can_access_family: false,
     runtime_can_access_state: false,
     runtime_can_access_core: false,
+    runtime_can_access_active: false,
+    runtime_can_access_fill: false,
     runtime_can_stage_legacy: false,
+    runtime_can_stage_cores_only: false,
     runtime_can_stage: true,
     runtime_can_publish: true,
     runtime_can_pause: true,
     runtime_can_read: true,
     runtime_can_read_cores: true,
+    runtime_can_read_active: true,
+    runtime_can_read_fills: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -180,6 +243,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: ownedCores(),
+        ...currentRaceEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -210,6 +274,22 @@ describe("Neon DNA Open Lab sync publication", () => {
           rawEvidenceSha256: entry.rawEvidenceSha256,
         })),
       ),
+      JSON.stringify(
+        currentRaceEvidence().activeRaces.map((entry) => ({
+          sourceRaceId: entry.canonical.sourceRaceId,
+          observedAt: entry.observedAt,
+          rawEvidenceSha256: entry.rawEvidenceSha256,
+          canonical: entry.canonical,
+        })),
+      ),
+      JSON.stringify(
+        currentRaceEvidence().raceFills.map((entry) => ({
+          sourceRaceId: entry.canonical.sourceRaceId,
+          observedAt: entry.observedAt,
+          rawEvidenceSha256: entry.rawEvidenceSha256,
+          canonical: entry.canonical,
+        })),
+      ),
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
@@ -221,6 +301,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate("partial"),
         ownedCores: ownedCores(),
+        ...currentRaceEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -235,6 +316,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: ownedCores().slice(0, 1),
+        ...currentRaceEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -246,6 +328,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: duplicate,
+        ...currentRaceEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -349,6 +432,57 @@ describe("Neon DNA Open Lab sync publication", () => {
       },
     ]);
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+  });
+
+  it("reads only the serving generation's compact current-race snapshots", async () => {
+    const evidence = currentRaceEvidence();
+    const active = evidence.activeRaces[0]!;
+    const fill = evidence.raceFills[0]!;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [currentState()],
+      [
+        {
+          generation_id: generationId,
+          source_race_id: active.canonical.sourceRaceId,
+          observed_at: new Date(active.observedAt),
+          raw_evidence_sha256: active.rawEvidenceSha256,
+          canonical: active.canonical,
+        },
+      ],
+      [
+        {
+          generation_id: generationId,
+          source_race_id: fill.canonical.sourceRaceId,
+          observed_at: new Date(fill.observedAt),
+          raw_evidence_sha256: fill.rawEvidenceSha256,
+          canonical: fill.canonical,
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.readServingCurrentRaces({ ownerId }),
+    ).resolves.toEqual({
+      generationId,
+      activeRaces: [
+        {
+          sourceRaceId: active.canonical.sourceRaceId,
+          observedAt: active.observedAt,
+          rawEvidenceSha256: active.rawEvidenceSha256,
+          canonical: active.canonical,
+        },
+      ],
+      raceFills: [
+        {
+          sourceRaceId: fill.canonical.sourceRaceId,
+          observedAt: fill.observedAt,
+          rawEvidenceSha256: fill.rawEvidenceSha256,
+          canonical: fill.canonical,
+        },
+      ],
+    });
   });
 
   it("rolls back when forced-RLS or least-privilege evidence is unsafe", async () => {

@@ -232,6 +232,12 @@ Current API token prices, once connected, are current/reference context only. Th
 
 The current owner-provided/confirmed roster rules supersede the earlier 20 August announcement assumptions where they conflict.
 
+### Mode
+
+- The current Pro League is **Bike-only**.
+- Car and Horse evidence must not affect Pro League roster ranking, Discovery priorities or map assignments.
+- Bike/Car/Horse remain separate elsewhere in the private website. If DNA adds another Pro League mode later, introduce it only through a new versioned authority update.
+
 ### Vault and roster size
 
 - My Vault is unlimited.
@@ -268,7 +274,7 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 ### Performance relationship and advice scope
 
 - Pro League uses the same underlying Core stats/performance characteristics as normal DNA Racing.
-- Historical DNA Racing performance is therefore authoritative evidence for Pro League preparation, subject to normal chronology/sample/freshness rules.
+- Historical **Bike** performance is therefore the applicable evidence for Pro League preparation, subject to normal chronology/sample/freshness rules.
 - Current API evidence may enrich advice but must not be blindly blended into one opaque score or leak backward into historical backtests.
 - Pro League preparation remains advisory only. The website must never create a team, enter a race, place a bet, mint, trade, sign with a wallet or execute a splice.
 

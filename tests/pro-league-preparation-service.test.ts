@@ -167,7 +167,7 @@ describe("Pro League preparation service", () => {
     ).rejects.toThrow("access denied");
   });
 
-  it("uses My Vault plus cross-mode benchmark-relative performance", async () => {
+  it("uses My Vault plus Bike-only benchmark-relative performance", async () => {
     const { vault, performance, benchmark, payoutFormat } = repositories();
     const state = await loadProLeaguePreparationPageState({
       authenticatedOwnerId: ownerId,
@@ -183,10 +183,10 @@ describe("Pro League preparation service", () => {
     expect(state.connectionStatus).toBe("read_model_connected");
     expect(state.preparation?.overallPowerPool[0]).toMatchObject({
       coreId: "water-1",
-      powerTier: "multi_mode_top_three_range",
+      powerTier: "bike_winning_range",
       winningRangeModes: ["bike"],
-      topThreeOrBetterModes: ["bike", "car"],
-      analyticalModes: ["bike", "car"],
+      topThreeOrBetterModes: ["bike"],
+      analyticalModes: ["bike"],
       supportedPayoutFormatCount: 1,
     });
     expect(state.lastImportedAt).toBe("2026-08-20T00:00:00.000Z");

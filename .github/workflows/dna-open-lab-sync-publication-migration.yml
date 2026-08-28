@@ -39,6 +39,14 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
+      - name: Reverse dependent current-race read-model migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0072_dna_open_lab_current_race_read_model.down.sql
+      - name: Verify current-race read-model removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0072_dna_open_lab_current_race_read_model.removal.sql
       - name: Run DNA Open Lab sync publication smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file

@@ -347,6 +347,19 @@ After the private Pro League milestone, continue in this order:
   recommendations.
 - Sort materialization rows deterministically so replay and future database
   receipt checks are stable.
-- This contract is synthetic only. Generation-bound Neon tables/functions,
-  hosted migration, scheduling and any real owner-data sync remain separate
-  gated work.
+- Migration `0072` now supplies the generation-bound Neon tables/functions,
+  owner RLS, exact receipt checks and serving-generation reads. Hosted migration,
+  scheduling and any real owner-data sync remain separate gated work.
+
+## 2026-08-28 — Pro League is Bike-only
+
+- The owner has received clarification that the current DNA Pro League uses
+  Bike only.
+- Pro League roster ranking, Discovery priorities, race opportunity matching
+  and all four published map lineups use Bike evidence only.
+- Car and Horse history remains valid for Maiden, general Discovery, breeding
+  research and other private website workflows, but cannot affect Pro League
+  scores or recommendations.
+- Every published Pro League map race line is explicitly modelled as Bike. A
+  future additional mode requires a new versioned authority change; it is not
+  anticipated or inferred now.

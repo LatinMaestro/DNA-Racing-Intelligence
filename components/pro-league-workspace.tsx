@@ -25,12 +25,12 @@ const connectionCopy: Record<
   persistence_not_configured: {
     heading: "Vault, performance or format evidence not connected",
     detail:
-      "The planner requires My Vault, persisted cross-mode Core Performance profiles, exact-distance benchmarks and bounded payout-format profiles. It fails closed rather than showing a partial synthetic ranking.",
+      "The planner requires My Vault, persisted Bike Core Performance profiles, exact-distance benchmarks and bounded Bike payout-format profiles. It fails closed rather than showing a partial synthetic ranking.",
   },
   read_model_connected: {
     heading: "My Vault and DNA Racing power evidence connected",
     detail:
-      "Pro League uses accepted Bike, Car and Horse evidence, exact-distance winning/top-three benchmarks and descriptive payout-format context.",
+      "Pro League uses accepted Bike-only evidence, exact-distance winning/top-three benchmarks and descriptive Bike payout-format context.",
   },
 };
 
@@ -58,15 +58,7 @@ function rate(numerator: number, denominator: number): string {
 }
 
 function candidateSummary(core: ProLeagueCandidate): string {
-  const winningModes =
-    core.winningRangeModes.length === 0
-      ? "none"
-      : core.winningRangeModes.join(", ");
-  const topThreeModes =
-    core.topThreeOrBetterModes.length === 0
-      ? "none"
-      : core.topThreeOrBetterModes.join(", ");
-  return `Winning-range modes: ${winningModes} · Top-three-or-better modes: ${topThreeModes}`;
+  return `Bike analytical evidence: ${core.analyticalModes.includes("bike") ? "yes" : "no"}`;
 }
 
 function CandidateRow({
@@ -100,7 +92,7 @@ function CandidateRow({
       <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
         {candidateSummary(core)} · {core.winningRangeDistances} winning-range
         distance(s) · {core.topThreeOrBetterDistances} top-three-or-better
-        distance(s) · {core.analyticalModes.length}/3 analytical modes
+        distance(s)
       </p>
       <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
         Evidence current through: {timestamp(core.dataCurrentThrough)} ·
@@ -165,7 +157,7 @@ function Preparation({
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-semibold">{item.element}</h3>
                 <span className="text-xs text-[var(--muted)]">
-                  {item.multiModeStrongOwned} multi-mode strong
+                  {item.bikeStrongOwned} Bike-strong
                 </span>
               </div>
               <p className="mt-3 text-sm text-[var(--muted)]">
@@ -188,7 +180,7 @@ function Preparation({
         ) : (
           <p className="mt-4 text-sm text-[var(--muted)]">
             Structural minimums are available. The next objective is replacing
-            merely compliant cores with the strongest all-round candidates.
+            merely compliant cores with the strongest Bike candidates.
           </p>
         )}
       </section>
@@ -200,10 +192,9 @@ function Preparation({
               Overall power shortlist
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-              Ordered transparently by cross-mode winning-range breadth, then
-              top-three breadth, distance breadth, analytical coverage and
-              sample depth. This deliberately favours powerful all-rounders over
-              one-dimensional specialists.
+              Ordered transparently by Bike winning-range distance breadth, then
+              Bike top-three breadth, analytical coverage and sample depth. Car
+              and Horse results do not affect this shortlist.
             </p>
           </div>
           <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
@@ -225,9 +216,8 @@ function Preparation({
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
               No additional Genesis minting. Breed to close genuine structural
-              gaps and, once compliant, to improve elite all-round upside. A
-              weak Core should not be retained simply to fill the 25-Core
-              ceiling.
+              gaps and, once compliant, to improve elite Bike upside. A weak
+              Core should not be retained simply to fill the 25-Core ceiling.
             </p>
           </div>
           <Link
@@ -264,9 +254,9 @@ function Preparation({
             <h3 className="font-semibold">Element priorities</h3>
             {breedingTargets.length === 0 ? (
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                Every element has structural and current multi-mode quality
-                depth. Continue breeding only where the expected upside can
-                improve the strongest compliant roster nucleus.
+                Every element has structural and current Bike quality depth.
+                Continue breeding only where the expected upside can improve the
+                strongest compliant roster nucleus.
               </p>
             ) : (
               <ul className="mt-3 space-y-3 text-sm leading-6 text-[var(--muted)]">
@@ -275,7 +265,7 @@ function Preparation({
                     <strong className="text-[var(--foreground)]">
                       {target.element}:
                     </strong>{" "}
-                    {label(target.breedingPriority)} · multi-mode quality gap{" "}
+                    {label(target.breedingPriority)} · Bike quality gap{" "}
                     {target.powerDepthGap}. {target.breedingGuidance}
                   </li>
                 ))}
@@ -292,10 +282,9 @@ function Preparation({
               Pro League Discovery queue
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-              This is intentionally a discovery-heavy competition. Strong
-              evidence in one mode is a reason to test promising missing modes,
-              not a reason to assume them. Use lineage and adjacent-distance
-              evidence to choose efficient probes and stop weak paths early.
+              Use Bike evidence only. Apply lineage and adjacent-distance Bike
+              evidence to choose efficient probes and stop weak paths early; Car
+              and Horse Discovery remains outside Pro League.
             </p>
           </div>
           <Link
@@ -307,7 +296,7 @@ function Preparation({
         </div>
         {discovery.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 text-sm text-[var(--muted)]">
-            No cross-mode Discovery candidate is currently prioritised.
+            No Bike Discovery candidate is currently prioritised.
           </p>
         ) : (
           <ol className="mt-4 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] px-5">
@@ -327,8 +316,11 @@ function Preparation({
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-[var(--muted)]">
-                  {core.analyticalModes.length}/3 analytical modes ·{" "}
-                  {core.winningRangeDistances} winning-range distance(s) ·{" "}
+                  Bike analytical evidence{" "}
+                  {core.analyticalModes.includes("bike")
+                    ? "available"
+                    : "missing"}{" "}
+                  · {core.winningRangeDistances} winning-range distance(s) ·{" "}
                   {core.topThreeOrBetterDistances} top-three-or-better
                   distance(s)
                 </p>
