@@ -176,6 +176,9 @@ The bounded recovery harness advances one fixed scenario per invocation, binds
 its report to an exact code head/provider scope and rejects real owner-data
 writes, raw payloads, secrets, excessive requests and uncleared synthetic
 provider residue.
+Each recovery case now has a typed local adapter for its decisive observable
+outcome, preventing generic success flags from substituting for case-specific
+receipt, retry, pause, atomicity or drift proof.
 The API-only capacity contract now binds PostgreSQL 18 physical/peak evidence
 and private R2 footprint/operation/cost evidence to the same exact head and
 complete plan checksum without treating local design evidence as connected P5

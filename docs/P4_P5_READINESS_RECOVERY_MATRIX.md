@@ -34,6 +34,12 @@ raw payload or secret evidence, and any synthetic provider residue. A local
 synthetic report remains local evidence only; it cannot satisfy connected
 private Preview acceptance.
 
+The local adapter layer maps every case to its decisive observable outcome. It
+cannot mark a case passed from generic success alone: receipt replay, CAS loss,
+retry boundary, reduced allowance, eligibility pause/catch-up, body authority,
+pre-staging evidence rejection, atomicity and plan-drift assertions are checked
+separately.
+
 ## Recovery acceptance cases
 
 Every connected recovery case must record the exact code head, provider scope,
@@ -63,5 +69,7 @@ generation. Raw owner payloads and API keys must not enter the report.
 - The bounded recovery evidence harness is implemented locally.
 - The API-only PostgreSQL 18/R2 measurement contract is implemented locally;
   all three capacity rows remain pending connected evidence.
-- The next safe work is the concrete recovery scenario adapters and bounded
-  synthetic PostgreSQL 18 measurement runner.
+- The generic harness and case-specific local assertion adapters are
+  implemented; concrete component scenario executors remain outstanding.
+- The next safe work is the component scenario executors and bounded synthetic
+  PostgreSQL 18 measurement runner.

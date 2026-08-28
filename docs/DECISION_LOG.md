@@ -583,6 +583,9 @@ After the private Pro League milestone, continue in this order:
 - Reject raw payloads, secrets, changed head/scope, out-of-order checkpoints and
   completed-checkpoint replay from the evidence report.
 - A complete local report remains local evidence only and cannot open P5.
+- Require a case-specific assertion adapter between each scenario executor and
+  the generic harness so generic success cannot substitute for the required
+  receipt, checkpoint, retry, pause, atomicity or plan-drift outcome.
 
 ## 2026-08-28 — API-only capacity evidence uses an exact measurement contract
 
