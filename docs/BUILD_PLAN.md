@@ -118,8 +118,10 @@ deterministic race identity, point-in-time chronology, owner RLS, last-good
 serving and active/fill referential coverage. Migration `0073` persists all
 seven supplemental current-Core families with exact owned-Core coverage, owner
 RLS and last-good reads. Token prices and complete paginated Splice Arena now
-have generation-bound canonical materialization; their compact persistence and
-bounded scheduling remain incomplete.
+have generation-bound canonical materialization. Migration `0074` adds compact
+owner-RLS Token, Arena mode/page-receipt and listing persistence with complete
+pagination publication guards and last-good reads. Bounded worker wiring and
+family cadence remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
