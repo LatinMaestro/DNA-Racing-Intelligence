@@ -165,6 +165,13 @@ because a Core is the best weak option currently owned; if structural rules
 force temporary inclusion, label it provisional and preserve the annual
 10-substitution budget for evidence-backed replacements.
 
+Candidate ordering must be performance-led, not win-rate-led. Establish the
+same Bike race-type-plus-exact-distance population boundary, then compare
+elapsed-time central tendency and consistency, valid derived speed,
+sample/freshness and benchmark band. Keep wins/Top-3s, payout format, stars and
+strong-opposition results as separately disclosed supporting evidence. Missing
+field-quality evidence is unknown, never favourable.
+
 Exit: synthetic rule-valid Pro League roster and map-lineup workflow.
 
 ## P7 — Pro League intelligence enrichment
@@ -172,6 +179,11 @@ Exit: synthetic rule-valid Pro League roster and map-lineup workflow.
 Keep audited historical Bike Core Performance, exact-distance, star,
 payout/sample and recency evidence as the primary historical base. Car and Horse
 remain separate non-Pro-League evidence and must not affect this workflow.
+
+Materialize the joint race-type-plus-exact-distance benchmark/read contract
+needed by the published maps. If the API still lacks authoritative elapsed time,
+distance or result fields, show that historical dimension as unavailable rather
+than fabricating it or reviving CSV as a delivery dependency.
 
 Add separately presented current API dimensions where available:
 

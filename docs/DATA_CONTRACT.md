@@ -249,8 +249,11 @@ The Pro League domain requires enough current and historical evidence to validat
 - class/element/F-number/sex;
 - current ownership;
 - exact-distance/mode historical strength;
+- joint Bike race-type-plus-exact-distance elapsed-time, valid derived-speed and
+  consistency evidence with population benchmark counts and thresholds;
 - sample counts and recency;
-- star/payout-format evidence;
+- descriptive win/Top-3, star, payout-format and independently established
+  strong-opposition evidence kept separate from intrinsic performance;
 - current API dimensions kept separate from historical evidence;
 - structural gaps;
 - alternates;
