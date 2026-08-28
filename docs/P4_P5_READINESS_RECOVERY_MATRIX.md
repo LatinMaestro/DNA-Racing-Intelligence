@@ -73,9 +73,10 @@ generation. Raw owner payloads and API keys must not enter the report.
 - No persistent real owner-data backfill or sync may start.
 - The bounded recovery evidence harness is implemented locally.
 - The API-only PostgreSQL 18/R2 measurement contract is implemented locally;
-  all three capacity rows remain pending connected evidence.
+  its bounded synthetic runner and private R2 footprint collector are also
+  implemented; all three capacity rows remain pending connected evidence.
 - The generic harness, case-specific assertion adapters and raw
   component-observation executor are implemented; connected acceptance remains
   outstanding.
-- The next safe work is the bounded synthetic PostgreSQL 18 measurement runner
-  and private R2 footprint collector.
+- The next safe work is the least-privilege PostgreSQL 18 physical-size and
+  private R2 listing adapters, followed by bounded connected synthetic evidence.

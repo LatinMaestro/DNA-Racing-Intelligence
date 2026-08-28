@@ -104,6 +104,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
     evidenceRefs: Object.freeze([
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+      "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
     ]),
     conclusion:
       "The API-only PostgreSQL 18 measurement contract is implemented; connected heap, index, TOAST and transient-overlap evidence remains pending.",
@@ -114,6 +115,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
     evidenceRefs: Object.freeze([
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+      "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
     ]),
     conclusion:
       "The private R2 footprint and priced-operation contract is implemented; connected retained bytes, request volume and cost evidence remains pending.",
@@ -124,6 +126,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
     evidenceRefs: Object.freeze([
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+      "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
     ]),
     conclusion:
       "The API-only peak-headroom rule is machine-checkable; connected evidence must still prove positive headroom below 536,870,912 bytes.",

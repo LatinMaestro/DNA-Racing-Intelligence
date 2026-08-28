@@ -610,3 +610,18 @@ After the private Pro League milestone, continue in this order:
   provider-scope harness limits authoritative after component derivation.
 - This remains local synthetic implementation evidence. It neither satisfies
   connected private Preview acceptance nor opens P5.
+
+## 2026-08-28 — Capacity measurement is bounded and cleanup-enforced
+
+- Read PostgreSQL major version and physical database/relation sizes through a
+  measurement port; the synthetic cycle only selects transient sample points
+  and cannot supply the measured byte values.
+- Require baseline, component-triggered transient and settled samples, using
+  their maximum for Neon headroom.
+- Enumerate only a private R2 bucket through bounded pagination, reject repeated
+  cursors or object identities and retain only redacted identity hashes and
+  byte counts in measurement evidence.
+- Always execute synthetic cleanup, including after measurement failure, and
+  reject residue, persistent owner-data writes, raw payloads or secrets.
+- Local runner evidence remains insufficient for P5; connected provider
+  measurement and review are still required.

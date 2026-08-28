@@ -188,6 +188,10 @@ The API-only capacity contract now binds PostgreSQL 18 physical/peak evidence
 and private R2 footprint/operation/cost evidence to the same exact head and
 complete plan checksum without treating local design evidence as connected P5
 acceptance.
+The bounded measurement runner reads PostgreSQL sizes itself around a complete
+synthetic cycle, requires a component-triggered transient sample, enumerates a
+private R2 footprint through bounded identity-deduplicated pagination and
+always cleans synthetic evidence before emitting the capacity report.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

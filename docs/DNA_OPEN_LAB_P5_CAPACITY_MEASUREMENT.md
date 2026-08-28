@@ -18,8 +18,9 @@ Measure the protected private Preview path on PostgreSQL 18 and record:
 - settled database size after a complete synthetic full cycle;
 - the maximum sampled database size while staging and atomic publication overlap;
 - owner-scoped heap, index and TOAST bytes after settlement; and
-- at least two physical-size samples so a single settled reading cannot be
-  presented as transient-peak evidence.
+- a baseline sample, at least one component-triggered transient sample and a
+  settled sample so a single settled reading cannot be presented as
+  transient-peak evidence.
 
 The approved boundary remains `536870912` bytes. Peak—not settled size—is used
 for headroom. Zero headroom is blocking.
@@ -43,9 +44,15 @@ reproducible. Empty footprint or operation observations fail closed.
   connected recovery evidence and explicit owner approval remain separate.
 - Every bounded provider test must use synthetic data, write no persistent real
   owner data, include no raw payload or secret material, and leave zero residue.
+- The runner always invokes cleanup, including after a measurement failure, and
+  rejects unsafe cleanup evidence.
+- R2 enumeration requires a private bucket, bounds pages and object count,
+  rejects repeated cursors and deduplicates by redacted SHA-256 object identity.
+  Raw object keys and bodies do not enter the footprint report.
 
 ## Current state
 
-The measurement contract is implemented, but no connected measurement has been
-performed. PostgreSQL physical/peak storage, private R2 footprint/cost and
-positive Neon headroom therefore remain pending P5 evidence.
+The measurement contract and bounded synthetic runner are implemented, but no
+connected measurement has been performed. PostgreSQL physical/peak storage,
+private R2 footprint/cost and positive Neon headroom therefore remain pending
+P5 evidence.
