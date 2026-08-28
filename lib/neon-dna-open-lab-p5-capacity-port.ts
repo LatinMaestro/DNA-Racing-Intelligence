@@ -11,6 +11,25 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const MAXIMUM_RELATIONS = 512;
 
+/** Complete API-only DNA Open Lab relation inventory through migration 0076. */
+export const DNA_OPEN_LAB_P5_OWNER_RELATION_NAMES = Object.freeze([
+  "dna_open_lab_active_race_snapshot",
+  "dna_open_lab_core_supplemental_snapshot",
+  "dna_open_lab_current_state_acquisition_cycle",
+  "dna_open_lab_current_state_evidence_index",
+  "dna_open_lab_finished_race_backfill_checkpoint",
+  "dna_open_lab_finished_race_window_receipt",
+  "dna_open_lab_owned_core_snapshot",
+  "dna_open_lab_race_fill_snapshot",
+  "dna_open_lab_splice_arena_listing_snapshot",
+  "dna_open_lab_splice_arena_mode_snapshot",
+  "dna_open_lab_splice_arena_page_snapshot",
+  "dna_open_lab_sync_family",
+  "dna_open_lab_sync_generation",
+  "dna_open_lab_sync_state",
+  "dna_open_lab_token_prices_snapshot",
+] as const);
+
 const SET_OWNER_SCOPE_SQL = `
   SELECT set_config('app.owner_id', $1, true) AS owner_scope
 `;
@@ -84,7 +103,6 @@ export type NeonDnaOpenLabP5CapacityPortConfiguration = Readonly<{
   databaseOwnerId: string;
   databaseUrl: string;
   runtimeRole: string;
-  ownerRelationNames: readonly string[];
   sessionFactory?: NeonImportPersistenceSessionFactory;
 }>;
 
@@ -206,7 +224,7 @@ export function createNeonDnaOpenLabP5PostgresCapacityPort(
   if (!SAFE_RUNTIME_ROLE_PATTERN.test(runtimeRole)) {
     capacityError("runtimeRole is invalid");
   }
-  const relationNames = ownerRelations(configuration.ownerRelationNames);
+  const relationNames = ownerRelations(DNA_OPEN_LAB_P5_OWNER_RELATION_NAMES);
   const sessionFactory =
     configuration.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 

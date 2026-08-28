@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createNeonDnaOpenLabP5PostgresCapacityPort } from "@/lib/neon-dna-open-lab-p5-capacity-port";
+import {
+  createNeonDnaOpenLabP5PostgresCapacityPort,
+  DNA_OPEN_LAB_P5_OWNER_RELATION_NAMES,
+} from "@/lib/neon-dna-open-lab-p5-capacity-port";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
 } from "@/lib/neon-import-persistence-driver";
 
 const databaseOwnerId = "11111111-1111-4111-8111-111111111111";
-const relations = [
-  "dna_open_lab_current_state_generation",
-  "dna_open_lab_current_state_evidence_receipt",
-] as const;
+const relations = DNA_OPEN_LAB_P5_OWNER_RELATION_NAMES;
 
 function runtimeEvidence(overrides: Record<string, unknown> = {}) {
   return {
@@ -55,7 +55,7 @@ function fixture(
       return {
         rows: [
           {
-            relation_count: overrides.relationCount ?? "2",
+            relation_count: overrides.relationCount ?? String(relations.length),
             heap_bytes: "45000000",
             index_bytes: "20000000",
             toast_bytes: "5000000",
@@ -79,7 +79,6 @@ function fixture(
     databaseOwnerId,
     databaseUrl: "postgresql://runtime:secret@preview.invalid/dna",
     runtimeRole: "dna_app_runtime",
-    ownerRelationNames: relations,
     sessionFactory,
   });
   return { port, query, close, sessionFactory };
@@ -156,28 +155,24 @@ describe("DNA Open Lab P5 Neon capacity port", () => {
     },
   );
 
-  it("rejects unsafe or duplicate relation allowlists before opening a session", () => {
-    const sessionFactory = vi.fn<NeonImportPersistenceSessionFactory>();
-    const base = {
-      authorizedOwnerId: "owner-1",
-      databaseOwnerId,
-      databaseUrl: "postgresql://preview.invalid/dna",
-      runtimeRole: "dna_app_runtime",
-      sessionFactory,
-    };
-    expect(() =>
-      createNeonDnaOpenLabP5PostgresCapacityPort({
-        ...base,
-        ownerRelationNames: ["valid", "valid"],
-      }),
-    ).toThrow("ownerRelationNames is invalid");
-    expect(() =>
-      createNeonDnaOpenLabP5PostgresCapacityPort({
-        ...base,
-        ownerRelationNames: ["dna.valid; DROP TABLE dna.app_owner"],
-      }),
-    ).toThrow("ownerRelationNames is invalid");
-    expect(sessionFactory).not.toHaveBeenCalled();
+  it("binds the exact migration-0076 API-only relation inventory", () => {
+    expect(relations).toEqual([
+      "dna_open_lab_active_race_snapshot",
+      "dna_open_lab_core_supplemental_snapshot",
+      "dna_open_lab_current_state_acquisition_cycle",
+      "dna_open_lab_current_state_evidence_index",
+      "dna_open_lab_finished_race_backfill_checkpoint",
+      "dna_open_lab_finished_race_window_receipt",
+      "dna_open_lab_owned_core_snapshot",
+      "dna_open_lab_race_fill_snapshot",
+      "dna_open_lab_splice_arena_listing_snapshot",
+      "dna_open_lab_splice_arena_mode_snapshot",
+      "dna_open_lab_splice_arena_page_snapshot",
+      "dna_open_lab_sync_family",
+      "dna_open_lab_sync_generation",
+      "dna_open_lab_sync_state",
+      "dna_open_lab_token_prices_snapshot",
+    ]);
   });
 
   it("sanitizes provider failures and closes the session", async () => {

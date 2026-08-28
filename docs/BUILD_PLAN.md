@@ -196,6 +196,9 @@ The provider adapters now execute PostgreSQL catalog measurements only through
 an owner-bound, non-privileged, read-only runtime and enumerate R2 only beneath
 the hashed owner prefix, reducing raw object identities to hashes and byte
 counts before they enter the runner.
+Connected capacity composition fixes private Preview scope, constructs both
+guarded adapters and uses the complete migration-`0076` API-only relation
+inventory; callers cannot substitute local scope or partial catalog coverage.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
