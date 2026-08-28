@@ -666,3 +666,18 @@ After the private Pro League milestone, continue in this order:
   identities, cursors, payloads or provider error details.
 - Emission can support review of the three P5 capacity rows only. It cannot
   authorise persistent Preview sync or Production.
+
+## 2026-08-28 — Connected capacity uses a fixed rollback-only workload
+
+- Remove caller-supplied synthetic-cycle and cleanup callbacks from the guarded
+  private Preview composition.
+- Generate one non-owner all-family candidate and execute the production atomic
+  publication repository inside a serializable transaction.
+- Capture the transient PostgreSQL sample before replacing the repository's
+  final commit with rollback, then prove the synthetic generation is neither
+  accepted nor serving.
+- Create one bounded JSON R2 marker beneath the hashed owner prefix, verify its
+  checksum/metadata, include it in the footprint and delete it during mandatory
+  cleanup. Existing markers and any residue fail closed.
+- This can produce connected capacity evidence only. It does not persist real
+  owner data, open P5, authorise Production or perform a DNA transaction.
