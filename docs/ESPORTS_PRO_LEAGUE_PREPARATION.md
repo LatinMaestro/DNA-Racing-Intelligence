@@ -159,7 +159,7 @@ Historical and chronological performance remains the preferred analytical eviden
 - star profiles;
 - payout-format profiles;
 - sample/recency evidence;
-- cross-mode breadth;
+- Bike exact-distance breadth;
 - Discovery outcomes; and
 - lineage evidence.
 
@@ -234,12 +234,14 @@ Prioritise:
 1. candidates that could enter the nucleus;
 2. candidates that could replace a marginal roster Core;
 3. tests that resolve a structural gap;
-4. promising missing modes/adjacent distances for known strong Cores; and
+4. promising missing/adjacent Bike distances for known strong Cores; and
 5. lineage-supported hypotheses with credible upside.
 
 Retain the existing minimum of **10 races per Core × mode × exact distance** for a minimally analytical conclusion. Earlier evidence may support continue/stop hypotheses but not fabricate confidence.
 
-Stop weak paths early. Preserve separate Bike/Car/Horse evidence.
+Stop weak paths early. Use Bike evidence only for Pro League. Preserve separate
+Car and Horse evidence for non-Pro-League workflows without allowing it to
+affect Pro League ranking or mapping.
 
 ## Active-race opportunity matching
 
@@ -299,9 +301,9 @@ There is no authority to treat the maximum values as targets. The strongest rost
 
 Every recommendation to expand beyond the nucleus should state the incremental reason, for example:
 
-- unique high-level mode/distance strength;
+- unique high-level Bike distance strength;
 - material coverage of a structural weakness;
-- credible all-round breadth;
+- credible Bike distance breadth;
 - substitution-risk hedge;
 - strategic specialist value; or
 - evidence-backed upside that is not duplicated by the current roster.

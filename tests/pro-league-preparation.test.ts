@@ -53,8 +53,9 @@ describe("Pro League preparation", () => {
 
     expect(result.mintStrategy).toBe("no_additional_genesis_mint");
     expect(result.performanceAuthority).toBe("shared_dna_racing_core_stats");
+    expect(result.raceMode).toBe("bike");
     expect(result.selectionObjective).toBe(
-      "most_powerful_overall_cross_mode_and_format",
+      "most_powerful_bike_exact_distance_and_format",
     );
     expect(result.formatEvidenceStatus).toBe("descriptive_context_connected");
     expect(result.genesisInterpretationStatus).toBe("confirmed");
@@ -96,7 +97,7 @@ describe("Pro League preparation", () => {
     const candidate = result.overallPowerPool[0]!;
 
     expect(candidate.supportedPayoutFormatCount).toBe(1);
-    expect(candidate.payoutFormatProfiles).toHaveLength(2);
+    expect(candidate.payoutFormatProfiles).toHaveLength(1);
     expect(candidate.powerTier).toBe("unproven");
     expect(candidate.reasons.join(" ")).toContain("descriptive context only");
   });
@@ -119,7 +120,7 @@ describe("Pro League preparation", () => {
     expect(result.selectableUnderGenesisCaps).toBe(3);
   });
 
-  it("ranks broad winning-range power ahead of a one-mode specialist", () => {
+  it("ranks Bike exact-distance depth without using car or horse evidence", () => {
     const result = buildProLeaguePreparation([
       core("all-rounder", "Water", {
         performanceProfiles: [
@@ -138,18 +139,21 @@ describe("Pro League preparation", () => {
     ]);
 
     expect(result.overallPowerPool[0]).toMatchObject({
-      coreId: "all-rounder",
-      powerTier: "multi_mode_winning_range",
-      winningRangeModes: ["bike", "car"],
-      topThreeOrBetterModes: ["bike", "car", "horse"],
+      coreId: "specialist",
+      powerTier: "bike_winning_range",
+      winningRangeModes: ["bike"],
+      winningRangeDistances: 3,
     });
     expect(result.overallPowerPool[1]).toMatchObject({
-      coreId: "specialist",
-      powerTier: "single_mode_winning_range",
+      coreId: "all-rounder",
+      powerTier: "bike_winning_range",
+      winningRangeModes: ["bike"],
+      topThreeOrBetterModes: ["bike"],
+      winningRangeDistances: 1,
     });
   });
 
-  it("prioritises Discovery when a powerful core is still untested in other modes", () => {
+  it("uses Bike evidence without requesting car or horse Discovery", () => {
     const result = buildProLeaguePreparation([
       core("promising", "Fire", {
         sex: "female",
@@ -161,11 +165,11 @@ describe("Pro League preparation", () => {
 
     expect(result.discoveryQueue[0]).toMatchObject({
       coreId: "promising",
-      discoveryPriority: "high",
-      powerTier: "single_mode_winning_range",
+      discoveryPriority: "medium",
+      powerTier: "bike_winning_range",
     });
     expect(result.discoveryQueue[0]?.reasons.join(" ")).toContain(
-      "missing modes",
+      "Bike has minimally analytical",
     );
   });
 
@@ -185,7 +189,7 @@ describe("Pro League preparation", () => {
     });
   });
 
-  it("labels stale evidence and excludes it from current power tiers", () => {
+  it("excludes horse evidence entirely from Pro League assessment", () => {
     const result = buildProLeaguePreparation([
       core("stale-signal", "Earth", {
         performanceProfiles: [
@@ -197,8 +201,9 @@ describe("Pro League preparation", () => {
     expect(result.overallPowerPool[0]).toMatchObject({
       coreId: "stale-signal",
       powerTier: "unproven",
-      evidenceFreshness: "stale",
-      dataCurrentThrough: "2026-08-19T00:00:00.000Z",
+      evidenceFreshness: "unknown",
+      dataCurrentThrough: null,
+      totalRaceCount: 0,
     });
   });
 

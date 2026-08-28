@@ -1,10 +1,12 @@
 import type { CoreClass, CoreElement, CoreSex } from "@/domain/source-adapters";
 
 export const proLeagueCurrentRules = Object.freeze({
-  rulesetId: "dna-pro-league/owner-confirmed-2026-08-27",
+  rulesetId: "dna-pro-league/owner-confirmed-2026-08-28",
   evidenceStatus: "owner_confirmed" as const,
-  sourceLabel: "Owner-confirmed DNA Pro League setup update",
-  receivedAt: "2026-08-27",
+  sourceLabel:
+    "Owner-confirmed DNA Pro League rules and Bike-only clarification",
+  raceMode: "bike" as const,
+  receivedAt: "2026-08-28",
   minimumRosterSize: 12,
   maximumRosterSize: 25,
   maximumSubstitutionsPerYear: 10,

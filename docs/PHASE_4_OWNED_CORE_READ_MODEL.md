@@ -52,8 +52,8 @@ the first persistent real Preview synchronization.
 
 ## Deferred P4 work
 
-- the active-race/fill materialization input contract is implemented; its
-  generation-bound Neon migration remains pending;
+- generation-bound active-race/fill persistence is implemented by migration
+  `0072`;
 - supplemental Core observations, including power, racing stats, stamina,
   assets, listing and splicing state;
 - Token and Splice Arena read models;

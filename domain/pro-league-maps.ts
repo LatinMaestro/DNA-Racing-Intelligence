@@ -5,6 +5,7 @@ export type ProLeagueMapAssignmentScope =
 
 export type ProLeagueMapRace = Readonly<{
   raceNumber: number;
+  mode: "bike";
   raceType: string;
   distanceMetres: number;
 }>;
@@ -34,7 +35,12 @@ function defineMap(
     name,
     races: Object.freeze(
       races.map(([raceType, distanceMetres], index) =>
-        Object.freeze({ raceNumber: index + 1, raceType, distanceMetres }),
+        Object.freeze({
+          raceNumber: index + 1,
+          mode: "bike" as const,
+          raceType,
+          distanceMetres,
+        }),
       ),
     ),
   });
@@ -225,6 +231,7 @@ export const proLeagueMapAuthority = Object.freeze({
   sourceUrl: "https://esports.dnaracing.run/maps/",
   observedAt: "2026-08-27",
   evidenceStatus: "owner_confirmed_public_page" as const,
+  raceMode: "bike" as const,
   matchFormat: Object.freeze({
     bestOfMaps: 3,
     racesPerMap: 42,

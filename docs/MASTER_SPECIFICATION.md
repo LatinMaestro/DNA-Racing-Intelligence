@@ -436,6 +436,9 @@ Required views include:
 Provide a protected, owner-only Pro League preparation and mapping workspace
 based on the current owner-confirmed rules and published DNA Esports map list.
 
+The current competition authority is Bike-only. Car and Horse analytics remain
+available to other product workflows but must not influence Pro League advice.
+
 The workspace must:
 
 - audit an owner-selected 12–25 Core roster against current element ceilings,

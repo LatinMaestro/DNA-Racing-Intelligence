@@ -112,11 +112,11 @@ Deliver migrations/read models only from P3 evidence.
 Current implementation state: migrations `0069` and `0070` provide atomic
 last-good generation publication plus durable finished-race/R2 receipt
 checkpoints. Migration `0071` adds the first generation-bound current read
-model for API-authoritative owned-Core identity. The active-race/fill
-materialization contract now enforces complete family receipts, deterministic
-race identity, point-in-time chronology and active/fill referential coverage
-before Neon persistence. Its migration, supplemental current Core, Token and
-Splice Arena materialization plus scheduling remain incomplete.
+model for API-authoritative owned-Core identity. Migration `0072` adds
+generation-bound active-race/fill persistence with complete family receipts,
+deterministic race identity, point-in-time chronology, owner RLS, last-good
+serving and active/fill referential coverage. Supplemental current Core, Token
+and Splice Arena materialization plus scheduling remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
@@ -140,6 +140,7 @@ Exit: technically safe API data path ready for owner-approved real Preview persi
 
 Implement the current roster authority:
 
+- current competition mode is **Bike only**; exclude Car and Horse evidence from Pro League ranking, Discovery and mapping;
 - My Vault remains unlimited;
 - legal roster size is **12–25**;
 - quality-first nucleus; never force 25;
@@ -159,7 +160,9 @@ Exit: synthetic rule-valid Pro League roster and map-lineup workflow.
 
 ## P7 — Pro League intelligence enrichment
 
-Keep audited historical Core Performance, exact-distance, star, payout/sample/recency and cross-mode evidence as the primary historical base.
+Keep audited historical Bike Core Performance, exact-distance, star,
+payout/sample and recency evidence as the primary historical base. Car and Horse
+remain separate non-Pro-League evidence and must not affect this workflow.
 
 Add separately presented current API dimensions where available:
 

@@ -45,11 +45,7 @@ export type ProLeaguePreparationCore = Readonly<{
 }>;
 
 export type ProLeaguePowerTier =
-  | "multi_mode_winning_range"
-  | "multi_mode_top_three_range"
-  | "single_mode_winning_range"
-  | "single_mode_top_three_range"
-  | "unproven";
+  "bike_winning_range" | "bike_top_three_range" | "unproven";
 
 export type ProLeagueCandidate = Readonly<{
   coreId: string;
@@ -82,7 +78,7 @@ export type ProLeagueElementPreparation = Readonly<{
   nonGenesisOwned: number;
   femaleOwned: number;
   f15PlusOwned: number;
-  multiModeStrongOwned: number;
+  bikeStrongOwned: number;
   rosterFloorGap: number;
   nonGenesisDepthGap: number;
   powerDepthGap: number;
@@ -95,7 +91,8 @@ export type ProLeaguePreparation = Readonly<{
   evidenceStatus: "owner_confirmed";
   genesisInterpretationStatus: "confirmed";
   performanceAuthority: "shared_dna_racing_core_stats";
-  selectionObjective: "most_powerful_overall_cross_mode_and_format";
+  raceMode: "bike";
+  selectionObjective: "most_powerful_bike_exact_distance_and_format";
   formatEvidenceStatus: "descriptive_context_connected";
   mintStrategy: "no_additional_genesis_mint";
   ownedCoreCount: number;
@@ -129,11 +126,9 @@ const offspringGuidance: Readonly<Record<Element, string>> = {
 };
 
 const powerTierOrder: Readonly<Record<ProLeaguePowerTier, number>> = {
-  multi_mode_winning_range: 0,
-  multi_mode_top_three_range: 1,
-  single_mode_winning_range: 2,
-  single_mode_top_three_range: 3,
-  unproven: 4,
+  bike_winning_range: 0,
+  bike_top_three_range: 1,
+  unproven: 2,
 };
 
 const freshnessRisk: Readonly<Record<FreshnessState, number>> = {
@@ -195,15 +190,11 @@ function modeList(
 }
 
 function powerTier(
-  winningRangeModes: readonly RaceMode[],
-  topThreeOrBetterModes: readonly RaceMode[],
   winningRangeDistances: number,
   topThreeOrBetterDistances: number,
 ): ProLeaguePowerTier {
-  if (winningRangeModes.length >= 2) return "multi_mode_winning_range";
-  if (topThreeOrBetterModes.length >= 2) return "multi_mode_top_three_range";
-  if (winningRangeDistances > 0) return "single_mode_winning_range";
-  if (topThreeOrBetterDistances > 0) return "single_mode_top_three_range";
+  if (winningRangeDistances > 0) return "bike_winning_range";
+  if (topThreeOrBetterDistances > 0) return "bike_top_three_range";
   return "unproven";
 }
 
@@ -216,66 +207,66 @@ function assess(
     nonGenesis: Readonly<Record<Element, boolean>>;
   }>,
 ): ProLeagueCandidate {
-  const totalRaceCount = core.performanceProfiles.reduce(
+  const performanceProfiles = core.performanceProfiles.filter(
+    ({ mode }) => mode === proLeagueCurrentRules.raceMode,
+  );
+  const totalRaceCount = performanceProfiles.reduce(
     (total, profile) => total + profile.raceCount,
     0,
   );
-  const modesObserved = modeList(core.performanceProfiles, () => true);
+  const modesObserved = modeList(performanceProfiles, () => true);
   const analyticalModes = modeList(
-    core.performanceProfiles,
+    performanceProfiles,
     ({ sampleStatus }) => sampleStatus === "minimally_analytical",
   );
-  const analyticalDistances = core.performanceProfiles.filter(
+  const analyticalDistances = performanceProfiles.filter(
     ({ sampleStatus }) => sampleStatus === "minimally_analytical",
   ).length;
   const winningRangeModes = modeList(
-    core.performanceProfiles,
+    performanceProfiles,
     (profile) =>
       rankingEligible(profile) &&
       profile.benchmarkAssessment === "winning_range",
   );
   const topThreeOrBetterModes = modeList(
-    core.performanceProfiles,
+    performanceProfiles,
     (profile) =>
       rankingEligible(profile) &&
       (profile.benchmarkAssessment === "winning_range" ||
         profile.benchmarkAssessment === "top_three_range"),
   );
-  const winningRangeDistances = core.performanceProfiles.filter(
+  const winningRangeDistances = performanceProfiles.filter(
     (profile) =>
       rankingEligible(profile) &&
       profile.benchmarkAssessment === "winning_range",
   ).length;
-  const topThreeOrBetterDistances = core.performanceProfiles.filter(
+  const topThreeOrBetterDistances = performanceProfiles.filter(
     (profile) =>
       rankingEligible(profile) &&
       (profile.benchmarkAssessment === "winning_range" ||
         profile.benchmarkAssessment === "top_three_range"),
   ).length;
-  const evidenceFreshness = conservativeFreshness(core.performanceProfiles);
-  const payoutFormatProfiles = [...core.payoutFormatProfiles].sort(
-    (a, b) =>
-      a.mode.localeCompare(b.mode) ||
-      a.payoutFormatLabel.localeCompare(b.payoutFormatLabel),
-  );
+  const evidenceFreshness = conservativeFreshness(performanceProfiles);
+  const payoutFormatProfiles = core.payoutFormatProfiles
+    .filter(({ mode }) => mode === proLeagueCurrentRules.raceMode)
+    .sort(
+      (a, b) =>
+        a.mode.localeCompare(b.mode) ||
+        a.payoutFormatLabel.localeCompare(b.payoutFormatLabel),
+    );
   const supportedPayoutFormatCount = payoutFormatProfiles.filter(
     formatEvidenceEligible,
   ).length;
   const dataCurrentThrough =
-    core.performanceProfiles.length === 0
+    performanceProfiles.length === 0
       ? null
-      : [...core.performanceProfiles]
+      : [...performanceProfiles]
           .map((profile) => profile.dataCurrentThrough)
           .sort()[0]!;
-  const tier = powerTier(
-    winningRangeModes,
-    topThreeOrBetterModes,
-    winningRangeDistances,
-    topThreeOrBetterDistances,
-  );
-  const missingAnalyticalModes = raceModes.length - analyticalModes.length;
+  const tier = powerTier(winningRangeDistances, topThreeOrBetterDistances);
+  const missingBikeEvidence = analyticalModes.length === 0;
   const positivePowerSignal = topThreeOrBetterDistances > 0;
-  const promisingHypothesis = core.performanceProfiles.some(
+  const promisingHypothesis = performanceProfiles.some(
     ({ benchmarkAssessment }) =>
       benchmarkAssessment === "winning_range" ||
       benchmarkAssessment === "top_three_range",
@@ -287,17 +278,17 @@ function assess(
     (needs.f15 && core.fNumber >= 15);
   const reasons: string[] = [];
 
-  if (positivePowerSignal && missingAnalyticalModes > 0) {
+  if (positivePowerSignal && missingBikeEvidence) {
     reasons.push(
-      `Positive benchmark evidence exists, but only ${analyticalModes.length}/3 modes have minimally analytical exact-distance coverage; use lineage-informed Discovery to test the missing modes.`,
+      "Positive Bike benchmark evidence exists, but no exact distance has a minimally analytical sample; use lineage-informed Bike Discovery to deepen the best hypotheses.",
     );
-  } else if (missingAnalyticalModes > 0) {
+  } else if (missingBikeEvidence) {
     reasons.push(
-      `Only ${analyticalModes.length}/3 modes have minimally analytical exact-distance coverage; develop promising hypotheses without blanket testing every distance.`,
+      "No Bike distance has a minimally analytical sample; develop promising Bike hypotheses without blanket testing every distance.",
     );
   } else {
     reasons.push(
-      "All three modes have at least one minimally analytical exact-distance sample; focus further Discovery on power gaps, adjacent distances and payout-format robustness.",
+      "Bike has minimally analytical exact-distance evidence; focus further Discovery on Bike power gaps, adjacent distances and payout-format robustness.",
     );
   }
   if (winningRangeModes.length > 0) {
@@ -353,9 +344,9 @@ function assess(
     supportedPayoutFormatCount,
     powerTier: tier,
     discoveryPriority:
-      (positivePowerSignal || promisingHypothesis) && missingAnalyticalModes > 0
+      (positivePowerSignal || promisingHypothesis) && missingBikeEvidence
         ? "high"
-        : missingAnalyticalModes > 0 || scarceRole
+        : missingBikeEvidence || scarceRole
           ? "medium"
           : "maintain",
     reasons,
@@ -439,14 +430,14 @@ export function buildProLeaguePreparation(
     (element): ProLeagueElementPreparation => {
       const rosterFloorGap = 0;
       const nonGenesisDepthGap = 0;
-      const multiModeStrongOwned = input.filter((core) => {
+      const bikeStrongOwned = input.filter((core) => {
         if (core.element !== element) return false;
         const candidate = candidateById.get(core.coreId);
         return (
-          candidate !== undefined && candidate.topThreeOrBetterModes.length >= 2
+          candidate !== undefined && candidate.topThreeOrBetterDistances > 0
         );
       }).length;
-      const powerDepthGap = Math.max(0, 1 - multiModeStrongOwned);
+      const powerDepthGap = Math.max(0, 1 - bikeStrongOwned);
       return {
         element,
         totalOwned: totals[element],
@@ -454,7 +445,7 @@ export function buildProLeaguePreparation(
         nonGenesisOwned: nonGenesis[element],
         femaleOwned: females[element],
         f15PlusOwned: f15[element],
-        multiModeStrongOwned,
+        bikeStrongOwned,
         rosterFloorGap,
         nonGenesisDepthGap,
         powerDepthGap,
@@ -524,7 +515,8 @@ export function buildProLeaguePreparation(
     evidenceStatus: "owner_confirmed",
     genesisInterpretationStatus: "confirmed",
     performanceAuthority: "shared_dna_racing_core_stats",
-    selectionObjective: "most_powerful_overall_cross_mode_and_format",
+    raceMode: "bike",
+    selectionObjective: "most_powerful_bike_exact_distance_and_format",
     formatEvidenceStatus: "descriptive_context_connected",
     mintStrategy: "no_additional_genesis_mint",
     ownedCoreCount: input.length,
