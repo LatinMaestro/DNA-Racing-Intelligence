@@ -652,3 +652,17 @@ After the private Pro League milestone, continue in this order:
   through migration `0076`; schema drift or missing coverage fails closed.
 - A successful composed report can update only the three reviewed capacity
   rows. It still cannot authorise persistent sync or Production.
+
+## 2026-08-28 — Connected capacity evidence is emitted through a whitelist
+
+- Require a dedicated invocation authority and exact expected head before any
+  connected capacity provider is accessed.
+- Invoke only the guarded private Preview composition; local scope and injected
+  measurement ports are not accepted at this boundary.
+- Emit one canonical record capped at 16 KiB. Preserve reviewed measurements,
+  costs, timestamps, checksums and safety conclusions only.
+- Hash measurement and price authority references with separate domains. Never
+  emit provider configuration, credentials, owner/database/bucket/object
+  identities, cursors, payloads or provider error details.
+- Emission can support review of the three P5 capacity rows only. It cannot
+  authorise persistent Preview sync or Production.

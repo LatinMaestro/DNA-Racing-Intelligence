@@ -199,6 +199,9 @@ counts before they enter the runner.
 Connected capacity composition fixes private Preview scope, constructs both
 guarded adapters and uses the complete migration-`0076` API-only relation
 inventory; callers cannot substitute local scope or partial catalog coverage.
+Its separate opt-in invocation binds the expected exact head and emits only a
+bounded hash-addressed whitelist record, never provider configuration, owner
+identity, object identities, raw authority references, credentials or errors.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
