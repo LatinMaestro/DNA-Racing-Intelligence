@@ -93,23 +93,32 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
   evidence({
     requirementId: "postgres_18_physical_peak_storage",
     status: "pending_measurement",
-    evidenceRefs: Object.freeze([]),
+    evidenceRefs: Object.freeze([
+      "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
+      "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+    ]),
     conclusion:
-      "The API-only paging/batching path still needs PostgreSQL 18 heap, index, TOAST and transient-overlap measurement.",
+      "The API-only PostgreSQL 18 measurement contract is implemented; connected heap, index, TOAST and transient-overlap evidence remains pending.",
   }),
   evidence({
     requirementId: "private_r2_footprint_cost",
     status: "pending_measurement",
-    evidenceRefs: Object.freeze([]),
+    evidenceRefs: Object.freeze([
+      "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
+      "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+    ]),
     conclusion:
-      "The immutable API evidence footprint, request volume and private R2 cost projection remain to be measured.",
+      "The private R2 footprint and priced-operation contract is implemented; connected retained bytes, request volume and cost evidence remains pending.",
   }),
   evidence({
     requirementId: "positive_neon_headroom",
     status: "pending_measurement",
-    evidenceRefs: Object.freeze([]),
+    evidenceRefs: Object.freeze([
+      "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
+      "tests/dna-open-lab-p5-capacity-measurement.test.ts",
+    ]),
     conclusion:
-      "The API-only physical peak must prove positive headroom below 536,870,912 bytes before persistent real backfill.",
+      "The API-only peak-headroom rule is machine-checkable; connected evidence must still prove positive headroom below 536,870,912 bytes.",
   }),
 ] satisfies readonly DnaOpenLabP5ReadinessEvidence[]);
 
