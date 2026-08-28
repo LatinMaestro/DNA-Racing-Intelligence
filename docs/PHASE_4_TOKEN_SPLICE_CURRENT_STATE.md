@@ -56,5 +56,8 @@ mode/Core listing rows behind forced owner RLS. Publication rechecks exact Token
 and listing counts, contiguous terminal pagination and per-page coverage; narrow
 runtime reads resolve only through the last-good serving generation. Its
 PostgreSQL workflow proves apply, smoke, reverse and removal. The next P4 slice
-is bounded sync-worker wiring and endpoint-appropriate current-state cadence.
+has wired the Neon publication adapter to the complete `0074` contract: all
+current-state families validate before opening the transaction, and retired
+partial-stage privileges fail closed. Acquisition-worker scheduling and
+endpoint-appropriate current-state cadence remain next.
 Persistent real owner-data sync remains blocked by the P5 owner-approval gate.

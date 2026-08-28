@@ -8,6 +8,17 @@ import type {
   CanonicalActiveRaceSnapshot,
   CanonicalRaceFillSnapshot,
 } from "@/lib/dna-open-lab-v1-adapters";
+import {
+  adaptDnaCoreAttachedAssets,
+  adaptDnaCoreListingPrice,
+  adaptDnaCoreOwner,
+  adaptDnaCorePower,
+  adaptDnaCoreRacingStats,
+  adaptDnaCoreSplicingInfo,
+  adaptDnaCoreStamina,
+  adaptDnaSpliceArenaPage,
+  adaptDnaTokenPrices,
+} from "@/lib/dna-open-lab-v1-adapters";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -29,8 +40,8 @@ function candidate(
       cores: { status: "complete", itemCount: 2 },
       active_races: { status: activeRaceStatus, itemCount: 1 },
       race_fills: { status: "complete", itemCount: 1 },
-      tokens: { status: "complete", itemCount: 2 },
-      splice_arena: { status: "complete", itemCount: 3 },
+      tokens: { status: "complete", itemCount: 1 },
+      splice_arena: { status: "complete", itemCount: 2 },
     },
   };
 }
@@ -136,6 +147,157 @@ function currentRaceEvidence() {
   return { activeRaces, raceFills };
 }
 
+function supplementalCoreEvidence() {
+  const bundles = [101, 202].map((sourceCoreId, index) => {
+    const observedAt = `2026-08-27T11:58:0${String(index)}.000Z`;
+    return {
+      racingStats: adaptDnaCoreRacingStats({
+        observedAt,
+        raw: {
+          hid: sourceCoreId,
+          hstats_bike: { starts: sourceCoreId },
+          hstats_car: null,
+          hstats_horse: null,
+          ageing: null,
+          is_maiden: false,
+          tourney_profits: null,
+        },
+      }),
+      power: adaptDnaCorePower({
+        observedAt,
+        raw: {
+          hid: sourceCoreId,
+          power: {
+            bike: { power: 80, adjodds: 2, variance: 0.1, races_n: 5 },
+            car: { power: null, adjodds: null, variance: null, races_n: 0 },
+            horse: {
+              power: null,
+              adjodds: null,
+              variance: null,
+              races_n: 0,
+            },
+          },
+          m_stats: null,
+        },
+      }),
+      listing: adaptDnaCoreListingPrice({
+        observedAt,
+        raw: { hid: sourceCoreId },
+      }),
+      attachedAssets: adaptDnaCoreAttachedAssets({
+        observedAt,
+        raw: {
+          hid: sourceCoreId,
+          skino: { bike: null, car: null, horse: null },
+          trailsmap: null,
+        },
+      }),
+      owner: adaptDnaCoreOwner({
+        observedAt,
+        raw: { hid: sourceCoreId, vault: "0xsynthetic" },
+      }),
+      stamina: adaptDnaCoreStamina({
+        observedAt,
+        raw: {
+          hid: sourceCoreId,
+          stamina: {
+            stamina: 4,
+            max_stamina: 10,
+            next_refill: null,
+            last_event: null,
+          },
+          spstamina: null,
+        },
+      }),
+      splicing: adaptDnaCoreSplicingInfo({
+        observedAt,
+        raw: {
+          hid: sourceCoreId,
+          parents: null,
+          grand_parents: null,
+          challenge_credit: 0,
+          splice_core: null,
+        },
+      }),
+    };
+  });
+  return {
+    supplementalCore: {
+      racingStats: bundles.map((bundle) => bundle.racingStats),
+      power: bundles.map((bundle) => bundle.power),
+      listings: bundles.map((bundle) => bundle.listing),
+      attachedAssets: bundles.map((bundle) => bundle.attachedAssets),
+      owners: bundles.map((bundle) => bundle.owner),
+      stamina: bundles.map((bundle) => bundle.stamina),
+      splicing: bundles.map((bundle) => bundle.splicing),
+    },
+  };
+}
+
+function tokenSpliceEvidence() {
+  return {
+    tokenSplice: {
+      tokenPrices: adaptDnaTokenPrices({
+        observedAt: "2026-08-27T11:58:30.000Z",
+        raw: {
+          ethusd: 3200,
+          btcusd: 95_000,
+          dezusd: 0.1,
+          hlxusd: 0.2,
+          bgcusd: 1,
+          tpusd: 0.3,
+          methusd: 32,
+          mbtcusd: 950,
+        },
+      }),
+      arenaModes: ["bike"] as const,
+      arenaPages: [
+        adaptDnaSpliceArenaPage({
+          mode: "bike",
+          observedAt: "2026-08-27T11:58:40.000Z",
+          raw: {
+            cores: [
+              {
+                hid: 101,
+                name: "Synthetic 101",
+                type: "Pacer",
+                gender: "Female",
+                element: "Fire",
+                color: "Red",
+                hex_code: "#ff0000",
+                fno: 4,
+                price_usd: 10.1,
+              },
+              {
+                hid: 202,
+                name: "Synthetic 202",
+                type: "Pacer",
+                gender: "Male",
+                element: "Earth",
+                color: "Brown",
+                hex_code: "#654321",
+                fno: 5,
+                price_usd: 20.2,
+              },
+            ],
+            has_more: false,
+            limit: 20,
+            page: 1,
+          },
+        }),
+      ],
+    },
+  };
+}
+
+function completeCurrentStateEvidence() {
+  return {
+    ...currentRaceEvidence(),
+    ...supplementalCoreEvidence(),
+    ...tokenSpliceEvidence(),
+  };
+}
+
 function isolation(overrides: Record<string, unknown> = {}) {
   return {
     database_owner_id: databaseOwnerId,
@@ -152,21 +314,42 @@ function isolation(overrides: Record<string, unknown> = {}) {
     active_force_rls: true,
     fill_rls: true,
     fill_force_rls: true,
+    supplemental_rls: true,
+    supplemental_force_rls: true,
+    token_rls: true,
+    token_force_rls: true,
+    arena_mode_rls: true,
+    arena_mode_force_rls: true,
+    arena_page_rls: true,
+    arena_page_force_rls: true,
+    arena_listing_rls: true,
+    arena_listing_force_rls: true,
     runtime_can_access_generation: false,
     runtime_can_access_family: false,
     runtime_can_access_state: false,
     runtime_can_access_core: false,
     runtime_can_access_active: false,
     runtime_can_access_fill: false,
+    runtime_can_access_supplemental: false,
+    runtime_can_access_token: false,
+    runtime_can_access_arena_mode: false,
+    runtime_can_access_arena_page: false,
+    runtime_can_access_arena_listing: false,
     runtime_can_stage_legacy: false,
     runtime_can_stage_cores_only: false,
-    runtime_can_stage: true,
+    runtime_can_stage_current_race: false,
+    runtime_can_stage_supplemental: false,
+    runtime_can_stage_complete: true,
     runtime_can_publish: true,
     runtime_can_pause: true,
     runtime_can_read: true,
     runtime_can_read_cores: true,
     runtime_can_read_active: true,
     runtime_can_read_fills: true,
+    runtime_can_read_supplemental: true,
+    runtime_can_read_token: true,
+    runtime_can_read_arena_pages: true,
+    runtime_can_read_arena: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -243,7 +426,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: ownedCores(),
-        ...currentRaceEvidence(),
+        ...completeCurrentStateEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -255,7 +438,12 @@ describe("Neon DNA Open Lab sync publication", () => {
     });
 
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE");
-    expect(test.query.mock.calls[3]?.[1]).toEqual([
+    const stageCall = test.query.mock.calls[3];
+    expect(stageCall?.[0]).toContain(
+      "stage_dna_open_lab_token_splice_candidate",
+    );
+    const stageArguments = stageCall?.[1];
+    expect(stageArguments?.slice(0, 8)).toEqual([
       databaseOwnerId,
       generationId,
       "2026-08-27T12:00:00.000Z",
@@ -291,6 +479,35 @@ describe("Neon DNA Open Lab sync publication", () => {
         })),
       ),
     ]);
+    expect(stageArguments).toHaveLength(10);
+    const supplemental = JSON.parse(String(stageArguments?.[8])) as Record<
+      string,
+      readonly unknown[]
+    >;
+    expect(Object.keys(supplemental).sort()).toEqual(
+      [
+        "attachedAssets",
+        "listings",
+        "owners",
+        "power",
+        "racingStats",
+        "splicing",
+        "stamina",
+      ].sort(),
+    );
+    expect(
+      Object.values(supplemental).every((family) => family.length === 2),
+    ).toBe(true);
+    const tokenSplice = JSON.parse(String(stageArguments?.[9])) as Record<
+      string,
+      readonly unknown[] | Record<string, unknown>
+    >;
+    expect(Object.keys(tokenSplice).sort()).toEqual(
+      ["arenaListings", "arenaModes", "arenaPages", "tokenPrices"].sort(),
+    );
+    expect(tokenSplice.arenaModes).toHaveLength(1);
+    expect(tokenSplice.arenaPages).toHaveLength(1);
+    expect(tokenSplice.arenaListings).toHaveLength(2);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
@@ -301,7 +518,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate("partial"),
         ownedCores: ownedCores(),
-        ...currentRaceEvidence(),
+        ...completeCurrentStateEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -316,7 +533,7 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: ownedCores().slice(0, 1),
-        ...currentRaceEvidence(),
+        ...completeCurrentStateEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
@@ -328,11 +545,31 @@ describe("Neon DNA Open Lab sync publication", () => {
         ownerId,
         candidate: candidate(),
         ownedCores: duplicate,
-        ...currentRaceEvidence(),
+        ...completeCurrentStateEvidence(),
         recordedAt: "2026-08-27T12:01:00.000Z",
         acceptedAt: "2026-08-27T12:02:00.000Z",
       }),
     ).rejects.toThrow("owned Core IDs must be unique");
+    expect(test.sessionFactory).not.toHaveBeenCalled();
+  });
+
+  it("rejects incomplete supplemental Core evidence before SQL", async () => {
+    const test = harness([]);
+    const evidence = completeCurrentStateEvidence();
+    await expect(
+      test.repository.publishCandidate({
+        ownerId,
+        candidate: candidate(),
+        ownedCores: ownedCores(),
+        ...evidence,
+        supplementalCore: {
+          ...evidence.supplementalCore,
+          stamina: evidence.supplementalCore.stamina.slice(0, 1),
+        },
+        recordedAt: "2026-08-27T12:01:00.000Z",
+        acceptedAt: "2026-08-27T12:02:00.000Z",
+      }),
+    ).rejects.toThrow("stamina count must match");
     expect(test.sessionFactory).not.toHaveBeenCalled();
   });
 
@@ -492,6 +729,17 @@ describe("Neon DNA Open Lab sync publication", () => {
     ]);
     await expect(test.repository.read({ ownerId })).rejects.toThrow(
       "table access is not bounded",
+    );
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
+  });
+
+  it("rolls back if a retired partial-stage function remains executable", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation({ runtime_can_stage_current_race: true })],
+    ]);
+    await expect(test.repository.read({ ownerId })).rejects.toThrow(
+      "partial staging privilege is not bounded",
     );
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });

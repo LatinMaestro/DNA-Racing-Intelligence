@@ -15,6 +15,8 @@ import {
   createDnaCurrentRaceMaterialization,
   type DnaCurrentRaceMaterializationRow,
 } from "./dna-open-lab-current-race-materialization";
+import { createDnaSupplementalCoreMaterialization } from "./dna-open-lab-core-current-state-materialization";
+import { createDnaTokenSpliceMaterialization } from "./dna-open-lab-token-splice-materialization";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -35,6 +37,14 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
     ownedCores: readonly DnaOpenLabEvidence<AdaptedCoreDetailsRow>[];
     activeRaces: readonly DnaOpenLabEvidence<CanonicalActiveRaceSnapshot>[];
     raceFills: readonly DnaOpenLabEvidence<CanonicalRaceFillSnapshot>[];
+    supplementalCore: Omit<
+      Parameters<typeof createDnaSupplementalCoreMaterialization>[0],
+      "candidate" | "sourceCoreIds"
+    >;
+    tokenSplice: Omit<
+      Parameters<typeof createDnaTokenSpliceMaterialization>[0],
+      "candidate"
+    >;
     recordedAt: string;
     acceptedAt: string;
   }) => Promise<DnaLastGoodSyncState>;
@@ -85,6 +95,16 @@ const VERIFY_ISOLATION_SQL = [
   "  active.relforcerowsecurity AS active_force_rls,",
   "  fill.relrowsecurity AS fill_rls,",
   "  fill.relforcerowsecurity AS fill_force_rls,",
+  "  supplemental.relrowsecurity AS supplemental_rls,",
+  "  supplemental.relforcerowsecurity AS supplemental_force_rls,",
+  "  token.relrowsecurity AS token_rls,",
+  "  token.relforcerowsecurity AS token_force_rls,",
+  "  arena_mode.relrowsecurity AS arena_mode_rls,",
+  "  arena_mode.relforcerowsecurity AS arena_mode_force_rls,",
+  "  arena_page.relrowsecurity AS arena_page_rls,",
+  "  arena_page.relforcerowsecurity AS arena_page_force_rls,",
+  "  arena_listing.relrowsecurity AS arena_listing_rls,",
+  "  arena_listing.relforcerowsecurity AS arena_listing_force_rls,",
   "  (has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'INSERT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'UPDATE')",
@@ -115,6 +135,31 @@ const VERIFY_ISOLATION_SQL = [
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_race_fill_snapshot', 'UPDATE')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_race_fill_snapshot', 'DELETE'))",
   "    AS runtime_can_access_fill,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_core_supplemental_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_core_supplemental_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_core_supplemental_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_core_supplemental_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_supplemental,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_token_prices_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_token_prices_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_token_prices_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_token_prices_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_token,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_mode_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_mode_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_mode_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_mode_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_arena_mode,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_page_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_page_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_page_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_page_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_arena_page,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'DELETE'))",
+  "    AS runtime_can_access_arena_listing,",
   "  has_function_privilege(session_user,",
   "    'dna.stage_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb)', 'EXECUTE')",
   "    AS runtime_can_stage_legacy,",
@@ -123,7 +168,13 @@ const VERIFY_ISOLATION_SQL = [
   "    AS runtime_can_stage_cores_only,",
   "  has_function_privilege(session_user,",
   "    'dna.stage_dna_open_lab_current_race_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb,jsonb,jsonb)', 'EXECUTE')",
-  "    AS runtime_can_stage,",
+  "    AS runtime_can_stage_current_race,",
+  "  has_function_privilege(session_user,",
+  "    'dna.stage_dna_open_lab_supplemental_core_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb,jsonb,jsonb,jsonb)', 'EXECUTE')",
+  "    AS runtime_can_stage_supplemental,",
+  "  has_function_privilege(session_user,",
+  "    'dna.stage_dna_open_lab_token_splice_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb,jsonb,jsonb,jsonb,jsonb)', 'EXECUTE')",
+  "    AS runtime_can_stage_complete,",
   "  has_function_privilege(session_user,",
   "    'dna.publish_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone)', 'EXECUTE')",
   "    AS runtime_can_publish,",
@@ -138,6 +189,14 @@ const VERIFY_ISOLATION_SQL = [
   "    'dna.read_dna_open_lab_serving_active_races(uuid)', 'EXECUTE') AS runtime_can_read_active,",
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_serving_race_fills(uuid)', 'EXECUTE') AS runtime_can_read_fills,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_supplemental_cores(uuid)', 'EXECUTE') AS runtime_can_read_supplemental,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_token_prices(uuid)', 'EXECUTE') AS runtime_can_read_token,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_splice_arena_pages(uuid)', 'EXECUTE') AS runtime_can_read_arena_pages,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_splice_arena(uuid)', 'EXECUTE') AS runtime_can_read_arena,",
   "  session_user::text AS session_user_name, current_user::text AS current_user_name,",
   "  role.rolsuper AS runtime_is_superuser, role.rolbypassrls AS runtime_bypasses_rls,",
   "  role.rolcreaterole AS runtime_can_create_roles, role.rolcreatedb AS runtime_can_create_databases,",
@@ -156,6 +215,16 @@ const VERIFY_ISOLATION_SQL = [
   "  ON active.oid = 'dna.dna_open_lab_active_race_snapshot'::regclass",
   "JOIN pg_catalog.pg_class fill",
   "  ON fill.oid = 'dna.dna_open_lab_race_fill_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class supplemental",
+  "  ON supplemental.oid = 'dna.dna_open_lab_core_supplemental_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class token",
+  "  ON token.oid = 'dna.dna_open_lab_token_prices_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class arena_mode",
+  "  ON arena_mode.oid = 'dna.dna_open_lab_splice_arena_mode_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class arena_page",
+  "  ON arena_page.oid = 'dna.dna_open_lab_splice_arena_page_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class arena_listing",
+  "  ON arena_listing.oid = 'dna.dna_open_lab_splice_arena_listing_snapshot'::regclass",
   "JOIN pg_catalog.pg_roles role ON role.rolname = session_user",
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
@@ -532,6 +601,16 @@ function verifyIsolation(
     "active_force_rls",
     "fill_rls",
     "fill_force_rls",
+    "supplemental_rls",
+    "supplemental_force_rls",
+    "token_rls",
+    "token_force_rls",
+    "arena_mode_rls",
+    "arena_mode_force_rls",
+    "arena_page_rls",
+    "arena_page_force_rls",
+    "arena_listing_rls",
+    "arena_listing_force_rls",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -545,18 +624,33 @@ function verifyIsolation(
     bool(row.runtime_can_access_state, "runtime_can_access_state") ||
     bool(row.runtime_can_access_core, "runtime_can_access_core") ||
     bool(row.runtime_can_access_active, "runtime_can_access_active") ||
-    bool(row.runtime_can_access_fill, "runtime_can_access_fill")
+    bool(row.runtime_can_access_fill, "runtime_can_access_fill") ||
+    bool(
+      row.runtime_can_access_supplemental,
+      "runtime_can_access_supplemental",
+    ) ||
+    bool(row.runtime_can_access_token, "runtime_can_access_token") ||
+    bool(row.runtime_can_access_arena_mode, "runtime_can_access_arena_mode") ||
+    bool(row.runtime_can_access_arena_page, "runtime_can_access_arena_page") ||
+    bool(
+      row.runtime_can_access_arena_listing,
+      "runtime_can_access_arena_listing",
+    )
   ) {
     throw new Error("DNA Open Lab sync table access is not bounded.");
   }
   for (const field of [
-    "runtime_can_stage",
+    "runtime_can_stage_complete",
     "runtime_can_publish",
     "runtime_can_pause",
     "runtime_can_read",
     "runtime_can_read_cores",
     "runtime_can_read_active",
     "runtime_can_read_fills",
+    "runtime_can_read_supplemental",
+    "runtime_can_read_token",
+    "runtime_can_read_arena_pages",
+    "runtime_can_read_arena",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error("DNA Open Lab sync function privilege is incomplete.");
@@ -567,6 +661,15 @@ function verifyIsolation(
   }
   if (bool(row.runtime_can_stage_cores_only, "runtime_can_stage_cores_only")) {
     throw new Error("DNA Open Lab Core-only staging privilege is not bounded.");
+  }
+  if (
+    bool(
+      row.runtime_can_stage_current_race,
+      "runtime_can_stage_current_race",
+    ) ||
+    bool(row.runtime_can_stage_supplemental, "runtime_can_stage_supplemental")
+  ) {
+    throw new Error("DNA Open Lab partial staging privilege is not bounded.");
   }
   if (
     text(row.session_user_name, "session_user_name") !== input.runtimeRole ||
@@ -668,13 +771,37 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
         rawEvidenceSha256: row.rawEvidenceSha256,
         canonical: row.canonical,
       }));
+      const supplemental = createDnaSupplementalCoreMaterialization({
+        candidate: request.candidate,
+        sourceCoreIds: cores.map((row) => String(row.sourceCoreId)),
+        ...request.supplementalCore,
+      });
+      const supplementalPayload = {
+        racingStats: supplemental.racingStats,
+        power: supplemental.power,
+        listings: supplemental.listings,
+        attachedAssets: supplemental.attachedAssets,
+        owners: supplemental.owners,
+        stamina: supplemental.stamina,
+        splicing: supplemental.splicing,
+      };
+      const tokenSplice = createDnaTokenSpliceMaterialization({
+        candidate: request.candidate,
+        ...request.tokenSplice,
+      });
+      const tokenSplicePayload = {
+        tokenPrices: tokenSplice.tokenPrices,
+        arenaModes: tokenSplice.arenaModes,
+        arenaPages: tokenSplice.arenaPages,
+        arenaListings: tokenSplice.arenaListings,
+      };
       return transaction({
         ownerId: request.ownerId,
         readOnly: false,
         async run(client) {
           const staged = oneRow(
             await client.query(
-              "SELECT dna.stage_dna_open_lab_current_race_candidate($1::uuid,$2::uuid,$3::timestamptz,$4::timestamptz,$5::jsonb,$6::jsonb,$7::jsonb,$8::jsonb) AS status",
+              "SELECT dna.stage_dna_open_lab_token_splice_candidate($1::uuid,$2::uuid,$3::timestamptz,$4::timestamptz,$5::jsonb,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb) AS status",
               [
                 databaseOwnerId,
                 generationId,
@@ -684,6 +811,8 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
                 JSON.stringify(cores),
                 JSON.stringify(activeRaces),
                 JSON.stringify(raceFills),
+                JSON.stringify(supplementalPayload),
+                JSON.stringify(tokenSplicePayload),
               ],
             ),
             "DNA Open Lab candidate staging",

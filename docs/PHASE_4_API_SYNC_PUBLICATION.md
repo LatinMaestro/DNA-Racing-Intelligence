@@ -44,5 +44,8 @@ Persistent real Preview synchronization remains blocked by P5 capacity/recovery 
 - Token/Splice canonical materialization is delivered by
   `PHASE_4_TOKEN_SPLICE_CURRENT_STATE.md`; compact persistence is delivered by
   migration `0074`;
-- worker scheduling and family cadences; and
+- the Neon publication repository now validates and stages every current-state
+  family through the complete `0074` contract in one transaction, while
+  explicitly rejecting runtime access to retired partial-stage functions;
+- acquisition-worker scheduling and endpoint-appropriate family cadences; and
 - storage/capacity/recovery measurement for the P5 gate.

@@ -120,8 +120,11 @@ seven supplemental current-Core families with exact owned-Core coverage, owner
 RLS and last-good reads. Token prices and complete paginated Splice Arena now
 have generation-bound canonical materialization. Migration `0074` adds compact
 owner-RLS Token, Arena mode/page-receipt and listing persistence with complete
-pagination publication guards and last-good reads. Bounded worker wiring and
-family cadence remain incomplete.
+pagination publication guards and last-good reads. The Neon publication
+adapter now validates owned Cores, races/fills, all seven supplemental Core
+families, Token prices and complete Arena pagination before one `0074` staging
+transaction; retired partial-stage privileges fail closed. Acquisition-worker
+scheduling and endpoint-appropriate family cadence remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
