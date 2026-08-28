@@ -167,6 +167,8 @@ The durable scheduled-cycle coordinator now derives cadence from that serving
 authority, forces changed dynamic plans through a full acquisition, advances
 one bounded request per invocation and records API recovery in both durable
 checkpoint and last-good state before selecting full or staggered publication.
+The operator entrypoint composes restart-safe identity/Arena discovery with that
+coordinator while retaining the same one-request invocation bound.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
