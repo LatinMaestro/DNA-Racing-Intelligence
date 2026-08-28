@@ -207,6 +207,12 @@ caller-supplied cycle and cleanup success callbacks are no longer accepted.
 Its separate opt-in invocation binds the expected exact head and emits only a
 bounded hash-addressed whitelist record, never provider configuration, owner
 identity, object identities, raw authority references, credentials or errors.
+The dispatch-only provider preflight now proves the exact PostgreSQL version,
+owner/runtime boundary, complete relation/function contract, legacy publisher
+revocation, private R2 access and zero synthetic residue before a connected
+capacity run. A read-only live observation confirmed PostgreSQL 18 but found
+that all 15 API-only relations remain absent from private Preview, so reviewed
+migrations `0069`–`0076` must be applied there before measurement.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

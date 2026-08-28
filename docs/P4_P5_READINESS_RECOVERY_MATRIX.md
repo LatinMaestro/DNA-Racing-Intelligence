@@ -79,5 +79,10 @@ generation. Raw owner payloads and API keys must not enter the report.
 - The generic harness, case-specific assertion adapters and raw
   component-observation executor are implemented; connected acceptance remains
   outstanding.
-- The next safe work is provider-prerequisite validation followed by a bounded
-  connected synthetic measurement and review of its sanitized evidence.
+- The dispatch-only read-only provider preflight is implemented. The current
+  Preview observation confirms PostgreSQL 18 but 0/15 API-only relations;
+  migrations `0069`–`0076` remain unapplied to Preview, so the preflight and
+  connected measurement correctly stay blocked.
+- The next safe work is reviewed private Preview migration apply/smoke evidence,
+  followed by the exact-head provider preflight and bounded connected synthetic
+  measurement.

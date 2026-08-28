@@ -85,6 +85,20 @@ measurement adapters and constructs the synthetic cycle/cleanup adapter. No
 connected measurement has been performed, so PostgreSQL physical/peak storage,
 private R2 footprint/cost and positive Neon headroom remain pending P5 evidence.
 
+A separate dispatch-only, read-only provider preflight now reduces the live
+configuration to identity-free prerequisite counts and blocker IDs. It requires
+PostgreSQL 18, the exact owner binding, the non-privileged runtime contract, all
+15 API-only relations, all 13 runtime function signatures, revocation of the
+legacy unindexed publisher, a private bucket, owner-prefix list access and zero
+P5 synthetic marker residue. It cannot write either provider, open P5, permit a
+persistent Preview sync or authorize Production.
+
+The read-only Preview catalog observation on 2026-08-28 confirmed PostgreSQL
+18 but found 0 of the 15 API-only relations because migrations `0069`–`0076`
+have not yet been applied to the private Preview branch. The capacity run must
+therefore remain blocked until those reviewed migrations are applied and the
+exact-head provider preflight passes.
+
 The connected invocation is separately opt-in, exact-head bound and limited to
 the guarded composition. It emits one canonical record no larger than 16 KiB.
 The record contains only reviewed counts, timestamps, hashes, costs and safety
