@@ -312,8 +312,13 @@ describe("DNA Open Lab current-state acquisition runner", () => {
 
   it("dispatches through the pool and rejects on-demand pairs", async () => {
     const scopes: string[] = [];
+    const arenaCalls: unknown[] = [];
     const fakeClient = {
       tokenPrices: async () => response(),
+      spliceArena: async (input: unknown) => {
+        arenaCalls.push(input);
+        return response();
+      },
     } as unknown as DnaOpenLabClient;
     const requestPool = {
       execute: async (input: {
@@ -340,6 +345,18 @@ describe("DNA Open Lab current-state acquisition runner", () => {
       }),
     ).resolves.toMatchObject({ httpStatus: 200 });
     expect(scopes).toEqual(["tokens"]);
+
+    await expect(
+      dispatchDnaCurrentStateRequest({
+        pool: requestPool,
+        request: {
+          scope: "splice",
+          endpoint: "splice.arena",
+          payload: { filter: { rvmode: "bike" }, page: 3 },
+        },
+      }),
+    ).resolves.toMatchObject({ httpStatus: 200 });
+    expect(arenaCalls).toEqual([{ filter: { rvmode: "bike" }, page: 3 }]);
 
     await expect(
       dispatchDnaCurrentStateRequest({
