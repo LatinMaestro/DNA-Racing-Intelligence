@@ -144,8 +144,13 @@ private evidence reader now verifies receipt-bound object identity, metadata,
 bytes and JSON before replay. Deterministic child cycles execute the minimal
 bootstrap and each bounded Arena continuation through the existing
 compare-and-swap runner and immutable R2 sink, then return the final immutable
-plan without publishing it. Wiring that final plan through materialization and
-the atomic `0074` publication repository remains incomplete.
+plan without publishing it. A full all-family acquisition can now reconstruct
+every compact canonical family from exact schedule/checkpoint/R2 receipt
+authority and call the atomic `0074` publication repository exactly once. It
+fails closed before publication on request/evidence drift, incomplete Core or
+race coverage, partial Arena pagination or a non-ready checkpoint. Staggered
+cadence publication remains incomplete until a durable cached-family receipt
+index can prove the exact carried-forward evidence for every non-due group.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
