@@ -22,6 +22,12 @@ Measure the protected private Preview path on PostgreSQL 18 and record:
   settled sample so a single settled reading cannot be presented as
   transient-peak evidence.
 
+The concrete Neon adapter opens a fresh serializable read-only transaction for
+each observation, binds the application owner scope and verifies that the
+runtime role is neither privileged nor able to create database/schema objects.
+Owner relation totals are limited to an explicit, validated relation allowlist;
+missing relations fail the measurement rather than silently reducing it.
+
 The approved boundary remains `536870912` bytes. Peak—not settled size—is used
 for headroom. Zero headroom is blocking.
 
@@ -49,10 +55,16 @@ reproducible. Empty footprint or operation observations fail closed.
 - R2 enumeration requires a private bucket, bounds pages and object count,
   rejects repeated cursors and deduplicates by redacted SHA-256 object identity.
   Raw object keys and bodies do not enter the footprint report.
+- The concrete R2 adapter confines every list to the hashed DNA Open Lab owner
+  prefix. Payload bytes come from the binding's object size. Metadata bytes are
+  the exact UTF-8 bytes of returned application HTTP/custom metadata keys and
+  values; they do not claim to represent undocumented provider-internal
+  overhead. Pricing authority remains responsible for the applicable provider
+  billing semantics.
 
 ## Current state
 
-The measurement contract and bounded synthetic runner are implemented, but no
-connected measurement has been performed. PostgreSQL physical/peak storage,
-private R2 footprint/cost and positive Neon headroom therefore remain pending
-P5 evidence.
+The measurement contract, bounded synthetic runner and least-privilege
+PostgreSQL/R2 adapters are implemented, but no connected measurement has been
+performed. PostgreSQL physical/peak storage, private R2 footprint/cost and
+positive Neon headroom therefore remain pending P5 evidence.
