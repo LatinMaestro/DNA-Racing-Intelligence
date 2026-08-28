@@ -150,6 +150,15 @@ can no longer call the unindexed publication function. Replay must match the
 entire JSONB document, and serving reads follow only the current last-good
 generation pointer.
 
+Staggered publication reads that serving index through the owner-scoped Neon
+repository, constructs the next full-plan index from current due receipts plus
+prior non-due receipts, and re-reads every referenced private R2 object from its
+original source cycle. A deterministic all-family replay boundary re-runs the
+same canonical coverage checks used by a first/full cycle before the mixed
+generation crosses the indexed atomic publication transaction. Missing prior
+authority, source-cycle drift or incomplete reconstruction preserves the
+existing last-good generation.
+
 The website must never appear fresher merely because a failed sync attempt occurred later.
 
 ## API eligibility/key loss

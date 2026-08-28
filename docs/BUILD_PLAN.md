@@ -159,8 +159,10 @@ cached receipts, duplicate identities and future observations. Migration
 validation and conflict-safe replay. The publication adapter binds the index
 and complete canonical candidate in one serializable transaction, then
 publishes only through an indexed-generation function; the runtime cannot call
-the older unindexed publication function. Staggered cadence orchestration still
-needs to re-read and assemble carried receipts before publication.
+the older unindexed publication function. Staggered cadence orchestration now
+reads the serving index, combines due and non-due receipt authority, replays
+each immutable R2 object from its original cycle and re-runs complete-family
+materialization before the same indexed atomic publication boundary.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

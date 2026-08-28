@@ -250,6 +250,9 @@ export async function assembleDnaCurrentStatePublication(input: {
     cycleId: string;
     receipt: DnaCurrentStateAcquisitionEvidenceReceipt;
   }) => Promise<DnaOpenLabStoredCurrentStateEvidence>;
+  receiptSourceCycleId?: (
+    receipt: DnaCurrentStateAcquisitionEvidenceReceipt,
+  ) => string;
 }): Promise<DnaCurrentStatePublicationAssembly> {
   exactCurrentStateAuthority(input.schedule);
   const checkpoint = validateDnaCurrentStateAcquisitionCycleCheckpoint({
@@ -273,13 +276,15 @@ export async function assembleDnaCurrentStatePublication(input: {
     if (receipt === undefined) {
       publicationError("scheduled request receipt is unavailable");
     }
+    const sourceCycleId =
+      input.receiptSourceCycleId?.(receipt) ?? checkpoint.cycleId;
     evidence.push(
       validateStoredEvidence({
-        cycleId: checkpoint.cycleId,
+        cycleId: sourceCycleId,
         entry,
         receipt,
         evidence: await input.readEvidence({
-          cycleId: checkpoint.cycleId,
+          cycleId: sourceCycleId,
           receipt,
         }),
       }),

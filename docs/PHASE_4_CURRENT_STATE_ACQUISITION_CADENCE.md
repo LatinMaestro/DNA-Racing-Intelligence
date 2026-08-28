@@ -94,5 +94,9 @@ The durable bootstrap/continuation executor and full-cycle publication runner
 now feed exact receipt authority into migration `0076`. That migration stores
 one compact owner-RLS receipt index per generation, and the publication adapter
 atomically stages it with canonical data before an indexed-only publish. The
-next P4 slice is staggered-cycle reconstruction from current due receipts plus
-verified last-good non-due receipts. It remains synthetic until the P5 gate.
+staggered cycles now reconstruct from current due receipts plus verified
+last-good non-due receipts, re-read every immutable object from its source
+cycle, re-run full-family validation and use the indexed atomic publish. The
+next P4 slice is the durable scheduled-cycle coordinator that selects full or
+staggered publication and records recovery outcomes. It remains synthetic until
+the P5 gate.
