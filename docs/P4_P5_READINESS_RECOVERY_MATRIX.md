@@ -27,6 +27,13 @@ counterpart. It keeps every non-satisfied row blocking, keeps owner approval
 separate from technical readiness and always reports Production changes as
 disallowed.
 
+The recovery harness executes the cases below in a fixed order, one case per
+invocation. Its checkpoint is bound to one exact code head and provider scope.
+Reports reject more than one API request per case, any real owner-data write,
+raw payload or secret evidence, and any synthetic provider residue. A local
+synthetic report remains local evidence only; it cannot satisfy connected
+private Preview acceptance.
+
 ## Recovery acceptance cases
 
 Every connected recovery case must record the exact code head, provider scope,
@@ -53,5 +60,6 @@ generation. Raw owner payloads and API keys must not enter the report.
 - P5 technical evidence is incomplete, so the project is not yet ready to ask
   for first-persistent-sync approval.
 - No persistent real owner-data backfill or sync may start.
-- The next safe work is a bounded synthetic recovery harness and API-only
+- The bounded recovery evidence harness is implemented locally.
+- The next safe work is its concrete scenario adapters and the API-only
   PostgreSQL 18/R2 capacity measurement design.

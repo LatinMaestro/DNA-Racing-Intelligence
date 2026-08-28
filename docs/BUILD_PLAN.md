@@ -172,6 +172,10 @@ coordinator while retaining the same one-request invocation bound.
 The explicit P4/P5 readiness matrix now keeps local recovery implementation,
 connected acceptance, API-only PostgreSQL/R2 measurements, positive Neon
 headroom and owner approval as separate machine-checkable gates.
+The bounded recovery harness advances one fixed scenario per invocation, binds
+its report to an exact code head/provider scope and rejects real owner-data
+writes, raw payloads, secrets, excessive requests and uncleared synthetic
+provider residue.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

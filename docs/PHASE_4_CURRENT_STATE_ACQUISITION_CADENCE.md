@@ -105,6 +105,8 @@ state. One operator boundary now composes durable identity/Arena discovery with
 that scheduled coordinator without increasing the one-request-per-invocation
 bound. The explicit P4/P5 readiness and recovery matrix now distinguishes local
 implementation evidence from connected acceptance, physical/cost measurements
-and owner approval. The current gate remains closed. The next safe slice is the
-bounded synthetic recovery harness and API-only capacity measurement design.
-This remains synthetic until the P5 gate.
+and owner approval. The bounded recovery harness now runs one fixed case per
+invocation with exact-head/scope authority, strict redaction, zero real-owner
+writes and zero residue. The current gate remains closed. The next safe slice is
+the concrete recovery scenario adapters and API-only capacity measurement
+design. This remains synthetic until the P5 gate.

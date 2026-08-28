@@ -571,3 +571,15 @@ After the private Pro League milestone, continue in this order:
 - P5 can never authorise Production; Production remains a later separate gate.
 - The current matrix is closed because connected recovery, PostgreSQL 18
   physical/peak, private R2 cost and positive Neon headroom evidence are pending.
+
+## 2026-08-28 — Recovery acceptance runs through one bounded harness
+
+- Execute the ten accepted recovery cases in a fixed order, one case per
+  invocation, under an exact code head and provider scope.
+- Local runs allow no provider writes. A bounded private Preview case may make
+  at most four synthetic provider writes and must leave zero residue.
+- Every case remains limited to one DNA API request and zero persistent real
+  owner-data writes.
+- Reject raw payloads, secrets, changed head/scope, out-of-order checkpoints and
+  completed-checkpoint replay from the evidence report.
+- A complete local report remains local evidence only and cannot open P5.
