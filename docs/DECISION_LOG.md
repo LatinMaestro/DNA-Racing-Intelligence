@@ -532,3 +532,17 @@ After the private Pro League milestone, continue in this order:
 - Any missing prior index, receipt drift, incomplete family or publication
   error leaves the existing serving generation unchanged. This remains
   synthetic and does not open P5.
+
+## 2026-08-28 — Scheduled cycles derive cadence from serving evidence
+
+- Treat the owner-scoped serving receipt index as the only authority for
+  per-family completion times; caller-maintained freshness timestamps cannot
+  suppress an API request.
+- A dynamic ownership, active-race or Arena plan hash change invalidates cached
+  cadence and forces a full cycle.
+- Advance at most one bounded API request per coordinator invocation through
+  the durable compare-and-swap checkpoint and immutable evidence sink.
+- Record API interruption recovery in both the cycle checkpoint and last-good
+  sync state, then select full or staggered publication only from a verified
+  ready checkpoint.
+- This coordinator remains synthetic/local and does not cross the P5 gate.
