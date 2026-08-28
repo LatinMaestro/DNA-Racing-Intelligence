@@ -53,6 +53,15 @@ It must:
 
 Higher tiers may reduce catch-up duration but do not change data semantics.
 
+Current-state acquisition uses explicit local minimum intervals: one minute for
+active races/fills, five minutes for current Token reference prices, fifteen
+minutes for Vault/ownership and supplemental Core state, and thirty minutes for
+complete Splice Arena pagination. These are application freshness choices, not
+DNA endpoint guarantees. Pair info/validation remains on-demand. A due group
+must complete before a generation can publish; non-due groups may contribute
+timestamped last-good evidence, but missing or future-dated evidence fails
+closed.
+
 ## Finished-race backfill completeness
 
 The finished-race endpoint may return up to 200 races for a time window.
