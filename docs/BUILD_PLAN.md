@@ -163,6 +163,10 @@ the older unindexed publication function. Staggered cadence orchestration now
 reads the serving index, combines due and non-due receipt authority, replays
 each immutable R2 object from its original cycle and re-runs complete-family
 materialization before the same indexed atomic publication boundary.
+The durable scheduled-cycle coordinator now derives cadence from that serving
+authority, forces changed dynamic plans through a full acquisition, advances
+one bounded request per invocation and records API recovery in both durable
+checkpoint and last-good state before selecting full or staggered publication.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

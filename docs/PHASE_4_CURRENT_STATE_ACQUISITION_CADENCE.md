@@ -94,9 +94,11 @@ The durable bootstrap/continuation executor and full-cycle publication runner
 now feed exact receipt authority into migration `0076`. That migration stores
 one compact owner-RLS receipt index per generation, and the publication adapter
 atomically stages it with canonical data before an indexed-only publish. The
-staggered cycles now reconstruct from current due receipts plus verified
-last-good non-due receipts, re-read every immutable object from its source
-cycle, re-run full-family validation and use the indexed atomic publish. The
-next P4 slice is the durable scheduled-cycle coordinator that selects full or
-staggered publication and records recovery outcomes. It remains synthetic until
-the P5 gate.
+staggered cycles reconstruct from current due receipts plus verified last-good
+non-due receipts, re-read every immutable object from its source cycle, re-run
+full-family validation and use the indexed atomic publish. The durable scheduled
+coordinator derives cadence only from the serving receipt index, forces a full
+cycle on dynamic-plan drift, advances at most one bounded request per invocation
+and selects full or staggered publication only after the durable checkpoint is
+ready. API interruptions update both the cycle checkpoint and last-good pause
+state. This remains synthetic until the P5 gate.
