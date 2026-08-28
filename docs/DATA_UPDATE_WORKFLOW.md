@@ -72,6 +72,14 @@ under forced owner RLS and function-only runtime access; its Neon adapter uses
 serializable owner-scoped transactions and verifies exact response content.
 Raw response bodies are not stored in the checkpoint.
 
+The private R2 evidence sink fixes each object key to the hashed owner, cycle
+and logical request. It verifies that public access, `r2.dev` access and custom
+domains are disabled before writing, uses create-if-absent publication, and
+checks the stored byte count, checksum and identity metadata. If a crash causes
+the same request to run again, the first immutable observation remains
+authoritative and its original receipt is returned; later response bytes cannot
+silently replace it.
+
 ## Finished-race backfill completeness
 
 The finished-race endpoint may return up to 200 races for a time window.
