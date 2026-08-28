@@ -6,6 +6,7 @@ import type {
 
 const MAXIMUM_CORE_BULK = 20;
 const MAXIMUM_RACE_BULK = 20;
+export const DNA_CURRENT_STATE_MAXIMUM_SCHEDULED_REQUESTS = 512;
 const DEFERRED_TELEMETRY_ENDPOINTS = Object.freeze([
   "cores.telemetry",
   "cores.telemetry_bulk",
@@ -48,6 +49,10 @@ export type DnaCurrentStateSyncPlan = Readonly<{
   hydrate: readonly DnaCurrentStateRequest[];
   deferredUntilP3: typeof DEFERRED_TELEMETRY_ENDPOINTS;
 }>;
+
+export type DnaSpliceArenaPagesByMode = Partial<
+  Readonly<Record<DnaRaceMode, readonly number[]>>
+>;
 
 const CORE_BULK_ENDPOINTS = Object.freeze([
   "cores.info_bulk",
@@ -125,6 +130,24 @@ function uniqueModes(values: readonly DnaRaceMode[]): readonly DnaRaceMode[] {
   return Object.freeze(result);
 }
 
+function arenaPages(
+  mode: DnaRaceMode,
+  values: readonly number[] | undefined,
+): readonly number[] {
+  const pages = values === undefined ? [1] : values;
+  if (pages.length < 1 || pages.length > 512) {
+    planError(`splice Arena ${mode} page coverage is invalid`);
+  }
+  const normalized = pages.map((value, index) => {
+    const page = positiveInteger(value, `splice Arena ${mode} page`);
+    if (page !== index + 1) {
+      planError(`splice Arena ${mode} pages must be contiguous from page 1`);
+    }
+    return page;
+  });
+  return Object.freeze(normalized);
+}
+
 function uniquePairs(
   values: readonly DnaSplicePairCandidate[],
 ): readonly DnaSplicePairCandidate[] {
@@ -175,6 +198,7 @@ export function createDnaCurrentStateSyncPlan(input: {
   ownedCoreIds?: readonly number[];
   activeRaceIds?: readonly DnaRaceIdentifier[];
   spliceModes?: readonly DnaRaceMode[];
+  spliceArenaPagesByMode?: DnaSpliceArenaPagesByMode;
   splicePairs?: readonly DnaSplicePairCandidate[];
 }): DnaCurrentStateSyncPlan {
   const vault = requiredText(input.vault, "vault");
@@ -192,8 +216,13 @@ export function createDnaCurrentStateSyncPlan(input: {
     request("vault", "vault.recent_races", { vault }),
     request("races", "races.active"),
     request("tokens", "tokens.prices"),
-    ...spliceModes.map((rvmode) =>
-      request("splice", "splice.arena", { filter: Object.freeze({ rvmode }) }),
+    ...spliceModes.flatMap((rvmode) =>
+      arenaPages(rvmode, input.spliceArenaPagesByMode?.[rvmode]).map((page) =>
+        request("splice", "splice.arena", {
+          filter: Object.freeze({ rvmode }),
+          page,
+        }),
+      ),
     ),
   ];
 
@@ -209,6 +238,13 @@ export function createDnaCurrentStateSyncPlan(input: {
   for (const pair of splicePairs) {
     hydrate.push(request("splice", "splice.pair_info", pair));
     hydrate.push(request("splice", "splice.pair_validate", pair));
+  }
+
+  if (
+    bootstrap.length + hydrate.length >
+    DNA_CURRENT_STATE_MAXIMUM_SCHEDULED_REQUESTS
+  ) {
+    planError("request count exceeds the durable cycle capacity");
   }
 
   return Object.freeze({
