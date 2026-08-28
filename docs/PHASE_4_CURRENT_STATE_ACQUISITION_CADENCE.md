@@ -66,9 +66,14 @@ the checkpoint. The runner excludes pair reads, advances no more than one
 request/checkpoint at a time, and cannot mark a cycle ready until all due
 requests plus cached-or-refreshed evidence are complete.
 
-The runner contract is implemented and synthetically proven. The owner-RLS
-Neon cycle-checkpoint adapter and private R2 evidence sink remain the next P4
-slice; neither has been applied to a hosted provider.
+The runner contract is implemented and synthetically proven. Migration `0075`
+persists each cycle as a compact owner-scoped document with forced RLS,
+function-only runtime access, immutable schedule authority, append-only receipt
+progress, terminal-state protection and compare-and-swap revisions. The Neon
+adapter verifies the authenticated owner and least-privileged runtime posture
+inside every serializable transaction and rejects response drift. The private
+R2 evidence sink remains the next P4 slice; no checkpoint schema has been
+applied to a hosted provider.
 
 ## Safety and next step
 
@@ -76,6 +81,6 @@ All evidence is synthetic and local. No DNA API call, hosted Neon/R2 mutation,
 deployment, Production change or persistent owner-data write occurs. Persistent
 real owner-data synchronization remains blocked by the P5 owner-approval gate.
 
-The next P4 slice is the compact owner-RLS Neon cycle-checkpoint migration and
-adapter, followed by the private immutable evidence-sink contract and dynamic
-ownership/Arena-pagination assembly. These remain synthetic until the P5 gate.
+The next P4 slice is the private immutable evidence-sink contract, followed by
+dynamic ownership and Arena-pagination assembly. These remain synthetic until
+the P5 gate.
