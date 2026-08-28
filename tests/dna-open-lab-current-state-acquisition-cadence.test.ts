@@ -238,6 +238,18 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
           race_activity: "2026-08-28T12:30:01.000Z",
         },
       }),
-    ).toThrow("race_activity evidence cannot follow the cycle time");
+    ).toThrow("race_activity evidence cannot follow the completion time");
+
+    expect(
+      inspectDnaCurrentStateAcquisitionCompletion({
+        schedule,
+        completedAt: "2026-08-28T12:30:02.000Z",
+        completedGroups: [...DNA_CURRENT_STATE_ACQUISITION_GROUPS],
+        evidenceObservedAt: {
+          ...evidence(),
+          race_activity: "2026-08-28T12:30:01.000Z",
+        },
+      }),
+    ).toEqual({ publishable: true, incompleteGroups: [] });
   });
 });
