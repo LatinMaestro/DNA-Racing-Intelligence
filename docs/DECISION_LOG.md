@@ -501,3 +501,18 @@ After the private Pro League milestone, continue in this order:
   never enough to reconstruct a generation.
 - This contract is synthetic and provider-neutral. Owner-RLS Neon persistence
   and atomic publication binding are the next P4 slice; P5 remains closed.
+
+## 2026-08-28 — A published generation retains its exact receipt index
+
+- Persist the full-plan current-state receipt index as one compact document
+  keyed by owner and candidate generation, with forced owner RLS and no direct
+  runtime table access.
+- Validate bounded receipt structure, checksums, source cycles, observation
+  chronology and unique logical request keys before storing it.
+- Stage canonical data and the receipt index inside the same serializable
+  transaction. Publish only through an indexed-generation function, and revoke
+  runtime execute privilege on the older unindexed function.
+- Make identical replay idempotent, reject changed replay and read an index
+  only through the current last-good generation pointer.
+- This remains synthetic/local evidence. It makes no API or hosted-provider
+  change and does not open the P5 first-real-sync gate.

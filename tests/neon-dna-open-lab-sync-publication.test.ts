@@ -295,6 +295,22 @@ function completeCurrentStateEvidence() {
     ...currentRaceEvidence(),
     ...supplementalCoreEvidence(),
     ...tokenSpliceEvidence(),
+    evidenceIndex: {
+      version: 1 as const,
+      generationId,
+      planSha256: "9".repeat(64),
+      indexedAt: "2026-08-27T12:00:30.000Z",
+      receipts: [
+        {
+          group: "vault_identity" as const,
+          requestKey: "8".repeat(64),
+          cycleId: generationId,
+          observedAt: "2026-08-27T12:00:00.000Z",
+          contentSha256: "7".repeat(64),
+          evidenceObjectKey: `private/${generationId}/vault.json`,
+        },
+      ],
+    },
   };
 }
 
@@ -324,6 +340,8 @@ function isolation(overrides: Record<string, unknown> = {}) {
     arena_page_force_rls: true,
     arena_listing_rls: true,
     arena_listing_force_rls: true,
+    evidence_index_rls: true,
+    evidence_index_force_rls: true,
     runtime_can_access_generation: false,
     runtime_can_access_family: false,
     runtime_can_access_state: false,
@@ -335,12 +353,16 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_access_arena_mode: false,
     runtime_can_access_arena_page: false,
     runtime_can_access_arena_listing: false,
+    runtime_can_access_evidence_index: false,
     runtime_can_stage_legacy: false,
     runtime_can_stage_cores_only: false,
     runtime_can_stage_current_race: false,
     runtime_can_stage_supplemental: false,
     runtime_can_stage_complete: true,
+    runtime_can_publish_legacy: false,
+    runtime_can_save_evidence_index: true,
     runtime_can_publish: true,
+    runtime_can_read_evidence_index: true,
     runtime_can_pause: true,
     runtime_can_read: true,
     runtime_can_read_cores: true,
@@ -416,6 +438,7 @@ describe("Neon DNA Open Lab sync publication", () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [isolation()],
+      [{ status: "staged" }],
       [{ status: "staged" }],
       [{ status: "published" }],
       [currentState()],
@@ -508,6 +531,18 @@ describe("Neon DNA Open Lab sync publication", () => {
     expect(tokenSplice.arenaModes).toHaveLength(1);
     expect(tokenSplice.arenaPages).toHaveLength(1);
     expect(tokenSplice.arenaListings).toHaveLength(2);
+    const indexCall = test.query.mock.calls[4];
+    expect(indexCall?.[0]).toContain(
+      "save_dna_open_lab_current_state_evidence_index",
+    );
+    expect(JSON.parse(String(indexCall?.[1]?.[2]))).toMatchObject({
+      version: 1,
+      generationId,
+      planSha256: "9".repeat(64),
+    });
+    expect(test.query.mock.calls[5]?.[0]).toContain(
+      "publish_dna_open_lab_indexed_sync_candidate",
+    );
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 

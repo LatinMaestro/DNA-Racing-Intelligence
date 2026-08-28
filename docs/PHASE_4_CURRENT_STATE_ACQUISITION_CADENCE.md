@@ -90,5 +90,9 @@ All evidence is synthetic and local. No DNA API call, hosted Neon/R2 mutation,
 deployment, Production change or persistent owner-data write occurs. Persistent
 real owner-data synchronization remains blocked by the P5 owner-approval gate.
 
-The next P4 slice is durable bootstrap/continuation execution feeding the
-assembler and final bounded runner. It remains synthetic until the P5 gate.
+The durable bootstrap/continuation executor and full-cycle publication runner
+now feed exact receipt authority into migration `0076`. That migration stores
+one compact owner-RLS receipt index per generation, and the publication adapter
+atomically stages it with canonical data before an indexed-only publish. The
+next P4 slice is staggered-cycle reconstruction from current due receipts plus
+verified last-good non-due receipts. It remains synthetic until the P5 gate.

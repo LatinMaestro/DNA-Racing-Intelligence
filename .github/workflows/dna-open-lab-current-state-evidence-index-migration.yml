@@ -1,0 +1,54 @@
+name: DNA Open Lab current-state evidence index migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/dna-open-lab-current-state-evidence-index-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run current-state evidence index smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0076_dna_open_lab_current_state_evidence_index.smoke.sql
+      - name: Reverse current-state evidence index migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0076_dna_open_lab_current_state_evidence_index.down.sql
+      - name: Verify current-state evidence index removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0076_dna_open_lab_current_state_evidence_index.removal.sql
