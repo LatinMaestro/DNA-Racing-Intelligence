@@ -134,7 +134,13 @@ function-only access, append-only progress, idempotent replay, immutable cycle
 authority and serializable compare-and-swap updates. The private R2 current-state
 evidence sink now writes one immutable object per cycle/request, verifies bucket
 privacy and exact object metadata, and returns the first durable receipt on a
-crash replay. Dynamic ownership and Arena continuation remain incomplete.
+crash replay. Dynamic plan assembly now derives sorted owned-Core and
+active-race identities from validated bootstrap evidence, requests exactly the
+next contiguous Arena page for each non-terminal mode and withholds the
+immutable runner plan until every requested mode proves a terminal page.
+Duplicate identities, page gaps, response/request drift, changing limits and
+schedules beyond the 512-request durable-cycle capacity fail closed. Durable
+bootstrap/continuation execution remains incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
