@@ -39,6 +39,14 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
+      - name: Reverse dependent Token and Splice read-model migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0074_dna_open_lab_token_splice_read_model.down.sql
+      - name: Verify Token and Splice read-model removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0074_dna_open_lab_token_splice_read_model.removal.sql
       - name: Reverse dependent supplemental Core read-model migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
