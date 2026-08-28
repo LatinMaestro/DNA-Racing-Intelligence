@@ -681,3 +681,16 @@ After the private Pro League milestone, continue in this order:
   cleanup. Existing markers and any residue fail closed.
 - This can produce connected capacity evidence only. It does not persist real
   owner data, open P5, authorise Production or perform a DNA transaction.
+
+## 2026-08-28 — Provider prerequisites are a separate read-only gate
+
+- Add a dispatch-only provider preflight before the connected P5 capacity run.
+- Reduce observations to counts, booleans and stable blocker IDs; never emit
+  provider configuration, owner/database/bucket/object identity or errors.
+- Require PostgreSQL 18, exact owner binding, least-privilege runtime, all 15
+  API-only relations, all 13 runtime functions, legacy publisher revocation,
+  private R2 access and no synthetic marker residue.
+- The first read-only Preview observation found PostgreSQL 18 but 0/15 required
+  API-only relations. Migrations `0069`–`0076` must be applied and reviewed on
+  private Preview before measurement. This finding does not authorize that
+  measurement, persistent real owner-data sync or any Production change.
