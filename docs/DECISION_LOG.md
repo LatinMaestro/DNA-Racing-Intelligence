@@ -625,3 +625,19 @@ After the private Pro League milestone, continue in this order:
   reject residue, persistent owner-data writes, raw payloads or secrets.
 - Local runner evidence remains insufficient for P5; connected provider
   measurement and review are still required.
+
+## 2026-08-28 — Capacity provider reads are least privilege and owner confined
+
+- Execute every PostgreSQL capacity observation in a new serializable read-only
+  transaction after verifying owner scope, the exact runtime role and the
+  absence of superuser, RLS-bypass, role/database/schema creation authority.
+- Measure only an explicit allowlist of `dna` owner relations and reject partial
+  catalog coverage.
+- Enumerate R2 only through the hashed DNA Open Lab owner prefix and never emit
+  raw keys, bodies or metadata values from the adapter.
+- Count returned application HTTP/custom metadata key/value bytes exactly; do
+  not invent provider-internal metadata overhead or undocumented billing
+  semantics.
+- These adapters are implementation evidence only. Connected synthetic
+  measurement, cleanup evidence and review remain required before capacity
+  rows can change.

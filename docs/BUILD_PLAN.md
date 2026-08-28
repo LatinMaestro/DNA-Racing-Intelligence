@@ -192,6 +192,10 @@ The bounded measurement runner reads PostgreSQL sizes itself around a complete
 synthetic cycle, requires a component-triggered transient sample, enumerates a
 private R2 footprint through bounded identity-deduplicated pagination and
 always cleans synthetic evidence before emitting the capacity report.
+The provider adapters now execute PostgreSQL catalog measurements only through
+an owner-bound, non-privileged, read-only runtime and enumerate R2 only beneath
+the hashed owner prefix, reducing raw object identities to hashes and byte
+counts before they enter the runner.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
