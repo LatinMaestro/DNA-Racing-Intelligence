@@ -583,3 +583,15 @@ After the private Pro League milestone, continue in this order:
 - Reject raw payloads, secrets, changed head/scope, out-of-order checkpoints and
   completed-checkpoint replay from the evidence report.
 - A complete local report remains local evidence only and cannot open P5.
+
+## 2026-08-28 — API-only capacity evidence uses an exact measurement contract
+
+- Bind PostgreSQL 18 physical/peak and private R2 evidence to one exact code
+  head, complete acquisition-plan checksum, provider scope and timestamp.
+- Use the maximum sampled database size—not settled size—for Neon headroom, and
+  keep zero headroom blocking against the 536,870,912-byte boundary.
+- Require owner heap, index and TOAST bytes plus multiple transient samples.
+- Project private R2 retained bytes and Class A/B operations using a dated price
+  authority supplied at measurement time; do not hard-code provider pricing.
+- A connected passing capacity report may update only P5 capacity evidence. It
+  cannot authorise persistence, Production or any external transaction.
