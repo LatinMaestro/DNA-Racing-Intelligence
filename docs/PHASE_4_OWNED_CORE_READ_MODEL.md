@@ -54,8 +54,27 @@ the first persistent real Preview synchronization.
 
 - generation-bound active-race/fill persistence is implemented by migration
   `0072`;
-- supplemental Core observations, including power, racing stats, stamina,
-  assets, listing and splicing state;
+- generation-bound persistence for the supplemental Core canonical observations
+  described below;
 - Token and Splice Arena read models;
 - generation workers and endpoint-appropriate cadences; and
 - P5 storage/capacity/recovery measurement.
+
+## Supplemental Core canonical boundary
+
+The server-only v1 adapter now canonicalizes the connected supplemental Core
+families for racing stats, power, listing price, attached assets, owner,
+stamina and splicing information. Every observation has a Core entity key,
+timezone-qualified observation time and raw-evidence checksum.
+
+Provider-owned nested values whose meaning or nullability is not yet documented
+remain JSON-safe source values. In particular, API power, adjusted odds,
+provider variance, mode statistics, ageing, tournament profits, assets and
+splice context are not renamed into analytical facts or assigned predictive
+meaning. Known structural values such as Core ID, mode race count, stamina and
+timestamps are validated without adding cross-field assumptions.
+
+This is a current-state canonical input contract only. It does not feed
+historical ranking, infer listing state from omitted fields, or make current
+observations available before their observation time. Neon materialization,
+workers and real API persistence remain separate P4/P5-gated work.
