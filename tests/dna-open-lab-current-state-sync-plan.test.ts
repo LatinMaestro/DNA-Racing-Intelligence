@@ -22,9 +22,9 @@ describe("DNA Open Lab current-state sync plan", () => {
         .filter((entry) => entry.endpoint === "splice.arena")
         .map((entry) => entry.payload),
     ).toEqual([
-      { filter: { rvmode: "bike" } },
-      { filter: { rvmode: "car" } },
-      { filter: { rvmode: "horse" } },
+      { filter: { rvmode: "bike" }, page: 1 },
+      { filter: { rvmode: "car" }, page: 1 },
+      { filter: { rvmode: "horse" }, page: 1 },
     ]);
     expect(plan.hydrate).toEqual([]);
     expect(plan.deferredUntilP3).toEqual([
@@ -32,6 +32,32 @@ describe("DNA Open Lab current-state sync plan", () => {
       "cores.telemetry_bulk",
       "cores.telemetry_benchmark",
     ]);
+  });
+
+  it("includes proven contiguous Arena page coverage in the final plan", () => {
+    const plan = createDnaCurrentStateSyncPlan({
+      vault: "owner-vault",
+      spliceModes: ["bike", "car"],
+      spliceArenaPagesByMode: { bike: [1, 2, 3], car: [1] },
+    });
+
+    expect(
+      plan.bootstrap
+        .filter((entry) => entry.endpoint === "splice.arena")
+        .map((entry) => entry.payload),
+    ).toEqual([
+      { filter: { rvmode: "bike" }, page: 1 },
+      { filter: { rvmode: "bike" }, page: 2 },
+      { filter: { rvmode: "bike" }, page: 3 },
+      { filter: { rvmode: "car" }, page: 1 },
+    ]);
+    expect(() =>
+      createDnaCurrentStateSyncPlan({
+        vault: "owner-vault",
+        spliceModes: ["bike"],
+        spliceArenaPagesByMode: { bike: [1, 3] },
+      }),
+    ).toThrow("pages must be contiguous from page 1");
   });
 
   it("hydrates owned Cores in deterministic batches of at most twenty", () => {
@@ -141,5 +167,12 @@ describe("DNA Open Lab current-state sync plan", () => {
         splicePairs: [{ fatherCoreId: 1, motherCoreId: 0 }],
       }),
     ).toThrow("motherCoreId must be a positive safe integer");
+    expect(() =>
+      createDnaCurrentStateSyncPlan({
+        vault: "owner-vault",
+        ownedCoreIds: Array.from({ length: 1_280 }, (_, index) => index + 1),
+        spliceModes: [],
+      }),
+    ).toThrow("request count exceeds the durable cycle capacity");
   });
 });
