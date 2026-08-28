@@ -433,3 +433,18 @@ After the private Pro League milestone, continue in this order:
   separate evidence-backed feature-authority decision.
 - This canonical adapter slice uses synthetic fixtures only. Generation-bound
   Neon persistence, workers and real owner-data synchronization remain gated.
+
+## 2026-08-28 — Supplemental Core refresh is one complete generation
+
+- Bind racing stats, power, listing, attached assets, owner, stamina and
+  splicing observations to the exact same owned-Core ID set and generation.
+- Require every family to contain every owned Core exactly once. Missing,
+  duplicate and extra identities fail the entire materialization.
+- Validate source/version/scope/endpoint, entity keys, evidence checksums and
+  observation chronology before producing persistence input.
+- Sort every family deterministically by canonical numeric Core ID for stable
+  replay and database receipt comparison.
+- Do not publish a mixed-generation or partial supplemental Core view. Preserve
+  the previous last-good serving generation instead.
+- This materialization uses synthetic evidence only. It does not add Neon
+  tables, call DNA Open Lab or open the P5 real-data gate.

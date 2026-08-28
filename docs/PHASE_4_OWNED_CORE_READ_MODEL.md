@@ -74,7 +74,13 @@ splice context are not renamed into analytical facts or assigned predictive
 meaning. Known structural values such as Core ID, mode race count, stamina and
 timestamps are validated without adding cross-field assumptions.
 
-This is a current-state canonical input contract only. It does not feed
+The supplemental materialization builder now binds all seven families to one
+complete owned-Core set and immutable sync generation. It requires every family
+to cover every owned Core exactly once, validates endpoint/entity/checksum and
+chronology authority, then sorts rows deterministically. A missing, duplicate,
+extra, late or wrongly sourced observation rejects the entire payload.
+
+This remains a current-state persistence-input contract only. It does not feed
 historical ranking, infer listing state from omitted fields, or make current
-observations available before their observation time. Neon materialization,
-workers and real API persistence remain separate P4/P5-gated work.
+observations available before their observation time. The Neon schema/runtime
+functions, workers and real API persistence remain separate P4/P5-gated work.

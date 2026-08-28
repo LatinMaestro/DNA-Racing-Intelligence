@@ -208,6 +208,11 @@ or derive ranking inputs from current racing-stat summaries. Only documented
 structural fields are normalized, and every predictive use requires a separate
 meaning, chronology and lift decision.
 
+Supplemental Core publication is all-or-nothing across racing stats, power,
+listing, attached assets, owner, stamina and splicing. Each family must cover
+the exact complete owned-Core set for the same generation; a partial family
+cannot advance the serving generation.
+
 Historical backtests/recommendations may use a current-style field only if an observation of that field existed before the historical event cutoff. Otherwise it is excluded to prevent leakage.
 
 Historical race time/speed/exact-distance evidence, Gold/Blue star evidence, payout-format context and accepted economic facts retain their existing chronological rules.
