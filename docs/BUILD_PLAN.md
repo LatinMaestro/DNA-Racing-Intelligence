@@ -179,6 +179,11 @@ provider residue.
 Each recovery case now has a typed local adapter for its decisive observable
 outcome, preventing generic success flags from substituting for case-specific
 receipt, retry, pause, atomicity or drift proof.
+The component recovery executor now derives those assertions from raw
+component observations: immutable identities and read-back checksums, durable
+checkpoint identities, serving pointers, retry timestamps, transaction counts
+and dynamic-plan checksums. Component scenarios cannot submit generic pass or
+recovery booleans to the bounded harness.
 The API-only capacity contract now binds PostgreSQL 18 physical/peak evidence
 and private R2 footprint/operation/cost evidence to the same exact head and
 complete plan checksum without treating local design evidence as connected P5

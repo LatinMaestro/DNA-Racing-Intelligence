@@ -598,3 +598,15 @@ After the private Pro League milestone, continue in this order:
   authority supplied at measurement time; do not hard-code provider pricing.
 - A connected passing capacity report may update only P5 capacity evidence. It
   cannot authorise persistence, Production or any external transaction.
+
+## 2026-08-28 — Recovery assertions are derived from component observations
+
+- Run each recovery case through a case-bound component scenario and derive
+  its trace from raw receipt/checkpoint identities, serving pointers, retry
+  timestamps, staging/commit counters and plan checksums.
+- Do not accept a generic pass, recovered or authority-preserved flag from a
+  scenario implementation.
+- Keep the existing one-request, zero-real-owner-write, exact-head and
+  provider-scope harness limits authoritative after component derivation.
+- This remains local synthetic implementation evidence. It neither satisfies
+  connected private Preview acceptance nor opens P5.
