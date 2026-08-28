@@ -115,8 +115,11 @@ checkpoints. Migration `0071` adds the first generation-bound current read
 model for API-authoritative owned-Core identity. Migration `0072` adds
 generation-bound active-race/fill persistence with complete family receipts,
 deterministic race identity, point-in-time chronology, owner RLS, last-good
-serving and active/fill referential coverage. Supplemental current Core, Token
-and Splice Arena materialization plus scheduling remain incomplete.
+serving and active/fill referential coverage. Migration `0073` persists all
+seven supplemental current-Core families with exact owned-Core coverage, owner
+RLS and last-good reads. Token prices and complete paginated Splice Arena now
+have generation-bound canonical materialization; their compact persistence and
+bounded scheduling remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

@@ -54,9 +54,9 @@ the first persistent real Preview synchronization.
 
 - generation-bound active-race/fill persistence is implemented by migration
   `0072`;
-- generation-bound persistence for the supplemental Core canonical observations
-  described below;
-- Token and Splice Arena read models;
+- generation-bound supplemental Core persistence is implemented by migration
+  `0073`;
+- Token and Splice Arena persistence;
 - generation workers and endpoint-appropriate cadences; and
 - P5 storage/capacity/recovery measurement.
 
@@ -80,7 +80,8 @@ to cover every owned Core exactly once, validates endpoint/entity/checksum and
 chronology authority, then sorts rows deterministically. A missing, duplicate,
 extra, late or wrongly sourced observation rejects the entire payload.
 
-This remains a current-state persistence-input contract only. It does not feed
+This remains a current-state persistence contract only. It does not feed
 historical ranking, infer listing state from omitted fields, or make current
-observations available before their observation time. The Neon schema/runtime
-functions, workers and real API persistence remain separate P4/P5-gated work.
+observations available before their observation time. Migration `0073` provides
+the compact owner-RLS schema and last-good runtime reads; workers and real API
+persistence remain separate P4/P5-gated work.

@@ -22,6 +22,9 @@ import type {
   DnaRaceMode,
   DnaRaceDocument,
   DnaRaceFill,
+  DnaSpliceArenaResult,
+  DnaSplicePairInfo,
+  DnaTokenPrices,
   DnaVaultCore,
 } from "@/lib/dna-open-lab-v1-client";
 
@@ -172,6 +175,60 @@ export type CanonicalCoreSplicingSnapshot = Readonly<{
   grandparentsSourceValue: JsonSourceValue;
   challengeCreditSourceValue: JsonSourceValue;
   spliceCoreSourceValue: JsonSourceValue;
+}>;
+
+export const DNA_TOKEN_PRICE_ASSETS = Object.freeze([
+  "ETH",
+  "BTC",
+  "DEZ",
+  "HLX",
+  "BGC",
+  "TP",
+  "METH",
+  "MBTC",
+] as const);
+
+export type DnaTokenPriceAsset = (typeof DNA_TOKEN_PRICE_ASSETS)[number];
+
+export type CanonicalTokenPricesSnapshot = Readonly<{
+  sourceType: "token_prices_snapshot";
+  valuationUse: "current_reference_only";
+  usdReferencePriceByAsset: Readonly<Record<DnaTokenPriceAsset, number>>;
+}>;
+
+export type CanonicalSpliceArenaListing = Readonly<{
+  sourceCoreId: string;
+  displayName: string;
+  coreTypeSourceValue: string;
+  genderSourceValue: string;
+  elementSourceValue: string;
+  colorSourceValue: string;
+  hexColorSourceValue: string;
+  fNumber: number;
+  priceUsdSourceValue: number;
+}>;
+
+export type CanonicalSpliceArenaPageSnapshot = Readonly<{
+  sourceType: "splice_arena_page_snapshot";
+  mode: DnaRaceMode;
+  page: number;
+  pageSizeLimit: number;
+  hasMore: boolean;
+  listings: readonly CanonicalSpliceArenaListing[];
+}>;
+
+export type CanonicalSplicePairInfoSnapshot = Readonly<{
+  sourceType: "splice_pair_info_snapshot";
+  fatherSourceCoreId: string;
+  motherSourceCoreId: string;
+  fatherSourceValue: JsonSourceValue;
+  motherSourceValue: JsonSourceValue;
+  baby: Readonly<{
+    elementSourceValue: string;
+    fNumber: number;
+    typeSourceValue: string;
+  }>;
+  pricesSourceValue: JsonSourceValue;
 }>;
 
 function adapterError(message: string): never {
@@ -390,6 +447,142 @@ function sourceCoreIdentifier(value: number): string {
 
 export function dnaOpenLabRawEvidenceSha256(raw: unknown): string {
   return createHash("sha256").update(canonicalJson(raw), "utf8").digest("hex");
+}
+
+export function adaptDnaTokenPrices(input: {
+  raw: DnaTokenPrices;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalTokenPricesSnapshot> {
+  const canonical: CanonicalTokenPricesSnapshot = Object.freeze({
+    sourceType: "token_prices_snapshot",
+    valuationUse: "current_reference_only",
+    usdReferencePriceByAsset: Object.freeze({
+      ETH: nonNegativeFinite(input.raw.ethusd, "tokens.prices.ETH"),
+      BTC: nonNegativeFinite(input.raw.btcusd, "tokens.prices.BTC"),
+      DEZ: nonNegativeFinite(input.raw.dezusd, "tokens.prices.DEZ"),
+      HLX: nonNegativeFinite(input.raw.hlxusd, "tokens.prices.HLX"),
+      BGC: nonNegativeFinite(input.raw.bgcusd, "tokens.prices.BGC"),
+      TP: nonNegativeFinite(input.raw.tpusd, "tokens.prices.TP"),
+      METH: nonNegativeFinite(input.raw.methusd, "tokens.prices.METH"),
+      MBTC: nonNegativeFinite(input.raw.mbtcusd, "tokens.prices.MBTC"),
+    }),
+  });
+  return evidence({
+    scope: "tokens",
+    endpoint: "tokens.prices",
+    entityKey: "token-prices:current",
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaSpliceArenaPage(input: {
+  raw: DnaSpliceArenaResult;
+  mode: DnaRaceMode;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalSpliceArenaPageSnapshot> {
+  const mode = raceMode(input.mode) as DnaRaceMode;
+  const page = positiveInteger(input.raw.page, "spliceArena.page");
+  const pageSizeLimit = positiveInteger(
+    input.raw.limit,
+    "spliceArena.pageSizeLimit",
+  );
+  if (input.raw.cores.length > pageSizeLimit) {
+    adapterError("spliceArena listing count cannot exceed its page limit");
+  }
+  const seen = new Set<string>();
+  const listings = Object.freeze(
+    input.raw.cores.map((core) => {
+      const sourceCoreId = sourceCoreIdentifier(core.hid);
+      if (seen.has(sourceCoreId)) {
+        adapterError("spliceArena page cannot contain duplicate Core IDs");
+      }
+      seen.add(sourceCoreId);
+      return Object.freeze({
+        sourceCoreId,
+        displayName: requiredText(core.name, "spliceArena.core.name"),
+        coreTypeSourceValue: requiredText(core.type, "spliceArena.core.type"),
+        genderSourceValue: requiredText(core.gender, "spliceArena.core.gender"),
+        elementSourceValue: requiredText(
+          core.element,
+          "spliceArena.core.element",
+        ),
+        colorSourceValue: requiredText(core.color, "spliceArena.core.color"),
+        hexColorSourceValue: requiredText(
+          core.hex_code,
+          "spliceArena.core.hexColor",
+        ),
+        fNumber: positiveInteger(core.fno, "spliceArena.core.fNumber"),
+        priceUsdSourceValue: nonNegativeFinite(
+          core.price_usd,
+          "spliceArena.core.priceUsd",
+        ),
+      });
+    }),
+  );
+  const canonical: CanonicalSpliceArenaPageSnapshot = Object.freeze({
+    sourceType: "splice_arena_page_snapshot",
+    mode,
+    page,
+    pageSizeLimit,
+    hasMore: booleanValue(input.raw.has_more, "spliceArena.hasMore"),
+    listings,
+  });
+  return evidence({
+    scope: "splice",
+    endpoint: "splice.arena",
+    entityKey: `splice-arena:${mode}:page:${String(page)}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaSplicePairInfo(input: {
+  raw: DnaSplicePairInfo;
+  fatherCoreId: number;
+  motherCoreId: number;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalSplicePairInfoSnapshot> {
+  const fatherSourceCoreId = sourceCoreIdentifier(input.fatherCoreId);
+  const motherSourceCoreId = sourceCoreIdentifier(input.motherCoreId);
+  if (fatherSourceCoreId === motherSourceCoreId) {
+    adapterError("splicePairInfo parents must be distinct Cores");
+  }
+  const canonical: CanonicalSplicePairInfoSnapshot = Object.freeze({
+    sourceType: "splice_pair_info_snapshot",
+    fatherSourceCoreId,
+    motherSourceCoreId,
+    fatherSourceValue: jsonSourceValue(input.raw.f, "splicePairInfo.father"),
+    motherSourceValue: jsonSourceValue(input.raw.m, "splicePairInfo.mother"),
+    baby: Object.freeze({
+      elementSourceValue: requiredText(
+        input.raw.baby_info.element,
+        "splicePairInfo.baby.element",
+      ),
+      fNumber: positiveInteger(
+        input.raw.baby_info.fno,
+        "splicePairInfo.baby.fNumber",
+      ),
+      typeSourceValue: requiredText(
+        input.raw.baby_info.type,
+        "splicePairInfo.baby.type",
+      ),
+    }),
+    pricesSourceValue: jsonSourceValue(
+      input.raw.prices,
+      "splicePairInfo.prices",
+    ),
+  });
+  return evidence({
+    scope: "splice",
+    endpoint: "splice.pair_info",
+    entityKey: `splice-pair:${fatherSourceCoreId}:${motherSourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
 }
 
 function evidence<T>(input: {
