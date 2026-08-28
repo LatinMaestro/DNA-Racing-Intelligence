@@ -641,3 +641,14 @@ After the private Pro League milestone, continue in this order:
 - These adapters are implementation evidence only. Connected synthetic
   measurement, cleanup evidence and review remain required before capacity
   rows can change.
+
+## 2026-08-28 — Connected capacity composition cannot weaken evidence scope
+
+- Fix the connected entry point to `private_preview`; do not accept a caller
+  supplied provider scope.
+- Construct both Neon and R2 ports inside that entry point so connected reports
+  cannot substitute permissive measurement ports.
+- Bind PostgreSQL relation measurement to the complete DNA Open Lab inventory
+  through migration `0076`; schema drift or missing coverage fails closed.
+- A successful composed report can update only the three reviewed capacity
+  rows. It still cannot authorise persistent sync or Production.

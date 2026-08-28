@@ -27,6 +27,8 @@ each observation, binds the application owner scope and verifies that the
 runtime role is neither privileged nor able to create database/schema objects.
 Owner relation totals are limited to an explicit, validated relation allowlist;
 missing relations fail the measurement rather than silently reducing it.
+The allowlist is the fixed complete DNA Open Lab schema inventory through
+migration `0076`; a measurement caller cannot replace it with a smaller set.
 
 The approved boundary remains `536870912` bytes. Peak—not settled size—is used
 for headroom. Zero headroom is blocking.
@@ -65,6 +67,7 @@ reproducible. Empty footprint or operation observations fail closed.
 ## Current state
 
 The measurement contract, bounded synthetic runner and least-privilege
-PostgreSQL/R2 adapters are implemented, but no connected measurement has been
-performed. PostgreSQL physical/peak storage, private R2 footprint/cost and
-positive Neon headroom therefore remain pending P5 evidence.
+PostgreSQL/R2 adapters are implemented. A single guarded composition fixes the
+provider scope to private Preview and constructs both concrete adapters. No
+connected measurement has been performed, so PostgreSQL physical/peak storage,
+private R2 footprint/cost and positive Neon headroom remain pending P5 evidence.
