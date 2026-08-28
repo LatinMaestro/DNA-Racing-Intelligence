@@ -32,6 +32,49 @@ export type DnaCurrentStateEvidenceIndex = Readonly<{
   receipts: readonly DnaCurrentStateIndexedEvidenceReceipt[];
 }>;
 
+/** Validates the self-contained storage contract without weakening plan authority. */
+export function validateDnaCurrentStateEvidenceIndexDocument(input: {
+  index: DnaCurrentStateEvidenceIndex;
+  validatedAt: string;
+}): DnaCurrentStateEvidenceIndex {
+  const validatedAt = timestamp(input.validatedAt, "validatedAt");
+  if (input.index.version !== DNA_CURRENT_STATE_EVIDENCE_INDEX_VERSION) {
+    indexError("index version is invalid");
+  }
+  const generationId = uuid(input.index.generationId, "generationId");
+  const indexedAt = timestamp(input.index.indexedAt, "indexedAt");
+  if (Date.parse(indexedAt) > Date.parse(validatedAt)) {
+    indexError("indexedAt cannot follow validation time");
+  }
+  const plan = sha256(input.index.planSha256, "planSha256");
+  if (input.index.receipts.length < 1 || input.index.receipts.length > 512) {
+    indexError("receipt count is invalid");
+  }
+  const receipts = input.index.receipts.map((value) => {
+    if (!DNA_CURRENT_STATE_ACQUISITION_GROUPS.includes(value.group)) {
+      indexError("receipt group is invalid");
+    }
+    return indexedReceipt({
+      group: value.group,
+      cycleId: value.cycleId,
+      receipt: value,
+      maximumObservedAt: indexedAt,
+    });
+  });
+  if (
+    new Set(receipts.map((value) => value.requestKey)).size !== receipts.length
+  ) {
+    indexError("index repeats a logical request receipt");
+  }
+  return Object.freeze({
+    version: DNA_CURRENT_STATE_EVIDENCE_INDEX_VERSION,
+    generationId,
+    planSha256: plan,
+    indexedAt,
+    receipts: Object.freeze(receipts),
+  });
+}
+
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -149,24 +192,17 @@ export function validateDnaCurrentStateEvidenceIndex(input: {
   plan: DnaCurrentStateSyncPlan;
   validatedAt: string;
 }): DnaCurrentStateEvidenceIndex {
-  const validatedAt = timestamp(input.validatedAt, "validatedAt");
-  if (input.index.version !== DNA_CURRENT_STATE_EVIDENCE_INDEX_VERSION) {
-    indexError("index version is invalid");
-  }
-  const generationId = uuid(input.index.generationId, "generationId");
-  const indexedAt = timestamp(input.index.indexedAt, "indexedAt");
-  if (Date.parse(indexedAt) > Date.parse(validatedAt)) {
-    indexError("indexedAt cannot follow validation time");
-  }
+  const document = validateDnaCurrentStateEvidenceIndexDocument(input);
+  const { generationId, indexedAt } = document;
   const expected = fullEntries({ plan: input.plan, evaluatedAt: indexedAt });
   const expectedPlanSha256 = planSha256(expected);
   if (
-    input.index.planSha256 !== expectedPlanSha256 ||
-    input.index.receipts.length !== expected.length
+    document.planSha256 !== expectedPlanSha256 ||
+    document.receipts.length !== expected.length
   ) {
     indexError("index plan coverage is invalid");
   }
-  const receipts = input.index.receipts.map((value, offset) =>
+  const receipts = document.receipts.map((value, offset) =>
     validateDocumentReceipt({
       value,
       expected: expected[offset]!,

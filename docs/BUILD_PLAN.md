@@ -154,8 +154,13 @@ index can prove the exact carried-forward evidence for every non-due group. The
 deterministic index contract now rebuilds full-plan receipt authority by taking
 due groups only from the current ready checkpoint and non-due groups only from
 a validated prior last-good index. It rejects plan/request drift, missing
-cached receipts, duplicate identities and future observations. Owner-RLS Neon
-persistence and atomic binding of this compact index to publication remain.
+cached receipts, duplicate identities and future observations. Migration
+`0076` now persists the compact index with forced owner RLS, bounded receipt
+validation and conflict-safe replay. The publication adapter binds the index
+and complete canonical candidate in one serializable transaction, then
+publishes only through an indexed-generation function; the runtime cannot call
+the older unindexed publication function. Staggered cadence orchestration still
+needs to re-read and assemble carried receipts before publication.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

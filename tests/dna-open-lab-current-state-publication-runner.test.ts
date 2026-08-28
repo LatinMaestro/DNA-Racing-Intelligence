@@ -348,7 +348,15 @@ describe("DNA Open Lab current-state publication runner", () => {
     expect(publishCandidate.mock.calls[0]?.[0]).toMatchObject({
       ownerId: "private-owner",
       candidate: { generationId: cycleId },
+      evidenceIndex: {
+        version: 1,
+        generationId: cycleId,
+        indexedAt: observedAt,
+      },
     });
+    expect(
+      publishCandidate.mock.calls[0]?.[0].evidenceIndex.receipts,
+    ).toHaveLength(schedule.scheduledRequestCount);
   });
 
   it("rejects evidence identity drift before publication", async () => {

@@ -142,6 +142,14 @@ request. A staggered candidate replaces due-group entries from its current
 ready checkpoint and carries non-due entries only from the prior validated
 last-good index.
 
+Migration `0076` stores that complete index as one compact generation-bound
+document under forced owner RLS and function-only runtime access. Publication
+now stages the canonical generation and its index in the same serializable
+transaction, then uses an indexed-only publication function; the runtime role
+can no longer call the unindexed publication function. Replay must match the
+entire JSONB document, and serving reads follow only the current last-good
+generation pointer.
+
 The website must never appear fresher merely because a failed sync attempt occurred later.
 
 ## API eligibility/key loss

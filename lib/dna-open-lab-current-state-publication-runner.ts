@@ -66,7 +66,7 @@ type PublicationRequest = Parameters<
 
 export type DnaCurrentStatePublicationAssembly = Omit<
   PublicationRequest,
-  "ownerId" | "recordedAt" | "acceptedAt"
+  "ownerId" | "recordedAt" | "acceptedAt" | "evidenceIndex"
 >;
 
 function publicationError(message: string): never {
@@ -468,10 +468,31 @@ export async function publishDnaCurrentStateAcquisitionCycle(input: {
   publicationRepository: NeonDnaOpenLabSyncPublicationRepository;
 }) {
   const assembled = await assembleDnaCurrentStatePublication(input);
+  const scheduleEntries = entries(input.schedule);
+  const evidenceIndex = Object.freeze({
+    version: 1 as const,
+    generationId: input.cycleId,
+    planSha256: dnaOpenLabRawEvidenceSha256({ requests: scheduleEntries }),
+    indexedAt: new Date(input.recordedAt).toISOString(),
+    receipts: Object.freeze(
+      scheduleEntries.map((entry, offset) => {
+        const receipt = input.checkpoint.receipts[offset]!;
+        return Object.freeze({
+          group: entry.group,
+          requestKey: receipt.requestKey,
+          cycleId: input.cycleId,
+          observedAt: receipt.observedAt,
+          contentSha256: receipt.contentSha256,
+          evidenceObjectKey: receipt.evidenceObjectKey,
+        });
+      }),
+    ),
+  });
   return input.publicationRepository.publishCandidate({
     ownerId: input.ownerId,
     recordedAt: input.recordedAt,
     acceptedAt: input.acceptedAt,
+    evidenceIndex,
     ...assembled,
   });
 }

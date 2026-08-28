@@ -18,6 +18,10 @@ import {
 import { createDnaSupplementalCoreMaterialization } from "./dna-open-lab-core-current-state-materialization";
 import { createDnaTokenSpliceMaterialization } from "./dna-open-lab-token-splice-materialization";
 import {
+  validateDnaCurrentStateEvidenceIndexDocument,
+  type DnaCurrentStateEvidenceIndex,
+} from "./dna-open-lab-current-state-evidence-index";
+import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
 } from "./neon-import-persistence-driver";
@@ -45,6 +49,7 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
       Parameters<typeof createDnaTokenSpliceMaterialization>[0],
       "candidate"
     >;
+    evidenceIndex: DnaCurrentStateEvidenceIndex;
     recordedAt: string;
     acceptedAt: string;
   }) => Promise<DnaLastGoodSyncState>;
@@ -105,6 +110,8 @@ const VERIFY_ISOLATION_SQL = [
   "  arena_page.relforcerowsecurity AS arena_page_force_rls,",
   "  arena_listing.relrowsecurity AS arena_listing_rls,",
   "  arena_listing.relforcerowsecurity AS arena_listing_force_rls,",
+  "  evidence_index.relrowsecurity AS evidence_index_rls,",
+  "  evidence_index.relforcerowsecurity AS evidence_index_force_rls,",
   "  (has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'INSERT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_sync_generation', 'UPDATE')",
@@ -160,6 +167,11 @@ const VERIFY_ISOLATION_SQL = [
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'UPDATE')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_splice_arena_listing_snapshot', 'DELETE'))",
   "    AS runtime_can_access_arena_listing,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_current_state_evidence_index', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_current_state_evidence_index', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_current_state_evidence_index', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_current_state_evidence_index', 'DELETE'))",
+  "    AS runtime_can_access_evidence_index,",
   "  has_function_privilege(session_user,",
   "    'dna.stage_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb)', 'EXECUTE')",
   "    AS runtime_can_stage_legacy,",
@@ -177,7 +189,16 @@ const VERIFY_ISOLATION_SQL = [
   "    AS runtime_can_stage_complete,",
   "  has_function_privilege(session_user,",
   "    'dna.publish_dna_open_lab_sync_candidate(uuid,uuid,timestamp with time zone)', 'EXECUTE')",
+  "    AS runtime_can_publish_legacy,",
+  "  has_function_privilege(session_user,",
+  "    'dna.save_dna_open_lab_current_state_evidence_index(uuid,uuid,jsonb,timestamp with time zone)', 'EXECUTE')",
+  "    AS runtime_can_save_evidence_index,",
+  "  has_function_privilege(session_user,",
+  "    'dna.publish_dna_open_lab_indexed_sync_candidate(uuid,uuid,timestamp with time zone)', 'EXECUTE')",
   "    AS runtime_can_publish,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_serving_current_state_evidence_index(uuid)', 'EXECUTE')",
+  "    AS runtime_can_read_evidence_index,",
   "  has_function_privilege(session_user,",
   "    'dna.pause_dna_open_lab_sync(uuid,text,timestamp with time zone,integer)', 'EXECUTE')",
   "    AS runtime_can_pause,",
@@ -225,6 +246,8 @@ const VERIFY_ISOLATION_SQL = [
   "  ON arena_page.oid = 'dna.dna_open_lab_splice_arena_page_snapshot'::regclass",
   "JOIN pg_catalog.pg_class arena_listing",
   "  ON arena_listing.oid = 'dna.dna_open_lab_splice_arena_listing_snapshot'::regclass",
+  "JOIN pg_catalog.pg_class evidence_index",
+  "  ON evidence_index.oid = 'dna.dna_open_lab_current_state_evidence_index'::regclass",
   "JOIN pg_catalog.pg_roles role ON role.rolname = session_user",
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
@@ -611,6 +634,8 @@ function verifyIsolation(
     "arena_page_force_rls",
     "arena_listing_rls",
     "arena_listing_force_rls",
+    "evidence_index_rls",
+    "evidence_index_force_rls",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -635,13 +660,19 @@ function verifyIsolation(
     bool(
       row.runtime_can_access_arena_listing,
       "runtime_can_access_arena_listing",
+    ) ||
+    bool(
+      row.runtime_can_access_evidence_index,
+      "runtime_can_access_evidence_index",
     )
   ) {
     throw new Error("DNA Open Lab sync table access is not bounded.");
   }
   for (const field of [
     "runtime_can_stage_complete",
+    "runtime_can_save_evidence_index",
     "runtime_can_publish",
+    "runtime_can_read_evidence_index",
     "runtime_can_pause",
     "runtime_can_read",
     "runtime_can_read_cores",
@@ -658,6 +689,11 @@ function verifyIsolation(
   }
   if (bool(row.runtime_can_stage_legacy, "runtime_can_stage_legacy")) {
     throw new Error("DNA Open Lab legacy staging privilege is not bounded.");
+  }
+  if (bool(row.runtime_can_publish_legacy, "runtime_can_publish_legacy")) {
+    throw new Error(
+      "DNA Open Lab unindexed publication privilege is not bounded.",
+    );
   }
   if (bool(row.runtime_can_stage_cores_only, "runtime_can_stage_cores_only")) {
     throw new Error("DNA Open Lab Core-only staging privilege is not bounded.");
@@ -750,6 +786,15 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
       const generationId = uuid(request.candidate.generationId, "generationId");
       const recordedAt = timestamp(request.recordedAt, "recordedAt");
       const acceptedAt = timestamp(request.acceptedAt, "acceptedAt");
+      const evidenceIndex = validateDnaCurrentStateEvidenceIndexDocument({
+        index: request.evidenceIndex,
+        validatedAt: recordedAt,
+      });
+      if (evidenceIndex.generationId !== generationId) {
+        throw new Error(
+          "DNA Open Lab evidence index generation does not match",
+        );
+      }
       const cores = ownedCoreRows({
         candidate: request.candidate,
         ownedCores: request.ownedCores,
@@ -821,9 +866,25 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
           if (stageStatus !== "staged" && stageStatus !== "published") {
             throw new Error("DNA Open Lab candidate staging status is invalid");
           }
+          const indexed = oneRow(
+            await client.query(
+              "SELECT dna.save_dna_open_lab_current_state_evidence_index($1::uuid,$2::uuid,$3::jsonb,$4::timestamptz) AS status",
+              [
+                databaseOwnerId,
+                generationId,
+                JSON.stringify(evidenceIndex),
+                recordedAt,
+              ],
+            ),
+            "DNA Open Lab evidence-index staging",
+          );
+          const indexStatus = text(indexed.status, "status");
+          if (indexStatus !== "staged" && indexStatus !== "published") {
+            throw new Error("DNA Open Lab evidence-index status is invalid");
+          }
           const published = oneRow(
             await client.query(
-              "SELECT dna.publish_dna_open_lab_sync_candidate($1::uuid,$2::uuid,$3::timestamptz) AS status",
+              "SELECT dna.publish_dna_open_lab_indexed_sync_candidate($1::uuid,$2::uuid,$3::timestamptz) AS status",
               [databaseOwnerId, generationId, acceptedAt],
             ),
             "DNA Open Lab candidate publication",
