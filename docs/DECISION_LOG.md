@@ -363,3 +363,32 @@ After the private Pro League milestone, continue in this order:
 - Every published Pro League map race line is explicitly modelled as Bike. A
   future additional mode requires a new versioned authority change; it is not
   anticipated or inferred now.
+
+## 2026-08-28 — Two-Vault matchups, home map control and gap discipline
+
+- A Pro League matchup is between two Vaults and every Bike race field is split
+  equally between them.
+- Each Vault preselects mapped Cores from its registered 12–25 Core roster.
+- The home Vault selects the maps raced in the matchup.
+- Add opposition-aware exact race-type-plus-distance analysis, home-map ranking
+  and away-match defensive preparation. Missing opponent evidence stays unknown.
+- Identify weak and unproven map demands. “Best in our Vault” is not equivalent
+  to strong: weak best-available Cores should be tested against alternatives or
+  addressed through breeding before roster lock.
+- Do not consume a roster place merely to cover a weak theoretical gap. If
+  structural rules make temporary inclusion unavoidable, mark the Core
+  provisional and replacement-priority. Preserve the maximum 10 annual
+  substitutions for evidence-backed improvement.
+
+## 2026-08-28 — Public source repository is owner-approved
+
+- The owner explicitly approved keeping the GitHub source repository public so
+  GitHub Actions availability is not constrained by private-repository minutes.
+- Repository visibility is not a blocker for API-first development, hosted
+  persistence or commissioning.
+- Public DNA game/Vault facts do not make credentials public. API keys,
+  provider/database credentials, session secrets and signing material must
+  remain server-side and must never enter source, logs, artifacts or frontend
+  bundles.
+- Continue avoiding committed raw provider responses. Persist compact canonical
+  read models in Neon and immutable evidence in the approved R2 boundary.

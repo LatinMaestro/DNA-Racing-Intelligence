@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 
 import {
   buildProLeagueMapLineup,
+  proLeagueGateAllocation,
   proLeagueMapAuthority,
   proLeagueMaps,
   resolveProLeagueMapAssignment,
@@ -19,6 +20,10 @@ describe("Pro League maps", () => {
         racesPerMap: 42,
         firstToRacePoints: 16,
         winByRacePoints: 2,
+        vaultsPerMatch: 2,
+        gateAllocation: "equal_halves",
+        homeVaultSelectsMaps: true,
+        mappedCoresMustComeFromRoster: true,
       },
     });
     expect(proLeagueMaps.map(({ name }) => name)).toEqual([
@@ -44,25 +49,52 @@ describe("Pro League maps", () => {
       mode: "bike",
       raceType: "1v1",
       distanceMetres: 1000,
+      totalGateEntries: 2,
+      gateEntriesPerVault: 1,
     });
     expect(proLeagueMaps[1]?.races[41]).toEqual({
       raceNumber: 42,
       mode: "bike",
       raceType: "6 gate WTA",
       distanceMetres: 2000,
+      totalGateEntries: 6,
+      gateEntriesPerVault: 3,
     });
     expect(proLeagueMaps[2]?.races[21]).toEqual({
       raceNumber: 22,
       mode: "bike",
       raceType: "6 gate madness",
       distanceMetres: 1600,
+      totalGateEntries: 6,
+      gateEntriesPerVault: 3,
     });
     expect(proLeagueMaps[3]?.races[40]).toEqual({
       raceNumber: 41,
       mode: "bike",
       raceType: "22 gate WTA",
       distanceMetres: 1400,
+      totalGateEntries: 22,
+      gateEntriesPerVault: 11,
     });
+  });
+
+  it("models the owner-confirmed equal split for every published race type", () => {
+    expect(proLeagueGateAllocation("1v1")).toEqual({
+      totalGateEntries: 2,
+      gateEntriesPerVault: 1,
+    });
+    expect(proLeagueGateAllocation("24 gate madness")).toEqual({
+      totalGateEntries: 24,
+      gateEntriesPerVault: 12,
+    });
+    expect(
+      proLeagueMaps.every(({ races }) =>
+        races.every(
+          ({ totalGateEntries, gateEntriesPerVault }) =>
+            gateEntriesPerVault * 2 === totalGateEntries,
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("matches the full public 168-line catalogue fingerprint", () => {

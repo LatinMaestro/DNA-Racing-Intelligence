@@ -29,6 +29,12 @@ describe("Pro League roster audit", () => {
       maximumRosterSize: 25,
       maximumSubstitutionsPerYear: 10,
       initialRosterCountsAsSubstitutions: "unresolved",
+      matchup: {
+        vaultsPerMatch: 2,
+        gateAllocation: "equal_halves",
+        homeVaultSelectsMaps: true,
+        mappedCoresMustComeFromRoster: true,
+      },
       maximumPerElement: { Metal: 7, Fire: 8, Earth: 10 },
       maximumGenesisPerElement: 2,
       maximumF5OrBelow: 5,

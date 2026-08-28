@@ -286,11 +286,28 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 - Every defined map is a fixed ordered sequence of 42 races.
 - A match is best-of-three maps.
 - A map is first to 16 race points and must be won by two race points.
+- A match is between two Vaults. Every race field is divided 50/50 between the
+  two Vaults, including one entry per Vault in a 1v1 and half the published
+  gates per Vault in larger fields.
+- The home Vault selects the maps that will be raced in its matchup.
+- Each Vault pre-maps eligible Cores from its registered 12–25 Core roster to
+  the selected map race lines.
 - Race lines below 16 are reached only when the score remains close enough for the map to continue.
 - Each race line has an exact race type and distance in metres.
 - When assigning a Core, the owner can apply it only to the selected race or to every race on that selected map with the same race type and exact distance.
 - The website may prepare and validate these lineups but must never click Set, submit a mapping, create a team, set a roster or choose a match map.
 - Matches are expected to be scheduled about one day in advance. The owner must return to DNA Esports and choose the map for each scheduled match manually.
+- The website should analyse the opposing Vault, compare likely head-to-head
+  exact-format and exact-distance strengths, rank our home-map choices and
+  recommend our best rostered Core for each line. Missing opposition evidence
+  remains unknown rather than being treated as an advantage.
+- Coverage reporting must distinguish a genuinely strong option from the Core
+  that is merely the best currently available in our Vault. A weak
+  best-available Core is a Discovery/breeding and possible future replacement
+  priority, not an automatic reason to spend a roster place.
+- With only 10 annual substitutions, marginal Cores should not be locked solely
+  to fill every theoretical gap. If structural compliance forces temporary
+  inclusion, label the Core provisional and preserve a clear replacement plan.
 - The fifth planned map remains unavailable/unconfigured until DNA publishes it.
 
 Published map catalogue observed 27 August 2026:

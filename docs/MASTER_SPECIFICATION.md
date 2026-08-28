@@ -455,6 +455,17 @@ The workspace must:
 - show first-16 mapping coverage separately because a map can finish at race 16;
 - treat best-of-three, first-to-16 and win-by-two as current map authority;
 - record that the owner must return after a match is scheduled to choose the map;
+- model each matchup as two Vaults with every Bike race field split equally;
+- recognise that the home Vault selects the maps and rank its available map
+  choices against the selected opposing Vault;
+- compare our rostered Core and the opposition's selected or likely Core for
+  every exact race type and distance without treating missing evidence as an
+  advantage;
+- identify weak/unproven format-distance coverage, distinguish genuinely strong
+  Cores from weak best-available options, and connect each gap to efficient
+  Discovery, breeding or provisional replacement guidance;
+- protect the 10-substitution annual budget by avoiding unnecessary weak roster
+  locks and clearly labelling any structurally necessary temporary inclusion;
 - exclude additional Genesis minting from the owner's preparation strategy; and
 - remain advisory: no team creation/submission, roster submission, mapping
   submission, match-map selection, race entry, betting, minting, trading,

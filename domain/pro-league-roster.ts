@@ -4,9 +4,15 @@ export const proLeagueCurrentRules = Object.freeze({
   rulesetId: "dna-pro-league/owner-confirmed-2026-08-28",
   evidenceStatus: "owner_confirmed" as const,
   sourceLabel:
-    "Owner-confirmed DNA Pro League rules and Bike-only clarification",
+    "Owner-confirmed DNA Pro League rules, Bike-only and matchup clarification",
   raceMode: "bike" as const,
   receivedAt: "2026-08-28",
+  matchup: Object.freeze({
+    vaultsPerMatch: 2,
+    gateAllocation: "equal_halves" as const,
+    homeVaultSelectsMaps: true,
+    mappedCoresMustComeFromRoster: true,
+  }),
   minimumRosterSize: 12,
   maximumRosterSize: 25,
   maximumSubstitutionsPerYear: 10,
