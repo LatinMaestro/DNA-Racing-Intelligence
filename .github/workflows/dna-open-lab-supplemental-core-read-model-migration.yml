@@ -1,10 +1,10 @@
-name: DNA Open Lab owned Core read-model migration
+name: DNA Open Lab supplemental Core read-model migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/dna-open-lab-owned-core-read-model-migration.yml"
+      - ".github/workflows/dna-open-lab-supplemental-core-read-model-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,7 +40,11 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Reverse dependent supplemental Core read-model migration
+      - name: Run supplemental Core read-model smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0073_dna_open_lab_supplemental_core_read_model.smoke.sql
+      - name: Reverse supplemental Core read-model migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0073_dna_open_lab_supplemental_core_read_model.down.sql
@@ -48,23 +52,3 @@ jobs:
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0073_dna_open_lab_supplemental_core_read_model.removal.sql
-      - name: Reverse dependent current-race read-model migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0072_dna_open_lab_current_race_read_model.down.sql
-      - name: Verify current-race read-model removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0072_dna_open_lab_current_race_read_model.removal.sql
-      - name: Run owned Core read-model smoke test
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0071_dna_open_lab_owned_core_read_model.smoke.sql
-      - name: Reverse owned Core read-model migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0071_dna_open_lab_owned_core_read_model.down.sql
-      - name: Verify owned Core read-model removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0071_dna_open_lab_owned_core_read_model.removal.sql
