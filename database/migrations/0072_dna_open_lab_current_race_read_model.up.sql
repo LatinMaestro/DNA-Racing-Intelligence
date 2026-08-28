@@ -1,9 +1,31 @@
 BEGIN;
 
+DO $$
+DECLARE
+  v_constraint_name text;
+BEGIN
+  SELECT constraint_name
+    INTO v_constraint_name
+    FROM information_schema.check_constraints
+    JOIN information_schema.constraint_column_usage
+      USING (constraint_catalog, constraint_schema, constraint_name)
+   WHERE constraint_schema = 'dna'
+     AND table_name = 'dna_open_lab_sync_generation'
+     AND column_name = 'materialization_contract_version';
+
+  IF v_constraint_name IS NULL THEN
+    RAISE EXCEPTION 'materialization contract version constraint is missing';
+  END IF;
+
+  EXECUTE format(
+    'ALTER TABLE dna.dna_open_lab_sync_generation DROP CONSTRAINT %I',
+    v_constraint_name
+  );
+END;
+$$;
 ALTER TABLE dna.dna_open_lab_sync_generation
-  DROP CONSTRAINT dna_open_lab_sync_generation_materialization_contract_version_c;
-ALTER TABLE dna.dna_open_lab_sync_generation
-  ADD CHECK (materialization_contract_version BETWEEN 0 AND 2);
+  ADD CONSTRAINT dna_open_lab_sync_generation_materialization_version_check
+  CHECK (materialization_contract_version BETWEEN 0 AND 2);
 
 CREATE TABLE dna.dna_open_lab_active_race_snapshot (
   owner_id uuid NOT NULL,

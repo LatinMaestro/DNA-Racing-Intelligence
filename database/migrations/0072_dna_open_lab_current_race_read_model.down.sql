@@ -47,8 +47,9 @@ DROP TABLE IF EXISTS dna.dna_open_lab_race_fill_snapshot;
 DROP TABLE IF EXISTS dna.dna_open_lab_active_race_snapshot;
 
 ALTER TABLE dna.dna_open_lab_sync_generation
-  DROP CONSTRAINT dna_open_lab_sync_generation_materialization_contract_version_c;
+  DROP CONSTRAINT dna_open_lab_sync_generation_materialization_version_check;
 ALTER TABLE dna.dna_open_lab_sync_generation
-  ADD CHECK (materialization_contract_version BETWEEN 0 AND 1);
+  ADD CONSTRAINT dna_open_lab_sync_generation_materialization_version_check
+  CHECK (materialization_contract_version BETWEEN 0 AND 1);
 
 COMMIT;
