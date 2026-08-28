@@ -135,10 +135,21 @@ export function assessDnaOpenLabP5Readiness(input: {
     if (byRequirement.has(entry.requirementId)) {
       readinessError(`duplicate requirement ${entry.requirementId}`);
     }
+    if (
+      entry.status !== "satisfied" &&
+      entry.status !== "local_evidence_only" &&
+      entry.status !== "pending_measurement"
+    ) {
+      readinessError(`${entry.requirementId} status is invalid`);
+    }
     if (entry.conclusion.trim().length < 1) {
       readinessError(`${entry.requirementId} conclusion is required`);
     }
-    if (entry.status === "satisfied" && entry.evidenceRefs.length < 1) {
+    if (
+      entry.status === "satisfied" &&
+      (entry.evidenceRefs.length < 1 ||
+        entry.evidenceRefs.some((reference) => reference.trim().length < 1))
+    ) {
       readinessError(`${entry.requirementId} requires evidence references`);
     }
     byRequirement.set(entry.requirementId, entry);
@@ -157,6 +168,9 @@ export function assessDnaOpenLabP5Readiness(input: {
         byRequirement.get(requirementId)?.status !== "satisfied",
     );
   const technicalEvidenceComplete = blockingRequirementIds.length === 0;
+  if (input.ownerApprovalRecorded && !technicalEvidenceComplete) {
+    readinessError("owner approval cannot precede complete technical evidence");
+  }
 
   return Object.freeze({
     technicalEvidenceComplete,

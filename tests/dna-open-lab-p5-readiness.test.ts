@@ -74,6 +74,15 @@ describe("DNA Open Lab P5 readiness", () => {
     });
   });
 
+  it("rejects approval recorded before technical evidence is complete", () => {
+    expect(() =>
+      assessDnaOpenLabP5Readiness({
+        evidence: DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
+        ownerApprovalRecorded: true,
+      }),
+    ).toThrow("owner approval cannot precede complete technical evidence");
+  });
+
   it("rejects incomplete, duplicate and unsupported evidence matrices", () => {
     expect(() =>
       assessDnaOpenLabP5Readiness({
