@@ -331,3 +331,22 @@ After the private Pro League milestone, continue in this order:
 - This is synthetic P4 infrastructure only. It does not apply the migration to a
   hosted database, persist a real owner payload, deploy a website or open the P5
   first-real-sync gate.
+
+## 2026-08-28 — Current active-race/fill materialization contract
+
+- Build persistence input only from the P3-proven `races.active` and
+  `races.fills` canonical adapters; provider field names and raw responses do not
+  cross this boundary.
+- Require exact complete-family counts, one unique row per source race ID,
+  timezone-qualified observation times no later than the generation cutoff and
+  a fill observation backed by an active-race observation in the same generation.
+- Preserve null start/end times and the observed race-ID string boundary. Do not
+  invent distance from `track`, `cb`, map definitions or endpoint names.
+- Preserve fill gate/entrant/confirmation context as a current point-in-time
+  snapshot. It is not historical outcome evidence and cannot leak into earlier
+  recommendations.
+- Sort materialization rows deterministically so replay and future database
+  receipt checks are stable.
+- This contract is synthetic only. Generation-bound Neon tables/functions,
+  hosted migration, scheduling and any real owner-data sync remain separate
+  gated work.

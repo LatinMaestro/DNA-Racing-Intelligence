@@ -112,9 +112,11 @@ Deliver migrations/read models only from P3 evidence.
 Current implementation state: migrations `0069` and `0070` provide atomic
 last-good generation publication plus durable finished-race/R2 receipt
 checkpoints. Migration `0071` adds the first generation-bound current read
-model for API-authoritative owned-Core identity. Supplemental current Core,
-active-race, fill, Token and Splice Arena materialization plus scheduling remain
-incomplete.
+model for API-authoritative owned-Core identity. The active-race/fill
+materialization contract now enforces complete family receipts, deterministic
+race identity, point-in-time chronology and active/fill referential coverage
+before Neon persistence. Its migration, supplemental current Core, Token and
+Splice Arena materialization plus scheduling remain incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
