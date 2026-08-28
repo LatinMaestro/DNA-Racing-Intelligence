@@ -9,8 +9,17 @@ import type {
 import type { RaceMode } from "@/domain/import-contract";
 import type {
   DnaActiveRace,
+  DnaCoreAttachedAssets,
   DnaCoreInfo,
+  DnaCoreListingPrice,
+  DnaCoreOwner,
+  DnaCorePower,
+  DnaCorePowerMode,
+  DnaCoreRacingStats,
+  DnaCoreSplicingInfo,
+  DnaCoreStamina,
   DnaOpenLabScope,
+  DnaRaceMode,
   DnaRaceDocument,
   DnaRaceFill,
   DnaVaultCore,
@@ -90,6 +99,81 @@ export type CanonicalRaceFillSnapshot = Readonly<{
   entryConfirmationsBySourceKey: Readonly<Record<string, boolean>>;
 }>;
 
+export type JsonSourceValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonSourceValue[]
+  | Readonly<{ [key: string]: JsonSourceValue }>;
+
+export type CanonicalCoreRacingStatsSnapshot = Readonly<{
+  sourceType: "core_racing_stats_snapshot";
+  sourceCoreId: string;
+  statsByMode: Readonly<Record<DnaRaceMode, JsonSourceValue>>;
+  ageingSourceValue: JsonSourceValue;
+  isMaiden: boolean;
+  tournamentProfitsSourceValue: JsonSourceValue;
+}>;
+
+export type CanonicalCorePowerModeSnapshot = Readonly<{
+  powerSourceValue: JsonSourceValue;
+  adjustedOddsSourceValue: JsonSourceValue;
+  varianceSourceValue: JsonSourceValue;
+  raceCount: number;
+}>;
+
+export type CanonicalCorePowerSnapshot = Readonly<{
+  sourceType: "core_power_snapshot";
+  sourceCoreId: string;
+  byMode: Readonly<Record<DnaRaceMode, CanonicalCorePowerModeSnapshot>>;
+  aggregateStatsSourceValue: JsonSourceValue;
+}>;
+
+export type CanonicalCoreListingSnapshot = Readonly<{
+  sourceType: "core_listing_snapshot";
+  sourceCoreId: string;
+  priceSourceValue?: number;
+  paymentAssetSourceValue?: string;
+  expiresAt?: string;
+}>;
+
+export type CanonicalCoreAttachedAssetsSnapshot = Readonly<{
+  sourceType: "core_attached_assets_snapshot";
+  sourceCoreId: string;
+  skinSourceValueByMode: Readonly<Record<DnaRaceMode, JsonSourceValue>>;
+  trailsSourceValue: JsonSourceValue;
+}>;
+
+export type CanonicalCoreOwnerSnapshot = Readonly<{
+  sourceType: "core_owner_snapshot";
+  sourceCoreId: string;
+  vaultSourceValue: string;
+}>;
+
+export type CanonicalCoreStaminaSnapshot = Readonly<{
+  sourceType: "core_stamina_snapshot";
+  sourceCoreId: string;
+  current: number;
+  maximum: number;
+  nextRefillAt: string | null;
+  lastEventAt: string | null;
+  special: Readonly<{
+    sourceGiveId: string;
+    current: number;
+    maximum?: number;
+  }> | null;
+}>;
+
+export type CanonicalCoreSplicingSnapshot = Readonly<{
+  sourceType: "core_splicing_snapshot";
+  sourceCoreId: string;
+  parentsSourceValue: JsonSourceValue;
+  grandparentsSourceValue: JsonSourceValue;
+  challengeCreditSourceValue: JsonSourceValue;
+  spliceCoreSourceValue: JsonSourceValue;
+}>;
+
 function adapterError(message: string): never {
   throw new DnaOpenLabAdapterError(message);
 }
@@ -118,6 +202,11 @@ function nonNegativeFinite(value: number, field: string): number {
   if (!Number.isFinite(value) || value < 0) {
     adapterError(`${field} must be a finite non-negative number`);
   }
+  return value;
+}
+
+function booleanValue(value: boolean, field: string): boolean {
+  if (typeof value !== "boolean") adapterError(`${field} must be boolean`);
   return value;
 }
 
@@ -258,6 +347,45 @@ function canonicalJson(value: unknown): string {
       .join(",")}}`;
   }
   return adapterError("raw API evidence contains a non-JSON value");
+}
+
+function jsonSourceValue(value: unknown, field: string): JsonSourceValue {
+  if (value === null) return null;
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      adapterError(`${field} contains a non-finite number`);
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return Object.freeze(
+      value.map((entry, index) =>
+        jsonSourceValue(entry, `${field}[${String(index)}]`),
+      ),
+    );
+  }
+  if (typeof value === "object") {
+    const prototype = Object.getPrototypeOf(value) as unknown;
+    if (prototype !== Object.prototype && prototype !== null) {
+      adapterError(`${field} contains a non-JSON object`);
+    }
+    return Object.freeze(
+      Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, entry]) => [
+            key,
+            jsonSourceValue(entry, `${field}.${key}`),
+          ]),
+      ),
+    );
+  }
+  return adapterError(`${field} contains a non-JSON value`);
+}
+
+function sourceCoreIdentifier(value: number): string {
+  return String(positiveInteger(value, "core.hid"));
 }
 
 export function dnaOpenLabRawEvidenceSha256(raw: unknown): string {
@@ -564,6 +692,273 @@ export function adaptDnaRaceFill(input: {
     scope: "races",
     endpoint: "races.fills",
     entityKey: `race:${sourceRaceId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreRacingStats(input: {
+  raw: DnaCoreRacingStats;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreRacingStatsSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCoreRacingStatsSnapshot = Object.freeze({
+    sourceType: "core_racing_stats_snapshot",
+    sourceCoreId,
+    statsByMode: Object.freeze({
+      bike: jsonSourceValue(input.raw.hstats_bike, "core.racingStats.bike"),
+      car: jsonSourceValue(input.raw.hstats_car, "core.racingStats.car"),
+      horse: jsonSourceValue(input.raw.hstats_horse, "core.racingStats.horse"),
+    }),
+    ageingSourceValue: jsonSourceValue(input.raw.ageing, "core.ageing"),
+    isMaiden: booleanValue(input.raw.is_maiden, "core.isMaiden"),
+    tournamentProfitsSourceValue: jsonSourceValue(
+      input.raw.tourney_profits,
+      "core.tournamentProfits",
+    ),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.racing_stats",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+function canonicalCorePowerMode(
+  input: DnaCorePowerMode,
+  mode: DnaRaceMode,
+): CanonicalCorePowerModeSnapshot {
+  return Object.freeze({
+    powerSourceValue: jsonSourceValue(input.power, `core.power.${mode}.power`),
+    adjustedOddsSourceValue: jsonSourceValue(
+      input.adjodds,
+      `core.power.${mode}.adjustedOdds`,
+    ),
+    varianceSourceValue: jsonSourceValue(
+      input.variance,
+      `core.power.${mode}.variance`,
+    ),
+    raceCount: nonNegativeInteger(
+      input.races_n,
+      `core.power.${mode}.raceCount`,
+    ),
+  });
+}
+
+export function adaptDnaCorePower(input: {
+  raw: DnaCorePower;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCorePowerSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCorePowerSnapshot = Object.freeze({
+    sourceType: "core_power_snapshot",
+    sourceCoreId,
+    byMode: Object.freeze({
+      bike: canonicalCorePowerMode(input.raw.power.bike, "bike"),
+      car: canonicalCorePowerMode(input.raw.power.car, "car"),
+      horse: canonicalCorePowerMode(input.raw.power.horse, "horse"),
+    }),
+    aggregateStatsSourceValue: jsonSourceValue(
+      input.raw.m_stats,
+      "core.power.aggregateStats",
+    ),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.power",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreListingPrice(input: {
+  raw: DnaCoreListingPrice;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreListingSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCoreListingSnapshot = Object.freeze({
+    sourceType: "core_listing_snapshot",
+    sourceCoreId,
+    ...(input.raw.price === undefined
+      ? {}
+      : {
+          priceSourceValue: nonNegativeFinite(
+            input.raw.price,
+            "core.listing.price",
+          ),
+        }),
+    ...(input.raw.token === undefined
+      ? {}
+      : {
+          paymentAssetSourceValue: requiredText(
+            input.raw.token,
+            "core.listing.paymentAsset",
+          ),
+        }),
+    ...(input.raw.expires_at === undefined
+      ? {}
+      : {
+          expiresAt: timestamp(input.raw.expires_at, "core.listing.expiresAt"),
+        }),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.listing_price",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreAttachedAssets(input: {
+  raw: DnaCoreAttachedAssets;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreAttachedAssetsSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCoreAttachedAssetsSnapshot = Object.freeze({
+    sourceType: "core_attached_assets_snapshot",
+    sourceCoreId,
+    skinSourceValueByMode: Object.freeze({
+      bike: jsonSourceValue(input.raw.skino.bike, "core.assets.skin.bike"),
+      car: jsonSourceValue(input.raw.skino.car, "core.assets.skin.car"),
+      horse: jsonSourceValue(input.raw.skino.horse, "core.assets.skin.horse"),
+    }),
+    trailsSourceValue: jsonSourceValue(
+      input.raw.trailsmap,
+      "core.assets.trails",
+    ),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.attached_assets",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreOwner(input: {
+  raw: DnaCoreOwner;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreOwnerSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCoreOwnerSnapshot = Object.freeze({
+    sourceType: "core_owner_snapshot",
+    sourceCoreId,
+    vaultSourceValue: requiredText(input.raw.vault, "core.owner.vault"),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.owner",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreStamina(input: {
+  raw: DnaCoreStamina;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreStaminaSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const special =
+    input.raw.spstamina === null
+      ? null
+      : Object.freeze({
+          sourceGiveId:
+            typeof input.raw.spstamina.giveid === "number"
+              ? String(
+                  positiveInteger(
+                    input.raw.spstamina.giveid,
+                    "core.stamina.special.giveId",
+                  ),
+                )
+              : requiredText(
+                  input.raw.spstamina.giveid,
+                  "core.stamina.special.giveId",
+                ),
+          current: nonNegativeFinite(
+            input.raw.spstamina.stamina,
+            "core.stamina.special.current",
+          ),
+          ...(input.raw.spstamina.max_stamina === undefined
+            ? {}
+            : {
+                maximum: nonNegativeFinite(
+                  input.raw.spstamina.max_stamina,
+                  "core.stamina.special.maximum",
+                ),
+              }),
+        });
+  const canonical: CanonicalCoreStaminaSnapshot = Object.freeze({
+    sourceType: "core_stamina_snapshot",
+    sourceCoreId,
+    current: nonNegativeFinite(
+      input.raw.stamina.stamina,
+      "core.stamina.current",
+    ),
+    maximum: nonNegativeFinite(
+      input.raw.stamina.max_stamina,
+      "core.stamina.maximum",
+    ),
+    nextRefillAt: optionalTimestamp(
+      input.raw.stamina.next_refill,
+      "core.stamina.nextRefillAt",
+    ),
+    lastEventAt: optionalTimestamp(
+      input.raw.stamina.last_event,
+      "core.stamina.lastEventAt",
+    ),
+    special,
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.stamina",
+    entityKey: `core:${sourceCoreId}`,
+    observedAt: input.observedAt,
+    raw: input.raw,
+    canonical,
+  });
+}
+
+export function adaptDnaCoreSplicingInfo(input: {
+  raw: DnaCoreSplicingInfo;
+  observedAt: string;
+}): DnaOpenLabEvidence<CanonicalCoreSplicingSnapshot> {
+  const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const canonical: CanonicalCoreSplicingSnapshot = Object.freeze({
+    sourceType: "core_splicing_snapshot",
+    sourceCoreId,
+    parentsSourceValue: jsonSourceValue(
+      input.raw.parents,
+      "core.splicing.parents",
+    ),
+    grandparentsSourceValue: jsonSourceValue(
+      input.raw.grand_parents,
+      "core.splicing.grandparents",
+    ),
+    challengeCreditSourceValue: jsonSourceValue(
+      input.raw.challenge_credit,
+      "core.splicing.challengeCredit",
+    ),
+    spliceCoreSourceValue: jsonSourceValue(
+      input.raw.splice_core,
+      "core.splicing.spliceCore",
+    ),
+  });
+  return evidence({
+    scope: "cores",
+    endpoint: "cores.splicing_info",
+    entityKey: `core:${sourceCoreId}`,
     observedAt: input.observedAt,
     raw: input.raw,
     canonical,

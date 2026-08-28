@@ -200,6 +200,14 @@ Current API facts may include power, adjusted odds, variance, stamina, equipped 
 
 These are **timestamped current observations**. They are not automatically historical features.
 
+The v1 canonical boundary preserves undocumented nested Core values as
+JSON-safe source values with endpoint, entity, observation-time and evidence
+provenance. It does not interpret provider power, adjusted odds or variance as
+elapsed-time performance; infer an unlisted state from omitted listing fields;
+or derive ranking inputs from current racing-stat summaries. Only documented
+structural fields are normalized, and every predictive use requires a separate
+meaning, chronology and lift decision.
+
 Historical backtests/recommendations may use a current-style field only if an observation of that field existed before the historical event cutoff. Otherwise it is excluded to prevent leakage.
 
 Historical race time/speed/exact-distance evidence, Gold/Blue star evidence, payout-format context and accepted economic facts retain their existing chronological rules.

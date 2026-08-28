@@ -416,3 +416,20 @@ After the private Pro League milestone, continue in this order:
   time, result and explicit distance fields. The API-only website must disclose
   that limitation until a supported contract exists; this decision does not
   re-authorise CSV ingestion on the critical path.
+
+## 2026-08-28 — Supplemental Core API values remain current source values
+
+- Establish canonical adapters for the connected racing-stats, power, listing,
+  attached-assets, owner, stamina and splicing Core families before persistence.
+- Bind each canonical observation to its Core ID, endpoint, observation time and
+  raw-evidence checksum.
+- Preserve undocumented nested provider values as validated JSON source values.
+  Do not claim that API power, adjusted odds or variance means race time, speed,
+  consistency or predictive strength.
+- Preserve omitted listing fields as omitted instead of inferring listed or
+  unlisted state. Preserve zero, false and null distinctly.
+- Treat all seven families as current state. They cannot enter historical
+  ranking or backtests without an observation before the event cutoff and a
+  separate evidence-backed feature-authority decision.
+- This canonical adapter slice uses synthetic fixtures only. Generation-bound
+  Neon persistence, workers and real owner-data synchronization remain gated.
