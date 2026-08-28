@@ -163,6 +163,7 @@ function scheduledEntries(
 function scheduleSha256(schedule: DnaCurrentStateAcquisitionSchedule): string {
   return dnaOpenLabRawEvidenceSha256({
     evaluatedAt: schedule.evaluatedAt,
+    completionScope: schedule.completionScope,
     dueGroups: schedule.dueGroups,
     requests: scheduledEntries(schedule),
   });

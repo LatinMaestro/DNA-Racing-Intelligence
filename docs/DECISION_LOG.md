@@ -448,3 +448,23 @@ After the private Pro League milestone, continue in this order:
   the previous last-good serving generation instead.
 - This materialization uses synthetic evidence only. It does not add Neon
   tables, call DNA Open Lab or open the P5 real-data gate.
+
+## 2026-08-28 — Dynamic discovery resumes from verified immutable evidence
+
+- Execute ownership, active-race and first-page Arena discovery as a minimal
+  deterministic child cycle, followed by at most one next-page request per
+  selected mode in each continuation child cycle.
+- Derive child cycle IDs from the root cycle and round so a restart finds the
+  same owner-RLS compare-and-swap checkpoints instead of creating parallel
+  discovery authority.
+- Persist every accepted request through the private immutable R2 sink before
+  advancing its child checkpoint. Reconstruct assembly observations only
+  through a reader that verifies private bucket state, owner/cycle/request key,
+  receipt and head checksums, exact metadata, bounded bytes and embedded JSON
+  identity.
+- A discovery step performs at most one network request. Completed child cycles
+  can be replayed without another request, and the final result is the immutable
+  input plan for the normal cadence/acquisition/publication path.
+- Discovery does not publish a generation, mutate hosted providers or authorize
+  persistent real owner data. Final materialization/publication wiring and the
+  P5 first-real-sync approval gate remain separate.

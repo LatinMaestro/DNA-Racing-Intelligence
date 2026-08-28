@@ -166,6 +166,27 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     ).toEqual({ publishable: false, incompleteGroups: ["splice_arena"] });
   });
 
+  it("can constrain completion to an explicit non-publication control phase", () => {
+    const schedule = Object.freeze({
+      ...createDnaCurrentStateAcquisitionSchedule({
+        evaluatedAt,
+        plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
+      }),
+      completionScope: "scheduled_requests_only" as const,
+      dueGroups: Object.freeze(["vault_identity", "race_activity"] as const),
+    });
+    expect(
+      inspectDnaCurrentStateAcquisitionCompletion({
+        schedule,
+        completedGroups: ["vault_identity", "race_activity"],
+        evidenceObservedAt: {
+          vault_identity: evaluatedAt,
+          race_activity: evaluatedAt,
+        },
+      }),
+    ).toEqual({ publishable: true, incompleteGroups: [] });
+  });
+
   it("maps failures to non-destructive pause and catch-up directives", () => {
     expect(
       classifyDnaCurrentStateAcquisitionFailure({

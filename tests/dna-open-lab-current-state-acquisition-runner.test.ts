@@ -307,6 +307,15 @@ describe("DNA Open Lab current-state acquisition runner", () => {
         schedule: drifted,
       }),
     ).rejects.toThrow("stored cycle authority does not match");
+    await expect(
+      runDnaCurrentStateAcquisitionStep({
+        ...runnerInput({ repository, requestPool }),
+        schedule: Object.freeze({
+          ...schedule(),
+          completionScope: "scheduled_requests_only" as const,
+        }),
+      }),
+    ).rejects.toThrow("stored cycle authority does not match");
     expect(calls.count).toBe(1);
   });
 

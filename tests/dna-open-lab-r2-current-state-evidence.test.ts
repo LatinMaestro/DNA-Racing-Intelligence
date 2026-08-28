@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+  createDnaOpenLabR2CurrentStateEvidenceReader,
   createDnaOpenLabR2CurrentStateEvidenceSink,
   type DnaOpenLabR2CurrentStateEvidenceStoragePort,
 } from "@/lib/dna-open-lab-r2-current-state-evidence";
@@ -78,6 +79,19 @@ class MemoryR2Storage implements DnaOpenLabR2CurrentStateEvidenceStoragePort {
       byteLength: stored.body.byteLength,
       checksumSha256: stored.checksumSha256,
       metadata: stored.metadata,
+    });
+  }
+
+  async getObject(input: { bucketName: string; key: string }) {
+    const stored = this.objects.get(input.key);
+    if (stored === undefined) {
+      return Object.freeze({ status: "missing" as const });
+    }
+    return Object.freeze({
+      status: "ready" as const,
+      body: (async function* () {
+        yield stored.body;
+      })(),
     });
   }
 }
@@ -158,6 +172,58 @@ describe("DNA Open Lab private R2 current-state evidence", () => {
     expect(storage.objects.size).toBe(1);
     expect(storage.putCount).toBe(2);
     expect(storage.privacyReadCount).toBe(1);
+  });
+
+  it("reads back only exact private receipt-bound evidence", async () => {
+    const storage = new MemoryR2Storage();
+    const persist = sink(storage);
+    const receipt = await persist(evidenceInput({ dez: "1.25" }));
+    const read = createDnaOpenLabR2CurrentStateEvidenceReader({
+      ownerId: "owner-vault@example.test",
+      bucketName: "dna-racing-import-preview",
+      storage,
+    });
+
+    await expect(read({ cycleId, receipt })).resolves.toEqual({
+      cycleId,
+      group: "token_prices",
+      requestKey,
+      observedAt: "2026-08-28T00:00:10.000Z",
+      request,
+      response: response({ dez: "1.25" }),
+    });
+    expect(storage.privacyReadCount).toBe(2);
+  });
+
+  it("rejects owner/key drift and modified evidence bytes", async () => {
+    const storage = new MemoryR2Storage();
+    const receipt = await sink(storage)(evidenceInput({ price: "first" }));
+    const wrongOwner = createDnaOpenLabR2CurrentStateEvidenceReader({
+      ownerId: "different-owner@example.test",
+      bucketName: "dna-racing-import-preview",
+      storage,
+    });
+    await expect(wrongOwner({ cycleId, receipt })).rejects.toThrow(
+      "receipt object key does not match its identity",
+    );
+
+    const stored = storage.objects.get(receipt.evidenceObjectKey);
+    if (stored === undefined) throw new Error("synthetic evidence missing");
+    storage.objects.set(
+      receipt.evidenceObjectKey,
+      Object.freeze({
+        ...stored,
+        body: new TextEncoder().encode("{}"),
+      }),
+    );
+    const read = createDnaOpenLabR2CurrentStateEvidenceReader({
+      ownerId: "owner-vault@example.test",
+      bucketName: "dna-racing-import-preview",
+      storage,
+    });
+    await expect(read({ cycleId, receipt })).rejects.toThrow(
+      "body integrity is invalid",
+    );
   });
 
   it("rejects conflicting immutable identity metadata", async () => {

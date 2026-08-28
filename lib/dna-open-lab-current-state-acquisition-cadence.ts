@@ -39,6 +39,7 @@ export type DnaScheduledCurrentStateRequest = Readonly<{
 export type DnaCurrentStateAcquisitionSchedule = Readonly<{
   evaluatedAt: string;
   status: "ready" | "idle" | "retry_blocked";
+  completionScope: "all_current_state" | "scheduled_requests_only";
   maximumAggregateRequestsPerMinute: typeof DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
   dueGroups: readonly DnaCurrentStateAcquisitionGroup[];
   requestBatches: readonly (readonly DnaScheduledCurrentStateRequest[])[];
@@ -198,6 +199,7 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
     return Object.freeze({
       evaluatedAt,
       status: "retry_blocked",
+      completionScope: "all_current_state",
       maximumAggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
       dueGroups: Object.freeze([]),
       requestBatches: Object.freeze([]),
@@ -237,6 +239,7 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
   return Object.freeze({
     evaluatedAt,
     status: dueGroups.length > 0 ? "ready" : "idle",
+    completionScope: "all_current_state",
     maximumAggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
     dueGroups: Object.freeze(dueGroups),
     requestBatches: requestBatches(scheduled),
@@ -277,17 +280,20 @@ export function inspectDnaCurrentStateAcquisitionCompletion(input: {
     }
   }
 
-  const incompleteGroups = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter(
-    (group) => {
-      const observedAt = input.evidenceObservedAt[group];
-      if (observedAt === undefined) return true;
-      const normalized = timestamp(observedAt, `${group}.evidenceObservedAt`);
-      if (Date.parse(normalized) > evaluatedMilliseconds) {
-        acquisitionError(`${group} evidence cannot follow the completion time`);
-      }
-      return input.schedule.dueGroups.includes(group) && !completed.has(group);
-    },
-  );
+  const requiredEvidenceGroups =
+    input.schedule.completionScope === "scheduled_requests_only"
+      ? input.schedule.dueGroups
+      : DNA_CURRENT_STATE_ACQUISITION_GROUPS;
+
+  const incompleteGroups = requiredEvidenceGroups.filter((group) => {
+    const observedAt = input.evidenceObservedAt[group];
+    if (observedAt === undefined) return true;
+    const normalized = timestamp(observedAt, `${group}.evidenceObservedAt`);
+    if (Date.parse(normalized) > evaluatedMilliseconds) {
+      acquisitionError(`${group} evidence cannot follow the completion time`);
+    }
+    return input.schedule.dueGroups.includes(group) && !completed.has(group);
+  });
 
   return Object.freeze({
     publishable: incompleteGroups.length === 0,
