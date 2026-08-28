@@ -139,8 +139,13 @@ active-race identities from validated bootstrap evidence, requests exactly the
 next contiguous Arena page for each non-terminal mode and withholds the
 immutable runner plan until every requested mode proves a terminal page.
 Duplicate identities, page gaps, response/request drift, changing limits and
-schedules beyond the 512-request durable-cycle capacity fail closed. Durable
-bootstrap/continuation execution remains incomplete.
+schedules beyond the 512-request durable-cycle capacity fail closed. The
+private evidence reader now verifies receipt-bound object identity, metadata,
+bytes and JSON before replay. Deterministic child cycles execute the minimal
+bootstrap and each bounded Arena continuation through the existing
+compare-and-swap runner and immutable R2 sink, then return the final immutable
+plan without publishing it. Wiring that final plan through materialization and
+the atomic `0074` publication repository remains incomplete.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

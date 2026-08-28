@@ -80,6 +80,12 @@ the same request to run again, the first immutable observation remains
 authoritative and its original receipt is returned; later response bytes cannot
 silently replace it.
 
+The paired evidence reader is the only restart path from an acquisition receipt
+back into dynamic plan assembly. It re-verifies private bucket state, the exact
+owner/cycle/request object key, head metadata, byte count, checksum, UTF-8 JSON
+shape and embedded request identity before exposing an observation. Evidence
+whose receipt, metadata, bytes or logical identity disagree fails closed.
+
 Current-state plan assembly is evidence-driven. Validated `vault.cores_full`
 and `races.active` observations determine the exact Core bulk and race-fill
 requests; caller-supplied stale identity lists are not authoritative. Arena
@@ -88,6 +94,15 @@ Core across pages. A mode with `has_more: true` yields exactly one next-page
 request, and the immutable runner schedule is withheld until every selected
 mode has one terminal page. The complete schedule is capped at the durable
 checkpoint limit of 512 requests.
+
+Dynamic discovery executes as deterministic child cycles derived from one root
+cycle: a minimal ownership/active-race/first-Arena-page bootstrap followed by
+one bounded continuation round at a time. Every child uses the normal
+one-request runner, compare-and-swap checkpoint and immutable R2 sink. A restart
+replays completed receipts through the verified reader and resumes the first
+unfinished child without rediscovering an already accepted page. The completed
+discovery result is only an immutable final acquisition plan; it does not itself
+publish or authorize real owner data.
 
 ## Finished-race backfill completeness
 

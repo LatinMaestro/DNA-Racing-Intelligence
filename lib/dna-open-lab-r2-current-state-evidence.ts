@@ -7,6 +7,7 @@ import {
 import type { DnaCurrentStateAcquisitionEvidenceReceipt } from "./dna-open-lab-current-state-acquisition-runner";
 import type { DnaCurrentStateRequest } from "./dna-open-lab-current-state-sync-plan";
 import type { DnaOpenLabResponse } from "./dna-open-lab-v1-client";
+import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -26,6 +27,25 @@ export type DnaOpenLabR2CurrentStateEvidenceConfiguration = Readonly<{
   bucketName: string;
   storage: DnaOpenLabR2CurrentStateEvidenceStoragePort;
   maximumObjectBytes?: number;
+}>;
+
+export type DnaOpenLabR2CurrentStateEvidenceReaderConfiguration = Readonly<{
+  ownerId: string;
+  bucketName: string;
+  storage: Pick<
+    PrivateDatasetEvidenceObjectReadableStoragePort,
+    "readBucketPrivacy" | "headObject" | "getObject"
+  >;
+  maximumObjectBytes?: number;
+}>;
+
+export type DnaOpenLabStoredCurrentStateEvidence = Readonly<{
+  cycleId: string;
+  group: DnaCurrentStateAcquisitionGroup;
+  requestKey: string;
+  observedAt: string;
+  request: DnaCurrentStateRequest;
+  response: DnaOpenLabResponse<unknown>;
 }>;
 
 function evidenceError(message: string): never {
@@ -156,6 +176,204 @@ function objectKey(input: {
     input.cycleId,
     `${input.requestKey}.json`,
   ].join("/");
+}
+
+function exactObject(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    evidenceError(`${field} is invalid`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function exactKeys(
+  value: Record<string, unknown>,
+  expected: readonly string[],
+  field: string,
+): void {
+  if (Object.keys(value).sort().join(",") !== [...expected].sort().join(",")) {
+    evidenceError(`${field} shape is invalid`);
+  }
+}
+
+async function collectVerifiedBody(input: {
+  body: AsyncIterable<Uint8Array>;
+  byteLength: number;
+  checksumSha256: string;
+}): Promise<Uint8Array> {
+  const result = new Uint8Array(input.byteLength);
+  const hash = createHash("sha256");
+  let offset = 0;
+  for await (const chunk of input.body) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > input.byteLength
+    ) {
+      evidenceError("evidence object body length is invalid");
+    }
+    result.set(chunk, offset);
+    hash.update(chunk);
+    offset += chunk.byteLength;
+  }
+  if (
+    offset !== input.byteLength ||
+    hash.digest("hex") !== input.checksumSha256
+  ) {
+    evidenceError("evidence object body integrity is invalid");
+  }
+  return result;
+}
+
+/**
+ * Reads one acquisition receipt back from the private immutable evidence
+ * boundary. The object key, metadata, bytes and embedded logical identity must
+ * all agree before the response can re-enter plan assembly.
+ */
+export function createDnaOpenLabR2CurrentStateEvidenceReader(
+  configuration: DnaOpenLabR2CurrentStateEvidenceReaderConfiguration,
+): (input: {
+  cycleId: string;
+  receipt: DnaCurrentStateAcquisitionEvidenceReceipt;
+}) => Promise<DnaOpenLabStoredCurrentStateEvidence> {
+  const ownerId = safeText(configuration.ownerId, "ownerId", 512);
+  const bucketName = safeText(configuration.bucketName, "bucketName", 255);
+  const maximumObjectBytes = positiveSafeInteger(
+    configuration.maximumObjectBytes ?? DEFAULT_MAXIMUM_OBJECT_BYTES,
+    "maximumObjectBytes",
+  );
+  const prefix = ownerPrefix(ownerId);
+  let bucketPrivacy: Promise<void> | null = null;
+
+  return async (input) => {
+    bucketPrivacy ??= configuration.storage
+      .readBucketPrivacy({ bucketName })
+      .then(assertPrivateBucket);
+    await bucketPrivacy;
+
+    const normalizedCycleId = cycleId(input.cycleId);
+    const requestKey = sha256Text(input.receipt.requestKey, "requestKey");
+    const contentSha256 = sha256Text(
+      input.receipt.contentSha256,
+      "contentSha256",
+    );
+    const receiptObservedAt = timestamp(
+      input.receipt.observedAt,
+      "receipt.observedAt",
+    );
+    const expectedKey = objectKey({
+      ownerPrefix: prefix,
+      cycleId: normalizedCycleId,
+      requestKey,
+    });
+    if (input.receipt.evidenceObjectKey !== expectedKey) {
+      evidenceError("receipt object key does not match its identity");
+    }
+
+    const head = await configuration.storage.headObject({
+      bucketName,
+      key: expectedKey,
+    });
+    if (
+      head.status !== "ready" ||
+      head.contentType !== JSON_CONTENT_TYPE ||
+      head.byteLength < 1 ||
+      head.byteLength > maximumObjectBytes ||
+      head.checksumSha256 !== contentSha256 ||
+      metadataValue(head.metadata, "dna-source") !== "dna_open_lab" ||
+      metadataValue(head.metadata, "dna-version") !== "v1" ||
+      metadataValue(head.metadata, "dna-kind") !== "current_state_request" ||
+      metadataValue(head.metadata, "dna-cycle-id") !== normalizedCycleId ||
+      metadataValue(head.metadata, "dna-request-key") !== requestKey ||
+      metadataValue(head.metadata, "dna-body-sha256") !== contentSha256 ||
+      timestamp(
+        metadataValue(head.metadata, "dna-observed-at"),
+        "stored observedAt",
+      ) !== receiptObservedAt
+    ) {
+      evidenceError("evidence object head does not match its receipt");
+    }
+
+    const object = await configuration.storage.getObject({
+      bucketName,
+      key: expectedKey,
+    });
+    if (object.status !== "ready") {
+      evidenceError("evidence object body is unavailable");
+    }
+    const bytes = await collectVerifiedBody({
+      body: object.body,
+      byteLength: head.byteLength,
+      checksumSha256: contentSha256,
+    });
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      );
+    } catch {
+      evidenceError("evidence object body is not valid UTF-8 JSON");
+    }
+    const document = exactObject(decoded, "evidence document");
+    exactKeys(
+      document,
+      [
+        "version",
+        "source",
+        "sourceVersion",
+        "cycleId",
+        "group",
+        "requestKey",
+        "observedAt",
+        "request",
+        "response",
+      ],
+      "evidence document",
+    );
+    if (
+      document.version !== 1 ||
+      document.source !== "dna_open_lab" ||
+      document.sourceVersion !== "v1" ||
+      document.cycleId !== normalizedCycleId ||
+      document.requestKey !== requestKey ||
+      timestamp(String(document.observedAt), "document observedAt") !==
+        receiptObservedAt ||
+      !DNA_CURRENT_STATE_ACQUISITION_GROUPS.includes(
+        document.group as DnaCurrentStateAcquisitionGroup,
+      ) ||
+      metadataValue(head.metadata, "dna-group") !== document.group
+    ) {
+      evidenceError("evidence document identity is invalid");
+    }
+    const request = exactObject(document.request, "request");
+    exactKeys(request, ["scope", "endpoint", "payload"], "request");
+    const payload = exactObject(request.payload, "request payload");
+    const response = exactObject(document.response, "response");
+    exactKeys(response, ["result", "httpStatus", "rateLimit"], "response");
+    if (
+      typeof request.scope !== "string" ||
+      typeof request.endpoint !== "string" ||
+      metadataValue(head.metadata, "dna-scope") !== request.scope ||
+      metadataValue(head.metadata, "dna-endpoint") !== request.endpoint ||
+      typeof response.httpStatus !== "number" ||
+      !Number.isInteger(response.httpStatus) ||
+      response.httpStatus < 100 ||
+      response.httpStatus > 599
+    ) {
+      evidenceError("evidence request or response identity is invalid");
+    }
+
+    return Object.freeze({
+      cycleId: normalizedCycleId,
+      group: document.group as DnaCurrentStateAcquisitionGroup,
+      requestKey,
+      observedAt: receiptObservedAt,
+      request: Object.freeze({
+        scope: request.scope,
+        endpoint: request.endpoint,
+        payload: Object.freeze(payload),
+      }) as DnaCurrentStateRequest,
+      response: Object.freeze(response) as DnaOpenLabResponse<unknown>,
+    });
+  };
 }
 
 /**
