@@ -68,9 +68,27 @@ The current owner-confirmed setup sequence is:
 2. set a 12–25 Core roster manually;
 3. open `https://esports.dnaracing.run/maps`, choose a map and scroll to its ordered race list;
 4. use the DNA Esports Set control to assign a rostered Core either to one race line or to every line on that map with the same race type and exact distance; and
-5. after a match is scheduled, return and choose the match map manually.
+5. after a match is scheduled, return and, when the owner is the home Vault,
+   choose the matchup maps manually.
 
 The private website may recommend, stage and validate this work. It must not create the team, submit the roster, click Set, submit a race-line mapping or choose a match map.
+
+## Head-to-head matchup authority
+
+Current owner-confirmed authority is:
+
+- every Pro League match is between two Vaults;
+- every race field is split equally between them;
+- each Vault preselects mapped Bike Cores from its registered 12–25 Core roster;
+- the home Vault selects the maps raced in that matchup; and
+- the website remains advisory and never submits the home choice or lineup.
+
+The matchup planner must accept an opposition Vault, compare both rosters at
+the exact Bike race type and distance, and classify each race line as favoured,
+contested, unfavourable or unknown. It must rank maps when our Vault is home.
+When our Vault is away, it may provide defensive preparation but must not imply
+that we control map choice. Incomplete opponent evidence is unknown, never a
+free advantage.
 
 ## Published map authority
 
@@ -103,6 +121,11 @@ For every staged assignment retain:
 - every race line affected by the expansion.
 
 The planner must reject unknown maps/races, non-roster Cores and conflicting assignments. It must report both total map coverage and first-16 coverage. Applying `same_type_and_distance` is scoped to the selected map; it never silently changes another map.
+
+It must also show the equal gate allocation for every race line, compare our
+mapped Core with the opposing Vault's selected or best-supported likely Core,
+and rank home-map choices by favourable, contested, unfavourable and unknown
+exact-format lines.
 
 ## Quality-first roster objective
 
@@ -268,6 +291,18 @@ Breeding objectives should be derived from:
 
 Do not breed only to satisfy a numeric quota if the expected candidate quality is poor.
 
+Coverage-gap analysis must enumerate every published exact Bike
+race-type-plus-distance demand and distinguish winning-range coverage,
+competitive/top-three coverage, the best currently available Core where that
+Core is still weak, and unproven demands.
+
+For a weak best-available Core, say so plainly. Recommend efficient Discovery
+of other credible owned Cores or evidence-backed breeding before roster lock.
+If a weak Core is unavoidable for structural compliance, mark it provisional,
+explain the gap it covers and place it on the replacement-priority list. The
+annual 10-substitution limit makes roster quality and replacement preservation
+more important than filling the 25-Core ceiling.
+
 When connected, use official DNA Open Lab Splice evidence:
 
 - current Arena;
@@ -340,6 +375,11 @@ The first owner-usable Pro League page should provide:
 - structural gaps;
 - marginal slots;
 - published map definitions, first-16 coverage and staged race-line mappings; and
+- opposition selector and evidence freshness;
+- home-map ranking or away-match defensive view;
+- head-to-head race-line recommendations and equal gate allocation;
+- exact format/distance weakness report with Discovery, breeding and
+  replacement priorities; and
 - sync/freshness/stale-but-usable status.
 
 ## Safety and scope

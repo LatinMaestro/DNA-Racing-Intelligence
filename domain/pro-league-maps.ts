@@ -8,6 +8,8 @@ export type ProLeagueMapRace = Readonly<{
   mode: "bike";
   raceType: string;
   distanceMetres: number;
+  totalGateEntries: number;
+  gateEntriesPerVault: number;
 }>;
 
 export type ProLeagueMap = Readonly<{
@@ -18,6 +20,30 @@ export type ProLeagueMap = Readonly<{
 }>;
 
 type RaceTuple = readonly [raceType: string, distanceMetres: number];
+
+export function proLeagueGateAllocation(raceType: string): Readonly<{
+  totalGateEntries: number;
+  gateEntriesPerVault: number;
+}> {
+  const normalized = raceType.trim().toLowerCase();
+  const totalGateEntries =
+    normalized === "1v1"
+      ? 2
+      : Number.parseInt(/^(\d+) gate\b/.exec(normalized)?.[1] ?? "", 10);
+  if (
+    !Number.isSafeInteger(totalGateEntries) ||
+    totalGateEntries <= 0 ||
+    totalGateEntries % 2 !== 0
+  ) {
+    throw new Error(
+      `Pro League race type must define an even gate split: ${raceType}.`,
+    );
+  }
+  return Object.freeze({
+    totalGateEntries,
+    gateEntriesPerVault: totalGateEntries / 2,
+  });
+}
 
 function defineMap(
   mapNumber: 1 | 2 | 3 | 4,
@@ -40,6 +66,7 @@ function defineMap(
           mode: "bike" as const,
           raceType,
           distanceMetres,
+          ...proLeagueGateAllocation(raceType),
         }),
       ),
     ),
@@ -237,6 +264,10 @@ export const proLeagueMapAuthority = Object.freeze({
     racesPerMap: 42,
     firstToRacePoints: 16,
     winByRacePoints: 2,
+    vaultsPerMatch: 2,
+    gateAllocation: "equal_halves" as const,
+    homeVaultSelectsMaps: true,
+    mappedCoresMustComeFromRoster: true,
   }),
   plannedMapCount: 5,
   definedMapCount: 4,

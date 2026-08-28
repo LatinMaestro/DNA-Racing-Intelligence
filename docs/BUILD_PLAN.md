@@ -154,7 +154,16 @@ Implement the current roster authority:
 - minimum 8 females; and
 - every rostered Core has a name.
 
-Deliver roster versions, nucleus/optional slots/alternates, reason/evidence snapshots and annual substitution ledger. Also version the four published 42-race maps, implement single-race versus same-type-and-distance assignment scopes, validate mapped Cores against the roster and expose total/first-16 mapping coverage. Map 5 remains unavailable until published. API ownership reconciles game holdings but never erases local notes, ME, roster, substitution, mapping or lifecycle strategy state.
+Deliver roster versions, nucleus/optional slots/alternates, reason/evidence snapshots and annual substitution ledger. Also version the four published 42-race maps, model the 50/50 two-Vault gate allocation and home-Vault map control, implement single-race versus same-type-and-distance assignment scopes, validate mapped Cores against the roster and expose total/first-16 mapping coverage. Map 5 remains unavailable until published. API ownership reconciles game holdings but never erases local notes, ME, roster, substitution, mapping or lifecycle strategy state.
+
+Add an opposition selector and matchup planner. Compare our eligible rostered
+Cores with the opposing Vault at the exact Bike race type and distance; rank
+maps when we are home and provide a defensive view when away. Unknown opponent
+evidence stays unknown. Enumerate weak/unproven format-distance demands and
+route them to bounded Discovery or breeding. Never recommend roster lock merely
+because a Core is the best weak option currently owned; if structural rules
+force temporary inclusion, label it provisional and preserve the annual
+10-substitution budget for evidence-backed replacements.
 
 Exit: synthetic rule-valid Pro League roster and map-lineup workflow.
 
@@ -212,7 +221,7 @@ After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;
 - verify API counts/coverage, aggregates, freshness, disclosed capability limits, no leakage, RLS, recovery and secret safety;
-- commission `/pro-league` with nucleus/current roster/alternates, compliance, roster-size rationale, published map definitions, staged race-line mappings/coverage, evidence dimensions, substitution budget/history, Discovery queue, active-race opportunities, breeding queue, official pair viability/cost, structural gaps/marginal slots and sync/freshness/stale-but-usable status;
+- commission `/pro-league` with nucleus/current roster/alternates, compliance, roster-size rationale, opposition analysis, home-map ranking/away defensive preparation, equal gate allocation, head-to-head exact-format mappings, published map definitions, staged race-line mappings/coverage, evidence dimensions, substitution budget/history, weak best-available warnings, Discovery queue, active-race opportunities, breeding queue, official pair viability/cost, structural gaps/marginal slots and sync/freshness/stale-but-usable status;
 - integrate only the My Vault/Core Intelligence/Discovery/Breeding flows required for daily Pro League use;
 - allow one deliberate protected private Vercel Preview deployment at this major milestone if required; automatic Git deployment remains disabled; and
 - perform owner acceptance and immediately correct commissioning blockers.

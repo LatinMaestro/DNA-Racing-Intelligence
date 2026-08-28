@@ -411,8 +411,9 @@ function MapAuthority() {
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
             Four of five planned maps are currently defined. Each contains a
-            fixed sequence of 42 races. A mapping can target only one race line
-            or every line on that map with the same race type and exact
+            fixed sequence of 42 Bike races. Every race gate is split equally
+            between the two competing Vaults. A mapping can target only one race
+            line or every line on that map with the same race type and exact
             distance.
           </p>
         </div>
@@ -443,6 +444,9 @@ function MapAuthority() {
                 {distances.at(-1)} metres
               </p>
               <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                Equal gate split: each Vault supplies half of every field.
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                 {raceTypes.join(" · ")}
               </p>
             </article>
@@ -453,9 +457,73 @@ function MapAuthority() {
         Match authority: best of {proLeagueMapAuthority.matchFormat.bestOfMaps}{" "}
         maps; first to {proLeagueMapAuthority.matchFormat.firstToRacePoints}{" "}
         race points wins a map and must win by{" "}
-        {proLeagueMapAuthority.matchFormat.winByRacePoints}. Map choice for a
-        scheduled match remains a manual owner action on DNA Esports.
+        {proLeagueMapAuthority.matchFormat.winByRacePoints}. The home Vault
+        selects the maps for the matchup. The website recommends the strongest
+        choice; the owner still makes the selection manually on DNA Esports.
       </p>
+    </section>
+  );
+}
+
+function MatchupAuthority() {
+  return (
+    <section aria-labelledby="pro-matchup-intelligence">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold" id="pro-matchup-intelligence">
+            Opposition and matchup intelligence
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+            Pro League is a head-to-head Bike contest between two Vaults. The
+            planner compares our roster with the opposition for every exact race
+            type and distance, recommends mapped Cores from the registered 12–25
+            Core roster and ranks maps when our Vault is home.
+          </p>
+        </div>
+        <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+          Two Vaults · 50/50 gates
+        </span>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Home map advantage</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            When we are home, rank Anchor, Glory, Measure and Miracles by
+            favourable, contested, unfavourable and unknown race lines against
+            the selected opposition. When away, prepare defensively without
+            pretending we control map choice.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Opposition-aware mapping</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Compare the likely opposing Core with our eligible rostered Cores on
+            the exact Bike format and distance. Missing opposition evidence
+            remains unknown and is never counted as an advantage.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Season-long roster discipline</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Preserve the annual{" "}
+            {proLeagueCurrentRules.maximumSubstitutionsPerYear}-substitution
+            budget. “Best in our Vault” is not the same as strong: weak
+            best-available Cores are marked for testing or breeding and are not
+            recommended for roster lock merely to fill a gap.
+          </p>
+        </article>
+      </div>
+      <div className="mt-4 rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-5">
+        <h3 className="font-semibold">Coverage-gap output</h3>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          The connected analysis will list weak and unproven Bike distances and
+          race formats, how often they occur across the published maps, our best
+          evidenced option, whether that option is still weak, and the next
+          efficient Discovery or breeding objective. If a weak Core is required
+          temporarily for structural compliance, it is labelled provisional and
+          placed on the replacement-priority list.
+        </p>
+      </div>
     </section>
   );
 }
@@ -483,9 +551,10 @@ export function ProLeagueWorkspace({
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
           Build the strongest compliant 12–25 Core roster from the existing
-          Vault and breeding, then map rostered Cores to the published race
-          lines. Prefer Cores that prove power for the exact race type and
-          distance required. No additional Genesis minting is part of this plan.
+          Vault and breeding, analyse the opposition, choose the strongest home
+          maps and map rostered Cores to the published race lines. Prefer Cores
+          that prove power for the exact race type and distance required. No
+          additional Genesis minting is part of this plan.
         </p>
       </header>
 
@@ -511,6 +580,8 @@ export function ProLeagueWorkspace({
       </section>
 
       <MapAuthority />
+
+      <MatchupAuthority />
 
       {preparation === null ? null : (
         <Preparation
