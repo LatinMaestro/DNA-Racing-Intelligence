@@ -147,6 +147,7 @@ export type ProLeagueMatchupAnalysis = Readonly<{
     primaryEvidence: "exact_format_distance_time_speed_consistency";
     populationComparison: "same_bike_race_type_and_exact_distance";
     resultEvidenceRole: "supporting_only";
+    supportingTieBreak: "strong_opposition_and_stars_only";
     missingOppositionQuality: "unknown_never_favourable";
   }>;
   maps: readonly ProLeagueMatchupMapAnalysis[];
@@ -363,6 +364,8 @@ type RankedCore = Readonly<{
 }>;
 
 function compareRanked(left: RankedCore, right: RankedCore): number {
+  const leftSupporting = left.profile.supportingEvidence;
+  const rightSupporting = right.profile.supportingEvidence;
   return (
     assessmentPower[right.profile.benchmarkAssessment] -
       assessmentPower[left.profile.benchmarkAssessment] ||
@@ -380,6 +383,14 @@ function compareRanked(left: RankedCore, right: RankedCore): number {
     right.profile.dataCurrentThrough.localeCompare(
       left.profile.dataCurrentThrough,
     ) ||
+    rightSupporting.strongOpposition.topThreeCount -
+      leftSupporting.strongOpposition.topThreeCount ||
+    rightSupporting.strongOpposition.winCount -
+      leftSupporting.strongOpposition.winCount ||
+    rightSupporting.blueStar.assignedCount -
+      leftSupporting.blueStar.assignedCount ||
+    rightSupporting.goldStar.assignedCount -
+      leftSupporting.goldStar.assignedCount ||
     left.core.coreId.localeCompare(right.core.coreId)
   );
 }
@@ -635,6 +646,7 @@ export function buildProLeagueMatchupAnalysis(
       primaryEvidence: "exact_format_distance_time_speed_consistency",
       populationComparison: "same_bike_race_type_and_exact_distance",
       resultEvidenceRole: "supporting_only",
+      supportingTieBreak: "strong_opposition_and_stars_only",
       missingOppositionQuality: "unknown_never_favourable",
     },
     maps: analysed.map((map) => ({

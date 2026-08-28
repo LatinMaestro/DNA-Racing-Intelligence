@@ -406,7 +406,9 @@ After the private Pro League milestone, continue in this order:
   sustained performance.
 - Gold/Blue stars and wins or Top-3s against independently evidenced strong
   opposition may support confidence but remain separate from intrinsic
-  performance. Missing opposition-quality evidence is unknown, never favourable.
+  performance. They may break an otherwise equal intrinsic-evidence tie; raw
+  win/Top-3 totals do not. Missing opposition-quality evidence is unknown, never
+  favourable.
 - “Best currently owned” is not a population strength label. A weak
   best-available Core remains provisional/test-before-lock and routes to focused
   Discovery or breeding so the annual 10-substitution budget is not wasted.

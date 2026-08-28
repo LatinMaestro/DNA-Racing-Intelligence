@@ -145,6 +145,7 @@ describe("Pro League matchup analysis", () => {
       selectionMethod: {
         primaryEvidence: "exact_format_distance_time_speed_consistency",
         resultEvidenceRole: "supporting_only",
+        supportingTieBreak: "strong_opposition_and_stars_only",
         missingOppositionQuality: "unknown_never_favourable",
       },
       substitutionStrategy: {
@@ -223,6 +224,27 @@ describe("Pro League matchup analysis", () => {
     });
 
     expect(result.maps[0]!.lines[0]!.ourRecommendedCoreId).toBe("consistent");
+  });
+
+  it("uses evidenced strong-opposition results only after intrinsic evidence ties", () => {
+    const result = buildProLeagueMatchupAnalysis({
+      ourVault: vault("ours", [
+        core("unknown-field", [evidence("1v1", 1_000, "winning_range")]),
+        core("proven-field", [
+          evidence("1v1", 1_000, "winning_range", 12, {
+            strongOppositionStatus: "available",
+          }),
+        ]),
+      ]),
+      oppositionVault: vault("theirs", []),
+      homeVaultId: "ours",
+    });
+
+    expect(result.maps[0]!.lines[0]!.ourRecommendedCoreId).toBe("proven-field");
+    expect(
+      result.maps[0]!.lines[0]!.ourEvidence?.supportingEvidence
+        .strongOpposition,
+    ).toMatchObject({ status: "available", winCount: 1, topThreeCount: 2 });
   });
 
   it("does not score incomplete opposition evidence as an advantage", () => {
