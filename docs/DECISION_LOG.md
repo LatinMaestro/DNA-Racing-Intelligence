@@ -468,3 +468,20 @@ After the private Pro League milestone, continue in this order:
 - Discovery does not publish a generation, mutate hosted providers or authorize
   persistent real owner data. Final materialization/publication wiring and the
   P5 first-real-sync approval gate remain separate.
+
+## 2026-08-28 — Full-cycle publication requires exact immutable receipts
+
+- Reconstruct the initial/full current-state generation only from an exact
+  `all_current_state` schedule and a matching `ready_to_publish` durable
+  checkpoint.
+- Re-read every receipt through the private immutable evidence boundary and
+  bind the embedded cycle, group and logical request back to schedule authority
+  before adapting any result.
+- Canonicalize owned Cores, active races/fills, all seven supplemental Core
+  families, Token prices and complete Arena pagination before making exactly
+  one call to the atomic Neon publication repository.
+- Do not infer that a non-due family is reusable from freshness time alone.
+  Staggered cadence publication remains fail-closed until a durable receipt
+  index identifies and verifies each cached family observation.
+- This slice is synthetic/replay only. It performs no DNA request or hosted
+  write and does not open the P5 first-real-sync approval gate.

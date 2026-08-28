@@ -130,6 +130,13 @@ Every family has a last-good state.
 - failure leaves the prior publication active; and
 - downstream pages continue to use the prior published state.
 
+The first/full current-state cycle is reconstructed only from a
+`ready_to_publish` checkpoint whose exact all-family schedule matches every
+verified private R2 receipt. Canonicalization and complete-family coverage run
+before the single atomic Neon publication call. A later staggered cadence cycle
+must not publish until durable cached-family receipt authority proves every
+carried-forward non-due group; a timestamp alone is not sufficient evidence.
+
 The website must never appear fresher merely because a failed sync attempt occurred later.
 
 ## API eligibility/key loss
