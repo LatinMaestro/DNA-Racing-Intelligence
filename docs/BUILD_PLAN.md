@@ -169,6 +169,9 @@ one bounded request per invocation and records API recovery in both durable
 checkpoint and last-good state before selecting full or staggered publication.
 The operator entrypoint composes restart-safe identity/Arena discovery with that
 coordinator while retaining the same one-request invocation bound.
+The explicit P4/P5 readiness matrix now keeps local recovery implementation,
+connected acceptance, API-only PostgreSQL/R2 measurements, positive Neon
+headroom and owner approval as separate machine-checkable gates.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
@@ -185,6 +188,11 @@ Deliver evidence for:
 - explicit positive headroom below **536,870,912 bytes** before persistent real API backfill.
 
 Present the exact cost/recovery/capacity evidence and **STOP for explicit owner approval** before the first persistent real Preview sync.
+
+Current gate state: the repository exports a complete technical-requirement
+matrix, but connected recovery acceptance, API-only PostgreSQL 18 physical/peak
+measurement, private R2 footprint/cost and positive Neon headroom remain
+outstanding. P5 is therefore not yet ready for owner approval.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
