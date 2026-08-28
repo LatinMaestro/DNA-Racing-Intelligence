@@ -546,3 +546,16 @@ After the private Pro League milestone, continue in this order:
   sync state, then select full or staggered publication only from a verified
   ready checkpoint.
 - This coordinator remains synthetic/local and does not cross the P5 gate.
+
+## 2026-08-28 — One operator composes discovery and scheduled publication
+
+- Run dynamic ownership, active-race and terminal Arena discovery first, using
+  deterministic child cycles under the requested root cycle.
+- Only a complete authoritative discovery plan can enter scheduled acquisition
+  and publication.
+- A discovery invocation that performs a request returns immediately; when a
+  completed discovery falls through to scheduling, discovery has performed no
+  request during that invocation. The full operator therefore remains bounded
+  to one API request per invocation.
+- Both discovery and scheduled interruptions use the same owner-scoped
+  last-good pause path. This remains synthetic and does not open P5.

@@ -101,4 +101,7 @@ coordinator derives cadence only from the serving receipt index, forces a full
 cycle on dynamic-plan drift, advances at most one bounded request per invocation
 and selects full or staggered publication only after the durable checkpoint is
 ready. API interruptions update both the cycle checkpoint and last-good pause
-state. This remains synthetic until the P5 gate.
+state. One operator boundary now composes durable identity/Arena discovery with
+that scheduled coordinator without increasing the one-request-per-invocation
+bound. The next P4 slice is the explicit P4/P5 readiness and recovery evidence
+matrix. This remains synthetic until the P5 gate.
