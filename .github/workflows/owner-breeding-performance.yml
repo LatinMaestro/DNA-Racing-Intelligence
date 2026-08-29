@@ -1,0 +1,37 @@
+name: Owner breeding performance scan
+
+on:
+  push:
+    branches:
+      - analysis/owner-breeding-20260829
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owner-breeding-performance
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DNA_OWNER_BREEDING_PAIRS: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run performance-first breeding analysis
+        run: npx vitest run --no-file-parallelism tests/hosted-owner-breeding-performance.test.ts
+      - name: Upload breeding performance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-breeding-performance
+          path: artifacts/owner-breeding-performance.json
+          if-no-files-found: error
+          retention-days: 1
