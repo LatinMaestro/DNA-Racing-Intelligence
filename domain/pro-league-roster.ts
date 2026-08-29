@@ -1,12 +1,12 @@
 import type { CoreClass, CoreElement, CoreSex } from "@/domain/source-adapters";
 
 export const proLeagueCurrentRules = Object.freeze({
-  rulesetId: "dna-pro-league/owner-confirmed-2026-08-28",
+  rulesetId: "dna-pro-league/owner-confirmed-2026-08-29",
   evidenceStatus: "owner_confirmed" as const,
   sourceLabel:
-    "Owner-confirmed DNA Pro League rules, Bike-only and matchup clarification",
+    "Owner-confirmed DNA Pro League rules, Bike-only, matchup and female-percentage clarification",
   raceMode: "bike" as const,
-  receivedAt: "2026-08-28",
+  receivedAt: "2026-08-29",
   matchup: Object.freeze({
     vaultsPerMatch: 2,
     gateAllocation: "equal_halves" as const,
@@ -29,7 +29,10 @@ export const proLeagueCurrentRules = Object.freeze({
   maximumF5OrBelow: 5,
   maximumF10OrBelow: 12,
   minimumAboveF15: 2,
-  minimumFemales: 8,
+  femaleMinimum: Object.freeze({
+    kind: "percentage_rounded_up" as const,
+    percentage: 32,
+  }),
   namesRequired: true,
 });
 
@@ -38,27 +41,23 @@ export const proLeagueTrialObservedRosterRules = Object.freeze({
   evidenceStatus: "official_live_trial_observation" as const,
   appliesTo: "trial_only" as const,
   controlsCurrentValidation: false,
-  femaleMinimum: Object.freeze({
-    kind: "percentage_rounded_up" as const,
-    percentage: 32,
-  }),
+  femaleRulePromotedToCurrentAuthority: true,
   ageing: "disabled_for_practice" as const,
   rosterChanges: "unlimited_for_practice_before_match_lock" as const,
-  conflict:
-    "The trial website's 32%-rounded-up female rule does not supersede the owner-confirmed minimum-eight validator without explicit final authority.",
+  femaleRuleStatus:
+    "The observed 32%-rounded-up rule is now owner-confirmed current validation authority.",
 });
 
-export function observedTrialFemaleMinimum(rosterSize: number): number {
+export function requiredProLeagueFemaleCount(rosterSize: number): number {
   if (
     !Number.isSafeInteger(rosterSize) ||
-    rosterSize < proLeagueCurrentRules.minimumRosterSize ||
-    rosterSize > proLeagueCurrentRules.maximumRosterSize
+    rosterSize < 0 ||
+    rosterSize > 1_000_000
   ) {
-    throw new Error("Trial roster size must be between 12 and 25 Cores.");
+    throw new Error("Pro League roster size must be a non-negative integer.");
   }
   return Math.ceil(
-    (rosterSize * proLeagueTrialObservedRosterRules.femaleMinimum.percentage) /
-      100,
+    (rosterSize * proLeagueCurrentRules.femaleMinimum.percentage) / 100,
   );
 }
 
@@ -251,13 +250,14 @@ export function auditProLeagueRoster(
       detail: `The roster requires at least ${proLeagueCurrentRules.minimumAboveF15} Cores above F15.`,
     });
   }
-  if (femaleCount < proLeagueCurrentRules.minimumFemales) {
+  const requiredFemaleCount = requiredProLeagueFemaleCount(selectedCoreCount);
+  if (femaleCount < requiredFemaleCount) {
     issues.push({
       code: "FEMALE_MINIMUM",
       element: null,
       actual: femaleCount,
-      required: proLeagueCurrentRules.minimumFemales,
-      detail: `The roster requires at least ${proLeagueCurrentRules.minimumFemales} female Cores.`,
+      required: requiredFemaleCount,
+      detail: `At least ${proLeagueCurrentRules.femaleMinimum.percentage}% of the roster must be female, rounded up: ${requiredFemaleCount} female Cores for ${selectedCoreCount} rostered Cores.`,
     });
   }
 

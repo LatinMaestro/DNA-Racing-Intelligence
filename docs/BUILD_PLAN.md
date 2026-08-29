@@ -266,7 +266,7 @@ Implement the current roster authority:
 - maximum 5 Cores at F5 or below;
 - maximum 12 Cores at F10 or below;
 - minimum 2 Cores above F15;
-- minimum 8 females; and
+- at least 32% females, rounded up (4 for 12 Cores; 8 for 25); and
 - every rostered Core has a name.
 
 Deliver roster versions, nucleus/optional slots/alternates, reason/evidence

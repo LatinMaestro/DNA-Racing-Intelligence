@@ -8,7 +8,6 @@ import { proLeagueTrialOperationsAuthority } from "@/domain/pro-league-competiti
 import { proLeagueMapAuthority, proLeagueMaps } from "@/domain/pro-league-maps";
 import {
   proLeagueCurrentRules,
-  proLeagueTrialObservedRosterRules,
   type ProLeagueRosterAudit,
 } from "@/domain/pro-league-roster";
 import type { ProLeaguePreparationConnectionStatus } from "@/lib/pro-league-preparation-service";
@@ -623,13 +622,12 @@ export function ProLeagueWorkspace({
           Source: {proLeagueCurrentRules.sourceLabel}, received{" "}
           {proLeagueCurrentRules.receivedAt}. Current roster limits and the
           public four-map catalogue are configured; additional maps and
-          initial-roster substitution counting remain unresolved. The live trial
-          displays a{" "}
-          {proLeagueTrialObservedRosterRules.femaleMinimum.percentage}
-          %-rounded-up female rule, but it does not replace the current
-          owner-confirmed minimum-eight validator without final authority. Pro
-          League uses the same underlying DNA Racing Core performance, so
-          accepted Bike history remains valid evidence where the API exposes it.
+          initial-roster substitution counting remain unresolved. At least{" "}
+          {proLeagueCurrentRules.femaleMinimum.percentage}% of the selected
+          roster must be female, rounded up: four females for a 12-Core roster
+          and eight for a 25-Core roster. Pro League uses the same underlying
+          DNA Racing Core performance, so accepted Bike history remains valid
+          evidence where the API exposes it.
         </p>
       </section>
 

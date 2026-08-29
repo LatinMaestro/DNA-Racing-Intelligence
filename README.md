@@ -50,7 +50,7 @@ The current owner-confirmed Pro League roster rules are:
 - maximum 5 Cores at F5 or below;
 - maximum 12 Cores at F10 or below;
 - minimum 2 Cores above F15;
-- minimum 8 females; and
+- at least 32% females, rounded up (4 for 12 Cores; 8 for 25); and
 - every rostered Core must be named.
 
 The older announcement assumptions of exactly 25 Cores, minimum five of each element and minimum five F15+ Cores are retained as historical evidence but are **superseded** for current validation and recommendations.

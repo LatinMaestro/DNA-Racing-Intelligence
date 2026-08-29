@@ -45,17 +45,15 @@ A legal current roster must satisfy all of the following:
 - maximum **5 Cores at F5 or below**;
 - maximum **12 Cores at F10 or below**;
 - minimum **2 Cores above F15**;
-- minimum **8 female Cores**; and
+- at least **32% female Cores, rounded up** (4 for a 12-Core roster and 8 for a 25-Core roster); and
 - every rostered Core must have a name.
 
 There is no current minimum Water count supplied. Water therefore remains constrained only by the total roster and other applicable rules unless DNA supplies a later rule.
 
-The live trial team page observed on 29 August displayed a different female
-minimum: 32% of roster size, rounded up (for example 4 at a 12-Core roster and
-8 at a 25-Core roster). That observation is trial/versioned evidence and does
-not silently replace the owner-confirmed minimum-eight validator. The website
-must show the active ruleset and retain this conflict until DNA or the owner
-confirms which rule controls the proper season.
+The live trial team page observed on 29 August displayed a female minimum of
+32% of roster size, rounded up. The owner confirmed on 29 August that this is
+the current validation rule: 4 females for a 12-Core roster and 8 for a full
+25-Core roster. It replaces the earlier fixed minimum-eight interpretation.
 
 ## Initial roster and substitution allowance
 

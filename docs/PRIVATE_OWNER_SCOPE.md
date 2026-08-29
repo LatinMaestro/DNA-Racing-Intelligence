@@ -53,7 +53,7 @@ Read `docs/ESPORTS_PRO_LEAGUE_PREPARATION.md` before changing Pro League logic. 
 The owner intends to participate in the DNA Pro Esports League. Pro League is part of the DNA Racing ecosystem and uses the same underlying core stats and performance characteristics. Keep it as a dedicated private website section because roster construction, breeding, Discovery and team-core selection form a distinct high-value competition workflow.
 
 - Do **not** recommend or plan additional Genesis minting. Use the existing owner-maintained My Vault plus breeding.
-- Current roster requirements are 12–25 Cores; maximum 7 Metal, 8 Fire and 10 Earth; maximum 2 Genesis per element; maximum 5 at F5 or below; maximum 12 at F10 or below; minimum 2 above F15; minimum 8 females; and names for every rostered Core.
+- Current roster requirements are 12–25 Cores; maximum 7 Metal, 8 Fire and 10 Earth; maximum 2 Genesis per element; maximum 5 at F5 or below; maximum 12 at F10 or below; minimum 2 above F15; at least 32% females rounded up (4 for 12 Cores and 8 for 25); and names for every rostered Core.
 - Use confirmed DNA breeding rules for offspring class, element and F-number. An above-F15 structural target requires parent F-numbers summing to at least 16. Do not claim offspring sex can be deterministically targeted.
 - Bred/non-Genesis depth can improve roster flexibility under the Genesis cap. Once structural requirements are met, breeding should continue only where elite-upside evidence can improve the strongest compliant nucleus rather than merely add quantity.
 - Current Pro League competition and mapping are **Bike-only**. Car and Horse
