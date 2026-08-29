@@ -1,0 +1,37 @@
+name: Splice arena watch
+
+on:
+  push:
+    branches:
+      - analysis/splice-arena-watch-20260829
+
+permissions:
+  contents: read
+
+concurrency:
+  group: splice-arena-watch
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_SPLICE_ARENA_WATCH: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Snapshot current splice arena
+        run: npx vitest run --no-file-parallelism tests/hosted-splice-arena-watch.test.ts
+      - name: Upload arena evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: splice-arena-watch
+          path: artifacts/splice-arena-watch.json
+          if-no-files-found: error
+          retention-days: 1
