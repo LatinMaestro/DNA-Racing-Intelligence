@@ -1,0 +1,37 @@
+name: Owner breeding pair checks
+
+on:
+  push:
+    branches:
+      - analysis/owner-breeding-20260829
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owner-breeding-pairs
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_OWNER_BREEDING_PAIRS: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Validate and price shortlisted pairs
+        run: npx vitest run --no-file-parallelism tests/hosted-owner-breeding-pairs.test.ts
+      - name: Upload public pair evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-breeding-pairs
+          path: artifacts/owner-breeding-pairs.json
+          if-no-files-found: error
+          retention-days: 1
