@@ -93,16 +93,26 @@ legacy unindexed publisher, a private bucket, owner-prefix list access and zero
 P5 synthetic marker residue. It cannot write either provider, open P5, permit a
 persistent Preview sync or authorize Production.
 
-The read-only Preview catalog observation on 2026-08-28 confirmed PostgreSQL
-18 but found 0 of the 15 API-only relations because migrations `0069`–`0076`
-have not yet been applied to the private Preview branch. The capacity run must
-therefore remain blocked until those reviewed migrations are applied and the
-exact-head provider preflight passes.
+Migrations `0069`–`0076` were applied and smoke-tested on the private Preview
+database without owner-data persistence. Exact-main prerequisite run
+`33224616911` on 2026-08-29 then confirmed PostgreSQL 18, all 15 API-only
+relations, all 13 runtime function signatures, the owner/RLS and restricted
+runtime contract, private R2 access and zero synthetic residue. It reported no
+blockers and allowed only the bounded synthetic measurement, never a persistent
+Preview sync or Production.
 
 The connected invocation is separately opt-in, exact-head bound and limited to
-the guarded composition. It emits one canonical record no larger than 16 KiB.
+the guarded composition. The dispatch-only exact-main workflow re-proves
+prerequisites before measurement and proves cleanup afterward. It emits one
+canonical record no larger than 16 KiB and retains that sanitized artifact for
+seven days only when both measurement and cleanup pass.
 The record contains only reviewed counts, timestamps, hashes, costs and safety
 conclusions: authority references are domain-separated hashes, while provider
 configuration, credentials, owner/database/bucket/object identities, cursors,
-payloads and provider error details are never emitted. A connected invocation
-has not yet been run and this emission contract does not open P5.
+payloads and provider error details are never emitted. Its capacity-plan hash
+uses the 30 aggregate requests/minute ceiling over 30 days: 1,296,000 projected
+Class A writes and 2,592,000 projected Class B verifications. Pricing uses the
+official Cloudflare R2 authority effective 2026-08-07: $0.015/GB-month,
+$4.50/million Class A and $0.36/million Class B, without subtracting the free
+tier. A connected invocation has not yet been run and this emission contract
+does not open P5.

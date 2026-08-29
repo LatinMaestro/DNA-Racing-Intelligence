@@ -694,3 +694,23 @@ After the private Pro League milestone, continue in this order:
   API-only relations. Migrations `0069`–`0076` must be applied and reviewed on
   private Preview before measurement. This finding does not authorize that
   measurement, persistent real owner-data sync or any Production change.
+
+## 2026-08-29 — Connected capacity measurement is exact-main and cleanup-gated
+
+- Record that private Preview migrations `0069`–`0076` were applied and
+  smoke-tested without owner-data persistence. Exact-main prerequisite run
+  `33224616911` subsequently passed PostgreSQL 18, 15/15 relations, 13/13
+  functions, restricted owner/RLS access, private R2 access and zero residue.
+- Permit the rollback-only connected capacity composition only through a
+  dispatch-only exact-main workflow that re-runs the prerequisite proof before
+  measurement and the cleanup/safety proof afterward.
+- Upload a sanitized capacity artifact only when both the measurement and
+  cleanup succeed; cap retention at seven days.
+- Hash a fixed 30-day projection at the conservative 30 aggregate
+  requests/minute ceiling: 1,296,000 Class A writes and 2,592,000 Class B
+  verifications. Use Cloudflare's 2026-08-07 R2 price authority: $0.015 per
+  GB-month, $4.50 per million Class A and $0.36 per million Class B, without
+  subtracting the free tier.
+- This workflow can update only the three P5 capacity evidence rows after
+  review. It cannot authorize persistent owner-data sync, Production or a DNA
+  transaction.

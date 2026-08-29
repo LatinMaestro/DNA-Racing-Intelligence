@@ -210,9 +210,12 @@ identity, object identities, raw authority references, credentials or errors.
 The dispatch-only provider preflight now proves the exact PostgreSQL version,
 owner/runtime boundary, complete relation/function contract, legacy publisher
 revocation, private R2 access and zero synthetic residue before a connected
-capacity run. A read-only live observation confirmed PostgreSQL 18 but found
-that all 15 API-only relations remain absent from private Preview, so reviewed
-migrations `0069`–`0076` must be applied there before measurement.
+capacity run. After migrations `0069`–`0076` were applied and smoke-tested on
+private Preview, exact-main run `33224616911` confirmed PostgreSQL 18, all 15
+API-only relations, all 13 runtime functions and zero blockers. A separate
+dispatch-only exact-main workflow now re-proves that state, executes the fixed
+rollback-only PostgreSQL/R2 workload, re-proves cleanup and emits only bounded
+sanitized evidence.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 
