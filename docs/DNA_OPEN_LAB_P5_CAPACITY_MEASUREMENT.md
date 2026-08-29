@@ -119,9 +119,15 @@ seven days only when measurement, cleanup and final exact-main proof pass.
 The record contains only reviewed counts, timestamps, hashes, costs and safety
 conclusions: authority references are domain-separated hashes, while provider
 configuration, credentials, owner/database/bucket/object identities, cursors,
-payloads and provider error details are never emitted. Its capacity-plan hash
-uses the 30 aggregate requests/minute ceiling over 30 days: 1,296,000 projected
-Class A writes and 2,592,000 projected Class B verifications. Pricing uses the
+payloads and provider error details are never emitted. Its accepted
+capacity-plan hash used the deliberately conservative assumption that the 30
+aggregate requests/minute ceiling ran continuously for 30 days: 1,296,000
+projected Class A writes and 2,592,000 projected Class B verifications. That
+remains valid historical upper-bound evidence, but it is not the commissioned
+operating cadence. The owner-approved recurring policy is one complete refresh
+per day, capped at 1,000 Class A and 2,000 Class B operations per refresh
+(31,000/62,000 over 31 days), with hard 80%-of-free-tier budgets and pre-write
+shutdown before paid usage. Pricing uses the
 official Cloudflare R2 authority effective 2026-08-07: $0.015/GB-month,
 $4.50/million Class A and $0.36/million Class B, without subtracting the free
 tier. The successful evidence measured a 17,768,448-byte PostgreSQL peak,

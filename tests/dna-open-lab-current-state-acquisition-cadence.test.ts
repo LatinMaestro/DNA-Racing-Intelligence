@@ -79,7 +79,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     ).toBe(false);
   });
 
-  it("refreshes short-lived race activity without unnecessarily reacquiring slow groups", () => {
+  it("refreshes every family together at the daily boundary", () => {
     const recent = checkpoints();
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
@@ -90,14 +90,12 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
       }),
       checkpoints: {
         ...recent,
-        race_activity: { completedAt: "2026-08-28T12:28:59.000Z" },
+        race_activity: { completedAt: "2026-08-27T12:29:59.000Z" },
       },
     });
 
-    expect(schedule.dueGroups).toEqual(["race_activity"]);
-    expect(
-      schedule.requestBatches.flat().map((entry) => entry.request.endpoint),
-    ).toEqual(["races.active", "races.fills"]);
+    expect(schedule.dueGroups).toEqual(DNA_CURRENT_STATE_ACQUISITION_GROUPS);
+    expect(schedule.requestBatches.flat()).toHaveLength(18);
     expect(schedule.nextEvaluationAt).toBe(evaluatedAt);
   });
 
@@ -110,7 +108,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
 
     expect(schedule.status).toBe("idle");
     expect(schedule.scheduledRequestCount).toBe(0);
-    expect(schedule.nextEvaluationAt).toBe("2026-08-28T12:30:30.000Z");
+    expect(schedule.nextEvaluationAt).toBe("2026-08-29T12:29:30.000Z");
   });
 
   it("does not schedule work before an authoritative retry boundary", () => {
@@ -135,22 +133,24 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
       plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
       checkpoints: {
         ...checkpoints(),
-        race_activity: { completedAt: "2026-08-28T12:28:00.000Z" },
-        token_prices: { completedAt: "2026-08-28T12:24:00.000Z" },
+        race_activity: { completedAt: "2026-08-27T12:28:00.000Z" },
+        token_prices: { completedAt: "2026-08-27T12:24:00.000Z" },
       },
     });
 
     expect(
       inspectDnaCurrentStateAcquisitionCompletion({
         schedule,
-        completedGroups: ["race_activity"],
+        completedGroups: DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter(
+          (group) => group !== "token_prices",
+        ),
         evidenceObservedAt: evidence(),
       }),
     ).toEqual({ publishable: false, incompleteGroups: ["token_prices"] });
     expect(
       inspectDnaCurrentStateAcquisitionCompletion({
         schedule,
-        completedGroups: ["race_activity", "token_prices"],
+        completedGroups: [...DNA_CURRENT_STATE_ACQUISITION_GROUPS],
         evidenceObservedAt: evidence(),
       }),
     ).toEqual({ publishable: true, incompleteGroups: [] });
@@ -160,7 +160,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     expect(
       inspectDnaCurrentStateAcquisitionCompletion({
         schedule,
-        completedGroups: ["race_activity", "token_prices"],
+        completedGroups: [...DNA_CURRENT_STATE_ACQUISITION_GROUPS],
         evidenceObservedAt: missingCache,
       }),
     ).toEqual({ publishable: false, incompleteGroups: ["splice_arena"] });

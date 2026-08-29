@@ -780,3 +780,25 @@ After the private Pro League milestone, continue in this order:
 - The current public page contains four maps. Do not retain the earlier
   assumption that a fifth map is planned, and do not configure an additional
   map until it is published.
+
+## 2026-08-29 — Recurring API refreshes must remain zero-cost
+
+- Treat the 30 aggregate requests/minute value as a burst ceiling during a
+  bounded refresh, not a continuously running website cadence.
+- Target one complete API refresh every 24 hours. When any recurring family is
+  due, reacquire every recurring family and publish only the complete valid
+  generation.
+- Resume finished history from durable checkpoints and retrieve only
+  missing/new evidence after the initial backfill. Preserve complete history
+  exposed by the API and identify current-state-only endpoints explicitly.
+- Keep R2 Standard recurring operation below hard 80%-of-free-tier budgets:
+  8 GB retained storage, 800,000 Class A and 8,000,000 Class B operations per
+  billing window. Cap a planned daily refresh at 1,000 Class A and 2,000 Class B
+  operations.
+- Evaluate current plus proposed usage before discovery/acquisition. If any
+  budget would be crossed, perform no provider work, keep serving last-good data
+  and catch up later. Never enable paid usage or capacity automatically.
+- Treat the first persistent historical API backfill as a separate bounded
+  commissioning event. A small one-time charge may be proposed only with a
+  measured upper bound, an exact maximum amount, cleanup/stop conditions and
+  explicit owner P5 approval.

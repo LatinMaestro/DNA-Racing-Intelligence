@@ -20,11 +20,11 @@ export type DnaCurrentStateAcquisitionGroup =
 
 export const DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS =
   Object.freeze({
-    race_activity: 60_000,
-    token_prices: 5 * 60_000,
-    vault_identity: 15 * 60_000,
-    core_current_state: 15 * 60_000,
-    splice_arena: 30 * 60_000,
+    race_activity: 24 * 60 * 60_000,
+    token_prices: 24 * 60 * 60_000,
+    vault_identity: 24 * 60 * 60_000,
+    core_current_state: 24 * 60 * 60_000,
+    splice_arena: 24 * 60 * 60_000,
   } satisfies Readonly<Record<DnaCurrentStateAcquisitionGroup, number>>);
 
 export type DnaCurrentStateAcquisitionCheckpoint = Readonly<{
@@ -143,8 +143,10 @@ function allRequests(
 }
 
 /**
- * Builds a deterministic local acquisition schedule. The intervals are an
- * application freshness policy, not undocumented DNA endpoint semantics.
+ * Builds a deterministic daily acquisition schedule. The shared 24-hour
+ * interval is the owner's zero-ongoing-cost freshness policy, not undocumented
+ * DNA endpoint semantics. All recurring families therefore become due
+ * together and publish as one complete valid generation.
  * Batches are capped at the same conservative 30-request aggregate allowance
  * as the client pool; execution must still pass through that pool so headers,
  * Retry-After and a lower observed allowance remain authoritative.
@@ -209,14 +211,19 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
     });
   }
 
-  const dueGroups = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter((group) => {
-    const completed = checkpointMilliseconds.get(group);
-    return (
-      completed === undefined ||
-      evaluatedMilliseconds - completed >=
-        DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
-    );
-  });
+  const completeRefreshDue = DNA_CURRENT_STATE_ACQUISITION_GROUPS.some(
+    (group) => {
+      const completed = checkpointMilliseconds.get(group);
+      return (
+        completed === undefined ||
+        evaluatedMilliseconds - completed >=
+          DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
+      );
+    },
+  );
+  const dueGroups = completeRefreshDue
+    ? [...DNA_CURRENT_STATE_ACQUISITION_GROUPS]
+    : [];
   const dueSet = new Set(dueGroups);
   const scheduled = allRequests(input.plan)
     .map((request) => ({ group: endpointGroup(request), request }))

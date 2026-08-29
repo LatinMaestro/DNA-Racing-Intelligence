@@ -41,11 +41,44 @@ const baseInput = {
   pool,
   persistEvidence,
   readEvidence,
+  currentR2Usage: {
+    storageBytes: 1_000,
+    classAOperations: 100,
+    classBOperations: 200,
+  },
+  plannedRefreshR2Usage: {
+    storageBytes: 1_000,
+    classAOperations: 10,
+    classBOperations: 20,
+  },
 } as const;
 
 describe("DNA Open Lab current-state operator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("fails closed before discovery when the zero-cost budget is exhausted", async () => {
+    const result = await runDnaCurrentStateOperatorStep({
+      ...baseInput,
+      currentR2Usage: {
+        storageBytes: 8_000_000_000,
+        classAOperations: 800_000,
+        classBOperations: 8_000_000,
+      },
+    });
+
+    expect(result).toMatchObject({
+      kind: "budget_blocked",
+      budget: {
+        allowed: false,
+        action: "pause_and_serve_last_good",
+        paidUsageAllowed: false,
+        preserveLastGood: true,
+      },
+    });
+    expect(runners.discovery).not.toHaveBeenCalled();
+    expect(runners.scheduled).not.toHaveBeenCalled();
   });
 
   it("stops after one in-progress discovery step", async () => {
