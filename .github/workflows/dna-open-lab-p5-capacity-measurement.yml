@@ -36,6 +36,15 @@ jobs:
           fi
       - name: Checkout exact head
         uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The bounded provider workflow head is no longer current main."
+            exit 1
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -79,8 +88,21 @@ jobs:
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-p5-provider-prerequisites.test.ts
+      - name: Prove exact main remained unchanged
+        id: exact_main
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the bounded provider workflow."
+            exit 1
+          fi
       - name: Upload sanitized capacity evidence
-        if: steps.capacity.outcome == 'success' && steps.cleanup.outcome == 'success'
+        if: >-
+          steps.capacity.outcome == 'success' &&
+          steps.cleanup.outcome == 'success' &&
+          steps.exact_main.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: dna-open-lab-p5-capacity-evidence-${{ github.run_id }}

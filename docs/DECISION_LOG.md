@@ -702,8 +702,9 @@ After the private Pro League milestone, continue in this order:
   `33224616911` subsequently passed PostgreSQL 18, 15/15 relations, 13/13
   functions, restricted owner/RLS access, private R2 access and zero residue.
 - Permit the rollback-only connected capacity composition only through a
-  dispatch-only exact-main workflow that re-runs the prerequisite proof before
-  measurement and the cleanup/safety proof afterward.
+  dispatch-only exact-main workflow that rejects stale dispatches, re-runs the
+  prerequisite proof before measurement and the cleanup/safety proof afterward,
+  and rejects evidence if `main` advances during the run.
 - Upload a sanitized capacity artifact only when both the measurement and
   cleanup succeed; cap retention at seven days.
 - Hash a fixed 30-day projection at the conservative 30 aggregate

@@ -102,10 +102,11 @@ blockers and allowed only the bounded synthetic measurement, never a persistent
 Preview sync or Production.
 
 The connected invocation is separately opt-in, exact-head bound and limited to
-the guarded composition. The dispatch-only exact-main workflow re-proves
-prerequisites before measurement and proves cleanup afterward. It emits one
+the guarded composition. The dispatch-only exact-main workflow rejects a stale
+dispatch head, re-proves prerequisites before measurement, proves cleanup
+afterward and rejects evidence if `main` advances during the run. It emits one
 canonical record no larger than 16 KiB and retains that sanitized artifact for
-seven days only when both measurement and cleanup pass.
+seven days only when measurement, cleanup and final exact-main proof pass.
 The record contains only reviewed counts, timestamps, hashes, costs and safety
 conclusions: authority references are domain-separated hashes, while provider
 configuration, credentials, owner/database/bucket/object identities, cursors,

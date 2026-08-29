@@ -13,15 +13,16 @@ describe("DNA Open Lab P5 capacity measurement workflow", () => {
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
     expect(workflow).toContain('GITHUB_REF}" != "refs/heads/main"');
     expect(workflow).toContain(
+      '"$(git rev-parse origin/main)" != "${GITHUB_SHA}"',
+    );
+    expect(workflow).toContain(
       "tests/hosted-preview-connected-p5-provider-prerequisites.test.ts",
     );
     expect(workflow).toContain(
       "tests/hosted-preview-connected-p5-capacity-measurement.test.ts",
     );
     expect(workflow).toContain("if: always()");
-    expect(workflow).toContain(
-      "steps.capacity.outcome == 'success' && steps.cleanup.outcome == 'success'",
-    );
+    expect(workflow).toContain("steps.exact_main.outcome == 'success'");
     expect(workflow).toContain("retention-days: 7");
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY|VERCEL|production/iu);
   });
