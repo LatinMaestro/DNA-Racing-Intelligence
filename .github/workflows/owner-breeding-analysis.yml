@@ -1,0 +1,38 @@
+name: Owner breeding analysis
+
+on:
+  push:
+    branches:
+      - analysis/owner-breeding-20260829
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owner-breeding-analysis
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DNA_OWNER_BREEDING_ANALYSIS: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Fetch read-only live breeding evidence
+        run: npx vitest run --no-file-parallelism tests/hosted-owner-breeding-analysis.test.ts
+      - name: Upload public breeding analysis evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-breeding-analysis
+          path: artifacts/owner-breeding-analysis.json
+          if-no-files-found: error
+          retention-days: 1
