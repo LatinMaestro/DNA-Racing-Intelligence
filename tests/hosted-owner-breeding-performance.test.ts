@@ -1,0 +1,81 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { describe, expect, it } from "vitest";
+import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
+import { proLeagueMaps } from "../domain/pro-league-maps";
+
+const enabled = process.env.DNA_OWNER_BREEDING_PAIRS === "1";
+const describeConnected = enabled ? describe : describe.skip;
+const OWNER_VAULT = "0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d";
+const ROSTER = [583,170,11848,15833,9537,19802,20292,10980,8902,19423,14540,16757,1675,12254,9926,16515,9918,20365,20376,16148,9089,949,8431,20274,823] as const;
+const DISTANCES = [1000,1200,1400,1600,1800,2000,2200] as const;
+
+type AnyRecord = Record<string, any>;
+type Parent = { hid:number; name:string; gender:string; element:string; type:string; fno:number; source:"vault"|"arena"; power:number; adj:number; variance:number; races:number; profileScore:number; stats:AnyRecord; splice:AnyRecord };
+type Hist = { hid:number; rid:string; distance:number; gate:number; time:number; speed:number; pos:number|null; payout:string; raceName:string; startTime:string; evidence:"normal_free"|"esports"|"competitive"; family:"wta"|"madness"|"1v1"|"generic"; raw:AnyRecord };
+type Objective = { family:"wta"|"madness"|"1v1"; distance:number; gate:number; frequency:number; key:string };
+
+function required(name:string){ const v=process.env[name]; if(!v||v.trim()!==v) throw new Error(`${name} missing`); return v; }
+function chunks<T>(xs:T[], n:number){ const out:T[][]=[]; for(let i=0;i<xs.length;i+=n) out.push(xs.slice(i,i+n)); return out; }
+function num(v:any, fallback=0){ const n=Number(v); return Number.isFinite(n)?n:fallback; }
+function metric(v:any){ return num(v?.fill?.per ?? v?.per ?? v?.val,0); }
+function q(xs:number[], p:number){ if(!xs.length) return 0; const a=[...xs].sort((x,y)=>x-y); const i=(a.length-1)*p; const lo=Math.floor(i),hi=Math.ceil(i); return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo); }
+function mean(xs:number[]){ return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:0; }
+function sd(xs:number[]){ if(xs.length<2)return 0; const m=mean(xs); return Math.sqrt(xs.reduce((s,x)=>s+(x-m)**2,0)/(xs.length-1)); }
+function pct(value:number, population:number[]){ if(!population.length)return 50; let below=0,equal=0; for(const x of population){ if(x<value) below++; else if(x===value) equal++; } return 100*(below+0.5*equal)/population.length; }
+function familyOf(r:AnyRecord):Hist["family"]{ const gate=num(r.rgate,0); const p=String(r.payout??r.format??"").toLowerCase(); if(gate===2)return "1v1"; if(p.includes("wta"))return "wta"; if(p.includes("mad")||p.includes("variance"))return "madness"; return "generic"; }
+function evidenceOf(r:AnyRecord):Hist["evidence"]{ const name=String(r.race_name??""); const format=String(r.format??"").toLowerCase(); if(/\bfree\b/i.test(name))return "normal_free"; if(format.includes("esport")||/\b(anchor|glory|measure|miracles)\b/i.test(name))return "esports"; return "competitive"; }
+function normHistory(hid:number,r:AnyRecord):Hist|null{ if(String(r.rvmode??"").toLowerCase()!=="bike")return null; const cb=num(r.cb,0), distance=cb>=100?cb:cb*100, time=num(r.time??r.rtime??r.elapsed,0), gate=num(r.rgate,0); if(!DISTANCES.includes(distance as any)||time<=0||gate<2)return null; return {hid,rid:String(r.rid??r.rhid??`${hid}:${r.start_time??""}:${distance}:${time}`),distance,gate,time,speed:distance/time,pos:Number.isFinite(Number(r.pos))?Number(r.pos):null,payout:String(r.payout??""),raceName:String(r.race_name??""),startTime:String(r.start_time??""),evidence:evidenceOf(r),family:familyOf(r),raw:r}; }
+function gateFromRaceType(s:string){ const t=s.toLowerCase(); if(t==="1v1")return 2; return Number.parseInt(/^(\d+) gate/.exec(t)?.[1]??"0",10); }
+function familyFromRaceType(s:string):Objective["family"]{ const t=s.toLowerCase(); if(t==="1v1")return "1v1"; if(t.includes("wta"))return "wta"; return "madness"; }
+function collectNumbers(v:any,out=new Set<number>()){ if(typeof v==="number"&&Number.isSafeInteger(v)&&v>0)out.add(v); else if(Array.isArray(v))for(const x of v)collectNumbers(x,out); else if(v&&typeof v==="object")for(const x of Object.values(v))collectNumbers(x,out); return out; }
+
+describeConnected("performance-first breeding analysis",()=>{
+ it("ranks breeding pairs from time/speed/variance evidence before offspring structure",async()=>{
+  const client=createDnaOpenLabV1Client({apiKey:required("DNA_OPEN_LAB_API_KEY_1")});
+  let last=0,calls=0;
+  const paced=async<T>(fn:()=>Promise<T>)=>{ const wait=2100-(Date.now()-last); if(wait>0)await new Promise(r=>setTimeout(r,wait)); const v=await fn(); last=Date.now(); calls++; return v; };
+  const legacy=async(hid:number,page:number)=>paced(async()=>{ const res=await fetch("https://api.dnaracing.run/fbike/i/hraces",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({hid,page})}); const body:any=await res.json(); if(!body||!Array.isArray(body.result))throw new Error(`hraces ${hid}/${page} malformed`); return body.result as AnyRecord[]; });
+
+  const owned=(await paced(()=>client.vaultCoresFull(OWNER_VAULT))).result;
+  const arenaCores:any[]=[]; for(let page=1;page<=20;page++){ const x=(await paced(()=>client.spliceArena({filter:{rvmode:"bike"},page}))).result; arenaCores.push(...x.cores); if(!x.has_more)break; }
+  const sources=new Map<number,"vault"|"arena">(); for(const x of owned)sources.set(x.hid,"vault"); for(const x of arenaCores)if(!sources.has(x.hid))sources.set(x.hid,"arena");
+  const hids=[...sources.keys()];
+  const info:any[]=[],power:any[]=[],stats:any[]=[],splicing:any[]=[];
+  for(const b of chunks(hids,20)){ info.push(...(await paced(()=>client.coreInfoBulk(b))).result); power.push(...(await paced(()=>client.corePowerBulk(b))).result); stats.push(...(await paced(()=>client.coreRacingStatsBulk(b))).result); splicing.push(...(await paced(()=>client.coreSplicingInfoBulk(b))).result); }
+  const I=new Map(info.map(x=>[Number(x.hid),x])), P=new Map(power.map(x=>[Number(x.hid),x])), S=new Map(stats.map(x=>[Number(x.hid),x])), X=new Map(splicing.map(x=>[Number(x.hid),x]));
+  const parents:Parent[]=hids.map(hid=>{ const i=I.get(hid)??{},p=P.get(hid)?.power?.bike??{},s=S.get(hid)??{},x=X.get(hid)??{}; const powerN=metric(p.power),adj=metric(p.adjodds),variance=metric(p.variance),races=num(p.races_n,0); const confidence=Math.min(1,Math.log1p(races)/Math.log(201)); return {hid,name:String(i.name??hid),gender:String(i.gender??"").toLowerCase(),element:String(i.element??"").toLowerCase(),type:String(i.type??"").toLowerCase(),fno:num(i.fno,0),source:sources.get(hid)!,power:powerN,adj,variance,races,profileScore:.52*powerN+.34*adj+.14*(100*confidence),stats:s,splice:x}; }).filter(x=>x.gender==="male"||x.gender==="female");
+
+  const selected=new Set<number>(ROSTER as readonly number[]);
+  for(const gender of ["male","female"]){ for(const element of ["fire","metal","earth","water"]){ const g=parents.filter(x=>x.gender===gender&&x.element===element); g.sort((a,b)=>b.profileScore-a.profileScore); for(const x of g.slice(0,8))selected.add(x.hid); const hv=[...g].filter(x=>x.power>=72||x.adj>=70).sort((a,b)=>b.variance-a.variance); for(const x of hv.slice(0,3))selected.add(x.hid); } }
+  const candidates=parents.filter(x=>selected.has(x.hid));
+
+  const records:Hist[]=[]; const seen=new Set<string>(); const sampleKeys=new Set<string>();
+  for(const p of parents){ const page=await legacy(p.hid,1); for(const r of page){ for(const k of Object.keys(r))sampleKeys.add(k); const z=normHistory(p.hid,r); if(z&&!seen.has(`${z.hid}|${z.rid}`)){seen.add(`${z.hid}|${z.rid}`);records.push(z);} } }
+  for(const p of candidates){ for(const pageNo of [2,3]){ const page=await legacy(p.hid,pageNo); for(const r of page){ const z=normHistory(p.hid,r); if(z&&!seen.has(`${z.hid}|${z.rid}`)){seen.add(`${z.hid}|${z.rid}`);records.push(z);} } if(page.length<50)break; } }
+
+  const objectivesMap=new Map<string,Objective>(); for(const map of proLeagueMaps){ for(const r of map.races){ const family=familyFromRaceType(r.raceType),gate=gateFromRaceType(r.raceType),key=`${family}|${r.distanceMetres}|${gate}`; const old=objectivesMap.get(key); objectivesMap.set(key,{family,distance:r.distanceMetres,gate,frequency:(old?.frequency??0)+1,key}); } }
+  const objectives=[...objectivesMap.values()];
+
+  const populationFor=(o:Objective, exactGate:boolean)=>records.filter(r=>r.distance===o.distance&&r.family===o.family&&(!exactGate||r.gate===o.gate)&&r.evidence!=="normal_free");
+  const metricsCache=new Map<string,any>();
+  function scoreParent(p:Parent,o:Objective){ const key=`${p.hid}|${o.key}`; if(metricsCache.has(key))return metricsCache.get(key); let own=records.filter(r=>r.hid===p.hid&&r.distance===o.distance&&r.family===o.family&&r.gate===o.gate); let scope="exact"; if(own.length<3){own=records.filter(r=>r.hid===p.hid&&r.distance===o.distance&&r.family===o.family);scope="family_distance";} if(own.length<3){own=records.filter(r=>r.hid===p.hid&&r.distance===o.distance);scope="distance";} const competitive=own.filter(r=>r.evidence!=="normal_free"), free=own.filter(r=>r.evidence==="normal_free"); const usable=competitive.length>=2?competitive:own; const speeds=usable.map(r=>r.speed); const median=q(speeds,.5), upper=q(speeds,.8), cv=median>0?sd(speeds)/mean(speeds):1; let pop=populationFor(o,scope==="exact"); if(pop.length<25)pop=records.filter(r=>r.distance===o.distance&&r.family===o.family&&r.evidence!=="normal_free"); if(pop.length<25)pop=records.filter(r=>r.distance===o.distance&&r.evidence!=="normal_free"); const popSpeeds=pop.map(r=>r.speed); const medPct=median?pct(median,popSpeeds):0,upperPct=upper?pct(upper,popSpeeds):0; const cvs=[] as number[]; const byCore=new Map<number,number[]>(); for(const r of pop){ const a=byCore.get(r.hid)??[];a.push(r.speed);byCore.set(r.hid,a);} for(const a of byCore.values())if(a.length>=3){const m=mean(a);if(m>0)cvs.push(sd(a)/m);} const stablePct=cv>0&&cvs.length?100-pct(cv,cvs):50; const sampleConfidence=Math.min(1,Math.log1p(usable.length)/Math.log(31)); let score=0; if(o.family==="wta")score=.52*medPct+.23*upperPct+.10*p.variance+.10*p.adj+.05*(100*sampleConfidence); else if(o.family==="madness")score=.58*medPct+.14*upperPct+.13*stablePct+.10*p.adj+.05*(100*sampleConfidence); else score=.62*medPct+.13*upperPct+.10*stablePct+.10*p.adj+.05*(100*sampleConfidence); if(usable.length===0)score=.45*p.power+.35*p.adj+.20*(100*Math.min(1,Math.log1p(p.races)/Math.log(101))); else if(usable.length<3)score=.75*score+.25*(.55*p.power+.45*p.adj); const out={score,scope,n:usable.length,competitiveN:competitive.length,freeN:free.length,medianSpeed:median,upperSpeed:upper,cv,medianPercentile:medPct,upperPercentile:upperPct,stablePercentile:stablePct,popN:pop.length}; metricsCache.set(key,out); return out; }
+
+  const rosterParents=parents.filter(p=>(ROSTER as readonly number[]).includes(p.hid));
+  const weakness=objectives.map(o=>{ const ranked=rosterParents.map(p=>({p,m:scoreParent(p,o)})).sort((a,b)=>b.m.score-a.m.score); const top=ranked[0]?.m.score??0,second=ranked[1]?.m.score??0,depth=ranked.filter(x=>x.m.score>=70).length; const weaknessScore=(100-top)+Math.max(0,3-depth)*7+Math.min(12,o.frequency*1.5); return {objective:o,weaknessScore,top,second,depth,leaders:ranked.slice(0,5).map(x=>({hid:x.p.hid,name:x.p.name,score:+x.m.score.toFixed(2),n:x.m.n,scope:x.m.scope,medianPercentile:+x.m.medianPercentile.toFixed(1)}))}; }).sort((a,b)=>b.weaknessScore-a.weaknessScore);
+  const targetWeak=weakness.slice(0,16);
+
+  const ancestry=new Map<number,Set<number>>(); const immediate=new Map<number,Set<number>>(); for(const p of parents){ const sp=p.splice??{}; ancestry.set(p.hid,collectNumbers({parents:sp.parents,grand_parents:sp.grand_parents})); immediate.set(p.hid,collectNumbers(sp.parents)); }
+  function related(a:Parent,b:Parent){ const aa=ancestry.get(a.hid)??new Set(),bb=ancestry.get(b.hid)??new Set(); if(aa.has(b.hid)||bb.has(a.hid))return true; const ia=immediate.get(a.hid)??new Set(),ib=immediate.get(b.hid)??new Set(); for(const x of ia)if(ib.has(x))return true; for(const x of aa)if(bb.has(x))return true; return false; }
+
+  const males=candidates.filter(x=>x.gender==="male"),females=candidates.filter(x=>x.gender==="female"); const pairRows:any[]=[];
+  for(const f of males)for(const m of females){ if(f.hid===m.hid||related(f,m))continue; const targets=targetWeak.map(w=>{const fm=scoreParent(f,w.objective),mm=scoreParent(m,w.objective); const avg=(fm.score+mm.score)/2; const floor=Math.min(fm.score,mm.score); const complement=w.objective.family==="wta"?Math.min(6,Math.abs(f.variance-m.variance)*.08):Math.min(5,(fm.stablePercentile+mm.stablePercentile)/40); const pairScore=.72*avg+.23*floor+.05*(100*Math.min(1,(fm.n+mm.n)/20))+complement; return {key:w.objective.key,family:w.objective.family,distance:w.objective.distance,gate:w.objective.gate,weakness:w.weaknessScore,pairScore,fatherScore:fm.score,motherScore:mm.score,fatherN:fm.n,motherN:mm.n}; }).sort((a,b)=>(b.pairScore*b.weakness)-(a.pairScore*a.weakness)); const best=targets[0],second=targets[1]; const overall=best?best.pairScore*.72+(second?.pairScore??best.pairScore)*.18+.10*((f.profileScore+m.profileScore)/2):0; pairRows.push({father:f,mother:m,overall,targets:targets.slice(0,4)}); }
+  pairRows.sort((a,b)=>b.overall-a.overall);
+
+  const queryPairs:any[]=[]; const qseen=new Set<string>(); const add=(r:any)=>{const k=`${r.father.hid}|${r.mother.hid}`;if(!qseen.has(k)){qseen.add(k);queryPairs.push(r);}}; for(const r of pairRows.slice(0,60))add(r); for(const fe of ["fire","metal","earth","water"])for(const me of ["fire","metal","earth","water"]){ for(const r of pairRows.filter(x=>x.father.element===fe&&x.mother.element===me).slice(0,3))add(r); }
+  const quoted:any[]=[]; for(const r of queryPairs.slice(0,100)){ let pairInfo:any=null,error:string|null=null; try{pairInfo=(await paced(()=>client.splicePairInfo({fatherCoreId:r.father.hid,motherCoreId:r.mother.hid}))).result;}catch(e){error=e instanceof Error?e.message:"pair info failed";} quoted.push({...r,baby:pairInfo?.baby_info??null,pairInfoError:error}); }
+  quoted.sort((a,b)=>b.overall-a.overall);
+
+  const output:any={schemaVersion:1,fetchedAt:new Date().toISOString(),apiCalls:calls,ownerCoreCount:owned.length,arenaCoreCount:arenaCores.length,uniqueParentCount:parents.length,candidateParentCount:candidates.length,historyRecordCount:records.length,historyRecordKeys:[...sampleKeys].sort(),currentRoster:[...ROSTER],weakness:weakness.slice(0,30),parents:candidates.map(p=>({hid:p.hid,name:p.name,source:p.source,gender:p.gender,element:p.element,type:p.type,fno:p.fno,power:p.power,adj:p.adj,variance:p.variance,races:p.races,profileScore:+p.profileScore.toFixed(2)})),pairs:quoted.slice(0,100).map(r=>({rank:0,overall:+r.overall.toFixed(2),father:{hid:r.father.hid,name:r.father.name,source:r.father.source,element:r.father.element,type:r.father.type,fno:r.father.fno,power:r.father.power,adj:r.father.adj,variance:r.father.variance},mother:{hid:r.mother.hid,name:r.mother.name,source:r.mother.source,element:r.mother.element,type:r.mother.type,fno:r.mother.fno,power:r.mother.power,adj:r.mother.adj,variance:r.mother.variance},baby:r.baby,pairInfoError:r.pairInfoError,targets:r.targets.map((t:any)=>({...t,pairScore:+t.pairScore.toFixed(2),fatherScore:+t.fatherScore.toFixed(2),motherScore:+t.motherScore.toFixed(2)}))}))}; output.pairs.forEach((p:any,i:number)=>p.rank=i+1);
+  await mkdir("artifacts",{recursive:true}); await writeFile("artifacts/owner-breeding-performance.json",JSON.stringify(output),"utf8"); expect(output.pairs.length).toBeGreaterThan(20);
+ },2_100_000);
+});
