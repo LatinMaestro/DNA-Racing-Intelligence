@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - analysis/owner-breeding-20260829
+    paths:
+      - tests/hosted-owner-elite-sprint-history.test.ts
+      - .github/workflows/owner-breeding-performance.yml
 
 permissions:
   contents: read
