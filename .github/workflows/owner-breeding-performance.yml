@@ -26,12 +26,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Run performance-first breeding analysis
-        run: npx vitest run --no-file-parallelism tests/hosted-owner-breeding-performance.test.ts
-      - name: Upload breeding performance evidence
+      - name: Run sprint breeding profile analysis
+        run: npx vitest run --no-file-parallelism tests/hosted-owner-sprint-profile.test.ts
+      - name: Upload sprint breeding profile evidence
         uses: actions/upload-artifact@v4
         with:
-          name: owner-breeding-performance
-          path: artifacts/owner-breeding-performance.json
+          name: owner-sprint-profile
+          path: artifacts/owner-sprint-profile.json
           if-no-files-found: error
           retention-days: 1
