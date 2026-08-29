@@ -813,3 +813,31 @@ After the private Pro League milestone, continue in this order:
   snapshots where appropriate.
 - Roster audits must calculate the required female count from the actual valid
   selected roster size and explain both the percentage and rounded result.
+
+## 2026-08-29 — Discovery is mode-aware and normal-Free is name-authoritative
+
+- Preserve the existing shared Horse, Car and Bike exact-distance Discovery
+  model. The Bike-only Pro League boundary does not restrict general Discovery.
+- Classify a normal-Free race only when the authoritative race name contains
+  the standalone token `Free`, case-insensitive. Zero price, subsidy or free
+  tournament entry is not classification authority.
+- Keep normal-Free, competitive, tournament, esports and parent/lineage
+  evidence separately auditable. Normal-Free outcomes cannot update displayed
+  power, adjusted odds or profile variance; speed and repeatability are primary
+  and placing is secondary.
+- Retain the existing ten-race exact-distance analytical boundary. Add a
+  separate owner-configurable target of twenty usable normal-Free observations
+  per owner, Core, mode and selected exact distance; existing valid observations
+  reduce the remainder and completion does not reopen automatically.
+- Permit any number of preferred `TEST` distances. Only when none passes the
+  transparent evidence gate, assign exactly one short, middle and long
+  exploratory `SCREEN`; never present a screen as preferred.
+- Adopt the owner-reviewed Bike study distances and non-overlapping bands in
+  `DISCOVERY_NORMAL_FREE_STUDY.md`. Leave Horse and Car configurations
+  authority-pending rather than copying Bike distances.
+- Record the source conflict: the historical archive has finished times but no
+  authoritative race name, while observed API race documents have names but no
+  authoritative finished time/distance outcomes. Keep existing rows unknown.
+  Defer persistence migration until joined source authority and P5 permission
+  exist; do not manufacture classifications or change the measured P5 storage
+  inventory prematurely.

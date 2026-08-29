@@ -327,6 +327,10 @@ Exit: transparent current-rule roster advice identifying strongest nucleus, marg
 
 Convert roster uncertainty into ranked experiments:
 
+This phase consumes Bike-only outputs because Pro League is Bike-only. It does
+not narrow the shared Horse, Car and Bike Discovery domain defined in
+`DISCOVERY_NORMAL_FREE_STUDY.md`.
+
 - prioritise tests capable of changing roster membership or replacing marginal slots;
 - retain the ten-race exact-distance minimum for minimally analytical conclusions;
 - use lineage/adjacent-distance hypotheses and stop weak paths early;

@@ -138,6 +138,13 @@ Where evidence supports it, segment star features into model eras or effective-d
 
 ## Discovery model
 
+The shared Horse, Car and Bike normal-Free study supplement is defined in
+`DISCOVERY_NORMAL_FREE_STUDY.md`. Its owner-configurable target of twenty usable
+normal-Free observations is a test-completion target, not a replacement for the
+ten-race minimum analytical boundary below. Evidence classes remain separate;
+normal-Free speed/dispersion cannot modify displayed power, adjusted odds or
+profile variance.
+
 Candidate hypothesis score should combine:
 
 - direct early time evidence;
