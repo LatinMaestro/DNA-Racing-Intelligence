@@ -113,7 +113,9 @@ describe("elite breeding parent gate", () => {
       { mode: "bike", distanceMetres: 1_400 },
     );
     expect(result.status).toBe("wait");
-    expect(result.reasons.join(" ")).toMatch(/race volume.*cannot rescue average/i);
+    expect(result.reasons.join(" ")).toMatch(
+      /race volume.*cannot rescue average/i,
+    );
   });
 
   it("uses race count for confidence but not quality once minimum evidence is met", () => {
@@ -167,7 +169,9 @@ describe("elite breeding parent gate", () => {
       { mode: "bike", distanceMetres: 1_400 },
     );
     expect(result.status).toBe("watch");
-    expect(result.reasons.join(" ")).toMatch(/elite ceiling.*repeatable median/i);
+    expect(result.reasons.join(" ")).toMatch(
+      /elite ceiling.*repeatable median/i,
+    );
   });
 
   it("keeps an elite but too-small sample on watch", () => {
@@ -176,7 +180,9 @@ describe("elite breeding parent gate", () => {
       { mode: "bike", distanceMetres: 1_400 },
     );
     expect(result.status).toBe("watch");
-    expect(result.warnings).toContain("EXACT_DISTANCE_SAMPLE_TOO_SMALL_FOR_TARGET");
+    expect(result.warnings).toContain(
+      "EXACT_DISTANCE_SAMPLE_TOO_SMALL_FOR_TARGET",
+    );
   });
 
   it("requires supporting power and adjusted odds for a target", () => {

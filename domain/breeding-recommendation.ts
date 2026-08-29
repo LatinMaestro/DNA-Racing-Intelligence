@@ -1,6 +1,10 @@
 import { probeModes, type ProbeMode } from "./discovery-probe-plan";
 
-export const breedingRecommendationStatuses = ["target", "watch", "wait"] as const;
+export const breedingRecommendationStatuses = [
+  "target",
+  "watch",
+  "wait",
+] as const;
 export type BreedingRecommendationStatus =
   (typeof breedingRecommendationStatuses)[number];
 
@@ -164,7 +168,10 @@ function positiveInteger(value: number, label: string): number {
   return value;
 }
 
-function optionalPositiveFinite(value: number | null, label: string): number | null {
+function optionalPositiveFinite(
+  value: number | null,
+  label: string,
+): number | null {
   if (value === null) return null;
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${label} must be positive and finite when present.`);
@@ -176,7 +183,10 @@ function optionalPercent(value: number | null, label: string): number | null {
   return value === null ? null : finitePercent(value, label);
 }
 
-function canonicalTimestampOrNull(value: string | null, label: string): string | null {
+function canonicalTimestampOrNull(
+  value: string | null,
+  label: string,
+): string | null {
   if (value === null) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
@@ -197,7 +207,10 @@ function validatePolicy(policy: EliteBreedingPolicy): EliteBreedingPolicy {
     policy.minimumBenchmarkPopulationSize,
     "Minimum benchmark population size",
   );
-  positiveInteger(policy.highConfidenceSampleSize, "High-confidence sample size");
+  positiveInteger(
+    policy.highConfidenceSampleSize,
+    "High-confidence sample size",
+  );
   positiveInteger(
     policy.moderateConfidenceSampleSize,
     "Moderate-confidence sample size",
@@ -212,10 +225,14 @@ function validatePolicy(policy: EliteBreedingPolicy): EliteBreedingPolicy {
     policy.lowTargetDistanceShareWarning < 0 ||
     policy.lowTargetDistanceShareWarning > 1
   ) {
-    throw new Error("Low target-distance share warning must be between 0 and 1.");
+    throw new Error(
+      "Low target-distance share warning must be between 0 and 1.",
+    );
   }
   if (policy.watchMedianPercentile > policy.eliteMedianPercentile) {
-    throw new Error("Watch median percentile cannot exceed elite median percentile.");
+    throw new Error(
+      "Watch median percentile cannot exceed elite median percentile.",
+    );
   }
   return policy;
 }
@@ -260,14 +277,19 @@ function validateEvidence(
     "Upper-tail speed percentile",
   );
   optionalPercent(evidence.bestSpeedPercentile, "Best speed percentile");
-  canonicalTimestampOrNull(evidence.latestObservedAt, "Latest performance time");
+  canonicalTimestampOrNull(
+    evidence.latestObservedAt,
+    "Latest performance time",
+  );
   return evidence;
 }
 
 function validateCandidate(candidate: BreedingParentCandidate): void {
   required(candidate.coreId, "Core ID");
   required(candidate.coreName, "Core name");
-  if (!candidate.performance.every((entry) => probeModes.includes(entry.mode))) {
+  if (
+    !candidate.performance.every((entry) => probeModes.includes(entry.mode))
+  ) {
     throw new Error("Breeding parent contains an invalid racing mode.");
   }
   for (const entry of candidate.performance) validateEvidence(entry);
@@ -277,7 +299,8 @@ function validateCandidate(candidate: BreedingParentCandidate): void {
   }
   if (
     candidate.currentStrength.power !== null &&
-    (candidate.currentStrength.power < 0 || candidate.currentStrength.power > 100)
+    (candidate.currentStrength.power < 0 ||
+      candidate.currentStrength.power > 100)
   ) {
     throw new Error("Power must be between 0 and 100 when present.");
   }
@@ -346,14 +369,19 @@ function confidenceFor(
   policy: EliteBreedingPolicy,
 ): BreedingConfidence {
   if (freshness === "stale" || freshness === "unknown") return "low";
-  if (sampleSize >= policy.highConfidenceSampleSize && freshness === "current") {
+  if (
+    sampleSize >= policy.highConfidenceSampleSize &&
+    freshness === "current"
+  ) {
     return "high";
   }
   if (sampleSize >= policy.moderateConfidenceSampleSize) return "moderate";
   return "low";
 }
 
-function performanceScore(evidence: BreedingExactPerformanceEvidence): number | null {
+function performanceScore(
+  evidence: BreedingExactPerformanceEvidence,
+): number | null {
   if (evidence.medianSpeedPercentile === null) return null;
   if (evidence.upperTailSpeedPercentile === null) {
     return evidence.medianSpeedPercentile;
@@ -364,7 +392,9 @@ function performanceScore(evidence: BreedingExactPerformanceEvidence): number | 
   );
 }
 
-function supportingStrengthScore(strength: BreedingCurrentStrength): number | null {
+function supportingStrengthScore(
+  strength: BreedingCurrentStrength,
+): number | null {
   if (strength.power === null || strength.adjustedOdds === null) return null;
   return 0.6 * strength.power + 0.4 * strength.adjustedOdds;
 }
@@ -383,7 +413,11 @@ export function assessBreedingParent(
 
   const warnings: string[] = [];
   const reasons: string[] = [];
-  const evidence = exactEvidenceFor(candidate, target.mode, target.distanceMetres);
+  const evidence = exactEvidenceFor(
+    candidate,
+    target.mode,
+    target.distanceMetres,
+  );
   const context = profileContext(candidate, target.distanceMetres);
 
   if (
@@ -418,7 +452,9 @@ export function assessBreedingParent(
       status: "wait",
       confidence: "low",
       performanceScore: null,
-      supportingStrengthScore: supportingStrengthScore(candidate.currentStrength),
+      supportingStrengthScore: supportingStrengthScore(
+        candidate.currentStrength,
+      ),
       qualityScore: null,
       exactEvidence: null,
       ...context,
@@ -435,9 +471,15 @@ export function assessBreedingParent(
       : strength === null
         ? primary
         : 0.9 * primary + 0.1 * strength;
-  const confidence = confidenceFor(evidence.sampleSize, candidate.freshness, policy);
+  const confidence = confidenceFor(
+    evidence.sampleSize,
+    candidate.freshness,
+    policy,
+  );
 
-  if (evidence.benchmarkPopulationSize < policy.minimumBenchmarkPopulationSize) {
+  if (
+    evidence.benchmarkPopulationSize < policy.minimumBenchmarkPopulationSize
+  ) {
     warnings.push("BENCHMARK_POPULATION_TOO_SMALL");
   }
   if (evidence.sampleSize < policy.minimumTargetSampleSize) {
@@ -526,7 +568,10 @@ export function assessBreedingParent(
   });
 }
 
-function sameParentSet(left: readonly string[], right: readonly string[]): boolean {
+function sameParentSet(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
   if (left.length !== 2 || right.length !== 2) return false;
   const a = [...new Set(left)].sort();
   const b = [...new Set(right)].sort();
@@ -566,7 +611,9 @@ export function assessBreedingPair(
   policy: EliteBreedingPolicy = defaultEliteBreedingPolicy,
 ): BreedingPairAssessment {
   if (candidate.father.sex !== "male" || candidate.mother.sex !== "female") {
-    throw new Error("Breeding pair must provide a male father and female mother.");
+    throw new Error(
+      "Breeding pair must provide a male father and female mother.",
+    );
   }
   const father = assessBreedingParent(candidate.father, target, policy);
   const mother = assessBreedingParent(candidate.mother, target, policy);
