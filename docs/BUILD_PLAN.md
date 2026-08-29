@@ -238,9 +238,10 @@ Deliver evidence for:
 Present the exact cost/recovery/capacity evidence and **STOP for explicit owner approval** before the first persistent real Preview sync.
 
 Current gate state: the repository exports a complete technical-requirement
-matrix, but connected recovery acceptance, API-only PostgreSQL 18 physical/peak
-measurement, private R2 footprint/cost and positive Neon headroom remain
-outstanding. P5 is therefore not yet ready for owner approval.
+matrix. Exact-main connected run `33227770750` satisfied the API-only PostgreSQL
+18 physical/peak, private R2 footprint/cost and positive Neon headroom rows.
+Connected recovery acceptance remains outstanding, so P5 is not yet ready for
+owner approval.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
