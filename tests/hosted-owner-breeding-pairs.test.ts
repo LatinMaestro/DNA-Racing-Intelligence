@@ -4,8 +4,7 @@ import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
 const enabled = process.env.DNA_OWNER_BREEDING_PAIRS === "1";
 const describeConnected = enabled ? describe : describe.skip;
 const pairs = Object.freeze([
-  { label: "1000 Better Luck Next Time x Cyber Dancer", fatherCoreId: 19423, motherCoreId: 20827 },
-  { label: "1400 Drift King x Cyber Dancer", fatherCoreId: 19802, motherCoreId: 20827 },
+  { label: "1400 Drift King x Zoey", fatherCoreId: 19802, motherCoreId: 20292 },
 ]);
 function required(name: string): string { const value = process.env[name]; if (!value || value.trim() !== value) throw new Error(`${name} missing`); return value; }
 describeConnected("elite-only short-distance breeding pair analysis", () => {
@@ -20,7 +19,7 @@ describeConnected("elite-only short-distance breeding pair analysis", () => {
       lastRequestAt = Date.now(); results.push({ ...pair, pairInfo, pairInfoError });
     }
     await mkdir("artifacts", { recursive: true });
-    await writeFile("artifacts/owner-breeding-pairs.json", JSON.stringify({ schemaVersion: 5, fetchedAt: new Date().toISOString(), results }), "utf8");
+    await writeFile("artifacts/owner-breeding-pairs.json", JSON.stringify({ schemaVersion: 6, fetchedAt: new Date().toISOString(), results }), "utf8");
     expect(results.length).toBe(pairs.length);
   }, 120_000);
 });
