@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditProLeagueRoster,
-  observedTrialFemaleMinimum,
   proLeagueCurrentRules,
   proLeagueTrialObservedRosterRules,
+  requiredProLeagueFemaleCount,
   type ProLeagueRosterCore,
 } from "@/domain/pro-league-roster";
 
@@ -16,7 +16,7 @@ function compliantRoster(size = 12): ProLeagueRosterCore[] {
     displayName: `Core ${index + 1}`,
     element: elements[index % elements.length] ?? "Water",
     coreClass: index < 4 ? "Genesis" : "Morphed",
-    sex: index < 8 ? "female" : "male",
+    sex: index < requiredProLeagueFemaleCount(size) ? "female" : "male",
     fNumber: index < 2 ? 16 + index : 11,
     inMyVault: true,
   }));
@@ -44,19 +44,20 @@ describe("Pro League roster audit", () => {
       maximumF5OrBelow: 5,
       maximumF10OrBelow: 12,
       minimumAboveF15: 2,
-      minimumFemales: 8,
+      femaleMinimum: { kind: "percentage_rounded_up", percentage: 32 },
       namesRequired: true,
     });
   });
 
-  it("records but does not silently adopt the live trial's female percentage", () => {
+  it("applies the owner-confirmed 32%-rounded-up female rule", () => {
     expect(proLeagueTrialObservedRosterRules).toMatchObject({
       appliesTo: "trial_only",
       controlsCurrentValidation: false,
-      femaleMinimum: { kind: "percentage_rounded_up", percentage: 32 },
+      femaleRulePromotedToCurrentAuthority: true,
     });
-    expect([12, 15, 25].map(observedTrialFemaleMinimum)).toEqual([4, 5, 8]);
-    expect(proLeagueCurrentRules.minimumFemales).toBe(8);
+    expect(
+      [12, 13, 15, 16, 19, 22, 25].map(requiredProLeagueFemaleCount),
+    ).toEqual([4, 5, 5, 6, 7, 8, 8]);
     expect(auditProLeagueRoster(compliantRoster(12)).readiness).toBe(
       "compliant",
     );
@@ -83,6 +84,23 @@ describe("Pro League roster audit", () => {
     expect(audit.issues).toEqual([]);
   });
 
+  it("rounds the female requirement up for an intermediate roster size", () => {
+    const roster = compliantRoster(13).map((core, index) => ({
+      ...core,
+      sex: index < 4 ? ("female" as const) : ("male" as const),
+    }));
+
+    expect(auditProLeagueRoster(roster).issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "FEMALE_MINIMUM",
+          actual: 4,
+          required: 5,
+        }),
+      ]),
+    );
+  });
+
   it("enforces both roster-size boundaries", () => {
     expect(auditProLeagueRoster(compliantRoster(11)).issues).toEqual(
       expect.arrayContaining([
@@ -101,7 +119,7 @@ describe("Pro League roster audit", () => {
       ...core,
       element: index < 8 ? ("Metal" as const) : ("Water" as const),
       coreClass: index < 3 ? ("Genesis" as const) : ("Morphed" as const),
-      sex: index < 7 ? ("female" as const) : ("male" as const),
+      sex: index < 3 ? ("female" as const) : ("male" as const),
       fNumber: index < 6 ? 5 : index < 11 ? 10 : 15,
       displayName: index === 0 ? " " : core.displayName,
     }));
@@ -118,7 +136,11 @@ describe("Pro League roster audit", () => {
         }),
         expect.objectContaining({ code: "F5_OR_BELOW_MAXIMUM", actual: 6 }),
         expect.objectContaining({ code: "ABOVE_F15_MINIMUM", actual: 0 }),
-        expect.objectContaining({ code: "FEMALE_MINIMUM", actual: 7 }),
+        expect.objectContaining({
+          code: "FEMALE_MINIMUM",
+          actual: 3,
+          required: 4,
+        }),
       ]),
     );
   });

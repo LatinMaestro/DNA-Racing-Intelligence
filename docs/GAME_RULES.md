@@ -268,11 +268,12 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 
 ### Sex and identity
 
-- Minimum **8 female Cores**.
+- At least **32% of the roster must be female, rounded up**.
+- A 12-Core roster requires 4 females; a full 25-Core roster requires 8.
+- Intermediate sizes use `ceil(roster size × 0.32)`.
 - Every rostered Core must be named.
-- The live trial page observed on 29 August used 32% females rounded up. That
-  trial observation is versioned but does not replace the current
-  owner-confirmed minimum-eight validator without explicit final authority.
+- The live trial observation is retained as evidence and the owner confirmed
+  on 29 August that it controls current validation.
 
 ### Performance relationship and advice scope
 

@@ -802,3 +802,14 @@ After the private Pro League milestone, continue in this order:
   commissioning event. A small one-time charge may be proposed only with a
   measured upper bound, an exact maximum amount, cleanup/stop conditions and
   explicit owner P5 approval.
+
+## 2026-08-29 — Pro League female minimum is percentage-based
+
+- The owner confirmed that at least 32% of the selected 12–25 Core roster must
+  be female, with the result rounded up to a whole Core.
+- A 12-Core roster therefore requires 4 females; a full 25-Core roster requires 8. Intermediate roster sizes use the same `ceil(roster size × 0.32)` rule.
+- This supersedes the earlier fixed minimum-eight interpretation for current
+  validation. The fixed figure remains only in historical announcement
+  snapshots where appropriate.
+- Roster audits must calculate the required female count from the actual valid
+  selected roster size and explain both the percentage and rounded result.

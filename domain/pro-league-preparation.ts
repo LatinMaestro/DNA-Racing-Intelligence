@@ -1,7 +1,10 @@
 import { raceModes, type RaceMode } from "@/domain/core-performance";
 import type { FreshnessState } from "@/domain/freshness";
 import { elements, type CoreClass, type Element } from "@/domain/game-rules";
-import { proLeagueCurrentRules } from "@/domain/pro-league-roster";
+import {
+  proLeagueCurrentRules,
+  requiredProLeagueFemaleCount,
+} from "@/domain/pro-league-roster";
 
 export type ProLeagueBenchmarkAssessment =
   | "winning_range"
@@ -411,8 +414,11 @@ export function buildProLeaguePreparation(
   const f15 = countByElement(input, ({ fNumber }) => fNumber > 15);
   const femaleCount = input.filter(({ sex }) => sex === "female").length;
   const f15PlusCount = input.filter(({ fNumber }) => fNumber > 15).length;
+  const minimumViableFemaleCount = requiredProLeagueFemaleCount(
+    proLeagueCurrentRules.minimumRosterSize,
+  );
   const needs = {
-    female: femaleCount < proLeagueCurrentRules.minimumFemales,
+    female: femaleCount < minimumViableFemaleCount,
     f15: f15PlusCount < proLeagueCurrentRules.minimumAboveF15,
     element: Object.fromEntries(
       elements.map((element) => [element, false]),
@@ -472,9 +478,9 @@ export function buildProLeaguePreparation(
     );
   }, 0);
   const structuralIssues: string[] = [];
-  if (femaleCount < proLeagueCurrentRules.minimumFemales) {
+  if (femaleCount < minimumViableFemaleCount) {
     structuralIssues.push(
-      `Owned pool is short ${proLeagueCurrentRules.minimumFemales - femaleCount} female Core(s).`,
+      `Owned pool is short ${minimumViableFemaleCount - femaleCount} female Core(s) for a minimum-size roster under the 32%-rounded-up rule.`,
     );
   }
   if (f15PlusCount < proLeagueCurrentRules.minimumAboveF15) {
@@ -530,10 +536,7 @@ export function buildProLeaguePreparation(
     overallPowerPool,
     teamCandidatePools,
     breeding: {
-      femaleGap: Math.max(
-        0,
-        proLeagueCurrentRules.minimumFemales - femaleCount,
-      ),
+      femaleGap: Math.max(0, minimumViableFemaleCount - femaleCount),
       femaleOutcomeTargetable: false,
       aboveF15Gap: Math.max(
         0,
