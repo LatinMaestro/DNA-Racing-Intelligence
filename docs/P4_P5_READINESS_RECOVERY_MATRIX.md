@@ -59,6 +59,12 @@ payloads, summaries and provider errors cannot cross the emission boundary.
 Only the tenth complete passing report can mark connected recovery evidence
 complete; even then, persistent Preview sync and Production remain disallowed.
 
+The guarded provider lifecycle buffers that sanitized record until the case has
+finished, mandatory cleanup succeeds and a second provider inspection proves
+that owner data, acquisition checkpoints, last-good serving state and retained
+evidence exactly match their pre-case fingerprints with zero synthetic residue.
+Scenario, cleanup, inspection or emission failure is redacted and fails closed.
+
 ## Recovery acceptance cases
 
 Every connected recovery case must record the exact code head, provider scope,
@@ -93,8 +99,9 @@ generation. Raw owner payloads and API keys must not enter the report.
   and cost projection, then re-proved cleanup and zero residue.
 - The generic harness, case-specific assertion adapters and raw
   component-observation executor are implemented. The exact-head connected
-  invocation and sanitized evidence boundary are also implemented; provider-
-  backed case scenarios and their executed acceptance remain outstanding.
+  invocation, sanitized evidence boundary and mandatory provider-state cleanup
+  lifecycle are also implemented; provider-backed case implementations and
+  their executed acceptance remain outstanding.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
   Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
   API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
