@@ -715,3 +715,18 @@ After the private Pro League milestone, continue in this order:
 - This workflow can update only the three P5 capacity evidence rows after
   review. It cannot authorize persistent owner-data sync, Production or a DNA
   transaction.
+
+## 2026-08-29 — Rollback settlement does not require durable database growth
+
+- Connected run `33227016073` failed safely in the capacity measurement while
+  prerequisite checks, mandatory cleanup and final exact-main proof passed. It
+  retained no evidence artifact and left no synthetic residue.
+- A forced rollback may legitimately settle at the pre-cycle baseline. Reject
+  only a settled reading below baseline; do not require durable growth from a
+  transaction whose commit is deliberately intercepted and rolled back.
+- Continue requiring a component-triggered transient sample, intercepted
+  commit, rollback, complete owner-relation measurement, substantive private R2
+  footprint and zero-residue cleanup before capacity evidence can be emitted.
+- Connected logs may emit only fixed allowlisted progress-stage identifiers.
+  Measurements, provider identities, configuration, errors and payloads remain
+  prohibited from workflow output.

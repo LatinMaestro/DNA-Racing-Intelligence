@@ -14,7 +14,10 @@ import {
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 import type { DnaCurrentStateCandidate } from "./dna-open-lab-last-good-publication";
-import type { DnaOpenLabP5SyntheticCleanupResult } from "./dna-open-lab-p5-capacity-measurement-runner";
+import type {
+  DnaOpenLabP5CapacityProgressRecorder,
+  DnaOpenLabP5SyntheticCleanupResult,
+} from "./dna-open-lab-p5-capacity-measurement-runner";
 import { createNeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 import {
   createDefaultNeonImportPersistenceSession,
@@ -38,6 +41,7 @@ export type DnaOpenLabP5PrivatePreviewSyntheticCycleConfiguration = Readonly<{
   sessionFactory?: NeonImportPersistenceSessionFactory;
   bucketName: string;
   r2Storage: PrivateDatasetEvidenceObjectDeletionPort;
+  recordProgress?: DnaOpenLabP5CapacityProgressRecorder;
 }>;
 
 export type DnaOpenLabP5PrivatePreviewSyntheticCycle = Readonly<{
@@ -362,6 +366,7 @@ export function createDnaOpenLabP5PrivatePreviewSyntheticCycle(
       privateBucket(
         await configuration.r2Storage.readBucketPrivacy({ bucketName }),
       );
+      configuration.recordProgress?.("r2_privacy_verified");
       if (
         (
           await configuration.r2Storage.headObject({
@@ -386,6 +391,7 @@ export function createDnaOpenLabP5PrivatePreviewSyntheticCycle(
       });
       if (write.status !== "created") cycleError("synthetic marker conflicted");
       markerCreated = true;
+      configuration.recordProgress?.("r2_marker_created");
       const marker = await configuration.r2Storage.headObject({
         bucketName,
         key: markerKey,
@@ -398,6 +404,7 @@ export function createDnaOpenLabP5PrivatePreviewSyntheticCycle(
       ) {
         cycleError("synthetic marker verification failed");
       }
+      configuration.recordProgress?.("r2_marker_verified");
 
       const rollbackSessionFactory: NeonImportPersistenceSessionFactory =
         async (url) => {
@@ -409,6 +416,7 @@ export function createDnaOpenLabP5PrivatePreviewSyntheticCycle(
                   await captureTransientSample();
                   await session.client.query("ROLLBACK");
                   rollbackCompleted = true;
+                  configuration.recordProgress?.("publication_rolled_back");
                   return { rows: [] };
                 }
                 if (statement === "ROLLBACK" && rollbackCompleted) {

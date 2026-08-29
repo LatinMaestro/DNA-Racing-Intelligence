@@ -226,8 +226,8 @@ export function buildDnaOpenLabP5CapacityMeasurementReport(
   ) {
     measurementError("peakDatabaseBytes must cover baseline and settled size");
   }
-  if (settledDatabaseBytes <= baselineDatabaseBytes) {
-    measurementError("settledDatabaseBytes must prove a complete cycle");
+  if (settledDatabaseBytes < baselineDatabaseBytes) {
+    measurementError("settledDatabaseBytes cannot be below baseline");
   }
   const ownerHeapBytes = count(input.postgres.ownerHeapBytes, "ownerHeapBytes");
   const ownerIndexBytes = count(

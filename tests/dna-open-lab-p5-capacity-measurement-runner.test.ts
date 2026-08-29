@@ -89,7 +89,10 @@ function runnerInput(overrides: Record<string, unknown> = {}) {
 
 describe("DNA Open Lab P5 capacity measurement runner", () => {
   it("measures bounded Postgres peak and complete private R2 footprint", async () => {
-    const input = runnerInput();
+    const progress: string[] = [];
+    const input = runnerInput({
+      recordProgress: (stage: string) => progress.push(stage),
+    });
     const report = await runDnaOpenLabP5CapacityMeasurement(input);
 
     expect(report).toMatchObject({
@@ -115,6 +118,16 @@ describe("DNA Open Lab P5 capacity measurement runner", () => {
       productionChangesAllowed: false,
     });
     expect(input.cleanupSyntheticEvidence).toHaveBeenCalledOnce();
+    expect(progress).toEqual([
+      "postgres_major_version_read",
+      "postgres_baseline_read",
+      "synthetic_cycle_completed",
+      "postgres_settled_read",
+      "postgres_owner_relations_read",
+      "r2_footprint_collected",
+      "cleanup_completed",
+      "report_built",
+    ]);
   });
 
   it("always cleans synthetic evidence when cycle execution fails", async () => {

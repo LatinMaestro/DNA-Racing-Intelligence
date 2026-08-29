@@ -12,15 +12,15 @@ later approval gates. P5 approval can never authorise Production.
 
 ## Current matrix
 
-| P5 technical requirement                | Current evidence                                                                        | Remaining proof                                             |
-| --------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Restart, replay and idempotency         | Local synthetic CAS checkpoint, immutable R2 first-write and replay-conflict tests      | Connected private Preview restart/replay acceptance         |
-| Partial failure and rate-limit recovery | Local synthetic 429, invalid-payload, outage and partial-cycle tests preserve last-good | Connected private Preview recovery acceptance               |
-| Tier loss, reinstatement and catch-up   | Local synthetic eligibility pause and catch-up state tests                              | Connected private Preview loss/reinstatement acceptance     |
-| Stale cached website operation          | Local owner-scoped last-good read and pause tests                                       | Protected Preview stale-site acceptance                     |
-| PostgreSQL 18 physical and peak storage | API-only measurement contract implemented; no connected measurement                     | Heap, index, TOAST and transient-overlap evidence           |
-| Private R2 footprint and cost           | Footprint/operation/dated-price contract implemented; no connected measurement          | Object bytes, request volume, retention and cost projection |
-| Positive Neon headroom                  | Peak-headroom rule implemented; no connected PostgreSQL 18 result                       | Positive headroom below 536,870,912 bytes                   |
+| P5 technical requirement                | Current evidence                                                                         | Remaining proof                                             |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Restart, replay and idempotency         | Local synthetic CAS checkpoint, immutable R2 first-write and replay-conflict tests       | Connected private Preview restart/replay acceptance         |
+| Partial failure and rate-limit recovery | Local synthetic 429, invalid-payload, outage and partial-cycle tests preserve last-good  | Connected private Preview recovery acceptance               |
+| Tier loss, reinstatement and catch-up   | Local synthetic eligibility pause and catch-up state tests                               | Connected private Preview loss/reinstatement acceptance     |
+| Stale cached website operation          | Local owner-scoped last-good read and pause tests                                        | Protected Preview stale-site acceptance                     |
+| PostgreSQL 18 physical and peak storage | Connected attempt failed safely; corrected rollback settlement contract pending rerun    | Heap, index, TOAST and transient-overlap evidence           |
+| Private R2 footprint and cost           | Connected attempt cleaned fully and retained no artifact; corrected rerun remains needed | Object bytes, request volume, retention and cost projection |
+| Positive Neon headroom                  | Peak-headroom rule implemented; no successful connected PostgreSQL 18 result             | Positive headroom below 536,870,912 bytes                   |
 
 The exported `DNA_OPEN_LAB_CURRENT_P5_READINESS` value is the machine-checkable
 counterpart. It keeps every non-satisfied row blocking, keeps owner approval
@@ -85,7 +85,11 @@ generation. Raw owner payloads and API keys must not enter the report.
   R2 access and zero synthetic residue with no blockers.
 - The dispatch-only exact-main connected measurement workflow now re-proves
   those prerequisites before the rollback-only workload, proves cleanup after
-  it and emits only a bounded sanitized artifact. It has not yet been executed,
-  so the three capacity rows remain pending connected evidence.
-- The next safe work is that bounded connected synthetic measurement, followed
-  by review of its exact-head PostgreSQL 18/R2 evidence.
+  it and emits only a bounded sanitized artifact. Run `33227016073` failed in
+  the measurement stage while both prerequisite checks, cleanup and the final
+  exact-main proof passed; it retained no artifact and left no residue. The
+  false requirement for durable post-rollback database growth is corrected and
+  fixed safe stage identifiers now locate any remaining failure without
+  exposing provider details. The three capacity rows remain pending evidence.
+- The next safe work is an exact-main corrected rerun, followed by review of its
+  PostgreSQL 18/R2 evidence.

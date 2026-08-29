@@ -81,6 +81,27 @@ describe("DNA Open Lab P5 capacity measurement", () => {
     });
   });
 
+  it("accepts unchanged settlement after a proven rollback-only transient peak", () => {
+    const base = input();
+    const report = buildDnaOpenLabP5CapacityMeasurementReport({
+      ...base,
+      providerScope: "private_preview",
+      postgres: {
+        ...base.postgres,
+        baselineDatabaseBytes: 80_000_000,
+        settledDatabaseBytes: 80_000_000,
+      },
+    });
+
+    expect(report.postgres).toMatchObject({
+      baselineDatabaseBytes: 80_000_000,
+      settledDatabaseBytes: 80_000_000,
+      peakDatabaseBytes: 120_000_000,
+      positivePeakHeadroom: true,
+    });
+    expect(report.readyToUpdateP5CapacityRows).toBe(true);
+  });
+
   it("keeps non-positive Neon headroom blocking", () => {
     const base = input();
     const report = buildDnaOpenLabP5CapacityMeasurementReport({

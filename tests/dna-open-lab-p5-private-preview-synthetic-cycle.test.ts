@@ -16,9 +16,11 @@ const input = {
 describe("DNA Open Lab P5 private Preview synthetic cycle", () => {
   it("runs the complete publication path, samples before rollback and removes R2 residue", async () => {
     const test = createP5SyntheticCycleFixture(input);
-    const cycle = createDnaOpenLabP5PrivatePreviewSyntheticCycle(
-      test.configuration,
-    );
+    const progress: string[] = [];
+    const cycle = createDnaOpenLabP5PrivatePreviewSyntheticCycle({
+      ...test.configuration,
+      recordProgress: (stage) => progress.push(stage),
+    });
     const captureTransientSample = vi.fn(async () => 123_456);
 
     await cycle.runSyntheticCycle({ captureTransientSample });
@@ -54,6 +56,12 @@ describe("DNA Open Lab P5 private Preview synthetic cycle", () => {
     expect(test.putObjectIfAbsent).toHaveBeenCalledOnce();
     expect(test.deleteObject).toHaveBeenCalledOnce();
     expect(test.sessionFactory).toHaveBeenCalledTimes(2);
+    expect(progress).toEqual([
+      "r2_privacy_verified",
+      "r2_marker_created",
+      "r2_marker_verified",
+      "publication_rolled_back",
+    ]);
   });
 
   it("rolls back on sample failure and cleanup remains safe", async () => {

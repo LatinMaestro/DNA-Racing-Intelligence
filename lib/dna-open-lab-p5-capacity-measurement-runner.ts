@@ -11,6 +11,28 @@ const DEFAULT_MAXIMUM_PAGES = 1_000;
 const DEFAULT_MAXIMUM_OBJECTS = 100_000;
 const MAXIMUM_TRANSIENT_SAMPLES = 128;
 
+export const DNA_OPEN_LAB_P5_CAPACITY_PROGRESS_STAGES = Object.freeze([
+  "postgres_major_version_read",
+  "postgres_baseline_read",
+  "r2_privacy_verified",
+  "r2_marker_created",
+  "r2_marker_verified",
+  "publication_rolled_back",
+  "synthetic_cycle_completed",
+  "postgres_settled_read",
+  "postgres_owner_relations_read",
+  "r2_footprint_collected",
+  "cleanup_completed",
+  "report_built",
+] as const);
+
+export type DnaOpenLabP5CapacityProgressStage =
+  (typeof DNA_OPEN_LAB_P5_CAPACITY_PROGRESS_STAGES)[number];
+
+export type DnaOpenLabP5CapacityProgressRecorder = (
+  stage: DnaOpenLabP5CapacityProgressStage,
+) => void;
+
 export type DnaOpenLabP5PostgresCapacityPort = Readonly<{
   readMajorVersion: () => Promise<number>;
   readDatabaseBytes: () => Promise<number>;
@@ -238,6 +260,7 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
   r2PageLimit?: number;
   r2MaximumPages?: number;
   r2MaximumObjects?: number;
+  recordProgress?: DnaOpenLabP5CapacityProgressRecorder;
 }): Promise<DnaOpenLabP5CapacityMeasurementReport> {
   const samples: number[] = [];
   let transientSampleCount = 0;
@@ -256,11 +279,13 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
 
   try {
     const postgresMajorVersion = await input.postgres.readMajorVersion();
+    input.recordProgress?.("postgres_major_version_read");
     const baselineDatabaseBytes = count(
       await input.postgres.readDatabaseBytes(),
       "baselineDatabaseBytes",
     );
     samples.push(baselineDatabaseBytes);
+    input.recordProgress?.("postgres_baseline_read");
     await input.runSyntheticCycle({
       captureTransientSample: async () => {
         transientSampleCount += 1;
@@ -275,6 +300,7 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
         return observed;
       },
     });
+    input.recordProgress?.("synthetic_cycle_completed");
     if (transientSampleCount < 1) {
       runnerError("synthetic cycle did not capture a transient sample");
     }
@@ -283,7 +309,9 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
       "settledDatabaseBytes",
     );
     samples.push(settledDatabaseBytes);
+    input.recordProgress?.("postgres_settled_read");
     const owner = await input.postgres.readOwnerRelationBytes();
+    input.recordProgress?.("postgres_owner_relations_read");
     const footprint = await collectDnaOpenLabP5R2Footprint({
       port: input.r2,
       ...(input.r2PageLimit === undefined
@@ -296,6 +324,7 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
         ? {}
         : { maximumObjects: input.r2MaximumObjects }),
     });
+    input.recordProgress?.("r2_footprint_collected");
     measured = Object.freeze({
       postgresMajorVersion,
       baselineDatabaseBytes,
@@ -313,6 +342,7 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
   let cleanupFailure: unknown;
   try {
     cleanup = validateCleanup(await input.cleanupSyntheticEvidence());
+    input.recordProgress?.("cleanup_completed");
   } catch (error) {
     cleanupFailure = error;
   }
@@ -328,7 +358,7 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
     return runnerError("measurement did not produce complete evidence");
   }
 
-  return buildDnaOpenLabP5CapacityMeasurementReport({
+  const report = buildDnaOpenLabP5CapacityMeasurementReport({
     codeHeadSha: input.codeHeadSha,
     planChecksum: input.planChecksum,
     providerScope: input.providerScope,
@@ -363,4 +393,6 @@ export async function runDnaOpenLabP5CapacityMeasurement(input: {
       classBMicroUsdPerMillion: input.classBMicroUsdPerMillion,
     },
   });
+  input.recordProgress?.("report_built");
+  return report;
 }
