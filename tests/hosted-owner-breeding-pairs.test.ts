@@ -25,6 +25,11 @@ const pairs = Object.freeze([
   { label: "Legacy Runner x Low on Dough", fatherCoreId: 20382, motherCoreId: 8174, fatherSource: "vault", motherSource: "arena" },
   { label: "Grand Azula x Taco Surprise", fatherCoreId: 9852, motherCoreId: 11956, fatherSource: "vault", motherSource: "arena" },
   { label: "The Ice Cream Man x Taco Surprise", fatherCoreId: 11432, motherCoreId: 11956, fatherSource: "vault", motherSource: "arena" },
+  { label: "Berserker x Low on Dough", fatherCoreId: 24298, motherCoreId: 8174, fatherSource: "arena", motherSource: "arena" },
+  { label: "Berserker x Tactical Mumpkin", fatherCoreId: 24298, motherCoreId: 8092, fatherSource: "arena", motherSource: "arena" },
+  { label: "Bright Lights x Taco Surprise", fatherCoreId: 17053, motherCoreId: 11956, fatherSource: "arena", motherSource: "arena" },
+  { label: "Bong Ripper x Low on Dough", fatherCoreId: 23835, motherCoreId: 8174, fatherSource: "arena", motherSource: "arena" },
+  { label: "Bright Lights x Tactical Mumpkin", fatherCoreId: 17053, motherCoreId: 8092, fatherSource: "arena", motherSource: "arena" },
 ]);
 
 function required(name: string): string {
@@ -37,15 +42,11 @@ describeConnected("one-off owner breeding pair validation", () => {
   it(
     "validates and prices shortlisted pairs without transactions",
     async () => {
-      const client = createDnaOpenLabV1Client({
-        apiKey: required("DNA_OPEN_LAB_API_KEY_1"),
-      });
+      const client = createDnaOpenLabV1Client({ apiKey: required("DNA_OPEN_LAB_API_KEY_1") });
       let lastRequestAt = 0;
       const paced = async <T>(request: () => Promise<T>): Promise<T> => {
         const elapsed = Date.now() - lastRequestAt;
-        if (elapsed < 2_100) {
-          await new Promise((resolve) => setTimeout(resolve, 2_100 - elapsed));
-        }
+        if (elapsed < 2_100) await new Promise((resolve) => setTimeout(resolve, 2_100 - elapsed));
         const result = await request();
         lastRequestAt = Date.now();
         return result;
@@ -55,29 +56,21 @@ describeConnected("one-off owner breeding pair validation", () => {
         let validation: unknown = null;
         let validationError: string | null = null;
         try {
-          validation = (
-            await paced(() => client.splicePairValidate(pair))
-          ).result;
+          validation = (await paced(() => client.splicePairValidate(pair))).result;
         } catch (error) {
-          validationError =
-            error instanceof Error ? error.message : "validation failed";
+          validationError = error instanceof Error ? error.message : "validation failed";
         }
         let pairInfo: unknown = null;
         let pairInfoError: string | null = null;
         try {
           pairInfo = (await paced(() => client.splicePairInfo(pair))).result;
         } catch (error) {
-          pairInfoError =
-            error instanceof Error ? error.message : "pair info failed";
+          pairInfoError = error instanceof Error ? error.message : "pair info failed";
         }
         results.push({ ...pair, validation, validationError, pairInfo, pairInfoError });
       }
       await mkdir("artifacts", { recursive: true });
-      await writeFile(
-        "artifacts/owner-breeding-pairs.json",
-        JSON.stringify({ schemaVersion: 1, fetchedAt: new Date().toISOString(), results }),
-        "utf8",
-      );
+      await writeFile("artifacts/owner-breeding-pairs.json", JSON.stringify({ schemaVersion: 1, fetchedAt: new Date().toISOString(), results }), "utf8");
       expect(results.length).toBe(pairs.length);
       console.log(JSON.stringify({ pairCount: results.length, output: "artifacts/owner-breeding-pairs.json" }));
     },
