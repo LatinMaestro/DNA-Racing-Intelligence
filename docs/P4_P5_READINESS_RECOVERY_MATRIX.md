@@ -51,6 +51,14 @@ including exact receipt/checkpoint/read-back identities, serving generations,
 retry timestamps, commit/staging counters and plan checksums. A component
 scenario cannot send a generic passed or recovered flag through this boundary.
 
+The connected invocation boundary now binds every private Preview case to the
+expected and actual exact code head. It emits only a hash-addressed whitelist
+record containing the case identifier, bounded counts, pass state and
+checkpoint/report hashes. Provider configuration, owner and object identities,
+payloads, summaries and provider errors cannot cross the emission boundary.
+Only the tenth complete passing report can mark connected recovery evidence
+complete; even then, persistent Preview sync and Production remain disallowed.
+
 ## Recovery acceptance cases
 
 Every connected recovery case must record the exact code head, provider scope,
@@ -84,8 +92,9 @@ generation. Raw owner payloads and API keys must not enter the report.
   It measured PostgreSQL 18 peak/headroom and the bounded private R2 footprint
   and cost projection, then re-proved cleanup and zero residue.
 - The generic harness, case-specific assertion adapters and raw
-  component-observation executor are implemented; connected acceptance remains
-  outstanding.
+  component-observation executor are implemented. The exact-head connected
+  invocation and sanitized evidence boundary are also implemented; provider-
+  backed case scenarios and their executed acceptance remain outstanding.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
   Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
   API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
@@ -95,5 +104,5 @@ generation. Raw owner payloads and API keys must not enter the report.
   rollback, R2 marker verification, footprint collection, cleanup, report build
   and post-run provider safety. Persistent Preview sync and Production remained
   disallowed.
-- The next safe work is bounded connected recovery acceptance for the four
-  remaining recovery requirements.
+- The next safe work is provider-backed bounded scenario execution through the
+  connected invocation for the four remaining recovery requirements.
