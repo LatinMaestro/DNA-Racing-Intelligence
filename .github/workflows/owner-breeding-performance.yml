@@ -26,12 +26,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Run targeted deep sprint history analysis
-        run: npx vitest run --no-file-parallelism tests/hosted-owner-sprint-deep-history.test.ts
-      - name: Upload deep sprint history evidence
+      - name: Run elite sprint history validation
+        run: npx vitest run --no-file-parallelism tests/hosted-owner-elite-sprint-history.test.ts
+      - name: Upload elite sprint history evidence
         uses: actions/upload-artifact@v4
         with:
-          name: owner-sprint-deep-history
-          path: artifacts/owner-sprint-deep-history.json
+          name: owner-elite-sprint-history
+          path: artifacts/owner-elite-sprint-history.json
           if-no-files-found: error
           retention-days: 1
