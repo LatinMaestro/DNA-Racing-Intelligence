@@ -79,10 +79,13 @@ generation. Raw owner payloads and API keys must not enter the report.
 - The generic harness, case-specific assertion adapters and raw
   component-observation executor are implemented; connected acceptance remains
   outstanding.
-- The dispatch-only read-only provider preflight is implemented. The current
-  Preview observation confirms PostgreSQL 18 but 0/15 API-only relations;
-  migrations `0069`–`0076` remain unapplied to Preview, so the preflight and
-  connected measurement correctly stay blocked.
-- The next safe work is reviewed private Preview migration apply/smoke evidence,
-  followed by the exact-head provider preflight and bounded connected synthetic
-  measurement.
+- Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
+  Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
+  API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
+  R2 access and zero synthetic residue with no blockers.
+- The dispatch-only exact-main connected measurement workflow now re-proves
+  those prerequisites before the rollback-only workload, proves cleanup after
+  it and emits only a bounded sanitized artifact. It has not yet been executed,
+  so the three capacity rows remain pending connected evidence.
+- The next safe work is that bounded connected synthetic measurement, followed
+  by review of its exact-head PostgreSQL 18/R2 evidence.
