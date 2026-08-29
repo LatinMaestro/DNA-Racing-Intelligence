@@ -544,7 +544,8 @@ export function buildProLeaguePreparation(
       qualityObjective: "elite_all_rounder_upside",
     },
     unresolvedRules: [
-      "The fifth planned map has not yet been published.",
+      "Only four maps are currently published; no additional map is configured or assumed.",
+      "The trial exposes conflicting third-map treatment after a home denial, so the actual match ruleset must be retained.",
       "Whether initial roster selection consumes the annual substitution allowance.",
       "Exact roster-lock and match-day Core replacement rules.",
       "Exact payout/race-format mix used by Pro League matches.",

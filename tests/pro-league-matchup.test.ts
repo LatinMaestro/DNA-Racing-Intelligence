@@ -140,7 +140,8 @@ describe("Pro League matchup analysis", () => {
     const anchor = result.maps.find(({ mapId }) => mapId === "map-1")!;
     const first = anchor.lines[0]!;
     expect(result).toMatchObject({
-      mapControl: "ours",
+      mapSelectionRole: "home_first_pick_and_deny",
+      thirdMapPolicy: "match_record_required",
       gateAllocation: "equal_halves",
       selectionMethod: {
         primaryEvidence: "exact_format_distance_time_speed_consistency",
@@ -262,17 +263,17 @@ describe("Pro League matchup analysis", () => {
     expect(line.evidenceWarning).toContain("do not score");
   });
 
-  it("leaves map selection to the opposition when our Vault is away", () => {
+  it("ranks the away Vault's second-map options after the home action", () => {
     const result = buildProLeagueMatchupAnalysis({
       ourVault: vault("ours", []),
       oppositionVault: vault("theirs", []),
       homeVaultId: "theirs",
     });
 
-    expect(result.mapControl).toBe("opposition");
+    expect(result.mapSelectionRole).toBe("away_second_pick");
     expect(
-      result.maps.every(({ selectionRank }) => selectionRank === null),
-    ).toBe(true);
+      result.maps.map(({ selectionRank }) => selectionRank).sort(),
+    ).toEqual([1, 2, 3, 4]);
   });
 
   it("labels the best owned Core as weak without recommending a roster lock", () => {

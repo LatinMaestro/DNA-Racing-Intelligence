@@ -270,6 +270,9 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 
 - Minimum **8 female Cores**.
 - Every rostered Core must be named.
+- The live trial page observed on 29 August used 32% females rounded up. That
+  trial observation is versioned but does not replace the current
+  owner-confirmed minimum-eight validator without explicit final authority.
 
 ### Performance relationship and advice scope
 
@@ -287,25 +290,32 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 
 - The owner creates the team manually on `https://esports.dnaracing.run/teams`.
 - The owner manually sets a roster of 12–25 Cores.
-- The current Maps page defines four of five planned maps: **Anchor**, **Glory**, **Measure** and **Miracles**.
+- The current Maps page defines four published maps: **Anchor**, **Glory**, **Measure** and **Miracles**.
 - Every defined map is a fixed ordered sequence of 42 races.
 - A match is best-of-three maps.
 - A map is first to 16 race points and must be won by two race points.
 - A match is between two Vaults. Every race field is divided 50/50 between the
   two Vaults, including one entry per Vault in a 1v1 and half the published
   gates per Vault in larger fields.
-- The home Vault selects the maps that will be raced in its matchup.
+- The home Vault picks map 1 and denies one map.
+- The away Vault then picks map 2 from the two maps remaining after the home action.
+- The match must retain its explicit third-map policy and result. Trial pages
+  disagree on whether the denied map is excluded permanently or returns to a
+  random third-map pool, so neither policy is a universal default.
 - Each Vault pre-maps eligible Cores from its registered 12–25 Core roster to
   the selected map race lines.
-- Race lines below 16 are reached only when the score remains close enough for the map to continue.
+- Race lines after 16 are reached only when the score remains close enough for the map to continue.
 - Each race line has an exact race type and distance in metres.
 - When assigning a Core, the owner can apply it only to the selected race or to every race on that selected map with the same race type and exact distance.
 - The website may prepare and validate these lineups but must never click Set, submit a mapping, create a team, set a roster or choose a match map.
-- Matches are expected to be scheduled about one day in advance. The owner must return to DNA Esports and choose the map for each scheduled match manually.
+- Matches are expected to be scheduled about one day in advance. The owner
+  must return to DNA Esports and complete the applicable home or away map action
+  manually before lock.
 - The website should analyse the opposing Vault, compare likely head-to-head
-  exact-format and exact-distance strengths, rank our home-map choices and
-  recommend our best rostered Core for each line. Missing opposition evidence
-  remains unknown rather than being treated as an advantage.
+  exact-format and exact-distance strengths, rank our home pick/denial or away
+  second-pick choices and recommend our best rostered Core for each line.
+  Missing opposition evidence remains unknown rather than being treated as an
+  advantage.
 - Coverage reporting must distinguish a genuinely strong option from the Core
   that is merely the best currently available in our Vault. A weak
   best-available Core is a Discovery/breeding and possible future replacement
@@ -313,9 +323,23 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 - With only 10 annual substitutions, marginal Cores should not be locked solely
   to fill every theoretical gap. If structural compliance forces temporary
   inclusion, label the Core provisional and preserve a clear replacement plan.
-- The fifth planned map remains unavailable/unconfigured until DNA publishes it.
+- No additional map is configured or assumed until DNA publishes it.
 
-Published map catalogue observed 27 August 2026:
+### Trial-only operations observed 29 August 2026
+
+- Saved assignments cover all four maps, persist across matches and remain
+  editable until match lock; later edits must not rewrite a locked match.
+- A map ends on the first race that leaves a team at 16 or more points with a
+  two-point lead. A 16–16 score continues, subject to the 42-line catalogue.
+- A match ends when one team wins two maps; map 3 is not run after a 2–0 result.
+- Standings currently show 3 points for a win, 1 for a draw and 0 for a loss,
+  then event wins, race differential and race wins as tie-break displays.
+- Unlimited roster edits, no ageing, day-as-Week tabs, trial payouts and missed
+  pick fallbacks are practice-event observations, not permanent league rules.
+- Core outcome, team race point, map score, match result and league points are
+  separate facts and must remain separate in the private website.
+
+Published map catalogue observed 27 August and revalidated 29 August 2026:
 
 | Map | Name | Published race composition | First-16 average | All-42 average | Distance range |
 | ---: | --- | --- | ---: | ---: | ---: |

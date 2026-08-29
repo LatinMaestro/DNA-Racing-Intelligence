@@ -4,9 +4,11 @@ import type {
   ProLeagueCandidate,
   ProLeaguePreparation,
 } from "@/domain/pro-league-preparation";
+import { proLeagueTrialOperationsAuthority } from "@/domain/pro-league-competition";
 import { proLeagueMapAuthority, proLeagueMaps } from "@/domain/pro-league-maps";
 import {
   proLeagueCurrentRules,
+  proLeagueTrialObservedRosterRules,
   type ProLeagueRosterAudit,
 } from "@/domain/pro-league-roster";
 import type { ProLeaguePreparationConnectionStatus } from "@/lib/pro-league-preparation-service";
@@ -410,11 +412,10 @@ function MapAuthority() {
             Published map race lines
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-            Four of five planned maps are currently defined. Each contains a
-            fixed sequence of 42 Bike races. Every race gate is split equally
-            between the two competing Vaults. A mapping can target only one race
-            line or every line on that map with the same race type and exact
-            distance.
+            Four maps are currently published. Each contains a fixed sequence of
+            42 Bike races. Every race gate is split equally between the two
+            competing Vaults. A mapping can target only one race line or every
+            line on that map with the same race type and exact distance.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
@@ -458,8 +459,9 @@ function MapAuthority() {
         maps; first to {proLeagueMapAuthority.matchFormat.firstToRacePoints}{" "}
         race points wins a map and must win by{" "}
         {proLeagueMapAuthority.matchFormat.winByRacePoints}. The home Vault
-        selects the maps for the matchup. The website recommends the strongest
-        choice; the owner still makes the selection manually on DNA Esports.
+        picks map 1 and denies one map; the away Vault then picks map 2. The
+        match record must identify how map 3 is resolved. The website recommends
+        only; the owner still acts manually on DNA Esports.
       </p>
     </section>
   );
@@ -477,7 +479,8 @@ function MatchupAuthority() {
             Pro League is a head-to-head Bike contest between two Vaults. The
             planner compares our roster with the opposition for every exact race
             type and distance, recommends mapped Cores from the registered 12–25
-            Core roster and ranks maps when our Vault is home.
+            Core roster and ranks the choices available to our home or away
+            role.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
@@ -486,12 +489,11 @@ function MatchupAuthority() {
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
-          <h3 className="font-semibold">Home map advantage</h3>
+          <h3 className="font-semibold">Home and away map roles</h3>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            When we are home, rank Anchor, Glory, Measure and Miracles by
-            favourable, contested, unfavourable and unknown race lines against
-            the selected opposition. When away, prepare defensively without
-            pretending we control map choice.
+            When home, rank the first pick and the map to deny. When away, rank
+            map 2 from the choices left by the home action. Prepare a separate
+            contingency for the recorded third-map policy.
           </p>
         </article>
         <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
@@ -528,6 +530,61 @@ function MatchupAuthority() {
   );
 }
 
+function TrialOperationsAuthority() {
+  const trial = proLeagueTrialOperationsAuthority;
+  return (
+    <section aria-labelledby="pro-trial-operations">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold" id="pro-trial-operations">
+            Trial operations now modelled
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+            These observations explain the live practice workflow. Trial-only
+            exceptions remain labelled and cannot silently become proper-season
+            rules.
+          </p>
+        </div>
+        <span className="rounded-full border border-[var(--warning)]/50 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+          Trial authority · {trial.observedAt}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Reusable four-map setup</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Configure every published map once. Saved assignments carry across
+            matches and may be changed before lock; the lineup version locked to
+            a match remains historical evidence.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Staged match selection</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Home picks map 1 and denies one; away picks map 2. The third map
+            must retain the actual match policy because trial pages disagree on
+            whether the denied map can return to the random pool.
+          </p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+          <h3 className="font-semibold">Early finish and separate scores</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            A map stops at 16 or more with a two-point lead; a match stops at
+            two map wins. Core results, race points, map scores, match results
+            and league points remain separate.
+          </p>
+        </article>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+        Current trial standings display {trial.standings.winPoints}/
+        {trial.standings.drawPoints}/{trial.standings.lossPoints} points for a
+        win/draw/loss. No ageing, unlimited pre-lock roster changes, practice
+        payouts and missed-pick fallbacks are trial observations only.
+      </p>
+    </section>
+  );
+}
+
 export function ProLeagueWorkspace({
   audit,
   connectionStatus,
@@ -551,10 +608,10 @@ export function ProLeagueWorkspace({
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
           Build the strongest compliant 12–25 Core roster from the existing
-          Vault and breeding, analyse the opposition, choose the strongest home
-          maps and map rostered Cores to the published race lines. Prefer Cores
-          that prove power for the exact race type and distance required. No
-          additional Genesis minting is part of this plan.
+          Vault and breeding, analyse the opposition, prepare the correct home
+          or away map action and map rostered Cores to the published race lines.
+          Prefer Cores that prove power for the exact race type and distance
+          required. No additional Genesis minting is part of this plan.
         </p>
       </header>
 
@@ -565,10 +622,14 @@ export function ProLeagueWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           Source: {proLeagueCurrentRules.sourceLabel}, received{" "}
           {proLeagueCurrentRules.receivedAt}. Current roster limits and the
-          public four-map catalogue are configured; the fifth planned map and
-          initial-roster substitution counting remain unresolved. Pro League
-          uses the same underlying DNA Racing Core performance, so accepted
-          history remains valid evidence where the API exposes it.
+          public four-map catalogue are configured; additional maps and
+          initial-roster substitution counting remain unresolved. The live trial
+          displays a{" "}
+          {proLeagueTrialObservedRosterRules.femaleMinimum.percentage}
+          %-rounded-up female rule, but it does not replace the current
+          owner-confirmed minimum-eight validator without final authority. Pro
+          League uses the same underlying DNA Racing Core performance, so
+          accepted Bike history remains valid evidence where the API exposes it.
         </p>
       </section>
 
@@ -582,6 +643,8 @@ export function ProLeagueWorkspace({
       <MapAuthority />
 
       <MatchupAuthority />
+
+      <TrialOperationsAuthority />
 
       {preparation === null ? null : (
         <Preparation

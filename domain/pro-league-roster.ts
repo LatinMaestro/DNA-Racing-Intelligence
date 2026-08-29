@@ -10,7 +10,9 @@ export const proLeagueCurrentRules = Object.freeze({
   matchup: Object.freeze({
     vaultsPerMatch: 2,
     gateAllocation: "equal_halves" as const,
-    homeVaultSelectsMaps: true,
+    homeVaultAction: "pick_map_1_and_deny_one_map" as const,
+    awayVaultAction: "pick_map_2_after_home_action" as const,
+    thirdMapPolicy: "match_ruleset_required" as const,
     mappedCoresMustComeFromRoster: true,
   }),
   minimumRosterSize: 12,
@@ -30,6 +32,35 @@ export const proLeagueCurrentRules = Object.freeze({
   minimumFemales: 8,
   namesRequired: true,
 });
+
+export const proLeagueTrialObservedRosterRules = Object.freeze({
+  rulesetId: "dna-pro-league/live-trial-observed-2026-08-29",
+  evidenceStatus: "official_live_trial_observation" as const,
+  appliesTo: "trial_only" as const,
+  controlsCurrentValidation: false,
+  femaleMinimum: Object.freeze({
+    kind: "percentage_rounded_up" as const,
+    percentage: 32,
+  }),
+  ageing: "disabled_for_practice" as const,
+  rosterChanges: "unlimited_for_practice_before_match_lock" as const,
+  conflict:
+    "The trial website's 32%-rounded-up female rule does not supersede the owner-confirmed minimum-eight validator without explicit final authority.",
+});
+
+export function observedTrialFemaleMinimum(rosterSize: number): number {
+  if (
+    !Number.isSafeInteger(rosterSize) ||
+    rosterSize < proLeagueCurrentRules.minimumRosterSize ||
+    rosterSize > proLeagueCurrentRules.maximumRosterSize
+  ) {
+    throw new Error("Trial roster size must be between 12 and 25 Cores.");
+  }
+  return Math.ceil(
+    (rosterSize * proLeagueTrialObservedRosterRules.femaleMinimum.percentage) /
+      100,
+  );
+}
 
 export type ProLeagueRosterCore = Readonly<{
   coreId: string;
