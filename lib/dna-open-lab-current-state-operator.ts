@@ -16,8 +16,17 @@ import type { DnaOpenLabStoredCurrentStateEvidence } from "./dna-open-lab-r2-cur
 import type { DnaCurrentStateRequest } from "./dna-open-lab-current-state-sync-plan";
 import type { DnaOpenLabResponse, DnaRaceMode } from "./dna-open-lab-v1-client";
 import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
+import {
+  evaluateDnaOpenLabZeroCostRefresh,
+  type DnaOpenLabR2Usage,
+  type DnaOpenLabZeroCostRefreshDecision,
+} from "./dna-open-lab-zero-cost-refresh-policy";
 
 export type DnaCurrentStateOperatorStepResult =
+  | Readonly<{
+      kind: "budget_blocked";
+      budget: DnaOpenLabZeroCostRefreshDecision;
+    }>
   | Readonly<{
       kind: "discovering";
       discovery: Extract<
@@ -64,7 +73,16 @@ export async function runDnaCurrentStateOperatorStep(input: {
     cycleId: string;
     receipt: DnaCurrentStateAcquisitionEvidenceReceipt;
   }) => Promise<DnaOpenLabStoredCurrentStateEvidence>;
+  currentR2Usage: DnaOpenLabR2Usage;
+  plannedRefreshR2Usage: DnaOpenLabR2Usage;
 }): Promise<DnaCurrentStateOperatorStepResult> {
+  const budget = evaluateDnaOpenLabZeroCostRefresh({
+    currentUsage: input.currentR2Usage,
+    plannedRefreshUsage: input.plannedRefreshR2Usage,
+  });
+  if (!budget.allowed) {
+    return Object.freeze({ kind: "budget_blocked", budget });
+  }
   const discovery = await runDnaCurrentStateDiscoveryStep({
     cycleId: input.cycleId,
     evaluatedAt: input.evaluatedAt,

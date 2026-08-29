@@ -37,9 +37,11 @@ A partial cycle cannot replace the previous last-good dataset.
 | Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                          |
 | Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                    |
 
-## Tier-1-safe scheduling
+## Zero-cost daily scheduling
 
-The scheduler is designed around 30 requests/minute.
+The normal private website target is one complete refresh per day. The
+30-requests/minute value remains a burst ceiling while that bounded refresh is
+running; it is not a continuously running cadence.
 
 It must:
 
@@ -53,14 +55,25 @@ It must:
 
 Higher tiers may reduce catch-up duration but do not change data semantics.
 
-Current-state acquisition uses explicit local minimum intervals: one minute for
-active races/fills, five minutes for current Token reference prices, fifteen
-minutes for Vault/ownership and supplemental Core state, and thirty minutes for
-complete Splice Arena pagination. These are application freshness choices, not
-DNA endpoint guarantees. Pair info/validation remains on-demand. A due group
-must complete before a generation can publish; non-due groups may contribute
-timestamped last-good evidence, but missing or future-dated evidence fails
-closed.
+Current-state acquisition uses one shared 24-hour minimum interval for active
+races/fills, current Token reference prices, Vault/ownership, supplemental Core
+state and complete Splice Arena pagination. When any recurring family becomes
+due, every family is reacquired and must validate before the complete generation
+can publish. Pair info/validation remains on-demand.
+
+Cloudflare R2 Standard is guarded by operating budgets set to 80% of the
+published free allowances: 8 GB retained storage, 800,000 monthly Class A
+operations and 8,000,000 monthly Class B operations. One daily refresh may plan
+at most 1,000 Class A and 2,000 Class B operations, or 31,000/62,000 over any
+31-day planning horizon. Before discovery or acquisition writes, the operator
+adds the proposed refresh to current billing-window usage. If any budget would
+be exceeded, it performs no provider request or write and continues serving the
+last-good generation. Paid usage is never enabled automatically.
+
+The first historical backfill is a separate bounded commissioning event. It
+requires an upper-bound estimate, an exact owner-authorised maximum cost and
+explicit P5 approval. Later daily cycles resume only from durable checkpoints
+and retrieve missing/new evidence rather than repeating history.
 
 Each acquisition-runner step executes at most one scheduled request through the
 shared conservative client pool. Validated evidence must be stored idempotently

@@ -34,6 +34,12 @@ raw payload or secret evidence, and any synthetic provider residue. A local
 synthetic report remains local evidence only; it cannot satisfy connected
 private Preview acceptance.
 
+Recurring commissioning now targets one complete refresh per day. The
+30-request/minute ceiling controls burst rate only. A pre-write zero-cost gate
+caps R2 at 8 GB, 800,000 Class A and 8,000,000 Class B operations per billing
+window and pauses on last-good data before paid usage. The first historical
+backfill remains a separate explicitly cost-bounded owner approval within P5.
+
 The local adapter layer maps every case to its decisive observable outcome. It
 cannot mark a case passed from generic success alone: receipt replay, CAS loss,
 retry boundary, reduced allowance, eligibility pause/catch-up, body authority,

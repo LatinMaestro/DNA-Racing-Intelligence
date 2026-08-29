@@ -82,26 +82,6 @@ function tokenOnlyPlan(): DnaCurrentStateSyncPlan {
   });
 }
 
-function checkpoints(): Record<
-  DnaCurrentStateAcquisitionGroup,
-  Readonly<{ completedAt: string }>
-> {
-  return Object.fromEntries(
-    DNA_CURRENT_STATE_ACQUISITION_GROUPS.map((group) => [
-      group,
-      {
-        completedAt:
-          group === "token_prices"
-            ? "2026-08-28T12:24:00.000Z"
-            : "2026-08-28T12:29:30.000Z",
-      },
-    ]),
-  ) as Record<
-    DnaCurrentStateAcquisitionGroup,
-    Readonly<{ completedAt: string }>
-  >;
-}
-
 function cachedEvidence(): Record<DnaCurrentStateAcquisitionGroup, string> {
   return Object.fromEntries(
     DNA_CURRENT_STATE_ACQUISITION_GROUPS.map((group) => [
@@ -111,11 +91,19 @@ function cachedEvidence(): Record<DnaCurrentStateAcquisitionGroup, string> {
   ) as Record<DnaCurrentStateAcquisitionGroup, string>;
 }
 
-function schedule() {
-  return createDnaCurrentStateAcquisitionSchedule({
+function schedule(currentPlan: DnaCurrentStateSyncPlan = tokenOnlyPlan()) {
+  const daily = createDnaCurrentStateAcquisitionSchedule({
     evaluatedAt,
-    plan: tokenOnlyPlan(),
-    checkpoints: checkpoints(),
+    plan: currentPlan,
+  });
+  const tokenRequests = daily.requestBatches
+    .flat()
+    .filter((entry) => entry.group === "token_prices");
+  return Object.freeze({
+    ...daily,
+    dueGroups: Object.freeze(["token_prices"] as const),
+    requestBatches: Object.freeze([Object.freeze(tokenRequests)]),
+    scheduledRequestCount: tokenRequests.length,
   });
 }
 
@@ -287,9 +275,8 @@ describe("DNA Open Lab current-state acquisition runner", () => {
       runnerInput({ repository, requestPool }),
     );
 
-    const drifted = createDnaCurrentStateAcquisitionSchedule({
-      evaluatedAt,
-      plan: Object.freeze({
+    const drifted = schedule(
+      Object.freeze({
         ...tokenOnlyPlan(),
         bootstrap: Object.freeze([
           Object.freeze({
@@ -299,8 +286,7 @@ describe("DNA Open Lab current-state acquisition runner", () => {
           }),
         ]),
       }),
-      checkpoints: checkpoints(),
-    });
+    );
     await expect(
       runDnaCurrentStateAcquisitionStep({
         ...runnerInput({ repository, requestPool }),

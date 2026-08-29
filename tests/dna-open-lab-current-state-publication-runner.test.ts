@@ -454,16 +454,18 @@ describe("DNA Open Lab current-state publication runner", () => {
     const nextCycleId = "22222222-2222-4222-8222-222222222222";
     const nextAt = "2026-08-28T12:02:00.000Z";
     const nextObservedAt = "2026-08-28T12:02:30.000Z";
-    const schedule = createDnaCurrentStateAcquisitionSchedule({
+    const fullSchedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt: nextAt,
       plan: first.plan,
-      checkpoints: {
-        race_activity: { completedAt: observedAt },
-        token_prices: { completedAt: nextAt },
-        vault_identity: { completedAt: nextAt },
-        core_current_state: { completedAt: nextAt },
-        splice_arena: { completedAt: nextAt },
-      },
+    });
+    const raceRequests = fullSchedule.requestBatches
+      .flat()
+      .filter((entry) => entry.group === "race_activity");
+    const schedule = Object.freeze({
+      ...fullSchedule,
+      dueGroups: Object.freeze(["race_activity"] as const),
+      requestBatches: Object.freeze([Object.freeze(raceRequests)]),
+      scheduledRequestCount: raceRequests.length,
     });
     const scheduled = schedule.requestBatches.flat();
     const key = (entry: DnaScheduledCurrentStateRequest) =>

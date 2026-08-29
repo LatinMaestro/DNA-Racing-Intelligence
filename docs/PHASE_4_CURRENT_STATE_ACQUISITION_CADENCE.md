@@ -12,11 +12,15 @@ represented as DNA endpoint guarantees or API semantics:
 
 | Acquisition group  | Minimum local interval | Recurring evidence                                         |
 | ------------------ | ---------------------- | ---------------------------------------------------------- |
-| Race activity      | 1 minute               | active races and bounded fill batches                      |
-| Token prices       | 5 minutes              | current/reference-only Token prices                        |
-| Vault identity     | 15 minutes             | Vault info, ownership, tier badge and recent-race identity |
-| Core current state | 15 minutes             | bounded identity plus seven supplemental Core families     |
-| Splice Arena       | 30 minutes             | complete paginated Arena modes/pages/listings              |
+| Race activity      | 24 hours               | active races and bounded fill batches                      |
+| Token prices       | 24 hours               | current/reference-only Token prices                        |
+| Vault identity     | 24 hours               | Vault info, ownership, tier badge and recent-race identity |
+| Core current state | 24 hours               | bounded identity plus seven supplemental Core families     |
+| Splice Arena       | 24 hours               | complete paginated Arena modes/pages/listings              |
+
+The shared boundary deliberately creates one complete daily website refresh.
+If any family is due, every recurring family is due. This is the owner's
+zero-ongoing-cost policy, not a claim about DNA endpoint freshness.
 
 Official pair info and pair validation remain explicit on-demand reads. They do
 not enter the recurring crawl, do not prove a completed splice and never perform
@@ -31,11 +35,15 @@ a transaction.
 - `X-RateLimit-*`, `Retry-After`, 429 and a lower observed allowance can only
   delay work. An advertised 80/150 tier cannot raise the configured 30-request
   aggregate ceiling.
-- Slow groups may reuse timestamped last-good evidence until their next local
-  cadence boundary. A new generation is publishable only after every due group
-  succeeds and every group has cached-or-refreshed evidence.
+- A new daily generation is publishable only after every recurring group
+  succeeds. Failed cycles keep the previous complete generation.
 - Missing, partial or future-dated evidence blocks publication and preserves the
   previous serving generation.
+- Before discovery or acquisition, the operator checks current R2 use plus the
+  proposed refresh against hard 80%-of-free-tier budgets: 8 GB storage, 800,000
+  Class A and 8,000,000 Class B operations. A daily refresh is capped at 1,000
+  Class A and 2,000 Class B operations. Budget exhaustion performs no provider
+  work and serves last-good data rather than incurring paid usage.
 
 ## Recovery
 

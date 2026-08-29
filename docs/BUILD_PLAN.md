@@ -105,6 +105,10 @@ Deliver migrations/read models only from P3 evidence.
 - reuse existing historical analytical read models rather than duplicating them;
 - ingest historical races through bounded API windows/batches rather than whole-sheet Neon staging;
 - refresh current Core/Vault/Splice/Tokens with endpoint-appropriate cadence;
+- target one complete checkpoint-resuming API refresh every 24 hours, with all
+  recurring families reacquired together;
+- enforce R2 storage/Class A/Class B budgets below the free allowances before
+  any provider write, pausing on last-good data instead of incurring a charge;
 - separate current observations from historical backtest facts so today's power/stamina/assets/listing/game stats cannot leak into past recommendations;
 - publish only complete last-good refreshes; and
 - leave the benched CSV importer unchanged.
@@ -124,7 +128,7 @@ pagination publication guards and last-good reads. The Neon publication
 adapter now validates owned Cores, races/fills, all seven supplemental Core
 families, Token prices and complete Arena pagination before one `0074` staging
 transaction; retired partial-stage privileges fail closed. Acquisition-worker
-scheduling now has a deterministic local cadence and recovery policy with
+scheduling now has a deterministic complete-daily cadence and recovery policy with
 30-request batches, complete cached-or-refreshed evidence guards and on-demand
 pair reads. A one-request bounded runner dispatches through the conservative
 client pool, requires idempotently persisted evidence receipts and advances an
@@ -168,7 +172,9 @@ authority, forces changed dynamic plans through a full acquisition, advances
 one bounded request per invocation and records API recovery in both durable
 checkpoint and last-good state before selecting full or staggered publication.
 The operator entrypoint composes restart-safe identity/Arena discovery with that
-coordinator while retaining the same one-request invocation bound.
+coordinator while retaining the same one-request invocation bound. It rejects
+work before discovery when projected R2 storage or operation use would cross
+the 80%-of-free-tier budgets; paid usage is never automatic.
 The explicit P4/P5 readiness matrix now keeps local recovery implementation,
 connected acceptance, API-only PostgreSQL/R2 measurements, positive Neon
 headroom and owner approval as separate machine-checkable gates.

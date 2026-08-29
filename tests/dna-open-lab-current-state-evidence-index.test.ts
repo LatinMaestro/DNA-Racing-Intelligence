@@ -97,16 +97,18 @@ function firstIndex() {
 }
 
 function staggeredSchedule() {
-  return createDnaCurrentStateAcquisitionSchedule({
+  const full = createDnaCurrentStateAcquisitionSchedule({
     evaluatedAt: nextAt,
     plan: plan(),
-    checkpoints: {
-      race_activity: { completedAt: firstAt },
-      token_prices: { completedAt: nextAt },
-      vault_identity: { completedAt: nextAt },
-      core_current_state: { completedAt: nextAt },
-      splice_arena: { completedAt: nextAt },
-    },
+  });
+  const requests = full.requestBatches
+    .flat()
+    .filter((entry) => entry.group === "race_activity");
+  return Object.freeze({
+    ...full,
+    dueGroups: Object.freeze(["race_activity"] as const),
+    requestBatches: Object.freeze([Object.freeze(requests)]),
+    scheduledRequestCount: requests.length,
   });
 }
 

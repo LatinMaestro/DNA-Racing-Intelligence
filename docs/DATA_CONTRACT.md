@@ -69,6 +69,12 @@ The client/scheduler must:
 - preserve durable progress before backing off; and
 - expose enough metadata for sync/recovery observability without exposing secrets.
 
+The rate ceiling is independent from cadence. Normal commissioned operation
+targets one complete refresh every 24 hours and may run less frequently to stay
+inside free provider allowances. Every daily cycle resumes from checkpoints and
+retrieves only missing/new history plus the current snapshots required for a
+complete generation.
+
 ## 5. Documented request bounds
 
 | Endpoint family/use            | Maximum per request/window |
@@ -330,6 +336,14 @@ Requirements:
 - checksum verification;
 - no raw API payloads in Git/CI artifacts; and
 - bounded cleanup/recovery rules.
+
+Recurring operation must stop before paid R2 usage. The current hard operating
+budgets are 8 GB retained storage, 800,000 Class A operations and 8,000,000
+Class B operations per provider billing window, all below the published free
+allowances. A proposed refresh is evaluated against current usage before any
+provider write; exhaustion pauses sync and preserves last-good serving. The
+first historical backfill remains a separately estimated and explicitly
+owner-approved commissioning event.
 
 ## 19. Neon contract
 

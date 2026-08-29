@@ -493,6 +493,13 @@ The complete API sync, backfill, background-processing, retention, publication a
 
 Support bounded API refreshes for Vault/ownership, Cores, finished and active Races, Splice/Arena and Tokens, plus owner-maintained tournament rules and economic records.
 
+Commissioned recurring operation targets one complete refresh every 24 hours.
+The 30-request/minute limit is only a burst ceiling while a refresh is running.
+R2 storage and operation budgets remain below the free allowances and are
+checked before provider work; budget exhaustion pauses sync and preserves the
+last-good website rather than incurring a charge. The initial historical
+backfill is a separate bounded P5 approval with an exact maximum cost.
+
 The synchronization path must:
 
 - validate provider envelopes and canonical shapes;

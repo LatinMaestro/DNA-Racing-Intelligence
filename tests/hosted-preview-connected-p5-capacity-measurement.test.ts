@@ -10,23 +10,23 @@ import {
   DNA_OPEN_LAB_P5_CAPACITY_INVOCATION_AUTHORITY,
   invokeDnaOpenLabP5PrivatePreviewCapacityMeasurement,
 } from "@/lib/dna-open-lab-p5-capacity-invocation";
+import {
+  DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS,
+  DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
+} from "@/lib/dna-open-lab-zero-cost-refresh-policy";
 
 const connected = process.env.DNA_OPEN_LAB_P5_CONNECTED_CAPACITY === "1";
 const describeConnected = connected ? describe : describe.skip;
 const bucketName = "dna-racing-import-preview";
 const runtimeRole = "dna_app_runtime";
-const billingWindowDays = 30;
+const billingWindowDays = 31;
 const aggregateRequestCeilingPerMinute = 30;
 const classAOperationsPerRequest = 1;
 const classBOperationsPerRequest = 2;
 const projectedMonthlyClassAOperations =
-  aggregateRequestCeilingPerMinute *
-  60 *
-  24 *
-  billingWindowDays *
-  classAOperationsPerRequest;
+  DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS.classAOperations;
 const projectedMonthlyClassBOperations =
-  projectedMonthlyClassAOperations * classBOperationsPerRequest;
+  DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS.classBOperations;
 const priceAuthorityRef = "https://developers.cloudflare.com/r2/pricing/";
 const priceEffectiveAt = "2026-08-07T00:00:00.000Z";
 
@@ -71,13 +71,8 @@ describeConnected("hosted Preview P5 connected capacity measurement", () => {
         billingWindowDays,
         classAOperationsPerRequest,
         classBOperationsPerRequest,
-        currentStateCadenceMinutes: Object.freeze({
-          raceActivity: 1,
-          tokenPrices: 5,
-          vaultIdentity: 15,
-          coreCurrentState: 15,
-          spliceArena: 30,
-        }),
+        completeRefreshCadenceHours: 24,
+        zeroCostR2Budgets: DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
         pairReads: "on_demand_only",
       });
       const r2Storage = createCloudflareR2DatasetEvidencePort({
