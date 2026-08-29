@@ -1,7 +1,7 @@
 # DNA Pro League Preparation
 
 Status: **current Pro League preparation authority**  
-Effective: **27 August 2026**
+Effective: **29 August 2026**
 
 ## Authority
 
@@ -9,6 +9,7 @@ This document combines:
 
 - the DNA Community Update supplied by the owner on 20 August 2026;
 - later owner-provided/confirmed Pro League roster rules that supersede the initial announcement assumptions; and
+- the public DNA Esports trial pages and owner-supplied trial announcements reviewed on 29 August 2026; and
 - the 27 August 2026 API-first architecture decision.
 
 Where current rules below conflict with the older announcement snapshot, the current rules govern validation and recommendations. The older announcement remains recorded later in this document as historical evidence.
@@ -49,6 +50,13 @@ A legal current roster must satisfy all of the following:
 
 There is no current minimum Water count supplied. Water therefore remains constrained only by the total roster and other applicable rules unless DNA supplies a later rule.
 
+The live trial team page observed on 29 August displayed a different female
+minimum: 32% of roster size, rounded up (for example 4 at a 12-Core roster and
+8 at a 25-Core roster). That observation is trial/versioned evidence and does
+not silently replace the owner-confirmed minimum-eight validator. The website
+must show the active ruleset and retain this conflict until DNA or the owner
+confirms which rule controls the proper season.
+
 ## Initial roster and substitution allowance
 
 Whether the first/initial roster selection consumes any part of the annual maximum-10 substitution allowance is unresolved.
@@ -68,8 +76,11 @@ The current owner-confirmed setup sequence is:
 2. set a 12–25 Core roster manually;
 3. open `https://esports.dnaracing.run/maps`, choose a map and scroll to its ordered race list;
 4. use the DNA Esports Set control to assign a rostered Core either to one race line or to every line on that map with the same race type and exact distance; and
-5. after a match is scheduled, return and, when the owner is the home Vault,
-   choose the matchup maps manually.
+5. after a match is scheduled, return to the team match-history control and
+   complete the match-specific map actions manually: the home Vault picks map
+   1 and denies one map, then the away Vault picks map 2 from the two maps left
+   by that action; and
+6. confirm the match-specific third-map result before lock.
 
 The private website may recommend, stage and validate this work. It must not create the team, submit the roster, click Set, submit a race-line mapping or choose a match map.
 
@@ -80,25 +91,32 @@ Current owner-confirmed authority is:
 - every Pro League match is between two Vaults;
 - every race field is split equally between them;
 - each Vault preselects mapped Bike Cores from its registered 12–25 Core roster;
-- the home Vault selects the maps raced in that matchup; and
+- the home Vault has the first map pick and one denial;
+- the away Vault has the second map pick from the two maps left after the home action;
+- the third-map resolution must be read from the actual match ruleset; and
 - the website remains advisory and never submits the home choice or lineup.
 
 The matchup planner must accept an opposition Vault, compare both rosters at
 the exact Bike race type and distance, and classify each race line as favoured,
-contested, unfavourable or unknown. It must rank maps when our Vault is home.
-When our Vault is away, it may provide defensive preparation but must not imply
-that we control map choice. Incomplete opponent evidence is unknown, never a
-free advantage.
+contested, unfavourable or unknown. It must rank the home first-pick and denial
+options, then rank the away second-pick options remaining after the home action.
+Incomplete opponent evidence is unknown, never a free advantage.
+
+Two live trial match-page wordings conflict on the third map. One says the
+denied map never returns and the sole remaining map is map 3. Another says the
+denied map returned to a two-map random pool under the rule in force for that
+match. The private website must support both policies as explicit, versioned
+match authority. It must never infer one global rule from a trial page.
 
 ## Published map authority
 
-The public Maps page observed 27 August 2026 states:
+The public Maps and live match pages reviewed through 29 August 2026 state:
 
 - a match is best-of-three maps;
 - each map is a fixed sequence of 42 races that does not change;
 - the first team to 16 race points wins the map and must win by two;
 - races after line 16 are reached only while the score remains close enough; and
-- four of five planned maps are currently defined.
+- four maps are currently published.
 
 | Map | Name     | Composition                                                          | First 16 avg | All 42 avg |
 | --: | -------- | -------------------------------------------------------------------- | -----------: | ---------: |
@@ -107,7 +125,49 @@ The public Maps page observed 27 August 2026 states:
 |   3 | Measure  | six race types, seven lines each                                     |       1600 m |     1610 m |
 |   4 | Miracles | 21 × 22-gate WTA, 21 × 24-gate Madness                               |       1688 m |     1610 m |
 
-All four maps use the seven published distances from 1000 m to 2200 m. The domain catalogue preserves every exact race line and its order; aggregate summaries are not a substitute for that catalogue. Map 5 remains unavailable and must not be invented.
+All four maps use the seven published distances from 1000 m to 2200 m. The
+domain catalogue preserves every exact race line and its order; aggregate
+summaries are not a substitute for that catalogue. No additional map is
+currently configured or assumed.
+
+Trial organizer guidance described Anchor as favourable to smaller Vaults with
+a few strong Cores, Glory as the all-WTA variance map, Measure as the rounded
+depth map and Miracles as the widest/deepest Vault test. Preserve those notes
+as organizer guidance only. They are not predictive field authority and cannot
+override exact-format, exact-distance performance evidence.
+
+## Trial match lifecycle and scoring observations
+
+The reviewed public trial exposed these operating states and boundaries:
+
+- schedules are normally posted about one day before the match;
+- practice days are represented as Week tabs (for example Week 0 and Week 1);
+- map lineups are saved across matches, should be configured for all four maps
+  and may be edited until the relevant match locks;
+- the team UI prevents roster/team edits while a match is underway;
+- match cards progress through scheduled/awaiting-pick, maps-set, locked, live
+  and finished states;
+- a map stops as soon as one side has at least 16 race points and a two-point
+  lead; a 16–16 map continues;
+- a best-of-three match stops as soon as one side wins two maps, so map 3 is
+  not raced after a 2–0 result; and
+- each layer remains separate: a Core result, the team race-point winner, map
+  score, match result and league-table points are not interchangeable facts.
+
+If all 42 catalogue races are exhausted without a two-point lead, the observed
+sources do not establish the final resolution. Keep that state unresolved
+rather than inventing overtime or a tiebreak.
+
+The trial standings page currently awards 3 league points for a win, 1 for a
+draw and 0 for a loss, with displayed tie-break order: league points, event
+wins, race-point differential, then race points won. Pro and lower-league
+standings are distinct competition views. These remain versioned trial/live
+site observations until the proper season rulebook is fixed.
+
+Trial payouts, unlimited roster edits and disabled ageing are practice-event
+exceptions. They are not permanent league economics or roster rules. Missed
+home-pick fallback wording is also provisional: record an actual automated or
+administrator-selected map as match evidence, but do not predict the fallback.
 
 ## Mapping-planner contract
 
@@ -122,10 +182,16 @@ For every staged assignment retain:
 
 The planner must reject unknown maps/races, non-roster Cores and conflicting assignments. It must report both total map coverage and first-16 coverage. Applying `same_type_and_distance` is scoped to the selected map; it never silently changes another map.
 
+Persist each complete four-map lineup as reusable local strategy state. A
+match references the saved lineup version in force at lock; later edits must
+not rewrite the historical locked matchup. Also retain home pick, home denial,
+away pick, third-map policy/result, lock time and whether an administrator or
+deadline fallback supplied any choice.
+
 It must also show the equal gate allocation for every race line, compare our
 mapped Core with the opposing Vault's selected or best-supported likely Core,
-and rank home-map choices by favourable, contested, unfavourable and unknown
-exact-format lines.
+and rank the role-eligible map choices by favourable, contested, unfavourable
+and unknown exact-format lines.
 
 ## Quality-first roster objective
 
@@ -376,7 +442,7 @@ The first owner-usable Pro League page should provide:
 - marginal slots;
 - published map definitions, first-16 coverage and staged race-line mappings; and
 - opposition selector and evidence freshness;
-- home-map ranking or away-match defensive view;
+- home first-pick/denial ranking, away second-pick ranking and third-map contingency;
 - head-to-head race-line recommendations and equal gate allocation;
 - exact format/distance weakness report with Discovery, breeding and
   replacement priorities; and
@@ -390,7 +456,7 @@ It must not:
 
 - create or submit a team;
 - submit a roster or map assignment;
-- choose a map for a scheduled match;
+- choose, deny or submit a map for a scheduled match;
 - enter races;
 - mint;
 - trade;

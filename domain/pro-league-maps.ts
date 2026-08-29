@@ -254,9 +254,9 @@ const miracles = defineMap(4, "Miracles", [
 ]);
 
 export const proLeagueMapAuthority = Object.freeze({
-  catalogueId: "dna-pro-league/maps-observed-2026-08-27",
+  catalogueId: "dna-pro-league/maps-observed-2026-08-29",
   sourceUrl: "https://esports.dnaracing.run/maps/",
-  observedAt: "2026-08-27",
+  observedAt: "2026-08-29",
   evidenceStatus: "owner_confirmed_public_page" as const,
   raceMode: "bike" as const,
   matchFormat: Object.freeze({
@@ -266,11 +266,13 @@ export const proLeagueMapAuthority = Object.freeze({
     winByRacePoints: 2,
     vaultsPerMatch: 2,
     gateAllocation: "equal_halves" as const,
-    homeVaultSelectsMaps: true,
+    homeVaultAction: "pick_map_1_and_deny_one_map" as const,
+    awayVaultAction: "pick_map_2_after_home_action" as const,
+    thirdMapPolicy: "match_ruleset_required" as const,
     mappedCoresMustComeFromRoster: true,
   }),
-  plannedMapCount: 5,
-  definedMapCount: 4,
+  publishedMapCount: 4,
+  additionalMapStatus: "unknown_not_configured" as const,
   earliestPossibleFinishRace: 16,
 });
 

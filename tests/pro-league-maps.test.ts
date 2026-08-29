@@ -13,8 +13,8 @@ describe("Pro League maps", () => {
   it("preserves the four published 42-race maps and leaves map five undefined", () => {
     expect(proLeagueMapAuthority).toMatchObject({
       raceMode: "bike",
-      plannedMapCount: 5,
-      definedMapCount: 4,
+      publishedMapCount: 4,
+      additionalMapStatus: "unknown_not_configured",
       matchFormat: {
         bestOfMaps: 3,
         racesPerMap: 42,
@@ -22,7 +22,9 @@ describe("Pro League maps", () => {
         winByRacePoints: 2,
         vaultsPerMatch: 2,
         gateAllocation: "equal_halves",
-        homeVaultSelectsMaps: true,
+        homeVaultAction: "pick_map_1_and_deny_one_map",
+        awayVaultAction: "pick_map_2_after_home_action",
+        thirdMapPolicy: "match_ruleset_required",
         mappedCoresMustComeFromRoster: true,
       },
     });

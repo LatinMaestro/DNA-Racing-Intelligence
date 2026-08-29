@@ -449,15 +449,23 @@ The workspace must:
 - use accepted Bike evidence, sample sizes, confidence and freshness for Discovery
   prioritisation only after structural compliance is considered;
 - preserve the exact ordered 42-race definitions for the four currently
-  published maps and keep the fifth planned map unavailable until defined;
+  published maps and keep any additional map unavailable until defined;
 - model both supported mapping scopes: one selected race line, or every race on
   the selected map with the same race type and exact distance;
 - show first-16 mapping coverage separately because a map can finish at race 16;
 - treat best-of-three, first-to-16 and win-by-two as current map authority;
-- record that the owner must return after a match is scheduled to choose the map;
+- record that the owner must return after a match is scheduled to complete the
+  applicable home or away map action;
 - model each matchup as two Vaults with every Bike race field split equally;
-- recognise that the home Vault selects the maps and rank its available map
-  choices against the selected opposing Vault;
+- rank the home Vault's first-map pick and denial, then rank the away Vault's
+  second-map options from the maps left by the home action;
+- require a versioned match rule for third-map resolution because reviewed
+  trial pages disagree on whether a denied map returns to the random pool;
+- retain reusable all-four-map lineup versions, the version locked to each
+  match, scheduling/lock state and any deadline/administrator fallback without
+  automating a game action;
+- keep Core outcome, team race point, map score, match result and league-table
+  points as distinct facts;
 - compare our rostered Core and the opposition's selected or likely Core for
   every exact race type and distance without treating missing evidence as an
   advantage;

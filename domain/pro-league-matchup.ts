@@ -101,8 +101,8 @@ export type ProLeagueMatchupLine = ProLeagueMapRace &
 export type ProLeagueMatchupMapAnalysis = Readonly<{
   mapId: ProLeagueMapId;
   mapName: string;
-  selectionRank: number | null;
-  mapControl: "ours" | "opposition";
+  selectionRank: number;
+  mapSelectionRole: "home_first_pick_and_deny" | "away_second_pick";
   favouredRaceLines: number;
   contestedRaceLines: number;
   unfavourableRaceLines: number;
@@ -141,7 +141,8 @@ export type ProLeagueMatchupAnalysis = Readonly<{
   ourVaultId: string;
   oppositionVaultId: string;
   homeVaultId: string;
-  mapControl: "ours" | "opposition";
+  mapSelectionRole: "home_first_pick_and_deny" | "away_second_pick";
+  thirdMapPolicy: "match_record_required";
   gateAllocation: "equal_halves";
   selectionMethod: Readonly<{
     primaryEvidence: "exact_format_distance_time_speed_consistency";
@@ -445,7 +446,7 @@ function analyseMap(
   map: (typeof proLeagueMaps)[number],
   ours: ProLeagueMatchupVault,
   opposition: ProLeagueMatchupVault,
-  mapControl: "ours" | "opposition",
+  mapSelectionRole: "home_first_pick_and_deny" | "away_second_pick",
 ): ProLeagueMatchupMapAnalysis {
   const lines = map.races.map((race): ProLeagueMatchupLine => {
     const ourBest = rankedCores(ours.cores, race, true)[0];
@@ -473,8 +474,8 @@ function analyseMap(
   return {
     mapId: map.mapId,
     mapName: map.name,
-    selectionRank: null,
-    mapControl,
+    selectionRank: 0,
+    mapSelectionRole,
     favouredRaceLines: count("favoured"),
     contestedRaceLines: count("contested"),
     unfavourableRaceLines: count("unfavourable"),
@@ -617,9 +618,12 @@ export function buildProLeagueMatchupAnalysis(
       ids.add(coreId);
     }
   }
-  const mapControl = homeVaultId === ourVaultId ? "ours" : "opposition";
+  const mapSelectionRole =
+    homeVaultId === ourVaultId
+      ? "home_first_pick_and_deny"
+      : "away_second_pick";
   const analysed = proLeagueMaps.map((map) =>
-    analyseMap(map, input.ourVault, input.oppositionVault, mapControl),
+    analyseMap(map, input.ourVault, input.oppositionVault, mapSelectionRole),
   );
   const ordered = [...analysed].sort(
     (left, right) =>
@@ -640,7 +644,8 @@ export function buildProLeagueMatchupAnalysis(
     ourVaultId,
     oppositionVaultId,
     homeVaultId,
-    mapControl,
+    mapSelectionRole,
+    thirdMapPolicy: "match_record_required",
     gateAllocation: "equal_halves",
     selectionMethod: {
       primaryEvidence: "exact_format_distance_time_speed_consistency",
@@ -651,7 +656,7 @@ export function buildProLeagueMatchupAnalysis(
     },
     maps: analysed.map((map) => ({
       ...map,
-      selectionRank: mapControl === "ours" ? rank.get(map.mapId)! : null,
+      selectionRank: rank.get(map.mapId)!,
     })),
     coverageGaps: coverageGaps(input.ourVault),
     substitutionStrategy: {

@@ -279,11 +279,16 @@ DNA Open Lab race-history facts. Keep them in the local strategic/configuration
 boundary:
 
 - version the four observed 42-race map definitions and their public source;
-- keep the fifth planned map unavailable until published;
+- keep every additional/unpublished map unavailable until published;
 - retain exact map, race number, type and distance for every line;
 - expand `same_type_and_distance` only within the selected map;
 - require mapped Cores to belong to the selected roster; and
-- keep match-map choice and every DNA Esports submission manual.
+- persist reusable all-map lineup versions and the exact version locked to a match;
+- retain home pick, home denial, away pick, third-map ruleset/result, match state,
+  lock time and any fallback source as local strategic/competition evidence;
+- keep Core outcome, team race point, map score, match result and league points
+  as separate facts; and
+- keep every DNA Esports choice/submission manual.
 
 No API response may automatically create a roster substitution or overwrite owner strategy history.
 

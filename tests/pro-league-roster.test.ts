@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditProLeagueRoster,
+  observedTrialFemaleMinimum,
   proLeagueCurrentRules,
+  proLeagueTrialObservedRosterRules,
   type ProLeagueRosterCore,
 } from "@/domain/pro-league-roster";
 
@@ -32,7 +34,9 @@ describe("Pro League roster audit", () => {
       matchup: {
         vaultsPerMatch: 2,
         gateAllocation: "equal_halves",
-        homeVaultSelectsMaps: true,
+        homeVaultAction: "pick_map_1_and_deny_one_map",
+        awayVaultAction: "pick_map_2_after_home_action",
+        thirdMapPolicy: "match_ruleset_required",
         mappedCoresMustComeFromRoster: true,
       },
       maximumPerElement: { Metal: 7, Fire: 8, Earth: 10 },
@@ -43,6 +47,19 @@ describe("Pro League roster audit", () => {
       minimumFemales: 8,
       namesRequired: true,
     });
+  });
+
+  it("records but does not silently adopt the live trial's female percentage", () => {
+    expect(proLeagueTrialObservedRosterRules).toMatchObject({
+      appliesTo: "trial_only",
+      controlsCurrentValidation: false,
+      femaleMinimum: { kind: "percentage_rounded_up", percentage: 32 },
+    });
+    expect([12, 15, 25].map(observedTrialFemaleMinimum)).toEqual([4, 5, 8]);
+    expect(proLeagueCurrentRules.minimumFemales).toBe(8);
+    expect(auditProLeagueRoster(compliantRoster(12)).readiness).toBe(
+      "compliant",
+    );
   });
 
   it.each([12, 25])("accepts a compliant %i-Core roster", (size) => {

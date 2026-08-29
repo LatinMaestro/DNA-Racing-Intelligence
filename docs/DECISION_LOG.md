@@ -745,3 +745,38 @@ After the private Pro League milestone, continue in this order:
   30-day projection. The marker and rollback generation left zero residue.
 - Keep persistent private Preview sync and Production disallowed. Capacity is
   complete, but all four connected recovery requirements remain blocking.
+
+## 2026-08-29 — Esports trial operations are versioned match authority
+
+- Accept the public DNA Esports pages and the owner's supplied trial
+  announcements as authority for observed trial operation, without evaluating
+  the randomly selected practice Cores.
+- Team setup remains manual: create the team, register 12–25 named Cores and
+  save assignments for all four published 42-race maps. Assignments persist
+  across matches, remain editable until lock and can expand only within one map
+  to the same exact race type and distance.
+- Supersede the earlier shorthand that the home Vault controls all maps. The
+  home Vault picks map 1 and denies one map; the away Vault then picks map 2
+  from the two maps left by that action.
+- Require the actual match ruleset for map 3. Reviewed live pages conflict:
+  one permanently excludes the denied map, while another returns it to a
+  two-map random pool under the rule in force for that match. Preserve both
+  versioned policies and never invent one universal rule.
+- A map stops at 16 or more race points with a two-point lead and continues at
+  16–16. A best-of-three match stops at two map wins. If all 42 catalogue races
+  are exhausted without win-by-two, keep the resolution unknown until DNA
+  publishes it.
+- Keep Core result, team race-point winner, map score, match result and league
+  points separate. The trial standings currently show 3/1/0 league points and
+  the displayed tie-break sequence points, event wins, race differential, then
+  race wins.
+- Treat practice payouts, unlimited pre-lock roster edits, disabled ageing,
+  day-as-Week tabs and missed-pick fallbacks as trial-only observations. They
+  cannot become permanent season rules silently.
+- The live trial roster page shows a 32%-rounded-up female minimum, which
+  conflicts with the current owner-confirmed minimum eight. Retain the trial
+  observation, but keep the owner-confirmed validator until explicit final
+  authority changes it.
+- The current public page contains four maps. Do not retain the earlier
+  assumption that a fifth map is planned, and do not configure an additional
+  map until it is published.

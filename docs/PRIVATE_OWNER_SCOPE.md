@@ -56,13 +56,26 @@ The owner intends to participate in the DNA Pro Esports League. Pro League is pa
 - Current roster requirements are 12–25 Cores; maximum 7 Metal, 8 Fire and 10 Earth; maximum 2 Genesis per element; maximum 5 at F5 or below; maximum 12 at F10 or below; minimum 2 above F15; minimum 8 females; and names for every rostered Core.
 - Use confirmed DNA breeding rules for offspring class, element and F-number. An above-F15 structural target requires parent F-numbers summing to at least 16. Do not claim offspring sex can be deterministically targeted.
 - Bred/non-Genesis depth can improve roster flexibility under the Genesis cap. Once structural requirements are met, breeding should continue only where elite-upside evidence can improve the strongest compliant nucleus rather than merely add quantity.
-- Accepted DNA Racing Bike, Car and Horse performance is valid Pro League power evidence because the underlying core performance is shared. Preserve mode separation and exact-distance evidence quality rather than fabricating strength in an untested mode.
-- The Pro League selection objective is the **most powerful overall roster**, favouring cores that perform strongly across multiple modes, distances and supported payout/race formats. A genuinely dominant specialist can still be useful, but broad all-round strength should rank above one-dimensional evidence where the data supports it.
+- Current Pro League competition and mapping are **Bike-only**. Car and Horse
+  evidence remains valid for other private workflows but must not affect Pro
+  League roster ranking, Discovery priorities or map assignments.
+- The Pro League selection objective is the strongest evidence-backed Bike
+  roster for the published exact formats and distances, without treating raw
+  win rate as the primary signal.
 - Use winning-range and top-three-or-better exact-distance benchmarks as transparent current evidence dimensions. Do not hide the reasoning inside an unexplained universal score.
-- Pro League should be Discovery-intensive. Strong evidence in one mode is a reason to test promising missing modes and lineage-supported/adjacent distances; it is not permission to assume those strengths. Continue promising paths toward minimally analytical samples and stop weak paths early.
+- Pro League should be Discovery-intensive. Strong Bike evidence at one exact
+  format/distance is a reason to test promising missing or adjacent Bike
+  demands; it is not permission to assume those strengths. Continue promising
+  paths toward minimally analytical samples and stop weak paths early.
 - Race Merge `rpayout` evidence should support format versatility such as Top 3 and Winner Take All through a bounded precomputed per-core/mode/format aggregate. Until that read model exists, show format evidence as pending rather than scanning the full Race Merge history or inventing a format score.
-- The Pro League workspace should read current My Vault state, show structural readiness, an overall cross-mode power shortlist, element-specific candidate pools, breeding quality/structural targets and a Pro League Discovery queue.
-- Preserve the four published fixed 42-race maps and their exact ordered race-type/distance lines. Support one-race and same-type-and-distance mapping scopes within a selected map; keep map 5 and unresolved substitution/administration details unconfigured rather than guessed.
+- The Pro League workspace should read current My Vault state, show structural
+  readiness, Bike exact-format candidate pools, breeding quality/structural
+  targets and a Pro League Discovery queue.
+- Preserve the four published fixed 42-race maps and their exact ordered
+  race-type/distance lines. Support one-race and same-type-and-distance mapping
+  scopes, reusable all-map lineups and match-lock snapshots. Model the home
+  first pick/denial, away second pick and a match-versioned third-map policy;
+  keep additional maps and unresolved administration details unconfigured.
 - The workspace cannot enter teams or races, bet, mint, trade, sign or automate game actions.
 - An in-game Pro League “team” is the owner’s competitive roster and does not change this private application into a multi-user/team SaaS product.
 
