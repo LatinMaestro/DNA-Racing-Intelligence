@@ -126,6 +126,9 @@ describeConnected("hosted Preview P5 connected capacity measurement", () => {
             r2PageLimit: 100,
             r2MaximumPages: 20,
             r2MaximumObjects: 1_000,
+            recordProgress: (stage) => {
+              console.log(JSON.stringify({ capacityProgressStage: stage }));
+            },
           },
           emitEvidence: async (canonicalJson) => {
             await writeFile(

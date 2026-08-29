@@ -215,7 +215,11 @@ private Preview, exact-main run `33224616911` confirmed PostgreSQL 18, all 15
 API-only relations, all 13 runtime functions and zero blockers. A separate
 dispatch-only exact-main workflow now re-proves that state, executes the fixed
 rollback-only PostgreSQL/R2 workload, re-proves cleanup and emits only bounded
-sanitized evidence.
+sanitized evidence. Its first connected attempt, run `33227016073`, failed
+safely in measurement while prerequisite, cleanup and exact-main proofs passed,
+leaving no artifact or residue. The corrected settlement rule allows a forced
+rollback to return exactly to baseline while retaining transient-peak,
+intercepted-commit, rollback and cleanup proof.
 
 Exit: synthetic/replayable API sync can reconstruct canonical site data without spreadsheet upload.
 

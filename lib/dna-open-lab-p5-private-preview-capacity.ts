@@ -2,7 +2,10 @@ import {
   createCloudflareDnaOpenLabP5R2FootprintPort,
   type CloudflareDnaOpenLabP5R2FootprintPortConfiguration,
 } from "./cloudflare-dna-open-lab-p5-r2-footprint-port";
-import { runDnaOpenLabP5CapacityMeasurement } from "./dna-open-lab-p5-capacity-measurement-runner";
+import {
+  runDnaOpenLabP5CapacityMeasurement,
+  type DnaOpenLabP5CapacityProgressRecorder,
+} from "./dna-open-lab-p5-capacity-measurement-runner";
 import type { DnaOpenLabP5CapacityMeasurementReport } from "./dna-open-lab-p5-capacity-measurement";
 import {
   createNeonDnaOpenLabP5PostgresCapacityPort,
@@ -30,6 +33,7 @@ export type DnaOpenLabP5PrivatePreviewCapacityConfiguration = Readonly<{
   r2PageLimit?: number;
   r2MaximumPages?: number;
   r2MaximumObjects?: number;
+  recordProgress?: DnaOpenLabP5CapacityProgressRecorder;
 }>;
 
 /**
@@ -53,6 +57,9 @@ export function runDnaOpenLabP5PrivatePreviewCapacityMeasurement(
       : { sessionFactory: configuration.neon.sessionFactory }),
     bucketName: configuration.r2.bucketName,
     r2Storage: configuration.syntheticR2Storage,
+    ...(configuration.recordProgress === undefined
+      ? {}
+      : { recordProgress: configuration.recordProgress }),
   });
   return runDnaOpenLabP5CapacityMeasurement({
     codeHeadSha: configuration.codeHeadSha,
@@ -83,5 +90,8 @@ export function runDnaOpenLabP5PrivatePreviewCapacityMeasurement(
     ...(configuration.r2MaximumObjects === undefined
       ? {}
       : { r2MaximumObjects: configuration.r2MaximumObjects }),
+    ...(configuration.recordProgress === undefined
+      ? {}
+      : { recordProgress: configuration.recordProgress }),
   });
 }

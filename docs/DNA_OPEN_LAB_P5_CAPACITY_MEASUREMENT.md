@@ -38,7 +38,11 @@ accepted or serving. Callers can no longer substitute a callback that merely
 claims a synthetic cycle completed.
 
 The approved boundary remains `536870912` bytes. Peak—not settled size—is used
-for headroom. Zero headroom is blocking.
+for headroom. Zero headroom is blocking. Because the workload is forcibly
+rolled back, a clean settled reading may equal the baseline. Complete-cycle
+proof instead requires the component-triggered transient sample, intercepted
+commit, rollback and zero-residue checks; durable database growth is neither
+expected nor required.
 
 ## Private R2 evidence and cost
 
@@ -81,9 +85,15 @@ reproducible. Empty footprint or operation observations fail closed.
 The measurement contract, rollback-only full-publication workload and
 least-privilege PostgreSQL/R2 adapters are implemented. A single guarded
 composition fixes the provider scope to private Preview, constructs the
-measurement adapters and constructs the synthetic cycle/cleanup adapter. No
-connected measurement has been performed, so PostgreSQL physical/peak storage,
-private R2 footprint/cost and positive Neon headroom remain pending P5 evidence.
+measurement adapters and constructs the synthetic cycle/cleanup adapter.
+Connected run `33227016073` reached the measurement but failed safely: both
+prerequisite checks, mandatory cleanup and the final exact-main proof passed;
+no artifact was retained and no synthetic residue remained. The runner now
+accepts a clean post-rollback return to baseline and emits only fixed allowlisted
+progress-stage identifiers so any remaining failure can be located without
+revealing measurements, provider errors or identities. PostgreSQL physical/peak
+storage, private R2 footprint/cost and positive Neon headroom remain pending
+until a corrected connected run succeeds and its sanitized evidence is reviewed.
 
 A separate dispatch-only, read-only provider preflight now reduces the live
 configuration to identity-free prerequisite counts and blocker IDs. It requires
@@ -115,5 +125,5 @@ uses the 30 aggregate requests/minute ceiling over 30 days: 1,296,000 projected
 Class A writes and 2,592,000 projected Class B verifications. Pricing uses the
 official Cloudflare R2 authority effective 2026-08-07: $0.015/GB-month,
 $4.50/million Class A and $0.36/million Class B, without subtracting the free
-tier. A connected invocation has not yet been run and this emission contract
-does not open P5.
+tier. The failed safe invocation did not produce capacity evidence and this
+emission contract does not open P5.
