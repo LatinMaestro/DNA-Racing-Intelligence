@@ -20,25 +20,31 @@ const TARGETS = new Map<number, number>([
 type AnyRecord = Record<string, any>;
 function num(v:any,fallback=0){ const n=Number(v); return Number.isFinite(n)?n:fallback; }
 function distanceOf(r:AnyRecord){ const cb=num(r.cb,0); return cb>=100?cb:cb*100; }
-function starFlags(r:AnyRecord){ return {
-  yellowStar: Boolean(r.yellowstar ?? r.yellow_star ?? r.ystar ?? false),
-  blueStar: Boolean(r.bluestar ?? r.blue_star ?? r.bstar ?? false),
-}; }
+function starFlags(r:AnyRecord,hid:number){
+  const yellow=Array.isArray(r.yellowstars)?r.yellowstars.map(Number):[];
+  const blue=Array.isArray(r.bluestars)?r.bluestars.map(Number):[];
+  return {yellowStar:yellow.includes(hid),blueStar:blue.includes(hid)};
+}
 
 describeConnected("elite sprint history validation",()=>{
-  it("backfills full practical 1000/1200/1400 histories for elite raw-performance candidates",async()=>{
+  it("backfills full practical Bike 1000/1200/1400 histories for elite raw-performance candidates",async()=>{
     let last=0,calls=0; const records:any[]=[]; const pages:any[]=[];
     const paced=async<T>(fn:()=>Promise<T>)=>{ const wait=2100-(Date.now()-last); if(wait>0)await new Promise(r=>setTimeout(r,wait)); const v=await fn(); last=Date.now(); calls++; return v; };
     for(const [hid,maxPages] of TARGETS){
       for(let page=1;page<=maxPages;page++){
         const rows=await paced(async()=>{ const res=await fetch("https://api.dnaracing.run/fbike/i/hraces",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({hid,page})}); const body:any=await res.json(); if(!body||!Array.isArray(body.result))throw new Error(`hraces ${hid}/${page} malformed`); return body.result as AnyRecord[]; });
         pages.push({hid,page,n:rows.length});
-        for(const r of rows){ const distance=distanceOf(r); const time=num(r.time??r.rtime??r.elapsed,0); if(![1000,1200,1400].includes(distance)||time<=0)continue; records.push({hid,rid:String(r.rid??r.rhid??`${hid}:${page}:${records.length}`),distance,time,speed:distance/time,gate:num(r.rgate,0),startTime:String(r.start_time??""),raceName:String(r.race_name??""),payout:String(r.payout??""),format:String(r.format??""),...starFlags(r)}); }
+        for(const r of rows){
+          if(String(r.rvmode??"").toLowerCase()!=="bike")continue;
+          const distance=distanceOf(r); const time=num(r.time??r.rtime??r.elapsed,0);
+          if(![1000,1200,1400].includes(distance)||time<=0)continue;
+          records.push({hid,rid:String(r.rid??r.rhid??`${hid}:${page}:${records.length}`),distance,time,speed:distance/time,gate:num(r.rgate,0),startTime:String(r.start_time??""),raceName:String(r.race_name??""),payout:String(r.payout??""),format:String(r.format??""),...starFlags(r,hid)});
+        }
         if(rows.length<50)break;
       }
     }
     await mkdir("artifacts",{recursive:true});
-    await writeFile("artifacts/owner-elite-sprint-history.json",JSON.stringify({schemaVersion:1,fetchedAt:new Date().toISOString(),apiCalls:calls,targets:[...TARGETS.keys()],pages,records}),"utf8");
+    await writeFile("artifacts/owner-elite-sprint-history.json",JSON.stringify({schemaVersion:2,fetchedAt:new Date().toISOString(),apiCalls:calls,targets:[...TARGETS.keys()],pages,records}),"utf8");
     expect(records.length).toBeGreaterThan(0);
   },900_000);
 });
