@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "fetchedAt": "2026-08-29T10:33:22.098Z",
+  "arenaCount": 100,
+  "notifiedPairs": [
+    "Dough x Spoiler",
+    "Bright Lights x Spoiler",
+    "Grand Azula x Spoiler",
+    "Redline Racer x Spoiler",
+    "Bright Lights x Moana"
+  ],
+  "baselinePairFacts": {
+    "Berserker x First Light": {"baby":{"fno":40,"type":"xclass","element":"earth"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Berserker x Reese Dylan": {"baby":{"fno":46,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Grand Azula x First Light": {"baby":{"fno":35,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Bright Lights x Reese Dylan": {"baby":{"fno":30,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Bong Ripper x Low on Dough": {"baby":{"fno":18,"type":"xclass","element":"earth"},"validation":"valid","totalCost":21},
+    "Dough x Spoiler": {"baby":{"fno":25,"type":"xclass","element":"water"},"validation":"valid","totalCost":15},
+    "Alien Nosejob x Spoiler": {"baby":{"fno":27,"type":"xclass","element":"water"},"validation":"valid","totalCost":15},
+    "Bright Lights x Spoiler": {"baby":{"fno":27,"type":"xclass","element":"water"},"validation":"valid","totalCost":14},
+    "Grand Azula x Spoiler": {"baby":{"fno":38,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Redline Racer x Spoiler": {"baby":{"fno":21,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "The Ice Cream Man x Spoiler": {"baby":{"fno":33,"type":"xclass","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Grand Azula x Overzealous": {"baby":{"fno":26,"type":"freak","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Redline Racer x Overzealous": {"baby":{"fno":9,"type":"freak","element":"earth"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Bright Lights x Moana": {"baby":{"fno":17,"type":"xclass","element":"fire"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Alien Nosejob x Moana": {"baby":{"fno":17,"type":"xclass","element":"fire"},"validation":"one or both parent cores not in stud","totalCost":null},
+    "Zeppelin Quest x Reese Dylan": {"baby":{"fno":28,"type":"freak","element":"water"},"validation":"one or both parent cores not in stud","totalCost":null}
+  },
+  "arenaListingBaseline": {
+    "24298": {"name":"Berserker","price_usd":2},
+    "17053": {"name":"Bright Lights","price_usd":2},
+    "23835": {"name":"Bong Ripper","price_usd":2},
+    "8174": {"name":"Low on Dough","price_usd":3},
+    "24936": {"name":"Spoiler","price_usd":2},
+    "2799": {"name":"Dough","price_usd":3},
+    "8665": {"name":"Alien Nosejob","price_usd":3},
+    "3437": {"name":"Overzealous","price_usd":3},
+    "710": {"name":"Zeppelin Quest","price_usd":2}
+  },
+  "notes": [
+    "Initial baseline established on 2026-08-29. No arena listing or price changes occurred between the 10:28:11Z and 10:33:22Z snapshots.",
+    "The public stud pair_validate endpoint rejects mixed owner-vault/unlisted pairs as 'one or both parent cores not in stud'; this is retained as API validation state and should not be conflated with owner-side vault availability.",
+    "Notify on later listing/price/validity changes or materially better unnotified performance/value pairings."
+  ]
+}
