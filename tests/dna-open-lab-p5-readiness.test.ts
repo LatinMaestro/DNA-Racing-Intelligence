@@ -4,7 +4,6 @@ import {
   assessDnaOpenLabP5Readiness,
   DNA_OPEN_LAB_CURRENT_P5_READINESS,
   DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
-  DNA_OPEN_LAB_P5_TECHNICAL_REQUIREMENT_IDS,
   type DnaOpenLabP5ReadinessEvidence,
 } from "@/lib/dna-open-lab-p5-readiness";
 
@@ -16,7 +15,12 @@ describe("DNA Open Lab P5 readiness", () => {
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewSyncAllowed: false,
       productionChangesAllowed: false,
-      blockingRequirementIds: DNA_OPEN_LAB_P5_TECHNICAL_REQUIREMENT_IDS,
+      blockingRequirementIds: [
+        "restart_replay_idempotency",
+        "partial_failure_rate_limit_recovery",
+        "tier_loss_reinstatement_catch_up",
+        "stale_cached_site_operation",
+      ],
     });
   });
 
@@ -35,11 +39,23 @@ describe("DNA Open Lab P5 readiness", () => {
       DNA_OPEN_LAB_P5_READINESS_EVIDENCE.filter(
         (entry) => entry.status === "pending_measurement",
       ).map((entry) => entry.requirementId),
-    ).toEqual([
+    ).toEqual([]);
+    const satisfied = DNA_OPEN_LAB_P5_READINESS_EVIDENCE.filter(
+      (entry) => entry.status === "satisfied",
+    );
+    expect(satisfied.map((entry) => entry.requirementId)).toEqual([
       "postgres_18_physical_peak_storage",
       "private_r2_footprint_cost",
       "positive_neon_headroom",
     ]);
+    for (const entry of satisfied) {
+      expect(entry.evidenceRefs).toContain(
+        "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33227770750",
+      );
+      expect(entry.evidenceRefs).toContain(
+        "github-actions:artifact/9707453042#sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9",
+      );
+    }
   });
 
   it("still requires explicit approval after every technical requirement passes", () => {

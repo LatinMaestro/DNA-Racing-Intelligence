@@ -86,14 +86,13 @@ The measurement contract, rollback-only full-publication workload and
 least-privilege PostgreSQL/R2 adapters are implemented. A single guarded
 composition fixes the provider scope to private Preview, constructs the
 measurement adapters and constructs the synthetic cycle/cleanup adapter.
-Connected run `33227016073` reached the measurement but failed safely: both
-prerequisite checks, mandatory cleanup and the final exact-main proof passed;
-no artifact was retained and no synthetic residue remained. The runner now
-accepts a clean post-rollback return to baseline and emits only fixed allowlisted
-progress-stage identifiers so any remaining failure can be located without
-revealing measurements, provider errors or identities. PostgreSQL physical/peak
-storage, private R2 footprint/cost and positive Neon headroom remain pending
-until a corrected connected run succeeds and its sanitized evidence is reviewed.
+Connected run `33227016073` failed safely and motivated the corrected rollback
+settlement rule. Exact-main run `33227770750` then passed every prerequisite,
+measurement, cleanup and final-head step and retained the sanitized artifact
+with digest
+`sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9`.
+It satisfied the PostgreSQL physical/peak, private R2 footprint/cost and positive
+Neon headroom rows without authorising persistent sync or Production.
 
 A separate dispatch-only, read-only provider preflight now reduces the live
 configuration to identity-free prerequisite counts and blocker IDs. It requires
@@ -125,5 +124,9 @@ uses the 30 aggregate requests/minute ceiling over 30 days: 1,296,000 projected
 Class A writes and 2,592,000 projected Class B verifications. Pricing uses the
 official Cloudflare R2 authority effective 2026-08-07: $0.015/GB-month,
 $4.50/million Class A and $0.36/million Class B, without subtracting the free
-tier. The failed safe invocation did not produce capacity evidence and this
-emission contract does not open P5.
+tier. The successful evidence measured a 17,768,448-byte PostgreSQL peak,
+519,102,464 bytes of positive headroom, a 300-byte bounded synthetic R2
+footprint and a 6,765,121 micro-USD 30-day projection. The artifact reported
+`connectedCapacityEvidenceComplete` and `readyToUpdateP5CapacityRows` as true,
+while persistent Preview sync and Production remained false. This capacity
+evidence alone does not open P5; connected recovery acceptance remains pending.

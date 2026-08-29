@@ -730,3 +730,18 @@ After the private Pro League milestone, continue in this order:
 - Connected logs may emit only fixed allowlisted progress-stage identifiers.
   Measurements, provider identities, configuration, errors and payloads remain
   prohibited from workflow output.
+
+## 2026-08-29 — Connected capacity evidence satisfies three P5 rows
+
+- Accept exact-main connected run `33227770750` at
+  `c8e81713ebccf6b781a1d6dc22aa3093ae3ad705` as authority for PostgreSQL 18
+  physical/peak storage, private R2 footprint/cost and positive Neon headroom.
+- Bind the conclusion to artifact digest
+  `sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9`
+  and canonical evidence checksum
+  `f545f2b247270b2098e9337485514f1e7e36a45caedd80e92797add7ee859bf8`.
+- Record a 17,768,448-byte PostgreSQL peak, 519,102,464 bytes of positive
+  headroom, a 300-byte bounded synthetic R2 footprint and a 6,765,121 micro-USD
+  30-day projection. The marker and rollback generation left zero residue.
+- Keep persistent private Preview sync and Production disallowed. Capacity is
+  complete, but all four connected recovery requirements remain blocking.

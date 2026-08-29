@@ -100,8 +100,10 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
   }),
   evidence({
     requirementId: "postgres_18_physical_peak_storage",
-    status: "pending_measurement",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33227770750",
+      "github-actions:artifact/9707453042#sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9",
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
       "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
@@ -110,12 +112,14 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-capacity-invocation.test.ts",
     ]),
     conclusion:
-      "The API-only PostgreSQL 18 contract and least-privilege owner-relation adapter are implemented; connected heap, index, TOAST and transient-overlap evidence remains pending.",
+      "Exact-main connected run 33227770750 proved PostgreSQL 18, complete owner heap/index/TOAST measurement and rollback-only peak sampling with zero residue.",
   }),
   evidence({
     requirementId: "private_r2_footprint_cost",
-    status: "pending_measurement",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33227770750",
+      "github-actions:artifact/9707453042#sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9",
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
       "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
@@ -124,12 +128,14 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-capacity-invocation.test.ts",
     ]),
     conclusion:
-      "The private R2 footprint contract and owner-prefix-confined listing adapter are implemented; connected retained bytes, request volume and cost evidence remains pending.",
+      "Exact-main connected run 33227770750 measured the bounded private owner-prefix R2 footprint and dated 30-day cost projection, then proved marker cleanup and zero residue.",
   }),
   evidence({
     requirementId: "positive_neon_headroom",
-    status: "pending_measurement",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33227770750",
+      "github-actions:artifact/9707453042#sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9",
       "docs/DNA_OPEN_LAB_P5_CAPACITY_MEASUREMENT.md",
       "tests/dna-open-lab-p5-capacity-measurement.test.ts",
       "tests/dna-open-lab-p5-capacity-measurement-runner.test.ts",
@@ -138,7 +144,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-capacity-invocation.test.ts",
     ]),
     conclusion:
-      "The API-only peak-headroom rule and physical-size adapter are machine-checkable; connected evidence must still prove positive headroom below 536,870,912 bytes.",
+      "Exact-main connected run 33227770750 measured a 17,768,448-byte peak and 519,102,464 bytes of positive headroom below the 536,870,912-byte boundary.",
   }),
 ] satisfies readonly DnaOpenLabP5ReadinessEvidence[]);
 
