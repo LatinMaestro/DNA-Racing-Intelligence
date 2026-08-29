@@ -30,6 +30,11 @@ const pairs = Object.freeze([
   { label: "Bright Lights x Taco Surprise", fatherCoreId: 17053, motherCoreId: 11956, fatherSource: "arena", motherSource: "arena" },
   { label: "Bong Ripper x Low on Dough", fatherCoreId: 23835, motherCoreId: 8174, fatherSource: "arena", motherSource: "arena" },
   { label: "Bright Lights x Tactical Mumpkin", fatherCoreId: 17053, motherCoreId: 8092, fatherSource: "arena", motherSource: "arena" },
+  { label: "Glorious Mountain x Taco Surprise", fatherCoreId: 6443, motherCoreId: 11956, fatherSource: "arena", motherSource: "arena" },
+  { label: "Velvet x Tactical Mumpkin", fatherCoreId: 26, motherCoreId: 8092, fatherSource: "arena", motherSource: "arena" },
+  { label: "Run forest run x Low on Dough", fatherCoreId: 20693, motherCoreId: 8174, fatherSource: "arena", motherSource: "arena" },
+  { label: "Quick_Cash x Taco Surprise", fatherCoreId: 20116, motherCoreId: 11956, fatherSource: "arena", motherSource: "arena" },
+  { label: "Snitches get stitches x Low on Dough", fatherCoreId: 20253, motherCoreId: 8174, fatherSource: "arena", motherSource: "arena" },
 ]);
 
 function required(name: string): string {
