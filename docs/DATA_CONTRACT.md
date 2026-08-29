@@ -179,6 +179,12 @@ The crawler retains durable window/checkpoint state so restart and access loss d
 
 ## 10. Idempotency and last-good publication
 
+Mode-aware normal-Free Discovery observations and recommendation contracts are
+specified in `DISCOVERY_NORMAL_FREE_STUDY.md`. Publication requires complete
+paginated history and identity includes owner, Core, mode, exact distance and
+evidence class where necessary. Legacy rows without authoritative race names
+remain unknown; entry price cannot backfill their class.
+
 Every sync/backfill family must support replay.
 
 - stable natural keys prevent duplicate facts;

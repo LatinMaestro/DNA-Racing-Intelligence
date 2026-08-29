@@ -1,5 +1,10 @@
 import type { DiscoveryDecisionCandidate } from "@/domain/discovery-decision-guidance";
 import type { DiscoveryWorkspaceConnectionStatus } from "@/lib/discovery-workspace-service";
+import {
+  DiscoveryStudyWorkspace,
+  type DiscoveryStudyFilters,
+  type DiscoveryStudyView,
+} from "./discovery-study-workspace";
 
 const connectionCopy: Record<
   DiscoveryWorkspaceConnectionStatus,
@@ -125,10 +130,22 @@ export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
   connectionStatus,
+  study = null,
+  studyFilters = {
+    mode: "bike",
+    squad: "all",
+    recommendation: "all",
+    distanceMetres: null,
+    evidenceBasis: null,
+    completion: "all",
+    coreStatus: null,
+  },
 }: Readonly<{
   candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
+  study?: DiscoveryStudyView | null;
+  studyFilters?: DiscoveryStudyFilters;
 }>) {
   const connection = connectionCopy[connectionStatus];
 
@@ -369,6 +386,8 @@ export function DiscoveryWorkspace({
           </div>
         )}
       </section>
+
+      <DiscoveryStudyWorkspace filters={studyFilters} study={study} />
     </div>
   );
 }

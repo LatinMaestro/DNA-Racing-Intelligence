@@ -24,6 +24,13 @@ experimental coverage-planning interface, not a race recommendation.
 
 - Keep Bike, Car and Horse separate at every exact distance in metres.
 - Treat ten direct races as a minimum coverage boundary, not proof.
+- Keep the owner-configurable twenty-observation normal-Free test target
+  separate from that analytical boundary. Existing usable observations reduce
+  the planned remainder.
+- Classify normal-Free only from an authoritative standalone `Free` race-name
+  token. Never infer it from entry price.
+- Preserve normal-Free, competitive, tournament, esports and lineage evidence
+  separately. See `DISCOVERY_NORMAL_FREE_STUDY.md`.
 - Keep direct results primary and use resolved lineage only to form a
   hypothesis.
 - Raise review priority for tournament relevance or Maiden preservation without
@@ -39,6 +46,12 @@ automatic entry or stopping.
 The route is a dynamic Server Component with no client-side persistence path.
 The page displays historical import and data cutoffs separately, labels Gate C
 as not passed and keeps race entry disabled.
+
+The additive normal-Free study interface provides mode and audit filters, a
+candidate matrix and per-distance table contracts with visually distinct
+`TEST` and `SCREEN` states. Until authoritative race-name plus finished-time
+history is available, it renders an explicit unavailable state rather than
+turning legacy unknown evidence into zero observations.
 
 ## Deferred work
 

@@ -125,6 +125,13 @@ Do not initially assume that payout format changes a core’s intrinsic racing a
 
 Purpose: identify promising but under-tested core × mode × distance combinations without wasting races.
 
+The shared Horse, Car and Bike normal-Free owner study, evidence classes,
+mode-specific distance configuration, `TEST`/`SCREEN` states and configurable
+twenty-observation target are specified in
+`DISCOVERY_NORMAL_FREE_STUDY.md`. The target is a controlled testing-plan
+boundary; it does not replace the ten-race minimum analytical boundary below.
+The Bike-only Pro League scope does not restrict this general Discovery model.
+
 Rules:
 
 - 10 completed races at an exact core × mode × distance is the minimum for a minimally analytical result.
