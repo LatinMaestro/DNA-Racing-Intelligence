@@ -1,0 +1,32 @@
+name: Live Bike Arena snapshot
+
+on:
+  push:
+    branches:
+      - analysis/live-bike-arena-snapshot-20260830
+
+permissions:
+  contents: read
+
+env:
+  DNA_LIVE_ARENA_SNAPSHOT: "1"
+  DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/hosted-live-bike-arena-snapshot.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-bike-arena-snapshot
+          path: artifacts/live-bike-arena-snapshot.json
+          if-no-files-found: error
+          retention-days: 1
