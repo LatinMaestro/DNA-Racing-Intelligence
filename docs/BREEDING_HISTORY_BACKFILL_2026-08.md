@@ -32,6 +32,10 @@ This work implements the data-acquisition phase required to turn the breeder-qua
    - convert lift to population-relative residual percentiles;
    - feed only authoritative-creation outcomes into elite-breeder TARGET benchmarks.
 
+## Connected recovery note
+
+The first aggressive inventory attempt ran for roughly 35 minutes before DNA returned a transient HTTP 502 with a 60-second Retry-After value. The research workflows now preload a bounded transient-5xx retry wrapper so an otherwise healthy long crawl can back off and resume instead of discarding the run. Inventory and history phases remain concurrency-separated so the combined research request ceiling is never intentionally exceeded.
+
 ## Important evidence boundary
 
 `domain/breeding-offspring-evidence.ts` prevents a first-race proxy or unknown creation time from promoting a Core to an elite-breeder TARGET. Proxy outcomes remain useful for discovery and prioritising further research, but they cannot be presented as chronologically proven breeder lift.
