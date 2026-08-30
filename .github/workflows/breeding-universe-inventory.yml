@@ -24,7 +24,6 @@ jobs:
     env:
       DNA_BREEDING_UNIVERSE_BACKFILL: "1"
       DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
-      NODE_OPTIONS: "--import=./scripts/retry-transient-fetch.mjs"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,6 +32,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - name: Pull full breeding/race/core inventory under temporary 150 rpm authority
+        env:
+          NODE_OPTIONS: "--import=./scripts/retry-transient-fetch.mjs"
         run: npx vitest run --no-file-parallelism tests/hosted-breeding-universe-inventory.test.ts
       - uses: actions/upload-artifact@v4
         with:
