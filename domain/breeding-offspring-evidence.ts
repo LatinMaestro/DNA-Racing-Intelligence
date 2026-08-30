@@ -75,15 +75,26 @@ export function assessBreedingOffspringEvidence(
     throw new Error("Offspring creation authority is invalid.");
   }
   if (evidence.distanceMetres !== null) {
-    if (!Number.isSafeInteger(evidence.distanceMetres) || evidence.distanceMetres <= 0) {
-      throw new Error("Offspring evidence distance must be a positive safe integer.");
+    if (
+      !Number.isSafeInteger(evidence.distanceMetres) ||
+      evidence.distanceMetres <= 0
+    ) {
+      throw new Error(
+        "Offspring evidence distance must be a positive safe integer.",
+      );
     }
   }
   percent(evidence.offspringQualityPercentile, "Offspring quality percentile");
   percent(evidence.expectedQualityPercentile, "Expected quality percentile");
   percent(evidence.residualPercentile, "Residual percentile");
-  nonNegativeInteger(evidence.offspringRaceSampleSize, "Offspring race sample size");
-  nonNegativeInteger(evidence.benchmarkPopulationSize, "Benchmark population size");
+  nonNegativeInteger(
+    evidence.offspringRaceSampleSize,
+    "Offspring race sample size",
+  );
+  nonNegativeInteger(
+    evidence.benchmarkPopulationSize,
+    "Benchmark population size",
+  );
   const expectedModelCutoff = canonicalTimestamp(
     evidence.expectedModelCutoff,
     "Expected-model cutoff",
@@ -94,7 +105,9 @@ export function assessBreedingOffspringEvidence(
   let usableForEliteBreederTarget = false;
   if (evidence.creationAuthority === "authoritative_minted_at") {
     if (evidence.offspringCreatedAt === null) {
-      throw new Error("Authoritative minted-at evidence requires offspringCreatedAt.");
+      throw new Error(
+        "Authoritative minted-at evidence requires offspringCreatedAt.",
+      );
     }
     const createdAt = canonicalTimestamp(
       evidence.offspringCreatedAt,
@@ -110,7 +123,9 @@ export function assessBreedingOffspringEvidence(
     warnings.push("FIRST_RACE_IS_NOT_AUTHORITATIVE_CREATION_TIME");
     warnings.push("PROXY_EVIDENCE_CANNOT_PROMOTE_ELITE_BREEDER_TARGET");
     if (evidence.offspringCreatedAt === null) {
-      throw new Error("First-race proxy evidence requires the proxy timestamp.");
+      throw new Error(
+        "First-race proxy evidence requires the proxy timestamp.",
+      );
     }
     canonicalTimestamp(evidence.offspringCreatedAt, "First-race proxy time");
   } else {
@@ -129,7 +144,10 @@ export function toAuthoritativeBreederOutcome(
   evidence: BreedingOffspringEvidence,
 ): BreederOffspringOutcome | null {
   const assessment = assessBreedingOffspringEvidence(evidence);
-  if (!assessment.usableForEliteBreederTarget || evidence.offspringCreatedAt === null) {
+  if (
+    !assessment.usableForEliteBreederTarget ||
+    evidence.offspringCreatedAt === null
+  ) {
     return null;
   }
   const scope: BreederScope = Object.freeze({

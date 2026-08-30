@@ -31,7 +31,8 @@ function integerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
   const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${name} invalid`);
+  if (!Number.isSafeInteger(value) || value < 0)
+    throw new Error(`${name} invalid`);
   return value;
 }
 
@@ -53,11 +54,18 @@ function normalize(hid: number, row: AnyRecord): HistoryRecord | null {
   if (cb === null || cb <= 0) return null;
   const distanceMetres = cb >= 100 ? cb : cb * 100;
   const elapsedSeconds = numberOrNull(row.time ?? row.rtime ?? row.elapsed);
-  if (elapsedSeconds === null || elapsedSeconds <= 0 || distanceMetres <= 0) return null;
-  const position = numberOrNull(row.position ?? row.pos ?? row.rank ?? row.place ?? row.finish_pos);
+  if (elapsedSeconds === null || elapsedSeconds <= 0 || distanceMetres <= 0)
+    return null;
+  const position = numberOrNull(
+    row.position ?? row.pos ?? row.rank ?? row.place ?? row.finish_pos,
+  );
   return {
     hid,
-    rid: String(row.rid ?? row.rhid ?? `${hid}:${row.start_time ?? ""}:${distanceMetres}:${elapsedSeconds}`),
+    rid: String(
+      row.rid ??
+        row.rhid ??
+        `${hid}:${row.start_time ?? ""}:${distanceMetres}:${elapsedSeconds}`,
+    ),
     rvmode,
     distanceMetres,
     elapsedSeconds,
@@ -78,22 +86,33 @@ describeConnected("sharded historical race result backfill", () => {
     async () => {
       const now = new Date().toISOString();
       if (Date.parse(now) >= Date.parse(RESEARCH_EXPIRES_AT)) {
-        throw new Error("Temporary August high-rate research authority has expired.");
+        throw new Error(
+          "Temporary August high-rate research authority has expired.",
+        );
       }
 
       const shardIndex = integerEnv("HISTORY_SHARD_INDEX", 0);
       const shardCount = integerEnv("HISTORY_SHARD_COUNT", DEFAULT_SHARD_COUNT);
-      if (shardCount < 1 || shardIndex >= shardCount) throw new Error("invalid shard configuration");
-      const perShardRequestsPerMinute = Math.floor(TOTAL_REQUESTS_PER_MINUTE / shardCount);
+      if (shardCount < 1 || shardIndex >= shardCount)
+        throw new Error("invalid shard configuration");
+      const perShardRequestsPerMinute = Math.floor(
+        TOTAL_REQUESTS_PER_MINUTE / shardCount,
+      );
       const intervalMs = Math.ceil(60_000 / perShardRequestsPerMinute) + 10;
 
-      const inventoryPath = process.env.BREEDING_INVENTORY_PATH ?? "artifacts/inventory/breeding-universe-inventory.json";
-      const inventory = JSON.parse(await readFile(inventoryPath, "utf8")) as AnyRecord;
+      const inventoryPath =
+        process.env.BREEDING_INVENTORY_PATH ??
+        "artifacts/inventory/breeding-universe-inventory.json";
+      const inventory = JSON.parse(
+        await readFile(inventoryPath, "utf8"),
+      ) as AnyRecord;
       const allHids = (inventory?.universe?.hids ?? [])
         .map((value: unknown) => Number(value))
         .filter((value: number) => Number.isSafeInteger(value) && value > 0)
         .sort((a: number, b: number) => a - b);
-      const hids = allHids.filter((hid: number) => hid % shardCount === shardIndex);
+      const hids = allHids.filter(
+        (hid: number) => hid % shardCount === shardIndex,
+      );
 
       let permitTail: Promise<void> = Promise.resolve();
       let lastStartAt = 0;
@@ -113,31 +132,42 @@ describeConnected("sharded historical race result backfill", () => {
         await previous;
         try {
           const wait = intervalMs - (Date.now() - lastStartAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           lastStartAt = Date.now();
         } finally {
           release?.();
         }
       };
 
-      const requestPage = async (hid: number, page: number): Promise<AnyRecord[]> => {
+      const requestPage = async (
+        hid: number,
+        page: number,
+      ): Promise<AnyRecord[]> => {
         for (let attempt = 0; attempt < 5; attempt++) {
           await acquire();
           requestCount++;
-          const response = await fetch("https://api.dnaracing.run/fbike/i/hraces", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ hid, page }),
-          });
+          const response = await fetch(
+            "https://api.dnaracing.run/fbike/i/hraces",
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ hid, page }),
+            },
+          );
           if (response.status === 429 && attempt < 4) {
             rateLimitedCount++;
             const retry = Number(response.headers.get("retry-after") ?? 2);
-            await new Promise((resolve) => setTimeout(resolve, Math.max(1, retry) * 1_000));
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.max(1, retry) * 1_000),
+            );
             continue;
           }
-          if (!response.ok) throw new Error(`hraces ${hid}/${page} HTTP ${response.status}`);
+          if (!response.ok)
+            throw new Error(`hraces ${hid}/${page} HTTP ${response.status}`);
           const body = (await response.json()) as AnyRecord;
-          if (!body || !Array.isArray(body.result)) throw new Error(`hraces ${hid}/${page} malformed`);
+          if (!body || !Array.isArray(body.result))
+            throw new Error(`hraces ${hid}/${page} malformed`);
           return body.result as AnyRecord[];
         }
         throw new Error(`hraces ${hid}/${page} exhausted retries`);
@@ -161,22 +191,39 @@ describeConnected("sharded historical race result backfill", () => {
                 const key = `${hid}|${normalized.rvmode}|${normalized.rid}`;
                 const existing = recordsByKey.get(key);
                 if (!existing) recordsByKey.set(key, normalized);
-                else if (JSON.stringify(existing.raw) !== JSON.stringify(normalized.raw)) {
-                  errors.push({ hid, page, kind: "conflicting_duplicate", key });
+                else if (
+                  JSON.stringify(existing.raw) !==
+                  JSON.stringify(normalized.raw)
+                ) {
+                  errors.push({
+                    hid,
+                    page,
+                    kind: "conflicting_duplicate",
+                    key,
+                  });
                 }
               }
               if (rows.length < PAGE_SIZE) break;
             }
-            if (lastPageLength >= PAGE_SIZE && pageCounts[String(hid)] === MAX_PAGES_PER_CORE) {
+            if (
+              lastPageLength >= PAGE_SIZE &&
+              pageCounts[String(hid)] === MAX_PAGES_PER_CORE
+            ) {
               truncatedHids.push(hid);
             }
           } catch (error) {
-            errors.push({ hid, kind: "history_pull_failed", error: error instanceof Error ? error.message : String(error) });
+            errors.push({
+              hid,
+              kind: "history_pull_failed",
+              error: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       };
 
-      await Promise.all(Array.from({ length: WORKERS_PER_SHARD }, () => worker()));
+      await Promise.all(
+        Array.from({ length: WORKERS_PER_SHARD }, () => worker()),
+      );
 
       const records = [...recordsByKey.values()].sort(
         (left, right) =>
@@ -184,10 +231,13 @@ describeConnected("sharded historical race result backfill", () => {
           (left.startTime ?? "").localeCompare(right.startTime ?? "") ||
           left.rid.localeCompare(right.rid),
       );
-      const modeCounts = records.reduce<Record<string, number>>((out, record) => {
-        out[record.rvmode] = (out[record.rvmode] ?? 0) + 1;
-        return out;
-      }, {});
+      const modeCounts = records.reduce<Record<string, number>>(
+        (out, record) => {
+          out[record.rvmode] = (out[record.rvmode] ?? 0) + 1;
+          return out;
+        },
+        {},
+      );
 
       await mkdir("artifacts/history", { recursive: true });
       const outputPath = `artifacts/history/breeding-race-history-${shardIndex}.json`;

@@ -82,13 +82,20 @@ function lineageIds(value: unknown): number[] {
   ];
   const directPreferred = preferred.flatMap((key) => lineageIds(record[key]));
   if (directPreferred.length > 0) return [...new Set(directPreferred)];
-  return [...new Set(Object.values(record).flatMap((entry) => lineageIds(entry)))];
+  return [
+    ...new Set(Object.values(record).flatMap((entry) => lineageIds(entry))),
+  ];
 }
 
-function extractRequestIds(value: unknown, path = "splice_core"): { path: string; value: string }[] {
+function extractRequestIds(
+  value: unknown,
+  path = "splice_core",
+): { path: string; value: string }[] {
   if (value === null || value === undefined) return [];
   if (Array.isArray(value)) {
-    return value.flatMap((entry, index) => extractRequestIds(entry, `${path}[${index}]`));
+    return value.flatMap((entry, index) =>
+      extractRequestIds(entry, `${path}[${index}]`),
+    );
   }
   if (typeof value !== "object") return [];
   const record = value as AnyRecord;
@@ -131,12 +138,24 @@ function splitWindow(window: Window): [Window, Window] {
   const start = Date.parse(window.startTime);
   const end = Date.parse(window.endTime);
   const midpoint = start + Math.floor((end - start) / 2);
-  if (end - start <= MIN_FINISHED_WINDOW_MS || midpoint <= start || midpoint >= end) {
-    throw new Error(`Finished-race window remained saturated at ${window.startTime}..${window.endTime}`);
+  if (
+    end - start <= MIN_FINISHED_WINDOW_MS ||
+    midpoint <= start ||
+    midpoint >= end
+  ) {
+    throw new Error(
+      `Finished-race window remained saturated at ${window.startTime}..${window.endTime}`,
+    );
   }
   return [
-    { startTime: new Date(start).toISOString(), endTime: new Date(midpoint).toISOString() },
-    { startTime: new Date(midpoint).toISOString(), endTime: new Date(end).toISOString() },
+    {
+      startTime: new Date(start).toISOString(),
+      endTime: new Date(midpoint).toISOString(),
+    },
+    {
+      startTime: new Date(midpoint).toISOString(),
+      endTime: new Date(end).toISOString(),
+    },
   ];
 }
 
@@ -152,7 +171,9 @@ describeConnected("aggressive owner breeding universe backfill", () => {
     async () => {
       const fetchedAt = new Date().toISOString();
       if (Date.parse(fetchedAt) >= Date.parse(RESEARCH_EXPIRES_AT)) {
-        throw new Error("Temporary August 150 rpm research authority has expired.");
+        throw new Error(
+          "Temporary August 150 rpm research authority has expired.",
+        );
       }
 
       const apiKey = required("DNA_OPEN_LAB_API_KEY_1");
@@ -174,7 +195,8 @@ describeConnected("aggressive owner breeding universe backfill", () => {
         await previous;
         try {
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           lastStartAt = Date.now();
         } finally {
           release?.();
@@ -183,28 +205,48 @@ describeConnected("aggressive owner breeding universe backfill", () => {
 
       const observe = (response: DnaOpenLabResponse<unknown>) => {
         const { limit, remaining } = response.rateLimit;
-        if (limit !== null) maximumObservedLimit = Math.max(maximumObservedLimit ?? 0, limit);
+        if (limit !== null)
+          maximumObservedLimit = Math.max(maximumObservedLimit ?? 0, limit);
         if (remaining !== null) {
-          minimumObservedRemaining = Math.min(minimumObservedRemaining ?? remaining, remaining);
+          minimumObservedRemaining = Math.min(
+            minimumObservedRemaining ?? remaining,
+            remaining,
+          );
         }
       };
 
-      const paced = async <T>(operation: () => Promise<DnaOpenLabResponse<T>>): Promise<DnaOpenLabResponse<T>> => {
+      const paced = async <T>(
+        operation: () => Promise<DnaOpenLabResponse<T>>,
+      ): Promise<DnaOpenLabResponse<T>> => {
         for (let attempt = 0; attempt < 4; attempt++) {
           await acquire();
           openLabRequestCount++;
           try {
             const response = await operation();
             observe(response as DnaOpenLabResponse<unknown>);
-            if (response.rateLimit.remaining === 0 && response.rateLimit.resetSeconds) {
-              await new Promise((resolve) => setTimeout(resolve, response.rateLimit.resetSeconds! * 1_000));
+            if (
+              response.rateLimit.remaining === 0 &&
+              response.rateLimit.resetSeconds
+            ) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, response.rateLimit.resetSeconds! * 1_000),
+              );
             }
             return response;
           } catch (error) {
-            if (error instanceof DnaOpenLabApiError && error.kind === "rate_limited" && attempt < 3) {
+            if (
+              error instanceof DnaOpenLabApiError &&
+              error.kind === "rate_limited" &&
+              attempt < 3
+            ) {
               rateLimitedCount++;
-              const seconds = error.rateLimit?.retryAfterSeconds ?? error.rateLimit?.resetSeconds ?? 2;
-              await new Promise((resolve) => setTimeout(resolve, Math.max(1, seconds) * 1_000));
+              const seconds =
+                error.rateLimit?.retryAfterSeconds ??
+                error.rateLimit?.resetSeconds ??
+                2;
+              await new Promise((resolve) =>
+                setTimeout(resolve, Math.max(1, seconds) * 1_000),
+              );
               continue;
             }
             throw error;
@@ -213,10 +255,18 @@ describeConnected("aggressive owner breeding universe backfill", () => {
         throw new Error("unreachable paced request failure");
       };
 
-      const safe = async <T>(label: string, operation: () => Promise<DnaOpenLabResponse<T>>) => {
+      const safe = async <T>(
+        label: string,
+        operation: () => Promise<DnaOpenLabResponse<T>>,
+      ) => {
         try {
           const response = await paced(operation);
-          return { label, ok: true as const, result: response.result, error: null };
+          return {
+            label,
+            ok: true as const,
+            result: response.result,
+            error: null,
+          };
         } catch (error) {
           return {
             label,
@@ -230,14 +280,22 @@ describeConnected("aggressive owner breeding universe backfill", () => {
       const auth = await paced(() => client.testAuth());
       const tierBadge = await paced(() => client.vaultTierBadge(OWNER_VAULT));
       const ownerVault = await paced(() => client.vaultCoresFull(OWNER_VAULT));
-      const ownerRecentRaces = await paced(() => client.vaultRecentRaces(OWNER_VAULT));
+      const ownerRecentRaces = await paced(() =>
+        client.vaultRecentRaces(OWNER_VAULT),
+      );
       const activeRaces = await paced(() => client.racesActive());
       const tokenPrices = await paced(() => client.tokenPrices());
 
-      const arenas: Record<string, AnyRecord[]> = { bike: [], car: [], horse: [] };
+      const arenas: Record<string, AnyRecord[]> = {
+        bike: [],
+        car: [],
+        horse: [],
+      };
       for (const mode of ["bike", "car", "horse"] as const) {
         for (let page = 1; page <= 100; page++) {
-          const response = await paced(() => client.spliceArena({ filter: { rvmode: mode }, page }));
+          const response = await paced(() =>
+            client.spliceArena({ filter: { rvmode: mode }, page }),
+          );
           arenas[mode]!.push(...(response.result.cores as AnyRecord[]));
           if (!response.result.has_more) break;
         }
@@ -294,18 +352,22 @@ describeConnected("aggressive owner breeding universe backfill", () => {
       }
 
       const discoveredHids = new Set<number>();
-      for (const core of ownerVault.result) discoveredHids.add(Number(core.hid));
+      for (const core of ownerVault.result)
+        discoveredHids.add(Number(core.hid));
       for (const rows of Object.values(arenas)) {
         for (const core of rows) {
           const hid = finiteHid(core.hid);
           if (hid !== null) discoveredHids.add(hid);
         }
       }
-      for (const race of finishedByRid.values()) addRaceHids(discoveredHids, race as AnyRecord);
+      for (const race of finishedByRid.values())
+        addRaceHids(discoveredHids, race as AnyRecord);
       for (const race of hydratedDocs) addRaceHids(discoveredHids, race);
       for (const fill of raceFills) addRaceHids(discoveredHids, fill);
-      for (const race of ownerRecentRaces.result) addRaceHids(discoveredHids, race as AnyRecord);
-      for (const race of activeRaces.result) addRaceHids(discoveredHids, race as AnyRecord);
+      for (const race of ownerRecentRaces.result)
+        addRaceHids(discoveredHids, race as AnyRecord);
+      for (const race of activeRaces.result)
+        addRaceHids(discoveredHids, race as AnyRecord);
 
       const families: CoreFamilies = {
         info: [],
@@ -323,10 +385,16 @@ describeConnected("aggressive owner breeding universe backfill", () => {
       const directParentsByChild = new Map<number, number[]>();
 
       for (let generation = 0; generation < 5; generation++) {
-        const frontier = [...discoveredHids].filter((hid) => !fetchedHids.has(hid)).sort((a, b) => a - b);
+        const frontier = [...discoveredHids]
+          .filter((hid) => !fetchedHids.has(hid))
+          .sort((a, b) => a - b);
         if (frontier.length === 0) break;
-        for (const group of chunks(chunks(frontier, CORE_BATCH_SIZE), CONCURRENCY_GROUP)) {
-          for (const batch of group) batch.forEach((hid) => fetchedHids.add(hid));
+        for (const group of chunks(
+          chunks(frontier, CORE_BATCH_SIZE),
+          CONCURRENCY_GROUP,
+        )) {
+          for (const batch of group)
+            batch.forEach((hid) => fetchedHids.add(hid));
           const batchResults = await Promise.all(
             group.map(async (batch) => {
               const results = await Promise.all([
@@ -338,7 +406,9 @@ describeConnected("aggressive owner breeding universe backfill", () => {
                 safe("owner", () => client.coreOwnerBulk(batch)),
                 safe("stamina", () => client.coreStaminaBulk(batch)),
                 safe("splicing", () => client.coreSplicingInfoBulk(batch)),
-                safe("telemetry", () => telemetryClient.coreTelemetryBulk(batch)),
+                safe("telemetry", () =>
+                  telemetryClient.coreTelemetryBulk(batch),
+                ),
               ]);
               return { batch, results };
             }),
@@ -347,20 +417,37 @@ describeConnected("aggressive owner breeding universe backfill", () => {
           for (const batchResult of batchResults) {
             for (const result of batchResult.results) {
               if (!result.ok) {
-                coreFamilyErrors.push({ batch: batchResult.batch, family: result.label, error: result.error });
+                coreFamilyErrors.push({
+                  batch: batchResult.batch,
+                  family: result.label,
+                  error: result.error,
+                });
                 continue;
               }
-              const rows = Array.isArray(result.result) ? (result.result as AnyRecord[]) : [result.result];
-              if (result.label === "telemetry") families.telemetry.push(...rows);
-              else (families[result.label as keyof Omit<CoreFamilies, "telemetry">] as AnyRecord[]).push(...rows);
+              const rows = Array.isArray(result.result)
+                ? (result.result as AnyRecord[])
+                : [result.result];
+              if (result.label === "telemetry")
+                families.telemetry.push(...rows);
+              else
+                (
+                  families[
+                    result.label as keyof Omit<CoreFamilies, "telemetry">
+                  ] as AnyRecord[]
+                ).push(...rows);
               if (result.label === "splicing") {
                 for (const row of rows) {
                   const child = finiteHid(row?.hid);
                   if (child === null) continue;
-                  const directParents = lineageIds(row?.parents).filter((hid) => hid !== child);
+                  const directParents = lineageIds(row?.parents).filter(
+                    (hid) => hid !== child,
+                  );
                   directParentsByChild.set(child, directParents);
-                  for (const parent of directParents) discoveredHids.add(parent);
-                  for (const grandParent of lineageIds(row?.grand_parents ?? row?.grandparents)) {
+                  for (const parent of directParents)
+                    discoveredHids.add(parent);
+                  for (const grandParent of lineageIds(
+                    row?.grand_parents ?? row?.grandparents,
+                  )) {
                     if (grandParent !== child) discoveredHids.add(grandParent);
                   }
                 }
@@ -370,35 +457,58 @@ describeConnected("aggressive owner breeding universe backfill", () => {
         }
       }
 
-      const spliceRequestCandidates = new Map<string, { coreHid: number; paths: string[] }>();
+      const spliceRequestCandidates = new Map<
+        string,
+        { coreHid: number; paths: string[] }
+      >();
       const spliceCoreShapeKeys = new Set<string>();
       for (const row of families.splicing) {
         const hid = finiteHid(row.hid);
         if (hid === null) continue;
         if (row.splice_core && typeof row.splice_core === "object") {
-          for (const key of Object.keys(row.splice_core as AnyRecord)) spliceCoreShapeKeys.add(key);
+          for (const key of Object.keys(row.splice_core as AnyRecord))
+            spliceCoreShapeKeys.add(key);
         }
         for (const candidate of extractRequestIds(row.splice_core)) {
           const existing = spliceRequestCandidates.get(candidate.value);
           if (existing) existing.paths.push(candidate.path);
-          else spliceRequestCandidates.set(candidate.value, { coreHid: hid, paths: [candidate.path] });
+          else
+            spliceRequestCandidates.set(candidate.value, {
+              coreHid: hid,
+              paths: [candidate.path],
+            });
         }
       }
 
       const spliceDocuments: AnyRecord[] = [];
       const spliceDocumentErrors: AnyRecord[] = [];
-      for (const group of chunks([...spliceRequestCandidates.entries()], CONCURRENCY_GROUP)) {
+      for (const group of chunks(
+        [...spliceRequestCandidates.entries()],
+        CONCURRENCY_GROUP,
+      )) {
         const results = await Promise.all(
           group.map(async ([requestId, meta]) => {
-            const result = await safe("spliceDocument", () => client.spliceDocument(requestId));
+            const result = await safe("spliceDocument", () =>
+              client.spliceDocument(requestId),
+            );
             return { requestId, meta, result };
           }),
         );
         for (const item of results) {
           if (item.result.ok) {
-            spliceDocuments.push({ requestId: item.requestId, coreHid: item.meta.coreHid, paths: item.meta.paths, document: item.result.result });
+            spliceDocuments.push({
+              requestId: item.requestId,
+              coreHid: item.meta.coreHid,
+              paths: item.meta.paths,
+              document: item.result.result,
+            });
           } else {
-            spliceDocumentErrors.push({ requestId: item.requestId, coreHid: item.meta.coreHid, paths: item.meta.paths, error: item.result.error });
+            spliceDocumentErrors.push({
+              requestId: item.requestId,
+              coreHid: item.meta.coreHid,
+              paths: item.meta.paths,
+              error: item.result.error,
+            });
           }
         }
       }
@@ -407,7 +517,8 @@ describeConnected("aggressive owner breeding universe backfill", () => {
       for (const item of spliceDocuments) {
         const hid = finiteHid(item.document?.hid ?? item.coreHid);
         const mintedAt = canonicalTimestamp(item.document?.minted_at);
-        if (hid !== null && mintedAt !== null) mintedAtByHid[String(hid)] = mintedAt;
+        if (hid !== null && mintedAt !== null)
+          mintedAtByHid[String(hid)] = mintedAt;
       }
 
       await mkdir("artifacts", { recursive: true });
@@ -450,7 +561,10 @@ describeConnected("aggressive owner breeding universe backfill", () => {
             fetchedCoreCount: fetchedHids.size,
             hids: [...discoveredHids].sort((a, b) => a - b),
             directParentsByChild: Object.fromEntries(
-              [...directParentsByChild.entries()].map(([hid, parents]) => [String(hid), parents]),
+              [...directParentsByChild.entries()].map(([hid, parents]) => [
+                String(hid),
+                parents,
+              ]),
             ),
           },
           coreFamilies: families,

@@ -58,7 +58,9 @@ describe("breeding offspring evidence authority", () => {
           expectedModelCutoff: "2025-03-16T00:00:00.000Z",
         }),
       ),
-    ).toThrow(/baseline must be frozen no later than authoritative offspring creation/i);
+    ).toThrow(
+      /baseline must be frozen no later than authoritative offspring creation/i,
+    );
   });
 
   it("keeps unknown creation time unavailable for TARGET modelling", () => {
