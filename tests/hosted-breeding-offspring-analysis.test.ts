@@ -11,7 +11,7 @@ const describeConnected = enabled ? describe : describe.skip;
 const MIN_RACES = 5;
 const MIN_BENCHMARK_CORES = 25;
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 type HistoryRecord = {
   hid: number;
   rid: string;
@@ -235,13 +235,6 @@ describeConnected("offspring breeder history analysis", () => {
           });
         }
       }
-      const fullSummaryByKey = new Map(
-        fullSummaries.map((summary) => [
-          `${summary.hid}|${summary.mode}|${summary.distanceMetres}`,
-          summary,
-        ]),
-      );
-
       const indexedHistory = new Map<string, HistoryRecord[]>();
       for (const record of history) {
         if (!record.startTime) continue;

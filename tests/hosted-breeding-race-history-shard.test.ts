@@ -10,7 +10,7 @@ const MAX_PAGES_PER_CORE = 100;
 const PAGE_SIZE = 50;
 const WORKERS_PER_SHARD = 4;
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 type HistoryRecord = {
   hid: number;
   rid: string;

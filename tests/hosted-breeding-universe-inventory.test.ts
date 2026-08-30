@@ -21,7 +21,7 @@ const MIN_FINISHED_WINDOW_MS = 1_000;
 const CORE_BATCH_SIZE = 20;
 const CONCURRENCY_GROUP = 8;
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 type CoreFamilies = {
   info: AnyRecord[];
   stats: AnyRecord[];
