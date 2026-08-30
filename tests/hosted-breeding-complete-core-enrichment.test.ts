@@ -73,11 +73,30 @@ describeConnected("complete breeder-universe API enrichment", () => {
       const apiKey = required("DNA_OPEN_LAB_API_KEY_1");
       const client = createDnaOpenLabV1Client({ apiKey });
       const telemetryClient = createDnaOpenLabV1TelemetryClient({ apiKey });
+      let permitTail: Promise<void> = Promise.resolve();
       let lastStartedAt = 0;
       let requestCount = 0;
       let retryCount = 0;
       let maximumObservedLimit: number | null = null;
       let minimumObservedRemaining: number | null = null;
+
+      const acquirePermit = async () => {
+        const previous = permitTail;
+        let release: (() => void) | undefined;
+        permitTail = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        await previous;
+        try {
+          assertAuthorityActive();
+          const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartedAt);
+          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          assertAuthorityActive();
+          lastStartedAt = Date.now();
+        } finally {
+          release?.();
+        }
+      };
 
       const observe = (response: DnaOpenLabResponse<unknown>) => {
         if (response.rateLimit.limit !== null) {
@@ -98,11 +117,7 @@ describeConnected("complete breeder-universe API enrichment", () => {
         operation: () => Promise<DnaOpenLabResponse<T>>,
       ): Promise<DnaOpenLabResponse<T>> => {
         for (let attempt = 0; attempt < 6; attempt++) {
-          assertAuthorityActive();
-          const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartedAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-          assertAuthorityActive();
-          lastStartedAt = Date.now();
+          await acquirePermit();
           requestCount++;
           try {
             const response = await operation();
