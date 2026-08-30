@@ -1,4 +1,4 @@
-# Offline strict-v2 follower: no DNA API requests
+# Offline strict-v3 follower: all qualified maturity horizons must remain positive; no DNA API requests
 name: Breeding full two-parent analysis follow-up
 
 on:
