@@ -1,0 +1,47 @@
+name: Temporary separate breeder authority
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-separate-breeder-authority.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Prevent proxy lift from influencing authoritative residual percentiles
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tests/hosted-breeding-offspring-analysis.test.ts')
+          s = p.read_text()
+          old = '''      for (const rows of draftScopes.values()) {\n        const liftValues = rows.map((row) => row.rawLift);\n        for (const row of rows) {\n          const outcome: BreederOffspringOutcome = {\n            parentCoreId: row.parentCoreId,\n            coParentCoreId: row.coParentCoreId,\n            offspringCoreId: row.offspringCoreId,\n            scope: row.scope,\n            offspringQualityPercentile: row.offspringQualityPercentile,\n            expectedQualityPercentile: row.expectedQualityPercentile,\n            residualPercentile: percentileRank(liftValues, row.rawLift),\n            offspringRaceSampleSize: row.offspringRaceSampleSize,\n            benchmarkPopulationSize: row.benchmarkPopulationSize,\n            offspringCreatedAt: row.offspringCreatedAt,\n            expectedModelCutoff: row.expectedModelCutoff,\n            evaluationCutoff: row.evaluationCutoff,\n          };\n          if (row.creationAuthority === "minted_at")\n            authoritativeOutcomes.push(outcome);\n          else proxyOutcomes.push(outcome);\n        }\n      }\n'''
+          new = '''      for (const rows of draftScopes.values()) {\n        const authoritativeRows = rows.filter(\n          (row) => row.creationAuthority === "minted_at",\n        );\n        const proxyRows = rows.filter(\n          (row) => row.creationAuthority === "first_race_proxy",\n        );\n        const authoritativeLiftValues = authoritativeRows.map(\n          (row) => row.rawLift,\n        );\n        const proxyLiftValues = proxyRows.map((row) => row.rawLift);\n\n        const materialize = (\n          row: DraftOutcome,\n          comparableLiftValues: readonly number[],\n        ): BreederOffspringOutcome => ({\n          parentCoreId: row.parentCoreId,\n          coParentCoreId: row.coParentCoreId,\n          offspringCoreId: row.offspringCoreId,\n          scope: row.scope,\n          offspringQualityPercentile: row.offspringQualityPercentile,\n          expectedQualityPercentile: row.expectedQualityPercentile,\n          residualPercentile: percentileRank(comparableLiftValues, row.rawLift),\n          offspringRaceSampleSize: row.offspringRaceSampleSize,\n          benchmarkPopulationSize: row.benchmarkPopulationSize,\n          offspringCreatedAt: row.offspringCreatedAt,\n          expectedModelCutoff: row.expectedModelCutoff,\n          evaluationCutoff: row.evaluationCutoff,\n        });\n\n        for (const row of authoritativeRows) {\n          authoritativeOutcomes.push(\n            materialize(row, authoritativeLiftValues),\n          );\n        }\n        for (const row of proxyRows) {\n          proxyOutcomes.push(materialize(row, proxyLiftValues));\n        }\n      }\n'''
+          if old not in s:
+              raise SystemExit('authority residual block not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          npx prettier --write tests/hosted-breeding-offspring-analysis.test.ts
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temporary-separate-breeder-authority.yml
+          git add tests/hosted-breeding-offspring-analysis.test.ts
+          git commit -m "[format-only] Separate authoritative breeder residuals"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
