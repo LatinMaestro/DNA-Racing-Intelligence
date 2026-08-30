@@ -156,7 +156,7 @@ Rules for this layer:
 - exact race-family semantics must be authoritative before labels such as WTA, Madness or 1v1 are used analytically;
 - format/gate sample size and co-parent diversity must be disclosed separately;
 - the co-parent and pre-creation expected-mating baseline remain mandatory;
-- specialist positive lift is used to explain *what type of elite offspring a breeder tends to produce* and to improve race-mapping/pair selection; and
+- specialist positive lift is used to explain _what type of elite offspring a breeder tends to produce_ and to improve race-mapping/pair selection; and
 - negative specialist evidence may warn against a particular breeding objective even when mode-wide breeder quality is strong.
 
 This preserves the user's performance-first standard while allowing the system to discover breeders that disproportionately create elite specialists rather than broad all-format performers.
