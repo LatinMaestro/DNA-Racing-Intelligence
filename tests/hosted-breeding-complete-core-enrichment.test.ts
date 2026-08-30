@@ -13,6 +13,7 @@ const RESEARCH_EXPIRES_AT = "2026-08-31T14:00:00.000Z";
 const REQUESTS_PER_MINUTE = 150;
 const REQUEST_INTERVAL_MS = Math.ceil(60_000 / REQUESTS_PER_MINUTE) + 5;
 const BATCH_SIZE = 20;
+const TELEMETRY_BENCHMARK_CBS = [10, 12, 14, 18] as const;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -156,6 +157,23 @@ describeConnected("complete breeder-universe API enrichment", () => {
         telemetry: [],
         telemetryBenchmark: [],
       };
+
+      // Probe the newly discovered distance-scoped benchmark contract before
+      // spending the rest of the research allowance on the full universe.
+      const benchmarkProbeHid = hids[0]!;
+      const benchmarkProbeCb = TELEMETRY_BENCHMARK_CBS[0]!;
+      const benchmarkProbe = await paced(() =>
+        telemetryClient.coreTelemetryBenchmark(
+          benchmarkProbeHid,
+          benchmarkProbeCb,
+        ),
+      );
+      families.telemetryBenchmark.push({
+        hid: benchmarkProbeHid,
+        cb: benchmarkProbeCb,
+        result: benchmarkProbe.result,
+      });
+
       for (const batch of chunks(hids, BATCH_SIZE)) {
         const responses = await Promise.all([
           paced(() => client.coreInfoBulk(batch)),
@@ -187,10 +205,13 @@ describeConnected("complete breeder-universe API enrichment", () => {
       }
 
       for (const hid of hids) {
-        const response = await paced(() =>
-          telemetryClient.coreTelemetryBenchmark(hid),
-        );
-        families.telemetryBenchmark.push({ hid, result: response.result });
+        for (const cb of TELEMETRY_BENCHMARK_CBS) {
+          if (hid === benchmarkProbeHid && cb === benchmarkProbeCb) continue;
+          const response = await paced(() =>
+            telemetryClient.coreTelemetryBenchmark(hid, cb),
+          );
+          families.telemetryBenchmark.push({ hid, cb, result: response.result });
+        }
       }
 
       const tokenPrices = await paced(() => client.tokenPrices());
@@ -200,7 +221,7 @@ describeConnected("complete breeder-universe API enrichment", () => {
       await writeFile(
         "artifacts/enrichment/breeding-complete-core-enrichment.json",
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: 2,
           fetchedAt: new Date().toISOString(),
           coreCount: hids.length,
           hids,
@@ -208,6 +229,7 @@ describeConnected("complete breeder-universe API enrichment", () => {
           retryCount,
           maximumObservedLimit,
           minimumObservedRemaining,
+          telemetryBenchmarkCbs: TELEMETRY_BENCHMARK_CBS,
           families,
           tokenPrices: tokenPrices.result,
           activeRaces: activeRaces.result,
@@ -223,7 +245,9 @@ describeConnected("complete breeder-universe API enrichment", () => {
       expect(families.info.length).toBe(hids.length);
       expect(families.stats.length).toBe(hids.length);
       expect(families.power.length).toBe(hids.length);
-      expect(families.telemetryBenchmark.length).toBe(hids.length);
+      expect(families.telemetryBenchmark.length).toBe(
+        hids.length * TELEMETRY_BENCHMARK_CBS.length,
+      );
     },
     90 * 60_000,
   );
