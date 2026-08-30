@@ -526,30 +526,34 @@ describeConnected("strict full two-parent breeder analysis", () => {
         const [parentText, distanceText] = key.split("|");
         const parentHid = Number(parentText);
         if (!targetParentHids.has(parentHid)) continue;
-        const positive = rows.filter(
+        const qualified = rows.filter(
           (row) =>
-            Number(row.adjustedBreederEffect) > 0 &&
             Number(row.offspringCount) >= 3 &&
             Number(row.distinctCoParentCount) >= 3,
         );
-        if (positive.length < 2) continue;
+        if (
+          qualified.length < 2 ||
+          qualified.length !== rows.length ||
+          qualified.some((row) => Number(row.adjustedBreederEffect) <= 0)
+        )
+          continue;
         const meanEffect =
-          positive.reduce(
+          qualified.reduce(
             (sum, row) => sum + Number(row.adjustedBreederEffect),
             0,
-          ) / positive.length;
+          ) / qualified.length;
         robustParentRows.push({
           parentHid,
           parentName: directName(infoByHid.get(parentHid)),
           distanceMetres: Number(distanceText),
           researchStatus: "watch",
           meanAdjustedBreederEffect: meanEffect,
-          positiveQualifiedHorizons: positive.length,
+          positiveQualifiedHorizons: qualified.length,
           minimumQualifiedOffspring: Math.min(
-            ...positive.map((row) => Number(row.offspringCount)),
+            ...qualified.map((row) => Number(row.offspringCount)),
           ),
           minimumDistinctCoParents: Math.min(
-            ...positive.map((row) => Number(row.distinctCoParentCount)),
+            ...qualified.map((row) => Number(row.distinctCoParentCount)),
           ),
           horizons: rows.sort(
             (left, right) =>
@@ -573,17 +577,18 @@ describeConnected("strict full two-parent breeder analysis", () => {
         const parentB = Number(parentBText);
         if (!targetParentHids.has(parentA) && !targetParentHids.has(parentB))
           continue;
-        const positive = rows.filter(
-          (row) =>
-            Number(row.adjustedPairSynergy) > 0 &&
-            Number(row.offspringCount) >= 2,
-        );
-        if (positive.length < 2) continue;
+        const qualified = rows.filter((row) => Number(row.offspringCount) >= 2);
+        if (
+          qualified.length < 2 ||
+          qualified.length !== rows.length ||
+          qualified.some((row) => Number(row.adjustedPairSynergy) <= 0)
+        )
+          continue;
         const meanSynergy =
-          positive.reduce(
+          qualified.reduce(
             (sum, row) => sum + Number(row.adjustedPairSynergy),
             0,
-          ) / positive.length;
+          ) / qualified.length;
         stablePairRows.push({
           parentA,
           parentAName: directName(infoByHid.get(parentA)),
@@ -592,9 +597,9 @@ describeConnected("strict full two-parent breeder analysis", () => {
           distanceMetres: Number(distanceText),
           researchStatus: "watch",
           meanAdjustedPairSynergy: meanSynergy,
-          positiveQualifiedHorizons: positive.length,
+          positiveQualifiedHorizons: qualified.length,
           minimumQualifiedOffspring: Math.min(
-            ...positive.map((row) => Number(row.offspringCount)),
+            ...qualified.map((row) => Number(row.offspringCount)),
           ),
           horizons: rows.sort(
             (left, right) =>
