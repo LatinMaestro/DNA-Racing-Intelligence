@@ -246,7 +246,8 @@ describeConnected("aggressive owner breeding universe backfill", () => {
           } catch (error) {
             if (
               error instanceof DnaOpenLabApiError &&
-              error.kind === "rate_limited" &&
+              (error.kind === "rate_limited" ||
+                (error.httpStatus !== null && error.httpStatus >= 500)) &&
               attempt < 3
             ) {
               rateLimitedCount++;
