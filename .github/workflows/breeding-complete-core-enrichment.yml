@@ -1,4 +1,4 @@
-# Serialized launch: one shared permit lane, 150 rpm maximum
+# Serialized launch v2: distance-scoped telemetry benchmarks, 150 rpm maximum
 name: Breeding complete Core enrichment
 
 on:
