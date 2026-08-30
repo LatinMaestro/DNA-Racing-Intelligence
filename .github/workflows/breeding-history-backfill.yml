@@ -1,0 +1,115 @@
+name: Breeding history backfill
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - tests/hosted-breeding-race-history-shard.test.ts
+      - tests/hosted-breeding-offspring-analysis.test.ts
+      - .github/workflows/breeding-history-backfill.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: breeding-history-backfill-august-2026
+  cancel-in-progress: false
+
+jobs:
+  history:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DNA_BREEDING_RACE_HISTORY_BACKFILL: "1"
+      HISTORY_SHARD_INDEX: ${{ matrix.shard }}
+      HISTORY_SHARD_COUNT: "4"
+      BREEDING_INVENTORY_PATH: artifacts/inventory/breeding-universe-inventory.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Wait for successful breeding universe inventory artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/inventory
+          run_id=""
+          for attempt in $(seq 1 180); do
+            run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/breeding-universe-inventory.yml/runs?branch=codex%2Fbreeding-offspring-history-backfill&per_page=20" --jq '.workflow_runs | map(select(.conclusion == "success")) | .[0].id // empty')
+            if [ -n "$run_id" ]; then
+              break
+            fi
+            sleep 10
+          done
+          if [ -z "$run_id" ]; then
+            echo "No successful inventory run became available in time" >&2
+            exit 1
+          fi
+          artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" --jq '.artifacts[] | select(.name == "breeding-universe-inventory") | .id' | head -n 1)
+          if [ -z "$artifact_id" ]; then
+            echo "Inventory artifact not found" >&2
+            exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > /tmp/inventory.zip
+          unzip -q /tmp/inventory.zip -d artifacts/inventory
+          test -f artifacts/inventory/breeding-universe-inventory.json
+      - name: Pull complete reachable race history for shard ${{ matrix.shard }}
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-race-history-shard.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-race-history-${{ matrix.shard }}
+          path: artifacts/history/breeding-race-history-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 2
+
+  analyze:
+    needs: history
+    runs-on: ubuntu-latest
+    timeout-minutes: 130
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DNA_BREEDING_OFFSPRING_ANALYSIS: "1"
+      BREEDING_INVENTORY_PATH: artifacts/inventory/breeding-universe-inventory.json
+      BREEDING_HISTORY_DIR: artifacts/history
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Download history shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: breeding-race-history-*
+          path: artifacts/history
+          merge-multiple: true
+      - name: Download latest successful inventory artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/inventory
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/breeding-universe-inventory.yml/runs?branch=codex%2Fbreeding-offspring-history-backfill&per_page=20" --jq '.workflow_runs | map(select(.conclusion == "success")) | .[0].id // empty')
+          if [ -z "$run_id" ]; then exit 1; fi
+          artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" --jq '.artifacts[] | select(.name == "breeding-universe-inventory") | .id' | head -n 1)
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > /tmp/inventory.zip
+          unzip -q /tmp/inventory.zip -d artifacts/inventory
+      - name: Build chronological parent-to-offspring breeder analysis
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-offspring-analysis.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-offspring-analysis
+          path: artifacts/analysis/breeding-offspring-analysis.json
+          if-no-files-found: error
+          retention-days: 2
