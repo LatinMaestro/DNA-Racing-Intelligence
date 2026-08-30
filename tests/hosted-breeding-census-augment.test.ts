@@ -48,7 +48,9 @@ function lineageIds(value: unknown): number[] {
   ];
   const preferredIds = preferred.flatMap((key) => lineageIds(record[key]));
   if (preferredIds.length > 0) return [...new Set(preferredIds)];
-  return [...new Set(Object.values(record).flatMap((entry) => lineageIds(entry)))];
+  return [
+    ...new Set(Object.values(record).flatMap((entry) => lineageIds(entry))),
+  ];
 }
 
 function extractRequestIds(
@@ -80,7 +82,9 @@ function extractRequestIds(
 
 function assertAuthority(): void {
   if (Date.now() >= Date.parse(RESEARCH_EXPIRES_AT)) {
-    throw new Error("Temporary August high-rate research authority has expired.");
+    throw new Error(
+      "Temporary August high-rate research authority has expired.",
+    );
   }
 }
 
@@ -92,25 +96,41 @@ describeConnected("lineage census augmentation", () => {
       const sourcePath =
         process.env.BREEDING_CENSUS_SOURCE_PATH ??
         "artifacts/source/breeding-lineage-census.json";
-      const source = JSON.parse(await readFile(sourcePath, "utf8")) as AnyRecord;
+      const source = JSON.parse(
+        await readFile(sourcePath, "utf8"),
+      ) as AnyRecord;
       const families = (source.coreFamilies ?? {}) as AnyRecord;
       const info = (families.info ?? []) as AnyRecord[];
       const splicing = (families.splicing ?? []) as AnyRecord[];
-      const hids = [...new Set(info.map((row) => hidOrNull(row.hid)).filter((hid): hid is number => hid !== null))].sort(
-        (a, b) => a - b,
-      );
+      const hids = [
+        ...new Set(
+          info
+            .map((row) => hidOrNull(row.hid))
+            .filter((hid): hid is number => hid !== null),
+        ),
+      ].sort((a, b) => a - b);
 
       const directParentsByChild: Record<string, number[]> = {};
-      const requestIds: { childHid: number; path: string; requestId: string }[] = [];
+      const requestIds: {
+        childHid: number;
+        path: string;
+        requestId: string;
+      }[] = [];
       for (const row of splicing) {
         const childHid = hidOrNull(row.hid);
         if (childHid === null) continue;
-        const parents = lineageIds(row.parents).filter((hid) => hid !== childHid);
+        const parents = lineageIds(row.parents).filter(
+          (hid) => hid !== childHid,
+        );
         if (parents.length > 0) {
           directParentsByChild[String(childHid)] = [...new Set(parents)];
         }
         for (const request of extractRequestIds(row.splice_core)) {
-          requestIds.push({ childHid, path: request.path, requestId: request.value });
+          requestIds.push({
+            childHid,
+            path: request.path,
+            requestId: request.value,
+          });
         }
       }
 
@@ -126,7 +146,8 @@ describeConnected("lineage census augmentation", () => {
         for (let attempt = 0; attempt < 5; attempt++) {
           assertAuthority();
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           lastStartAt = Date.now();
           requestCount++;
           try {
@@ -160,7 +181,9 @@ describeConnected("lineage census augmentation", () => {
         if (seen.has(request.requestId)) continue;
         seen.add(request.requestId);
         try {
-          const response = await paced(() => client.spliceDocument(request.requestId));
+          const response = await paced(() =>
+            client.spliceDocument(request.requestId),
+          );
           spliceDocuments.push({
             ...request,
             document: response.result,

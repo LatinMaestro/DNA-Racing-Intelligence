@@ -69,7 +69,8 @@ describeConnected("complete breeder-universe API enrichment", () => {
           ...positiveHids((coParents.universe as AnyRecord)?.hids),
         ]),
       ].sort((left, right) => left - right);
-      if (hids.length < 1) throw new Error("Breeder enrichment universe is empty.");
+      if (hids.length < 1)
+        throw new Error("Breeder enrichment universe is empty.");
 
       const apiKey = required("DNA_OPEN_LAB_API_KEY_1");
       const client = createDnaOpenLabV1Client({ apiKey });
@@ -91,7 +92,8 @@ describeConnected("complete breeder-universe API enrichment", () => {
         try {
           assertAuthorityActive();
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartedAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           assertAuthorityActive();
           lastStartedAt = Date.now();
         } finally {
@@ -210,7 +212,11 @@ describeConnected("complete breeder-universe API enrichment", () => {
           const response = await paced(() =>
             telemetryClient.coreTelemetryBenchmark(hid, cb),
           );
-          families.telemetryBenchmark.push({ hid, cb, result: response.result });
+          families.telemetryBenchmark.push({
+            hid,
+            cb,
+            result: response.result,
+          });
         }
       }
 

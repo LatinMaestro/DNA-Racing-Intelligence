@@ -50,7 +50,9 @@ describeConnected("missing breeding co-parent inventory", () => {
       const censusPath =
         process.env.BREEDING_CENSUS_PATH ??
         "artifacts/source/breeding-lineage-census-upgraded.json";
-      const census = JSON.parse(await readFile(censusPath, "utf8")) as AnyRecord;
+      const census = JSON.parse(
+        await readFile(censusPath, "utf8"),
+      ) as AnyRecord;
       const universe = census.universe as AnyRecord;
       const existingHids = new Set(positiveHids(universe.hids));
       const directParents = (universe.directParentsByChild ?? {}) as Record<
@@ -67,7 +69,9 @@ describeConnected("missing breeding co-parent inventory", () => {
         .filter((hid) => !existingHids.has(hid))
         .sort((left, right) => left - right);
       if (missingHids.length === 0) {
-        throw new Error("No missing co-parents found; enrichment is unnecessary.");
+        throw new Error(
+          "No missing co-parents found; enrichment is unnecessary.",
+        );
       }
 
       const client = createDnaOpenLabV1Client({
@@ -100,7 +104,8 @@ describeConnected("missing breeding co-parent inventory", () => {
         for (let attempt = 0; attempt < 6; attempt++) {
           assertAuthorityActive();
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartedAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           assertAuthorityActive();
           lastStartedAt = Date.now();
           requestCount++;
@@ -152,7 +157,9 @@ describeConnected("missing breeding co-parent inventory", () => {
           .map((row) => Number(row.hid))
           .filter((hid) => Number.isSafeInteger(hid) && hid > 0),
       );
-      const missingInfo = missingHids.filter((hid) => !fetchedInfoHids.has(hid));
+      const missingInfo = missingHids.filter(
+        (hid) => !fetchedInfoHids.has(hid),
+      );
 
       const output = {
         schemaVersion: 1,
