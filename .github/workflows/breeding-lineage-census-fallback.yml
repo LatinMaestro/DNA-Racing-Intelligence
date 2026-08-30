@@ -33,3 +33,69 @@ jobs:
           path: artifacts/breeding-lineage-census.json
           if-no-files-found: error
           retention-days: 2
+
+  history:
+    needs: census
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      DNA_BREEDING_RACE_HISTORY_BACKFILL: "1"
+      HISTORY_SHARD_INDEX: ${{ matrix.shard }}
+      HISTORY_SHARD_COUNT: "4"
+      BREEDING_INVENTORY_PATH: artifacts/inventory/breeding-lineage-census.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: breeding-lineage-census
+          path: artifacts/inventory
+      - name: Pull targeted parent/offspring race history for shard ${{ matrix.shard }}
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-race-history-shard.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-lineage-history-${{ matrix.shard }}
+          path: artifacts/history/breeding-race-history-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 2
+
+  analyze:
+    needs: history
+    runs-on: ubuntu-latest
+    timeout-minutes: 130
+    env:
+      DNA_BREEDING_OFFSPRING_ANALYSIS: "1"
+      BREEDING_INVENTORY_PATH: artifacts/inventory/breeding-lineage-census.json
+      BREEDING_HISTORY_DIR: artifacts/history
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: breeding-lineage-census
+          path: artifacts/inventory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: breeding-lineage-history-*
+          path: artifacts/history
+          merge-multiple: true
+      - name: Build chronological breeder-lift analysis from lineage census
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-offspring-analysis.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-lineage-offspring-analysis
+          path: artifacts/analysis/breeding-offspring-analysis.json
+          if-no-files-found: error
+          retention-days: 2
