@@ -1,0 +1,35 @@
+name: Breeding lineage census fallback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: breeding-api-high-rate-august-2026
+  cancel-in-progress: false
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      DNA_BREEDING_LINEAGE_CENSUS: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      BREEDING_CENSUS_MAX_HID: "26000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run lineage-first breeding census under temporary August authority
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-lineage-census.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-lineage-census
+          path: artifacts/breeding-lineage-census.json
+          if-no-files-found: error
+          retention-days: 2
