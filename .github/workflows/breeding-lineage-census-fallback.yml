@@ -2,6 +2,11 @@ name: Breeding lineage census fallback
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/breeding-lineage-census-fallback.yml
 
 permissions:
   contents: read
