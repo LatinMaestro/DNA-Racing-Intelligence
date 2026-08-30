@@ -1,3 +1,4 @@
+# Recovery launch: waits for resilient inventory, then uses 4 x 37 rpm shards
 name: Breeding history backfill
 
 on:
