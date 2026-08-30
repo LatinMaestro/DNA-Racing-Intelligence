@@ -1,0 +1,54 @@
+name: Temporary harden inventory expiry v3
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-harden-inventory-expiry-v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Add per-request authority expiry guard
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/hosted-breeding-universe-inventory.test.ts')
+          text = path.read_text()
+          required_block = '''function required(name: string): string {\n  const value = process.env[name];\n  if (!value || value.trim() !== value) throw new Error(`${name} missing`);\n  return value;\n}\n'''
+          guard = '''\nfunction assertResearchAuthorityActive(): void {\n  if (Date.now() >= Date.parse(RESEARCH_EXPIRES_AT)) {\n    throw new Error(\n      "Temporary August high-rate research authority has expired; no further inventory requests may start.",\n    );\n  }\n}\n'''
+          if 'function assertResearchAuthorityActive' not in text:
+              if required_block not in text:
+                  raise SystemExit('required block not found')
+              text = text.replace(required_block, required_block + guard, 1)
+          old = '''        await previous;\n        try {\n          const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);\n          if (wait > 0)\n            await new Promise((resolve) => setTimeout(resolve, wait));\n          lastStartAt = Date.now();\n'''
+          new = '''        await previous;\n        try {\n          assertResearchAuthorityActive();\n          const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);\n          if (wait > 0)\n            await new Promise((resolve) => setTimeout(resolve, wait));\n          assertResearchAuthorityActive();\n          lastStartAt = Date.now();\n'''
+          if old not in text:
+              raise SystemExit('acquire block not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          npx prettier --write tests/hosted-breeding-universe-inventory.test.ts
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temporary-harden-inventory-expiry-v3.yml
+          git add tests/hosted-breeding-universe-inventory.test.ts
+          git commit -m "[format-only] Enforce per-request August inventory expiry"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
