@@ -524,6 +524,77 @@ describeConnected("offspring breeder history analysis", () => {
         });
       }
 
+      const proxyBenchmarkResults: AnyRecord[] = [];
+      const proxyScopeKeys = [
+        ...new Set(proxyOutcomes.map((outcome) => scopeKey(outcome.scope))),
+      ].sort();
+      for (const key of proxyScopeKeys) {
+        const [mode, distanceText] = key.split("|");
+        const scope: BreederScope = {
+          mode: mode as BreederScope["mode"],
+          distanceMetres: distanceText === "all" ? null : Number(distanceText),
+        };
+        const outcomes = proxyOutcomes.filter(
+          (outcome) => scopeKey(outcome.scope) === key,
+        );
+        const parentCount = new Set(
+          outcomes.map((outcome) => outcome.parentCoreId),
+        ).size;
+        if (outcomes.length < 10 || parentCount < 5) continue;
+        const benchmark = buildBreederQualityBenchmark({ scope, outcomes });
+        const researchAssessments = benchmark.assessments
+          .slice(0, 100)
+          .map((assessment) => ({
+            ...assessment,
+            proxyModelStatus: assessment.status,
+            allowedStatus:
+              assessment.status === "wait"
+                ? ("wait" as const)
+                : ("watch" as const),
+            evidenceAuthority: "first_race_proxy" as const,
+            researchOnly: true as const,
+          }));
+        proxyBenchmarkResults.push({
+          scope,
+          qualifiedOutcomeCount: benchmark.qualifiedOutcomeCount,
+          parentCount: benchmark.parentCount,
+          populationEliteOffspringRate: benchmark.populationEliteOffspringRate,
+          populationExceptionalOffspringRate:
+            benchmark.populationExceptionalOffspringRate,
+          priorityWatches: researchAssessments.filter(
+            (assessment) => assessment.proxyModelStatus === "target",
+          ),
+          watches: researchAssessments.filter(
+            (assessment) => assessment.proxyModelStatus === "watch",
+          ),
+          researchAssessments,
+        });
+      }
+
+      const proxyExceptionalOutcomes = proxyOutcomes
+        .filter(
+          (outcome) =>
+            outcome.offspringQualityPercentile >= 95 &&
+            outcome.residualPercentile >= 90,
+        )
+        .map((outcome) => ({
+          ...outcome,
+          parentName: infoByHid.get(Number(outcome.parentCoreId))?.name ?? null,
+          coParentName:
+            infoByHid.get(Number(outcome.coParentCoreId))?.name ?? null,
+          offspringName:
+            infoByHid.get(Number(outcome.offspringCoreId))?.name ?? null,
+          evidenceAuthority: "first_race_proxy" as const,
+          allowedStatus: "watch" as const,
+        }))
+        .sort(
+          (a, b) =>
+            b.offspringQualityPercentile - a.offspringQualityPercentile ||
+            b.residualPercentile - a.residualPercentile ||
+            b.offspringRaceSampleSize - a.offspringRaceSampleSize,
+        )
+        .slice(0, 500);
+
       const ownBestRacerQuality = new Map<string, number>();
       for (const summary of fullSummaries) {
         const key = `${summary.hid}|${summary.mode}`;
@@ -551,6 +622,29 @@ describeConnected("offspring breeder history analysis", () => {
                 infoByHid.get(Number(target.parentCoreId))?.name ?? null,
               ownBestRacerQualityPercentile: ownQuality,
               breederAssessment: target,
+            });
+          }
+        }
+      }
+
+      const proxyAverageRacerBreederSignals: AnyRecord[] = [];
+      for (const result of proxyBenchmarkResults) {
+        for (const signal of result.priorityWatches as AnyRecord[]) {
+          const ownQuality =
+            ownBestRacerQuality.get(
+              `${signal.parentCoreId}|${result.scope.mode}`,
+            ) ?? null;
+          if (ownQuality !== null && ownQuality < 90) {
+            proxyAverageRacerBreederSignals.push({
+              mode: result.scope.mode,
+              distanceMetres: result.scope.distanceMetres,
+              parentCoreId: signal.parentCoreId,
+              parentName:
+                infoByHid.get(Number(signal.parentCoreId))?.name ?? null,
+              ownBestRacerQualityPercentile: ownQuality,
+              breederSignal: signal,
+              evidenceAuthority: "first_race_proxy",
+              allowedStatus: "watch",
             });
           }
         }
@@ -595,6 +689,47 @@ describeConnected("offspring breeder history analysis", () => {
         )
         .slice(0, 200);
 
+      const proxyPairGroups = new Map<string, AnyRecord[]>();
+      for (const row of pairLiftRows.filter(
+        (entry) => entry.creationAuthority === "first_race_proxy",
+      )) {
+        const pair = [row.parentA, row.parentB].sort(
+          (a: number, b: number) => a - b,
+        );
+        const key = `${pair[0]}|${pair[1]}|${row.mode}|${row.distanceMetres}`;
+        const rows = proxyPairGroups.get(key) ?? [];
+        rows.push(row);
+        proxyPairGroups.set(key, rows);
+      }
+      const proxyPairSynergies = [...proxyPairGroups.entries()]
+        .map(([key, rows]) => {
+          const [parentAText, parentBText, mode, distanceText] = key.split("|");
+          const lifts = rows.map((row) => Number(row.rawLift));
+          return {
+            parentA: Number(parentAText),
+            parentB: Number(parentBText),
+            parentAName: infoByHid.get(Number(parentAText))?.name ?? null,
+            parentBName: infoByHid.get(Number(parentBText))?.name ?? null,
+            mode,
+            distanceMetres: Number(distanceText),
+            offspringCount: new Set(rows.map((row) => row.child)).size,
+            medianLift: median(lifts),
+            positiveLiftRate:
+              lifts.filter((lift) => lift > 0).length / lifts.length,
+            exceptionalLikeCount: rows.filter(
+              (row) => row.childQualityPercentile >= 95 && row.rawLift >= 20,
+            ).length,
+            evidenceAuthority: "first_race_proxy",
+            allowedStatus: "watch",
+          };
+        })
+        .filter((row) => row.offspringCount >= 2)
+        .sort(
+          (a, b) =>
+            b.medianLift - a.medianLift || b.offspringCount - a.offspringCount,
+        )
+        .slice(0, 200);
+
       const creationCoverage = {
         lineageChildren: relations.length,
         authoritativeMintedAtChildren: relations.filter((relation) =>
@@ -623,6 +758,14 @@ describeConnected("offspring breeder history analysis", () => {
           proxyOutcomeCount: proxyOutcomes.length,
           skippedRelations,
           benchmarkResults,
+          proxyBenchmarkResults,
+          proxyExceptionalOutcomes,
+          proxyAverageRacerBreederSignals: proxyAverageRacerBreederSignals.sort(
+            (a, b) =>
+              (b.breederSignal?.breederScore ?? 0) -
+              (a.breederSignal?.breederScore ?? 0),
+          ),
+          proxyPairSynergies,
           averageRacerEliteBreeders: averageRacerEliteBreeders.sort(
             (a, b) =>
               (b.breederAssessment?.breederScore ?? 0) -
@@ -637,6 +780,8 @@ describeConnected("offspring breeder history analysis", () => {
             chronologicalCutoff:
               "UTC month start at or before minted_at; first-race proxy is exploratory only",
             authoritativeBreederTargets: "minted_at outcomes only",
+            proxyResearch:
+              "first-race proxy outcomes use a separate residual benchmark and can never exceed WATCH",
             modeWide:
               "offspring's best supported exact-distance specialty within the mode",
           },
