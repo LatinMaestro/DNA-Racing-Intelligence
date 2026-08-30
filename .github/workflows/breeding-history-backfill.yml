@@ -66,6 +66,8 @@ jobs:
           unzip -q /tmp/inventory.zip -d artifacts/inventory
           test -f artifacts/inventory/breeding-universe-inventory.json
       - name: Pull complete reachable race history for shard ${{ matrix.shard }}
+        env:
+          NODE_OPTIONS: "--import=./scripts/retry-transient-fetch.mjs"
         run: npx vitest run --no-file-parallelism tests/hosted-breeding-race-history-shard.test.ts
       - uses: actions/upload-artifact@v4
         with:
