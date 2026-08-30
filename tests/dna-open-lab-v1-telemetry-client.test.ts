@@ -121,21 +121,21 @@ describe("DNA Open Lab v1 telemetry client", () => {
     expect(JSON.parse(String(request.init.body))).toEqual({ hids: [11, 12] });
   });
 
-  it("maps the telemetry benchmark endpoint without inventing semantics", async () => {
+  it("maps the telemetry benchmark endpoint with the authoritative distance parameter", async () => {
     const benchmark = { cohort: "unknown", values: { p50: 1.23 } };
     const { client, transport } = clientWith(
       jsonResponse({ status: "success", result: benchmark }),
     );
 
-    const response = await client.coreTelemetryBenchmark(99);
+    const response = await client.coreTelemetryBenchmark(99, 14);
 
     expect(response.result).toEqual(benchmark);
     expect(requestFrom(transport).url).toBe(
-      "https://api.dnaracing.run/fbike/pub/v1/cores/99/telemetry_benchmark",
+      "https://api.dnaracing.run/fbike/pub/v1/cores/99/telemetry_benchmark?cb=14",
     );
   });
 
-  it("fails before transport for invalid core IDs and bulk bounds", () => {
+  it("fails before transport for invalid core IDs, benchmark distances, and bulk bounds", () => {
     const transport = vi.fn(async () =>
       jsonResponse({ status: "success", result: {} }),
     ) as unknown as DnaOpenLabTransport;
@@ -147,6 +147,10 @@ describe("DNA Open Lab v1 telemetry client", () => {
     expectInvalidRequest(
       () => client.coreTelemetry(0),
       "hid must be a positive safe integer",
+    );
+    expectInvalidRequest(
+      () => client.coreTelemetryBenchmark(7, 0),
+      "cb must be a positive safe integer",
     );
     expectInvalidRequest(
       () => client.coreTelemetryBulk([]),
@@ -196,7 +200,7 @@ describe("DNA Open Lab v1 telemetry client", () => {
       ),
     );
 
-    await expect(client.coreTelemetryBenchmark(7)).rejects.toMatchObject({
+    await expect(client.coreTelemetryBenchmark(7, 14)).rejects.toMatchObject({
       kind: "rate_limited",
       httpStatus: 429,
       rateLimit: {
