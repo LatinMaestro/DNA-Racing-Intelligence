@@ -1,0 +1,61 @@
+name: Tighten breeder maturity horizon gates
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/tighten-breeder-horizon-gates.yml
+
+permissions:
+  contents: write
+
+jobs:
+  tighten:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Require positive lift at every available qualified horizon
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/hosted-breeding-full-two-parent-analysis.test.ts')
+          text = path.read_text()
+          old_parent = '''        const positive = rows.filter(\n          (row) =>\n            Number(row.adjustedBreederEffect) > 0 &&\n            Number(row.offspringCount) >= 3 &&\n            Number(row.distinctCoParentCount) >= 3,\n        );\n        if (positive.length < 2) continue;\n        const meanEffect =\n          positive.reduce(\n            (sum, row) => sum + Number(row.adjustedBreederEffect),\n            0,\n          ) / positive.length;'''
+          new_parent = '''        const qualified = rows.filter(\n          (row) =>\n            Number(row.offspringCount) >= 3 &&\n            Number(row.distinctCoParentCount) >= 3,\n        );\n        if (\n          qualified.length < 2 ||\n          qualified.length !== rows.length ||\n          qualified.some((row) => Number(row.adjustedBreederEffect) <= 0)\n        )\n          continue;\n        const meanEffect =\n          qualified.reduce(\n            (sum, row) => sum + Number(row.adjustedBreederEffect),\n            0,\n          ) / qualified.length;'''
+          old_parent_counts = '''          positiveQualifiedHorizons: positive.length,\n          minimumQualifiedOffspring: Math.min(\n            ...positive.map((row) => Number(row.offspringCount)),\n          ),\n          minimumDistinctCoParents: Math.min(\n            ...positive.map((row) => Number(row.distinctCoParentCount)),\n          ),'''
+          new_parent_counts = '''          positiveQualifiedHorizons: qualified.length,\n          minimumQualifiedOffspring: Math.min(\n            ...qualified.map((row) => Number(row.offspringCount)),\n          ),\n          minimumDistinctCoParents: Math.min(\n            ...qualified.map((row) => Number(row.distinctCoParentCount)),\n          ),'''
+          old_pair = '''        const positive = rows.filter(\n          (row) =>\n            Number(row.adjustedPairSynergy) > 0 &&\n            Number(row.offspringCount) >= 2,\n        );\n        if (positive.length < 2) continue;\n        const meanSynergy =\n          positive.reduce(\n            (sum, row) => sum + Number(row.adjustedPairSynergy),\n            0,\n          ) / positive.length;'''
+          new_pair = '''        const qualified = rows.filter(\n          (row) => Number(row.offspringCount) >= 2,\n        );\n        if (\n          qualified.length < 2 ||\n          qualified.length !== rows.length ||\n          qualified.some((row) => Number(row.adjustedPairSynergy) <= 0)\n        )\n          continue;\n        const meanSynergy =\n          qualified.reduce(\n            (sum, row) => sum + Number(row.adjustedPairSynergy),\n            0,\n          ) / qualified.length;'''
+          old_pair_counts = '''          positiveQualifiedHorizons: positive.length,\n          minimumQualifiedOffspring: Math.min(\n            ...positive.map((row) => Number(row.offspringCount)),\n          ),'''
+          new_pair_counts = '''          positiveQualifiedHorizons: qualified.length,\n          minimumQualifiedOffspring: Math.min(\n            ...qualified.map((row) => Number(row.offspringCount)),\n          ),'''
+          for old, new in [
+              (old_parent, new_parent),
+              (old_parent_counts, new_parent_counts),
+              (old_pair, new_pair),
+              (old_pair_counts, new_pair_counts),
+          ]:
+              if old not in text:
+                  raise SystemExit('expected breeder horizon gate block not found')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          npx prettier --write tests/hosted-breeding-full-two-parent-analysis.test.ts
+      - name: Commit stricter gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/hosted-breeding-full-two-parent-analysis.test.ts
+          git commit -m "Require stable breeder lift across maturity horizons"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
