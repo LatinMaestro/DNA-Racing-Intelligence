@@ -1,3 +1,4 @@
+# Offline strict-v2 follower: no DNA API requests
 name: Breeding full two-parent analysis follow-up
 
 on:
@@ -6,6 +7,9 @@ on:
       - codex/breeding-offspring-history-backfill
     paths:
       - .github/workflows/breeding-offspring-analysis-followup.yml
+      - tests/hosted-breeding-full-two-parent-analysis.test.ts
+      - domain/breeder-mating-expectation.ts
+      - domain/breeder-effect-decomposition.ts
 
 permissions:
   contents: read
