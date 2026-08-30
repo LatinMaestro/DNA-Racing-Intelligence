@@ -450,25 +450,40 @@ describeConnected("offspring breeder history analysis", () => {
       const authoritativeOutcomes: BreederOffspringOutcome[] = [];
       const proxyOutcomes: BreederOffspringOutcome[] = [];
       for (const rows of draftScopes.values()) {
-        const liftValues = rows.map((row) => row.rawLift);
-        for (const row of rows) {
-          const outcome: BreederOffspringOutcome = {
-            parentCoreId: row.parentCoreId,
-            coParentCoreId: row.coParentCoreId,
-            offspringCoreId: row.offspringCoreId,
-            scope: row.scope,
-            offspringQualityPercentile: row.offspringQualityPercentile,
-            expectedQualityPercentile: row.expectedQualityPercentile,
-            residualPercentile: percentileRank(liftValues, row.rawLift),
-            offspringRaceSampleSize: row.offspringRaceSampleSize,
-            benchmarkPopulationSize: row.benchmarkPopulationSize,
-            offspringCreatedAt: row.offspringCreatedAt,
-            expectedModelCutoff: row.expectedModelCutoff,
-            evaluationCutoff: row.evaluationCutoff,
-          };
-          if (row.creationAuthority === "minted_at")
-            authoritativeOutcomes.push(outcome);
-          else proxyOutcomes.push(outcome);
+        const authoritativeRows = rows.filter(
+          (row) => row.creationAuthority === "minted_at",
+        );
+        const proxyRows = rows.filter(
+          (row) => row.creationAuthority === "first_race_proxy",
+        );
+        const authoritativeLiftValues = authoritativeRows.map(
+          (row) => row.rawLift,
+        );
+        const proxyLiftValues = proxyRows.map((row) => row.rawLift);
+
+        const materialize = (
+          row: DraftOutcome,
+          comparableLiftValues: readonly number[],
+        ): BreederOffspringOutcome => ({
+          parentCoreId: row.parentCoreId,
+          coParentCoreId: row.coParentCoreId,
+          offspringCoreId: row.offspringCoreId,
+          scope: row.scope,
+          offspringQualityPercentile: row.offspringQualityPercentile,
+          expectedQualityPercentile: row.expectedQualityPercentile,
+          residualPercentile: percentileRank(comparableLiftValues, row.rawLift),
+          offspringRaceSampleSize: row.offspringRaceSampleSize,
+          benchmarkPopulationSize: row.benchmarkPopulationSize,
+          offspringCreatedAt: row.offspringCreatedAt,
+          expectedModelCutoff: row.expectedModelCutoff,
+          evaluationCutoff: row.evaluationCutoff,
+        });
+
+        for (const row of authoritativeRows) {
+          authoritativeOutcomes.push(materialize(row, authoritativeLiftValues));
+        }
+        for (const row of proxyRows) {
+          proxyOutcomes.push(materialize(row, proxyLiftValues));
         }
       }
 
