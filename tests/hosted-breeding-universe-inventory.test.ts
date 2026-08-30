@@ -42,6 +42,14 @@ function required(name: string): string {
   return value;
 }
 
+function assertResearchAuthorityActive(): void {
+  if (Date.now() >= Date.parse(RESEARCH_EXPIRES_AT)) {
+    throw new Error(
+      "Temporary August high-rate research authority has expired; no further inventory requests may start.",
+    );
+  }
+}
+
 function chunks<T>(values: readonly T[], size: number): T[][] {
   const out: T[][] = [];
   for (let index = 0; index < values.length; index += size) {
@@ -194,9 +202,11 @@ describeConnected("aggressive owner breeding universe backfill", () => {
         });
         await previous;
         try {
+          assertResearchAuthorityActive();
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);
           if (wait > 0)
             await new Promise((resolve) => setTimeout(resolve, wait));
+          assertResearchAuthorityActive();
           lastStartAt = Date.now();
         } finally {
           release?.();
