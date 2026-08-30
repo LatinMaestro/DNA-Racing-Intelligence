@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/inventory
           run_id=""
-          for attempt in $(seq 1 180); do
+          for attempt in $(seq 1 1200); do
             run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/breeding-universe-inventory.yml/runs?branch=codex%2Fbreeding-offspring-history-backfill&per_page=20" --jq '.workflow_runs | map(select(.conclusion == "success")) | .[0].id // empty')
             if [ -n "$run_id" ]; then
               break
