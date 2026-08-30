@@ -25,7 +25,8 @@ function observation(input: {
     parentBQualityPercentile: input.parentB ?? 90,
     offspringQualityPercentile: input.child,
     offspringCreatedAt:
-      input.createdAt ?? `2026-05-${String(input.index + 1).padStart(2, "0")}T00:00:00.000Z`,
+      input.createdAt ??
+      `2026-05-${String(input.index + 1).padStart(2, "0")}T00:00:00.000Z`,
   };
 }
 

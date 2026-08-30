@@ -73,7 +73,8 @@ function scopeKey(scope: BreederScope): string {
 }
 
 function quantile(values: readonly number[], probability: number): number {
-  if (values.length === 0) throw new Error("Cannot calculate an empty quantile.");
+  if (values.length === 0)
+    throw new Error("Cannot calculate an empty quantile.");
   const sorted = [...values].sort((left, right) => left - right);
   const position = (sorted.length - 1) * probability;
   const low = Math.floor(position);
@@ -91,9 +92,18 @@ function positiveInteger(value: number, label: string): number {
 }
 
 function validatePolicy(policy: MatingExpectationPolicy): void {
-  positiveInteger(policy.minimumHistoricalMatings, "Minimum historical matings");
-  positiveInteger(policy.maximumComparableMatings, "Maximum comparable matings");
-  positiveInteger(policy.moderateConfidenceMatings, "Moderate-confidence matings");
+  positiveInteger(
+    policy.minimumHistoricalMatings,
+    "Minimum historical matings",
+  );
+  positiveInteger(
+    policy.maximumComparableMatings,
+    "Maximum comparable matings",
+  );
+  positiveInteger(
+    policy.moderateConfidenceMatings,
+    "Moderate-confidence matings",
+  );
   positiveInteger(policy.highConfidenceMatings, "High-confidence matings");
   if (policy.maximumComparableMatings < policy.minimumHistoricalMatings) {
     throw new Error(
@@ -106,7 +116,9 @@ function validatePolicy(policy: MatingExpectationPolicy): void {
     !Number.isFinite(policy.highConfidenceMedianParentDistance) ||
     policy.highConfidenceMedianParentDistance < 0
   ) {
-    throw new Error("Parent-distance confidence thresholds must be non-negative.");
+    throw new Error(
+      "Parent-distance confidence thresholds must be non-negative.",
+    );
   }
 }
 
@@ -129,7 +141,10 @@ function validateObservation(observation: HistoricalMatingOutcome): void {
   canonicalTimestamp(observation.offspringCreatedAt, "Offspring creation time");
 }
 
-function orderedParents(left: number, right: number): readonly [number, number] {
+function orderedParents(
+  left: number,
+  right: number,
+): readonly [number, number] {
   return left <= right ? [left, right] : [right, left];
 }
 
