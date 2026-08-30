@@ -122,12 +122,14 @@ function canonicalParentPair(
   left: string,
   right: string,
 ): readonly [string, string] {
-  if (left === right) throw new Error("A mating cannot use the same Core twice.");
+  if (left === right)
+    throw new Error("A mating cannot use the same Core twice.");
   return left < right ? [left, right] : [right, left];
 }
 
 function quantile(values: readonly number[], q: number): number {
-  if (values.length === 0) throw new Error("Cannot calculate an empty quantile.");
+  if (values.length === 0)
+    throw new Error("Cannot calculate an empty quantile.");
   const sorted = [...values].sort((a, b) => a - b);
   const position = (sorted.length - 1) * q;
   const low = Math.floor(position);
@@ -198,12 +200,15 @@ export function decomposeBreederEffects(input: {
     ...new Set(observations.flatMap((row) => [row.parentA, row.parentB])),
   ].sort();
   const effects = new Map(parentIds.map((parent) => [parent, 0]));
-  let baseline = observations.length > 0 ? median(observations.map((r) => r.lift)) : 0;
+  let baseline =
+    observations.length > 0 ? median(observations.map((r) => r.lift)) : 0;
 
   for (let iteration = 0; iteration < policy.iterations; iteration++) {
     const residuals = observations.map((row) => {
       const predicted =
-        baseline + (effects.get(row.parentA) ?? 0) + (effects.get(row.parentB) ?? 0);
+        baseline +
+        (effects.get(row.parentA) ?? 0) +
+        (effects.get(row.parentB) ?? 0);
       return row.lift - predicted;
     });
     const weights = residuals.map((residual) =>
@@ -221,7 +226,8 @@ export function decomposeBreederEffects(input: {
           (effects.get(row.parentB) ?? 0));
       baselineWeight += weight;
     });
-    if (baselineWeight > 0) baseline = weightedBaselineNumerator / baselineWeight;
+    if (baselineWeight > 0)
+      baseline = weightedBaselineNumerator / baselineWeight;
 
     for (const parent of parentIds) {
       let numerator = 0;
@@ -262,14 +268,19 @@ export function decomposeBreederEffects(input: {
       );
       const lifts = rows.map((row) => row.lift);
       const adjustedBreederEffect = effects.get(parentCoreId) ?? 0;
-      const effectPercentile = percentileRank(effectValues, adjustedBreederEffect);
+      const effectPercentile = percentileRank(
+        effectValues,
+        adjustedBreederEffect,
+      );
       const positiveLiftRate =
         lifts.length === 0
           ? 0
           : lifts.filter((lift) => lift > 0).length / lifts.length;
       const warnings: string[] = [];
       if (rows.length < policy.minimumTargetOffspring) {
-        warnings.push("Too few offspring to establish a repeatable breeder effect.");
+        warnings.push(
+          "Too few offspring to establish a repeatable breeder effect.",
+        );
       }
       if (coParents.size < policy.minimumTargetCoParents) {
         warnings.push(
@@ -343,8 +354,7 @@ export function decomposeBreederEffects(input: {
         rawMedianResidualAfterParentEffects,
         adjustedPairSynergy,
         positiveResidualRate,
-        status:
-          rows.length >= 2 && adjustedPairSynergy > 0 ? "watch" : "wait",
+        status: rows.length >= 2 && adjustedPairSynergy > 0 ? "watch" : "wait",
       });
     })
     .sort(
