@@ -7,6 +7,12 @@ export type HistoricalMatingOutcome = Readonly<{
   parentBQualityPercentile: number;
   offspringQualityPercentile: number;
   offspringCreatedAt: string;
+  /**
+   * Latest evidence time used to calculate offspringQualityPercentile.
+   * This must be on/after creation and on/before the target expectation cutoff;
+   * later career performance cannot leak backwards into an earlier mating model.
+   */
+  offspringQualityObservedAt: string;
 }>;
 
 export type MatingExpectationPolicy = Readonly<{
@@ -73,8 +79,9 @@ function scopeKey(scope: BreederScope): string {
 }
 
 function quantile(values: readonly number[], probability: number): number {
-  if (values.length === 0)
+  if (values.length === 0) {
     throw new Error("Cannot calculate an empty quantile.");
+  }
   const sorted = [...values].sort((left, right) => left - right);
   const position = (sorted.length - 1) * probability;
   const low = Math.floor(position);
@@ -92,18 +99,9 @@ function positiveInteger(value: number, label: string): number {
 }
 
 function validatePolicy(policy: MatingExpectationPolicy): void {
-  positiveInteger(
-    policy.minimumHistoricalMatings,
-    "Minimum historical matings",
-  );
-  positiveInteger(
-    policy.maximumComparableMatings,
-    "Maximum comparable matings",
-  );
-  positiveInteger(
-    policy.moderateConfidenceMatings,
-    "Moderate-confidence matings",
-  );
+  positiveInteger(policy.minimumHistoricalMatings, "Minimum historical matings");
+  positiveInteger(policy.maximumComparableMatings, "Maximum comparable matings");
+  positiveInteger(policy.moderateConfidenceMatings, "Moderate-confidence matings");
   positiveInteger(policy.highConfidenceMatings, "High-confidence matings");
   if (policy.maximumComparableMatings < policy.minimumHistoricalMatings) {
     throw new Error(
@@ -116,9 +114,7 @@ function validatePolicy(policy: MatingExpectationPolicy): void {
     !Number.isFinite(policy.highConfidenceMedianParentDistance) ||
     policy.highConfidenceMedianParentDistance < 0
   ) {
-    throw new Error(
-      "Parent-distance confidence thresholds must be non-negative.",
-    );
+    throw new Error("Parent-distance confidence thresholds must be non-negative.");
   }
 }
 
@@ -138,13 +134,22 @@ function validateObservation(observation: HistoricalMatingOutcome): void {
     observation.offspringQualityPercentile,
     "Offspring quality percentile",
   );
-  canonicalTimestamp(observation.offspringCreatedAt, "Offspring creation time");
+  const createdAt = canonicalTimestamp(
+    observation.offspringCreatedAt,
+    "Offspring creation time",
+  );
+  const observedAt = canonicalTimestamp(
+    observation.offspringQualityObservedAt,
+    "Offspring quality observation time",
+  );
+  if (Date.parse(observedAt) < Date.parse(createdAt)) {
+    throw new Error(
+      "Offspring quality observation time cannot precede offspring creation.",
+    );
+  }
 }
 
-function orderedParents(
-  left: number,
-  right: number,
-): readonly [number, number] {
+function orderedParents(left: number, right: number): readonly [number, number] {
   return left <= right ? [left, right] : [right, left];
 }
 
@@ -161,6 +166,7 @@ export function estimateHistoricalMatingExpectation(input: {
   finitePercent(input.parentAQualityPercentile, "Parent A quality percentile");
   finitePercent(input.parentBQualityPercentile, "Parent B quality percentile");
   const asOf = canonicalTimestamp(input.asOf, "Mating expectation cutoff");
+  const asOfMilliseconds = Date.parse(asOf);
   const wantedScope = scopeKey(input.scope);
   const [targetLow, targetHigh] = orderedParents(
     input.parentAQualityPercentile,
@@ -175,7 +181,8 @@ export function estimateHistoricalMatingExpectation(input: {
     .filter(
       (observation) =>
         scopeKey(observation.scope) === wantedScope &&
-        Date.parse(observation.offspringCreatedAt) < Date.parse(asOf),
+        Date.parse(observation.offspringCreatedAt) < asOfMilliseconds &&
+        Date.parse(observation.offspringQualityObservedAt) <= asOfMilliseconds,
     )
     .map((observation) => {
       const [low, high] = orderedParents(
@@ -204,7 +211,7 @@ export function estimateHistoricalMatingExpectation(input: {
       scope: input.scope,
       asOf,
       historicalMatingCount: eligible.length,
-      reason: `Only ${eligible.length} earlier comparable-scope matings are available; ${policy.minimumHistoricalMatings} are required.`,
+      reason: `Only ${eligible.length} earlier comparable-scope matings have offspring quality observable by the cutoff; ${policy.minimumHistoricalMatings} are required.`,
     });
   }
 
