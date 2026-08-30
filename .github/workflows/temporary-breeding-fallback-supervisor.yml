@@ -1,0 +1,76 @@
+name: Temporary breeding fallback supervisor
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-breeding-fallback-supervisor.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRIMARY_RUN_ID: "33306940620"
+      INVENTORY_WORKFLOW_ID: "345816250"
+      BRANCH_NAME: codex/breeding-offspring-history-backfill
+      EXPIRES_AT: "2026-08-31T14:00:00Z"
+    steps:
+      - name: Switch failed broad inventory to fast lineage census
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          expiry_epoch=$(date -u -d "${EXPIRES_AT}" +%s)
+
+          while true; do
+            now_epoch=$(date -u +%s)
+            status=$(gh api "repos/${repo}/actions/runs/${PRIMARY_RUN_ID}" --jq '.status')
+            conclusion=$(gh api "repos/${repo}/actions/runs/${PRIMARY_RUN_ID}" --jq '.conclusion // ""')
+
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                echo "Broad inventory succeeded; lineage fallback is unnecessary."
+                exit 0
+              fi
+
+              if [ "$now_epoch" -ge "$expiry_epoch" ]; then
+                echo "Broad inventory failed after the temporary authority expired; no fallback API work will start."
+                exit 0
+              fi
+
+              echo "Broad inventory failed with ${conclusion}; switching remaining August window to lineage-first census."
+              sleep 15
+
+              gh api "repos/${repo}/actions/workflows/${INVENTORY_WORKFLOW_ID}/runs?branch=${BRANCH_NAME}&per_page=50" \
+                --jq ".workflow_runs[] | select((.status == \"queued\" or .status == \"pending\" or .status == \"in_progress\") and (.id | tostring) != \"${PRIMARY_RUN_ID}\") | .id" \
+                | while read -r run_id; do
+                    [ -z "$run_id" ] && continue
+                    echo "Cancelling replacement broad inventory ${run_id}"
+                    gh api -X POST "repos/${repo}/actions/runs/${run_id}/cancel" >/dev/null 2>&1 || true
+                  done
+
+              existing=$(gh api "repos/${repo}/actions/runs?branch=${BRANCH_NAME}&per_page=50" \
+                --jq '[.workflow_runs[] | select(.name == "Breeding lineage census fallback" and (.status == "queued" or .status == "pending" or .status == "in_progress" or .conclusion == "success"))] | length')
+              if [ "$existing" -eq 0 ]; then
+                gh workflow run breeding-lineage-census-fallback.yml --repo "${repo}" --ref "${BRANCH_NAME}"
+                echo "Lineage census fallback dispatched."
+              else
+                echo "A lineage census fallback already exists; not dispatching another."
+              fi
+              exit 0
+            fi
+
+            if [ "$now_epoch" -ge "$expiry_epoch" ]; then
+              echo "Temporary August authority expired while broad inventory remained active; existing expiry supervisor owns cancellation."
+              exit 0
+            fi
+
+            sleep 10
+          done
