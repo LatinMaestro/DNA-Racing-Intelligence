@@ -1,0 +1,80 @@
+name: Breeding offspring analysis follow-up
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/breeding-offspring-analysis-followup.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: "33317292893"
+      UPGRADED_CENSUS_ARTIFACT_ID: "9733841620"
+      DNA_BREEDING_OFFSPRING_ANALYSIS: "1"
+      BREEDING_INVENTORY_PATH: artifacts/inventory/breeding-lineage-census-upgraded.json
+      BREEDING_HISTORY_DIR: artifacts/history
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Wait for four targeted history artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 1000); do
+            count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts" \
+              --jq '[.artifacts[] | select(.name | startswith("breeding-census-history-"))] | length')
+            status=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" --jq '.status')
+            conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" --jq '.conclusion // ""')
+            echo "history artifacts=${count} source status=${status} conclusion=${conclusion}"
+            if [ "$count" -eq 4 ]; then break; fi
+            if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
+              echo "Source history run completed without all four artifacts" >&2
+              exit 1
+            fi
+            sleep 15
+          done
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts" \
+            --jq '[.artifacts[] | select(.name | startswith("breeding-census-history-"))] | length')
+          test "$count" -eq 4
+      - name: Download upgraded census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/inventory
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${UPGRADED_CENSUS_ARTIFACT_ID}/zip" > /tmp/inventory.zip
+          unzip -q /tmp/inventory.zip -d artifacts/inventory
+          test -f artifacts/inventory/breeding-lineage-census-upgraded.json
+      - name: Download four targeted history shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/history
+          for shard in 0 1 2 3; do
+            artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts" \
+              --jq ".artifacts[] | select(.name == \"breeding-census-history-${shard}\") | .id" | head -n 1)
+            test -n "$artifact_id"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "/tmp/history-${shard}.zip"
+            unzip -q "/tmp/history-${shard}.zip" -d artifacts/history
+          done
+          test "$(find artifacts/history -name 'breeding-race-history-*.json' | wc -l)" -eq 4
+      - name: Build authoritative and capped proxy breeder research
+        run: npx vitest run --no-file-parallelism tests/hosted-breeding-offspring-analysis.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-offspring-analysis-followup
+          path: artifacts/analysis/breeding-offspring-analysis.json
+          if-no-files-found: error
+          retention-days: 2
