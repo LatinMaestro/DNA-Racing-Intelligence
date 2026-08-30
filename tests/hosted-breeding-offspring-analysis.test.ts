@@ -153,11 +153,6 @@ describeConnected("offspring breeder history analysis", () => {
           row,
         ]),
       );
-      const splicingByHid = new Map<number, AnyRecord>(
-        ((inventory?.coreFamilies?.splicing ?? []) as AnyRecord[]).map(
-          (row) => [Number(row.hid), row],
-        ),
-      );
       const directParentsByChild = new Map<number, number[]>(
         Object.entries(inventory?.universe?.directParentsByChild ?? {}).map(
           ([hid, parents]) => [
@@ -168,20 +163,25 @@ describeConnected("offspring breeder history analysis", () => {
           ],
         ),
       );
-      const explicitMintedAt = new Map<number, string>(
-        Object.entries(inventory?.spliceDiscovery?.mintedAtByHid ?? {})
-          .map(
-            ([hid, value]) => [Number(hid), canonicalTimestamp(value)] as const,
-          )
-          .filter(
-            (entry): entry is readonly [number, string] =>
-              Number.isSafeInteger(entry[0]) && entry[1] !== null,
-          ),
-      );
-      for (const [hid, row] of splicingByHid) {
-        if (explicitMintedAt.has(hid)) continue;
-        const found = findTimestampField(row?.splice_core, "minted_at");
-        if (found) explicitMintedAt.set(hid, found);
+      const explicitMintedAt = new Map<number, string>();
+      for (const item of (inventory?.spliceDiscovery?.spliceDocuments ??
+        []) as AnyRecord[]) {
+        const document =
+          item.document && typeof item.document === "object"
+            ? (item.document as AnyRecord)
+            : null;
+        if (document?.minted !== true) continue;
+        const hid = Number(document.hid);
+        const mintedAt = canonicalTimestamp(document.minted_at);
+        if (!Number.isSafeInteger(hid) || hid <= 0 || mintedAt === null)
+          continue;
+        const existing = explicitMintedAt.get(hid);
+        if (existing !== undefined && existing !== mintedAt) {
+          throw new Error(
+            `Conflicting authoritative minted_at timestamps for child ${hid}.`,
+          );
+        }
+        explicitMintedAt.set(hid, mintedAt);
       }
 
       const byCoreModeDistance = new Map<string, HistoryRecord[]>();
