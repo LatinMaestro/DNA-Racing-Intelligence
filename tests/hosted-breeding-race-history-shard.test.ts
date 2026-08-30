@@ -42,6 +42,14 @@ function canonicalTimestamp(value: unknown): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
+function assertResearchAuthorityActive(): void {
+  if (Date.now() >= Date.parse(RESEARCH_EXPIRES_AT)) {
+    throw new Error(
+      "Temporary August high-rate research authority has expired; no further history requests may start.",
+    );
+  }
+}
+
 function numberOrNull(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -145,7 +153,9 @@ describeConnected("sharded historical race result backfill", () => {
         page: number,
       ): Promise<AnyRecord[]> => {
         for (let attempt = 0; attempt < 5; attempt++) {
+          assertResearchAuthorityActive();
           await acquire();
+          assertResearchAuthorityActive();
           requestCount++;
           const response = await fetch(
             "https://api.dnaracing.run/fbike/i/hraces",
