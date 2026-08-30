@@ -155,7 +155,9 @@ describe("offspring breeder-quality model", () => {
     expect(elite?.distinctCoParentCount).toBe(2);
     expect(elite?.exceptionalOffspringCount).toBe(3);
     expect(elite?.medianLiftBenchmarkPercentile).toBeGreaterThanOrEqual(95);
-    expect(elite?.exceptionalRateBenchmarkPercentile).toBeGreaterThanOrEqual(90);
+    expect(elite?.exceptionalRateBenchmarkPercentile).toBeGreaterThanOrEqual(
+      90,
+    );
   });
 
   it("keeps one supernatural offspring on WATCH rather than calling one lucky roll an elite breeder", () => {
@@ -175,7 +177,9 @@ describe("offspring breeder-quality model", () => {
     );
     expect(assessment?.status).toBe("watch");
     expect(assessment?.exceptionalOffspringCount).toBe(1);
-    expect(assessment?.warnings).toContain("OFFSPRING_SAMPLE_TOO_SMALL_FOR_TARGET");
+    expect(assessment?.warnings).toContain(
+      "OFFSPRING_SAMPLE_TOO_SMALL_FOR_TARGET",
+    );
   });
 
   it("does not reward a prolific parent whose offspring are consistently average or weaker than expected", () => {
@@ -244,7 +248,9 @@ describe("offspring breeder-quality model", () => {
     );
     expect(assessment?.distinctCoParentCount).toBe(1);
     expect(assessment?.status).toBe("watch");
-    expect(assessment?.warnings).toContain("CO_PARENT_DIVERSITY_TOO_LOW_FOR_TARGET");
+    expect(assessment?.warnings).toContain(
+      "CO_PARENT_DIVERSITY_TOO_LOW_FOR_TARGET",
+    );
   });
 
   it("keeps Bike, Car and Horse breeder evidence separated", () => {
@@ -308,7 +314,9 @@ describe("integrated racer and breeder identification", () => {
     );
     expect(assessment.status).toBe("target");
     expect(assessment.qualificationPath).toBe("elite_racer");
-    expect(assessment.warnings).toContain("BREEDER_QUALITY_EVIDENCE_UNAVAILABLE");
+    expect(assessment.warnings).toContain(
+      "BREEDER_QUALITY_EVIDENCE_UNAVAILABLE",
+    );
   });
 
   it("labels a Core that is both an elite racer and elite breeder as dual", () => {

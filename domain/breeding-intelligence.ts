@@ -109,11 +109,11 @@ function selectBreederAssessment(
     exact.length === 1
       ? findBreederAssessment(exact[0]!, candidate.racing.coreId)
       : null;
-  if (
-    exactAssessment !== null &&
-    exactAssessment.qualifiedOffspringCount > 0
-  ) {
-    return Object.freeze({ assessment: exactAssessment, source: "exact_distance" });
+  if (exactAssessment !== null && exactAssessment.qualifiedOffspringCount > 0) {
+    return Object.freeze({
+      assessment: exactAssessment,
+      source: "exact_distance",
+    });
   }
 
   const modeWide = sameMode.filter(
@@ -127,10 +127,16 @@ function selectBreederAssessment(
       ? findBreederAssessment(modeWide[0]!, candidate.racing.coreId)
       : null;
   if (modeWideAssessment !== null) {
-    return Object.freeze({ assessment: modeWideAssessment, source: "mode_wide" });
+    return Object.freeze({
+      assessment: modeWideAssessment,
+      source: "mode_wide",
+    });
   }
   if (exactAssessment !== null) {
-    return Object.freeze({ assessment: exactAssessment, source: "exact_distance" });
+    return Object.freeze({
+      assessment: exactAssessment,
+      source: "exact_distance",
+    });
   }
   return Object.freeze({ assessment: null, source: "unavailable" });
 }
@@ -152,7 +158,10 @@ export function assessBreedingIntelligenceParent(
   if (!probeModes.includes(target.mode)) {
     throw new Error("Breeding-intelligence target mode is invalid.");
   }
-  positiveInteger(target.distanceMetres, "Breeding-intelligence target distance");
+  positiveInteger(
+    target.distanceMetres,
+    "Breeding-intelligence target distance",
+  );
   const racer = assessBreedingParent(candidate.racing, target);
   const selectedBreeder = selectBreederAssessment(candidate, target);
   const breeder = selectedBreeder.assessment;

@@ -219,7 +219,10 @@ function validateOutcome(outcome: BreederOffspringOutcome): void {
     outcome.offspringQualityPercentile,
     "Offspring quality percentile",
   );
-  finitePercent(outcome.expectedQualityPercentile, "Expected quality percentile");
+  finitePercent(
+    outcome.expectedQualityPercentile,
+    "Expected quality percentile",
+  );
   finitePercent(outcome.residualPercentile, "Residual percentile");
   nonNegativeInteger(
     outcome.offspringRaceSampleSize,
@@ -289,7 +292,10 @@ export function deduplicateBreederOffspringOutcomes(
   return Object.freeze([...deduplicated.values()]);
 }
 
-function matchesScope(outcome: BreederOffspringOutcome, scope: BreederScope): boolean {
+function matchesScope(
+  outcome: BreederOffspringOutcome,
+  scope: BreederScope,
+): boolean {
   return (
     outcome.scope.mode === scope.mode &&
     outcome.scope.distanceMetres === scope.distanceMetres
@@ -333,7 +339,8 @@ function rawSummary(
     (outcome) =>
       outcome.parentCoreId === parentCoreId &&
       matchesScope(outcome, scope) &&
-      outcome.offspringRaceSampleSize >= policy.minimumOffspringRaceSampleSize &&
+      outcome.offspringRaceSampleSize >=
+        policy.minimumOffspringRaceSampleSize &&
       outcome.benchmarkPopulationSize >=
         policy.minimumOffspringBenchmarkPopulationSize,
   );
@@ -420,7 +427,8 @@ export function buildBreederQualityBenchmark(
   );
   const qualified = outcomes.filter(
     (outcome) =>
-      outcome.offspringRaceSampleSize >= policy.minimumOffspringRaceSampleSize &&
+      outcome.offspringRaceSampleSize >=
+        policy.minimumOffspringRaceSampleSize &&
       outcome.benchmarkPopulationSize >=
         policy.minimumOffspringBenchmarkPopulationSize,
   );
@@ -428,19 +436,19 @@ export function buildBreederQualityBenchmark(
     qualified.length === 0
       ? 0
       : qualified.filter(
-            (outcome) =>
-              outcome.offspringQualityPercentile >=
-              policy.eliteOffspringQualityPercentile,
-          ).length / qualified.length;
+          (outcome) =>
+            outcome.offspringQualityPercentile >=
+            policy.eliteOffspringQualityPercentile,
+        ).length / qualified.length;
   const populationExceptionalOffspringRate =
     qualified.length === 0
       ? 0
       : qualified.filter(
-            (outcome) =>
-              outcome.offspringQualityPercentile >=
-                policy.eliteOffspringQualityPercentile &&
-              outcome.residualPercentile >= policy.exceptionalResidualPercentile,
-          ).length / qualified.length;
+          (outcome) =>
+            outcome.offspringQualityPercentile >=
+              policy.eliteOffspringQualityPercentile &&
+            outcome.residualPercentile >= policy.exceptionalResidualPercentile,
+        ).length / qualified.length;
   const parentIds = [
     ...new Set(outcomes.map((outcome) => outcome.parentCoreId)),
   ].sort();
@@ -563,8 +571,7 @@ export function buildBreederQualityBenchmark(
       medianLiftPercentilePoints: summary.medianLiftPercentilePoints,
       positiveLiftRate: summary.positiveLiftRate,
       shrunkEliteOffspringRate: summary.shrunkEliteOffspringRate,
-      shrunkExceptionalOffspringRate:
-        summary.shrunkExceptionalOffspringRate,
+      shrunkExceptionalOffspringRate: summary.shrunkExceptionalOffspringRate,
       medianLiftBenchmarkPercentile,
       eliteRateBenchmarkPercentile,
       exceptionalRateBenchmarkPercentile,
