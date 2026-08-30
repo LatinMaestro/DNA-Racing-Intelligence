@@ -41,21 +41,23 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Wait for successful breeding universe inventory artifact
+      - name: Wait for successful breeding universe inventory artifact and quiet inventory lane
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts/inventory
           run_id=""
           for attempt in $(seq 1 1200); do
-            run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/breeding-universe-inventory.yml/runs?branch=codex%2Fbreeding-offspring-history-backfill&per_page=20" --jq '.workflow_runs | map(select(.conclusion == "success")) | .[0].id // empty')
-            if [ -n "$run_id" ]; then
+            runs_json=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/breeding-universe-inventory.yml/runs?branch=codex%2Fbreeding-offspring-history-backfill&per_page=50")
+            run_id=$(jq -r '.workflow_runs | map(select(.conclusion == "success")) | .[0].id // empty' <<<"$runs_json")
+            active_count=$(jq '[.workflow_runs[] | select(.status == "queued" or .status == "pending" or .status == "in_progress")] | length' <<<"$runs_json")
+            if [ -n "$run_id" ] && [ "$active_count" -eq 0 ]; then
               break
             fi
             sleep 10
           done
           if [ -z "$run_id" ]; then
-            echo "No successful inventory run became available in time" >&2
+            echo "No successful, fully quiesced inventory run became available in time" >&2
             exit 1
           fi
           artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" --jq '.artifacts[] | select(.name == "breeding-universe-inventory") | .id' | head -n 1)
