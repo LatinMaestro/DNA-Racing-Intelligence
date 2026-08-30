@@ -27,9 +27,7 @@ globalThis.fetch = async function resilientFetch(input, init) {
     console.warn(
       `[connected-backfill] transient HTTP ${response.status}; retrying in ${delaySeconds}s (attempt ${attempt + 2}/${MAX_ATTEMPTS})`,
     );
-    await new Promise((resolve) =>
-      setTimeout(resolve, delaySeconds * 1_000),
-    );
+    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1_000));
   }
   throw new Error("unreachable transient fetch retry state");
 };
