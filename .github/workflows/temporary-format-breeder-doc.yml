@@ -1,0 +1,34 @@
+name: Temporary format breeder doc
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-format-breeder-doc.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write docs/BREEDER_QUALITY_METHOD.md
+      - name: Commit formatting and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temporary-format-breeder-doc.yml
+          git add docs/BREEDER_QUALITY_METHOD.md
+          git commit -m "[format-only] Format specialist breeder method"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
