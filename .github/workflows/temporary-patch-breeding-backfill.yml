@@ -1,0 +1,59 @@
+name: Temporary patch breeding backfill
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-patch-breeding-backfill.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Patch transient retry and strict lint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path('tests/hosted-breeding-universe-inventory.test.ts'),
+              Path('tests/hosted-breeding-race-history-shard.test.ts'),
+              Path('tests/hosted-breeding-offspring-analysis.test.ts'),
+          ]
+          for p in files:
+              s = p.read_text()
+              s = s.replace('Record<string, any>', 'Record<string, unknown>')
+              p.write_text(s)
+
+          p = Path('tests/hosted-breeding-universe-inventory.test.ts')
+          s = p.read_text()
+          old = '''error instanceof DnaOpenLabApiError &&\n              error.kind === "rate_limited" &&\n              attempt < 3'''
+          new = '''error instanceof DnaOpenLabApiError &&\n              (error.kind === "rate_limited" ||\n                (error.httpStatus !== null && error.httpStatus >= 500)) &&\n              attempt < 3'''
+          if old not in s:
+              raise SystemExit('retry pattern not found')
+          s = s.replace(old, new)
+          p.write_text(s)
+          PY
+          npx prettier --write tests/hosted-breeding-universe-inventory.test.ts tests/hosted-breeding-race-history-shard.test.ts tests/hosted-breeding-offspring-analysis.test.ts
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temporary-patch-breeding-backfill.yml
+          git add tests/hosted-breeding-universe-inventory.test.ts tests/hosted-breeding-race-history-shard.test.ts tests/hosted-breeding-offspring-analysis.test.ts
+          git commit -m "Harden breeding backfill retries and lint"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
