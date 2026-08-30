@@ -56,7 +56,9 @@ function lineageIds(value: unknown): number[] {
   ];
   const preferredValues = preferred.flatMap((key) => lineageIds(record[key]));
   if (preferredValues.length > 0) return [...new Set(preferredValues)];
-  return [...new Set(Object.values(record).flatMap((entry) => lineageIds(entry)))];
+  return [
+    ...new Set(Object.values(record).flatMap((entry) => lineageIds(entry))),
+  ];
 }
 
 function chunks<T>(values: readonly T[], size: number): T[][] {
@@ -80,7 +82,9 @@ describeConnected("lineage-first breeding census fallback", () => {
       assertAuthority();
       const apiKey = required("DNA_OPEN_LAB_API_KEY_1");
       const client = createDnaOpenLabV1Client({ apiKey });
-      const maxHid = Number(process.env.BREEDING_CENSUS_MAX_HID ?? DEFAULT_MAX_HID);
+      const maxHid = Number(
+        process.env.BREEDING_CENSUS_MAX_HID ?? DEFAULT_MAX_HID,
+      );
       if (!Number.isSafeInteger(maxHid) || maxHid < 1 || maxHid > 100_000) {
         throw new Error("BREEDING_CENSUS_MAX_HID is invalid");
       }
@@ -97,7 +101,8 @@ describeConnected("lineage-first breeding census fallback", () => {
         for (let attempt = 0; attempt < 5; attempt++) {
           assertAuthority();
           const wait = REQUEST_INTERVAL_MS - (Date.now() - lastStartAt);
-          if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+          if (wait > 0)
+            await new Promise((resolve) => setTimeout(resolve, wait));
           assertAuthority();
           lastStartAt = Date.now();
           requestCount++;
@@ -139,9 +144,16 @@ describeConnected("lineage-first breeding census fallback", () => {
         throw new Error("unreachable request retry exhaustion");
       };
 
-      const owned = (await paced(() => client.vaultCoresFull(OWNER_VAULT))).result;
-      const parentTargets = new Set<number>(owned.map((core) => Number(core.hid)));
-      const arenas: Record<string, AnyRecord[]> = { bike: [], car: [], horse: [] };
+      const owned = (await paced(() => client.vaultCoresFull(OWNER_VAULT)))
+        .result;
+      const parentTargets = new Set<number>(
+        owned.map((core) => Number(core.hid)),
+      );
+      const arenas: Record<string, AnyRecord[]> = {
+        bike: [],
+        car: [],
+        horse: [],
+      };
       for (const mode of ["bike", "car", "horse"] as const) {
         for (let page = 1; page <= 100; page++) {
           const response = await paced(() =>
@@ -163,7 +175,9 @@ describeConnected("lineage-first breeding census fallback", () => {
 
       const fetchAdaptive = async (batch: readonly number[]): Promise<void> => {
         try {
-          const response = await paced(() => client.coreSplicingInfoBulk(batch));
+          const response = await paced(() =>
+            client.coreSplicingInfoBulk(batch),
+          );
           splicingRows.push(...response.result);
         } catch (error) {
           if (batch.length === 1) {
@@ -186,7 +200,9 @@ describeConnected("lineage-first breeding census fallback", () => {
       for (const row of splicingRows) {
         const childHid = finiteHid(row.hid);
         if (childHid === null) continue;
-        const parentHids = lineageIds(row.parents).filter((hid) => hid !== childHid);
+        const parentHids = lineageIds(row.parents).filter(
+          (hid) => hid !== childHid,
+        );
         if (parentHids.length === 0) continue;
         links.push({ childHid, parentHids });
         for (const parentHid of parentHids) {
@@ -198,9 +214,9 @@ describeConnected("lineage-first breeding census fallback", () => {
         }
       }
 
-      const relevantHids = [...new Set([...parentTargets, ...relevantChildHids])].sort(
-        (a, b) => a - b,
-      );
+      const relevantHids = [
+        ...new Set([...parentTargets, ...relevantChildHids]),
+      ].sort((a, b) => a - b);
       const info: AnyRecord[] = [];
       const stats: AnyRecord[] = [];
       const power: AnyRecord[] = [];
