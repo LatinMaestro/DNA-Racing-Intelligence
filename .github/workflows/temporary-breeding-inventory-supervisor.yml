@@ -1,0 +1,71 @@
+name: Temporary breeding inventory supervisor
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/temporary-breeding-inventory-supervisor.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_RUN_ID: "33306940620"
+      INVENTORY_WORKFLOW_ID: "345816250"
+      BRANCH_NAME: codex/breeding-offspring-history-backfill
+      EXPIRES_AT: "2026-08-31T14:00:00Z"
+    steps:
+      - name: Supervise active inventory and prevent duplicate high-rate runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          target="${TARGET_RUN_ID}"
+          expiry_epoch=$(date -u -d "${EXPIRES_AT}" +%s)
+
+          cancel_other_inventory_runs() {
+            gh api "repos/${repo}/actions/workflows/${INVENTORY_WORKFLOW_ID}/runs?branch=${BRANCH_NAME}&per_page=50" \
+              --jq ".workflow_runs[] | select((.status == \"queued\" or .status == \"pending\" or .status == \"in_progress\") and (.id | tostring) != \"${target}\") | .id" \
+              | while read -r run_id; do
+                  [ -z "$run_id" ] && continue
+                  echo "Cancelling redundant inventory run ${run_id}"
+                  gh api -X POST "repos/${repo}/actions/runs/${run_id}/cancel" >/dev/null 2>&1 || true
+                done
+          }
+
+          while true; do
+            now_epoch=$(date -u +%s)
+            status=$(gh api "repos/${repo}/actions/runs/${target}" --jq '.status')
+            conclusion=$(gh api "repos/${repo}/actions/runs/${target}" --jq '.conclusion // ""')
+
+            if [ "$now_epoch" -ge "$expiry_epoch" ]; then
+              echo "Temporary August research authority expired; cancelling active/queued inventory runs."
+              if [ "$status" != "completed" ]; then
+                gh api -X POST "repos/${repo}/actions/runs/${target}/cancel" >/dev/null 2>&1 || true
+              fi
+              cancel_other_inventory_runs
+              exit 0
+            fi
+
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                echo "Primary inventory succeeded; cancelling redundant queued inventory runs."
+                cancel_other_inventory_runs
+                exit 0
+              fi
+
+              echo "Primary inventory completed with ${conclusion}; replacing obsolete queued runs with one current recovery run."
+              cancel_other_inventory_runs
+              gh workflow run breeding-universe-inventory.yml --repo "${repo}" --ref "${BRANCH_NAME}"
+              exit 0
+            fi
+
+            sleep 10
+          done
