@@ -24,6 +24,7 @@ jobs:
     env:
       DNA_BREEDING_UNIVERSE_BACKFILL: "1"
       DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      NODE_OPTIONS: "--import=./scripts/retry-transient-fetch.mjs"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
