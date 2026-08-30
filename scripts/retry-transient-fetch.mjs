@@ -6,7 +6,11 @@ const DEFAULT_DELAYS_SECONDS = [2, 5, 10, 20];
 function retryDelaySeconds(response, attempt) {
   const retryAfter = Number(response.headers.get("retry-after"));
   if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter;
-  return DEFAULT_DELAYS_SECONDS[Math.min(attempt, DEFAULT_DELAYS_SECONDS.length - 1)] ?? 20;
+  return (
+    DEFAULT_DELAYS_SECONDS[
+      Math.min(attempt, DEFAULT_DELAYS_SECONDS.length - 1)
+    ] ?? 20
+  );
 }
 
 function retryableStatus(status) {
@@ -23,7 +27,9 @@ globalThis.fetch = async function resilientFetch(input, init) {
     console.warn(
       `[connected-backfill] transient HTTP ${response.status}; retrying in ${delaySeconds}s (attempt ${attempt + 2}/${MAX_ATTEMPTS})`,
     );
-    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1_000));
+    await new Promise((resolve) =>
+      setTimeout(resolve, delaySeconds * 1_000),
+    );
   }
   throw new Error("unreachable transient fetch retry state");
 };
