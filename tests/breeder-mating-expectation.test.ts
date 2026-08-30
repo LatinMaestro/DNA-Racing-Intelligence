@@ -13,8 +13,15 @@ function observation(input: {
   parentB?: number;
   child: number;
   createdAt?: string;
+  observedAt?: string;
   distanceMetres?: number;
 }): HistoricalMatingOutcome {
+  const createdAt =
+    input.createdAt ??
+    `2026-05-${String(input.index + 1).padStart(2, "0")}T00:00:00.000Z`;
+  const observedAt =
+    input.observedAt ??
+    new Date(Date.parse(createdAt) + 10 * 24 * 60 * 60 * 1_000).toISOString();
   return {
     offspringCoreId: `child-${input.index}`,
     scope: {
@@ -24,9 +31,8 @@ function observation(input: {
     parentAQualityPercentile: input.parentA ?? 90,
     parentBQualityPercentile: input.parentB ?? 90,
     offspringQualityPercentile: input.child,
-    offspringCreatedAt:
-      input.createdAt ??
-      `2026-05-${String(input.index + 1).padStart(2, "0")}T00:00:00.000Z`,
+    offspringCreatedAt: createdAt,
+    offspringQualityObservedAt: observedAt,
   };
 }
 
@@ -78,17 +84,18 @@ describe("historical mating expectation", () => {
     expect(left).toEqual(right);
   });
 
-  it("excludes future offspring from a historical expectation", () => {
+  it("excludes offspring created after the historical expectation cutoff", () => {
     const earlier = Array.from({ length: 12 }, (_, index) =>
       observation({ index, child: 60 + index }),
     );
-    const future = Array.from({ length: 20 }, (_, index) =>
-      observation({
+    const future = Array.from({ length: 20 }, (_, index) => {
+      const createdAt = `2026-08-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`;
+      return observation({
         index: index + 30,
         child: 99,
-        createdAt: `2026-08-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
-      }),
-    );
+        createdAt,
+      });
+    });
 
     const result = estimateHistoricalMatingExpectation({
       scope,
@@ -104,7 +111,34 @@ describe("historical mating expectation", () => {
     expect(result.typicalOffspringQualityPercentile).toBeLessThan(90);
   });
 
-  it("fails closed when too few earlier comparable matings exist", () => {
+  it("excludes an earlier child whose later career quality was not yet observable", () => {
+    const known = Array.from({ length: 12 }, (_, index) =>
+      observation({ index, child: 65 + index / 2 }),
+    );
+    const futureKnowledge = Array.from({ length: 10 }, (_, index) =>
+      observation({
+        index: index + 30,
+        child: 99,
+        createdAt: `2026-04-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+        observedAt: "2026-08-01T00:00:00.000Z",
+      }),
+    );
+
+    const result = estimateHistoricalMatingExpectation({
+      scope,
+      parentAQualityPercentile: 90,
+      parentBQualityPercentile: 90,
+      asOf,
+      historicalMatings: [...known, ...futureKnowledge],
+    });
+
+    expect(result.status).toBe("available");
+    if (result.status !== "available") return;
+    expect(result.historicalMatingCount).toBe(12);
+    expect(result.typicalOffspringQualityPercentile).toBeLessThan(80);
+  });
+
+  it("fails closed when too few earlier observable comparable matings exist", () => {
     const result = estimateHistoricalMatingExpectation({
       scope,
       parentAQualityPercentile: 90,
@@ -154,6 +188,7 @@ describe("historical mating expectation", () => {
           index: index + 30,
           child: 99,
           distanceMetres: 2200,
+          createdAt: `2026-03-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
         }),
       ),
     ];
@@ -170,5 +205,24 @@ describe("historical mating expectation", () => {
     if (result.status !== "available") return;
     expect(result.historicalMatingCount).toBe(12);
     expect(result.typicalOffspringQualityPercentile).toBe(70);
+  });
+
+  it("rejects offspring quality evidence timestamped before creation", () => {
+    expect(() =>
+      estimateHistoricalMatingExpectation({
+        scope,
+        parentAQualityPercentile: 90,
+        parentBQualityPercentile: 90,
+        asOf,
+        historicalMatings: [
+          observation({
+            index: 1,
+            child: 70,
+            createdAt: "2026-05-10T00:00:00.000Z",
+            observedAt: "2026-05-09T00:00:00.000Z",
+          }),
+        ],
+      }),
+    ).toThrow(/cannot precede offspring creation/u);
   });
 });
