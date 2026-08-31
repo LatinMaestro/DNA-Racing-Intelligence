@@ -133,3 +133,8 @@ generation. Raw owner payloads and API keys must not enter the report.
   crash-after-R2-write/restart-replay scenario is implemented. Its private
   Preview execution is the next acceptance step, followed by the remaining
   ordered connected cases.
+- The second connected case now has a component-backed concurrency scenario:
+  two workers replay one immutable temporary R2 receipt from the same synthetic
+  checkpoint revision, exactly one compare-and-swap advances, the losing writer
+  is rejected, last-good serving remains unchanged and cleanup leaves no R2
+  residue. It does not write a Neon checkpoint or persistent owner row.
