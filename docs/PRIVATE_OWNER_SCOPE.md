@@ -52,6 +52,10 @@ Read `docs/ESPORTS_PRO_LEAGUE_PREPARATION.md` before changing Pro League logic. 
 
 The owner intends to participate in the DNA Pro Esports League. Pro League is part of the DNA Racing ecosystem and uses the same underlying core stats and performance characteristics. Keep it as a dedicated private website section because roster construction, breeding, Discovery and team-core selection form a distinct high-value competition workflow.
 
+`Pro League` and `Esports` are synonymous names for this one Bike competition;
+they are not separate modes or programmes. Trial Esports is practice for the
+same competition format.
+
 - Do **not** recommend or plan additional Genesis minting. Use the existing owner-maintained My Vault plus breeding.
 - Current roster requirements are 12–25 Cores; maximum 7 Metal, 8 Fire and 10 Earth; maximum 2 Genesis per element; maximum 5 at F5 or below; maximum 12 at F10 or below; minimum 2 above F15; at least 32% females rounded up (4 for 12 Cores and 8 for 25); and names for every rostered Core.
 - Use confirmed DNA breeding rules for offspring class, element and F-number. An above-F15 structural target requires parent F-numbers summing to at least 16. Do not claim offspring sex can be deterministically targeted.
@@ -63,14 +67,14 @@ The owner intends to participate in the DNA Pro Esports League. Pro League is pa
   roster for the published exact formats and distances, without treating raw
   win rate as the primary signal.
 - Use winning-range and top-three-or-better exact-distance benchmarks as transparent current evidence dimensions. Do not hide the reasoning inside an unexplained universal score.
-- Pro League should be Discovery-intensive. Strong Bike evidence at one exact
-  format/distance is a reason to test promising missing or adjacent Bike
-  demands; it is not permission to assume those strengths. Continue promising
-  paths toward minimally analytical samples and stop weak paths early.
+- Pro League/Esports may add evidence incidentally when a developing Core runs
+  for a competitive reason, but it is not a Discovery programme after proper
+  assessment. Use the separate mode-aware normal-racing Discovery workflow to
+  close meaningful pre-roster evidence gaps.
 - Race Merge `rpayout` evidence should support format versatility such as Top 3 and Winner Take All through a bounded precomputed per-core/mode/format aggregate. Until that read model exists, show format evidence as pending rather than scanning the full Race Merge history or inventing a format score.
 - The Pro League workspace should read current My Vault state, show structural
   readiness, Bike exact-format candidate pools, breeding quality/structural
-  targets and a Pro League Discovery queue.
+  targets and a separate pre-roster Bike Discovery queue.
 - Preserve the four published fixed 42-race maps and their exact ordered
   race-type/distance lines. Support one-race and same-type-and-distance mapping
   scopes, reusable all-map lineups and match-lock snapshots. Model the home
