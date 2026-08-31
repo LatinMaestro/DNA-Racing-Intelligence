@@ -396,7 +396,37 @@ normal/Esports counts, freshness and missing-field coverage explicit.
 
 ## F2 — API-native Open Race Intelligence
 
-Active-race browser, restrictions/status/times/fees/token, fill ticker/current entrants, automatic owned-Core field analysis and alternatives/avoid guidance. Retain manual fallback. Never enter a race.
+Live, read-only active-race browser and recommender, commissioned only after the
+major API history/storage integration is stable:
+
+- scan every API-visible open race with at least 50% of its gates filled and at
+  least one place still available;
+- display restrictions, status, scheduled time, fee/token, gate fill and current
+  entrants;
+- filter the owner's current Cores through every authoritative eligibility rule
+  before ranking, including mode, element/class restrictions and any other
+  API-exposed gate condition;
+- recommend the strongest eligible Core and useful alternatives, or recommend
+  avoiding the race when no entry has a supportable positive case;
+- compare exact race type plus exact distance first, using valid elapsed
+  time/speed, variance/consistency, sample size, freshness, historical stars and
+  known opponent/field strength. Raw win and podium rates remain supporting
+  context only;
+- show payout opportunity separately from intrinsic performance, including fee
+  and expected net return only where the API supplies enough authoritative
+  information;
+- provide the authoritative DNA race link so the owner can open the entry page
+  directly. The website never enters the race, connects a wallet or submits a
+  transaction;
+- refresh through a bulk-first, change-aware request plan within the conservative
+  30 aggregate requests/minute pool, respecting per-key headers, `Retry-After`,
+  endpoint limits, health/failover and the daily persistence workload; and
+- retain the existing manual field-capture workflow as a fallback when live API
+  coverage is missing, stale or unavailable.
+
+The UI must show observation time, recommendation freshness and why each Core is
+eligible or rejected. A race that becomes full, closed, started or materially
+changes must invalidate its prior recommendation rather than present it as live.
 
 ## F3 — Full Breeding/Splice
 

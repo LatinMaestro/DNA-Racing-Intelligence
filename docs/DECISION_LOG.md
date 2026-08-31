@@ -265,6 +265,25 @@ After the private Pro League milestone, continue in this order:
 8. Whole-product validation/hardening.
 9. Full private website commissioning/handover, with explicit owner Production approval required before controlled Production schema/data/deployment changes.
 
+## 2026-09-01 — Post-critical-path live Open Race recommender
+
+- Preserve API-native Open Race Intelligence as F2, immediately after API-native
+  My Vault and Core Intelligence and after the major API history/storage path is
+  stable.
+- Upgrade the existing manual model to scan all API-visible open races with at
+  least 50% of gates filled and at least one place still available.
+- Apply every authoritative race restriction before ranking owned Cores,
+  including element-only restrictions such as Metal-only.
+- Rank payout opportunity from exact-format/exact-distance performance,
+  time/speed where valid, variance, sample, freshness and known field strength.
+  Keep raw win/podium rates and historical stars as supporting evidence.
+- Provide an authoritative direct DNA race link for manual owner entry, but never
+  enter a race, connect a wallet or submit a transaction.
+- Use bulk-first, change-aware scanning within the shared 30 aggregate
+  requests/minute conservative ceiling and retain manual/last-good fallback.
+- A changed/full/closed/started race invalidates the prior recommendation. Prefer
+  an explicit avoid result when no eligible Core has a supportable payout case.
+
 ## 2026-08-27 — API-only critical path; CSV work benched
 
 - At the owner's direction, DNA Open Lab is the sole game-data source on the current delivery critical path.
