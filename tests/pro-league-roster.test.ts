@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   auditProLeagueRoster,
   proLeagueCurrentRules,
+  proLeagueOwnerRosterStrategy,
   proLeagueTrialObservedRosterRules,
   requiredProLeagueFemaleCount,
   type ProLeagueRosterCore,
@@ -46,6 +47,23 @@ describe("Pro League roster audit", () => {
       minimumAboveF15: 2,
       femaleMinimum: { kind: "percentage_rounded_up", percentage: 32 },
       namesRequired: true,
+      ageing: {
+        enabledForRealLeague: true,
+        rosterMembershipAccrues: false,
+        mappedRaceParticipationAccrues: true,
+        exactIncrementAndLimits: "unresolved",
+      },
+    });
+    expect(proLeagueOwnerRosterStrategy).toMatchObject({
+      targetRosterSize: 25,
+      registrationIsAgeNeutral: true,
+      protectedTournamentCores: {
+        defaultDisposition: "exclude_from_roster",
+      },
+      evidencePolicy: {
+        proLeagueResultsMayStrengthenEvidenceIncidentally: true,
+        proLeagueIsDiscoveryAfterProperAssessment: false,
+      },
     });
   });
 
