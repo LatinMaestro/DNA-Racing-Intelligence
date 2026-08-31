@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+
 import {
   assessBreedingOffspringEvidence,
   toAuthoritativeBreederOutcome,
+  toQualifiedBreederOutcome,
   type BreedingOffspringEvidence,
 } from "@/domain/breeding-offspring-evidence";
 
@@ -32,10 +34,11 @@ describe("breeding offspring evidence authority", () => {
   it("allows authoritative minted-at evidence into elite-breeder modelling", () => {
     const assessment = assessBreedingOffspringEvidence(evidence());
     expect(assessment.usableForEliteBreederTarget).toBe(true);
+    expect(toQualifiedBreederOutcome(evidence())).not.toBeNull();
     expect(toAuthoritativeBreederOutcome(evidence())).not.toBeNull();
   });
 
-  it("keeps first-race creation proxies out of elite-breeder TARGET evidence", () => {
+  it("accepts owner-approved first-race chronology for elite-breeder modelling while retaining proxy warnings", () => {
     const proxy = evidence({
       creationAuthority: "first_race_proxy",
       offspringCreatedAt: "2025-04-10T00:00:00.000Z",
@@ -43,11 +46,15 @@ describe("breeding offspring evidence authority", () => {
       source: "legacy_first_race_proxy",
     });
     const assessment = assessBreedingOffspringEvidence(proxy);
-    expect(assessment.usableForEliteBreederTarget).toBe(false);
+    expect(assessment.usableForEliteBreederTarget).toBe(true);
     expect(assessment.warnings).toContain(
-      "PROXY_EVIDENCE_CANNOT_PROMOTE_ELITE_BREEDER_TARGET",
+      "FIRST_RACE_USED_AS_APPROXIMATE_CREATION_TIME",
     );
-    expect(toAuthoritativeBreederOutcome(proxy)).toBeNull();
+    expect(assessment.warnings).toContain(
+      "FIRST_RACE_PROXY_MAY_LAG_ACTUAL_BREED_TIME",
+    );
+    expect(toQualifiedBreederOutcome(proxy)).not.toBeNull();
+    expect(toAuthoritativeBreederOutcome(proxy)).not.toBeNull();
   });
 
   it("rejects a mating expectation frozen after authoritative creation", () => {
@@ -63,6 +70,19 @@ describe("breeding offspring evidence authority", () => {
     );
   });
 
+  it("rejects a mating expectation frozen after the first-race chronology proxy", () => {
+    expect(() =>
+      assessBreedingOffspringEvidence(
+        evidence({
+          creationAuthority: "first_race_proxy",
+          offspringCreatedAt: "2025-04-10T00:00:00.000Z",
+          expectedModelCutoff: "2025-04-11T00:00:00.000Z",
+          source: "legacy_first_race_proxy",
+        }),
+      ),
+    ).toThrow(/first-race chronology proxy/i);
+  });
+
   it("keeps unknown creation time unavailable for TARGET modelling", () => {
     const unknown = evidence({
       creationAuthority: "unknown",
@@ -71,6 +91,7 @@ describe("breeding offspring evidence authority", () => {
     });
     const assessment = assessBreedingOffspringEvidence(unknown);
     expect(assessment.usableForEliteBreederTarget).toBe(false);
+    expect(toQualifiedBreederOutcome(unknown)).toBeNull();
     expect(toAuthoritativeBreederOutcome(unknown)).toBeNull();
   });
 });
