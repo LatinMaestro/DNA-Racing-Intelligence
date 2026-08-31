@@ -1,0 +1,113 @@
+name: Fix breeding research typecheck
+
+on:
+  push:
+    branches:
+      - codex/breeding-offspring-history-backfill
+    paths:
+      - .github/workflows/fix-breeding-research-typecheck.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/breeding-offspring-history-backfill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Apply TypeScript-only research harness fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path_name, old, new, count=None):
+              path = Path(path_name)
+              text = path.read_text()
+              actual = text.count(old)
+              if count is not None and actual != count:
+                  raise SystemExit(f'{path_name}: expected {count} matches, found {actual}: {old!r}')
+              if actual == 0:
+                  raise SystemExit(f'{path_name}: expected text not found: {old!r}')
+              path.write_text(text.replace(old, new))
+
+          replace(
+              'tests/hosted-breeding-complete-core-enrichment.test.ts',
+              '      const families: Record<string, unknown[]> = {',
+              '''      const families: {
+        info: unknown[];
+        stats: unknown[];
+        power: unknown[];
+        listing: unknown[];
+        assets: unknown[];
+        owner: unknown[];
+        stamina: unknown[];
+        splicing: unknown[];
+        telemetry: unknown[];
+        telemetryBenchmark: unknown[];
+      } = {''',
+              1,
+          )
+
+          replace(
+              'tests/hosted-breeding-lineage-census.test.ts',
+              '          const rows = response.result.cores as AnyRecord[];',
+              '          const rows = response.result.cores as readonly AnyRecord[];',
+              1,
+          )
+          for name in ['infoResponse', 'statsResponse', 'powerResponse', 'splicingResponse']:
+              replace(
+                  'tests/hosted-breeding-lineage-census.test.ts',
+                  f'({name}.result as AnyRecord[])',
+                  f'({name}.result as readonly AnyRecord[])',
+                  1,
+              )
+
+          for name in ['infoResponse', 'statsResponse', 'powerResponse', 'splicingResponse']:
+              replace(
+                  'tests/hosted-breeding-missing-coparent-inventory.test.ts',
+                  f'({name}.result as AnyRecord[])',
+                  f'({name}.result as readonly AnyRecord[])',
+                  1,
+              )
+
+          path = Path('tests/hosted-dna-open-lab-connected-discovery.test.ts')
+          text = path.read_text()
+          old = '''            telemetryClients[laneIndex]!.coreTelemetryBenchmark(
+              candidateCoreId,
+            ),'''
+          new = '''            telemetryClients[laneIndex]!.coreTelemetryBenchmark(
+              candidateCoreId,
+              10,
+            ),'''
+          if text.count(old) != 1:
+              raise SystemExit(f'connected discovery: expected 1 stale benchmark call, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npx prettier --write \
+            tests/hosted-breeding-complete-core-enrichment.test.ts \
+            tests/hosted-breeding-lineage-census.test.ts \
+            tests/hosted-breeding-missing-coparent-inventory.test.ts \
+            tests/hosted-dna-open-lab-connected-discovery.test.ts
+          npx tsc --noEmit
+      - name: Commit typecheck cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            tests/hosted-breeding-complete-core-enrichment.test.ts \
+            tests/hosted-breeding-lineage-census.test.ts \
+            tests/hosted-breeding-missing-coparent-inventory.test.ts \
+            tests/hosted-dna-open-lab-connected-discovery.test.ts
+          git commit -m "Fix breeding research type safety"
+          git push origin HEAD:codex/breeding-offspring-history-backfill
