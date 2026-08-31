@@ -1,0 +1,35 @@
+name: Format breeding scope matrix
+
+on:
+  push:
+    branches:
+      - feature/breeding-full-scope-matrix
+    paths:
+      - .github/workflows/format-breeding-scope-matrix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/breeding-full-scope-matrix
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write domain/breeding-scope-matrix.ts tests/breeding-full-scope-matrix.test.ts
+      - name: Commit formatting and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/format-breeding-scope-matrix.yml
+          git add domain/breeding-scope-matrix.ts tests/breeding-full-scope-matrix.test.ts
+          git commit -m "Format breeding scope matrix"
+          git push origin HEAD:feature/breeding-full-scope-matrix
