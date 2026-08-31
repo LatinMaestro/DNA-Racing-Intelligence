@@ -16,25 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Pull Reese Dylan current ageing authority
+      - name: Pull Reese Dylan Bike career and ageing
         shell: bash
         run: |
           node --input-type=module <<'NODE'
-          const base='https://api.dnaracing.run';
-          const hid=11848;
-          async function post(path,body){
-            const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-            const text=await r.text(); let json=null; try{json=JSON.parse(text)}catch{}
-            console.log('HTTP',path,r.status);
-            return json;
-          }
-          function unwrap(v){return v&&typeof v==='object'&&!Array.isArray(v)&&'result' in v?v.result:v;}
-          const stats=unwrap(await post('/fbike/cores/racing_stats_bulk',{hids:[hid]}));
-          const row=Array.isArray(stats)?stats[0]:stats;
-          console.log('REESE_STATS_KEYS',JSON.stringify(row?Object.keys(row):[]));
-          console.log('REESE_AGEING_CURRENT',JSON.stringify(row?.ageing??null));
-          console.log('REESE_MAIDEN',JSON.stringify(row?.is_maiden??null));
-          const mini=unwrap(await post('/fbike/cores/mini_bulk',{hids:[hid]}));
-          const m=Array.isArray(mini)?mini[0]:mini;
-          console.log('REESE_MINI',JSON.stringify(m));
+          const r=await fetch('https://api.dnaracing.run/fbike/cores/racing_stats_bulk',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({hids:[11848]})});
+          const j=await r.json(); const v=j?.result??j; const row=Array.isArray(v)?v[0]:v;
+          console.log('AGEING',JSON.stringify(row?.ageing??null));
+          console.log('HSTATS_BIKE',JSON.stringify(row?.hstats_bike??null));
           NODE
