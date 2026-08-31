@@ -389,6 +389,11 @@ Milestone: **PRO LEAGUE COMMISSIONED FOR PRIVATE OWNER USE**.
 
 Ownership reconciliation plus rich current Core profile: power/adjusted odds/variance/stamina/assets/listing/owner/racing stats/recent races/splicing together with historical analytics, with explicit current-vs-historical separation.
 
+Include the complete available Pro League/Esports API race history for every
+participating Core even though DNA's normal public profile omits it. Provide
+All evidence, Normal racing and Esports views; keep exact race type/distance,
+normal/Esports counts, freshness and missing-field coverage explicit.
+
 ## F2 — API-native Open Race Intelligence
 
 Active-race browser, restrictions/status/times/fees/token, fill ticker/current entrants, automatic owned-Core field analysis and alternatives/avoid guidance. Retain manual fallback. Never enter a race.

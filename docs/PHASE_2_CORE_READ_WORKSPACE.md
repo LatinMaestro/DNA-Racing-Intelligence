@@ -37,13 +37,22 @@ recommendations, provider provisioning, Preview or Production.
 - Require imported profile evidence not to post-date its import, and display
   data-current-through and last-imported timestamps separately as semantic UTC
   times.
+- Treat DNA's omitted public Esports profile coverage as unavailable, never as
+  zero history. Accept completed Esports observations through a separate
+  owner-scoped API repository, deduplicate race-plus-Core identity and partition
+  profiles by exact race type and exact distance.
+- Include normal and Esports counts in whole-Core coverage while keeping both
+  evidence lanes separately queryable. Outcome-only API evidence remains useful
+  but cannot fabricate missing elapsed-time metrics.
 
 ## Interface boundary
 
 The Core Intelligence route is a dynamic Server Component and ships no
-client-side persistence code. It labels connected evidence as a historical
-experimental snapshot, not the current game field. Recommendations remain
-disabled until the required chronological validation and owner gates pass.
+client-side persistence code. It exposes All evidence, Normal racing and
+Esports tabs, labels connected evidence as a historical experimental snapshot,
+not the current game field, and keeps the Esports tab fail-closed until its API
+history repository is commissioned. Recommendations remain disabled until the
+required chronological validation and owner gates pass.
 
 ## Deferred work
 

@@ -311,6 +311,14 @@ competition. Normal tournaments and general Discovery remain separate.
 
 - Pro League uses the same underlying Core stats/performance characteristics as normal DNA Racing.
 - Historical **Bike** performance is therefore the applicable evidence for Pro League preparation, subject to normal chronology/sample/freshness rules.
+- DNA has confirmed that Pro League/Esports races and per-Core Esports statistics
+  are omitted from the normal public Core profile. That omission is a source
+  coverage gap, not evidence that the Core has no Esports history.
+- The private website must acquire all available completed Esports race evidence
+  from the supported API, associate it with every participating Core and include
+  it in whole-Core analysis. Preserve a separate Esports view and separate
+  normal/Esports counts, formats, outcomes and freshness even when both lanes
+  support the same intrinsic Core assessment.
 - Raw win and Top-3 rates are descriptive supporting evidence, not the primary selection or ranking signal. Weak fields and off-distance Discovery entries can distort them.
 - Compare candidates primarily from authoritative elapsed-time distributions for the same Bike race type and exact distance, with derived speed only when both distance and time authority are valid. Use median/trimmed time, variance, interquartile range, sample size and freshness rather than a single best run.
 - Population strength is the comparison boundary: a Core that is merely best in the owner's Vault but remains weak against the same-format/same-distance Bike population is provisional/test-before-lock, not strong coverage.

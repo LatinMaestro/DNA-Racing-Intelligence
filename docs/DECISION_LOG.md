@@ -941,3 +941,19 @@ After the private Pro League milestone, continue in this order:
   a complete actionable Tournament configuration.
 - Keep normal Season 12 tournaments separate from the Bike-only Pro
   League/Esports programme and its ageing-aware roster strategy.
+
+## 2026-08-31 — Core profiles include API-backed Esports history
+
+- Accept the owner's DNA confirmation that normal public Core profile pages do
+  not contain Pro League/Esports races or per-Core Esports statistics.
+- Treat that omission as incomplete public-profile coverage, never as evidence
+  of zero Esports starts or performance.
+- Retrieve the complete available supported-API Esports history, deduplicate it
+  by stable race-plus-Core identity and include every completed entry in
+  whole-Core analysis because intrinsic Core traits/performance do not change
+  between normal racing and Pro League/Esports.
+- Preserve All evidence, Normal racing and Esports views. Partition Esports by
+  exact race type and exact distance, retain separate lane counts/outcomes and
+  disclose missing time, result, opposition or history-depth fields.
+- Do not bypass P5: this decision adds the analytical contract and private UI
+  lane but does not authorize the first persistent real API backfill.

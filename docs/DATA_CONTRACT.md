@@ -289,6 +289,16 @@ The Pro League domain requires enough current and historical evidence to validat
 - Discovery opportunities; and
 - breeding opportunity/pair validation evidence.
 
+DNA's normal public Core profile omits Pro League/Esports races and statistics.
+The API-backed private profile must therefore persist or reconstruct, for every
+participating Core, all available completed Esports race identities, exact race
+type, exact distance, gate count, event time, match/map context and any
+authoritatively exposed outcome/time fields. Scheduled or running races do not
+enter completed statistics. Deduplicate by stable race-plus-Core identity, keep
+normal and Esports lanes separately queryable, and publish a combined whole-Core
+count only from a complete accepted generation. Missing API fields remain null;
+the public-profile omission must never be materialized as zero Esports races.
+
 The published Pro League map catalogue and the owner's staged mappings are not
 DNA Open Lab race-history facts. Keep them in the local strategic/configuration
 boundary:

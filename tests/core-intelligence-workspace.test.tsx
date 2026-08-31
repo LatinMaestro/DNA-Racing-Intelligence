@@ -15,9 +15,10 @@ describe("Core Intelligence historical workspace", () => {
     );
 
     expect(html).toContain("Core Intelligence storage not connected");
-    expect(html).toContain("No validated performance profiles");
-    expect(html).toContain("Last imported Not available");
-    expect(html).toContain("Missing data is not treated as zero performance");
+    expect(html).toContain("No commissioned Core evidence");
+    expect(html).toContain("Normal last imported");
+    expect(html).toContain("Esports last synced");
+    expect(html).toContain("omitted Esports profile coverage");
     expect(html).not.toContain("0.000 s");
     expect(html).not.toContain("0.000 m/s");
   });
@@ -68,6 +69,7 @@ describe("Core Intelligence historical workspace", () => {
         connectionStatus="read_model_connected"
         lastImportedAt="2026-07-20T01:00:00Z"
         profiles={profiles}
+        selectedEvidenceView="normal"
       />,
     );
 
@@ -81,9 +83,29 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("1 / 1");
     expect(html).toContain("0 / 1");
     expect(html).toContain("Yellow-eligible races (source Gold)");
-    expect(html).toContain("Historical snapshot");
+    expect(html).toContain("Normal-racing exact-distance profiles");
     expect(html).toContain("Experimental");
     expect(html).toContain('dateTime="2026-07-20T01:00:00Z"');
     expect(html).toContain('dateTime="2026-07-20T00:00:00Z"');
+  });
+
+  it("renders a dedicated Esports tab without interpreting omitted DNA coverage as zero", () => {
+    const html = renderToStaticMarkup(
+      <CoreIntelligenceWorkspace
+        connectionStatus="read_model_connected"
+        esportsConnectionStatus="not_configured"
+        esportsLastSyncedAt={null}
+        esportsProfiles={[]}
+        lastImportedAt="2026-07-20T01:00:00Z"
+        profiles={[]}
+        selectedEvidenceView="esports"
+      />,
+    );
+
+    expect(html).toContain("Esports exact-format profiles");
+    expect(html).toContain("Esports history not commissioned yet");
+    expect(html).toContain("DNA omits Pro League/Esports races");
+    expect(html).toContain("never a zero-race claim");
+    expect(html).toContain("evidence=esports");
   });
 });
