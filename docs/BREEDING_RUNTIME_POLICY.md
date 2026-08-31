@@ -11,7 +11,7 @@ The breeding recommendation methodology applies to **Bike, Car and Horse**. It i
 
 Every recommendation is evaluated for an explicit `(mode, distance)` scope. The permanent domain contracts accept any positive race distance exposed by DNA. Current historical data contains standard distances from **900m through 2300m in 100m increments** across all three modes.
 
-The completed website must analyse the **full mode-distance matrix**, not a hand-picked list of scopes. The runtime takes the union of every observed race distance in stored data and crosses it with all three modes (`bike`, `car`, `horse`). Every resulting scope receives its own breeding-intelligence board. If a mode has no usable evidence at an observed distance, that scope still exists and returns `WAIT` rather than being silently omitted. Newly observed distances must automatically expand the matrix without a code change.
+The completed website must analyse the **full mode-distance matrix**, not a hand-picked list of scopes. The runtime takes the union of every observed race distance in stored data and crosses it with all three modes (`bike`, `car`, `horse`). Every resulting scope receives its own breeding-intelligence board. If a mode has no usable evidence at an observed distance, that scope still exists and returns `WAIT` rather than being silently omitted. Newly observed distances must automatically expand the matrix without a code change. With the currently observed 900–2300m standard set, that means **45 distinct breeding-analysis scopes** (15 distances × 3 modes).
 
 The same methodology applies at every scope:
 
