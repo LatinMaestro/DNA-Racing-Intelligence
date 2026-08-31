@@ -10,9 +10,7 @@ export type BreedingAnalysisScope = Readonly<{
   distanceMetres: number;
 }>;
 
-function normalizeObservedDistances(
-  distances: readonly number[],
-): readonly number[] {
+function normalizeObservedDistances(distances: readonly number[]): readonly number[] {
   const normalized = [...new Set(distances)].sort((left, right) => left - right);
   for (const distance of normalized) {
     if (!Number.isSafeInteger(distance) || distance <= 0) {
@@ -37,10 +35,12 @@ export function buildBreedingAnalysisScopes(
   );
 }
 
-export function buildBreedingIntelligenceMatrix(input: Readonly<{
-  observedDistancesMetres: readonly number[];
-  pairs: readonly BreedingIntelligencePairCandidate[];
-}>): readonly BreedingIntelligenceBoard[] {
+export function buildBreedingIntelligenceMatrix(
+  input: Readonly<{
+    observedDistancesMetres: readonly number[];
+    pairs: readonly BreedingIntelligencePairCandidate[];
+  }>,
+): readonly BreedingIntelligenceBoard[] {
   return Object.freeze(
     buildBreedingAnalysisScopes(input.observedDistancesMetres).map((scope) =>
       buildBreedingIntelligenceBoard({
