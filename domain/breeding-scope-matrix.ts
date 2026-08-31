@@ -10,8 +10,12 @@ export type BreedingAnalysisScope = Readonly<{
   distanceMetres: number;
 }>;
 
-function normalizeObservedDistances(distances: readonly number[]): readonly number[] {
-  const normalized = [...new Set(distances)].sort((left, right) => left - right);
+function normalizeObservedDistances(
+  distances: readonly number[],
+): readonly number[] {
+  const normalized = [...new Set(distances)].sort(
+    (left, right) => left - right,
+  );
   for (const distance of normalized) {
     if (!Number.isSafeInteger(distance) || distance <= 0) {
       throw new Error(
