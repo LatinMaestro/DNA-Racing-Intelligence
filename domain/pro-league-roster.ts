@@ -5,6 +5,11 @@ export const proLeagueCurrentRules = Object.freeze({
   evidenceStatus: "owner_confirmed" as const,
   sourceLabel:
     "Owner-confirmed DNA Pro League rules, Bike-only, matchup, female percentage and real-league ageing clarification",
+  terminology: Object.freeze({
+    canonicalLabel: "Pro League/Esports" as const,
+    proLeagueAndEsportsAreSameCompetition: true,
+    trialIsPracticeRulesetOfSameCompetition: true,
+  }),
   raceMode: "bike" as const,
   receivedAt: "2026-08-31",
   matchup: Object.freeze({
