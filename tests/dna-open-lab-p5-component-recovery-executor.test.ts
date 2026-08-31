@@ -70,6 +70,8 @@ const passingEvidence = [
   {
     ...common,
     caseId: "eligibility_loss",
+    catchUpStarted: false,
+    catchUpCompleted: false,
     syncStateAfter: "paused",
     destructiveResetCount: 0,
     cachedServingGeneration: "generation-last-good",
@@ -163,7 +165,11 @@ describe("DNA Open Lab P5 component recovery executor", () => {
         attemptedRetryAt: ["2026-08-28T19:00:16.999Z"],
       },
       { ...passingEvidence[3]!, appliedAllowance: 30 },
-      { ...passingEvidence[4]!, destructiveResetCount: 1 },
+      {
+        ...passingEvidence[4]!,
+        catchUpStarted: true,
+        catchUpCompleted: true,
+      },
       { ...passingEvidence[5]!, indexedPublicationCount: 0 },
       { ...passingEvidence[6]!, acceptedCandidateCount: 1 },
       { ...passingEvidence[7]!, neonStagingAttemptCount: 1 },

@@ -149,3 +149,9 @@ generation. Raw owner payloads and API keys must not enter the report.
   reduces both lane and aggregate gates, and the next excess request waits for
   the following minute. Temporary evidence is read back and cleaned without
   changing checkpoints, owner rows or last-good serving.
+- The fifth connected case now drives synthetic TierBadge loss through the
+  production acquisition runner and last-good state transition. It records an
+  `api_ineligible` pause without a retry boundary, leaves the durable accepted
+  generation and cached serving pointer intact, records catch-up as pending
+  rather than falsely complete, and cleans its one temporary immutable R2
+  marker without changing provider fingerprints.
