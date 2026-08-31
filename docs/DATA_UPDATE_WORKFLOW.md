@@ -75,6 +75,12 @@ requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later daily cycles resume only from durable checkpoints
 and retrieve missing/new evidence rather than repeating history.
 
+The fail-closed decision packet and its mandatory measurement, stop and cleanup
+conditions are defined in
+[`DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md`](DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md).
+Synthetic capacity evidence and historical counts from a different analytical
+universe cannot substitute for the measured complete owner API inventory.
+
 Each acquisition-runner step executes at most one scheduled request through the
 shared conservative client pool. Validated evidence must be stored idempotently
 before its content-addressed receipt advances the exact-schedule cycle
