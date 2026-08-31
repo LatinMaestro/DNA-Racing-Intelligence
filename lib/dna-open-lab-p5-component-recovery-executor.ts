@@ -200,7 +200,14 @@ function commonTrace(
       sha256(evidence.expectedEvidenceSha256, "expectedEvidenceSha256") ===
       sha256(evidence.readBackEvidenceSha256, "readBackEvidenceSha256"),
     retryBoundaryObserved: firstRetry >= retryBoundary,
-    catchUpCompleted: evidence.catchUpStarted && evidence.catchUpCompleted,
+    // Eligibility loss is the pause half of a deliberately separate
+    // loss/reinstatement pair. Its successful outcome proves that catch-up has
+    // not started while access is unavailable; every other case must prove a
+    // completed catch-up path.
+    catchUpCompleted:
+      "caseId" in evidence && evidence.caseId === "eligibility_loss"
+        ? !evidence.catchUpStarted && !evidence.catchUpCompleted
+        : evidence.catchUpStarted && evidence.catchUpCompleted,
     summary: text(evidence.summary, "summary"),
   });
 }
