@@ -132,6 +132,12 @@ cycle authority and must discard the full cached receipt set, schedule every
 recurring group and select full publication. No prior receipt can cross the
 changed plan checksum.
 
+The ordered-suite boundary now carries the restart-safe checkpoint through all
+ten cases while applying the exact-head, cleanup and unchanged-provider guard
+separately to every step. It stops before later cases on failure, never emits a
+failed step and can resume without replaying already accepted cases. A complete
+suite still leaves first persistent Preview sync and Production disallowed.
+
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
