@@ -77,7 +77,7 @@ function goldSummary(candidate: DiscoveryDecisionCandidate): string {
     evidence.goldReceivedCount,
     evidence.goldAssignmentOpportunityCount,
   );
-  return `${received} · ${evidence.goldEligibleRaceCount} Gold-eligible races`;
+  return `${received} · ${evidence.goldEligibleRaceCount} Yellow-eligible races`;
 }
 
 function blueSummary(candidate: DiscoveryDecisionCandidate): string {
@@ -324,7 +324,9 @@ export function DiscoveryWorkspace({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Gold support</dt>
+                    <dt className="text-[var(--muted)]">
+                      Yellow support (source Gold)
+                    </dt>
                     <dd className="mt-1 font-semibold">
                       {goldSummary(candidate)}
                     </dd>
@@ -366,9 +368,10 @@ export function DiscoveryWorkspace({
                     not guaranteed targets. Lower elapsed time remains better.
                   </p>
                   <p className="mt-2">
-                    Gold uses eligible assignment opportunities only. Blue uses
-                    its recorded assignment opportunities. Stars are
-                    field-relative support, not an absolute rating.
+                    Yellow (source Gold) uses eligible assignment opportunities
+                    only. Blue uses its recorded assignment opportunities. Raw
+                    star rate or conversion does not improve priority without
+                    pre-race opposition-quality evidence.
                   </p>
                   <p className="mt-2">
                     Reassess after the probe. Lineage or population evidence

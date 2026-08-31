@@ -228,7 +228,9 @@ For each candidate show separate evidence dimensions, including:
 - exact distances with minimally analytical samples;
 - winning-range and top-three-range evidence;
 - sample sizes and freshness;
-- Gold/Blue historical signal evidence;
+- Yellow/source-Gold and Blue historical signal evidence, including
+  opposition-quality coverage, strong-field assignments and elite-opponent
+  assignments;
 - payout/race-format coverage;
 - current API observations where available;
 - Discovery gaps;
@@ -236,6 +238,13 @@ For each candidate show separate evidence dimensions, including:
 - confidence/uncertainty.
 
 Candidate ordering may use a transparent deterministic review order but must expose the underlying dimensions.
+
+Raw star totals and raw conversion never improve esports ranking. Only
+opposition-adjusted star evidence known before the race may break an otherwise
+tied intrinsic exact-format/distance comparison. A perfect record over weak or
+unknown fields is descriptive only; a star over a pre-race elite opponent is
+positive supporting evidence. Exact-format time, speed and consistency remain
+primary.
 
 ## API-only evidence hierarchy
 

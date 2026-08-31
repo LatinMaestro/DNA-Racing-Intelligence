@@ -201,7 +201,7 @@ The same is true of cost. Pair cost is an operational/economic decision after qu
 
 ## Star and opposition evidence
 
-Gold/Blue star meanings are authoritative under `STAR_SIGNAL_SPECIFICATION.md`, but predictive/inheritance use remains controlled.
+Yellow/source-Gold and Blue star meanings are authoritative under `STAR_SIGNAL_SPECIFICATION.md`, but predictive/inheritance use remains controlled. Raw assignment and conversion receive no positive parent-quality weight when opponent quality is weak or unknown.
 
 Stars and strong-opposition evidence may support confidence only where:
 
@@ -211,6 +211,10 @@ Stars and strong-opposition evidence may support confidence only where:
 - any use as a breeding predictor has demonstrated chronological predictive lift beyond time-only baselines.
 
 Do not invent star semantics or opponent-strength meaning from incomplete fields.
+Opposition-adjusted stars may strengthen the explanation for an elite direct
+racer only after intrinsic time evidence. They do not change historical
+elite-breeder status until chronological offspring holdout testing proves
+incremental lift beyond the time-only, lineage and co-parent baselines.
 
 ## Ranking mechanics
 

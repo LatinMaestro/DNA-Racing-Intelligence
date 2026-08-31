@@ -283,6 +283,8 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 - Compare candidates primarily from authoritative elapsed-time distributions for the same Bike race type and exact distance, with derived speed only when both distance and time authority are valid. Use median/trimmed time, variance, interquartile range, sample size and freshness rather than a single best run.
 - Population strength is the comparison boundary: a Core that is merely best in the owner's Vault but remains weak against the same-format/same-distance Bike population is provisional/test-before-lock, not strong coverage.
 - Gold/Blue stars and results against independently evidenced strong opposition may increase supporting confidence. Missing field-quality evidence remains unknown and never counts in a Core's favour.
+- The visible Yellow star is the top-three signal stored in the historical `gold_star` source field; Blue remains the first-place signal.
+- Raw star assignment or conversion against weak/unknown opposition cannot increase a Core's ranking. Only opposition-adjusted star evidence frozen before the race may support an otherwise performance-led comparison.
 - Keep race outcome/win evidence separate from intrinsic performance evidence and expose the race line that supports every mapping recommendation.
 - Current API evidence may enrich advice but must not be blindly blended into one opaque score or leak backward into historical backtests.
 - Pro League preparation remains advisory only. The website must never create a team, enter a race, place a bet, mint, trade, sign with a wallet or execute a splice.

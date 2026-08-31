@@ -80,6 +80,14 @@ another mode-appropriate signal. Sample sizes and provenance remain visible.
 Lineage is a prior, never proof. Zero parent observations are unknown. Clearly
 negative own evidence blocks a parent-only preferred recommendation.
 
+Early stars can raise a probe only when their opposition quality is known from
+evidence available before the event. A Yellow/source-Gold or Blue star over a
+strong or elite same-mode/exact-distance opponent is positive supporting
+evidence. Raw star rate, raw conversion and stars earned only against weak or
+unknown opposition do not pass the preferred-distance gate by themselves.
+Repeated missed available stars in fully known weak fields are caution only and
+cannot independently stop Discovery.
+
 A Core may have zero, one, several or all supported distances marked `TEST`. No
 off-distance is added to balance bands.
 

@@ -76,11 +76,11 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("Hypothesis Only");
     expect(html).toContain("50.000 s");
     expect(html).toContain("20.000 m/s");
-    expect(html).toContain("Gold received / opportunities");
+    expect(html).toContain("Yellow received / opportunities");
     expect(html).toContain("Blue received / opportunities");
     expect(html).toContain("1 / 1");
     expect(html).toContain("0 / 1");
-    expect(html).toContain("Gold-eligible races");
+    expect(html).toContain("Yellow-eligible races (source Gold)");
     expect(html).toContain("Historical snapshot");
     expect(html).toContain("Experimental");
     expect(html).toContain('dateTime="2026-07-20T01:00:00Z"');

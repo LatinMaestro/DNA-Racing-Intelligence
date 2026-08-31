@@ -279,6 +279,9 @@ The Pro League domain requires enough current and historical evidence to validat
 - sample counts and recency;
 - descriptive win/Top-3, star, payout-format and independently established
   strong-opposition evidence kept separate from intrinsic performance;
+- opposition-adjusted Yellow/source-Gold and Blue evidence derived only from
+  pre-race same-mode/exact-distance history, with raw star/conversion metrics
+  retained as diagnostics and never substituted for field quality;
 - current API dimensions kept separate from historical evidence;
 - structural gaps;
 - alternates;

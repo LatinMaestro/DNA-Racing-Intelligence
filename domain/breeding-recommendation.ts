@@ -1,4 +1,8 @@
 import { probeModes, type ProbeMode } from "./discovery-probe-plan";
+import type {
+  RunnerStarEvaluation,
+  RunnerStarSupport,
+} from "./runner-star-evaluation";
 
 export const breedingRecommendationStatuses = [
   "target",
@@ -57,6 +61,7 @@ export type BreedingParentCandidate = Readonly<{
   freshness: BreedingFreshness;
   available: boolean;
   starEvidenceAuthority: "authoritative" | "unavailable" | "unvalidated";
+  runnerStarEvaluations?: readonly RunnerStarEvaluation[];
 }>;
 
 export type BreedingPairInfo = Readonly<{
@@ -109,6 +114,7 @@ export type BreedingParentAssessment = Readonly<{
   confidence: BreedingConfidence;
   performanceScore: number | null;
   supportingStrengthScore: number | null;
+  runnerStarSupport: RunnerStarSupport | null;
   qualityScore: number | null;
   exactEvidence: BreedingExactPerformanceEvidence | null;
   targetDistanceRaceCount: number;
@@ -326,6 +332,41 @@ function validateCandidate(candidate: BreedingParentCandidate): void {
   for (const id of candidate.lineage.grandparents) {
     required(id, "Grandparent Core ID");
   }
+  const starKeys = new Set<string>();
+  for (const evaluation of candidate.runnerStarEvaluations ?? []) {
+    if (
+      candidate.starEvidenceAuthority !== "authoritative" ||
+      evaluation.coreId !== candidate.coreId ||
+      evaluation.performanceRole !== "supporting_only" ||
+      evaluation.breederRole !== "research_feature_until_chronological_lift" ||
+      !probeModes.includes(evaluation.mode) ||
+      !Number.isSafeInteger(evaluation.distanceMetres) ||
+      evaluation.distanceMetres <= 0
+    ) {
+      throw new Error("Breeding runner-star evaluation is invalid.");
+    }
+    const key = `${evaluation.mode}:${evaluation.distanceMetres}`;
+    if (starKeys.has(key)) {
+      throw new Error(
+        "Breeding runner-star evaluations must be unique by scope.",
+      );
+    }
+    starKeys.add(key);
+  }
+}
+
+function exactRunnerStarEvaluationFor(
+  candidate: BreedingParentCandidate,
+  mode: ProbeMode,
+  distanceMetres: number,
+): RunnerStarEvaluation | null {
+  return (
+    candidate.runnerStarEvaluations?.find(
+      (evaluation) =>
+        evaluation.mode === mode &&
+        evaluation.distanceMetres === distanceMetres,
+    ) ?? null
+  );
 }
 
 function profileContext(
@@ -419,6 +460,11 @@ export function assessBreedingParent(
     target.distanceMetres,
   );
   const context = profileContext(candidate, target.distanceMetres);
+  const runnerStars = exactRunnerStarEvaluationFor(
+    candidate,
+    target.mode,
+    target.distanceMetres,
+  );
 
   if (
     context.targetDistanceShare !== null &&
@@ -437,6 +483,22 @@ export function assessBreedingParent(
   }
   if (candidate.starEvidenceAuthority !== "authoritative") {
     warnings.push("STAR_EVIDENCE_NOT_USED_FOR_RANKING");
+  } else if (runnerStars === null) {
+    warnings.push("OPPOSITION_ADJUSTED_STAR_EVIDENCE_UNAVAILABLE");
+    reasons.push(
+      "Raw star rates and conversion are not used without pre-race opposition-quality context.",
+    );
+  } else if (
+    runnerStars.support === "strong_support" ||
+    runnerStars.support === "supporting"
+  ) {
+    reasons.push(
+      "Opposition-adjusted stars strengthen the direct-racer case, but are not treated as inherited breeder lift without chronological offspring validation.",
+    );
+  } else if (runnerStars.support === "caution") {
+    reasons.push(
+      "Opposition-adjusted stars add caution to the direct-racer evidence, but cannot override exact-distance time or independently reject a breeder.",
+    );
   }
   if (!candidate.available) {
     warnings.push("PARENT_CURRENTLY_UNAVAILABLE");
@@ -455,6 +517,7 @@ export function assessBreedingParent(
       supportingStrengthScore: supportingStrengthScore(
         candidate.currentStrength,
       ),
+      runnerStarSupport: runnerStars?.support ?? null,
       qualityScore: null,
       exactEvidence: null,
       ...context,
@@ -560,6 +623,7 @@ export function assessBreedingParent(
     confidence,
     performanceScore: primary,
     supportingStrengthScore: strength,
+    runnerStarSupport: runnerStars?.support ?? null,
     qualityScore: quality,
     exactEvidence: evidence,
     ...context,

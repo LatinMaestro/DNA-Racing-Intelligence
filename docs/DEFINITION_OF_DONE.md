@@ -46,6 +46,9 @@ A phase or feature is complete only when all applicable items pass.
 - Current-event outcomes and later races cannot leak into star-strength features.
 - One-, two- and three-gate races never count as negative Gold evidence.
 - Gold/Blue predictive lift is compared with time-only and simple baselines.
+- Raw star rate and conversion cannot improve racer, esports, Discovery or breeding ranking without pre-race opponent-quality evidence.
+- Stars over strong/elite opponents and weak-field missed-star evidence use only same-mode/exact-distance facts known strictly before the event; unknown opponent quality stays unknown.
+- Elite-breeder status cannot be promoted from parent/offspring stars unless chronological offspring holdout testing proves incremental lift.
 - Star conversion diagnostics remain separate from pre-race predictive features.
 - Detected star-assignment era changes are documented or explicitly reported as not detected.
 - No-star evidence alone cannot stop Discovery, label a core as poor or recommend burn.

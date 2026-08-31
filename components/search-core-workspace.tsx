@@ -99,7 +99,7 @@ function PerformanceProfile({
           </dd>
         </div>
         <div>
-          <dt className="text-[var(--muted)]">Gold star</dt>
+          <dt className="text-[var(--muted)]">Yellow star</dt>
           <dd className="font-semibold">{goldRate}</dd>
         </div>
         <div>
@@ -109,7 +109,7 @@ function PerformanceProfile({
       </dl>
       <p className="mt-4 text-xs text-[var(--muted)]">
         Data current through {currentThrough}. Historical imported evidence
-        only; not live game state.
+        only; not live game state. Yellow is stored by the source as gold_star.
       </p>
     </article>
   );

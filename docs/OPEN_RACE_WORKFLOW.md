@@ -10,7 +10,7 @@ The primary purpose is to help choose a core **before the user commits an entry*
 
 ## 2. Confirmed star timing
 
-Gold and Blue stars are not visible while the field is still being assembled and the user is deciding which core to enter.
+Yellow/source-Gold and Blue stars are not visible while the field is still being assembled and the user is deciding which core to enter. The visible Yellow top-three signal is retained in historical storage as `gold_star`.
 
 The confirmed sequence is:
 

@@ -143,11 +143,12 @@ The following are especially important and must not be lost during implementatio
 - Ten races for a core × mode × exact distance is the minimum minimally analytical sample.
 - Discovery must be targeted using the confirmed lineage priority and must allow small controlled probes for unexpected elite outliers.
 - Do not calculate remaining lifetime race counts.
-- Preserve `gold_star` and `blue_star` using the same user-facing Gold and Blue terminology.
-- Gold indicates the game’s strongest assessed top-three chance in the entered field; Blue indicates the strongest assessed first-place chance.
+- Preserve the source fields `gold_star` and `blue_star`. The visible Yellow star is stored as `gold_star`; Blue remains the first-place signal.
+- Yellow/source-Gold indicates the game’s strongest assessed top-three chance in the entered field; Blue indicates the strongest assessed first-place chance.
 - Gold stars do not exist in races with three gates or fewer. Those races are Gold-ineligible and must never count as negative Gold evidence.
 - Stars are pre-race, field-relative signals. They support but do not replace time/speed analysis.
 - A star over strong historical opponents is positive evidence; repeated no-available-star results against weak eligible fields are negative supporting evidence, never an automatic stop or burn rule.
+- Raw star assignment and conversion against weak or unknown fields receive no positive ranking weight. Only opponent-adjusted evidence known before the race may support elite-racer, esports, Discovery or direct-racer breeding analysis.
 - Distinguish false from missing star data, record Gold eligibility and identify the rate denominator.
 - Historical field quality for a star must use pre-event information only; no current-event result or future leakage.
 - Test whether the hidden star algorithm changes over time.

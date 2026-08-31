@@ -81,8 +81,10 @@ describe("discovery probe plan", () => {
       goldReceivedCount: 1,
       blueAssignmentOpportunityCount: 3,
       blueReceivedCount: 1,
+      oppositionAdjusted: null,
     });
     expect(result?.warnings).not.toContain("STAR_EVIDENCE_UNAVAILABLE");
+    expect(result?.warnings).toContain("STAR_OPPOSITION_QUALITY_UNAVAILABLE");
   });
 
   it("keeps the ten-race minimum as a review boundary only", () => {
@@ -206,6 +208,42 @@ describe("discovery probe plan", () => {
     ]);
 
     expect(plan).toHaveLength(3);
+  });
+
+  it("raises an under-tested strong-field star prospect without using conversion", () => {
+    const [result] = buildDiscoveryProbePlan([
+      candidate({
+        tournamentRelevance: "none",
+        lineageRelationship: null,
+        lineageRaceCount: 0,
+        starEvidence: {
+          completeStarDataRaceCount: 4,
+          goldEligibleRaceCount: 4,
+          goldAssignmentOpportunityCount: 4,
+          goldReceivedCount: 1,
+          blueAssignmentOpportunityCount: 4,
+          blueReceivedCount: 1,
+          oppositionAdjusted: {
+            support: "strong_support",
+            qualityKnownRaceCount: 2,
+            strongFieldStarCount: 2,
+            eliteOpponentStarCount: 1,
+            weakFieldNoStarOpportunityCount: 0,
+            rawConversionUsedForPriority: false,
+          },
+        },
+      }),
+    ]);
+
+    expect(result?.reviewPriority).toBe("high");
+    expect(result?.starEvidence?.oppositionAdjusted).toMatchObject({
+      support: "strong_support",
+      eliteOpponentStarCount: 1,
+      rawConversionUsedForPriority: false,
+    });
+    expect(result?.warnings).not.toContain(
+      "STAR_OPPOSITION_QUALITY_UNAVAILABLE",
+    );
   });
 
   it("rejects duplicate cells and invalid runtime values", () => {
