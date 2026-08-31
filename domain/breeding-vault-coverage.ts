@@ -42,10 +42,7 @@ export type VaultFNumberSegment = Readonly<{
 
 export type VaultCoverageGapSeverity = "critical" | "shallow" | "covered";
 export type VaultCoverageFacet =
-  | "element"
-  | "core_class"
-  | "element_x_core_class"
-  | "f_number_segment";
+  "element" | "core_class" | "element_x_core_class" | "f_number_segment";
 
 export type VaultCoverageGap = Readonly<{
   mode: ProbeMode;
@@ -115,7 +112,10 @@ function positiveInteger(value: number, label: string): number {
 }
 
 function validatePolicy(policy: VaultCoveragePolicy): VaultCoveragePolicy {
-  positiveInteger(policy.preferredExactEliteDepth, "Preferred exact elite depth");
+  positiveInteger(
+    policy.preferredExactEliteDepth,
+    "Preferred exact elite depth",
+  );
   positiveInteger(policy.preferredBandEliteDepth, "Preferred band elite depth");
   if (
     !Number.isFinite(policy.qualityWeight) ||
@@ -124,7 +124,9 @@ function validatePolicy(policy: VaultCoveragePolicy): VaultCoveragePolicy {
     policy.coverageWeight < 0 ||
     Math.abs(policy.qualityWeight + policy.coverageWeight - 1) > 1e-9
   ) {
-    throw new Error("Vault coverage strategy weights must be non-negative and sum to 1.");
+    throw new Error(
+      "Vault coverage strategy weights must be non-negative and sum to 1.",
+    );
   }
   return policy;
 }
@@ -135,7 +137,10 @@ function normalizeElement(value: string): DnaElement | null {
 }
 
 function normalizeCoreClass(value: string): DnaCoreClass | null {
-  const normalized = value.trim().toLowerCase().replace(/[\s_-]+/gu, "");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/gu, "");
   if (normalized === "genesis") return "genesis";
   if (normalized === "morph" || normalized === "morphed") return "morphed";
   if (normalized === "freak") return "freak";
@@ -143,7 +148,9 @@ function normalizeCoreClass(value: string): DnaCoreClass | null {
   return null;
 }
 
-function bandsForDistance(distanceMetres: number): readonly BreedingDistanceBand[] {
+function bandsForDistance(
+  distanceMetres: number,
+): readonly BreedingDistanceBand[] {
   return Object.freeze(
     breedingDistanceBands
       .filter(
@@ -159,7 +166,9 @@ function distanceInBand(
   distanceMetres: number,
   bandId: BreedingDistanceBand,
 ): boolean {
-  const band = breedingDistanceBands.find((candidate) => candidate.id === bandId);
+  const band = breedingDistanceBands.find(
+    (candidate) => candidate.id === bandId,
+  );
   if (!band) return false;
   return (
     distanceMetres >= band.minimumMetres && distanceMetres <= band.maximumMetres
@@ -172,13 +181,15 @@ function validateSegment(segment: VaultFNumberSegment): VaultFNumberSegment {
   }
   if (
     segment.minimumInclusive !== null &&
-    (!Number.isSafeInteger(segment.minimumInclusive) || segment.minimumInclusive < 1)
+    (!Number.isSafeInteger(segment.minimumInclusive) ||
+      segment.minimumInclusive < 1)
   ) {
     throw new Error("F-number segment minimum must be a positive integer.");
   }
   if (
     segment.maximumInclusive !== null &&
-    (!Number.isSafeInteger(segment.maximumInclusive) || segment.maximumInclusive < 1)
+    (!Number.isSafeInteger(segment.maximumInclusive) ||
+      segment.maximumInclusive < 1)
   ) {
     throw new Error("F-number segment maximum must be a positive integer.");
   }
@@ -196,17 +207,12 @@ function inFNumberSegment(
   fNumber: number | null,
   segment: VaultFNumberSegment,
 ): boolean {
-  if (fNumber === null || !Number.isSafeInteger(fNumber) || fNumber < 1) return false;
-  if (
-    segment.minimumInclusive !== null &&
-    fNumber < segment.minimumInclusive
-  ) {
+  if (fNumber === null || !Number.isSafeInteger(fNumber) || fNumber < 1)
+    return false;
+  if (segment.minimumInclusive !== null && fNumber < segment.minimumInclusive) {
     return false;
   }
-  if (
-    segment.maximumInclusive !== null &&
-    fNumber > segment.maximumInclusive
-  ) {
+  if (segment.maximumInclusive !== null && fNumber > segment.maximumInclusive) {
     return false;
   }
   return true;
@@ -300,13 +306,15 @@ function buildGap(
   });
 }
 
-export function assessVaultCoverageGaps(input: Readonly<{
-  mode: ProbeMode;
-  distanceMetres: number;
-  ownedEliteRacers: readonly VaultEliteRacer[];
-  fNumberSegments?: readonly VaultFNumberSegment[];
-  policy?: VaultCoveragePolicy;
-}>): readonly VaultCoverageGap[] {
+export function assessVaultCoverageGaps(
+  input: Readonly<{
+    mode: ProbeMode;
+    distanceMetres: number;
+    ownedEliteRacers: readonly VaultEliteRacer[];
+    fNumberSegments?: readonly VaultFNumberSegment[];
+    policy?: VaultCoveragePolicy;
+  }>,
+): readonly VaultCoverageGap[] {
   positiveInteger(input.distanceMetres, "Vault coverage distance");
   const policy = validatePolicy(input.policy ?? defaultVaultCoveragePolicy);
   const segments = (input.fNumberSegments ?? []).map(validateSegment);
@@ -421,11 +429,13 @@ function maximumProjectionWeight(
   return exact + Math.max(0, windows - 1) * band;
 }
 
-export function assessPairCoverageImpact(input: Readonly<{
-  pair: BreedingIntelligencePairAssessment;
-  gaps: readonly VaultCoverageGap[];
-  fNumberSegments?: readonly VaultFNumberSegment[];
-}>): PairCoverageImpact {
+export function assessPairCoverageImpact(
+  input: Readonly<{
+    pair: BreedingIntelligencePairAssessment;
+    gaps: readonly VaultCoverageGap[];
+    fNumberSegments?: readonly VaultFNumberSegment[];
+  }>,
+): PairCoverageImpact {
   const segments = (input.fNumberSegments ?? []).map(validateSegment);
   const pairInfo = input.pair.pairInfo;
   const projectedElement = pairInfo ? normalizeElement(pairInfo.element) : null;
@@ -444,7 +454,10 @@ export function assessPairCoverageImpact(input: Readonly<{
       fNumberSegments: segments,
     }),
   );
-  const rawWeight = matchedGaps.reduce((total, gap) => total + gapWeight(gap), 0);
+  const rawWeight = matchedGaps.reduce(
+    (total, gap) => total + gapWeight(gap),
+    0,
+  );
   const hasFNumberSegment = segments.some((segment) =>
     inFNumberSegment(projectedFNumber, segment),
   );
@@ -508,12 +521,14 @@ function strategicSort(
   );
 }
 
-export function buildStrategicBreedingBoard(input: Readonly<{
-  board: BreedingIntelligenceBoard;
-  ownedEliteRacers: readonly VaultEliteRacer[];
-  fNumberSegments?: readonly VaultFNumberSegment[];
-  policy?: VaultCoveragePolicy;
-}>): StrategicBreedingBoard {
+export function buildStrategicBreedingBoard(
+  input: Readonly<{
+    board: BreedingIntelligenceBoard;
+    ownedEliteRacers: readonly VaultEliteRacer[];
+    fNumberSegments?: readonly VaultFNumberSegment[];
+    policy?: VaultCoveragePolicy;
+  }>,
+): StrategicBreedingBoard {
   const policy = validatePolicy(input.policy ?? defaultVaultCoveragePolicy);
   const fNumberSegments = (input.fNumberSegments ?? []).map(validateSegment);
   const gaps = assessVaultCoverageGaps({
