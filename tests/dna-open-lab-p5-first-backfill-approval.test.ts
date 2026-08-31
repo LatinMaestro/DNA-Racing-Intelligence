@@ -1,0 +1,162 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  buildDnaOpenLabP5FirstBackfillApprovalPacket,
+  DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
+  DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS,
+  type DnaOpenLabP5FirstBackfillMeasuredUpperBound,
+} from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import {
+  assessDnaOpenLabP5Readiness,
+  DNA_OPEN_LAB_CURRENT_P5_READINESS,
+  DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
+} from "@/lib/dna-open-lab-p5-readiness";
+
+const measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound = {
+  measurementBasis: "complete_inventory_upper_bound",
+  exactMainCommit: "0123456789abcdef0123456789abcdef01234567",
+  measuredAt: "2026-09-01T00:00:00.000Z",
+  authorityCutoffAt: "2026-08-31T23:59:59.999Z",
+  priceAuthorityEffectiveAt: "2026-08-07T00:00:00.000Z",
+  sourceRecordUpperBound: 650_000,
+  apiRequestUpperBound: 6_500,
+  retainedR2BytesUpperBound: 2_000_000_000,
+  classAOperationsUpperBound: 6_500,
+  classBOperationsUpperBound: 13_000,
+  neonPeakBytesUpperBound: 400_000_000,
+  projectedCostMicroUsd: 50_000,
+  evidenceRefs: Object.freeze(["evidence/sanitized-upper-bound.json"]),
+};
+
+const satisfiedReadiness = (ownerApprovalRecorded: boolean) =>
+  assessDnaOpenLabP5Readiness({
+    evidence: DNA_OPEN_LAB_P5_READINESS_EVIDENCE.map((entry) => ({
+      ...entry,
+      status: "satisfied" as const,
+      evidenceRefs:
+        entry.evidenceRefs.length > 0
+          ? entry.evidenceRefs
+          : Object.freeze([`evidence/${entry.requirementId}.json`]),
+    })),
+    ownerApprovalRecorded,
+  });
+
+describe("DNA Open Lab P5 first historical backfill approval", () => {
+  it("keeps the current packet blocked on connected technical evidence", () => {
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: DNA_OPEN_LAB_CURRENT_P5_READINESS,
+        measuredUpperBound: null,
+        ownerAuthorization: null,
+      }),
+    ).toEqual({
+      status: "blocked_technical_evidence",
+      technicalEvidenceComplete: false,
+      measuredUpperBoundComplete: false,
+      readyForOwnerDecision: false,
+      ownerApprovalRecorded: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+      productionChangesAllowed: false,
+      measuredUpperBound: null,
+      ownerAuthorization: null,
+      stopConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS,
+      cleanupConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
+    });
+  });
+
+  it("requires a measured complete inventory upper bound after technical evidence", () => {
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: null,
+        ownerAuthorization: null,
+      }),
+    ).toMatchObject({
+      status: "blocked_measured_upper_bound",
+      readyForOwnerDecision: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+    });
+  });
+
+  it("becomes decision-ready without authorizing a write", () => {
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound,
+        ownerAuthorization: null,
+      }),
+    ).toMatchObject({
+      status: "ready_for_owner_decision",
+      measuredUpperBoundComplete: true,
+      readyForOwnerDecision: true,
+      ownerApprovalRecorded: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+      productionChangesAllowed: false,
+    });
+  });
+
+  it("allows only the first private Preview backfill after bounded approval", () => {
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(true),
+        measuredUpperBound,
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 50_000,
+          approvalRef: "owner-approval:issue-120-comment-redacted",
+        },
+      }),
+    ).toMatchObject({
+      status: "approved_for_first_private_preview_backfill",
+      ownerApprovalRecorded: true,
+      firstPersistentPrivatePreviewBackfillAllowed: true,
+      productionChangesAllowed: false,
+    });
+  });
+
+  it("rejects approval without matching readiness or sufficient cost authority", () => {
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound,
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 50_000,
+          approvalRef: "owner-approval:test",
+        },
+      }),
+    ).toThrow(
+      "readiness owner approval and the bounded owner authorization must agree",
+    );
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(true),
+        measuredUpperBound,
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 49_999,
+          approvalRef: "owner-approval:test",
+        },
+      }),
+    ).toThrow("must cover the projected upper-bound cost");
+  });
+
+  it("rejects synthetic, partial or unsourced measurements", () => {
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: {
+          ...measuredUpperBound,
+          measurementBasis: "synthetic_capacity" as never,
+        },
+        ownerAuthorization: null,
+      }),
+    ).toThrow("measurementBasis must cover the complete inventory");
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: { ...measuredUpperBound, evidenceRefs: [] },
+        ownerAuthorization: null,
+      }),
+    ).toThrow("requires sanitized evidence references");
+  });
+});
