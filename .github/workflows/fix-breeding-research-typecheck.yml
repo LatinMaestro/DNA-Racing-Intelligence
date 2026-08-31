@@ -31,7 +31,7 @@ jobs:
           sed -i 's/as AnyRecord\[\]/as readonly AnyRecord[]/g' tests/hosted-breeding-missing-coparent-inventory.test.ts
           python -c "from pathlib import Path; p=Path('tests/hosted-dna-open-lab-connected-discovery.test.ts'); s=p.read_text(); old='telemetryClients[laneIndex]!.coreTelemetryBenchmark(\\n              candidateCoreId,\\n            )'; new='telemetryClients[laneIndex]!.coreTelemetryBenchmark(\\n              candidateCoreId,\\n              10,\\n            )'; assert s.count(old)==1; p.write_text(s.replace(old,new,1))"
           npx prettier --write tests/hosted-breeding-complete-core-enrichment.test.ts tests/hosted-breeding-lineage-census.test.ts tests/hosted-breeding-missing-coparent-inventory.test.ts tests/hosted-dna-open-lab-connected-discovery.test.ts
-          npx tsc --noEmit
+          npm run typecheck
       - name: Commit typecheck cleanup
         shell: bash
         run: |
