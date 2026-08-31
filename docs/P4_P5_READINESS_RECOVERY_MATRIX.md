@@ -125,6 +125,13 @@ staging and the receipt index without moving the last-good serving pointer. A
 byte-identical retry must commit both authorities exactly once. Mandatory
 cleanup then restores the original provider fingerprints and zero residue.
 
+The dynamic-plan scenario independently changes owned Core membership, active
+race identifiers and requested Arena pages, then changes all three together.
+Every variant passes the serving receipt index through the production scheduled
+cycle authority and must discard the full cached receipt set, schedule every
+recurring group and select full publication. No prior receipt can cross the
+changed plan checksum.
+
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
@@ -197,3 +204,7 @@ cleanup then restores the original provider fingerprints and zero residue.
   receipt-index commits and unchanged last-good serving after failure, then
   proves a byte-identical retry commits both authorities exactly once. Cleanup
   restores the original fingerprints and zero synthetic residue.
+- The tenth connected case changes ownership, active-race and Arena-page
+  authority independently and together. Every changed plan invalidates all
+  serving receipt reuse and selects a complete five-group replacement cycle.
+  Mandatory cleanup preserves every provider fingerprint with zero residue.
