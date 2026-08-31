@@ -147,7 +147,19 @@ describeConnected("complete breeder-universe API enrichment", () => {
         throw new Error("unreachable enrichment retry exhaustion");
       };
 
-      const families: Record<string, unknown[]> = {
+      const families: Record<
+        | "info"
+        | "stats"
+        | "power"
+        | "listing"
+        | "assets"
+        | "owner"
+        | "stamina"
+        | "splicing"
+        | "telemetry"
+        | "telemetryBenchmark",
+        unknown[]
+      > = {
         info: [],
         stats: [],
         power: [],

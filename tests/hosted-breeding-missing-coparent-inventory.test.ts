@@ -146,10 +146,10 @@ describeConnected("missing breeding co-parent inventory", () => {
             paced(() => client.corePowerBulk(batch)),
             paced(() => client.coreSplicingInfoBulk(batch)),
           ]);
-        info.push(...(infoResponse.result as AnyRecord[]));
-        stats.push(...(statsResponse.result as AnyRecord[]));
-        power.push(...(powerResponse.result as AnyRecord[]));
-        splicing.push(...(splicingResponse.result as AnyRecord[]));
+        info.push(...(infoResponse.result as readonly AnyRecord[]));
+        stats.push(...(statsResponse.result as readonly AnyRecord[]));
+        power.push(...(powerResponse.result as readonly AnyRecord[]));
+        splicing.push(...(splicingResponse.result as readonly AnyRecord[]));
       }
 
       const fetchedInfoHids = new Set(
