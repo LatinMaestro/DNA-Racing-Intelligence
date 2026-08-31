@@ -17,6 +17,24 @@ const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const JSON_CONTENT_TYPE = "application/json";
 const DEFAULT_MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
 
+export const DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY =
+  "p5_recovery_temporary_current_state_evidence" as const;
+
+type EvidenceNamespace = Readonly<{
+  path: readonly string[];
+  kind: "current_state_request" | "p5_recovery_current_state_request";
+}>;
+
+const CURRENT_STATE_NAMESPACE = Object.freeze({
+  path: Object.freeze(["current-state", "cycles"]),
+  kind: "current_state_request" as const,
+});
+
+const P5_RECOVERY_NAMESPACE = Object.freeze({
+  path: Object.freeze(["p5-recovery", "crash-after-evidence-write", "cycles"]),
+  kind: "p5_recovery_current_state_request" as const,
+});
+
 export type DnaOpenLabR2CurrentStateEvidenceStoragePort = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "putObjectIfAbsent" | "headObject"
@@ -164,6 +182,7 @@ function metadataValue(
 
 function objectKey(input: {
   ownerPrefix: string;
+  namespace: EvidenceNamespace;
   cycleId: string;
   requestKey: string;
 }): string {
@@ -171,8 +190,7 @@ function objectKey(input: {
     "dna-open-lab",
     "v1",
     input.ownerPrefix,
-    "current-state",
-    "cycles",
+    ...input.namespace.path,
     input.cycleId,
     `${input.requestKey}.json`,
   ].join("/");
@@ -228,8 +246,9 @@ async function collectVerifiedBody(input: {
  * boundary. The object key, metadata, bytes and embedded logical identity must
  * all agree before the response can re-enter plan assembly.
  */
-export function createDnaOpenLabR2CurrentStateEvidenceReader(
+function createEvidenceReader(
   configuration: DnaOpenLabR2CurrentStateEvidenceReaderConfiguration,
+  namespace: EvidenceNamespace,
 ): (input: {
   cycleId: string;
   receipt: DnaCurrentStateAcquisitionEvidenceReceipt;
@@ -261,6 +280,7 @@ export function createDnaOpenLabR2CurrentStateEvidenceReader(
     );
     const expectedKey = objectKey({
       ownerPrefix: prefix,
+      namespace,
       cycleId: normalizedCycleId,
       requestKey,
     });
@@ -280,7 +300,7 @@ export function createDnaOpenLabR2CurrentStateEvidenceReader(
       head.checksumSha256 !== contentSha256 ||
       metadataValue(head.metadata, "dna-source") !== "dna_open_lab" ||
       metadataValue(head.metadata, "dna-version") !== "v1" ||
-      metadataValue(head.metadata, "dna-kind") !== "current_state_request" ||
+      metadataValue(head.metadata, "dna-kind") !== namespace.kind ||
       metadataValue(head.metadata, "dna-cycle-id") !== normalizedCycleId ||
       metadataValue(head.metadata, "dna-request-key") !== requestKey ||
       metadataValue(head.metadata, "dna-body-sha256") !== contentSha256 ||
@@ -376,14 +396,41 @@ export function createDnaOpenLabR2CurrentStateEvidenceReader(
   };
 }
 
+export function createDnaOpenLabR2CurrentStateEvidenceReader(
+  configuration: DnaOpenLabR2CurrentStateEvidenceReaderConfiguration,
+): ReturnType<typeof createEvidenceReader> {
+  return createEvidenceReader(configuration, CURRENT_STATE_NAMESPACE);
+}
+
+/**
+ * Recovery-only reader for evidence beneath the fixed temporary P5 namespace.
+ * Requiring the exact authority token prevents operational callers from
+ * redirecting retained current-state evidence into a cleanup-eligible prefix.
+ */
+export function createDnaOpenLabP5RecoveryTemporaryEvidenceReader(
+  configuration: DnaOpenLabR2CurrentStateEvidenceReaderConfiguration &
+    Readonly<{
+      authority: typeof DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY;
+    }>,
+): ReturnType<typeof createEvidenceReader> {
+  if (
+    configuration.authority !==
+    DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY
+  ) {
+    evidenceError("temporary recovery evidence authority is invalid");
+  }
+  return createEvidenceReader(configuration, P5_RECOVERY_NAMESPACE);
+}
+
 /**
  * Builds an idempotent private evidence callback for the bounded acquisition
  * runner. The object identity is cycle + logical request, not response bytes:
  * if a crash causes the request to replay, the first immutable observation is
  * returned from object metadata instead of silently replacing it.
  */
-export function createDnaOpenLabR2CurrentStateEvidenceSink(
+function createEvidenceSink(
   configuration: DnaOpenLabR2CurrentStateEvidenceConfiguration,
+  namespace: EvidenceNamespace,
 ): (input: {
   cycleId: string;
   group: DnaCurrentStateAcquisitionGroup;
@@ -434,13 +481,14 @@ export function createDnaOpenLabR2CurrentStateEvidenceSink(
     const bodySha256 = sha256(canonical);
     const key = objectKey({
       ownerPrefix: prefix,
+      namespace,
       cycleId: normalizedCycleId,
       requestKey,
     });
     const metadata = Object.freeze({
       "dna-source": "dna_open_lab",
       "dna-version": "v1",
-      "dna-kind": "current_state_request",
+      "dna-kind": namespace.kind,
       "dna-cycle-id": normalizedCycleId,
       "dna-request-key": requestKey,
       "dna-group": input.group,
@@ -508,4 +556,30 @@ export function createDnaOpenLabR2CurrentStateEvidenceSink(
       evidenceObjectKey: key,
     });
   };
+}
+
+export function createDnaOpenLabR2CurrentStateEvidenceSink(
+  configuration: DnaOpenLabR2CurrentStateEvidenceConfiguration,
+): ReturnType<typeof createEvidenceSink> {
+  return createEvidenceSink(configuration, CURRENT_STATE_NAMESPACE);
+}
+
+/**
+ * Recovery-only sink for the crash/restart acceptance case. Its key is always
+ * below the fixed `p5-recovery/` owner prefix consumed by the mandatory safety
+ * cleanup; callers cannot supply an arbitrary namespace.
+ */
+export function createDnaOpenLabP5RecoveryTemporaryEvidenceSink(
+  configuration: DnaOpenLabR2CurrentStateEvidenceConfiguration &
+    Readonly<{
+      authority: typeof DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY;
+    }>,
+): ReturnType<typeof createEvidenceSink> {
+  if (
+    configuration.authority !==
+    DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY
+  ) {
+    evidenceError("temporary recovery evidence authority is invalid");
+  }
+  return createEvidenceSink(configuration, P5_RECOVERY_NAMESPACE);
 }
