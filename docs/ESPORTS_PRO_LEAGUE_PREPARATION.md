@@ -3,6 +3,12 @@
 Status: **current Pro League preparation authority**  
 Effective: **29 August 2026**
 
+**Terminology authority:** DNA Pro League and DNA Esports are the same Bike
+competition. This document uses `Pro League/Esports` when the equivalence needs
+to be explicit and may use either shorter label elsewhere. The trial is a
+practice ruleset of that same competition, not a separate racing programme.
+Normal tournaments and general Discovery remain separate workflows.
+
 ## Authority
 
 This document combines:
