@@ -37,7 +37,7 @@ BEGIN
     '77000000-0000-4000-8000-000000000001'
   );
 
-  IF jsonb_object_length(v_before) <> 4
+  IF (SELECT count(*) FROM jsonb_object_keys(v_before)) <> 4
      OR NOT (v_before ?& ARRAY[
        'owner_data', 'checkpoint_state', 'serving_state', 'retained_evidence'
      ]) THEN
