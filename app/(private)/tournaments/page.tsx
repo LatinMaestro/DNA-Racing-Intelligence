@@ -6,6 +6,7 @@ import {
   TournamentCampaignActionForm,
   TournamentConfigurationForm,
 } from "@/components/tournament-configuration-form";
+import { Season12TournamentSchedule } from "@/components/season-12-tournament-schedule";
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
@@ -35,6 +36,7 @@ export default async function TournamentsPage() {
 
   return (
     <div className="space-y-8">
+      <Season12TournamentSchedule />
       <TournamentConfigurationForm
         brackets={state.brackets}
         connectionStatus={state.connectionStatus}

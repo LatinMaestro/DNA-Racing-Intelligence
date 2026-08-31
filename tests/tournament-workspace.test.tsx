@@ -2,9 +2,24 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { TournamentWorkspace } from "@/components/tournament-workspace";
+import { Season12TournamentSchedule } from "@/components/season-12-tournament-schedule";
 import { rankTournamentCandidates } from "@/domain/tournament-candidate-ranking";
 
 describe("Tournament workspace", () => {
+  it("renders the official Season 12 schedule without inventing missing rules", () => {
+    const html = renderToStaticMarkup(<Season12TournamentSchedule />);
+
+    expect(html).toContain("Season 12 schedule");
+    expect(html).toContain("Mon 14 Sept");
+    expect(html).toContain("Spin Battles");
+    expect(html).toContain("1v1 Wars");
+    expect(html).toContain("Double Up");
+    expect(html).toContain("Spliced");
+    expect(html).toContain("1,000 m · 1,800 m · 2,200 m");
+    expect(html.match(/Not specified/g)?.length).toBeGreaterThan(5);
+    expect(html).toContain("not a negative eligibility decision");
+  });
+
   it("renders unavailable evidence without a fake opportunity", () => {
     const html = renderToStaticMarkup(
       <TournamentWorkspace

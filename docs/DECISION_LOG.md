@@ -925,3 +925,19 @@ After the private Pro League milestone, continue in this order:
   separate racing mode.
 - Normal tournaments and general mode-aware Discovery remain separate from
   Pro League/Esports.
+
+## 2026-08-31 — Season 12 official tournament calendar is recorded
+
+- Accept the owner-supplied official Season 12 schedule image as calendar
+  authority for 17 dates from 14 September through 9 November 2026.
+- Resolve the omitted printed year as 2026 because every month/day matches its
+  published weekday in the current Season 12 planning context.
+- Preserve the exact published distance shorthand and also normalize it through
+  the already confirmed `10 = 1000 m` through `22 = 2200 m` mapping.
+- Record three Splice dates, nine named mode/distance competition entries and
+  five Side Events. Keep Side Event mode, distance and eligibility unknown.
+- Do not infer gate counts, fees, scoring, qualification windows, leaderboard
+  rules or missing eligibility from this calendar. It is prefill authority, not
+  a complete actionable Tournament configuration.
+- Keep normal Season 12 tournaments separate from the Bike-only Pro
+  League/Esports programme and its ageing-aware roster strategy.
