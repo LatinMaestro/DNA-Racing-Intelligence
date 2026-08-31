@@ -143,3 +143,9 @@ generation. Raw owner payloads and API keys must not enter the report.
   Retry-After, resumes at the exact boundary, verifies the successful immutable
   temporary R2 receipt, completes catch-up and restores zero provider residue
   without publishing or writing persistent owner data.
+- The fourth connected case now drives lower response rate metadata through the
+  production client pool. An advertised higher allowance cannot raise the
+  conservative 30-request aggregate ceiling; an observed 12-request allowance
+  reduces both lane and aggregate gates, and the next excess request waits for
+  the following minute. Temporary evidence is read back and cleaned without
+  changing checkpoints, owner rows or last-good serving.
