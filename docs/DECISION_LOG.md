@@ -841,3 +841,30 @@ After the private Pro League milestone, continue in this order:
   Defer persistence migration until joined source authority and P5 permission
   exist; do not manufacture classifications or change the measured P5 storage
   inventory prematurely.
+
+## 2026-08-31 — Connected recovery safety uses bounded Neon/R2 fingerprints
+
+- Inspect the fixed API-only owner relation groups through the existing
+  least-privilege runtime role in one serializable, read-only, owner-scoped
+  transaction. Reduce rows to ordered per-relation digests before they leave
+  PostgreSQL; never emit source rows or provider errors.
+- Migration `0077` grants the runtime role execution of that one owner-scoped
+  fingerprint function while preserving the existing prohibition on direct
+  table reads. Its smoke evidence proves group isolation, owner isolation,
+  apply, reversal and removal.
+- Keep owner data, acquisition checkpoints, last-good serving state and
+  retained evidence as separate SHA-256 fingerprints so one category cannot
+  hide drift in another.
+- Inspect R2 only below the hashed owner prefix. Treat `p5-recovery/` as the
+  sole temporary connected-recovery namespace and fingerprint all other owner
+  objects as retained evidence.
+- Permit cleanup only below that temporary namespace, cap the inspection and
+  deletion set at 10,000 objects, and require a post-delete empty re-list.
+  Never delete retained evidence.
+- Combine the Neon and R2 retained-evidence fingerprints before applying the
+  existing guarded before/after equality check. Any malformed response,
+  privilege mismatch, pagination error, provider error, cleanup error or
+  residue fails closed with a redacted stable error.
+- This supplies provider safety and cleanup ports only. It does not execute a
+  connected recovery case, call DNA Open Lab, persist owner data, open P5,
+  authorise Production or change any provider.

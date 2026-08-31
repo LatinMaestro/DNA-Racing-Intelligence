@@ -182,6 +182,14 @@ The bounded recovery harness advances one fixed scenario per invocation, binds
 its report to an exact code head/provider scope and rejects real owner-data
 writes, raw payloads, secrets, excessive requests and uncleared synthetic
 provider residue.
+The connected recovery guard now has concrete least-privilege provider safety
+ports: PostgreSQL fingerprints the fixed owner-data, checkpoint, serving and
+retained-evidence relation groups inside one serializable read-only owner-scoped
+transaction, while R2 fingerprints retained owner-prefix objects separately
+from a fixed temporary recovery prefix. Cleanup can delete only that bounded
+temporary prefix and must re-list it as empty before sanitized evidence may be
+emitted. Migration `0077` exposes only the four compact fingerprint groups to
+the least-privilege runtime role; it does not grant direct table reads.
 Each recovery case now has a typed local adapter for its decisive observable
 outcome, preventing generic success flags from substituting for case-specific
 receipt, retry, pause, atomicity or drift proof.
