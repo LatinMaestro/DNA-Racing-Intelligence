@@ -377,7 +377,10 @@ Rules:
 
 ### 4.14 Open Race tool
 
-Secondary manual tool. Allow entry of:
+After major API history/storage commissioning, provide a live read-only scanner
+for all API-visible open races with at least 50% of gates filled and at least one
+place available. Retain the secondary manual workflow as fallback. Source or
+allow entry of:
 
 - mode;
 - distance;
@@ -386,6 +389,7 @@ Secondary manual tool. Allow entry of:
 - eligibility restrictions;
 - already entered opposing core IDs;
 - available places.
+- authoritative status, fee/token, scheduled time and direct DNA race link.
 
 Output:
 
@@ -394,6 +398,14 @@ Output:
 - strongest opponents;
 - confidence;
 - avoid recommendation where appropriate.
+
+Eligibility restrictions are hard filters and must include element/class rules
+such as Metal-only races. Rank from exact race type plus exact distance evidence,
+valid time/speed, variance, sample, freshness and known field strength; keep raw
+win/podium rates and historical stars secondary. Invalidate recommendations when
+the live field changes. Operate within the shared conservative 30 aggregate
+requests/minute budget using bulk-first/change-aware polling. Never enter a race,
+connect a wallet or submit a game transaction.
 
 ### 4.15 Vault Performance and accounting
 
