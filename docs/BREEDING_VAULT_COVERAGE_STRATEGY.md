@@ -134,6 +134,8 @@ This strategy is applied on top of the permanent full breeding matrix.
 
 For every observed race distance, the website builds separate Bike, Car and Horse breeding boards. Each board can then be converted into a strategic board using the current Vault elite-runner inventory.
 
+The coverage registry must be rebuilt or incrementally refreshed from **current owned-Vault state plus the latest elite-runner assessments**. Ownership changes and newly accumulated race evidence must therefore update coverage rather than preserving stale gap assumptions.
+
 No mode, distance, element or bred class should be omitted merely because the current Vault has no qualifying Core. Missing capability must remain visible as a gap and may correctly lead to `WAIT` until a strong enough breeding opportunity appears.
 
 ## Tournament and esports use
