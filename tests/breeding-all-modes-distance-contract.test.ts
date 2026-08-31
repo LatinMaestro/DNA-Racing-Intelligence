@@ -49,9 +49,7 @@ function racingCandidate(input: {
       variance: 70,
       observedAt: "2026-08-31T00:00:00.000Z",
     },
-    distanceProfile: [
-      { distanceMetres: input.distanceMetres, raceCount: 12 },
-    ],
+    distanceProfile: [{ distanceMetres: input.distanceMetres, raceCount: 12 }],
     lineage: { parents: [], grandparents: [] },
     freshness: "current",
     available: true,
@@ -112,7 +110,11 @@ describe("breeding methodology cross-mode and distance contract", () => {
   ] as const)(
     "applies the elite-racer gate to %s at %im without a hard-coded distance whitelist",
     (mode, distanceMetres) => {
-      const candidate = racingCandidate({ mode, distanceMetres, source: "arena" });
+      const candidate = racingCandidate({
+        mode,
+        distanceMetres,
+        source: "arena",
+      });
       const result = assessBreedingParent(candidate, { mode, distanceMetres });
       expect(result.status).toBe("target");
       expect(result.mode).toBe(mode);
