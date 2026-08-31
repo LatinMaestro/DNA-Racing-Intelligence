@@ -232,6 +232,11 @@ Current API token prices, once connected, are current/reference context only. Th
 
 The current owner-provided/confirmed roster rules supersede the earlier 20 August announcement assumptions where they conflict.
 
+`Pro League` and `Esports` name the same Bike competition. The public DNA
+Esports site is the Pro League operating surface; neither term identifies a
+separate competition. Trial Esports is the practice ruleset of the same
+competition. Normal tournaments and general Discovery remain separate.
+
 ### Mode
 
 - The current Pro League is **Bike-only**.
