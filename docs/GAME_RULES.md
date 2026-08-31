@@ -160,6 +160,17 @@ Distance bands:
 
 Cores may be strong across adjacent distances or multiple bands.
 
+## Season 12 official schedule
+
+The owner supplied the official Season 12 schedule on 31 August 2026. The
+complete transcription and its authority boundary are recorded in
+[`SEASON_12_OFFICIAL_SCHEDULE.md`](./SEASON_12_OFFICIAL_SCHEDULE.md).
+
+The calendar confirms 17 dates from 14 September through 9 November 2026:
+three Splice dates, nine named mode/distance competition entries and five Side
+Events. Unspecified Side Event fields and missing event mechanics remain
+unknown; the schedule alone cannot make a Tournament configuration actionable.
+
 ## Performance interpretation
 
 - Lower elapsed race time is better.
