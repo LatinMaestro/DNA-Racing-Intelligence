@@ -1,0 +1,61 @@
+name: DNA Open Lab P5 recovery fingerprint migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/dna-open-lab-p5-recovery-fingerprint-migration.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/dna-open-lab-p5-recovery-fingerprint-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: dna_racing_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        shell: bash
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run recovery fingerprint smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0077_dna_open_lab_p5_recovery_fingerprint.smoke.sql
+      - name: Reverse recovery fingerprint migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0077_dna_open_lab_p5_recovery_fingerprint.down.sql
+      - name: Verify recovery fingerprint removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0077_dna_open_lab_p5_recovery_fingerprint.removal.sql

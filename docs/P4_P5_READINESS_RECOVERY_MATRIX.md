@@ -64,6 +64,13 @@ finished, mandatory cleanup succeeds and a second provider inspection proves
 that owner data, acquisition checkpoints, last-good serving state and retained
 evidence exactly match their pre-case fingerprints with zero synthetic residue.
 Scenario, cleanup, inspection or emission failure is redacted and fails closed.
+The provider safety layer now supplies those fingerprints from a fixed
+least-privilege Neon relation inventory and the private hashed-owner R2 prefix.
+Migration `0077` exposes only the compact four-group fingerprint result to the
+runtime role and preserves the direct-table-read prohibition.
+The R2 cleanup port can remove only objects below `p5-recovery/`, is capped at
+10,000 objects, and must prove that prefix empty afterward; retained evidence is
+never included in the deletion set.
 
 ## Recovery acceptance cases
 
@@ -100,8 +107,9 @@ generation. Raw owner payloads and API keys must not enter the report.
 - The generic harness, case-specific assertion adapters and raw
   component-observation executor are implemented. The exact-head connected
   invocation, sanitized evidence boundary and mandatory provider-state cleanup
-  lifecycle are also implemented; provider-backed case implementations and
-  their executed acceptance remain outstanding.
+  lifecycle are also implemented. Concrete bounded Neon/R2 safety inspection
+  and temporary R2 cleanup ports are implemented; provider-backed case
+  implementations and their executed acceptance remain outstanding.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
   Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
   API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
@@ -111,5 +119,6 @@ generation. Raw owner payloads and API keys must not enter the report.
   rollback, R2 marker verification, footprint collection, cleanup, report build
   and post-run provider safety. Persistent Preview sync and Production remained
   disallowed.
-- The next safe work is provider-backed bounded scenario execution through the
-  connected invocation for the four remaining recovery requirements.
+- The next safe work is binding the first crash-after-R2-write/restart-replay
+  scenario to these ports, then executing the ordered connected acceptance for
+  the four remaining recovery requirements.
