@@ -138,3 +138,8 @@ generation. Raw owner payloads and API keys must not enter the report.
   checkpoint revision, exactly one compare-and-swap advances, the losing writer
   is rejected, last-good serving remains unchanged and cleanup leaves no R2
   residue. It does not write a Neon checkpoint or persistent owner row.
+- The third connected case now drives a synthetic 429 through the production
+  acquisition runner. The durable checkpoint blocks a request one second before
+  Retry-After, resumes at the exact boundary, verifies the successful immutable
+  temporary R2 receipt, completes catch-up and restores zero provider residue
+  without publishing or writing persistent owner data.
