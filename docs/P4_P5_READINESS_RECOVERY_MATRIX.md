@@ -72,6 +72,15 @@ The R2 cleanup port can remove only objects below `p5-recovery/`, is capped at
 10,000 objects, and must prove that prefix empty afterward; retained evidence is
 never included in the deletion set.
 
+The first crash/restart case is now component-bound. It uses the production
+bounded acquisition runner with a deliberately interrupted synthetic checkpoint
+and the production immutable evidence format, but redirects the probe through
+an exact-authority factory to
+`p5-recovery/crash-after-evidence-write/`. Replay must return the first receipt,
+read-back must verify the stored bytes, the checkpoint may advance exactly once
+and provider cleanup must restore all protected fingerprints with zero residue.
+The scenario performs no DNA API request and cannot write a Neon owner row.
+
 ## Recovery acceptance cases
 
 Every connected recovery case must record the exact code head, provider scope,
@@ -108,8 +117,9 @@ generation. Raw owner payloads and API keys must not enter the report.
   component-observation executor are implemented. The exact-head connected
   invocation, sanitized evidence boundary and mandatory provider-state cleanup
   lifecycle are also implemented. Concrete bounded Neon/R2 safety inspection
-  and temporary R2 cleanup ports are implemented; provider-backed case
-  implementations and their executed acceptance remain outstanding.
+  and temporary R2 cleanup ports are implemented. The first provider-backed
+  crash/restart scenario is implemented; its private Preview execution and the
+  remaining provider-backed cases remain outstanding.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
   Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
   API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
@@ -119,6 +129,6 @@ generation. Raw owner payloads and API keys must not enter the report.
   rollback, R2 marker verification, footprint collection, cleanup, report build
   and post-run provider safety. Persistent Preview sync and Production remained
   disallowed.
-- The next safe work is binding the first crash-after-R2-write/restart-replay
-  scenario to these ports, then executing the ordered connected acceptance for
-  the four remaining recovery requirements.
+- The next safe work is the guarded exact-head workflow binding for the first
+  crash-after-R2-write/restart-replay scenario, followed by its private Preview
+  execution and the remaining ordered connected acceptance cases.

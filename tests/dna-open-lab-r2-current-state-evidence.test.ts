@@ -3,8 +3,11 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+  createDnaOpenLabP5RecoveryTemporaryEvidenceReader,
+  createDnaOpenLabP5RecoveryTemporaryEvidenceSink,
   createDnaOpenLabR2CurrentStateEvidenceReader,
   createDnaOpenLabR2CurrentStateEvidenceSink,
+  DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY,
   type DnaOpenLabR2CurrentStateEvidenceStoragePort,
 } from "@/lib/dna-open-lab-r2-current-state-evidence";
 import type { DnaCurrentStateRequest } from "@/lib/dna-open-lab-current-state-sync-plan";
@@ -172,6 +175,37 @@ describe("DNA Open Lab private R2 current-state evidence", () => {
     expect(storage.objects.size).toBe(1);
     expect(storage.putCount).toBe(2);
     expect(storage.privacyReadCount).toBe(1);
+  });
+
+  it("keeps recovery probes in the fixed cleanup-eligible namespace", async () => {
+    const storage = new MemoryR2Storage();
+    const persist = createDnaOpenLabP5RecoveryTemporaryEvidenceSink({
+      authority: DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY,
+      ownerId: "owner-vault@example.test",
+      bucketName: "dna-racing-import-preview",
+      storage,
+    });
+    const receipt = await persist(evidenceInput({ recoveryProbe: true }));
+    expect(receipt.evidenceObjectKey).toMatch(
+      new RegExp(
+        `/p5-recovery/crash-after-evidence-write/cycles/${cycleId}/${requestKey}\\.json$`,
+        "u",
+      ),
+    );
+    expect(
+      storage.objects.get(receipt.evidenceObjectKey)?.metadata["dna-kind"],
+    ).toBe("p5_recovery_current_state_request");
+
+    const read = createDnaOpenLabP5RecoveryTemporaryEvidenceReader({
+      authority: DNA_OPEN_LAB_P5_RECOVERY_TEMPORARY_EVIDENCE_AUTHORITY,
+      ownerId: "owner-vault@example.test",
+      bucketName: "dna-racing-import-preview",
+      storage,
+    });
+    await expect(read({ cycleId, receipt })).resolves.toMatchObject({
+      requestKey,
+      response: { result: { recoveryProbe: true } },
+    });
   });
 
   it("reads back only exact private receipt-bound evidence", async () => {
