@@ -26,8 +26,12 @@ export function buildStrategicBreedingIntelligenceMatrix(
       buildStrategicBreedingBoard({
         board,
         ownedEliteRacers: input.ownedEliteRacers,
-        fNumberSegments: input.fNumberSegments,
-        policy: input.coveragePolicy,
+        ...(input.fNumberSegments === undefined
+          ? {}
+          : { fNumberSegments: input.fNumberSegments }),
+        ...(input.coveragePolicy === undefined
+          ? {}
+          : { policy: input.coveragePolicy }),
       }),
     ),
   );
