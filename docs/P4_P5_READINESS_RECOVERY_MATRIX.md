@@ -118,6 +118,13 @@ fail before the Neon publication repository can stage a candidate. Mandatory
 cleanup restores zero residue while owner rows, checkpoints, retained evidence
 and last-good serving fingerprints remain unchanged.
 
+The atomic-publication scenario drives a complete indexed synthetic candidate
+through the production least-privilege Neon repository. A forced interruption
+inside its serializable publication transaction must roll back both canonical
+staging and the receipt index without moving the last-good serving pointer. A
+byte-identical retry must commit both authorities exactly once. Mandatory
+cleanup then restores the original provider fingerprints and zero residue.
+
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
@@ -185,3 +192,8 @@ and last-good serving fingerprints remain unchanged.
   through the production full-publication path, and proves that the Neon
   staging boundary is never called. Cleanup restores zero residue and unchanged
   provider fingerprints without an API call or persistent owner-data write.
+- The ninth connected case forces an indexed publication interruption inside
+  the production serializable Neon transaction. It proves zero canonical or
+  receipt-index commits and unchanged last-good serving after failure, then
+  proves a byte-identical retry commits both authorities exactly once. Cleanup
+  restores the original fingerprints and zero synthetic residue.
