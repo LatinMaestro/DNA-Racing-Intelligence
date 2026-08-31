@@ -254,6 +254,7 @@ export function createDnaOpenLabP5CrashAfterEvidenceWriteScenario(
       replayReceipt.evidenceObjectKey,
     ]);
     if (
+      writtenReceipts.length !== 2 ||
       readBack.requestKey !== replayReceipt.requestKey ||
       afterReplay.syntheticResidueObjectCount !== 1
     ) {
@@ -267,7 +268,8 @@ export function createDnaOpenLabP5CrashAfterEvidenceWriteScenario(
       before.ownerDataSha256 !== cleaned.ownerDataSha256 ||
       before.checkpointStateSha256 !== cleaned.checkpointStateSha256 ||
       before.servingStateSha256 !== cleaned.servingStateSha256 ||
-      before.retainedEvidenceSha256 !== cleaned.retainedEvidenceSha256
+      before.retainedEvidenceSha256 !== cleaned.retainedEvidenceSha256 ||
+      before.persistentOwnerDataRowCount !== cleaned.persistentOwnerDataRowCount
     ) {
       throw new Error("DNA Open Lab P5 crash replay scenario failed.");
     }
