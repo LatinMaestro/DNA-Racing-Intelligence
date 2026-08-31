@@ -40,6 +40,23 @@ The implementation is `lib/dna-open-lab-p5-first-backfill-approval.ts`. It
 fails closed if technical evidence, complete-inventory measurement, the exact
 cost maximum or approval reference is absent or inconsistent.
 
+The non-persistent measurement contract is
+`lib/dna-open-lab-p5-first-backfill-measurement.ts`. It requires exactly one
+terminal observation for finished-race history and each of the five recurring
+current-state acquisition groups. Finished races are classified only as the
+available paginated history at the authority cutoff; Vault recent-race state is
+bounded/recent-only; and race activity, token prices, Core state and Splice
+Arena are current-only. State absent from those API responses cannot be
+reconstructed later or relabelled as historical evidence.
+
+The contract can run only after the protected recovery suite passes from the
+same exact clean `main` commit. It binds the acquisition-plan checksum, fresh
+pricing authority, zero persistent writes, zero temporary residue and sanitized
+per-family evidence. It computes the R2 storage/Class A/Class B, DNA API and
+Neon upper-bound costs, rejects a non-positive Neon headroom result and emits an
+approval-packet input with owner approval and all persistent writes still
+disabled.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:
