@@ -155,3 +155,11 @@ generation. Raw owner payloads and API keys must not enter the report.
   generation and cached serving pointer intact, records catch-up as pending
   rather than falsely complete, and cleans its one temporary immutable R2
   marker without changing provider fingerprints.
+- The sixth connected case starts from that durable `api_ineligible`
+  checkpoint, moves last-good state to `catching_up`, and advances the
+  production bounded runner from the exact stored checkpoint authority. Every
+  scheduled response is retained and read back through temporary immutable R2
+  evidence. Last-good remains served until the complete evidence index crosses
+  the atomic publication boundary exactly once; only then does sync return to
+  `current`. Cleanup restores zero residue and unchanged provider fingerprints,
+  with no real API call, Neon write or persistent owner-data mutation.
