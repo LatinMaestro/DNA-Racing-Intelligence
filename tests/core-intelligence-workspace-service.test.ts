@@ -72,6 +72,9 @@ describe("Core Intelligence workspace service", () => {
       profiles: [],
       lastImportedAt: null,
       connectionStatus: "identity_not_connected",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
     });
   });
 
@@ -103,6 +106,9 @@ describe("Core Intelligence workspace service", () => {
       profiles: [],
       lastImportedAt: null,
       connectionStatus: "persistence_not_configured",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
     });
   });
 
@@ -129,7 +135,95 @@ describe("Core Intelligence workspace service", () => {
       profiles: [profile],
       lastImportedAt: "2026-07-23T01:00:00.000Z",
       connectionStatus: "read_model_connected",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
     });
+  });
+
+  it("loads completed Esports evidence through its separate API history lane", async () => {
+    await expect(
+      loadCoreIntelligencePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: unavailableCorePerformanceProfileRepository,
+        esportsRepository: {
+          status: "ready",
+          listRaceObservationsByOwner: async (ownerId) => {
+            expect(ownerId).toBe("owner");
+            return {
+              lastSyncedAt: "2026-07-23T02:00:00.000Z",
+              observations: [
+                {
+                  sourceRaceId: "esports-race-1",
+                  sourceCoreId: "synthetic-core",
+                  status: "completed",
+                  raceType: "6 gate madness",
+                  distanceMetres: 1_000,
+                  gateCount: 6,
+                  completedAt: "2026-07-23T00:30:00.000Z",
+                  finishPosition: 2,
+                  elapsedTimeMilliseconds: null,
+                  matchId: "match-1",
+                  mapId: "map-1",
+                  observedAt: "2026-07-23T01:00:00.000Z",
+                  sourceAuthority: "dna-open-lab/esports-races",
+                },
+              ],
+            };
+          },
+        },
+        now,
+      }),
+    ).resolves.toMatchObject({
+      connectionStatus: "persistence_not_configured",
+      esportsConnectionStatus: "connected",
+      esportsLastSyncedAt: "2026-07-23T02:00:00.000Z",
+      esportsProfiles: [
+        {
+          sourceCoreId: "synthetic-core",
+          competition: "pro_league_esports",
+          raceType: "6 gate madness",
+          raceCount: 1,
+          successCount: 1,
+          timedRaceCount: 0,
+        },
+      ],
+    });
+  });
+
+  it("rejects Esports evidence that follows its durable sync cutoff", async () => {
+    await expect(
+      loadCoreIntelligencePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: unavailableCorePerformanceProfileRepository,
+        esportsRepository: {
+          status: "ready",
+          listRaceObservationsByOwner: async () => ({
+            lastSyncedAt: "2026-07-23T00:00:00.000Z",
+            observations: [
+              {
+                sourceRaceId: "future-race",
+                sourceCoreId: "synthetic-core",
+                status: "scheduled",
+                raceType: "1v1",
+                distanceMetres: 1_000,
+                gateCount: 2,
+                completedAt: null,
+                finishPosition: null,
+                elapsedTimeMilliseconds: null,
+                matchId: null,
+                mapId: null,
+                observedAt: "2026-07-23T00:30:00.000Z",
+                sourceAuthority: "dna-open-lab/esports-races",
+              },
+            ],
+          }),
+        },
+        now,
+      }),
+    ).rejects.toThrow(/cannot follow its sync timestamp/);
   });
 
   it("derives freshness at read time instead of trusting persistence", async () => {

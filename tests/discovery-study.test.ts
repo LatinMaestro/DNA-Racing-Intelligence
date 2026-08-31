@@ -117,6 +117,7 @@ describe("normal-Free discovery authority", () => {
     expect(contributesToDisplayedProfile("normal_free")).toBe(false);
     expect(contributesToDisplayedProfile("competitive")).toBe(true);
     expect(contributesToDisplayedProfile("tournament")).toBe(true);
+    expect(contributesToDisplayedProfile("esports")).toBe(true);
   });
 
   it("rejects a normal-Free class that conflicts with the authoritative race name", () => {

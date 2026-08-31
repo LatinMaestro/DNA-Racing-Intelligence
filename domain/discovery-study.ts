@@ -153,7 +153,11 @@ export function contributesToDisplayedProfile(
   if (!discoveryEvidenceClasses.includes(evidenceClass)) {
     throw new Error("Discovery evidence class is invalid.");
   }
-  return evidenceClass === "competitive" || evidenceClass === "tournament";
+  return (
+    evidenceClass === "competitive" ||
+    evidenceClass === "tournament" ||
+    evidenceClass === "esports"
+  );
 }
 
 export function validateDiscoveryModeConfiguration(

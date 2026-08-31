@@ -36,6 +36,15 @@ Therefore accepted DNA Racing historical evidence remains the primary audited pe
 
 Current DNA Open Lab API fields may add useful current context but do not replace historical performance evidence automatically.
 
+DNA has confirmed that the normal public Core profile does not include a Core's
+Pro League/Esports races or Esports statistics. The private website must not
+inherit that omission. It must retrieve the complete available Esports race
+history from the supported API, associate every completed entry with its Core,
+include that evidence in whole-Core analysis and expose a dedicated Esports
+profile tab. Keep normal and Esports evidence lanes auditable by exact format,
+distance, outcome coverage and freshness; public-profile absence is unknown
+coverage, not a zero-race observation.
+
 ## Current roster rules
 
 My Vault is unlimited. The Pro League roster is a separate constrained selection from that vault.

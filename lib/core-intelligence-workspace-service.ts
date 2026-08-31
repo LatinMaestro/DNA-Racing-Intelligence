@@ -3,12 +3,22 @@ import {
   type CorePerformanceProfile,
   type RaceMode,
 } from "@/domain/core-performance";
+import {
+  buildCoreEsportsPerformanceProfiles,
+  type CoreEsportsPerformanceProfile,
+  type CoreEsportsRaceObservation,
+} from "@/domain/core-esports-performance";
 import { deriveFreshness } from "@/domain/freshness";
 import type { CoreStarProfile, CountRatio } from "@/domain/star-signals";
 
 type CorePerformanceProjection = Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
+}>;
+
+type CoreEsportsProjection = Readonly<{
+  observations: readonly CoreEsportsRaceObservation[];
+  lastSyncedAt: string | null;
 }>;
 
 export type CorePerformanceProfileRepository =
@@ -21,6 +31,16 @@ export type CorePerformanceProfileRepository =
       ) => Promise<CorePerformanceProjection>;
     }>;
 
+export type CoreEsportsRaceRepository =
+  | Readonly<{ status: "not_configured" }>
+  | Readonly<{
+      status: "ready";
+      listRaceObservationsByOwner: (
+        ownerId: string,
+        coreId?: string | null,
+      ) => Promise<CoreEsportsProjection>;
+    }>;
+
 export type CoreIntelligenceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
@@ -30,9 +50,15 @@ export type CoreIntelligencePageState = Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
   connectionStatus: CoreIntelligenceConnectionStatus;
+  esportsProfiles: readonly CoreEsportsPerformanceProfile[];
+  esportsLastSyncedAt: string | null;
+  esportsConnectionStatus: "not_configured" | "connected";
 }>;
 
 export const unavailableCorePerformanceProfileRepository: CorePerformanceProfileRepository =
+  Object.freeze({ status: "not_configured" });
+
+export const unavailableCoreEsportsRaceRepository: CoreEsportsRaceRepository =
   Object.freeze({ status: "not_configured" });
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -402,6 +428,7 @@ export async function loadCoreIntelligencePageState(
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: CorePerformanceProfileRepository;
+    esportsRepository?: CoreEsportsRaceRepository;
     now: Date;
   }>,
 ): Promise<CoreIntelligencePageState> {
@@ -420,16 +447,26 @@ export async function loadCoreIntelligencePageState(
       profiles: [],
       lastImportedAt: null,
       connectionStatus: "identity_not_connected",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
     };
   }
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Core Intelligence workspace access denied.");
   }
   if (input.repository.status === "not_configured") {
+    const esports = await loadCoreEsportsProjection({
+      ownerId: authenticatedOwnerId,
+      repository:
+        input.esportsRepository ?? unavailableCoreEsportsRaceRepository,
+      now,
+    });
     return {
       profiles: [],
       lastImportedAt: null,
       connectionStatus: "persistence_not_configured",
+      ...esports,
     };
   }
   if (
@@ -443,5 +480,73 @@ export async function loadCoreIntelligencePageState(
     await input.repository.listProfilesByOwner(authenticatedOwnerId),
     now,
   );
-  return { ...projection, connectionStatus: "read_model_connected" };
+  const esports = await loadCoreEsportsProjection({
+    ownerId: authenticatedOwnerId,
+    repository: input.esportsRepository ?? unavailableCoreEsportsRaceRepository,
+    now,
+  });
+  return {
+    ...projection,
+    connectionStatus: "read_model_connected",
+    ...esports,
+  };
+}
+
+async function loadCoreEsportsProjection(input: {
+  ownerId: string;
+  repository: CoreEsportsRaceRepository;
+  now: Date;
+}): Promise<
+  Pick<
+    CoreIntelligencePageState,
+    "esportsProfiles" | "esportsLastSyncedAt" | "esportsConnectionStatus"
+  >
+> {
+  if (input.repository.status === "not_configured") {
+    return {
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
+    };
+  }
+  if (
+    input.repository.status !== "ready" ||
+    typeof input.repository.listRaceObservationsByOwner !== "function"
+  ) {
+    throw new Error("Invalid Core Intelligence Esports repository.");
+  }
+  const projection = object(
+    await input.repository.listRaceObservationsByOwner(input.ownerId),
+    "Esports repository projection",
+  );
+  const lastSyncedAt =
+    projection.lastSyncedAt === null
+      ? null
+      : canonicalTimestamp(
+          projection.lastSyncedAt,
+          "Esports last-synced timestamp",
+        );
+  const observations = array(
+    projection.observations,
+    "Esports observation list",
+  ) as readonly CoreEsportsRaceObservation[];
+  if (observations.length > 0 && lastSyncedAt === null) {
+    throw new Error("Esports observations require a last-synced timestamp.");
+  }
+  if (
+    lastSyncedAt !== null &&
+    observations.some(
+      ({ observedAt }) => Date.parse(observedAt) > Date.parse(lastSyncedAt),
+    )
+  ) {
+    throw new Error("Esports evidence cannot follow its sync timestamp.");
+  }
+  return {
+    esportsProfiles: buildCoreEsportsPerformanceProfiles({
+      observations,
+      now: input.now,
+    }),
+    esportsLastSyncedAt: lastSyncedAt,
+    esportsConnectionStatus: "connected",
+  };
 }

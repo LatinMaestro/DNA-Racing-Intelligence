@@ -112,6 +112,19 @@ The initial auditable opposition adjustment requires at least 10 pre-event exact
 
 Raw star frequency and raw conversion receive no positive ranking weight. They are displayed as diagnostics. Only the opposition-adjusted assignment evidence may support an elite-racer, Discovery, esports or direct-racer breeding conclusion, and it remains behind materially different time/speed/consistency evidence.
 
+### Normal and Esports evidence lanes
+
+Core traits and intrinsic performance characteristics are shared between normal
+racing and Pro League/Esports. Completed Esports evidence therefore contributes
+to whole-Core assessment, even though DNA omits it from the normal public Core
+profile. Keep the competition lane explicit: partition Esports by exact race
+type and exact distance, retain separate normal/Esports sample and outcome
+counts, and never pool unlike formats or opposition into one time distribution.
+WTA/1v1 wins and Madness top-three results are descriptive format outcomes;
+time, valid derived speed, consistency, sample size, freshness and independently
+established field quality remain primary. Missing Esports time or finish fields
+are unavailable, not favourable and not zero.
+
 ### Predictive use and diagnostics
 
 Stars may be used as historical pre-race features. Outcome-based star conversion is diagnostic only.

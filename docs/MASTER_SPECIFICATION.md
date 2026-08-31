@@ -446,6 +446,13 @@ based on the current owner-confirmed rules and published DNA Esports map list.
 The current competition authority is Bike-only. Car and Horse analytics remain
 available to other product workflows but must not influence Pro League advice.
 
+DNA omits Pro League/Esports races from the normal public Core profile. The
+private Core Intelligence experience must include all available API-backed
+completed Esports evidence in whole-Core analysis and provide a dedicated
+Esports tab per Core. Normal and Esports counts, exact formats, outcomes and
+freshness remain separately auditable; absence from DNA's public profile is
+never interpreted as zero history.
+
 The workspace must:
 
 - audit an owner-selected 12–25 Core roster against current element ceilings,
