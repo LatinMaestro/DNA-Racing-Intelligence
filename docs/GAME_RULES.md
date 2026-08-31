@@ -242,8 +242,24 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
 
 - My Vault is unlimited.
 - A legal Pro League roster contains **12–25 Cores**.
-- Do not force a 25-Core roster.
-- Build the strongest compliant nucleus first, then add only Cores with meaningful incremental value while remaining at or above 12.
+- The current owner strategy targets all **25** places because roster membership
+  itself does not cause ageing.
+- Fill those places with proven Pro League specialists, credible
+  rotation/developing Cores and structural/exact-line coverage specialists.
+- Exclude irreplaceable normal-tournament Cores by default. Include one only as
+  an explicit high-importance contingency when expected map impact justifies
+  its ageing exposure.
+
+### Ageing and participation
+
+- Ageing will be enabled for the real Pro League.
+- Registering a Core does **not** add ageing.
+- A Core accrues ageing when it actually runs a mapped race.
+- Track roster membership, mapped starts and ageing exposure as separate facts.
+- Do not invent a numeric ageing cutoff: exact increments and safe exclusion
+  thresholds remain unresolved pending authoritative mechanics and data.
+- Spread competitively justified starts across specialist depth while
+  preserving the Vault's normal-tournament capacity.
 
 ### Substitutions
 
@@ -327,6 +343,14 @@ The current owner-provided/confirmed roster rules supersede the earlier 20 Augus
   to fill every theoretical gap. If structural compliance forces temporary
   inclusion, label the Core provisional and preserve a clear replacement plan.
 - No additional map is configured or assumed until DNA publishes it.
+
+### Discovery boundary
+
+- Pro League is not a Discovery programme once a Core is properly assessed.
+- A competitively justified Pro League start by a credible developing Core may
+  add useful evidence incidentally, but evidence collection alone is not a
+  reason to map it.
+- Deliberate testing remains in the normal mode-aware Discovery workflow.
 
 ### Trial-only operations observed 29 August 2026
 

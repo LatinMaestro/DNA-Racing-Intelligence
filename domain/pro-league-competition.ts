@@ -77,7 +77,7 @@ export const proLeagueTrialOperationsAuthority = Object.freeze({
     "The live trial exposes both denied-map-excluded and denied-map-returned third-map wording; each match must retain the ruleset actually applied.",
     "The missed-pick fallback and exact deadline remain trial administration observations, not a permanent deterministic rule.",
     "The live trial female rule differs from the current owner-confirmed validator and does not supersede it without explicit authority.",
-    "Normal-season ageing, roster-lock, substitution-counting and final administration rules remain versioned or unresolved.",
+    "Real-league mapped race participation is ageing-bearing, while roster membership alone is not; exact increments, thresholds, roster-lock, substitution-counting and final administration rules remain versioned or unresolved.",
   ]),
 });
 

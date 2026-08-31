@@ -191,18 +191,30 @@ mapped Core with the opposing Vault's selected or best-supported likely Core,
 and rank the role-eligible map choices by favourable, contested, unfavourable
 and unknown exact-format lines.
 
-## Quality-first roster objective
+## Ageing-aware 25-Core owner strategy
 
-Do **not** force the roster to 25.
+A 12-Core roster remains legal, but the current owner strategy is to register
+all **25** available places. Registration itself is age-neutral: ageing is
+incurred only when a Core actually runs a mapped Pro League race.
 
-The objective is:
+Fill the roster with:
 
-1. construct the strongest rule-compliant nucleus;
-2. maintain at least 12 Cores;
-3. add additional Cores only when they provide meaningful incremental competitive/structural value; and
-4. stop before 25 if extra slots would dilute quality or consume future flexibility without a credible purpose.
+1. proven exact-format/exact-distance Pro League specialists;
+2. credible rotation or developing Cores that can add competitive depth; and
+3. structural or exact-line coverage specialists.
 
-A 12-Core roster is legal if every other rule is satisfied. A 25-Core roster is not inherently better.
+Do not use an empty slot as ageing protection. Instead, protect the Vault's
+irreplaceable normal-tournament Cores by excluding them from the Pro League
+roster by default. A protected tournament Core may be included only as an
+explicit high-importance contingency when its expected map impact clearly
+justifies spending its ageing. Registration is not permission to map or race a
+Core.
+
+The website must track mapped starts and ageing exposure separately from
+roster membership, spread justified starts across real depth, and preserve
+normal-tournament capacity. Exact ageing increments and exclusion thresholds
+remain unresolved until authoritative values are available; do not invent a
+numeric cutoff.
 
 The website should distinguish:
 
@@ -319,11 +331,19 @@ Track at minimum:
 
 The maximum is 10 substitutions per year under current authority.
 
-## Discovery preparation
+## Discovery relationship
 
-Pro League should be one of the most Discovery-intensive workflows.
+Pro League is not a Discovery programme for a properly assessed Core. Mapping
+must be competitively justified, not an excuse to accumulate a sample.
 
-The goal is not to race every Core blindly. Convert roster uncertainty into ranked probes.
+For credible developing or under-evidenced roster Cores, races run for a real
+competitive role may incidentally add useful evidence. Treat that evidence as
+a secondary benefit and keep it in the same point-in-time, exact-format and
+exact-distance evidence model. Complete deliberate Discovery through the
+normal mode-aware Discovery workflow.
+
+Before roster lock, convert remaining uncertainty into ranked normal-racing
+probes rather than spending Pro League ageing blindly.
 
 Prioritise:
 
@@ -341,7 +361,8 @@ affect Pro League ranking or mapping.
 
 ## Active-race opportunity matching
 
-DNA Open Lab active-race/fill data may be used to show suitable **manual** racing opportunities for Pro League Discovery.
+DNA Open Lab active-race/fill data may be used to show suitable **manual**
+normal-racing opportunities for pre-roster Discovery.
 
 The website may:
 
@@ -373,8 +394,9 @@ For a weak best-available Core, say so plainly. Recommend efficient Discovery
 of other credible owned Cores or evidence-backed breeding before roster lock.
 If a weak Core is unavoidable for structural compliance, mark it provisional,
 explain the gap it covers and place it on the replacement-priority list. The
-annual 10-substitution limit makes roster quality and replacement preservation
-more important than filling the 25-Core ceiling.
+annual 10-substitution limit makes initial specialist quality and replacement
+preservation critical even though the owner strategy fills all 25 age-neutral
+registration places.
 
 When connected, use official DNA Open Lab Splice evidence:
 

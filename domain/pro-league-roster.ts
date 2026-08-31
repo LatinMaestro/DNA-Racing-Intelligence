@@ -1,12 +1,12 @@
 import type { CoreClass, CoreElement, CoreSex } from "@/domain/source-adapters";
 
 export const proLeagueCurrentRules = Object.freeze({
-  rulesetId: "dna-pro-league/owner-confirmed-2026-08-29",
+  rulesetId: "dna-pro-league/owner-confirmed-2026-08-31",
   evidenceStatus: "owner_confirmed" as const,
   sourceLabel:
-    "Owner-confirmed DNA Pro League rules, Bike-only, matchup and female-percentage clarification",
+    "Owner-confirmed DNA Pro League rules, Bike-only, matchup, female percentage and real-league ageing clarification",
   raceMode: "bike" as const,
-  receivedAt: "2026-08-29",
+  receivedAt: "2026-08-31",
   matchup: Object.freeze({
     vaultsPerMatch: 2,
     gateAllocation: "equal_halves" as const,
@@ -34,6 +34,38 @@ export const proLeagueCurrentRules = Object.freeze({
     percentage: 32,
   }),
   namesRequired: true,
+  ageing: Object.freeze({
+    enabledForRealLeague: true,
+    rosterMembershipAccrues: false,
+    mappedRaceParticipationAccrues: true,
+    exactIncrementAndLimits: "unresolved" as const,
+  }),
+});
+
+export const proLeagueOwnerRosterStrategy = Object.freeze({
+  strategyId: "owner-pro-league/ageing-aware-25-core-2026-08-31",
+  evidenceStatus: "owner_confirmed" as const,
+  targetRosterSize: 25,
+  registrationIsAgeNeutral: true,
+  protectedTournamentCores: Object.freeze({
+    defaultDisposition: "exclude_from_roster" as const,
+    exception:
+      "explicit_high_importance_contingency_when_expected_map_impact_justifies_ageing" as const,
+  }),
+  preferredRosterRoles: Object.freeze([
+    "proven_pro_league_specialist",
+    "credible_rotation_or_developing_core",
+    "structural_or_exact_line_coverage_specialist",
+  ] as const),
+  participationPolicy: Object.freeze({
+    minimizeConcentratedAgeing: true,
+    preserveNormalTournamentCapacity: true,
+    mapOnlyWhenCompetitivelyJustified: true,
+  }),
+  evidencePolicy: Object.freeze({
+    proLeagueResultsMayStrengthenEvidenceIncidentally: true,
+    proLeagueIsDiscoveryAfterProperAssessment: false,
+  }),
 });
 
 export const proLeagueTrialObservedRosterRules = Object.freeze({

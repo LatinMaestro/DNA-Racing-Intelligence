@@ -894,3 +894,22 @@ After the private Pro League milestone, continue in this order:
   ties. Breeding may show adjusted stars in the direct-racer case, but breeder
   quality cannot inherit the signal without chronological offspring holdout
   lift.
+
+## 2026-08-31 — Real Pro League ageing and 25-Core owner strategy
+
+- Real Pro League ageing is enabled, but roster registration itself is
+  age-neutral. A Core incurs ageing only when it runs a mapped race.
+- Target a full 25-Core owner roster made from proven Pro League specialists,
+  credible rotation/developing Cores and structural or exact-line coverage
+  specialists. This owner strategy does not change the legal 12–25 range.
+- Exclude irreplaceable normal-tournament Cores by default so the Vault's best
+  cash-prize capacity is not spent in Pro League. Include one only as an
+  explicit high-importance contingency when its expected map impact justifies
+  the ageing exposure.
+- Track registration, mapped starts and ageing separately. Spread justified
+  starts across real depth; do not invent an ageing exclusion number before
+  exact increments, thresholds and season mechanics are authoritative.
+- Pro League results may strengthen evidence incidentally for credible
+  developing Cores that are raced for a competitive reason. Pro League is not
+  a Discovery programme after a Core has been properly assessed; deliberate
+  testing stays in the shared mode-aware normal-racing Discovery workflow.
