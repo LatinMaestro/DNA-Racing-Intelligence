@@ -1,0 +1,35 @@
+name: Format breeding vault coverage
+
+on:
+  push:
+    branches:
+      - feature/breeding-vault-coverage-gaps
+    paths:
+      - .github/workflows/format-breeding-vault-coverage.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/breeding-vault-coverage-gaps
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write domain/breeding-vault-coverage.ts domain/breeding-strategic-matrix.ts tests/breeding-vault-coverage.test.ts
+      - name: Commit formatting and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/format-breeding-vault-coverage.yml
+          git add domain/breeding-vault-coverage.ts domain/breeding-strategic-matrix.ts tests/breeding-vault-coverage.test.ts
+          git commit -m "Format vault coverage breeding strategy"
+          git push origin HEAD:feature/breeding-vault-coverage-gaps
