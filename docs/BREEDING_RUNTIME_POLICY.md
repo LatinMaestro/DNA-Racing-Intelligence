@@ -3,6 +3,8 @@
 Status: **owner-approved permanent foundation**  
 Effective: **31 August 2026**
 
+This policy supersedes earlier research wording that automatically capped first-race chronology at WATCH. The owner has approved first recorded race as a sufficient modelling chronology anchor when authoritative `minted_at` is unavailable.
+
 ## Scope
 
 The breeding recommendation methodology applies to **Bike, Car and Horse**. It is not limited to the Bike 1000–1400 research exercise.
