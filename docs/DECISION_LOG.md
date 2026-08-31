@@ -913,3 +913,15 @@ After the private Pro League milestone, continue in this order:
   developing Cores that are raced for a competitive reason. Pro League is not
   a Discovery programme after a Core has been properly assessed; deliberate
   testing stays in the shared mode-aware normal-racing Discovery workflow.
+
+## 2026-08-31 — Pro League and Esports are one competition
+
+- Treat `Pro League` and `Esports` as synonymous names for the same Bike
+  competition. Do not model, rank or present them as separate programmes.
+- The DNA Esports website is the operating surface for Pro League team, roster,
+  map and match actions.
+- Trial Esports is a practice ruleset of the same competition. Its temporary
+  ageing, roster-edit and prize overrides remain versioned trial facts, not a
+  separate racing mode.
+- Normal tournaments and general mode-aware Discovery remain separate from
+  Pro League/Esports.

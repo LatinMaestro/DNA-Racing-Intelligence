@@ -280,12 +280,12 @@ function Preparation({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold" id="pro-discovery">
-              Pro League Discovery queue
+              Pre-roster Bike Discovery queue
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-              Use Bike evidence only. Apply lineage and adjacent-distance Bike
-              evidence to choose efficient probes and stop weak paths early; Car
-              and Horse Discovery remains outside Pro League.
+              This is the separate normal-racing Discovery workflow. Use Bike
+              evidence to close pre-roster gaps; a Pro League/Esports start must
+              remain competitively justified rather than being used as a probe.
             </p>
           </div>
           <Link

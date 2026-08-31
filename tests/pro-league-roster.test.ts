@@ -27,6 +27,11 @@ describe("Pro League roster audit", () => {
   it("captures the current owner-confirmed roster and substitution authority", () => {
     expect(proLeagueCurrentRules).toMatchObject({
       evidenceStatus: "owner_confirmed",
+      terminology: {
+        canonicalLabel: "Pro League/Esports",
+        proLeagueAndEsportsAreSameCompetition: true,
+        trialIsPracticeRulesetOfSameCompetition: true,
+      },
       raceMode: "bike",
       minimumRosterSize: 12,
       maximumRosterSize: 25,
