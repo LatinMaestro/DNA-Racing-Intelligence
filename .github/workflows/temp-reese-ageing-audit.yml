@@ -1,4 +1,4 @@
-name: Temporary Reese Dylan complete Bike classification
+name: Temporary Reese Dylan refined Bike classification
 
 on:
   push:
@@ -16,131 +16,52 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Pull and classify every Reese Dylan Bike race
+      - name: Refine complete Reese Dylan Bike classification
         shell: bash
         run: |
           node --input-type=module <<'NODE'
-          import fs from 'node:fs';
           const base='https://api.dnaracing.run';
           const hid=11848;
           const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-          let requests=0;
           async function post(path,body){
             const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-            requests++;
-            const text=await r.text(); let json=null; try{json=JSON.parse(text)}catch{}
-            if(!r.ok) throw new Error(`${path} HTTP ${r.status}: ${text.slice(0,200)}`);
-            await sleep(250);
-            return json?.result??json;
+            const text=await r.text();let j=null;try{j=JSON.parse(text)}catch{};if(!r.ok)throw new Error(`${path} HTTP ${r.status}`);await sleep(220);return j?.result??j;
           }
-          function arr(v){if(Array.isArray(v))return v;if(v&&typeof v==='object'){for(const k of ['data','items','races'])if(Array.isArray(v[k]))return v[k];}return [];}
-          function when(row){for(const k of ['start_time','startTime','date','created_at','createdAt']){const v=row?.[k];if(typeof v==='string'){const t=Date.parse(v);if(Number.isFinite(t))return t;}if(typeof v==='number'&&Number.isFinite(v))return v>1e12?v:v*1000;}return null;}
-          function num(v){const n=Number(v);return Number.isFinite(n)?n:0;}
-          function hasEventTags(v){
-            if(v==null) return false;
-            if(Array.isArray(v)) return v.length>0;
-            if(typeof v==='object') return Object.keys(v).length>0;
-            if(typeof v==='string') return v.trim()!=='' && v.trim()!=='[]' && v.trim()!=='{}';
-            return Boolean(v);
-          }
-          function feeOf(r){
-            const f=num(r?.fee);
-            const ff=num(r?.fee_fixed);
-            return Math.max(f,ff,0);
-          }
-          const all=[];
-          let page=1;
-          while(page<=50){
-            const rows=arr(await post('/fbike/i/hraces',{hid,page}));
-            console.log(`PAGE ${page} ROWS ${rows.length}`);
-            if(!rows.length) break;
-            all.push(...rows);
-            if(rows.length<50) break;
-            page++;
-          }
-          const ded=new Map();
-          for(const r of all){
-            const key=String(r?.rhid??r?.rid??r?.race_id??`${when(r)}:${r?.rvmode}:${r?.cb}:${r?.pos}:${r?.race_name}`);
-            if(!ded.has(key)) ded.set(key,r);
-          }
+          function arr(v){if(Array.isArray(v))return v;if(v&&typeof v==='object'){for(const k of ['data','items','races'])if(Array.isArray(v[k]))return v[k];}return []}
+          function when(r){for(const k of ['start_time','startTime','date','created_at','createdAt']){const v=r?.[k];if(typeof v==='string'){const t=Date.parse(v);if(Number.isFinite(t))return t}if(typeof v==='number')return v>1e12?v:v*1000}return null}
+          function num(v){const n=Number(v);return Number.isFinite(n)?n:0}
+          function feeOf(r){return Math.max(num(r?.fee),num(r?.fee_fixed),0)}
+          function tagged(v){if(v==null)return false;if(Array.isArray(v))return v.length>0;if(typeof v==='object')return Object.keys(v).length>0;if(typeof v==='string')return !['','[]','{}'].includes(v.trim());return !!v}
+          const eventFormats=new Set(['sub_rounds','sub_roundsp','sub_war','sub_bounty','sub_quest']);
+          const eventName=/\b(round(?:s)?(?:-| )?\d*|semi[- ]?finals?|finals?|grand final|grand-final|GF|weekly|tourney|tournament|qual(?:ifier)?|bounty|challenge|war|season|T3|TOH|DU|top\s*3|top\s*2|trainer|trail|may the morph|pod|variance|spin|blackjack|survey|triple death|last out|loot box|claimer|chainplay)\b/i;
+          const all=[];let page=1;
+          while(page<=50){const rows=arr(await post('/fbike/i/hraces',{hid,page}));if(!rows.length)break;all.push(...rows);if(rows.length<50)break;page++}
+          const ded=new Map();for(const r of all){const key=String(r?.rhid??r?.rid??`${when(r)}:${r?.rvmode}:${r?.cb}:${r?.pos}:${r?.race_name}`);if(!ded.has(key))ded.set(key,r)}
           const bike=[...ded.values()].filter(r=>String(r?.rvmode??'').toLowerCase()==='bike').sort((a,b)=>(when(a)||0)-(when(b)||0));
-          const stats=await post('/fbike/cores/racing_stats_bulk',{hids:[hid]});
-          const stat=Array.isArray(stats)?stats[0]:stats;
-          const apiCareer=Number(stat?.hstats_bike?.career?.races_n??0);
-          const paidCareer=Number(stat?.hstats_bike?.career?.paid_races_n??0);
-          const ageing=stat?.ageing??null;
-
-          const detail=[];
-          for(const r of bike){
-            const name=String(r?.race_name??'').trim();
-            const fee=feeOf(r);
-            const normalFree=/\bFree\b/i.test(name);
-            const eventTagged=hasEventTags(r?.eventtags);
-            let category;
-            if(fee>0) category='paid_entry_fee';
-            else if(normalFree) category='normal_free';
-            else if(eventTagged) category='zero_fee_event_round';
-            else category='other_zero_fee_nonfree';
-            detail.push({
-              category,
-              date:when(r)?new Date(when(r)).toISOString():null,
-              rhid:r?.rhid??null,
-              rid:r?.rid??null,
-              name,
-              fee,
-              fee_raw:r?.fee??null,
-              fee_fixed_raw:r?.fee_fixed??null,
-              paytoken:r?.paytoken??null,
-              eventtags:r?.eventtags??null,
-              eventTagged,
-              format:r?.format??null,
-              distance:r?.cb??null,
-              gate:r?.rgate??r?.gate??null,
-              pos:r?.pos??null,
-              prize_usd:r?.prize_usd??null,
-              star:r?.star??null,
-              status:r?.status??null,
-            });
+          const stats=await post('/fbike/cores/racing_stats_bulk',{hids:[hid]});const st=Array.isArray(stats)?stats[0]:stats;
+          function classify(r){
+            const fee=feeOf(r),name=String(r?.race_name??''),fmt=String(r?.format??'').toLowerCase();
+            if(fee>0)return 'paid_entry_fee';
+            if(/\bFree\b/i.test(name))return 'normal_free';
+            if(tagged(r?.eventtags)||eventFormats.has(fmt)||eventName.test(name))return 'zero_fee_event_round';
+            return 'other_zero_fee_nonfree';
           }
-
-          function groupBy(rows,keyFn){
-            const m=new Map();
-            for(const x of rows){const k=keyFn(x);if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
-            return [...m.entries()].map(([key,items])=>({key,count:items.length,items}));
-          }
-          const categories={};
-          for(const cat of ['paid_entry_fee','zero_fee_event_round','normal_free','other_zero_fee_nonfree']){
-            const rows=detail.filter(x=>x.category===cat);
-            const byName=groupBy(rows,x=>x.name||'(blank)').map(g=>({name:g.key,count:g.count,fees:[...new Set(g.items.map(x=>x.fee))],eventTagged:g.items.filter(x=>x.eventTagged).length,first:g.items[0]?.date??null,last:g.items.at(-1)?.date??null})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
-            const byMonth=groupBy(rows,x=>x.date?.slice(0,7)??'unknown').map(g=>({month:g.key,count:g.count})).sort((a,b)=>a.month.localeCompare(b.month));
-            const byDistance=groupBy(rows,x=>String(x.distance)).map(g=>({distance:g.key,count:g.count})).sort((a,b)=>Number(a.distance)-Number(b.distance));
-            categories[cat]={count:rows.length,byName,byMonth,byDistance};
-          }
-          const zeroNonFree=detail.filter(x=>x.fee===0&&!/\bFree\b/i.test(x.name));
-          const zeroNameAudit=groupBy(zeroNonFree,x=>x.name||'(blank)').map(g=>({name:g.key,count:g.count,eventTagged:g.items.filter(x=>x.eventTagged).length,formats:[...new Set(g.items.map(x=>String(x.format??'')))],first:g.items[0]?.date,last:g.items.at(-1)?.date})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
-          const feeAudit=groupBy(detail,x=>String(x.fee)).map(g=>({fee:g.key,count:g.count})).sort((a,b)=>Number(a.fee)-Number(b.fee));
-          const summary={
-            pulledAt:new Date().toISOString(),hid,name:'Reese Dylan',requests,pagesFetched:page,
-            apiCareer,historyBikeRows:bike.length,complete:apiCareer===bike.length,
-            apiPaidCareer:paidCareer,ageing,
-            firstBike:detail[0]?.date??null,lastBike:detail.at(-1)?.date??null,
-            categoryCounts:Object.fromEntries(Object.entries(categories).map(([k,v])=>[k,v.count])),
-            categoryTotal:Object.values(categories).reduce((s,v)=>s+v.count,0),
-            feeAudit,zeroNameAudit,categories,
-          };
-          fs.writeFileSync('reese-bike-classification.json',JSON.stringify({summary,detail}));
-          console.log('SUMMARY',JSON.stringify({pulledAt:summary.pulledAt,apiCareer,historyBikeRows:bike.length,complete:summary.complete,apiPaidCareer:paidCareer,ageing,categoryCounts:summary.categoryCounts,firstBike:summary.firstBike,lastBike:summary.lastBike,requests}));
-          console.log('FEE_AUDIT',JSON.stringify(feeAudit));
-          console.log('ZERO_NONFREE_NAMES',JSON.stringify(zeroNameAudit));
-          console.log('PAID_NAMES',JSON.stringify(categories.paid_entry_fee.byName));
-          console.log('EVENT_NAMES',JSON.stringify(categories.zero_fee_event_round.byName));
-          console.log('FREE_NAMES',JSON.stringify(categories.normal_free.byName));
-          console.log('OTHER_NAMES',JSON.stringify(categories.other_zero_fee_nonfree.byName));
-          console.log('CATEGORY_MONTHS',JSON.stringify(Object.fromEntries(Object.entries(categories).map(([k,v])=>[k,v.byMonth]))));
-          console.log('CATEGORY_DISTANCES',JSON.stringify(Object.fromEntries(Object.entries(categories).map(([k,v])=>[k,v.byDistance]))));
+          const rows=bike.map(r=>({r,cat:classify(r),fee:feeOf(r),date:when(r)?new Date(when(r)).toISOString():null,name:String(r?.race_name??''),fmt:String(r?.format??''),tagged:tagged(r?.eventtags)}));
+          const cats=['paid_entry_fee','zero_fee_event_round','normal_free','other_zero_fee_nonfree'];
+          const summary={};
+          for(const cat of cats){const q=rows.filter(x=>x.cat===cat);summary[cat]={count:q.length,first:q[0]?.date??null,last:q.at(-1)?.date??null};}
+          function group(q,key){const m=new Map();for(const x of q){const k=key(x);m.set(k,(m.get(k)||0)+1)}return [...m].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0])))}
+          const other=rows.filter(x=>x.cat==='other_zero_fee_nonfree');
+          const event=rows.filter(x=>x.cat==='zero_fee_event_round');
+          const paid=rows.filter(x=>x.cat==='paid_entry_fee');
+          const free=rows.filter(x=>x.cat==='normal_free');
+          const may2026=rows.filter(x=>x.date?.startsWith('2026-05'));
+          console.log('REFINED_SUMMARY',JSON.stringify({historyBikeRows:bike.length,apiCareer:st?.hstats_bike?.career?.races_n,apiPaidCareer:st?.hstats_bike?.career?.paid_races_n,ageing:st?.ageing,summary}));
+          console.log('OTHER_NAMES',JSON.stringify(group(other,x=>x.name)));
+          console.log('OTHER_FORMATS',JSON.stringify(group(other,x=>x.fmt)));
+          console.log('EVENT_TOP_NAMES',JSON.stringify(group(event,x=>x.name).slice(0,80)));
+          console.log('PAID_TOP_NAMES',JSON.stringify(group(paid,x=>x.name).slice(0,50)));
+          console.log('NORMAL_FREE_NAMES',JSON.stringify(group(free,x=>x.name)));
+          console.log('MAY_2026',JSON.stringify(may2026.map(x=>({date:x.date,cat:x.cat,name:x.name,fee:x.fee,format:x.fmt,tagged:x.tagged,distance:x.r?.cb,pos:x.r?.pos}))));
+          console.log('BY_YEAR_CAT',JSON.stringify(Object.fromEntries(['2024','2025','2026'].map(y=>[y,Object.fromEntries(cats.map(c=>[c,rows.filter(x=>x.cat===c&&x.date?.startsWith(y)).length]))]))));
           NODE
-      - uses: actions/upload-artifact@v4
-        with:
-          name: reese-bike-classification
-          path: reese-bike-classification.json
-          retention-days: 1
