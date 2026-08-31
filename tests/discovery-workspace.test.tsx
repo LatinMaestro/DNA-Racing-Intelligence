@@ -101,10 +101,12 @@ describe("Discovery workspace", () => {
       "Median 96.000 s · 75th percentile 97.500 s · 80 top-three results",
     );
     expect(html).toContain("120 exact-distance historical entries");
-    expect(html).toContain("1/2 (50%) · 3 Gold-eligible races");
+    expect(html).toContain("1/2 (50%) · 3 Yellow-eligible races");
     expect(html).toContain("1/3 (33%)");
     expect(html).toContain("descriptive historical distributions");
-    expect(html).toContain("field-relative support, not an absolute rating");
+    expect(html).toContain(
+      "Raw star rate or conversion does not improve priority without pre-race opposition-quality evidence",
+    );
     expect(html).toContain("Priority");
     expect(html).toContain("Tournament relevance");
     expect(html).toContain("Maiden Commitment Review Required");

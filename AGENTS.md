@@ -87,10 +87,10 @@ Before changing code or data models, read:
 - Use chronological holdout backtesting. Do not leak future results into training features.
 - Never claim the secret breeding formula has been discovered unless independently validated to an exceptional standard. Report associations and predictive lift instead.
 
-### Gold and Blue star signals
+### Yellow/Gold and Blue star signals
 
-- Preserve the source `gold_star` and `blue_star` race-entry values using the same user-facing terms: **Gold star** and **Blue star**.
-- Gold means the game assessed that core as having the strongest chance to finish in the top three in that entered field.
+- Preserve the source `gold_star` and `blue_star` race-entry values. The visible **Yellow star** is stored by the historical source as `gold_star`; never rename or discard that source field.
+- Yellow/source-Gold means the game assessed that core as having the strongest chance to finish in the top three in that entered field.
 - Blue means the game assessed that core as having the strongest chance to win and finish first in that entered field.
 - Gold stars are not assigned in races with three gates or fewer.
 - Derive `gold_star_eligible = gate_count > 3` unless a later owner-confirmed rule changes it.
@@ -98,6 +98,8 @@ Before changing code or data models, read:
 - A source Gold star in a race with three gates or fewer must be preserved and flagged as an anomaly.
 - Stars are pre-race, field-relative signals and are not guarantees or absolute ratings.
 - Receiving a star over historically strong cores is positive supporting evidence. Repeatedly receiving no available star against weak cores is negative supporting evidence.
+- Raw assignment rate and Gold/Yellow top-three or Blue win conversion are diagnostic only. They receive no positive racer, esports, Discovery or breeding weight without opponent quality established from evidence available before the race.
+- A star over an independently established strong or elite opponent can support a runner assessment; a perfect star/conversion record over weak opposition cannot.
 - A missing star, a Gold-ineligible race or a no-star result must never become an automatic stop, burn or poor-core decision by itself.
 - Direct race time and speed remain primary. Star evidence supports Discovery, whole-core analysis, Maiden and tournament suitability, breeding research and lifecycle decisions.
 - Calculate historical field quality using only information available before the event. Never use the event outcome or later races to assess how impressive that event’s star assignment was.

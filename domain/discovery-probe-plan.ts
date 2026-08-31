@@ -1,3 +1,5 @@
+import type { RunnerStarSupport } from "./runner-star-evaluation";
+
 export const probeModes = ["bike", "car", "horse"] as const;
 export type ProbeMode = (typeof probeModes)[number];
 
@@ -27,6 +29,14 @@ export type DiscoveryStarEvidence = Readonly<{
   goldReceivedCount: number;
   blueAssignmentOpportunityCount: number;
   blueReceivedCount: number;
+  oppositionAdjusted?: Readonly<{
+    support: RunnerStarSupport;
+    qualityKnownRaceCount: number;
+    strongFieldStarCount: number;
+    eliteOpponentStarCount: number;
+    weakFieldNoStarOpportunityCount: number;
+    rawConversionUsedForPriority: false;
+  }> | null;
 }>;
 
 export type DiscoveryProbeCandidateInput = Readonly<{
@@ -80,6 +90,7 @@ export type DiscoveryProbeCandidate = Readonly<{
     | "LINEAGE_SAMPLE_UNAVAILABLE"
     | "DIRECT_TIME_EVIDENCE_UNAVAILABLE"
     | "STAR_EVIDENCE_UNAVAILABLE"
+    | "STAR_OPPOSITION_QUALITY_UNAVAILABLE"
     | "DATA_CUTOFF_UNKNOWN"
     | "DATA_STALE"
   )[];
@@ -168,6 +179,43 @@ function normalizeStarEvidence(
   if (directRaceCount === 0) {
     throw new Error("Star evidence requires direct races.");
   }
+  const oppositionAdjusted = value.oppositionAdjusted ?? null;
+  if (oppositionAdjusted !== null) {
+    if (
+      ![
+        "strong_support",
+        "supporting",
+        "neutral",
+        "caution",
+        "unavailable",
+      ].includes(oppositionAdjusted.support) ||
+      oppositionAdjusted.rawConversionUsedForPriority !== false
+    ) {
+      throw new Error("Opposition-adjusted star evidence is invalid.");
+    }
+    for (const [label, candidate] of [
+      ["Quality-known race count", oppositionAdjusted.qualityKnownRaceCount],
+      ["Strong-field star count", oppositionAdjusted.strongFieldStarCount],
+      ["Elite-opponent star count", oppositionAdjusted.eliteOpponentStarCount],
+      [
+        "Weak-field no-star opportunity count",
+        oppositionAdjusted.weakFieldNoStarOpportunityCount,
+      ],
+    ] as const) {
+      count(candidate, label);
+      if (candidate > directRaceCount) {
+        throw new Error(
+          "Opposition-adjusted star evidence exceeds the direct sample.",
+        );
+      }
+    }
+    if (
+      oppositionAdjusted.eliteOpponentStarCount >
+      oppositionAdjusted.strongFieldStarCount
+    ) {
+      throw new Error("Elite-opponent stars cannot exceed strong-field stars.");
+    }
+  }
   const normalized: DiscoveryStarEvidence = {
     completeStarDataRaceCount: count(
       value.completeStarDataRaceCount,
@@ -187,11 +235,17 @@ function normalizeStarEvidence(
       "Blue assignment opportunity count",
     ),
     blueReceivedCount: count(value.blueReceivedCount, "Blue received count"),
+    oppositionAdjusted,
   };
   if (
-    Object.values(normalized).some(
-      (candidate) => candidate > directRaceCount,
-    ) ||
+    [
+      normalized.completeStarDataRaceCount,
+      normalized.goldEligibleRaceCount,
+      normalized.goldAssignmentOpportunityCount,
+      normalized.goldReceivedCount,
+      normalized.blueAssignmentOpportunityCount,
+      normalized.blueReceivedCount,
+    ].some((candidate) => candidate > directRaceCount) ||
     normalized.goldAssignmentOpportunityCount >
       normalized.goldEligibleRaceCount ||
     normalized.goldReceivedCount > normalized.goldAssignmentOpportunityCount ||
@@ -302,6 +356,13 @@ function normalize(
   if (directRaceCount > 0 && starEvidence === null) {
     warnings.add("STAR_EVIDENCE_UNAVAILABLE");
   }
+  if (
+    starEvidence !== null &&
+    (starEvidence.oppositionAdjusted == null ||
+      starEvidence.oppositionAdjusted.support === "unavailable")
+  ) {
+    warnings.add("STAR_OPPOSITION_QUALITY_UNAVAILABLE");
+  }
   if (dataCurrentThrough === null || input.freshness === "unknown") {
     warnings.add("DATA_CUTOFF_UNKNOWN");
   }
@@ -314,6 +375,9 @@ function normalize(
   const strategic =
     input.tournamentRelevance === "priority" ||
     input.maidenState === "eligible";
+  const oppositionAdjustedStarSupport =
+    starEvidence?.oppositionAdjusted?.support === "strong_support" ||
+    starEvidence?.oppositionAdjusted?.support === "supporting";
   const actionable = !unusable && observationsToMinimum > 0;
   const recommendedInitialProbeSize = actionable
     ? Math.min(3, observationsToMinimum)
@@ -353,7 +417,7 @@ function normalize(
       ? "defer"
       : observationsToMinimum === 0
         ? "low"
-        : strategic
+        : strategic || oppositionAdjustedStarSupport
           ? "high"
           : input.lineageRelationship !== null && input.lineageResolved
             ? "medium"

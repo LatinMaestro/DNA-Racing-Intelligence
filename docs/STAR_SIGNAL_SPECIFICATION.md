@@ -1,4 +1,4 @@
-# Gold and Blue Star Signal Specification
+# Yellow/Gold and Blue Star Signal Specification
 
 ## 1. Purpose
 
@@ -8,10 +8,10 @@ The website must preserve and analyse these signals as first-class race-entry da
 
 The owner-confirmed meanings are:
 
-- **Gold star**: the core assessed by the game as having the strongest chance to finish in the top three in that race field.
+- **Yellow star**: the core assessed by the game as having the strongest chance to finish in the top three in that race field. Historical source data stores this visible Yellow signal in `gold_star`, so older repository material may call it Gold.
 - **Blue star**: the core assessed by the game as having the strongest chance to win the race and finish first.
 
-The Race Merge export fields are `gold_star` and `blue_star`. The application must use the same user-facing terminology: **Gold star** and **Blue star**.
+The Race Merge export fields remain `gold_star` and `blue_star`. Storage, provenance and API contracts must retain those exact source names. Current user-facing explanations should say **Yellow star (source: `gold_star`)** and **Blue star** where the distinction matters.
 
 A star is a field-relative pre-race signal. It is not a guarantee of the eventual outcome and it is not an absolute core rating.
 
@@ -150,6 +150,23 @@ Potential derived metrics include:
 
 Names and formulas must remain explainable. Avoid a single opaque score without showing the underlying evidence.
 
+### 6.3 Initial opposition-adjusted runner policy
+
+The first deterministic runner evaluator uses these transparent defaults:
+
+- opponent quality is scoped to the same mode and exact distance and must be frozen strictly before the evaluated event;
+- an opponent needs at least 10 prior exact-distance races before its performance percentile can qualify as known;
+- the strongest known opponent at or above the 75th percentile makes the field strong for positive star evidence;
+- the strongest known opponent at or above the 90th percentile makes it elite;
+- a field is weak negative context only when every opponent has qualifying pre-race evidence and the strongest is at or below the 50th percentile;
+- positive field-adjusted assignment weight is `max(0, (strongest opponent percentile - 50) / 50)`;
+- fields at or below the 50th percentile contribute zero positive weight; and
+- missing opponent quality remains unknown and cannot be treated as weak or favourable.
+
+This deliberately means that a Core can have 100% raw assignment and 100% conversion against poor fields while receiving no positive field-adjusted performance credit. Conversely, receiving a star over a runner already proven elite in that mode and distance is strong supporting evidence. Yankee Trek in established Bike marathon conditions is an owner-supplied example of the latter principle; the model must establish the opponent's pre-race percentile rather than hard-code a name bonus.
+
+Keep Yellow and Blue measures separate. Do not collapse their assignment, conversion and field-adjusted evidence into one unexplained universal score.
+
 ## 7. Discovery use
 
 Star evidence is especially useful for under-tested cores.
@@ -250,6 +267,16 @@ Post-race diagnostic measures may include:
 Gold conversion diagnostics must exclude races with three gates or fewer from any eligible-opportunity comparison.
 
 These diagnostics are useful for assessing how reliable the game’s star system is. They must not be allowed to leak the current race outcome into a pre-race feature.
+
+Raw conversion is never a strength-of-runner score. A conversion rate may describe whether the game's pre-race signal converted, but it may influence runner selection only after the star assignment itself has been adjusted for pre-race opposition quality. Even then it remains supporting evidence behind direct exact-distance time/speed and consistency.
+
+## 11.1 Downstream application contract
+
+- **Elite racers and Core profiles:** show raw counts/rates, conversion diagnostics, opposition-quality coverage, strong-field stars, elite-opponent stars, weak-field misses and named strongest-opponent examples separately.
+- **Discovery:** a strong-field or elite-opponent star can raise the priority of an under-tested exact-distance probe. Raw stars or conversion without opposition quality cannot. Repeated weak-field misses are caution only and cannot stop Discovery without weak direct/lineage evidence.
+- **Esports:** stars may break an otherwise tied intrinsic exact-format/distance comparison only through opponent-adjusted evidence. Raw star totals and raw conversion never break the tie.
+- **Elite-racer breeding qualification:** opposition-adjusted stars can strengthen the direct-racer explanation but cannot rescue materially weak time evidence.
+- **Elite-breeder research:** parent/offspring star features remain research inputs until chronological offspring holdout testing proves lift beyond time-only and lineage baselines. Stars must never be assumed inherited.
 
 ## 12. Data refresh and freshness
 

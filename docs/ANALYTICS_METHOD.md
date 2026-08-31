@@ -46,7 +46,7 @@ Race distances are measured in metres and Race Merge elapsed-time values are sec
 
 ### Confirmed meaning
 
-- Gold star is sourced from `gold_star` and means the game assessed that core as having the strongest chance to finish in the top three in the entered field.
+- Yellow star is sourced from the historical `gold_star` field and means the game assessed that core as having the strongest chance to finish in the top three in the entered field.
 - Blue star is sourced from `blue_star` and means the game assessed that core as having the strongest chance to win and finish first in the entered field.
 - Stars are assigned before the result and are relative to the particular entered field.
 
@@ -107,6 +107,10 @@ Evaluate:
 - changes in assignment and conversion over time.
 
 A missing or false star is not equivalent to an absolute poor rating. A core can miss because another entrant is stronger, because that star type was not assigned, because Gold was ineligible at the gate count, or because the hidden algorithm changed.
+
+The initial auditable opposition adjustment requires at least 10 pre-event exact-mode-distance races for an opponent quality percentile. Treat 75th percentile as strong, 90th as elite and a fully known field whose strongest opponent is at or below the 50th percentile as weak. Positive assignment weight is zero through the 50th percentile and then increases linearly to one at the 100th percentile. Missing opponent quality remains unknown.
+
+Raw star frequency and raw conversion receive no positive ranking weight. They are displayed as diagnostics. Only the opposition-adjusted assignment evidence may support an elite-racer, Discovery, esports or direct-racer breeding conclusion, and it remains behind materially different time/speed/consistency evidence.
 
 ### Predictive use and diagnostics
 

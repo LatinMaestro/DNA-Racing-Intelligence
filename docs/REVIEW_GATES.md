@@ -53,6 +53,8 @@ Before presenting an evidence family as an actionable analytical recommendation,
 - Gold top-three and Blue win conversion;
 - Gold/Blue incremental predictive lift;
 - strong-field star and weak-field eligible no-star analysis;
+- proof that raw star assignment/conversion has zero positive ranking weight when opponent quality is weak or unknown;
+- opponent-adjusted star coverage, strong/elite thresholds and strongest-opponent examples;
 - explicit proof that current-event outcomes and future races do not enter historical star field-quality features;
 - time-period or algorithm-era stability analysis;
 - evidence that no-star or Gold-ineligible data alone cannot cause a stop, poor-core or burn recommendation;

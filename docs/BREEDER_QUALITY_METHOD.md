@@ -218,6 +218,12 @@ The current explainable breeder score uses population-relative components:
 
 The score is supporting ordering evidence. `TARGET` still has explicit hard gates, so a high child count or one secondary metric cannot compensate for weak repeatable lift.
 
+## Opposition-adjusted runner stars
+
+The visible Yellow star (historical source field `gold_star`) and Blue star can strengthen a parent's direct elite-racer evidence only when the assignment occurred over independently strong pre-race opposition. Raw star rate and raw Yellow top-three/Blue win conversion receive no breeder or racer bonus.
+
+This supporting runner evidence remains separate from historical breeder quality. A star over an elite runner may make a parent more credible as an elite racer, but it does not prove that star propensity is inherited and cannot promote an `elite_breeder` status. Parent or offspring star features enter the breeder model only after chronological offspring holdout testing shows incremental lift beyond time-only, lineage and co-parent controls.
+
 ## Confidence is not breeder quality
 
 Breeder confidence depends on the amount and diversity of offspring evidence.

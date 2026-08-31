@@ -480,6 +480,9 @@ The workspace must:
   time, valid derived speed and consistency, with sample/freshness disclosed;
   raw win/Top-3 rates, stars and evidenced strong-opposition results remain
   supporting context and cannot override materially weaker intrinsic evidence;
+- ensure any positive star contribution is opposition-adjusted using only
+  pre-race same-mode/exact-distance evidence; raw star totals or conversion
+  against weak/unknown fields never improve ranking;
 - identify weak/unproven format-distance coverage, distinguish genuinely strong
   Cores from weak best-available options, and connect each gap to efficient
   Discovery, breeding or provisional replacement guidance;

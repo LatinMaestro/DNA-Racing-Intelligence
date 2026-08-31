@@ -183,7 +183,7 @@ export function CoreIntelligenceWorkspace({
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">
-                      Gold received / opportunities
+                      Yellow received / opportunities
                     </dt>
                     <dd className="mt-1 font-semibold">
                       {profile.starProfile
@@ -214,7 +214,7 @@ export function CoreIntelligenceWorkspace({
                   </p>
                   {profile.starProfile ? (
                     <p className="mt-1">
-                      Gold-eligible races{" "}
+                      Yellow-eligible races (source Gold){" "}
                       {profile.starProfile.goldEligibleRaceCount.toLocaleString(
                         "en-AU",
                       )}

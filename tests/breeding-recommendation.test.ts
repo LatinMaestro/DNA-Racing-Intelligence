@@ -10,6 +10,7 @@ import {
   type BreedingParentCandidate,
 } from "@/domain/breeding-recommendation";
 import type { ProbeMode } from "@/domain/discovery-probe-plan";
+import { evaluateRunnerStars } from "@/domain/runner-star-evaluation";
 
 function evidence(
   overrides: Partial<BreedingExactPerformanceEvidence> = {},
@@ -248,6 +249,50 @@ describe("elite breeding parent gate", () => {
     );
     expect(arena.qualityScore).toBe(vault.qualityScore);
     expect(arena.performanceScore).toBe(vault.performanceScore);
+  });
+
+  it("surfaces elite-opponent stars without treating them as inherited breeder lift", () => {
+    const runnerStars = evaluateRunnerStars([
+      {
+        eventId: "elite-field",
+        eventAt: "2026-08-29T00:00:00.000Z",
+        coreId: "100",
+        mode: "bike",
+        distanceMetres: 1_400,
+        gateCount: 6,
+        yellowStar: true,
+        blueStar: false,
+        eventYellowStarAssigned: true,
+        eventBlueStarAssigned: true,
+        starDataStatus: "complete",
+        finishPosition: 2,
+        opponents: [
+          {
+            coreId: "elite-opponent",
+            exactDistanceRaceCountBeforeEvent: 50,
+            performancePercentileBeforeEvent: 96,
+            evidenceCurrentThrough: "2026-08-20T00:00:00.000Z",
+          },
+        ],
+      },
+    ]);
+    const baseline = assessBreedingParent(parent(), {
+      mode: "bike",
+      distanceMetres: 1_400,
+    });
+    const assessed = assessBreedingParent(
+      parent({
+        starEvidenceAuthority: "authoritative",
+        runnerStarEvaluations: [runnerStars],
+      }),
+      { mode: "bike", distanceMetres: 1_400 },
+    );
+
+    expect(assessed.runnerStarSupport).toBe("strong_support");
+    expect(assessed.qualityScore).toBe(baseline.qualityScore);
+    expect(assessed.reasons.join(" ")).toContain(
+      "not treated as inherited breeder lift",
+    );
   });
 
   it("keeps exact-distance evidence primary when another distance has more races", () => {

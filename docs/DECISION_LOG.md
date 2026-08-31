@@ -868,3 +868,29 @@ After the private Pro League milestone, continue in this order:
 - This supplies provider safety and cleanup ports only. It does not execute a
   connected recovery case, call DNA Open Lab, persist owner data, open P5,
   authorise Production or change any provider.
+
+## 2026-08-31 — Runner stars require pre-race opposition adjustment
+
+- Confirm Blue as the game's highest assessed first-place chance and the visible
+  Yellow star as its highest assessed top-three chance. Preserve the historical
+  source name `gold_star` even when the UI says Yellow.
+- Keep raw assignment rate and Yellow top-three/Blue win conversion as
+  diagnostics only. They receive no positive elite-racer, esports, Discovery
+  or breeding weight when opposition quality is weak or unknown.
+- Derive opponent strength from same-mode/exact-distance evidence frozen
+  strictly before the event. The initial policy requires 10 prior races, calls
+  the 75th percentile strong and the 90th percentile elite, and calls a field
+  weak only when every opponent is known and the strongest is at or below the
+  50th percentile.
+- Weight positive assignments from zero at the 50th opponent percentile to one
+  at the 100th. Keep Yellow and Blue measures separate and expose raw counts,
+  denominators, quality coverage, strong/elite assignments and strongest named
+  opponent examples.
+- A star over an independently established elite marathon Core such as Yankee
+  Trek is strong supporting evidence; the model proves that opponent's prior
+  percentile and never hard-codes a name bonus.
+- Discovery may promote an under-tested exact-distance probe from strong-field
+  star support. Esports may use only adjusted stars after intrinsic evidence
+  ties. Breeding may show adjusted stars in the direct-racer case, but breeder
+  quality cannot inherit the signal without chronological offspring holdout
+  lift.

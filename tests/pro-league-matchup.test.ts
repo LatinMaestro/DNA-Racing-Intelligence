@@ -20,6 +20,13 @@ function evidence(
     winCount?: number;
     topThreeCount?: number;
     strongOppositionStatus?: "available" | "unavailable";
+    rawGoldStars?: number;
+    rawBlueStars?: number;
+    adjustedStarStatus?: "available" | "unavailable";
+    strongFieldYellowStars?: number;
+    strongFieldBlueStars?: number;
+    eliteOpponentYellowStars?: number;
+    eliteOpponentBlueStars?: number;
   }> = {},
 ): ProLeagueExactFormatEvidence {
   const defaults = {
@@ -73,14 +80,43 @@ function evidence(
       outcomes: { status: "available", winCount, topThreeCount },
       goldStar: {
         status: "available",
-        assignedCount: 1,
+        assignedCount: overrides.rawGoldStars ?? 1,
         eligibleRaceCount: raceCount,
       },
       blueStar: {
         status: "available",
-        assignedCount: 1,
+        assignedCount: overrides.rawBlueStars ?? 1,
         opportunityCount: raceCount,
       },
+      oppositionAdjustedStars:
+        overrides.adjustedStarStatus === "available"
+          ? {
+              status: "available",
+              qualityKnownRaceCount: 4,
+              strongFieldYellowReceivedCount:
+                overrides.strongFieldYellowStars ?? 0,
+              strongFieldBlueReceivedCount: overrides.strongFieldBlueStars ?? 0,
+              eliteOpponentYellowReceivedCount:
+                overrides.eliteOpponentYellowStars ?? 0,
+              eliteOpponentBlueReceivedCount:
+                overrides.eliteOpponentBlueStars ?? 0,
+              yellowFieldAdjustedIndex:
+                (overrides.strongFieldYellowStars ?? 0) > 0 ? 0.75 : 0,
+              blueFieldAdjustedIndex:
+                (overrides.strongFieldBlueStars ?? 0) > 0 ? 0.75 : 0,
+              rawConversionUsedForRanking: false,
+            }
+          : {
+              status: "unavailable",
+              qualityKnownRaceCount: 0,
+              strongFieldYellowReceivedCount: 0,
+              strongFieldBlueReceivedCount: 0,
+              eliteOpponentYellowReceivedCount: 0,
+              eliteOpponentBlueReceivedCount: 0,
+              yellowFieldAdjustedIndex: null,
+              blueFieldAdjustedIndex: null,
+              rawConversionUsedForRanking: false,
+            },
       strongOpposition:
         overrides.strongOppositionStatus === "available"
           ? {
@@ -147,6 +183,8 @@ describe("Pro League matchup analysis", () => {
         primaryEvidence: "exact_format_distance_time_speed_consistency",
         resultEvidenceRole: "supporting_only",
         supportingTieBreak: "strong_opposition_and_stars_only",
+        starTieBreak: "opposition_adjusted_only",
+        rawStarConversion: "diagnostic_only",
         missingOppositionQuality: "unknown_never_favourable",
       },
       substitutionStrategy: {
@@ -246,6 +284,59 @@ describe("Pro League matchup analysis", () => {
       result.maps[0]!.lines[0]!.ourEvidence?.supportingEvidence
         .strongOpposition,
     ).toMatchObject({ status: "available", winCount: 1, topThreeCount: 2 });
+  });
+
+  it("ignores perfect raw stars from weak or unknown fields and uses adjusted stars only", () => {
+    const result = buildProLeagueMatchupAnalysis({
+      ourVault: vault("ours", [
+        core("raw-only", [
+          evidence("1v1", 1_000, "winning_range", 12, {
+            rawGoldStars: 12,
+            rawBlueStars: 12,
+          }),
+        ]),
+        core("elite-field-star", [
+          evidence("1v1", 1_000, "winning_range", 12, {
+            rawGoldStars: 1,
+            rawBlueStars: 1,
+            adjustedStarStatus: "available",
+            strongFieldYellowStars: 1,
+            eliteOpponentYellowStars: 1,
+          }),
+        ]),
+      ]),
+      oppositionVault: vault("theirs", []),
+      homeVaultId: "ours",
+    });
+
+    expect(result.maps[0]!.lines[0]!.ourRecommendedCoreId).toBe(
+      "elite-field-star",
+    );
+  });
+
+  it("does not use raw star totals as an esports tie-break", () => {
+    const result = buildProLeagueMatchupAnalysis({
+      ourVault: vault("ours", [
+        core("z-perfect-raw", [
+          evidence("1v1", 1_000, "winning_range", 12, {
+            rawGoldStars: 12,
+            rawBlueStars: 12,
+          }),
+        ]),
+        core("a-no-raw-stars", [
+          evidence("1v1", 1_000, "winning_range", 12, {
+            rawGoldStars: 0,
+            rawBlueStars: 0,
+          }),
+        ]),
+      ]),
+      oppositionVault: vault("theirs", []),
+      homeVaultId: "ours",
+    });
+
+    expect(result.maps[0]!.lines[0]!.ourRecommendedCoreId).toBe(
+      "a-no-raw-stars",
+    );
   });
 
   it("does not score incomplete opposition evidence as an advantage", () => {

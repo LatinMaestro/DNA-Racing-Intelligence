@@ -38,6 +38,17 @@ export type ProLeagueExactFormatSupportingEvidence = Readonly<{
     assignedCount: number;
     opportunityCount: number;
   }>;
+  oppositionAdjustedStars: Readonly<{
+    status: "available" | "unavailable";
+    qualityKnownRaceCount: number;
+    strongFieldYellowReceivedCount: number;
+    strongFieldBlueReceivedCount: number;
+    eliteOpponentYellowReceivedCount: number;
+    eliteOpponentBlueReceivedCount: number;
+    yellowFieldAdjustedIndex: number | null;
+    blueFieldAdjustedIndex: number | null;
+    rawConversionUsedForRanking: false;
+  }>;
   strongOpposition: Readonly<{
     status: "available" | "unavailable";
     raceCount: number;
@@ -149,6 +160,8 @@ export type ProLeagueMatchupAnalysis = Readonly<{
     populationComparison: "same_bike_race_type_and_exact_distance";
     resultEvidenceRole: "supporting_only";
     supportingTieBreak: "strong_opposition_and_stars_only";
+    starTieBreak: "opposition_adjusted_only";
+    rawStarConversion: "diagnostic_only";
     missingOppositionQuality: "unknown_never_favourable";
   }>;
   maps: readonly ProLeagueMatchupMapAnalysis[];
@@ -195,6 +208,10 @@ function nonNegativeFinite(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
 }
 
+function nullableRate(value: number | null): boolean {
+  return value === null || (Number.isFinite(value) && value >= 0 && value <= 1);
+}
+
 function derivedSpeed(distanceMetres: number, elapsedMilliseconds: number) {
   return (
     Math.round((distanceMetres / (elapsedMilliseconds / 1_000)) * 1_000) / 1_000
@@ -228,7 +245,13 @@ function validSupportingEvidence(
   evidence: ProLeagueExactFormatSupportingEvidence,
   raceCount: number,
 ): boolean {
-  const { outcomes, goldStar, blueStar, strongOpposition } = evidence;
+  const {
+    outcomes,
+    goldStar,
+    blueStar,
+    oppositionAdjustedStars,
+    strongOpposition,
+  } = evidence;
   return (
     ["available", "unavailable"].includes(outcomes.status) &&
     nonNegativeInteger(outcomes.winCount) &&
@@ -251,6 +274,38 @@ function validSupportingEvidence(
     blueStar.opportunityCount <= raceCount &&
     (blueStar.status === "available" ||
       (blueStar.assignedCount === 0 && blueStar.opportunityCount === 0)) &&
+    ["available", "unavailable"].includes(oppositionAdjustedStars.status) &&
+    nonNegativeInteger(oppositionAdjustedStars.qualityKnownRaceCount) &&
+    oppositionAdjustedStars.qualityKnownRaceCount <= raceCount &&
+    nonNegativeInteger(
+      oppositionAdjustedStars.strongFieldYellowReceivedCount,
+    ) &&
+    nonNegativeInteger(oppositionAdjustedStars.strongFieldBlueReceivedCount) &&
+    nonNegativeInteger(
+      oppositionAdjustedStars.eliteOpponentYellowReceivedCount,
+    ) &&
+    nonNegativeInteger(
+      oppositionAdjustedStars.eliteOpponentBlueReceivedCount,
+    ) &&
+    oppositionAdjustedStars.eliteOpponentYellowReceivedCount <=
+      oppositionAdjustedStars.strongFieldYellowReceivedCount &&
+    oppositionAdjustedStars.eliteOpponentBlueReceivedCount <=
+      oppositionAdjustedStars.strongFieldBlueReceivedCount &&
+    oppositionAdjustedStars.strongFieldYellowReceivedCount <=
+      oppositionAdjustedStars.qualityKnownRaceCount &&
+    oppositionAdjustedStars.strongFieldBlueReceivedCount <=
+      oppositionAdjustedStars.qualityKnownRaceCount &&
+    nullableRate(oppositionAdjustedStars.yellowFieldAdjustedIndex) &&
+    nullableRate(oppositionAdjustedStars.blueFieldAdjustedIndex) &&
+    oppositionAdjustedStars.rawConversionUsedForRanking === false &&
+    (oppositionAdjustedStars.status === "available" ||
+      (oppositionAdjustedStars.qualityKnownRaceCount === 0 &&
+        oppositionAdjustedStars.strongFieldYellowReceivedCount === 0 &&
+        oppositionAdjustedStars.strongFieldBlueReceivedCount === 0 &&
+        oppositionAdjustedStars.eliteOpponentYellowReceivedCount === 0 &&
+        oppositionAdjustedStars.eliteOpponentBlueReceivedCount === 0 &&
+        oppositionAdjustedStars.yellowFieldAdjustedIndex === null &&
+        oppositionAdjustedStars.blueFieldAdjustedIndex === null)) &&
     ["available", "unavailable"].includes(strongOpposition.status) &&
     nonNegativeInteger(strongOpposition.raceCount) &&
     nonNegativeInteger(strongOpposition.winCount) &&
@@ -367,6 +422,8 @@ type RankedCore = Readonly<{
 function compareRanked(left: RankedCore, right: RankedCore): number {
   const leftSupporting = left.profile.supportingEvidence;
   const rightSupporting = right.profile.supportingEvidence;
+  const leftStars = leftSupporting.oppositionAdjustedStars;
+  const rightStars = rightSupporting.oppositionAdjustedStars;
   return (
     assessmentPower[right.profile.benchmarkAssessment] -
       assessmentPower[left.profile.benchmarkAssessment] ||
@@ -388,10 +445,18 @@ function compareRanked(left: RankedCore, right: RankedCore): number {
       leftSupporting.strongOpposition.topThreeCount ||
     rightSupporting.strongOpposition.winCount -
       leftSupporting.strongOpposition.winCount ||
-    rightSupporting.blueStar.assignedCount -
-      leftSupporting.blueStar.assignedCount ||
-    rightSupporting.goldStar.assignedCount -
-      leftSupporting.goldStar.assignedCount ||
+    rightStars.eliteOpponentBlueReceivedCount -
+      leftStars.eliteOpponentBlueReceivedCount ||
+    rightStars.eliteOpponentYellowReceivedCount -
+      leftStars.eliteOpponentYellowReceivedCount ||
+    rightStars.strongFieldBlueReceivedCount -
+      leftStars.strongFieldBlueReceivedCount ||
+    rightStars.strongFieldYellowReceivedCount -
+      leftStars.strongFieldYellowReceivedCount ||
+    (rightStars.blueFieldAdjustedIndex ?? -1) -
+      (leftStars.blueFieldAdjustedIndex ?? -1) ||
+    (rightStars.yellowFieldAdjustedIndex ?? -1) -
+      (leftStars.yellowFieldAdjustedIndex ?? -1) ||
     left.core.coreId.localeCompare(right.core.coreId)
   );
 }
@@ -652,6 +717,8 @@ export function buildProLeagueMatchupAnalysis(
       populationComparison: "same_bike_race_type_and_exact_distance",
       resultEvidenceRole: "supporting_only",
       supportingTieBreak: "strong_opposition_and_stars_only",
+      starTieBreak: "opposition_adjusted_only",
+      rawStarConversion: "diagnostic_only",
       missingOppositionQuality: "unknown_never_favourable",
     },
     maps: analysed.map((map) => ({

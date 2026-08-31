@@ -28,6 +28,7 @@ function racerAssessment(
     confidence: "high",
     performanceScore: score,
     supportingStrengthScore: score,
+    runnerStarSupport: null,
     qualityScore: score,
     exactEvidence: null,
     targetDistanceRaceCount: 20,
