@@ -22,6 +22,7 @@ export type DnaOpenLabTelemetryClient = Readonly<{
   ) => Promise<DnaOpenLabResponse<DnaTelemetryPayload>>;
   coreTelemetryBenchmark: (
     hid: number,
+    cb: number,
   ) => Promise<DnaOpenLabResponse<DnaTelemetryPayload>>;
 }>;
 
@@ -161,9 +162,9 @@ export function createDnaOpenLabV1TelemetryClient(input: {
         method: "POST",
         body: { hids: coreIds(hids) },
       }),
-    coreTelemetryBenchmark: (hid) =>
+    coreTelemetryBenchmark: (hid, cb) =>
       request({
-        path: `/cores/${positiveInteger(hid, "hid")}/telemetry_benchmark`,
+        path: `/cores/${positiveInteger(hid, "hid")}/telemetry_benchmark?cb=${positiveInteger(cb, "cb")}`,
         method: "GET",
       }),
   });

@@ -132,7 +132,7 @@ The same strict separation used for racer performance applies to breeder evidenc
 
 ## Exact-distance versus mode-wide breeder evidence
 
-The breeder model supports two scopes:
+The breeder model supports two primary scopes:
 
 - **exact-distance breeder quality** — offspring outcomes evaluated at a specific mode + distance; and
 - **mode-wide breeder quality** — offspring outcomes evaluated using a whole-mode offspring quality summary.
@@ -144,6 +144,22 @@ For a requested exact-distance breeding objective:
 3. never let mode-wide positive evidence override materially negative exact-distance offspring evidence once adequate exact-distance evidence exists.
 
 This prevents a generally good breeder from being automatically labelled a specialist breeder at every distance.
+
+## Specialist race-family / gate breeder evidence
+
+The historical backfill also retains race format, gate, race name, position, star observation and the raw historical row. Once the baseline mode/distance breeder model is validated, these fields may support a **secondary specialist-breeder layer** such as mode + distance + authoritative race family/format and, where justified, gate-specific offspring lift.
+
+Rules for this layer:
+
+- specialist evidence does **not** replace the primary mode/distance breeder-quality gate;
+- a parent must not become an elite-breeder TARGET merely because of a tiny favourable format/gate slice;
+- exact race-family semantics must be authoritative before labels such as WTA, Madness or 1v1 are used analytically;
+- format/gate sample size and co-parent diversity must be disclosed separately;
+- the co-parent and pre-creation expected-mating baseline remain mandatory;
+- specialist positive lift is used to explain _what type of elite offspring a breeder tends to produce_ and to improve race-mapping/pair selection; and
+- negative specialist evidence may warn against a particular breeding objective even when mode-wide breeder quality is strong.
+
+This preserves the user's performance-first standard while allowing the system to discover breeders that disproportionately create elite specialists rather than broad all-format performers.
 
 ## Repeatability and co-parent diversity
 
@@ -345,6 +361,7 @@ Later P9/F3 work should test:
 - father versus mother breeder effects;
 - breeder-by-co-parent interaction effects;
 - breeder-by-mode and breeder-by-distance effects;
+- breeder-by-authoritative-format/gate specialist effects;
 - whether breeder quality persists across breed cycles;
 - whether prior offspring class/element/F-number affects expected outcomes;
 - lineage-level breeder propensity;

@@ -594,6 +594,7 @@ describeConnected("hosted DNA Open Lab connected discovery", () => {
           request: () =>
             telemetryClients[laneIndex]!.coreTelemetryBenchmark(
               candidateCoreId,
+              10,
             ),
         });
         const observation = evidence[evidence.length - 1];
