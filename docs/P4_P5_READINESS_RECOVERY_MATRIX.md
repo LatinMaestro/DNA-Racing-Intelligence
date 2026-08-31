@@ -110,6 +110,14 @@ verified temporary immutable R2 receipt and reaches complete acquisition
 without publishing a partial candidate. Cleanup must restore zero residue and
 every protected provider fingerprint.
 
+The missing/conflicting-evidence scenario first writes and revalidates one
+temporary immutable R2 control receipt. It then drives a conflicting receipt
+checksum and, after removing the control object, a missing receipt through the
+production evidence reader and full publication runner. Both attempts must
+fail before the Neon publication repository can stage a candidate. Mandatory
+cleanup restores zero residue while owner rows, checkpoints, retained evidence
+and last-good serving fingerprints remain unchanged.
+
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
@@ -172,3 +180,8 @@ every protected provider fingerprint.
   the atomic publication boundary exactly once; only then does sync return to
   `current`. Cleanup restores zero residue and unchanged provider fingerprints,
   with no real API call, Neon write or persistent owner-data mutation.
+- The eighth connected case revalidates a temporary immutable R2 control
+  receipt, rejects both conflicting checksum authority and missing evidence
+  through the production full-publication path, and proves that the Neon
+  staging boundary is never called. Cleanup restores zero residue and unchanged
+  provider fingerprints without an API call or persistent owner-data write.
