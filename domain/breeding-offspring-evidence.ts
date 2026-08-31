@@ -120,14 +120,23 @@ export function assessBreedingOffspringEvidence(
     }
     usableForEliteBreederTarget = true;
   } else if (evidence.creationAuthority === "first_race_proxy") {
-    warnings.push("FIRST_RACE_IS_NOT_AUTHORITATIVE_CREATION_TIME");
-    warnings.push("PROXY_EVIDENCE_CANNOT_PROMOTE_ELITE_BREEDER_TARGET");
     if (evidence.offspringCreatedAt === null) {
       throw new Error(
         "First-race proxy evidence requires the proxy timestamp.",
       );
     }
-    canonicalTimestamp(evidence.offspringCreatedAt, "First-race proxy time");
+    const firstRaceAt = canonicalTimestamp(
+      evidence.offspringCreatedAt,
+      "First-race proxy time",
+    );
+    if (Date.parse(expectedModelCutoff) > Date.parse(firstRaceAt)) {
+      throw new Error(
+        "Expected mating baseline must be frozen no later than the first-race chronology proxy.",
+      );
+    }
+    warnings.push("FIRST_RACE_USED_AS_APPROXIMATE_CREATION_TIME");
+    warnings.push("FIRST_RACE_PROXY_MAY_LAG_ACTUAL_BREED_TIME");
+    usableForEliteBreederTarget = true;
   } else {
     warnings.push("OFFSPRING_CREATION_TIME_UNKNOWN");
     warnings.push("EVIDENCE_CANNOT_PROMOTE_ELITE_BREEDER_TARGET");
@@ -140,7 +149,7 @@ export function assessBreedingOffspringEvidence(
   });
 }
 
-export function toAuthoritativeBreederOutcome(
+export function toQualifiedBreederOutcome(
   evidence: BreedingOffspringEvidence,
 ): BreederOffspringOutcome | null {
   const assessment = assessBreedingOffspringEvidence(evidence);
@@ -168,4 +177,14 @@ export function toAuthoritativeBreederOutcome(
     expectedModelCutoff: evidence.expectedModelCutoff,
     evaluationCutoff: evidence.evaluationCutoff,
   });
+}
+
+/**
+ * Backwards-compatible alias retained for callers created before the owner
+ * approved first-race chronology as sufficient for breeder modelling.
+ */
+export function toAuthoritativeBreederOutcome(
+  evidence: BreedingOffspringEvidence,
+): BreederOffspringOutcome | null {
+  return toQualifiedBreederOutcome(evidence);
 }
