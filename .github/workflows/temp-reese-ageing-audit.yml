@@ -1,0 +1,94 @@
+name: Temporary Reese Dylan ageing audit
+
+on:
+  push:
+    branches:
+      - temp/reese-ageing-audit-2026-09-01
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Inspect API ageing authority and Reese Dylan history
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://api.dnaracing.run';
+          const hid=11848;
+          const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+          let requests=0;
+          async function raw(url, opts={}) {
+            const r=await fetch(url, opts); requests++;
+            const text=await r.text();
+            let json=null; try{json=JSON.parse(text)}catch{}
+            return {http:r.status, ok:r.ok, text, json};
+          }
+          async function post(path, body){
+            const r=await raw(base+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            await sleep(450);
+            return r;
+          }
+          function unwrap(v){return v&&typeof v==='object'&&!Array.isArray(v)&&'result' in v?v.result:v;}
+          function arr(v){v=unwrap(v);if(Array.isArray(v))return v;if(v&&typeof v==='object'){for(const k of ['data','items','races'])if(Array.isArray(v[k]))return v[k];}return [];}
+          function when(row){for(const k of ['start_time','startTime','date','created_at','createdAt']){const v=row?.[k];if(typeof v==='string'){const t=Date.parse(v);if(Number.isFinite(t))return t;}if(typeof v==='number')return v>1e12?v:v*1000;}return null;}
+          function pickAgeFields(obj){
+            const out={};
+            function walk(v,p='',depth=0){if(depth>4||v==null)return;if(Array.isArray(v)){return;}if(typeof v==='object'){for(const [k,x] of Object.entries(v)){const path=p?`${p}.${k}`:k;if(/age|aging|ageing|race.*left|left.*race/i.test(k))out[path]=x;if(typeof x==='object'&&x!==null)walk(x,path,depth+1);}}}
+            walk(obj);return out;
+          }
+
+          const manual=await raw(base+'/fbike/pub/v1/llm.txt');
+          console.log('MANUAL_HTTP',manual.http,'SIZE',manual.text.length);
+          const lines=manual.text.split(/\r?\n/);
+          const hits=[];
+          for(let i=0;i<lines.length;i++) if(/age|aging|ageing|snapshot|histor/i.test(lines[i])) hits.push({line:i+1,text:lines[i]});
+          console.log('MANUAL_RELEVANT',JSON.stringify(hits.slice(0,120)));
+
+          const endpoints={};
+          for(const [name,path,body] of [
+            ['mini','/fbike/cores/mini_bulk',{hids:[hid]}],
+            ['power','/fbike/cores/power_bulk',{hids:[hid]}],
+            ['stats','/fbike/cores/racing_stats_bulk',{hids:[hid]}],
+            ['splice','/fbike/cores/splicing_info_bulk',{hids:[hid]}],
+            ['info','/fbike/cores/info_bulk',{hids:[hid]}],
+          ]){
+            const r=await post(path,body); endpoints[name]={http:r.http,json:r.json};
+            console.log('ENDPOINT',name,'HTTP',r.http,'AGE_FIELDS',JSON.stringify(pickAgeFields(r.json)));
+          }
+
+          const all=[];
+          for(let page=1;page<=30;page++){
+            const r=await post('/fbike/i/hraces',{hid,page});
+            if(!r.ok){console.log('HRACES_HTTP',page,r.http);break;}
+            const rows=arr(r.json); if(!rows.length)break;
+            all.push(...rows);
+            const times=rows.map(when).filter(x=>x!==null);
+            if(rows.length<50)break;
+            if(times.length&&Math.min(...times)<Date.parse('2026-02-01T00:00:00Z'))break;
+          }
+          const ded=new Map();
+          for(const row of all){const key=String(row?.rhid??row?.rid??row?.race_id??`${when(row)}:${row?.rvmode}:${row?.cb}:${row?.pos}`);if(!ded.has(key))ded.set(key,row);}
+          const rows=[...ded.values()].sort((a,b)=>(when(a)||0)-(when(b)||0));
+          const bike=rows.filter(r=>String(r?.rvmode??'').toLowerCase()==='bike');
+          const marMay=bike.filter(r=>{const t=when(r);return t>=Date.parse('2026-03-01T00:00:00Z')&&t<Date.parse('2026-06-01T00:00:00Z');});
+          console.log('HISTORY_SUMMARY',JSON.stringify({allRows:rows.length,bikeRows:bike.length,marMayBikeRows:marMay.length,firstBike:bike.length?new Date(when(bike[0])).toISOString():null,lastBike:bike.length?new Date(when(bike[bike.length-1])).toISOString():null,requests}));
+          console.log('RACE_RECORD_KEYS',JSON.stringify([...new Set(bike.flatMap(r=>Object.keys(r)))].sort()));
+          const raceAgeRows=marMay.map(r=>({date:when(r)?new Date(when(r)).toISOString():null,rhid:r.rhid??r.rid??r.race_id??null,name:r.race_name??null,distance:r.cb??null,pos:r.pos??null,gate:r.rgate??null,ageFields:pickAgeFields(r)}));
+          console.log('MAR_MAY_BIKE_RACES',JSON.stringify(raceAgeRows));
+
+          const monthCounts={};
+          for(const r of bike){const t=when(r);if(!t)continue;const m=new Date(t).toISOString().slice(0,7);monthCounts[m]=(monthCounts[m]??0)+1;}
+          console.log('BIKE_MONTH_COUNTS',JSON.stringify(monthCounts));
+
+          // Probe only documented-looking snapshot/history paths if the manual mentions them.
+          const pathCandidates=[];
+          for(const line of hits){for(const m of line.text.matchAll(/\/fbike\/[A-Za-z0-9_?&=\/%.,:+{}-]+/g))pathCandidates.push(m[0]);}
+          console.log('MANUAL_PATH_CANDIDATES',JSON.stringify([...new Set(pathCandidates)]));
+          NODE
