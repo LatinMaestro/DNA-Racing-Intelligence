@@ -129,6 +129,7 @@ generation. Raw owner payloads and API keys must not enter the report.
   rollback, R2 marker verification, footprint collection, cleanup, report build
   and post-run provider safety. Persistent Preview sync and Production remained
   disallowed.
-- The next safe work is the guarded exact-head workflow binding for the first
-  crash-after-R2-write/restart-replay scenario, followed by its private Preview
-  execution and the remaining ordered connected acceptance cases.
+- The guarded exact-head workflow binding for the first
+  crash-after-R2-write/restart-replay scenario is implemented. Its private
+  Preview execution is the next acceptance step, followed by the remaining
+  ordered connected cases.
