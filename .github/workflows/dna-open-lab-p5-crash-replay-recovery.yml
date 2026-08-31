@@ -1,4 +1,4 @@
-name: DNA Open Lab P5 crash replay recovery
+name: DNA Open Lab P5 ordered recovery suite
 
 on:
   workflow_dispatch: {}
@@ -7,12 +7,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: dna-open-lab-p5-crash-replay-recovery
+  group: dna-open-lab-p5-ordered-recovery-suite
   cancel-in-progress: false
 
 jobs:
-  guarded-private-preview-crash-replay:
-    name: Guarded private Preview crash replay
+  guarded-private-preview-ordered-suite:
+    name: Guarded private Preview ordered suite
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -21,7 +21,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
-      DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_CRASH_REPLAY: "1"
+      DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "1"
       DNA_OPEN_LAB_P5_PROVIDER_PREFLIGHT: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
@@ -77,7 +77,7 @@ jobs:
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-p5-provider-prerequisites.test.ts
-      - name: Execute guarded crash/replay recovery
+      - name: Execute guarded ordered recovery suite
         id: recovery
         run: >-
           npx vitest run --no-file-parallelism
@@ -86,7 +86,7 @@ jobs:
         id: cleanup
         if: always()
         env:
-          DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_CRASH_REPLAY: "0"
+          DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "0"
           DNA_OPEN_LAB_P5_RECOVERY_CLEANUP_ONLY: "1"
         run: >-
           npx vitest run --no-file-parallelism
@@ -108,7 +108,7 @@ jobs:
           steps.exact_main.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: dna-open-lab-p5-crash-replay-evidence-${{ github.run_id }}
-          path: ${{ runner.temp }}/dna-open-lab-p5-recovery-crash-replay-evidence.json
+          name: dna-open-lab-p5-ordered-recovery-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/dna-open-lab-p5-recovery-ordered-suite.jsonl
           if-no-files-found: error
           retention-days: 7
