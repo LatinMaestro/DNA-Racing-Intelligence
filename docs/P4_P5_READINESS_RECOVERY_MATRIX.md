@@ -101,6 +101,15 @@ generation. Raw owner payloads and API keys must not enter the report.
 | Neon atomic publication failure             | No serving pointer or receipt-index split; retry is idempotent                              |
 | Dynamic ownership/race/Arena plan drift     | Cached receipts are not reused across the changed plan; a full cycle is required            |
 
+The provider-backed outage/invalid-body scenario drives both an HTTP 503
+`status: error` envelope and an HTTP 200 malformed success envelope through the
+production client parser, conservative pool and bounded acquisition runner.
+Neither failure can create an evidence receipt or alter last-good serving. A
+later valid response resumes the exact paused checkpoint, produces one
+verified temporary immutable R2 receipt and reaches complete acquisition
+without publishing a partial candidate. Cleanup must restore zero residue and
+every protected provider fingerprint.
+
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
