@@ -77,6 +77,24 @@ boundary. It does not itself define endpoint pagination, history cutoffs or
 storage multipliers; the protected connected adapter must supply and test those
 family-specific authorities before the measurement can run.
 
+The endpoint-specific read-only adapter is
+`lib/dna-open-lab-p5-first-backfill-family-adapter.ts`. It now supplies the
+terminal acquisition side of that contract: adaptive `races.finished` windows
+through the exact authority cutoff, active-race fills in documented batches,
+the token snapshot, all four Vault identity/recent endpoints, all eight owned-
+Core bulk endpoints in batches of 20, and every Bike/Car/Horse Arena page until
+the API reports `has_more: false`. It rejects family-order drift, duplicate
+authorities, malformed identities, response-page drift, changing Arena page
+limits and endpoint-capacity breaches. The adapter records only aggregate
+request, byte and record observations plus a SHA-256 aggregate evidence
+reference.
+
+Storage and Neon projection remains a separate required reviewed policy input.
+The endpoint adapter deliberately cannot invent R2 envelope overhead, operation
+counts or compact-Neon row/index multipliers. Until that exact policy is wired
+and the protected same-head measurement completes, the packet remains blocked
+and no persistent owner-data write is permitted.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:
