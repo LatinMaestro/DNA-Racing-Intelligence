@@ -9,6 +9,11 @@ import { createDnaOpenLabP5AtomicPublicationFailureScenario } from "@/lib/dna-op
 import type { DnaOpenLabP5ComponentRecoveryScenarios } from "@/lib/dna-open-lab-p5-component-recovery-executor";
 import { createDnaOpenLabP5ConcurrentCheckpointScenario } from "@/lib/dna-open-lab-p5-concurrent-checkpoint-scenario";
 import {
+  connectedRecoveryFailure,
+  createDnaOpenLabP5ConnectedRecoveryDiagnostic,
+  type DnaOpenLabP5ConnectedRecoveryFailurePhase,
+} from "@/lib/dna-open-lab-p5-connected-recovery-diagnostic";
+import {
   createDnaOpenLabP5CrashAfterEvidenceWriteScenario,
   type DnaOpenLabP5CrashReplayScenarioConfiguration,
 } from "@/lib/dna-open-lab-p5-crash-replay-scenario";
@@ -222,11 +227,14 @@ function scenarios(input: {
 
 describeConnected("hosted Preview P5 ordered recovery suite", () => {
   it("runs all ten cases and restores the private provider boundary", async () => {
+    let completedCaseCount = 0;
+    let phase: DnaOpenLabP5ConnectedRecoveryFailurePhase = "configuration";
     try {
       const configuration = providerConfiguration();
       const codeHeadSha = requiredEnvironment("GITHUB_SHA").toLowerCase();
       const runnerTemp = requiredEnvironment("RUNNER_TEMP");
       const startedAt = new Date().toISOString();
+      phase = "provider_ports";
       const safety = recoverySafety(configuration);
       const storage = createCloudflareR2DatasetEvidencePort({
         accountId: configuration.accountId,
@@ -235,6 +243,7 @@ describeConnected("hosted Preview P5 ordered recovery suite", () => {
         secretAccessKey: configuration.secretAccessKey,
       });
       const evidence: string[] = [];
+      phase = "ordered_case";
       const result = await runGuardedDnaOpenLabP5PrivatePreviewRecoverySuite({
         authority: DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_RECOVERY_SUITE_AUTHORITY,
         expectedCodeHeadSha: codeHeadSha,
@@ -252,15 +261,18 @@ describeConnected("hosted Preview P5 ordered recovery suite", () => {
         cleanupSyntheticCase: safety.cleanupSyntheticCase,
         emitEvidence: async (canonicalJson) => {
           evidence.push(canonicalJson);
+          completedCaseCount = evidence.length;
           console.log(canonicalJson);
         },
       });
 
+      phase = "artifact_write";
       await writeFile(
         join(runnerTemp, "dna-open-lab-p5-recovery-ordered-suite.jsonl"),
         `${evidence.join("\n")}\n`,
         { encoding: "utf8", flag: "wx" },
       );
+      phase = "result_assertion";
       expect(evidence).toHaveLength(10);
       expect(result.checkpoint.results).toHaveLength(10);
       expect(result.final.evidence).toMatchObject({
@@ -273,12 +285,16 @@ describeConnected("hosted Preview P5 ordered recovery suite", () => {
         firstPersistentPrivatePreviewSyncAllowed: false,
         productionChangesAllowed: false,
       });
+      phase = "final_provider_safety";
       await expect(safety.inspectProviderSafety()).resolves.toMatchObject({
         syntheticResidueObjectCount: 0,
       });
     } catch {
-      throw new Error(
-        "DNA Open Lab P5 connected ordered recovery suite failed",
+      throw connectedRecoveryFailure(
+        createDnaOpenLabP5ConnectedRecoveryDiagnostic({
+          phase,
+          completedCaseCount,
+        }),
       );
     }
   }, 300_000);
@@ -293,7 +309,12 @@ describeCleanup("hosted Preview P5 ordered recovery cleanup", () => {
         syntheticResidueObjectCount: 0,
       });
     } catch {
-      throw new Error("DNA Open Lab P5 ordered recovery cleanup failed");
+      throw connectedRecoveryFailure(
+        createDnaOpenLabP5ConnectedRecoveryDiagnostic({
+          phase: "cleanup",
+          completedCaseCount: 0,
+        }),
+      );
     }
   }, 60_000);
 });

@@ -976,3 +976,15 @@ After the private Pro League milestone, continue in this order:
   disclose missing time, result, opposition or history-depth fields.
 - Do not bypass P5: this decision adds the analytical contract and private UI
   lane but does not authorize the first persistent real API backfill.
+
+## 2026-09-01 — Connected recovery failures expose only allowlisted locations
+
+- Run `33462097918` passed exact-main and provider prerequisites but failed the
+  ordered recovery and mandatory cleanup steps without exposing a useful
+  failure location.
+- Report only a fixed phase, completed-case count and next canonical case in
+  connected failure logs. Never accept or emit provider errors, identities,
+  object keys, URLs, payloads or configuration in this diagnostic boundary.
+- Keep every recovery, cleanup, exact-main and zero-residue requirement
+  fail-closed. Better diagnostics do not convert a failed run into evidence and
+  do not authorize real-data persistence, Production or game actions.
