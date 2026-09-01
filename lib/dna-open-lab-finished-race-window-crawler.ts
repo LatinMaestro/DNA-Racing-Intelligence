@@ -2,6 +2,7 @@ import type { DnaRaceDocument } from "./dna-open-lab-v1-client";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 
 export const DNA_FINISHED_RACE_WINDOW_LIMIT = 200 as const;
+export const DNA_FINISHED_RACE_MAXIMUM_FETCH_ERROR_SPLITS = 64 as const;
 
 export type DnaFinishedRaceWindow = Readonly<{
   startTime: string;
@@ -29,6 +30,7 @@ export class DnaFinishedRaceWindowCrawlerError extends Error {
     | "invalid_record"
     | "source_limit_breach"
     | "unprovable_saturation"
+    | "unprovable_fetch_failure"
     | "conflicting_duplicate";
 
   constructor(input: {
@@ -122,6 +124,7 @@ export async function crawlDnaFinishedRaceWindows(input: {
   fetchWindow: DnaFinishedRaceWindowFetch;
   minimumWindowMilliseconds?: number;
   invalidRecordHandling?: DnaFinishedRaceInvalidRecordHandling;
+  splitOnFetchError?: (error: unknown) => boolean;
 }): Promise<DnaFinishedRaceWindowCrawlerResult> {
   const root = normalizeWindow({
     startTime: input.startTime,
@@ -148,6 +151,7 @@ export async function crawlDnaFinishedRaceWindows(input: {
   >();
   let requestCount = 0;
   let splitCount = 0;
+  let fetchErrorSplitCount = 0;
   let unresolvedIdentityObservationUpperBound = 0;
   const invalidRecordHandling = input.invalidRecordHandling ?? "reject";
   if (
@@ -166,8 +170,51 @@ export async function crawlDnaFinishedRaceWindows(input: {
       endTime: iso(current.endMilliseconds),
       limit: DNA_FINISHED_RACE_WINDOW_LIMIT,
     });
-    const races = await input.fetchWindow(requestWindow);
-    requestCount += 1;
+    let races: readonly DnaRaceDocument[];
+    try {
+      races = await input.fetchWindow(requestWindow);
+      requestCount += 1;
+    } catch (error) {
+      requestCount += 1;
+      if (input.splitOnFetchError?.(error) !== true) throw error;
+      const width = current.endMilliseconds - current.startMilliseconds;
+      if (
+        width <= minimumWindowMilliseconds ||
+        fetchErrorSplitCount >= DNA_FINISHED_RACE_MAXIMUM_FETCH_ERROR_SPLITS
+      ) {
+        crawlerError(
+          "unprovable_fetch_failure",
+          "DNA finished-race window remains unreadable at the bounded subdivision limit",
+        );
+      }
+      const midpoint =
+        current.startMilliseconds +
+        Math.floor((current.endMilliseconds - current.startMilliseconds) / 2);
+      if (
+        midpoint <= current.startMilliseconds ||
+        midpoint >= current.endMilliseconds
+      ) {
+        crawlerError(
+          "unprovable_fetch_failure",
+          "DNA finished-race window cannot be subdivided further safely",
+        );
+      }
+      fetchErrorSplitCount += 1;
+      splitCount += 1;
+      pending.unshift(
+        Object.freeze({
+          startMilliseconds: midpoint,
+          endMilliseconds: current.endMilliseconds,
+        }),
+      );
+      pending.unshift(
+        Object.freeze({
+          startMilliseconds: current.startMilliseconds,
+          endMilliseconds: midpoint,
+        }),
+      );
+      continue;
+    }
 
     if (races.length > DNA_FINISHED_RACE_WINDOW_LIMIT) {
       crawlerError(

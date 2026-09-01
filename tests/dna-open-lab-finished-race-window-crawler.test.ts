@@ -99,6 +99,73 @@ describe("DNA Open Lab finished-race window crawler", () => {
     expect(result.races).toHaveLength(4);
   });
 
+  it("subdivides a recoverably unreadable window without omitting its surrounding races", async () => {
+    const rootStart = "2026-08-01T00:00:00.000Z";
+    const midpoint = "2026-08-01T00:00:05.000Z";
+    const rootEnd = "2026-08-01T00:00:10.000Z";
+    const recoverable = new Error("private malformed envelope");
+    const fetchWindow = vi.fn(async (window) => {
+      if (window.startTime === rootStart && window.endTime === rootEnd) {
+        throw recoverable;
+      }
+      if (window.endTime === midpoint) return [race(1), race(2)];
+      return [race(2), race(3)];
+    }) as DnaFinishedRaceWindowFetch;
+
+    const result = await crawlDnaFinishedRaceWindows({
+      startTime: rootStart,
+      endTime: rootEnd,
+      fetchWindow,
+      splitOnFetchError: (error) => error === recoverable,
+    });
+
+    expect(fetchWindow).toHaveBeenCalledTimes(3);
+    expect(result.requestCount).toBe(3);
+    expect(result.splitCount).toBe(1);
+    expect(result.races.map((entry) => entry.rid)).toEqual([1, 2, 3]);
+    expect(result.completedWindows).toEqual([
+      { startTime: rootStart, endTime: midpoint },
+      { startTime: midpoint, endTime: rootEnd },
+    ]);
+  });
+
+  it("does not subdivide an unclassified fetch failure", async () => {
+    const failure = new Error("do not retry");
+    const fetchWindow = vi.fn(async () => {
+      throw failure;
+    }) as DnaFinishedRaceWindowFetch;
+
+    await expect(
+      crawlDnaFinishedRaceWindows({
+        startTime: "2026-08-01T00:00:00Z",
+        endTime: "2026-08-01T00:00:10Z",
+        fetchWindow,
+        splitOnFetchError: () => false,
+      }),
+    ).rejects.toBe(failure);
+    expect(fetchWindow).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when a recoverably unreadable window cannot be subdivided", async () => {
+    const fetchWindow = vi.fn(async () => {
+      throw new Error("private malformed envelope");
+    }) as DnaFinishedRaceWindowFetch;
+
+    await expect(
+      crawlDnaFinishedRaceWindows({
+        startTime: "2026-08-01T00:00:00.000Z",
+        endTime: "2026-08-01T00:00:00.001Z",
+        minimumWindowMilliseconds: 1,
+        fetchWindow,
+        splitOnFetchError: () => true,
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaFinishedRaceWindowCrawlerError",
+      kind: "unprovable_fetch_failure",
+    });
+    expect(fetchWindow).toHaveBeenCalledTimes(1);
+  });
+
   it("fails closed if the source exceeds its documented 200-row response limit", async () => {
     const fetchWindow = vi.fn(async () =>
       Array.from({ length: 201 }, (_, index) => race(index + 1)),

@@ -12,15 +12,26 @@ import {
   type DnaOpenLabP5FirstBackfillSourceFamily,
 } from "./dna-open-lab-p5-first-backfill-measurement";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
-import type {
-  DnaOpenLabClient,
-  DnaOpenLabRecord,
-  DnaOpenLabResponse,
-  DnaRaceDocument,
-  DnaRaceIdentifier,
-  DnaSpliceArenaResult,
-  DnaVaultCore,
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+  type DnaOpenLabRecord,
+  type DnaOpenLabResponse,
+  type DnaRaceDocument,
+  type DnaRaceIdentifier,
+  type DnaSpliceArenaResult,
+  type DnaVaultCore,
 } from "./dna-open-lab-v1-client";
+/*
+ * A persistently malformed envelope may cover a time window rather than one
+ * race. Subdivide that window instead of inventing a partial race or silently
+ * omitting as many as the endpoint limit permits.
+ */
+function splitMalformedFinishedRaceWindow(error: unknown): boolean {
+  return (
+    error instanceof DnaOpenLabApiError && error.kind === "malformed_response"
+  );
+}
 
 const CORE_BULK_LIMIT = 20;
 const RACE_BULK_LIMIT = 20;
@@ -356,6 +367,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
             execute: (client) => client.racesFinished(window),
           }),
         invalidRecordHandling: "count_as_unresolved_observation",
+        splitOnFetchError: splitMalformedFinishedRaceWindow,
       });
       observed.sourceRecordCount = crawl.races.length;
       terminalUnitCount = crawl.completedWindows.length;

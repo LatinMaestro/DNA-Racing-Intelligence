@@ -8,14 +8,15 @@ import {
 } from "@/lib/dna-open-lab-p5-first-backfill-family-adapter";
 import { runDnaOpenLabP5FirstBackfillInventory } from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
 import { projectDnaOpenLabP5FirstBackfillFamilyUpperBounds } from "@/lib/dna-open-lab-p5-first-backfill-projection-policy";
-import type {
-  DnaActiveRace,
-  DnaOpenLabClient,
-  DnaOpenLabRateLimit,
-  DnaOpenLabResponse,
-  DnaOpenLabScope,
-  DnaRaceDocument,
-  DnaSpliceArenaResult,
+import {
+  DnaOpenLabApiError,
+  type DnaActiveRace,
+  type DnaOpenLabClient,
+  type DnaOpenLabRateLimit,
+  type DnaOpenLabResponse,
+  type DnaOpenLabScope,
+  type DnaRaceDocument,
+  type DnaSpliceArenaResult,
 } from "@/lib/dna-open-lab-v1-client";
 
 const exactMainCommit = "a".repeat(40);
@@ -89,6 +90,7 @@ function arenaResult(input: {
 function fakeClient(
   input: {
     arenaPageOverride?: number;
+    malformedFinishedCall?: number;
     omitFill?: boolean;
     unresolvedFinishedRecord?: boolean;
   } = {},
@@ -111,6 +113,12 @@ function fakeClient(
   const client = {
     racesFinished: vi.fn(async () => {
       finishedCall += 1;
+      if (finishedCall === input.malformedFinishedCall) {
+        throw new DnaOpenLabApiError({
+          kind: "malformed_response",
+          message: "private malformed envelope",
+        });
+      }
       if (finishedCall === 1) {
         return response(
           Object.freeze(
@@ -406,6 +414,45 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       observedSourceRecordCount: 1,
       unresolvedIdentityObservationUpperBound: 1,
       sourceRecordUpperBound: 2,
+      terminalInventoryObserved: true,
+    });
+  });
+
+  it("subdivides a persistently malformed finished-race window instead of omitting it", async () => {
+    const fake = fakeClient({ malformedFinishedCall: 1 });
+    const request = async <T>(input: {
+      scope: DnaOpenLabScope;
+      request: (
+        client: DnaOpenLabClient,
+        laneId: string,
+      ) => Promise<DnaOpenLabResponse<T>>;
+    }): Promise<T> => (await input.request(fake.client, "key-1")).result;
+    const observations: DnaOpenLabP5FirstBackfillFamilyObservation[] = [];
+    const adapter = createDnaOpenLabP5FirstBackfillFamilyAdapter({
+      vault: "owner-vault",
+      finishedRaceHistoryStartAt: historyStartAt,
+      authorityCutoffAt,
+      now: () => authorityCutoffAt,
+      projectUpperBounds: (observation) => {
+        observations.push(observation);
+        return projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(observation);
+      },
+    });
+
+    const result = await adapter.measureFamily({
+      family: "finished_races",
+      request,
+    });
+
+    expect(fake.client.racesFinished).toHaveBeenCalledTimes(3);
+    expect(observations[0]).toMatchObject({
+      observedSourceRecordCount: 2,
+      observedApiRequestCount: 2,
+      terminalUnitCount: 2,
+      splitCount: 1,
+    });
+    expect(result).toMatchObject({
+      observedSourceRecordCount: 2,
       terminalInventoryObserved: true,
     });
   });
