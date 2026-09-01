@@ -41,6 +41,14 @@ content for an existing window key fails closed.
   runtime role before each serializable operation.
 - R2 publication remains private, owner-scoped and checksum-verified before its
   receipt can reach the checkpoint repository.
+- A non-saturated source row without authoritative stable `rid` is written to
+  private immutable R2 quarantine before the backfill fails. Its opaque locator
+  is derived from window, source ordinal and raw checksum; it is explicitly
+  marked non-canonical and non-last-good and is never substituted for DNA race
+  identity.
+- An identity-conflicted window cannot hydrate documents, publish a window
+  manifest or advance its checkpoint. Exact retry reuses the same immutable
+  quarantine object.
 - Durable receipts can be read later for P5 replay/recovery verification without
   exposing raw evidence.
 
@@ -50,8 +58,9 @@ All tests and migration smoke checks use deterministic synthetic windows, hashes
 object keys and counts. This slice performs no connected DNA Open Lab call, hosted
 Neon migration, real R2 write, persistent API backfill or Vercel deployment.
 
-The first persistent real Preview sync remains blocked by P5 capacity/recovery
-evidence and explicit owner approval.
+The first persistent real Preview sync remains blocked by P5 source authority,
+capacity/recovery evidence and exact bounded owner approval. The quarantine
+boundary preserves the conflict for review; it does not resolve or waive it.
 
 ## Deferred P4 work
 

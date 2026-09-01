@@ -1,9 +1,12 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import {
   runNextDnaFinishedRaceBackfillStep,
   type DnaFinishedRaceBackfillCheckpoint,
   type DnaFinishedRaceBackfillCheckpointRepository,
+  type DnaFinishedRaceIdentityConflictQuarantine,
   type DnaFinishedRaceWindowPublication,
   type DnaFinishedRaceWindowPublicationReceipt,
   type StoredDnaFinishedRaceBackfillCheckpoint,
@@ -102,6 +105,28 @@ class IdempotentPublisher {
   };
 }
 
+class IdentityConflictQuarantine {
+  readonly calls: Parameters<DnaFinishedRaceIdentityConflictQuarantine>[0][] =
+    [];
+
+  quarantine: DnaFinishedRaceIdentityConflictQuarantine = async (input) => {
+    this.calls.push(input);
+    const evidenceLocatorSha256 = createHash("sha256")
+      .update(
+        `${input.window.startTime}|${input.window.endTime}|${input.sourceObservationOrdinal}|${input.rawEvidenceSha256}`,
+        "utf8",
+      )
+      .digest("hex");
+    return Object.freeze({
+      evidenceLocatorSha256,
+      rawEvidenceSha256: input.rawEvidenceSha256,
+      objectKey: `dna-open-lab/v1/${"a".repeat(64)}/races/quarantine/unresolved-identity/${evidenceLocatorSha256}.json`,
+      bodySha256: "b".repeat(64),
+      byteLength: 256,
+    });
+  };
+}
+
 function clientWith(input: {
   finished: (window: DnaFinishedRaceWindow) => readonly DnaRaceDocument[];
   docs?: (raceIds: readonly DnaRaceIdentifier[]) => readonly DnaRaceDocument[];
@@ -147,7 +172,10 @@ async function run(input: {
   startTime?: string;
   endTime?: string;
   minimumWindowMilliseconds?: number;
+  identityConflictQuarantine?: IdentityConflictQuarantine;
 }) {
+  const identityConflictQuarantine =
+    input.identityConflictQuarantine ?? new IdentityConflictQuarantine();
   return runNextDnaFinishedRaceBackfillStep({
     startTime: input.startTime ?? "2026-08-01T00:00:00Z",
     endTime: input.endTime ?? "2026-08-01T00:01:00Z",
@@ -155,6 +183,7 @@ async function run(input: {
     requestBudget: createDnaOpenLabRequestBudget(),
     checkpointRepository: input.repository,
     publisher: input.publisher.publish,
+    identityConflictQuarantine: identityConflictQuarantine.quarantine,
     observedAt: "2026-08-27T09:00:00Z",
     ...(input.minimumWindowMilliseconds === undefined
       ? {}
@@ -163,6 +192,42 @@ async function run(input: {
 }
 
 describe("DNA Open Lab finished-race backfill", () => {
+  it("immutably quarantines unidentified observations and denies window publication", async () => {
+    const repository = new MemoryCheckpointRepository();
+    const publisher = new IdempotentPublisher();
+    const identityConflictQuarantine = new IdentityConflictQuarantine();
+    const unidentified = { rid: null, timing: { elapsed: 12.3 } };
+    const source = clientWith({
+      finished: () =>
+        [{ rid: 7 }, unidentified] as unknown as readonly DnaRaceDocument[],
+    });
+
+    await expect(
+      run({
+        repository,
+        publisher,
+        client: source.client,
+        identityConflictQuarantine,
+      }),
+    ).rejects.toMatchObject({ kind: "unresolved_source_identity" });
+
+    expect(identityConflictQuarantine.calls).toEqual([
+      expect.objectContaining({
+        sourceObservationOrdinal: 2,
+        observation: unidentified,
+        rawEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      }),
+    ]);
+    expect(source.docCalls).toHaveLength(0);
+    expect(publisher.callCount).toBe(0);
+    expect(repository.stored?.checkpoint).toMatchObject({
+      completedWindowCount: 0,
+      successfulFinishedRaceRequestCount: 0,
+      publishedWindowDocumentCount: 0,
+    });
+    expect(repository.stored?.checkpoint.pendingWindows).toHaveLength(1);
+  });
+
   it("publishes one bounded window, checkpoints exact progress, then becomes complete", async () => {
     const repository = new MemoryCheckpointRepository();
     const publisher = new IdempotentPublisher();
