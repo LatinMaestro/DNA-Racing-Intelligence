@@ -1222,3 +1222,18 @@ After the private Pro League milestone, continue in this order:
 - This owner direction resolves the product decision only for a measured de
   minimis candidate. P5 remains closed until complete measurement, persistent
   omission enforcement, priced bounds and exact cost authorization all pass.
+
+## 2026-09-02 — Complete measurement must retain a capacity blocker
+
+- Exact-main protected run `33530224891` completed all six API inventory
+  families and zero-residue cleanup at the owner-approved 150 aggregate
+  requests/minute ceiling. Post-run provider safety and unchanged-main checks
+  passed, but final measurement construction failed and no artifact was
+  uploaded.
+- Do not discard a complete non-persistent measurement merely because its
+  compact-Neon peak is at or above the 536,870,912-byte limit. Emit the measured
+  peak, the fixed limit and `neonCapacityWithinLimit=false` through sanitized
+  evidence schema v4.
+- Such evidence sets the approval packet to `blocked_capacity`. Owner cost
+  authorization cannot override non-positive Neon headroom, enable paid
+  capacity or permit any persistent Preview or Production write.

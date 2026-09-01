@@ -1,4 +1,5 @@
 import type { DnaOpenLabP5ReadinessAssessment } from "@/lib/dna-open-lab-p5-readiness";
+import { DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES } from "@/lib/dna-open-lab-p5-capacity-measurement";
 
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS = Object.freeze([
   "projected_cost_exceeds_authorized_maximum",
@@ -35,6 +36,7 @@ export type DnaOpenLabP5FirstBackfillMeasuredUpperBound = Readonly<{
   retainedR2BytesUpperBound: number;
   classAOperationsUpperBound: number;
   classBOperationsUpperBound: number;
+  neonCapacityLimitBytes: number;
   neonPeakBytesUpperBound: number;
   projectedCostMicroUsd: number;
   unresolvedIdentityObservationUpperBound: number;
@@ -49,6 +51,7 @@ export type DnaOpenLabP5FirstBackfillOwnerAuthorization = Readonly<{
 export type DnaOpenLabP5FirstBackfillApprovalStatus =
   | "blocked_technical_evidence"
   | "blocked_measured_upper_bound"
+  | "blocked_capacity"
   | "blocked_source_authority"
   | "ready_for_owner_decision"
   | "approved_for_first_private_preview_backfill";
@@ -57,6 +60,7 @@ export type DnaOpenLabP5FirstBackfillApprovalPacket = Readonly<{
   status: DnaOpenLabP5FirstBackfillApprovalStatus;
   technicalEvidenceComplete: boolean;
   measuredUpperBoundComplete: boolean;
+  neonCapacityWithinLimit: boolean;
   sourceAuthorityComplete: boolean;
   readyForOwnerDecision: boolean;
   ownerApprovalRecorded: boolean;
@@ -125,6 +129,15 @@ function validateMeasuredUpperBound(
     value.classBOperationsUpperBound,
     "classBOperationsUpperBound",
   );
+  requirePositiveSafeInteger(
+    value.neonCapacityLimitBytes,
+    "neonCapacityLimitBytes",
+  );
+  if (value.neonCapacityLimitBytes !== DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES) {
+    approvalPacketError(
+      "neonCapacityLimitBytes must match the approved capacity boundary",
+    );
+  }
   requirePositiveSafeInteger(
     value.neonPeakBytesUpperBound,
     "neonPeakBytesUpperBound",
@@ -212,14 +225,24 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
 
   const technicalEvidenceComplete = input.readiness.technicalEvidenceComplete;
   const measuredUpperBoundComplete = measuredUpperBound !== null;
+  const neonCapacityWithinLimit =
+    measuredUpperBound !== null &&
+    measuredUpperBound.neonPeakBytesUpperBound <
+      measuredUpperBound.neonCapacityLimitBytes;
   const sourceAuthorityComplete =
     measuredUpperBound !== null &&
     measuredUpperBound.unresolvedIdentityObservationUpperBound === 0;
   const readyForOwnerDecision =
     technicalEvidenceComplete &&
     measuredUpperBoundComplete &&
+    neonCapacityWithinLimit &&
     sourceAuthorityComplete;
   const ownerApprovalRecorded = input.ownerAuthorization !== null;
+  if (ownerApprovalRecorded && !neonCapacityWithinLimit) {
+    approvalPacketError(
+      "owner authorization cannot override non-positive Neon headroom",
+    );
+  }
   if (ownerApprovalRecorded && !sourceAuthorityComplete) {
     approvalPacketError(
       "owner authorization cannot override unresolved source identity authority",
@@ -235,6 +258,8 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     status = "blocked_technical_evidence";
   } else if (!measuredUpperBoundComplete) {
     status = "blocked_measured_upper_bound";
+  } else if (!neonCapacityWithinLimit) {
+    status = "blocked_capacity";
   } else if (!sourceAuthorityComplete) {
     status = "blocked_source_authority";
   } else if (!ownerApprovalRecorded) {
@@ -247,6 +272,7 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     status,
     technicalEvidenceComplete,
     measuredUpperBoundComplete,
+    neonCapacityWithinLimit,
     sourceAuthorityComplete,
     readyForOwnerDecision,
     ownerApprovalRecorded,

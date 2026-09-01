@@ -19,7 +19,7 @@ export type DnaOpenLabP5SanitizedFirstBackfillFamilyEvidence = Readonly<
 >;
 
 export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
-  schemaVersion: 3;
+  schemaVersion: 4;
   evidenceKind: "dna_open_lab_p5_first_backfill_measurement";
   evidenceSha256: string;
   exactMainCommit: string;
@@ -40,6 +40,7 @@ export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
       "evidenceRefs"
     >
   >;
+  neonCapacityWithinLimit: boolean;
   sourceAuthorityComplete: boolean;
   unresolvedIdentityDisposition: ReturnType<
     typeof buildDnaOpenLabP5FirstBackfillMeasurementReport
@@ -137,6 +138,7 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
         report.measuredUpperBound.classAOperationsUpperBound,
       classBOperationsUpperBound:
         report.measuredUpperBound.classBOperationsUpperBound,
+      neonCapacityLimitBytes: report.measuredUpperBound.neonCapacityLimitBytes,
       neonPeakBytesUpperBound:
         report.measuredUpperBound.neonPeakBytesUpperBound,
       projectedCostMicroUsd: report.measuredUpperBound.projectedCostMicroUsd,
@@ -144,7 +146,7 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
         report.measuredUpperBound.unresolvedIdentityObservationUpperBound,
     });
     const evidenceWithoutChecksum = Object.freeze({
-      schemaVersion: 3 as const,
+      schemaVersion: 4 as const,
       evidenceKind: "dna_open_lab_p5_first_backfill_measurement" as const,
       exactMainCommit: report.exactMainCommit,
       acquisitionPlanChecksum: report.acquisitionPlanChecksum,
@@ -163,6 +165,7 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
       dnaApiCostMicroUsdUpperBound: report.dnaApiCostMicroUsdUpperBound,
       neonCostMicroUsdUpperBound: report.neonCostMicroUsdUpperBound,
       measuredUpperBound: Object.freeze(safeMeasuredUpperBound),
+      neonCapacityWithinLimit: report.neonCapacityWithinLimit,
       sourceAuthorityComplete: report.sourceAuthorityComplete,
       unresolvedIdentityDisposition: report.unresolvedIdentityDisposition,
       ownerAuthorizedDeMinimisIdentityOmissionLimit:

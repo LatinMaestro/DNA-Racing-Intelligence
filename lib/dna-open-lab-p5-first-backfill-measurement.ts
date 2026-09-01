@@ -88,6 +88,7 @@ export type DnaOpenLabP5FirstBackfillMeasurementReport = Readonly<{
   dnaApiCostMicroUsdUpperBound: number;
   neonCostMicroUsdUpperBound: number;
   measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound;
+  neonCapacityWithinLimit: boolean;
   sourceAuthorityComplete: boolean;
   unresolvedIdentityDisposition: DnaOpenLabUnresolvedIdentityDisposition;
   ownerAuthorizedDeMinimisIdentityOmissionLimit: number;
@@ -444,9 +445,8 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     ],
     "neonPeakBytesUpperBound",
   );
-  if (neonPeakBytesUpperBound >= input.neon.limitBytes) {
-    measurementError("Neon peak upper bound must leave positive headroom");
-  }
+  const neonCapacityWithinLimit =
+    neonPeakBytesUpperBound < input.neon.limitBytes;
 
   const storageCost = ceilScaledCost(
     retainedR2BytesUpperBound,
@@ -490,6 +490,7 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     retainedR2BytesUpperBound,
     classAOperationsUpperBound,
     classBOperationsUpperBound,
+    neonCapacityLimitBytes: input.neon.limitBytes,
     neonPeakBytesUpperBound,
     projectedCostMicroUsd,
     unresolvedIdentityObservationUpperBound,
@@ -527,6 +528,7 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     dnaApiCostMicroUsdUpperBound,
     neonCostMicroUsdUpperBound,
     measuredUpperBound,
+    neonCapacityWithinLimit,
     sourceAuthorityComplete: unresolvedIdentityObservationUpperBound === 0,
     unresolvedIdentityDisposition,
     ownerAuthorizedDeMinimisIdentityOmissionLimit:
