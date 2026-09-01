@@ -14,6 +14,20 @@ export const DNA_OPEN_LAB_P5_RECOVERY_CASES = Object.freeze([
 export type DnaOpenLabP5RecoveryCase =
   (typeof DNA_OPEN_LAB_P5_RECOVERY_CASES)[number];
 
+export const DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS =
+  Object.freeze({
+    crash_after_evidence_write: 2,
+    concurrent_checkpoint_advancement: 3,
+    rate_limited_retry_after: 1,
+    lower_rate_allowance: 1,
+    eligibility_loss: 1,
+    eligibility_reinstatement: 16,
+    api_outage_or_invalid_body: 1,
+    missing_or_conflicting_evidence: 1,
+    atomic_publication_failure: 2,
+    dynamic_plan_drift: 0,
+  } satisfies Readonly<Record<DnaOpenLabP5RecoveryCase, number>>);
+
 export type DnaOpenLabP5RecoveryProviderScope =
   "synthetic_local" | "private_preview";
 
@@ -129,7 +143,11 @@ function validateObservation(input: {
   }
   count(observation.apiRequestCount, "apiRequestCount", 1);
   const maximumProviderWrites =
-    input.providerScope === "synthetic_local" ? 0 : 4;
+    input.providerScope === "synthetic_local"
+      ? 0
+      : DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS[
+          input.expectedCaseId
+        ];
   count(
     observation.syntheticProviderWriteCount,
     "syntheticProviderWriteCount",
