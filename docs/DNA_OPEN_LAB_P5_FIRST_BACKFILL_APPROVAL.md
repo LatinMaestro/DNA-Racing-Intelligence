@@ -9,6 +9,14 @@ technical requirements are satisfied. The owner's general approval intent for
 real API data is recorded, but it is not yet the required bounded authorization:
 the exact one-time upper-bound amount has not been measured or presented.
 
+Exact-main run `33530224891` completed all six non-persistent inventory
+families and verified cleanup at the owner-approved 150 aggregate requests per
+minute, but final measurement construction failed before emitting its sanitized
+artifact. Provider safety and unchanged-main checks passed. The contract now
+retains an over-limit projected Neon peak as explicit blocked evidence instead
+of discarding the complete measurement. A new exact-main run is still required
+to produce the reviewable aggregate packet.
+
 The connected capacity run `33227770750` remains valid evidence for PostgreSQL
 18 peak/headroom and a bounded synthetic R2 cost projection. It does **not**
 measure the retained bytes, operations or provider cost of the first complete
@@ -55,9 +63,10 @@ The contract can run only after the protected recovery suite passes from the
 same exact clean `main` commit. It binds the acquisition-plan checksum, fresh
 pricing authority, zero persistent writes, zero temporary residue and sanitized
 per-family evidence. It computes the R2 storage/Class A/Class B, DNA API and
-Neon upper-bound costs, rejects a non-positive Neon headroom result and emits an
-approval-packet input with owner approval and all persistent writes still
-disabled.
+Neon upper-bound costs. A non-positive Neon headroom result is emitted with
+`neonCapacityWithinLimit=false` and produces `blocked_capacity`; it cannot be
+authorized for persistence. The approval-packet input always keeps owner
+approval and all persistent writes disabled during measurement.
 
 The historical authority cutoff is fixed before acquisition. Each family also
 records its own completion timestamp, and the aggregate measurement timestamp
@@ -105,7 +114,7 @@ observation as an unresolved identity upper bound while retaining no payload or
 identifier in evidence. It does not treat the observation as a canonical race,
 deduplicate it, hydrate it or silently discard it. The projection includes
 these observations in the record and compact-Neon bounds, and evidence schema
-v2 sets `sourceAuthorityComplete=false`. The approval packet then reports
+v4 sets `sourceAuthorityComplete=false`. The approval packet then reports
 `blocked_source_authority`; even an owner cost authorization cannot override
 that blocker.
 
@@ -147,7 +156,7 @@ Long crawls also emit a count-only request milestone every 500 requests. These
 diagnostics never include an exception message, URL, time window, entity ID,
 payload value, key, Vault reference or provider credential. Cleanup still runs
 before the workflow fails, and an acquisition failure still produces no
-approval artifact. A terminal six-family measurement may emit a sanitized v2
+approval artifact. A terminal six-family measurement may emit a sanitized v4
 cost-bound artifact with an unresolved identity count, but that artifact is
 explicitly non-approvable and cannot authorize persistence.
 

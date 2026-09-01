@@ -89,11 +89,12 @@ describe("DNA Open Lab P5 first-backfill measurement invocation", () => {
     });
 
     expect(evidence).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       evidenceKind: "dna_open_lab_p5_first_backfill_measurement",
       exactMainCommit: codeHeadSha,
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
+      neonCapacityWithinLimit: true,
       sourceAuthorityComplete: true,
       unresolvedIdentityDisposition: "none",
       ownerAuthorizedDeMinimisIdentityOmissionLimit: 25,

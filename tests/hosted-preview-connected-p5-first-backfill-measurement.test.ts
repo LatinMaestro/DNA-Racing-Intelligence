@@ -217,7 +217,7 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
       });
 
       expect(evidence).toMatchObject({
-        schemaVersion: 3,
+        schemaVersion: 4,
         evidenceKind: "dna_open_lab_p5_first_backfill_measurement",
         exactMainCommit,
         persistentOwnerDataWriteCount: 0,

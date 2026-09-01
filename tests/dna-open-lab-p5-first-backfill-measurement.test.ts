@@ -165,10 +165,12 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
       retainedR2BytesUpperBound: 1_000_811_000,
       classAOperationsUpperBound: 150,
       classBOperationsUpperBound: 300,
+      neonCapacityLimitBytes: 536_870_912,
       neonPeakBytesUpperBound: 131_622_000,
       projectedCostMicroUsd: 15_796,
     });
     expect(report).toMatchObject({
+      neonCapacityWithinLimit: true,
       sourceAuthorityComplete: true,
       unresolvedIdentityDisposition: "none",
       ownerAuthorizedDeMinimisIdentityOmissionLimit: 25,
@@ -179,6 +181,28 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,
     });
+  });
+
+  it("retains an over-capacity measurement as blocked decision evidence", () => {
+    const base = input();
+    const report = buildDnaOpenLabP5FirstBackfillMeasurementReport({
+      ...base,
+      families: base.families.map((family) =>
+        family.family === "finished_races"
+          ? {
+              ...family,
+              neonIncrementalBytesUpperBound: 536_870_912,
+            }
+          : family,
+      ),
+    });
+
+    expect(report.neonCapacityWithinLimit).toBe(false);
+    expect(report.measuredUpperBound).toMatchObject({
+      neonCapacityLimitBytes: 536_870_912,
+      neonPeakBytesUpperBound: 548_492_912,
+    });
+    expect(report.firstPersistentPrivatePreviewBackfillAllowed).toBe(false);
   });
 
   it("emits a cost bound but blocks source authority for unidentified race observations", () => {
@@ -332,7 +356,7 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
     );
   });
 
-  it("rejects stale pricing, unsafe bounds and exhausted Neon headroom", () => {
+  it("rejects stale pricing and unsafe bounds while reporting exhausted Neon headroom", () => {
     const base = input();
     expect(() =>
       buildDnaOpenLabP5FirstBackfillMeasurementReport({
@@ -352,11 +376,14 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
       }),
     ).toThrow("sourceRecordUpperBound is below the observation");
 
-    expect(() =>
+    expect(
       buildDnaOpenLabP5FirstBackfillMeasurementReport({
         ...base,
         neon: { ...base.neon, baselineBytes: 536_000_000 },
       }),
-    ).toThrow("Neon peak upper bound must leave positive headroom");
+    ).toMatchObject({
+      neonCapacityWithinLimit: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+    });
   });
 });

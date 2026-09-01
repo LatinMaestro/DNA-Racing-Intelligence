@@ -23,6 +23,7 @@ const measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound = {
   retainedR2BytesUpperBound: 2_000_000_000,
   classAOperationsUpperBound: 6_500,
   classBOperationsUpperBound: 13_000,
+  neonCapacityLimitBytes: 536_870_912,
   neonPeakBytesUpperBound: 400_000_000,
   projectedCostMicroUsd: 50_000,
   unresolvedIdentityObservationUpperBound: 0,
@@ -54,6 +55,7 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       status: "blocked_measured_upper_bound",
       technicalEvidenceComplete: true,
       measuredUpperBoundComplete: false,
+      neonCapacityWithinLimit: false,
       sourceAuthorityComplete: false,
       readyForOwnerDecision: false,
       ownerApprovalRecorded: false,
@@ -90,12 +92,44 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
     ).toMatchObject({
       status: "ready_for_owner_decision",
       measuredUpperBoundComplete: true,
+      neonCapacityWithinLimit: true,
       sourceAuthorityComplete: true,
       readyForOwnerDecision: true,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,
     });
+  });
+
+  it("emits a measured packet but blocks persistence when Neon headroom is not positive", () => {
+    const overCapacity = {
+      ...measuredUpperBound,
+      neonPeakBytesUpperBound: measuredUpperBound.neonCapacityLimitBytes,
+    };
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: overCapacity,
+        ownerAuthorization: null,
+      }),
+    ).toMatchObject({
+      status: "blocked_capacity",
+      measuredUpperBoundComplete: true,
+      neonCapacityWithinLimit: false,
+      readyForOwnerDecision: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+    });
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(true),
+        measuredUpperBound: overCapacity,
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 50_000,
+          approvalRef: "owner-approval:test",
+        },
+      }),
+    ).toThrow("cannot override non-positive Neon headroom");
   });
 
   it("keeps P5 closed when the measurement contains unresolved race identity", () => {
@@ -192,5 +226,16 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
         ownerAuthorization: null,
       }),
     ).toThrow("requires sanitized evidence references");
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: {
+          ...measuredUpperBound,
+          neonCapacityLimitBytes: 1_000_000_000,
+        },
+        ownerAuthorization: null,
+      }),
+    ).toThrow("must match the approved capacity boundary");
   });
 });

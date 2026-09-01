@@ -260,10 +260,14 @@ residue, satisfying the four recovery rows. Technical readiness is complete.
 The first persistent private Preview backfill remains blocked until an
 exact-main non-persistent complete-inventory measurement supplies the one-time
 API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
-The shared six-family inventory runner now fixes family order, conservative
+The shared six-family inventory runner fixes family order, conservative
 client-pool routing, request/response-byte accounting, terminal-bound checks,
-zero-residue cleanup and aggregate-only emission. Connected endpoint adapters,
-same-head recovery execution and the measured cost packet remain outstanding.
+zero-residue cleanup and aggregate-only emission. Connected endpoint adapters
+and same-head recovery execution are complete. Run `33530224891` traversed all
+six families and cleanup but failed during final report construction, so it
+emitted no artifact. Over-limit Neon projections are now retained as explicit
+`blocked_capacity` evidence; the measured cost packet remains outstanding until
+a corrected exact-main run emits the sanitized aggregate artifact.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
