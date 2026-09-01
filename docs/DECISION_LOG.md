@@ -1255,3 +1255,16 @@ After the private Pro League milestone, continue in this order:
 - A third malformed envelope remains a blocking acquisition failure. Never
   count it toward the owner-approved de minimis unidentified-row omission
   ceiling because the response did not establish a decoded race observation.
+
+## 2026-09-02 — Persistently malformed finished-race windows subdivide
+
+- A malformed `races.finished` envelope cannot be materialized with missing
+  fields because it provides no decoded race identity, timestamp, entrants or
+  result. One request can cover up to the endpoint's 200-row window limit, so it
+  also cannot be treated as one omitted race.
+- After the existing two same-window retries, subdivide only that failed time
+  window and continue sequentially. Preserve midpoint overlap and stable-id
+  deduplication so valid surrounding races remain complete.
+- Bound malformed-window recovery to 64 subdivisions. A persistently unreadable
+  minimum-width window or exhausted split allowance remains fail closed rather
+  than inventing data or silently omitting an unknown population.

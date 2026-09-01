@@ -209,10 +209,12 @@ During the protected read-only commissioning inventory, an isolated malformed
 response envelope is retried at most twice after the first attempt through the
 same aggregate request budget. Every attempt remains included in the measured
 API and conservative provider-operation upper bounds. A third malformed
-envelope fails closed. An envelope failure is never reclassified as one omitted
-race: only a successfully decoded `races.finished` result containing an
-unidentified row may enter the separately bounded quarantine-and-omission
-policy.
+`races.finished` envelope causes its time window to be subdivided, up to a
+bounded 64 recovery splits, so valid surrounding races can still be measured.
+A persistently unreadable minimum-width window fails closed. An envelope
+failure is never reclassified as one omitted race: only a successfully decoded
+`races.finished` result containing an unidentified row may enter the separately
+bounded quarantine-and-omission policy.
 
 A sync attempt fails closed when:
 

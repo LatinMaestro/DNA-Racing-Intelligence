@@ -98,6 +98,7 @@ export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES = Object.freeze([
   "finished_race_invalid_record",
   "finished_race_source_limit_breach",
   "finished_race_unprovable_saturation",
+  "finished_race_unprovable_fetch_failure",
   "finished_race_conflicting_duplicate",
   "inventory_validation",
   "family_adapter_validation",
