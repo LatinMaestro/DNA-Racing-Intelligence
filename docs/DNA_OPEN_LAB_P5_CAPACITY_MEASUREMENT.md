@@ -97,7 +97,7 @@ Neon headroom rows without authorising persistent sync or Production.
 A separate dispatch-only, read-only provider preflight now reduces the live
 configuration to identity-free prerequisite counts and blocker IDs. It requires
 PostgreSQL 18, the exact owner binding, the non-privileged runtime contract, all
-15 API-only relations, all 13 runtime function signatures, revocation of the
+15 API-only relations, all 14 runtime function signatures, revocation of the
 legacy unindexed publisher, a private bucket, owner-prefix list access and zero
 P5 synthetic marker residue. It cannot write either provider, open P5, permit a
 persistent Preview sync or authorize Production.
@@ -105,10 +105,11 @@ persistent Preview sync or authorize Production.
 Migrations `0069`–`0076` were applied and smoke-tested on the private Preview
 database without owner-data persistence. Exact-main prerequisite run
 `33224616911` on 2026-08-29 then confirmed PostgreSQL 18, all 15 API-only
-relations, all 13 runtime function signatures, the owner/RLS and restricted
-runtime contract, private R2 access and zero synthetic residue. It reported no
-blockers and allowed only the bounded synthetic measurement, never a persistent
-Preview sync or Production.
+relations, the then-listed 13 runtime function signatures, the owner/RLS and
+restricted runtime contract, private R2 access and zero synthetic residue. The
+preflight contract now requires a fourteenth signature: migration `0077`'s
+owner-scoped recovery fingerprint reader. It still permits only bounded
+synthetic measurement, never persistent Preview sync or Production.
 
 The connected invocation is separately opt-in, exact-head bound and limited to
 the guarded composition. The dispatch-only exact-main workflow rejects a stale

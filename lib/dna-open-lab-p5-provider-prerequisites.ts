@@ -14,6 +14,7 @@ export const DNA_OPEN_LAB_P5_REQUIRED_FUNCTION_SIGNATURES = Object.freeze([
   "dna.read_dna_open_lab_serving_token_prices(uuid)",
   "dna.read_dna_open_lab_serving_splice_arena_pages(uuid)",
   "dna.read_dna_open_lab_serving_splice_arena(uuid)",
+  "dna.read_dna_open_lab_p5_recovery_fingerprints(uuid)",
 ] as const);
 
 export const DNA_OPEN_LAB_P5_PROVIDER_PREREQUISITE_IDS = Object.freeze([
