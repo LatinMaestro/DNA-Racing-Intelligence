@@ -7,6 +7,7 @@ import type {
   DnaFinishedRaceWindowPublicationReceipt,
 } from "../lib/dna-open-lab-finished-race-backfill";
 import {
+  createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine,
   createDnaOpenLabR2FinishedRaceWindowPublisher,
   createDnaOpenLabR2RaceDocumentClient,
   type DnaOpenLabR2RaceEvidenceStoragePort,
@@ -147,6 +148,77 @@ function configuration(storage: MemoryR2Storage) {
 }
 
 describe("DNA Open Lab private R2 Race evidence", () => {
+  it("stores an unidentified finished observation under an opaque non-publishable locator", async () => {
+    const storage = new MemoryR2Storage();
+    const quarantine = createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+      configuration(storage),
+    );
+    const observation = { rid: null, result: { elapsed: 12.3 } };
+    const rawEvidenceSha256 = dnaOpenLabRawEvidenceSha256(observation);
+
+    const first = await quarantine({
+      window: {
+        startTime: "2026-08-01T00:00:00Z",
+        endTime: "2026-08-01T00:10:00Z",
+      },
+      sourceObservationOrdinal: 3,
+      observation,
+      rawEvidenceSha256,
+    });
+    const replay = await quarantine({
+      window: {
+        startTime: "2026-08-01T00:00:00Z",
+        endTime: "2026-08-01T00:10:00Z",
+      },
+      sourceObservationOrdinal: 3,
+      observation,
+      rawEvidenceSha256,
+    });
+
+    expect(replay).toEqual(first);
+    expect(first.objectKey).toMatch(
+      /\/races\/quarantine\/unresolved-identity\/[a-f0-9]{64}\.json$/u,
+    );
+    expect(first.objectKey).not.toContain(rawEvidenceSha256);
+    expect(storage.objects.size).toBe(1);
+    expect(storage.putCount).toBe(2);
+    const stored = storage.objects.get(first.objectKey);
+    expect(stored?.metadata).toMatchObject({
+      "dna-authority": "unresolved_source_identity",
+      "dna-canonical-publishable": "false",
+      "dna-last-good-publishable": "false",
+      "dna-raw-sha256": rawEvidenceSha256,
+    });
+    expect(JSON.parse(new TextDecoder().decode(stored?.body))).toMatchObject({
+      authority: "unresolved_source_identity",
+      canonicalPublishable: false,
+      lastGoodPublishable: false,
+      evidenceLocatorSha256: first.evidenceLocatorSha256,
+      observation,
+    });
+  });
+
+  it("refuses to misuse quarantine for a canonically identified race", async () => {
+    const storage = new MemoryR2Storage();
+    const quarantine = createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+      configuration(storage),
+    );
+    const observation = { rid: 42, result: { elapsed: 12.3 } };
+
+    await expect(
+      quarantine({
+        window: {
+          startTime: "2026-08-01T00:00:00Z",
+          endTime: "2026-08-01T00:10:00Z",
+        },
+        sourceObservationOrdinal: 1,
+        observation,
+        rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
+      }),
+    ).rejects.toThrow("identity-conflict observation authority is invalid");
+    expect(storage.objects.size).toBe(0);
+  });
+
   it("archives every full race document before returning the DNA response", async () => {
     const storage = new MemoryR2Storage();
     const documents = [
@@ -228,6 +300,32 @@ describe("DNA Open Lab private R2 Race evidence", () => {
 
     await expect(publish(publication([{ rid: 99 }]))).rejects.toThrow(
       "full Race document 99 is not archived",
+    );
+    expect(storage.objects.size).toBe(0);
+  });
+
+  it("denies a finished-window manifest with unresolved or mismatched identity", async () => {
+    const storage = new MemoryR2Storage();
+    const publish = createDnaOpenLabR2FinishedRaceWindowPublisher(
+      configuration(storage),
+    );
+    const unresolved = publication([{ rid: 99 }]);
+
+    await expect(
+      publish({
+        ...unresolved,
+        discoveredRaces: [
+          { rid: null },
+        ] as unknown as readonly DnaRaceDocument[],
+      }),
+    ).rejects.toThrow("race id must be a string or positive safe integer");
+    await expect(
+      publish({
+        ...unresolved,
+        discoveredRaces: [{ rid: 100 }],
+      }),
+    ).rejects.toThrow(
+      "finished-race window cannot publish unresolved or mismatched identity",
     );
     expect(storage.objects.size).toBe(0);
   });

@@ -182,6 +182,13 @@ observation conservatively so raw-response storage and quarantine capacity are
 not understated, but it must expose only the aggregate unresolved upper bound
 and keep persistence approval blocked.
 
+The persistent backfill boundary retains each such raw observation in private
+immutable R2 under an opaque evidence locator derived from its window, source
+ordinal and raw checksum. Metadata and the stored envelope both mark it
+non-canonical and non-last-good. The window remains pending: no hydration,
+window manifest, canonical fact or checkpoint advance is allowed until source
+identity authority is resolved.
+
 The crawler retains durable window/checkpoint state so restart and access loss do not restart history blindly.
 
 ## 10. Idempotency and last-good publication

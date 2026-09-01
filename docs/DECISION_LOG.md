@@ -1185,3 +1185,22 @@ After the private Pro League milestone, continue in this order:
   quarantine boundary that retains the raw source observation under an
   internal evidence locator while explicitly preventing that locator from
   becoming a canonical DNA race identity or last-good publication fact.
+
+## 2026-09-02 — Unresolved finished-race identity is privately preserved without publication
+
+- Add an owner-scoped private R2 quarantine writer for non-saturated
+  `races.finished` observations without authoritative stable `rid`.
+- Derive its opaque internal evidence locator from the exact window, 1-based
+  source ordinal and raw checksum. Do not place a raw value or invented race ID
+  in the object key or metadata.
+- Store and verify the immutable raw observation envelope with both
+  `canonicalPublishable=false` and `lastGoodPublishable=false`. Exact retry
+  reuses the same object; conflicting bytes or metadata fail closed.
+- After quarantine, reject the whole window without race-document hydration,
+  accepted-window manifest publication or checkpoint advancement. The R2
+  publisher independently rejects malformed, duplicate or mismatched discovered
+  and hydrated race identities.
+- This completes the preservation boundary but does not resolve source
+  authority. P5 remains `blocked_source_authority`; persistent real Preview
+  acquisition still requires a source-authoritative resolution, complete
+  measured cost packet and exact bounded owner approval.

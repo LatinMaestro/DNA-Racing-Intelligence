@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
 import type {
+  DnaFinishedRaceIdentityConflictQuarantine,
+  DnaFinishedRaceIdentityConflictQuarantineReceipt,
   DnaFinishedRaceWindowPublication,
   DnaFinishedRaceWindowPublicationReceipt,
   DnaFinishedRaceWindowPublisher,
@@ -14,7 +16,6 @@ import type {
   DnaOpenLabClient,
   DnaOpenLabResponse,
   DnaRaceDocument,
-  DnaRaceIdentifier,
 } from "./dna-open-lab-v1-client";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
@@ -37,6 +38,7 @@ export type DnaOpenLabR2RaceEvidenceConfiguration = Readonly<{
 export type DnaOpenLabR2RaceEvidencePorts = Readonly<{
   raceDocumentClient: Pick<DnaOpenLabClient, "raceDocs">;
   publisher: DnaFinishedRaceWindowPublisher;
+  identityConflictQuarantine: DnaFinishedRaceIdentityConflictQuarantine;
 }>;
 
 function evidenceError(message: string): never {
@@ -97,12 +99,15 @@ function ownerPrefix(ownerId: string): string {
     .digest("hex");
 }
 
-function raceIdentifier(value: DnaRaceIdentifier): string {
+function raceIdentifier(value: unknown): string {
   if (typeof value === "number") {
     if (!Number.isSafeInteger(value) || value < 1) {
       evidenceError("race id must be a positive safe integer");
     }
     return String(value);
+  }
+  if (typeof value !== "string") {
+    evidenceError("race id must be a string or positive safe integer");
   }
   return safeText(value, "race id");
 }
@@ -111,6 +116,21 @@ function raceIdentityHash(sourceRaceId: string): string {
   return createHash("sha256")
     .update(`dna-open-lab-race\u0000${sourceRaceId}`, "utf8")
     .digest("hex");
+}
+
+function hasAuthoritativeRaceIdentity(observation: unknown): boolean {
+  if (
+    typeof observation !== "object" ||
+    observation === null ||
+    Array.isArray(observation)
+  ) {
+    return false;
+  }
+  const rid = (observation as Readonly<Record<string, unknown>>).rid;
+  return (
+    (typeof rid === "number" && Number.isSafeInteger(rid) && rid >= 1) ||
+    (typeof rid === "string" && rid.trim() !== "")
+  );
 }
 
 function objectBody(
@@ -260,6 +280,120 @@ function finishedWindowObjectKey(input: {
   ].join("/");
 }
 
+function unresolvedIdentityObjectKey(input: {
+  ownerPrefix: string;
+  evidenceLocatorSha256: string;
+}): string {
+  return [
+    "dna-open-lab",
+    "v1",
+    input.ownerPrefix,
+    "races",
+    "quarantine",
+    "unresolved-identity",
+    `${input.evidenceLocatorSha256}.json`,
+  ].join("/");
+}
+
+export function createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+  configuration: DnaOpenLabR2RaceEvidenceConfiguration,
+): DnaFinishedRaceIdentityConflictQuarantine {
+  const ownerId = safeText(configuration.ownerId, "ownerId");
+  const bucketName = safeText(configuration.bucketName, "bucketName");
+  const maximumObjectBytes = positiveSafeInteger(
+    configuration.maximumObjectBytes ?? DEFAULT_MAXIMUM_OBJECT_BYTES,
+    "maximumObjectBytes",
+  );
+  const prefix = ownerPrefix(ownerId);
+  const ensurePrivateBucket = createBucketPrivacyGuard({
+    storage: configuration.storage,
+    bucketName,
+  });
+
+  return async (
+    input,
+  ): Promise<DnaFinishedRaceIdentityConflictQuarantineReceipt> => {
+    await ensurePrivateBucket();
+    if (
+      !Number.isSafeInteger(input.sourceObservationOrdinal) ||
+      input.sourceObservationOrdinal < 1 ||
+      !SHA_256_PATTERN.test(input.rawEvidenceSha256) ||
+      hasAuthoritativeRaceIdentity(input.observation)
+    ) {
+      evidenceError("identity-conflict observation authority is invalid");
+    }
+    const startMilliseconds = Date.parse(input.window.startTime);
+    const endMilliseconds = Date.parse(input.window.endTime);
+    if (
+      !Number.isFinite(startMilliseconds) ||
+      !Number.isFinite(endMilliseconds) ||
+      startMilliseconds > endMilliseconds
+    ) {
+      evidenceError("identity-conflict window is invalid");
+    }
+    const normalizedWindow = Object.freeze({
+      startTime: new Date(startMilliseconds).toISOString(),
+      endTime: new Date(endMilliseconds).toISOString(),
+    });
+    if (sha256(canonicalJson(input.observation)) !== input.rawEvidenceSha256) {
+      evidenceError("identity-conflict raw checksum is invalid");
+    }
+    const evidenceLocatorSha256 = sha256(
+      canonicalJson({
+        endpoint: "races.finished",
+        window: normalizedWindow,
+        sourceObservationOrdinal: input.sourceObservationOrdinal,
+        rawEvidenceSha256: input.rawEvidenceSha256,
+      }),
+    );
+    const envelope = Object.freeze({
+      schemaVersion: 1,
+      authority: "unresolved_source_identity",
+      canonicalPublishable: false,
+      lastGoodPublishable: false,
+      source: "dna_open_lab",
+      sourceVersion: "v1",
+      endpoint: "races.finished",
+      evidenceLocatorSha256,
+      rawEvidenceSha256: input.rawEvidenceSha256,
+      window: normalizedWindow,
+      sourceObservationOrdinal: input.sourceObservationOrdinal,
+      observation: input.observation,
+    });
+    const body = objectBody(envelope, maximumObjectBytes);
+    const objectKey = unresolvedIdentityObjectKey({
+      ownerPrefix: prefix,
+      evidenceLocatorSha256,
+    });
+    const metadata = Object.freeze({
+      "dna-source": "dna_open_lab",
+      "dna-version": "v1",
+      "dna-endpoint": "races.finished",
+      "dna-owner-sha256": prefix,
+      "dna-authority": "unresolved_source_identity",
+      "dna-evidence-locator-sha256": evidenceLocatorSha256,
+      "dna-raw-sha256": input.rawEvidenceSha256,
+      "dna-canonical-publishable": "false",
+      "dna-last-good-publishable": "false",
+    });
+    await putVerifiedObject({
+      storage: configuration.storage,
+      bucketName,
+      key: objectKey,
+      body: body.bytes,
+      bodySha256: body.bodySha256,
+      metadata,
+    });
+    return Object.freeze({
+      evidenceLocatorSha256,
+      rawEvidenceSha256: input.rawEvidenceSha256,
+      objectKey,
+      bodySha256: body.bodySha256,
+      byteLength: body.bytes.byteLength,
+    });
+  };
+}
+
 function assertHydratedEvidence(input: {
   evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
 }): void {
@@ -367,6 +501,28 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       evidenceError("finished-race publication hashes are invalid");
     }
 
+    const discoveredIds = publication.discoveredRaces.map((race) => {
+      const sourceRaceId =
+        typeof race === "object" && race !== null && !Array.isArray(race)
+          ? (race as Readonly<Record<string, unknown>>).rid
+          : undefined;
+      return raceIdentifier(sourceRaceId);
+    });
+    const hydratedIds = publication.hydratedDocuments.map((evidence) => {
+      assertHydratedEvidence({ evidence });
+      return raceIdentifier(evidence.canonical.sourceRaceId);
+    });
+    if (
+      discoveredIds.length !== hydratedIds.length ||
+      new Set(discoveredIds).size !== discoveredIds.length ||
+      [...discoveredIds].sort().join("\u0000") !==
+        [...hydratedIds].sort().join("\u0000")
+    ) {
+      evidenceError(
+        "finished-race window cannot publish unresolved or mismatched identity",
+      );
+    }
+
     const raceDocumentObjects = [] as Array<
       Readonly<{
         sourceRaceId: string;
@@ -464,5 +620,9 @@ export function createDnaOpenLabR2RaceEvidencePorts(input: {
     publisher: createDnaOpenLabR2FinishedRaceWindowPublisher(
       input.configuration,
     ),
+    identityConflictQuarantine:
+      createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+        input.configuration,
+      ),
   });
 }

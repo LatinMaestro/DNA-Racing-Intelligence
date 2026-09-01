@@ -75,6 +75,21 @@ export type DnaFinishedRaceWindowPublicationReceipt = Readonly<{
   manifestByteLength: number;
 }>;
 
+export type DnaFinishedRaceIdentityConflictQuarantineReceipt = Readonly<{
+  evidenceLocatorSha256: string;
+  rawEvidenceSha256: string;
+  objectKey: string;
+  bodySha256: string;
+  byteLength: number;
+}>;
+
+export type DnaFinishedRaceIdentityConflictQuarantine = (input: {
+  window: DnaFinishedRaceWindow;
+  sourceObservationOrdinal: number;
+  observation: unknown;
+  rawEvidenceSha256: string;
+}) => Promise<DnaFinishedRaceIdentityConflictQuarantineReceipt>;
+
 /**
  * Publisher implementations must be idempotent by `windowKey` and must reject
  * conflicting content for an already-published key. This lets a process safely
@@ -136,6 +151,7 @@ export class DnaFinishedRaceBackfillError extends Error {
     | "source_limit_breach"
     | "unprovable_saturation"
     | "duplicate_race"
+    | "unresolved_source_identity"
     | "publication_mismatch";
 
   constructor(input: {
@@ -302,7 +318,7 @@ function checkpointWith(
   });
 }
 
-function raceKey(rid: DnaRaceIdentifier): string {
+function raceKey(rid: unknown): string {
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
       backfillError(
@@ -312,6 +328,12 @@ function raceKey(rid: DnaRaceIdentifier): string {
     }
     return String(rid);
   }
+  if (typeof rid !== "string") {
+    backfillError(
+      "unresolved_source_identity",
+      "finished-race response contains a row without authoritative identity",
+    );
+  }
   const normalized = rid.trim();
   if (normalized === "") {
     backfillError(
@@ -320,6 +342,44 @@ function raceKey(rid: DnaRaceIdentifier): string {
     );
   }
   return normalized;
+}
+
+function hasAuthoritativeRaceIdentity(race: unknown): race is DnaRaceDocument {
+  if (typeof race !== "object" || race === null || Array.isArray(race)) {
+    return false;
+  }
+  const rid = (race as Readonly<Record<string, unknown>>).rid;
+  return (
+    (typeof rid === "number" && Number.isSafeInteger(rid) && rid >= 1) ||
+    (typeof rid === "string" && rid.trim() !== "")
+  );
+}
+
+function validateIdentityConflictReceipt(input: {
+  receipt: DnaFinishedRaceIdentityConflictQuarantineReceipt;
+  rawEvidenceSha256: string;
+}): void {
+  const { receipt } = input;
+  if (
+    !SHA_256_PATTERN.test(receipt.evidenceLocatorSha256) ||
+    receipt.rawEvidenceSha256 !== input.rawEvidenceSha256 ||
+    !SHA_256_PATTERN.test(receipt.rawEvidenceSha256) ||
+    !SHA_256_PATTERN.test(receipt.bodySha256) ||
+    !Number.isSafeInteger(receipt.byteLength) ||
+    receipt.byteLength < 1 ||
+    receipt.objectKey.length < 1 ||
+    receipt.objectKey.length > 4096 ||
+    receipt.objectKey.trim() !== receipt.objectKey ||
+    CONTROL_PATTERN.test(receipt.objectKey) ||
+    !receipt.objectKey.endsWith(
+      `/races/quarantine/unresolved-identity/${receipt.evidenceLocatorSha256}.json`,
+    )
+  ) {
+    backfillError(
+      "publication_mismatch",
+      "finished-race identity-conflict quarantine receipt is invalid",
+    );
+  }
 }
 
 function uniqueRaceIds(
@@ -472,6 +532,7 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
   requestBudget: DnaOpenLabRequestBudget;
   checkpointRepository: DnaFinishedRaceBackfillCheckpointRepository;
   publisher: DnaFinishedRaceWindowPublisher;
+  identityConflictQuarantine: DnaFinishedRaceIdentityConflictQuarantine;
   observedAt: string;
   minimumWindowMilliseconds?: number;
 }): Promise<DnaFinishedRaceBackfillStepResult> {
@@ -528,6 +589,36 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
       childWindows,
       stored: nextStored,
     });
+  }
+
+  const identityConflicts = races
+    .map((observation, index) =>
+      hasAuthoritativeRaceIdentity(observation)
+        ? null
+        : Object.freeze({
+            observation,
+            sourceObservationOrdinal: index + 1,
+            rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
+          }),
+    )
+    .filter((conflict) => conflict !== null);
+  if (identityConflicts.length > 0) {
+    for (const conflict of identityConflicts) {
+      const receipt = await input.identityConflictQuarantine({
+        window: currentWindow,
+        sourceObservationOrdinal: conflict.sourceObservationOrdinal,
+        observation: conflict.observation,
+        rawEvidenceSha256: conflict.rawEvidenceSha256,
+      });
+      validateIdentityConflictReceipt({
+        receipt,
+        rawEvidenceSha256: conflict.rawEvidenceSha256,
+      });
+    }
+    backfillError(
+      "unresolved_source_identity",
+      `finished-race window contains ${identityConflicts.length} quarantined observation(s) without authoritative identity`,
+    );
   }
 
   const raceIds = uniqueRaceIds(races);
