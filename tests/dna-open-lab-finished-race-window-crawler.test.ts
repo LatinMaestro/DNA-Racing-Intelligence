@@ -116,6 +116,23 @@ describe("DNA Open Lab finished-race window crawler", () => {
     });
   });
 
+  it("fails closed with a typed error when a finished-race row has no stable identifier", async () => {
+    const fetchWindow = vi.fn(async () => [
+      { rid: null } as unknown as DnaRaceDocument,
+    ]);
+
+    await expect(
+      crawlDnaFinishedRaceWindows({
+        startTime: "2026-08-01T00:00:00Z",
+        endTime: "2026-08-02T00:00:00Z",
+        fetchWindow,
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaFinishedRaceWindowCrawlerError",
+      kind: "invalid_record",
+    });
+  });
+
   it("fails closed when a minimum-width window is still saturated", async () => {
     const fetchWindow = vi.fn(async () =>
       saturated(),
