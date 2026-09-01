@@ -3,7 +3,11 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { createDnaOpenLabP5ComponentRecoveryCaseRunner } from "@/lib/dna-open-lab-p5-component-recovery-executor";
-import { createDnaOpenLabP5EligibilityReinstatementScenario } from "@/lib/dna-open-lab-p5-eligibility-reinstatement-scenario";
+import {
+  createDnaOpenLabP5EligibilityReinstatementScenario,
+  DNA_OPEN_LAB_P5_ELIGIBILITY_REINSTATEMENT_STAGES,
+  type DnaOpenLabP5EligibilityReinstatementStage,
+} from "@/lib/dna-open-lab-p5-eligibility-reinstatement-scenario";
 import type { DnaOpenLabP5PrivatePreviewRecoverySafetySnapshot } from "@/lib/dna-open-lab-p5-private-preview-recovery";
 import type { DnaOpenLabR2CurrentStateEvidenceStoragePort } from "@/lib/dna-open-lab-r2-current-state-evidence";
 
@@ -90,6 +94,7 @@ function fixture(
   input: { cleanupLeavesResidue?: boolean; mutateServingAfter?: boolean } = {},
 ) {
   const storage = new MemoryRecoveryR2();
+  const stages: DnaOpenLabP5EligibilityReinstatementStage[] = [];
   let inspectionCount = 0;
   const inspectProviderSafety =
     async (): Promise<DnaOpenLabP5PrivatePreviewRecoverySafetySnapshot> => {
@@ -122,13 +127,14 @@ function fixture(
     storage,
     inspectProviderSafety,
     cleanupSyntheticCase,
+    reportStage: (stage) => stages.push(stage),
   });
-  return { storage, scenario };
+  return { storage, scenario, stages };
 }
 
 describe("DNA Open Lab P5 eligibility-reinstatement provider scenario", () => {
   it("resumes the exact checkpoint and clears the pause after one indexed publication", async () => {
-    const { scenario, storage } = fixture();
+    const { scenario, storage, stages } = fixture();
     const evidence = await scenario();
 
     expect(evidence).toMatchObject({
@@ -153,6 +159,7 @@ describe("DNA Open Lab P5 eligibility-reinstatement provider scenario", () => {
     );
     expect(storage.putCount).toBe(evidence.syntheticProviderWriteCount);
     expect(storage.objects.size).toBe(0);
+    expect(stages).toEqual(DNA_OPEN_LAB_P5_ELIGIBILITY_REINSTATEMENT_STAGES);
 
     const runner = createDnaOpenLabP5ComponentRecoveryCaseRunner({
       scenarios: { eligibility_reinstatement: async () => evidence } as never,

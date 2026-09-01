@@ -201,6 +201,16 @@ function scenarios(input: {
         ...common,
         cycleId: "75000000-0000-4000-8000-000000000396",
         eligibilityReinstatedAt: input.executedAt,
+        reportStage: (stage) => {
+          console.log(
+            JSON.stringify({
+              schemaVersion: 1,
+              evidenceKind: "dna_open_lab_p5_eligibility_reinstatement_stage",
+              caseId: "eligibility_reinstatement",
+              stage,
+            }),
+          );
+        },
       }),
     api_outage_or_invalid_body: createDnaOpenLabP5OutageInvalidBodyScenario({
       ...common,

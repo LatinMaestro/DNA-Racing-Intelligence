@@ -39,6 +39,21 @@ type EligibilityReinstatementEvidence = Extract<
   { caseId: "eligibility_reinstatement" }
 >;
 
+export const DNA_OPEN_LAB_P5_ELIGIBILITY_REINSTATEMENT_STAGES = Object.freeze([
+  "initial_provider_safety",
+  "checkpoint_resume",
+  "evidence_acquisition",
+  "indexed_publication",
+  "post_publication_safety",
+  "checkpoint_verification",
+  "synthetic_cleanup",
+  "final_provider_safety",
+  "complete",
+] as const);
+
+export type DnaOpenLabP5EligibilityReinstatementStage =
+  (typeof DNA_OPEN_LAB_P5_ELIGIBILITY_REINSTATEMENT_STAGES)[number];
+
 export type DnaOpenLabP5EligibilityReinstatementScenarioConfiguration =
   Readonly<{
     ownerId: string;
@@ -49,6 +64,7 @@ export type DnaOpenLabP5EligibilityReinstatementScenarioConfiguration =
       DnaOpenLabR2CurrentStateEvidenceReaderConfiguration["storage"];
     inspectProviderSafety: () => Promise<DnaOpenLabP5PrivatePreviewRecoverySafetySnapshot>;
     cleanupSyntheticCase: () => Promise<void>;
+    reportStage?: (stage: DnaOpenLabP5EligibilityReinstatementStage) => void;
   }>;
 
 function scenarioError(): never {
@@ -378,6 +394,7 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
   configuration: DnaOpenLabP5EligibilityReinstatementScenarioConfiguration,
 ): () => Promise<EligibilityReinstatementEvidence> {
   return async () => {
+    configuration.reportStage?.("initial_provider_safety");
     const reinstatedAt = timestamp(configuration.eligibilityReinstatedAt);
     const priorObservedAt = new Date(
       Date.parse(reinstatedAt) - 1_000,
@@ -385,6 +402,7 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
     const before = await configuration.inspectProviderSafety();
     if (before.syntheticResidueObjectCount !== 0) scenarioError();
 
+    configuration.reportStage?.("checkpoint_resume");
     const plan = createDnaCurrentStateSyncPlan({
       vault: "p5-recovery-synthetic-vault",
       ownedCoreIds: [101],
@@ -466,6 +484,7 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
     const calls = { count: 0 };
     const pool = successfulPool(calls);
 
+    configuration.reportStage?.("evidence_acquisition");
     for (let index = 0; index < schedule.scheduledRequestCount; index += 1) {
       const step = await runDnaCurrentStateAcquisitionStep({
         cycleId: configuration.cycleId,
@@ -527,6 +546,7 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
         return syncState;
       },
     } as unknown as NeonDnaOpenLabSyncPublicationRepository;
+    configuration.reportStage?.("indexed_publication");
     syncState = await publishDnaCurrentStateAcquisitionCycle({
       ownerId: configuration.ownerId,
       cycleId: configuration.cycleId,
@@ -538,6 +558,7 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
       readEvidence: reader,
       publicationRepository,
     });
+    configuration.reportStage?.("post_publication_safety");
     if (
       indexedPublicationCount !== 1 ||
       syncState.syncStatus !== "current" ||
@@ -550,14 +571,18 @@ export function createDnaOpenLabP5EligibilityReinstatementScenario(
       scenarioError();
     }
 
+    configuration.reportStage?.("checkpoint_verification");
     const checkpointSha256UsedForResume =
       repository.checkpointSha256UsedForResume ?? scenarioError();
     if (checkpointSha256UsedForResume !== checkpointSha256BeforeResume) {
       scenarioError();
     }
+    configuration.reportStage?.("synthetic_cleanup");
     await configuration.cleanupSyntheticCase();
+    configuration.reportStage?.("final_provider_safety");
     const cleaned = await configuration.inspectProviderSafety();
     assertUnchangedProviderState(before, cleaned);
+    configuration.reportStage?.("complete");
 
     return Object.freeze({
       caseId: "eligibility_reinstatement",
