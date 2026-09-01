@@ -22,6 +22,7 @@ export type DnaFinishedRaceWindowCrawlerResult = Readonly<{
 export class DnaFinishedRaceWindowCrawlerError extends Error {
   readonly kind:
     | "invalid_window"
+    | "invalid_record"
     | "source_limit_breach"
     | "unprovable_saturation"
     | "conflicting_duplicate";
@@ -66,20 +67,32 @@ function normalizeWindow(window: DnaFinishedRaceWindow): Readonly<{
   return Object.freeze({ startMilliseconds, endMilliseconds });
 }
 
-function raceKey(race: DnaRaceDocument): string {
-  const rid = race.rid;
+function raceKey(race: unknown): string {
+  if (typeof race !== "object" || race === null || Array.isArray(race)) {
+    crawlerError(
+      "invalid_record",
+      "finished-race row must be an object with a stable identifier",
+    );
+  }
+  const rid = (race as Readonly<Record<string, unknown>>).rid;
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
       crawlerError(
-        "conflicting_duplicate",
+        "invalid_record",
         "race rid must be a positive safe integer",
       );
     }
     return String(rid);
   }
+  if (typeof rid !== "string") {
+    crawlerError(
+      "invalid_record",
+      "race rid must be a string or positive safe integer",
+    );
+  }
   const normalized = rid.trim();
   if (normalized === "") {
-    crawlerError("conflicting_duplicate", "race rid must not be empty");
+    crawlerError("invalid_record", "race rid must not be empty");
   }
   return normalized;
 }
