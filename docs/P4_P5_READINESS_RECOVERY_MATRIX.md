@@ -158,9 +158,10 @@ suite still leaves first persistent Preview sync and Production disallowed.
   crash/restart scenario is implemented; its private Preview execution and the
   remaining provider-backed cases remain outstanding.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
-  Exact-main prerequisite run `33224616911` confirms PostgreSQL 18, 15/15
-  API-only relations, 13/13 runtime functions, the owner/RLS boundary, private
-  R2 access and zero synthetic residue with no blockers.
+  Exact-main prerequisite run `33224616911` confirmed PostgreSQL 18, 15/15
+  API-only relations, the then-listed 13/13 runtime functions, the owner/RLS
+  boundary, private R2 access and zero synthetic residue. The contract now
+  requires 14/14 by including migration `0077`'s recovery fingerprint reader.
 - The corrected workflow run executed every expected stage on exact head
   `c8e81713ebccf6b781a1d6dc22aa3093ae3ad705`, including intercepted commit,
   rollback, R2 marker verification, footprint collection, cleanup, report build
