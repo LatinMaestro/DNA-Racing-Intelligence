@@ -19,7 +19,7 @@ export type DnaOpenLabP5SanitizedFirstBackfillFamilyEvidence = Readonly<
 >;
 
 export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
-  schemaVersion: 2;
+  schemaVersion: 3;
   evidenceKind: "dna_open_lab_p5_first_backfill_measurement";
   evidenceSha256: string;
   exactMainCommit: string;
@@ -41,6 +41,11 @@ export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
     >
   >;
   sourceAuthorityComplete: boolean;
+  unresolvedIdentityDisposition: ReturnType<
+    typeof buildDnaOpenLabP5FirstBackfillMeasurementReport
+  >["unresolvedIdentityDisposition"];
+  ownerAuthorizedDeMinimisIdentityOmissionLimit: number;
+  unresolvedIdentityCriticalNotificationThreshold: number;
   persistentOwnerDataWriteCount: 0;
   temporaryProviderResidueCount: 0;
   ownerApprovalRecorded: false;
@@ -139,7 +144,7 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
         report.measuredUpperBound.unresolvedIdentityObservationUpperBound,
     });
     const evidenceWithoutChecksum = Object.freeze({
-      schemaVersion: 2 as const,
+      schemaVersion: 3 as const,
       evidenceKind: "dna_open_lab_p5_first_backfill_measurement" as const,
       exactMainCommit: report.exactMainCommit,
       acquisitionPlanChecksum: report.acquisitionPlanChecksum,
@@ -159,6 +164,11 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
       neonCostMicroUsdUpperBound: report.neonCostMicroUsdUpperBound,
       measuredUpperBound: Object.freeze(safeMeasuredUpperBound),
       sourceAuthorityComplete: report.sourceAuthorityComplete,
+      unresolvedIdentityDisposition: report.unresolvedIdentityDisposition,
+      ownerAuthorizedDeMinimisIdentityOmissionLimit:
+        report.ownerAuthorizedDeMinimisIdentityOmissionLimit,
+      unresolvedIdentityCriticalNotificationThreshold:
+        report.unresolvedIdentityCriticalNotificationThreshold,
       persistentOwnerDataWriteCount: 0 as const,
       temporaryProviderResidueCount: 0 as const,
       ownerApprovalRecorded: false as const,

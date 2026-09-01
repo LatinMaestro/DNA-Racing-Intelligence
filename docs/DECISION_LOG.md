@@ -1204,3 +1204,21 @@ After the private Pro League milestone, continue in this order:
   authority. P5 remains `blocked_source_authority`; persistent real Preview
   acquisition still requires a source-authoritative resolution, complete
   measured cost packet and exact bounded owner approval.
+
+## 2026-09-02 — Owner permits only bounded de minimis identity omission
+
+- Do not request an upstream API change for a select few historical
+  `races.finished` observations without stable `rid`; DNA is not expected to
+  amend the API for an isolated row.
+- Interpret “select few” conservatively as an aggregate complete-measurement
+  upper bound of at most 25 observations. This is an omission ceiling, not a
+  target and not an invented identity.
+- Counts from 26 through 999 stop for owner review. A bound of 1,000 or more
+  requires an explicit critical-volume notification and remains blocked.
+- Keep every omitted observation private and immutable in quarantine, disclose
+  the aggregate omission count in analytical completeness, and exclude it from
+  canonical race/Core statistics. No raw payload or locator may enter logs,
+  artifacts, issues or frontend output.
+- This owner direction resolves the product decision only for a measured de
+  minimis candidate. P5 remains closed until complete measurement, persistent
+  omission enforcement, priced bounds and exact cost authorization all pass.

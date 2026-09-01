@@ -189,6 +189,15 @@ non-canonical and non-last-good. The window remains pending: no hydration,
 window manifest, canonical fact or checkpoint advance is allowed until source
 identity authority is resolved.
 
+Owner direction permits a genuinely de minimis omission after complete
+measurement: at most 25 aggregate unresolved observations may become candidates
+for quarantine-and-omit treatment. Counts from 26 through 999 require a new
+owner review; 1,000 or more require a critical-volume notification. Every
+non-zero count remains disclosed, and classification alone never authorizes a
+persistent write. The worker must still enforce the measured bound, bind every
+quarantine receipt to the accepted window and exclude omitted observations from
+all claimed sample/completeness counts.
+
 The crawler retains durable window/checkpoint state so restart and access loss do not restart history blindly.
 
 ## 10. Idempotency and last-good publication
