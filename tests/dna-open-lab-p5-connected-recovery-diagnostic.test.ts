@@ -34,6 +34,25 @@ describe("DNA Open Lab P5 connected recovery diagnostics", () => {
     );
   });
 
+  it("distinguishes cleanup from the post-cleanup safety proof", () => {
+    expect(
+      connectedRecoveryFailure(
+        createDnaOpenLabP5ConnectedRecoveryDiagnostic({
+          phase: "cleanup_synthetic_prefix",
+          completedCaseCount: 0,
+        }),
+      ).message,
+    ).toContain("phase=cleanup_synthetic_prefix");
+    expect(
+      connectedRecoveryFailure(
+        createDnaOpenLabP5ConnectedRecoveryDiagnostic({
+          phase: "cleanup_provider_safety",
+          completedCaseCount: 0,
+        }),
+      ).message,
+    ).toContain("phase=cleanup_provider_safety");
+  });
+
   it("rejects an invalid phase or case count", () => {
     expect(() =>
       createDnaOpenLabP5ConnectedRecoveryDiagnostic({
