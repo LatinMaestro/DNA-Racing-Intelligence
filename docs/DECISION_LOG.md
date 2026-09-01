@@ -1044,3 +1044,24 @@ After the private Pro League milestone, continue in this order:
 - Endpoint-specific pagination, cutoff and storage/Neon upper-bound adapters
   remain a separate connected workflow slice. The guarded runner alone does
   not call DNA Open Lab, open P5 or authorize persistent Preview data.
+
+## 2026-09-01 — First-backfill endpoint inventory is terminal and read-only
+
+- Acquire finished-race history with the existing adaptive 200-row window
+  crawler from an explicit history start through the exact authority cutoff.
+  A saturated minimum-width window remains blocking rather than being treated
+  as complete.
+- Measure current state through the supported API only: active races plus
+  batched fills, token prices, four Vault identity/recent endpoints, all eight
+  owned-Core bulk endpoints in batches of 20, and every Bike/Car/Horse Arena
+  page through authoritative `has_more: false`.
+- Keep the six-family order fixed and carry discovered owned-Core identity only
+  in memory into the Core family. Reject malformed or repeated identity,
+  out-of-plan responses, Arena page/limit drift and pagination overrun.
+- Reduce endpoint observations to record/request/byte counts, terminal-unit and
+  split counts and an aggregate SHA-256 reference. Raw payloads and owner,
+  Core, race and listing identities never enter the sanitized evidence.
+- Require a separately reviewed upper-bound projection callback for retained
+  R2 bytes, Class A/B operations and compact Neon growth. Endpoint coverage
+  alone cannot choose storage multipliers or authorize persistent Preview
+  writes.
