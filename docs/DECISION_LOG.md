@@ -1011,3 +1011,19 @@ After the private Pro League milestone, continue in this order:
 - Record the owner's general approval intent for real API data as intent only;
   it is not an unbounded cost authorization and cannot substitute for the
   measured amount required by the existing P5 commissioning contract.
+
+## 2026-09-01 — First-backfill measurement evidence is aggregate-only
+
+- Require the non-persistent complete-inventory measurement and its connected
+  recovery authority to bind to the same exact clean `main` commit.
+- Emit only the six reviewed source-family counts, request/storage/operation/
+  Neon bounds, cost components, point-in-time cutoff and plan checksum.
+- Hash family evidence, connected-recovery run and pricing references with
+  separate domains. Never emit raw payloads, credentials, provider
+  configuration or Vault/Core/race/object identities.
+- Cap the canonical sanitized artifact at 32 KiB and fail closed before
+  emission on changed authority, incomplete inventory, persistent writes,
+  residue, stale pricing, exhausted Neon headroom or unsafe output.
+- This boundary prepares evidence only. It does not call DNA Open Lab, perform
+  the inventory, record bounded owner authorization, enable persistent Preview
+  backfill or permit Production.

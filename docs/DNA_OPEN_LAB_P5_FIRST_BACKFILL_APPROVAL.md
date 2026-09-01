@@ -59,6 +59,13 @@ Neon upper-bound costs, rejects a non-positive Neon headroom result and emits an
 approval-packet input with owner approval and all persistent writes still
 disabled.
 
+The connected emission boundary is
+`lib/dna-open-lab-p5-first-backfill-measurement-invocation.ts`. It rejects a
+changed head or unsafe measurement before emission, hashes every private family,
+recovery-run and pricing reference, emits only aggregate six-family counts and
+bounds, and caps the canonical artifact at 32 KiB. The boundary never includes
+raw payloads, Vault/Core/race identities, credentials or provider configuration.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:
