@@ -1128,3 +1128,20 @@ After the private Pro League milestone, continue in this order:
   rate fails before API acquisition.
 - This bounded acceleration does not change the website or daily-refresh policy,
   authorize persistent Preview data, enable paid capacity or alter Production.
+
+## 2026-09-01 — Failed inventory acquisition requires sanitized diagnostics
+
+- Protected exact-main run `33492115829` used the explicitly approved 150
+  aggregate requests/minute ceiling. Provider prerequisites, all ten recovery
+  cases, recovery cleanup, post-run provider safety and unchanged-main checks
+  passed.
+- The complete inventory failed after about 88 minutes before the first
+  `finished_races` family completed. Cleanup was verified, the measurement
+  artifact was skipped and no persistent owner-data write occurred.
+- The previous generic catch erased the safe failure category and all bounded
+  progress, making another long retry unauditable. Preserve fail-closed cleanup
+  while emitting only an allowlisted family/failure code, aggregate request and
+  rate-limit counts, plus count-only 500-request milestones.
+- Never emit the provider exception message, request URL or window, entity ID,
+  raw response, Vault reference, API key or other credential. These diagnostics
+  do not constitute a complete inventory or P5 approval evidence.

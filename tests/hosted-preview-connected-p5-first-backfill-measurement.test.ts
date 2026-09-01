@@ -211,6 +211,9 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
         recordProgress: (stage) => {
           console.log(JSON.stringify({ firstBackfillProgressStage: stage }));
         },
+        recordDiagnostic: (diagnostic) => {
+          console.log(JSON.stringify({ firstBackfillDiagnostic: diagnostic }));
+        },
       });
 
       expect(evidence).toMatchObject({

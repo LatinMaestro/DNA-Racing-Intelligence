@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES,
   DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
   runDnaOpenLabP5FirstBackfillInventory,
   type DnaOpenLabP5FirstBackfillFamilyInventoryResult,
@@ -119,6 +120,58 @@ function result(
 }
 
 describe("DNA Open Lab P5 first-backfill inventory runner", () => {
+  it("keeps connected acquisition diagnostics aggregate-only and allowlisted", async () => {
+    const diagnostics: unknown[] = [];
+    const activePool = pool();
+    await expect(
+      runDnaOpenLabP5FirstBackfillInventory({
+        clientPool: activePool,
+        measurement: measurement(),
+        measureFamily: async ({ request }) => {
+          for (let requestIndex = 0; requestIndex < 2; requestIndex += 1) {
+            await request({
+              scope: "races",
+              request: async () => response({ ok: true }),
+            });
+          }
+          throw new Error("private payload or credential material");
+        },
+        cleanupMeasurement: async () => ({
+          persistentOwnerDataWriteCount: 0,
+          temporaryProviderResidueCount: 0,
+          rawPayloadIncludedInEvidence: false,
+          secretMaterialIncludedInEvidence: false,
+        }),
+        emitEvidence: async () => undefined,
+        recordDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+        requestDiagnosticInterval: 2,
+      }),
+    ).rejects.toThrow("inventory runner failed");
+
+    expect(diagnostics).toEqual([
+      {
+        kind: "request_milestone",
+        family: "finished_races",
+        completedFamilyCount: 0,
+        familyApiRequestCount: 2,
+        totalApiRequestCount: 2,
+      },
+      {
+        kind: "acquisition_failed",
+        family: "finished_races",
+        failureCode: "unexpected_error",
+        completedFamilyCount: 0,
+        familyApiRequestCount: 2,
+        totalApiRequestCount: 2,
+        rateLimitedRequestCount: 0,
+      },
+    ]);
+    expect(JSON.stringify(diagnostics)).not.toContain("private payload");
+    expect(DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES).toContain(
+      "finished_race_unprovable_saturation",
+    );
+  });
+
   it("routes all six families through one conservative pool and emits aggregate-only evidence", async () => {
     const clientPool = pool();
     const familyOrder: string[] = [];
