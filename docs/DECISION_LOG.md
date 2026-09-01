@@ -1112,3 +1112,19 @@ After the private Pro League milestone, continue in this order:
 - Require every family timestamp to fall inside that interval. Current-only
   endpoints cannot be relabelled as an instantaneous snapshot at the earlier
   history cutoff, especially when a complete historical crawl is long-running.
+
+## 2026-09-01 — Bounded 150 rpm commissioning measurement retry
+
+- Protected exact-main run `33476830763` passed prerequisites, all ten recovery
+  cases, recovery cleanup, post-run provider safety and unchanged-main checks,
+  but the complete inventory reached its fixed 9,000,000 ms test timeout while
+  operating at the standing 30 aggregate requests/minute ceiling. It emitted no
+  measurement artifact and performed no persistent owner-data write.
+- Record the owner's explicit approval to retry this non-persistent commissioning
+  measurement at no more than 150 aggregate requests/minute. This is one shared
+  pool across all three keys; independent-bucket execution remains disabled.
+- Keep 30 as the workflow default and require both an explicit `150` dispatch
+  selection and its matching approval checkbox. A missing, mismatched or larger
+  rate fails before API acquisition.
+- This bounded acceleration does not change the website or daily-refresh policy,
+  authorize persistent Preview data, enable paid capacity or alter Production.

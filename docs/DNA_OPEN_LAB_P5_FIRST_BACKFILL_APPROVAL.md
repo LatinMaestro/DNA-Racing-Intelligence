@@ -77,9 +77,11 @@ raw payloads, Vault/Core/race identities, credentials or provider configuration.
 The inventory orchestration boundary is
 `lib/dna-open-lab-p5-first-backfill-inventory-runner.ts`. It executes the six
 families in the reviewed order and requires every API request to cross the
-shared conservative client pool with independent-bucket mode disabled and no
-more than 30 aggregate requests/minute. It counts real requests and serialized
-response bytes internally, rejects incomplete or understated family bounds,
+shared client pool with independent-bucket mode disabled. The standing ceiling
+is 30 aggregate requests/minute. A dispatch may use the separately owner-approved
+150 aggregate requests/minute commissioning override only when both the explicit
+rate choice and its confirmation are present. It counts real requests and
+serialized response bytes internally, rejects incomplete or understated family bounds,
 always verifies zero writes/residue and then calls the aggregate-only emission
 boundary. It does not itself define endpoint pagination, history cutoffs or
 storage multipliers; the protected connected adapter must supply and test those
@@ -120,10 +122,12 @@ The protected composition is
 `.github/workflows/dna-open-lab-p5-first-backfill-measurement.yml`. It may be
 dispatched only from current `main`; re-proves provider prerequisites, runs the
 ordered connected recovery suite and cleanup, then executes the six-family
-non-persistent inventory with the reviewed projection policy. All API requests
-remain behind the shared 30 aggregate requests/minute pool with independent
-rate buckets disabled. The workflow reads the compact-Neon baseline but writes
-no owner data, re-proves provider safety and unchanged main, and uploads only
+non-persistent inventory with the reviewed projection policy. The default is
+the shared 30 aggregate requests/minute pool. The owner-approved retry may use
+150 aggregate requests/minute only when the dispatch explicitly selects 150 and
+checks the matching confirmation; independent rate buckets remain disabled, so
+this never means 150 per key or 450 aggregate. The workflow reads the compact-Neon
+baseline but writes no owner data, re-proves provider safety and unchanged main, and uploads only
 the sanitized recovery JSONL plus aggregate measurement JSON for seven days.
 It does not record owner approval or enable the persistent backfill.
 
@@ -139,9 +143,11 @@ The commissioning backfill performs no further provider request or write when:
 - evidence, checkpoint or complete-generation validation fails; or
 - repository, owner, acquisition-plan or point-in-time authority drifts.
 
-The 30 aggregate requests/minute ceiling remains an upper limit, not a target.
+The standing 30 aggregate requests/minute ceiling remains an upper limit, not a
+target. The one-run commissioning override is capped at 150 aggregate requests
+per minute and does not alter the commissioned website or daily-refresh policy.
 Provider `X-RateLimit`, `Retry-After`, endpoint bulk and health signals may lower
-it further.
+either configured ceiling further.
 
 ## Mandatory cleanup and recovery
 

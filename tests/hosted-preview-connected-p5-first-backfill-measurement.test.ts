@@ -9,7 +9,11 @@ import {
   createDnaOpenLabP5FirstBackfillFamilyAdapter,
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_ENDPOINT_LIMITS,
 } from "@/lib/dna-open-lab-p5-first-backfill-family-adapter";
-import { runDnaOpenLabP5FirstBackfillInventory } from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
+import {
+  DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+  runDnaOpenLabP5FirstBackfillInventory,
+  type DnaOpenLabP5TemporaryCommissioningRateAuthorization,
+} from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
 import { DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES } from "@/lib/dna-open-lab-p5-capacity-measurement";
 import {
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_PROJECTION_POLICY,
@@ -50,6 +54,35 @@ function sha256(value: unknown): string {
     .digest("hex");
 }
 
+function commissioningRate(): Readonly<{
+  requestsPerMinute: number;
+  authorization?: DnaOpenLabP5TemporaryCommissioningRateAuthorization;
+}> {
+  const requestsPerMinute = requiredEnvironment(
+    "DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT_REQUESTS_PER_MINUTE",
+  );
+  const temporaryApproval = requiredEnvironment(
+    "DNA_OPEN_LAB_P5_FIRST_BACKFILL_TEMPORARY_150_RPM_APPROVED",
+  );
+  if (requestsPerMinute === "30" && temporaryApproval === "false") {
+    return Object.freeze({
+      requestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+    });
+  }
+  if (requestsPerMinute === "150" && temporaryApproval === "true") {
+    return Object.freeze({
+      requestsPerMinute:
+        DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+      authorization: Object.freeze({
+        kind: "owner_approved_one_run_non_persistent_measurement" as const,
+        maximumAggregateRequestsPerMinute:
+          DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+      }),
+    });
+  }
+  throw new Error("P5 commissioning measurement rate is not authorized");
+}
+
 describeConnected("hosted P5 complete first-backfill measurement", () => {
   it("emits only aggregate exact-main evidence after a complete read-only inventory", async () => {
     try {
@@ -74,6 +107,7 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
       const runAttempt = requiredEnvironment("GITHUB_RUN_ATTEMPT");
       const runnerTemp = requiredEnvironment("RUNNER_TEMP");
       const authorityCutoffAt = new Date().toISOString();
+      const rate = commissioningRate();
       const scopes = Object.freeze([
         "vault",
         "races",
@@ -90,8 +124,8 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
           client,
           scopes,
         })),
-        aggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-        maximumLaneRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+        aggregateRequestsPerMinute: rate.requestsPerMinute,
+        maximumLaneRequestsPerMinute: rate.requestsPerMinute,
         allowIndependentRateBuckets: false,
       });
       const readNeonBytes = createNeonImportStorageBytesReader({
@@ -114,7 +148,9 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
         source: "dna_open_lab_api_only_first_backfill",
         historyStartAt: HISTORY_START_AT,
         authorityCutoffAt,
-        aggregateRequestCeilingPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+        aggregateRequestCeilingPerMinute: rate.requestsPerMinute,
+        temporaryCommissioningRateAuthorization:
+          rate.authorization?.kind ?? null,
         independentRateBucketsEnabled: false,
         endpointLimits: DNA_OPEN_LAB_P5_FIRST_BACKFILL_ENDPOINT_LIMITS,
         projectionPolicy: DNA_OPEN_LAB_P5_FIRST_BACKFILL_PROJECTION_POLICY,
@@ -122,6 +158,9 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
 
       const evidence = await runDnaOpenLabP5FirstBackfillInventory({
         clientPool,
+        ...(rate.authorization === undefined
+          ? {}
+          : { temporaryCommissioningRateAuthorization: rate.authorization }),
         measurement: {
           exactMainCommit,
           acquisitionPlanChecksum: sha256(planAuthority),
