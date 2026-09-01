@@ -260,6 +260,10 @@ residue, satisfying the four recovery rows. Technical readiness is complete.
 The first persistent private Preview backfill remains blocked until an
 exact-main non-persistent complete-inventory measurement supplies the one-time
 API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
+The shared six-family inventory runner now fixes family order, conservative
+client-pool routing, request/response-byte accounting, terminal-bound checks,
+zero-residue cleanup and aggregate-only emission. Connected endpoint adapters,
+same-head recovery execution and the measured cost packet remain outstanding.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

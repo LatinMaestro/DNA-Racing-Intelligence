@@ -1027,3 +1027,20 @@ After the private Pro League milestone, continue in this order:
 - This boundary prepares evidence only. It does not call DNA Open Lab, perform
   the inventory, record bounded owner authorization, enable persistent Preview
   backfill or permit Production.
+
+## 2026-09-01 — First-backfill inventory uses one guarded orchestration path
+
+- Execute the six reviewed measurement families in fixed authority order and
+  require every API request to pass through the conservative client pool.
+- Keep independent-bucket execution disabled for commissioning measurement,
+  even though connected evidence proves three independent provider counters;
+  no measurement request may raise the 30 aggregate requests/minute ceiling.
+- Count actual pool requests and serialized response bytes inside the runner.
+  Reject terminal family evidence whose source, API or retained-R2 upper bound
+  understates what was observed.
+- Always verify zero persistent owner-data writes, zero temporary provider
+  residue and absence of raw/secret artifact content before invoking the
+  aggregate-only measurement emitter.
+- Endpoint-specific pagination, cutoff and storage/Neon upper-bound adapters
+  remain a separate connected workflow slice. The guarded runner alone does
+  not call DNA Open Lab, open P5 or authorize persistent Preview data.

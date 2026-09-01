@@ -66,6 +66,17 @@ recovery-run and pricing reference, emits only aggregate six-family counts and
 bounds, and caps the canonical artifact at 32 KiB. The boundary never includes
 raw payloads, Vault/Core/race identities, credentials or provider configuration.
 
+The inventory orchestration boundary is
+`lib/dna-open-lab-p5-first-backfill-inventory-runner.ts`. It executes the six
+families in the reviewed order and requires every API request to cross the
+shared conservative client pool with independent-bucket mode disabled and no
+more than 30 aggregate requests/minute. It counts real requests and serialized
+response bytes internally, rejects incomplete or understated family bounds,
+always verifies zero writes/residue and then calls the aggregate-only emission
+boundary. It does not itself define endpoint pagination, history cutoffs or
+storage multipliers; the protected connected adapter must supply and test those
+family-specific authorities before the measurement can run.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:
