@@ -108,6 +108,17 @@ measurement must still combine it with the current Neon baseline, the approved
 that composition runs, the packet remains blocked and no persistent owner-data
 write is permitted.
 
+The protected composition is
+`.github/workflows/dna-open-lab-p5-first-backfill-measurement.yml`. It may be
+dispatched only from current `main`; re-proves provider prerequisites, runs the
+ordered connected recovery suite and cleanup, then executes the six-family
+non-persistent inventory with the reviewed projection policy. All API requests
+remain behind the shared 30 aggregate requests/minute pool with independent
+rate buckets disabled. The workflow reads the compact-Neon baseline but writes
+no owner data, re-proves provider safety and unchanged main, and uploads only
+the sanitized recovery JSONL plus aggregate measurement JSON for seven days.
+It does not record owner approval or enable the persistent backfill.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:

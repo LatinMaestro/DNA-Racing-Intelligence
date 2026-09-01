@@ -1,0 +1,145 @@
+name: DNA Open Lab P5 complete inventory measurement
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-p5-complete-inventory-measurement
+  cancel-in-progress: false
+
+jobs:
+  exact-main-recovery-and-measurement:
+    name: Exact-main recovery and non-persistent inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "1"
+      DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT: "1"
+      DNA_OPEN_LAB_P5_PROVIDER_PREFLIGHT: "1"
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Require exact main dispatch
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This bounded provider workflow may only run from main."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The bounded provider workflow head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private inputs without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_VAULT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_SECRET_ACCESS_KEY",
+          ];
+          for (const name of required) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing or invalid");
+            }
+          }
+          const keyNames = required.filter((name) => name.startsWith("DNA_OPEN_LAB_API_KEY_"));
+          if (new Set(keyNames.map((name) => process.env[name])).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required");
+          }
+          console.log("Validated private P5 measurement inputs without printing values.");
+          NODE
+      - name: Re-prove exact-head provider prerequisites
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-provider-prerequisites.test.ts
+      - name: Execute guarded ordered recovery suite
+        id: recovery
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-crash-replay-recovery.test.ts
+      - name: Prove recovery cleanup
+        id: recovery_cleanup
+        if: always()
+        env:
+          DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "0"
+          DNA_OPEN_LAB_P5_RECOVERY_CLEANUP_ONLY: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-crash-replay-recovery.test.ts
+      - name: Execute complete non-persistent inventory measurement
+        id: measurement
+        if: >-
+          steps.recovery.outcome == 'success' &&
+          steps.recovery_cleanup.outcome == 'success'
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-first-backfill-measurement.test.ts
+      - name: Prove post-run provider safety
+        id: cleanup
+        if: always()
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-provider-prerequisites.test.ts
+      - name: Prove exact main remained unchanged
+        id: exact_main
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the bounded provider workflow."
+            exit 1
+          fi
+      - name: Upload sanitized recovery and measurement evidence
+        if: >-
+          steps.recovery.outcome == 'success' &&
+          steps.recovery_cleanup.outcome == 'success' &&
+          steps.measurement.outcome == 'success' &&
+          steps.cleanup.outcome == 'success' &&
+          steps.exact_main.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dna-open-lab-p5-first-backfill-measurement-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/dna-open-lab-p5-recovery-ordered-suite.jsonl
+            ${{ runner.temp }}/dna-open-lab-p5-first-backfill-measurement.json
+          if-no-files-found: error
+          retention-days: 7
