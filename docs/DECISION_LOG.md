@@ -988,3 +988,26 @@ After the private Pro League milestone, continue in this order:
 - Keep every recovery, cleanup, exact-main and zero-residue requirement
   fail-closed. Better diagnostics do not convert a failed run into evidence and
   do not authorize real-data persistence, Production or game actions.
+
+## 2026-09-01 — Exact-main connected recovery completes P5 technical evidence
+
+- Accept connected run `33467686923` at
+  `0371dbb32f5cd0d56f4a41e61ee14ad399630945` as authority for all four P5
+  recovery requirements after the fixed ten-case suite passed in order.
+- Bind that conclusion to artifact
+  `github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0`,
+  terminal report checksum
+  `d5f5f5f3b449b551a22fafa702cbe50481184bf711c5c04ee1e25b97c701f878`
+  and connected-evidence checksum
+  `a4b0826fe2f641dc7110f7584d88c84adbf7650927795b8ad391a839697e500d`.
+- Every case retained last-good authority, performed zero persistent owner-data
+  writes, emitted no raw payload or secret material and left zero temporary R2
+  residue. Final owner-data, checkpoint, serving and retained-evidence
+  fingerprints matched their starting values.
+- All seven P5 technical requirements are now satisfied. The first persistent
+  private Preview backfill remains prohibited until an exact-main
+  non-persistent complete-inventory measurement supplies the one-time API/R2/
+  Neon upper bound and the owner explicitly authorizes the presented maximum.
+- Record the owner's general approval intent for real API data as intent only;
+  it is not an unbounded cost authorization and cannot substitute for the
+  measured amount required by the existing P5 commissioning contract.

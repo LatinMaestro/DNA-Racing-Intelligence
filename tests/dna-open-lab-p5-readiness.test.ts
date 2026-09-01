@@ -10,31 +10,21 @@ import {
 describe("DNA Open Lab P5 readiness", () => {
   it("keeps the current first-real-sync gate closed", () => {
     expect(DNA_OPEN_LAB_CURRENT_P5_READINESS).toEqual({
-      technicalEvidenceComplete: false,
-      readyForOwnerApproval: false,
+      technicalEvidenceComplete: true,
+      readyForOwnerApproval: true,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewSyncAllowed: false,
       productionChangesAllowed: false,
-      blockingRequirementIds: [
-        "restart_replay_idempotency",
-        "partial_failure_rate_limit_recovery",
-        "tier_loss_reinstatement_catch_up",
-        "stale_cached_site_operation",
-      ],
+      blockingRequirementIds: [],
     });
   });
 
-  it("does not treat local recovery implementation as connected P5 evidence", () => {
+  it("binds all connected recovery requirements to the exact-main suite", () => {
     expect(
       DNA_OPEN_LAB_P5_READINESS_EVIDENCE.filter(
         (entry) => entry.status === "local_evidence_only",
       ).map((entry) => entry.requirementId),
-    ).toEqual([
-      "restart_replay_idempotency",
-      "partial_failure_rate_limit_recovery",
-      "tier_loss_reinstatement_catch_up",
-      "stale_cached_site_operation",
-    ]);
+    ).toEqual([]);
     expect(
       DNA_OPEN_LAB_P5_READINESS_EVIDENCE.filter(
         (entry) => entry.status === "pending_measurement",
@@ -44,11 +34,23 @@ describe("DNA Open Lab P5 readiness", () => {
       (entry) => entry.status === "satisfied",
     );
     expect(satisfied.map((entry) => entry.requirementId)).toEqual([
+      "restart_replay_idempotency",
+      "partial_failure_rate_limit_recovery",
+      "tier_loss_reinstatement_catch_up",
+      "stale_cached_site_operation",
       "postgres_18_physical_peak_storage",
       "private_r2_footprint_cost",
       "positive_neon_headroom",
     ]);
-    for (const entry of satisfied) {
+    for (const entry of satisfied.slice(0, 4)) {
+      expect(entry.evidenceRefs).toContain(
+        "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33467686923",
+      );
+      expect(entry.evidenceRefs).toContain(
+        "github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0",
+      );
+    }
+    for (const entry of satisfied.slice(4)) {
       expect(entry.evidenceRefs).toContain(
         "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33227770750",
       );
@@ -91,9 +93,14 @@ describe("DNA Open Lab P5 readiness", () => {
   });
 
   it("rejects approval recorded before technical evidence is complete", () => {
+    const incomplete = DNA_OPEN_LAB_P5_READINESS_EVIDENCE.map((entry, index) =>
+      index === 0
+        ? { ...entry, status: "local_evidence_only" as const }
+        : entry,
+    );
     expect(() =>
       assessDnaOpenLabP5Readiness({
-        evidence: DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
+        evidence: incomplete,
         ownerApprovalRecorded: true,
       }),
     ).toThrow("owner approval cannot precede complete technical evidence");

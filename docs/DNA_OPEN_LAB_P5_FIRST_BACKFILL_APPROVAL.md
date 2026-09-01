@@ -3,9 +3,11 @@
 ## Current conclusion
 
 The first persistent private Preview historical backfill remains prohibited. The
-packet is currently `blocked_technical_evidence` until the protected connected
-ten-case recovery suite passes from exact `main`. No owner approval is requested
-at this stage.
+packet is currently `blocked_measured_upper_bound`. Exact-main connected run
+`33467686923` completed the protected ten-case recovery suite, so all seven P5
+technical requirements are satisfied. The owner's general approval intent for
+real API data is recorded, but it is not yet the required bounded authorization:
+the exact one-time upper-bound amount has not been measured or presented.
 
 The connected capacity run `33227770750` remains valid evidence for PostgreSQL
 18 peak/headroom and a bounded synthetic R2 cost projection. It does **not**
