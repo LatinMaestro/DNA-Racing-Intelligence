@@ -1065,3 +1065,24 @@ After the private Pro League milestone, continue in this order:
   R2 bytes, Class A/B operations and compact Neon growth. Endpoint coverage
   alone cannot choose storage multipliers or authorize persistent Preview
   writes.
+
+## 2026-09-01 — Conservative first-backfill provider projection policy
+
+- Convert only terminal six-family API observations; the policy cannot make an
+  API request, write a provider or authorize persistence.
+- Retain one uncompressed immutable R2 evidence object per logical request with
+  a 16 KiB canonical envelope allowance. Allow one complete API/PUT replay, two
+  paginated R2 audit listings and six Class B integrity/reconstruction reads per
+  logical object. Reject any observation whose largest response plus envelope
+  would exceed the existing 8 MiB immutable evidence-object boundary.
+- Project compact-Neon incremental physical peak as the larger of six times
+  observed response bytes or 2 KiB per source record, then add 32 KiB per
+  logical request and 1 MiB per family for control rows and indexes. This
+  includes explicit heap/index/TOAST and candidate/last-good overlap allowance
+  without claiming raw response bodies are stored in Neon.
+- Keep provider prices outside the policy. Fresh dated Cloudflare, DNA API and
+  Neon price authorities remain inputs to the exact-main measurement packet.
+- Treat the result as a conservative plan bound, not capacity evidence. The
+  512 MiB Neon headroom check, provider budgets, connected recovery proof and
+  exact bounded owner approval remain mandatory before the first persistent
+  private Preview backfill.
