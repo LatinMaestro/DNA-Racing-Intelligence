@@ -9,6 +9,7 @@ import {
   type DnaOpenLabP5EligibilityReinstatementStage,
 } from "@/lib/dna-open-lab-p5-eligibility-reinstatement-scenario";
 import type { DnaOpenLabP5PrivatePreviewRecoverySafetySnapshot } from "@/lib/dna-open-lab-p5-private-preview-recovery";
+import { DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS } from "@/lib/dna-open-lab-p5-recovery-harness";
 import type { DnaOpenLabR2CurrentStateEvidenceStoragePort } from "@/lib/dna-open-lab-r2-current-state-evidence";
 
 type StoredObject = Readonly<{
@@ -147,7 +148,9 @@ describe("DNA Open Lab P5 eligibility-reinstatement provider scenario", () => {
       indexedPublicationCount: 1,
       syncStateAfter: "current",
     });
-    expect(evidence.syntheticProviderWriteCount).toBeGreaterThan(1);
+    expect(evidence.syntheticProviderWriteCount).toBe(
+      DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS.eligibility_reinstatement,
+    );
     expect(evidence.checkpointSha256BeforeResume).toBe(
       evidence.checkpointSha256UsedForResume,
     );

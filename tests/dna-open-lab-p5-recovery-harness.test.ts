@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS,
   DNA_OPEN_LAB_P5_RECOVERY_CASES,
   runDnaOpenLabP5RecoveryHarnessStep,
   type DnaOpenLabP5RecoveryCheckpoint,
@@ -88,6 +89,65 @@ describe("DNA Open Lab P5 recovery harness", () => {
       },
     });
     expect(Object.isFrozen(final?.checkpoint.results)).toBe(true);
+  });
+
+  it("accepts each case-specific private Preview synthetic write bound", async () => {
+    let checkpoint: DnaOpenLabP5RecoveryCheckpoint | null = null;
+    let final:
+      | Awaited<ReturnType<typeof runDnaOpenLabP5RecoveryHarnessStep>>
+      | undefined;
+
+    for (const expectedCase of DNA_OPEN_LAB_P5_RECOVERY_CASES) {
+      final = await runDnaOpenLabP5RecoveryHarnessStep({
+        codeHeadSha,
+        providerScope: "private_preview",
+        executedAt,
+        checkpoint,
+        runCase: async (caseId) => {
+          expect(caseId).toBe(expectedCase);
+          return observation(caseId, {
+            syntheticProviderWriteCount:
+              DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS[caseId],
+          });
+        },
+      });
+      checkpoint = final.checkpoint;
+    }
+
+    expect(final).toMatchObject({
+      kind: "complete",
+      report: { passed: true, providerScope: "private_preview" },
+    });
+  });
+
+  it("rejects a reinstatement cycle above its complete 16-write plan", async () => {
+    let checkpoint: DnaOpenLabP5RecoveryCheckpoint | null = null;
+    for (const expectedCase of DNA_OPEN_LAB_P5_RECOVERY_CASES.slice(0, 5)) {
+      const step = await runDnaOpenLabP5RecoveryHarnessStep({
+        codeHeadSha,
+        providerScope: "private_preview",
+        executedAt,
+        checkpoint,
+        runCase: async (caseId) => {
+          expect(caseId).toBe(expectedCase);
+          return observation(caseId);
+        },
+      });
+      checkpoint = step.checkpoint;
+    }
+
+    await expect(
+      runDnaOpenLabP5RecoveryHarnessStep({
+        codeHeadSha,
+        providerScope: "private_preview",
+        executedAt,
+        checkpoint,
+        runCase: async (caseId) =>
+          observation(caseId, { syntheticProviderWriteCount: 17 }),
+      }),
+    ).rejects.toThrow(
+      "syntheticProviderWriteCount must be an integer between 0 and 16",
+    );
   });
 
   it("retains a failed case without promoting the report", async () => {
@@ -196,7 +256,7 @@ describe("DNA Open Lab P5 recovery harness", () => {
           observation(caseId, { syntheticProviderWriteCount: 5 }),
       }),
     ).rejects.toThrow(
-      "syntheticProviderWriteCount must be an integer between 0 and 4",
+      "syntheticProviderWriteCount must be an integer between 0 and 2",
     );
   });
 

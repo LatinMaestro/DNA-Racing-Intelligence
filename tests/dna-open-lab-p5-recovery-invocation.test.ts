@@ -5,6 +5,7 @@ import {
   invokeDnaOpenLabP5PrivatePreviewRecoveryCase,
 } from "@/lib/dna-open-lab-p5-recovery-invocation";
 import {
+  DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS,
   DNA_OPEN_LAB_P5_RECOVERY_CASES,
   type DnaOpenLabP5RecoveryCheckpoint,
   type DnaOpenLabP5RecoveryObservation,
@@ -22,7 +23,8 @@ function observation(
     caseId,
     outcome: "passed",
     apiRequestCount: 0,
-    syntheticProviderWriteCount: 2,
+    syntheticProviderWriteCount:
+      DNA_OPEN_LAB_P5_PRIVATE_PREVIEW_SYNTHETIC_WRITE_LIMITS[caseId],
     persistentOwnerDataWriteCount: 0,
     residueObjectCount: 0,
     rawPayloadIncluded: false,
