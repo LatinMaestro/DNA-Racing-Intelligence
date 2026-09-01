@@ -1,7 +1,21 @@
 name: DNA Open Lab P5 complete inventory measurement
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      commissioning_requests_per_minute:
+        description: Aggregate API ceiling for this non-persistent measurement
+        required: true
+        default: "30"
+        type: choice
+        options:
+          - "30"
+          - "150"
+      approve_temporary_150_rpm:
+        description: Required only when selecting the owner-approved 150 rpm retry
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -26,6 +40,8 @@ jobs:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
       DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "1"
       DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT: "1"
+      DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT_REQUESTS_PER_MINUTE: ${{ inputs.commissioning_requests_per_minute }}
+      DNA_OPEN_LAB_P5_FIRST_BACKFILL_TEMPORARY_150_RPM_APPROVED: ${{ inputs.approve_temporary_150_rpm }}
       DNA_OPEN_LAB_P5_PROVIDER_PREFLIGHT: "1"
       DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
@@ -84,7 +100,16 @@ jobs:
           if (new Set(keyNames.map((name) => process.env[name])).size !== 3) {
             throw new Error("Three distinct DNA Open Lab API keys are required");
           }
-          console.log("Validated private P5 measurement inputs without printing values.");
+          const requestsPerMinute = process.env.DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT_REQUESTS_PER_MINUTE;
+          const temporaryApproval = process.env.DNA_OPEN_LAB_P5_FIRST_BACKFILL_TEMPORARY_150_RPM_APPROVED;
+          const validStandingRate = requestsPerMinute === "30" && temporaryApproval === "false";
+          const validTemporaryRate = requestsPerMinute === "150" && temporaryApproval === "true";
+          if (!validStandingRate && !validTemporaryRate) {
+            throw new Error("The selected P5 measurement rate is not explicitly authorized");
+          }
+          console.log(
+            `Validated private P5 measurement inputs at ${requestsPerMinute} aggregate requests/minute without printing values.`,
+          );
           NODE
       - name: Re-prove exact-head provider prerequisites
         run: >-

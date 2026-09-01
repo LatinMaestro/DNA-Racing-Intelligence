@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
   runDnaOpenLabP5FirstBackfillInventory,
   type DnaOpenLabP5FirstBackfillFamilyInventoryResult,
 } from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
@@ -45,6 +46,7 @@ function pool(input: { independent?: boolean; aggregate?: number } = {}) {
       { id: "key-3", client, scopes },
     ],
     aggregateRequestsPerMinute: input.aggregate ?? 30,
+    maximumLaneRequestsPerMinute: input.aggregate ?? 30,
     allowIndependentRateBuckets: input.independent ?? false,
   });
 }
@@ -255,6 +257,65 @@ describe("DNA Open Lab P5 first-backfill inventory runner", () => {
     ).rejects.toThrow("inventory runner failed");
     expect(measureFamily).not.toHaveBeenCalled();
     expect(cleanupMeasurement).not.toHaveBeenCalled();
+  });
+
+  it("requires an explicit one-run authorization above the standing 30 rpm ceiling", async () => {
+    const measureFamily = vi.fn();
+    const cleanupMeasurement = vi.fn();
+    await expect(
+      runDnaOpenLabP5FirstBackfillInventory({
+        clientPool: pool({
+          aggregate:
+            DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+        }),
+        measurement: measurement(),
+        measureFamily,
+        cleanupMeasurement,
+        emitEvidence: async () => undefined,
+      }),
+    ).rejects.toThrow("inventory runner failed");
+    expect(measureFamily).not.toHaveBeenCalled();
+    expect(cleanupMeasurement).not.toHaveBeenCalled();
+
+    const authorizedPool = pool({
+      aggregate: DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+    });
+    const cleanup = vi.fn(async () => ({
+      persistentOwnerDataWriteCount: 0,
+      temporaryProviderResidueCount: 0,
+      rawPayloadIncludedInEvidence: false,
+      secretMaterialIncludedInEvidence: false,
+    }));
+    const emitted: string[] = [];
+    await runDnaOpenLabP5FirstBackfillInventory({
+      clientPool: authorizedPool,
+      temporaryCommissioningRateAuthorization: {
+        kind: "owner_approved_one_run_non_persistent_measurement",
+        maximumAggregateRequestsPerMinute:
+          DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+      },
+      measurement: measurement(),
+      measureFamily: async ({ family, request }) => {
+        await request({
+          scope: familyScopes[family],
+          request: async () => response({ ok: true }),
+        });
+        return result(family);
+      },
+      cleanupMeasurement: cleanup,
+      emitEvidence: async (canonicalJson) => {
+        emitted.push(canonicalJson);
+      },
+    });
+    expect(authorizedPool.snapshot()).toMatchObject({
+      independentRateBucketsEnabled: false,
+      aggregateBudget: {
+        effectiveRequestsPerMinute:
+          DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
+      },
+    });
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(emitted).toHaveLength(1);
   });
 
   it("rejects a family request routed through an unauthorized scope", async () => {

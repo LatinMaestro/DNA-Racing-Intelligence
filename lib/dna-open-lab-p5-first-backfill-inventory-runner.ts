@@ -20,6 +20,14 @@ import type {
 
 const MAXIMUM_OBSERVED_RESPONSE_BYTES = 8 * 1024 * 1024 * 1024;
 
+export const DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE =
+  150 as const;
+
+export type DnaOpenLabP5TemporaryCommissioningRateAuthorization = Readonly<{
+  kind: "owner_approved_one_run_non_persistent_measurement";
+  maximumAggregateRequestsPerMinute: typeof DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE;
+}>;
+
 const FAMILY_AUTHORITY: Readonly<
   Record<
     DnaOpenLabP5FirstBackfillSourceFamily,
@@ -143,19 +151,30 @@ function responseBytes(value: unknown): number {
   return bytes;
 }
 
-function verifyPool(pool: DnaOpenLabClientPool): void {
+function verifyPool(
+  pool: DnaOpenLabClientPool,
+  authorization?: DnaOpenLabP5TemporaryCommissioningRateAuthorization,
+): void {
+  const maximumRequestsPerMinute =
+    authorization === undefined
+      ? DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE
+      : authorization.kind ===
+            "owner_approved_one_run_non_persistent_measurement" &&
+          authorization.maximumAggregateRequestsPerMinute ===
+            DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE
+        ? DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE
+        : runnerError();
   const snapshot = pool.snapshot();
   if (
     snapshot.independentRateBucketsEnabled ||
     snapshot.aggregateBudget === null ||
     snapshot.aggregateBudget.effectiveRequestsPerMinute >
-      DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE ||
+      maximumRequestsPerMinute ||
     snapshot.lanes.length < 1 ||
     snapshot.lanes.length > 3 ||
     snapshot.lanes.some(
       (lane) =>
-        lane.budget.effectiveRequestsPerMinute >
-        DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+        lane.budget.effectiveRequestsPerMinute > maximumRequestsPerMinute,
     )
   ) {
     runnerError();
@@ -188,6 +207,7 @@ function cleanup(value: DnaOpenLabP5FirstBackfillInventoryCleanup): void {
 export async function runDnaOpenLabP5FirstBackfillInventory(input: {
   clientPool: DnaOpenLabClientPool;
   measurement: MeasurementMetadata;
+  temporaryCommissioningRateAuthorization?: DnaOpenLabP5TemporaryCommissioningRateAuthorization;
   measurementCompletedAt?: () => string;
   measureFamily: (input: {
     family: DnaOpenLabP5FirstBackfillSourceFamily;
@@ -199,7 +219,7 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
     stage: DnaOpenLabP5FirstBackfillInventoryProgressStage,
   ) => void;
 }): Promise<DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence> {
-  verifyPool(input.clientPool);
+  verifyPool(input.clientPool, input.temporaryCommissioningRateAuthorization);
   const initialPoolRequestCount = totalPoolRequestCount(input.clientPool);
   const families: DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [];
   let acquisitionFailure = false;
@@ -277,7 +297,7 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
       );
       input.recordProgress?.(`${family}_complete`);
     }
-    verifyPool(input.clientPool);
+    verifyPool(input.clientPool, input.temporaryCommissioningRateAuthorization);
     if (
       totalPoolRequestCount(input.clientPool) - initialPoolRequestCount !==
       families.reduce(
