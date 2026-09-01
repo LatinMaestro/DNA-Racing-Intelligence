@@ -13,6 +13,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "finished_races",
     authorityClass: "available_paginated_history_at_cutoff",
+    observedAt: "2026-08-31T23:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 100,
     sourceRecordUpperBound: 120,
@@ -27,6 +28,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "race_activity",
     authorityClass: "current_state_only",
+    observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 0,
     sourceRecordUpperBound: 10,
@@ -41,6 +43,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "token_prices",
     authorityClass: "current_state_only",
+    observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 3,
     sourceRecordUpperBound: 3,
@@ -55,6 +58,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "vault_identity",
     authorityClass: "bounded_recent_state_only",
+    observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 25,
     sourceRecordUpperBound: 25,
@@ -69,6 +73,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "core_current_state",
     authorityClass: "current_state_only",
+    observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 25,
     sourceRecordUpperBound: 25,
@@ -83,6 +88,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
   {
     family: "splice_arena",
     authorityClass: "current_state_only",
+    observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 30,
     sourceRecordUpperBound: 35,
@@ -234,6 +240,35 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
         temporaryProviderResidueCount: 1,
       }),
     ).toThrow("temporary provider residue must be zero");
+  });
+
+  it("requires every family observation to fall inside the measured interval", () => {
+    const base = input();
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillMeasurementReport({
+        ...base,
+        families: base.families.map((family) =>
+          family.family === "race_activity"
+            ? { ...family, observedAt: "2026-08-31T23:59:59.998Z" }
+            : family,
+        ),
+      }),
+    ).toThrow(
+      "race_activity.observedAt must fall within the measurement interval",
+    );
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillMeasurementReport({
+        ...base,
+        families: base.families.map((family) =>
+          family.family === "splice_arena"
+            ? { ...family, observedAt: "2026-09-01T00:00:00.001Z" }
+            : family,
+        ),
+      }),
+    ).toThrow(
+      "splice_arena.observedAt must fall within the measurement interval",
+    );
   });
 
   it("rejects stale pricing, unsafe bounds and exhausted Neon headroom", () => {

@@ -1103,3 +1103,12 @@ After the private Pro League milestone, continue in this order:
 - Upload only the sanitized recovery and first-backfill measurement evidence
   after post-run provider safety and unchanged-main checks. Retain the artifact
   for seven days and keep persistent Preview and Production prohibited.
+
+## 2026-09-01 — First-backfill capture-interval authority
+
+- Fix the finished-race history cutoff before acquisition, record a separate
+  completion timestamp for each of the six source families and take the final
+  measurement timestamp only after acquisition and cleanup complete.
+- Require every family timestamp to fall inside that interval. Current-only
+  endpoints cannot be relabelled as an instantaneous snapshot at the earlier
+  history cutoff, especially when a complete historical crawl is long-running.

@@ -102,6 +102,7 @@ function result(
   return {
     family,
     authorityClass: familyAuthority[family],
+    observedAt: "2026-09-01T05:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 1,
     sourceRecordUpperBound: 1,
@@ -131,6 +132,7 @@ describe("DNA Open Lab P5 first-backfill inventory runner", () => {
     const evidence = await runDnaOpenLabP5FirstBackfillInventory({
       clientPool,
       measurement: measurement(),
+      measurementCompletedAt: () => "2026-09-01T06:01:00.000Z",
       measureFamily: async ({ family, request }) => {
         familyOrder.push(family);
         const observed = await request({
@@ -179,6 +181,7 @@ describe("DNA Open Lab P5 first-backfill inventory runner", () => {
     expect(emitted[0]).not.toContain("private-connected-recovery-ref");
     expect(evidence).toMatchObject({
       exactMainCommit,
+      measuredAt: "2026-09-01T06:01:00.000Z",
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
       firstPersistentPrivatePreviewBackfillAllowed: false,
