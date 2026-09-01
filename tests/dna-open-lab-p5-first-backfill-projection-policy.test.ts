@@ -15,6 +15,7 @@ function observation(
     authorityCutoffAt: "2026-09-01T00:00:00.000Z",
     observedAt: "2026-09-01T00:00:01.000Z",
     observedSourceRecordCount: 200,
+    unresolvedIdentityObservationUpperBound: 0,
     observedApiRequestCount: 10,
     observedResponseBytes: 100_000,
     maximumObservedResponseBytes: 10_000,
@@ -37,6 +38,7 @@ describe("DNA Open Lab P5 first-backfill projection policy", () => {
       classAOperationsUpperBound: 22,
       classBOperationsUpperBound: 60,
       neonIncrementalBytesUpperBound: 1_976_256,
+      unresolvedIdentityObservationUpperBound: 0,
     });
   });
 
@@ -59,6 +61,7 @@ describe("DNA Open Lab P5 first-backfill projection policy", () => {
       classAOperationsUpperBound: 4,
       classBOperationsUpperBound: 6,
       neonIncrementalBytesUpperBound: 1_081_356,
+      unresolvedIdentityObservationUpperBound: 0,
     });
   });
 
@@ -73,6 +76,23 @@ describe("DNA Open Lab P5 first-backfill projection policy", () => {
     );
 
     expect(projected.neonIncrementalBytesUpperBound).toBe(3_129_344);
+  });
+
+  it("includes unresolved identity observations in record and Neon bounds", () => {
+    const projected = projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
+      observation({
+        observedSourceRecordCount: 100,
+        unresolvedIdentityObservationUpperBound: 25,
+        observedApiRequestCount: 1,
+        observedResponseBytes: 1,
+        maximumObservedResponseBytes: 1,
+      }),
+    );
+
+    expect(projected).toMatchObject({
+      sourceRecordUpperBound: 125,
+      unresolvedIdentityObservationUpperBound: 25,
+    });
   });
 
   it("publishes fixed non-price authority and fails closed on unsafe input", () => {

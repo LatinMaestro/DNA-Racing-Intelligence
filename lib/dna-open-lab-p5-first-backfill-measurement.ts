@@ -21,6 +21,7 @@ export type DnaOpenLabP5FirstBackfillFamilyMeasurement = Readonly<{
   observedAt: string;
   terminalInventoryObserved: boolean;
   observedSourceRecordCount: number;
+  unresolvedIdentityObservationUpperBound: number;
   sourceRecordUpperBound: number;
   observedApiRequestCount: number;
   apiRequestUpperBound: number;
@@ -81,6 +82,7 @@ export type DnaOpenLabP5FirstBackfillMeasurementReport = Readonly<{
   dnaApiCostMicroUsdUpperBound: number;
   neonCostMicroUsdUpperBound: number;
   measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound;
+  sourceAuthorityComplete: boolean;
   persistentOwnerDataWriteCount: 0;
   temporaryProviderResidueCount: 0;
   ownerApprovalRecorded: false;
@@ -315,11 +317,29 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
       family.observedSourceRecordCount,
       `${family.family}.observedSourceRecordCount`,
     );
+    const unresolvedIdentityObservationUpperBound = count(
+      family.unresolvedIdentityObservationUpperBound,
+      `${family.family}.unresolvedIdentityObservationUpperBound`,
+    );
+    if (
+      family.family !== "finished_races" &&
+      unresolvedIdentityObservationUpperBound !== 0
+    ) {
+      measurementError(
+        `${family.family} cannot report finished-race identity conflicts`,
+      );
+    }
     const sourceRecordUpperBound = count(
       family.sourceRecordUpperBound,
       `${family.family}.sourceRecordUpperBound`,
     );
-    if (sourceRecordUpperBound < observedSourceRecordCount) {
+    if (
+      sourceRecordUpperBound <
+      add(
+        [observedSourceRecordCount, unresolvedIdentityObservationUpperBound],
+        `${family.family}.projectedSourceRecordCount`,
+      )
+    ) {
       measurementError(
         `${family.family}.sourceRecordUpperBound is below the observation`,
       );
@@ -370,6 +390,10 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
   const sourceRecordUpperBound = add(
     families.map((family) => family.sourceRecordUpperBound),
     "sourceRecordUpperBound",
+  );
+  const unresolvedIdentityObservationUpperBound = add(
+    families.map((family) => family.unresolvedIdentityObservationUpperBound),
+    "unresolvedIdentityObservationUpperBound",
   );
   const apiRequestUpperBound = add(
     families.map((family) => family.apiRequestUpperBound),
@@ -455,6 +479,7 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     classBOperationsUpperBound,
     neonPeakBytesUpperBound,
     projectedCostMicroUsd,
+    unresolvedIdentityObservationUpperBound,
     evidenceRefs: Object.freeze([
       connectedRecoverySuiteRunRef,
       pricingAuthorityRef,
@@ -489,6 +514,7 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     dnaApiCostMicroUsdUpperBound,
     neonCostMicroUsdUpperBound,
     measuredUpperBound,
+    sourceAuthorityComplete: unresolvedIdentityObservationUpperBound === 0,
     persistentOwnerDataWriteCount: 0 as const,
     temporaryProviderResidueCount: 0 as const,
     ownerApprovalRecorded: false as const,

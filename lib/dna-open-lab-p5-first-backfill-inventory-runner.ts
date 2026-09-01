@@ -131,6 +131,7 @@ export type DnaOpenLabP5FirstBackfillFamilyInventoryResult = Readonly<{
   observedAt: string;
   terminalInventoryObserved: boolean;
   observedSourceRecordCount: number;
+  unresolvedIdentityObservationUpperBound: number;
   sourceRecordUpperBound: number;
   apiRequestUpperBound: number;
   retainedR2BytesUpperBound: number;
@@ -353,6 +354,9 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
         runnerError();
       }
       const observedSourceRecordCount = count(result.observedSourceRecordCount);
+      const unresolvedIdentityObservationUpperBound = count(
+        result.unresolvedIdentityObservationUpperBound,
+      );
       const sourceRecordUpperBound = count(result.sourceRecordUpperBound);
       const apiRequestUpperBound = positiveCount(result.apiRequestUpperBound);
       const retainedR2BytesUpperBound = count(result.retainedR2BytesUpperBound);
@@ -364,7 +368,13 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
       );
       if (
         observedApiRequestCount < 1 ||
-        sourceRecordUpperBound < observedSourceRecordCount ||
+        sourceRecordUpperBound <
+          add(
+            observedSourceRecordCount,
+            unresolvedIdentityObservationUpperBound,
+          ) ||
+        (family !== "finished_races" &&
+          unresolvedIdentityObservationUpperBound !== 0) ||
         apiRequestUpperBound < observedApiRequestCount ||
         retainedR2BytesUpperBound < observedResponseBytes ||
         classAOperationsUpperBound < observedApiRequestCount ||
@@ -376,6 +386,7 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
         Object.freeze({
           ...result,
           observedSourceRecordCount,
+          unresolvedIdentityObservationUpperBound,
           sourceRecordUpperBound,
           observedApiRequestCount,
           apiRequestUpperBound,

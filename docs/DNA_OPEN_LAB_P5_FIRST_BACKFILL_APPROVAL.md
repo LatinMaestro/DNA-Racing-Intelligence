@@ -99,6 +99,16 @@ limits and endpoint-capacity breaches. The adapter records only aggregate
 request, byte and record observations plus a SHA-256 aggregate evidence
 reference.
 
+For measurement only, a non-saturated finished-race leaf may contain a row
+without an acceptable stable `rid`. The adapter counts every such leaf
+observation as an unresolved identity upper bound while retaining no payload or
+identifier in evidence. It does not treat the observation as a canonical race,
+deduplicate it, hydrate it or silently discard it. The projection includes
+these observations in the record and compact-Neon bounds, and evidence schema
+v2 sets `sourceAuthorityComplete=false`. The approval packet then reports
+`blocked_source_authority`; even an owner cost authorization cannot override
+that blocker.
+
 The reviewed projection policy is
 `lib/dna-open-lab-p5-first-backfill-projection-policy.ts`. It converts each
 terminal family observation without provider writes or price assumptions. One
@@ -136,8 +146,10 @@ family, completed-family count, aggregate request count and rate-limit count.
 Long crawls also emit a count-only request milestone every 500 requests. These
 diagnostics never include an exception message, URL, time window, entity ID,
 payload value, key, Vault reference or provider credential. Cleanup still runs
-before the workflow fails, and an incomplete measurement still produces no
-approval artifact.
+before the workflow fails, and an acquisition failure still produces no
+approval artifact. A terminal six-family measurement may emit a sanitized v2
+cost-bound artifact with an unresolved identity count, but that artifact is
+explicitly non-approvable and cannot authorize persistence.
 
 ## Mandatory stop conditions
 
@@ -149,7 +161,8 @@ The commissioning backfill performs no further provider request or write when:
 - measured Neon headroom is not positive;
 - API rate, eligibility or response-body authority fails;
 - evidence, checkpoint or complete-generation validation fails; or
-- repository, owner, acquisition-plan or point-in-time authority drifts.
+- repository, owner, acquisition-plan or point-in-time authority drifts; or
+- any finished-race observation lacks authoritative stable identity.
 
 The standing 30 aggregate requests/minute ceiling remains an upper limit, not a
 target. The one-run commissioning override is capped at 150 aggregate requests

@@ -17,7 +17,11 @@ export type DnaFinishedRaceWindowCrawlerResult = Readonly<{
   completedWindows: readonly DnaFinishedRaceWindow[];
   requestCount: number;
   splitCount: number;
+  unresolvedIdentityObservationUpperBound: number;
 }>;
+
+export type DnaFinishedRaceInvalidRecordHandling =
+  "reject" | "count_as_unresolved_observation";
 
 export class DnaFinishedRaceWindowCrawlerError extends Error {
   readonly kind:
@@ -67,32 +71,34 @@ function normalizeWindow(window: DnaFinishedRaceWindow): Readonly<{
   return Object.freeze({ startMilliseconds, endMilliseconds });
 }
 
-function raceKey(race: unknown): string {
+function raceKey(
+  race: unknown,
+  invalidRecordHandling: DnaFinishedRaceInvalidRecordHandling,
+): string | null {
+  const unresolved = (message: string): null => {
+    if (invalidRecordHandling === "count_as_unresolved_observation") {
+      return null;
+    }
+    return crawlerError("invalid_record", message);
+  };
   if (typeof race !== "object" || race === null || Array.isArray(race)) {
-    crawlerError(
-      "invalid_record",
+    return unresolved(
       "finished-race row must be an object with a stable identifier",
     );
   }
   const rid = (race as Readonly<Record<string, unknown>>).rid;
   if (typeof rid === "number") {
     if (!Number.isSafeInteger(rid) || rid < 1) {
-      crawlerError(
-        "invalid_record",
-        "race rid must be a positive safe integer",
-      );
+      return unresolved("race rid must be a positive safe integer");
     }
     return String(rid);
   }
   if (typeof rid !== "string") {
-    crawlerError(
-      "invalid_record",
-      "race rid must be a string or positive safe integer",
-    );
+    return unresolved("race rid must be a string or positive safe integer");
   }
   const normalized = rid.trim();
   if (normalized === "") {
-    crawlerError("invalid_record", "race rid must not be empty");
+    return unresolved("race rid must not be empty");
   }
   return normalized;
 }
@@ -115,6 +121,7 @@ export async function crawlDnaFinishedRaceWindows(input: {
   endTime: string;
   fetchWindow: DnaFinishedRaceWindowFetch;
   minimumWindowMilliseconds?: number;
+  invalidRecordHandling?: DnaFinishedRaceInvalidRecordHandling;
 }): Promise<DnaFinishedRaceWindowCrawlerResult> {
   const root = normalizeWindow({
     startTime: input.startTime,
@@ -141,6 +148,14 @@ export async function crawlDnaFinishedRaceWindows(input: {
   >();
   let requestCount = 0;
   let splitCount = 0;
+  let unresolvedIdentityObservationUpperBound = 0;
+  const invalidRecordHandling = input.invalidRecordHandling ?? "reject";
+  if (
+    invalidRecordHandling !== "reject" &&
+    invalidRecordHandling !== "count_as_unresolved_observation"
+  ) {
+    crawlerError("invalid_window", "invalid-record handling is unsupported");
+  }
 
   while (pending.length > 0) {
     const current = pending.shift();
@@ -207,7 +222,17 @@ export async function crawlDnaFinishedRaceWindows(input: {
     );
 
     for (const race of races) {
-      const key = raceKey(race);
+      const key = raceKey(race, invalidRecordHandling);
+      if (key === null) {
+        unresolvedIdentityObservationUpperBound += 1;
+        if (!Number.isSafeInteger(unresolvedIdentityObservationUpperBound)) {
+          crawlerError(
+            "source_limit_breach",
+            "unresolved finished-race observation count exceeds safe range",
+          );
+        }
+        continue;
+      }
       const hash = dnaOpenLabRawEvidenceSha256(race);
       const existing = racesByKey.get(key);
       if (existing !== undefined && existing.hash !== hash) {
@@ -235,5 +260,6 @@ export async function crawlDnaFinishedRaceWindows(input: {
     completedWindows: Object.freeze(completedWindows),
     requestCount,
     splitCount,
+    unresolvedIdentityObservationUpperBound,
   });
 }

@@ -90,6 +90,7 @@ function fakeClient(
   input: {
     arenaPageOverride?: number;
     omitFill?: boolean;
+    unresolvedFinishedRecord?: boolean;
   } = {},
 ): Readonly<{
   client: DnaOpenLabClient;
@@ -123,7 +124,13 @@ function fakeClient(
           ),
         );
       }
-      return response(Object.freeze([race(finishedCall - 1)]));
+      return response(
+        Object.freeze(
+          input.unresolvedFinishedRecord && finishedCall === 2
+            ? ([{ rid: null }] as unknown as readonly DnaRaceDocument[])
+            : [race(finishedCall - 1)],
+        ),
+      );
     }),
     racesActive: vi.fn(async () =>
       response(Object.freeze(activeRaceIds.map(activeRace))),
@@ -329,6 +336,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
     ]);
     expect(observations[0]).toMatchObject({
       observedSourceRecordCount: 2,
+      unresolvedIdentityObservationUpperBound: 0,
       observedApiRequestCount: 3,
       terminalUnitCount: 2,
       splitCount: 1,
@@ -364,6 +372,44 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
     });
   });
 
+  it("finishes aggregate measurement with a conservative unresolved identity bound", async () => {
+    const fake = fakeClient({ unresolvedFinishedRecord: true });
+    const request = async <T>(input: {
+      scope: DnaOpenLabScope;
+      request: (
+        client: DnaOpenLabClient,
+        laneId: string,
+      ) => Promise<DnaOpenLabResponse<T>>;
+    }): Promise<T> => (await input.request(fake.client, "key-1")).result;
+    const observations: DnaOpenLabP5FirstBackfillFamilyObservation[] = [];
+    const adapter = createDnaOpenLabP5FirstBackfillFamilyAdapter({
+      vault: "owner-vault",
+      finishedRaceHistoryStartAt: historyStartAt,
+      authorityCutoffAt,
+      now: () => authorityCutoffAt,
+      projectUpperBounds: (observation) => {
+        observations.push(observation);
+        return projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(observation);
+      },
+    });
+
+    const result = await adapter.measureFamily({
+      family: "finished_races",
+      request,
+    });
+
+    expect(observations[0]).toMatchObject({
+      observedSourceRecordCount: 1,
+      unresolvedIdentityObservationUpperBound: 1,
+    });
+    expect(result).toMatchObject({
+      observedSourceRecordCount: 1,
+      unresolvedIdentityObservationUpperBound: 1,
+      sourceRecordUpperBound: 2,
+      terminalInventoryObserved: true,
+    });
+  });
+
   it("fails closed on out-of-order families and Arena response-page drift", async () => {
     const wrongOrder = createDnaOpenLabP5FirstBackfillFamilyAdapter({
       vault: "owner-vault",
@@ -395,6 +441,8 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
+        unresolvedIdentityObservationUpperBound:
+          observation.unresolvedIdentityObservationUpperBound,
         apiRequestUpperBound: observation.observedApiRequestCount,
         retainedR2BytesUpperBound: observation.observedResponseBytes,
         classAOperationsUpperBound: observation.observedApiRequestCount,
@@ -436,6 +484,8 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
+        unresolvedIdentityObservationUpperBound:
+          observation.unresolvedIdentityObservationUpperBound,
         apiRequestUpperBound: observation.observedApiRequestCount,
         retainedR2BytesUpperBound: observation.observedResponseBytes - 1,
         classAOperationsUpperBound: observation.observedApiRequestCount,
@@ -458,6 +508,8 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
+        unresolvedIdentityObservationUpperBound:
+          observation.unresolvedIdentityObservationUpperBound,
         apiRequestUpperBound: observation.observedApiRequestCount,
         retainedR2BytesUpperBound: observation.observedResponseBytes,
         classAOperationsUpperBound: observation.observedApiRequestCount,

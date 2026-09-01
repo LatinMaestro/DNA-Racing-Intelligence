@@ -108,6 +108,7 @@ function result(
     observedAt: "2026-09-01T05:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 1,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 1,
     apiRequestUpperBound: 1,
     retainedR2BytesUpperBound: 10_000,

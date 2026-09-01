@@ -80,6 +80,14 @@ export function projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
     observation.observedSourceRecordCount,
     "observedSourceRecordCount",
   );
+  const unresolvedIdentityObservationUpperBound = count(
+    observation.unresolvedIdentityObservationUpperBound,
+    "unresolvedIdentityObservationUpperBound",
+  );
+  const projectedSourceRecords = add(
+    [sourceRecords, unresolvedIdentityObservationUpperBound],
+    "projected source records",
+  );
   const logicalRequests = positiveCount(
     observation.observedApiRequestCount,
     "observedApiRequestCount",
@@ -150,7 +158,7 @@ export function projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
     "byte-led Neon peak",
   );
   const recordLedNeonPeak = multiply(
-    sourceRecords,
+    projectedSourceRecords,
     policy.neonPhysicalBytesPerSourceRecord,
     "record-led Neon peak",
   );
@@ -168,11 +176,12 @@ export function projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
   );
 
   return Object.freeze({
-    sourceRecordUpperBound: sourceRecords,
+    sourceRecordUpperBound: projectedSourceRecords,
     apiRequestUpperBound,
     retainedR2BytesUpperBound,
     classAOperationsUpperBound,
     classBOperationsUpperBound,
     neonIncrementalBytesUpperBound,
+    unresolvedIdentityObservationUpperBound,
   });
 }

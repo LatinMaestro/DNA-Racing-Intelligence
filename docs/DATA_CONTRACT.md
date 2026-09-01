@@ -175,6 +175,13 @@ A 200-result response is treated as **potentially saturated**, not complete.
 
 The crawler must recursively split time windows until each accepted leaf window is demonstrably below saturation or another documented completeness proof exists. Full race documents are then hydrated in batches of at most 20.
 
+A returned leaf row without a valid stable `rid` is source-authority conflict,
+not an empty race or permission to manufacture an ID. Normal backfill remains
+fail closed. The non-persistent P5 sizing pass may count each conflicted leaf
+observation conservatively so raw-response storage and quarantine capacity are
+not understated, but it must expose only the aggregate unresolved upper bound
+and keep persistence approval blocked.
+
 The crawler retains durable window/checkpoint state so restart and access loss do not restart history blindly.
 
 ## 10. Idempotency and last-good publication
