@@ -7,6 +7,7 @@ import {
   type DnaOpenLabP5FirstBackfillFamilyObservation,
 } from "@/lib/dna-open-lab-p5-first-backfill-family-adapter";
 import { runDnaOpenLabP5FirstBackfillInventory } from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
+import { projectDnaOpenLabP5FirstBackfillFamilyUpperBounds } from "@/lib/dna-open-lab-p5-first-backfill-projection-policy";
 import type {
   DnaActiveRace,
   DnaOpenLabClient,
@@ -300,14 +301,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       authorityCutoffAt,
       projectUpperBounds: (observation) => {
         observations.push(observation);
-        return Object.freeze({
-          sourceRecordUpperBound: observation.observedSourceRecordCount,
-          apiRequestUpperBound: observation.observedApiRequestCount,
-          retainedR2BytesUpperBound: observation.observedResponseBytes + 1_000,
-          classAOperationsUpperBound: observation.observedApiRequestCount,
-          classBOperationsUpperBound: observation.observedApiRequestCount,
-          neonIncrementalBytesUpperBound: observation.observedResponseBytes,
-        });
+        return projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(observation);
       },
     });
 

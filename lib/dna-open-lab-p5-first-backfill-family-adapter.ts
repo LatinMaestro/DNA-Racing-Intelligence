@@ -69,6 +69,7 @@ export type DnaOpenLabP5FirstBackfillFamilyObservation = Readonly<{
   observedSourceRecordCount: number;
   observedApiRequestCount: number;
   observedResponseBytes: number;
+  maximumObservedResponseBytes: number;
   terminalUnitCount: number;
   splitCount: number;
   endpointObservations: readonly DnaOpenLabP5FirstBackfillEndpointObservation[];
@@ -93,6 +94,7 @@ type EndpointCounter = {
 type FamilyCounter = {
   requestCount: number;
   responseBytes: number;
+  maximumResponseBytes: number;
   sourceRecordCount: number;
   endpoints: Map<string, EndpointCounter>;
 };
@@ -194,6 +196,7 @@ function counter(): FamilyCounter {
   return {
     requestCount: 0,
     responseBytes: 0,
+    maximumResponseBytes: 0,
     sourceRecordCount: 0,
     endpoints: new Map(),
   };
@@ -209,6 +212,7 @@ function note(
   const records = count(sourceRecordCount);
   family.requestCount = add(family.requestCount, 1);
   family.responseBytes = add(family.responseBytes, bytes);
+  family.maximumResponseBytes = Math.max(family.maximumResponseBytes, bytes);
   family.sourceRecordCount = add(family.sourceRecordCount, records);
   const endpointCounter = family.endpoints.get(endpoint) ?? {
     requestCount: 0,
@@ -520,6 +524,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
       observedSourceRecordCount: observed.sourceRecordCount,
       observedApiRequestCount: observed.requestCount,
       observedResponseBytes: observed.responseBytes,
+      maximumObservedResponseBytes: observed.maximumResponseBytes,
       terminalUnitCount,
       splitCount,
       endpointObservations: endpoints,

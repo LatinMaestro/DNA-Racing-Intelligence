@@ -89,11 +89,24 @@ limits and endpoint-capacity breaches. The adapter records only aggregate
 request, byte and record observations plus a SHA-256 aggregate evidence
 reference.
 
-Storage and Neon projection remains a separate required reviewed policy input.
-The endpoint adapter deliberately cannot invent R2 envelope overhead, operation
-counts or compact-Neon row/index multipliers. Until that exact policy is wired
-and the protected same-head measurement completes, the packet remains blocked
-and no persistent owner-data write is permitted.
+The reviewed projection policy is
+`lib/dna-open-lab-p5-first-backfill-projection-policy.ts`. It converts each
+terminal family observation without provider writes or price assumptions. One
+logical API request retains one uncompressed immutable R2 evidence object with
+a 16 KiB canonical envelope allowance. API and Class A bounds allow one replay,
+R2 audit coverage includes two complete paginated listings, and Class B allows
+six integrity/reconstruction reads per logical object. Compact-Neon physical
+peak is the larger of six times observed response bytes or 2 KiB per source
+record, plus explicit per-request and per-family control/index overhead. The
+policy is intentionally stricter than observed payload size and fails closed on
+arithmetic overflow or when any observed response plus its envelope would
+exceed the existing 8 MiB immutable evidence-object boundary.
+
+The policy is not capacity evidence by itself. The protected same-head
+measurement must still combine it with the current Neon baseline, the approved
+512 MiB limit, fresh provider pricing and the connected recovery proof. Until
+that composition runs, the packet remains blocked and no persistent owner-data
+write is permitted.
 
 ## Mandatory stop conditions
 
