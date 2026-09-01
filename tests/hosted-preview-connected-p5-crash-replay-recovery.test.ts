@@ -302,16 +302,19 @@ describeConnected("hosted Preview P5 ordered recovery suite", () => {
 
 describeCleanup("hosted Preview P5 ordered recovery cleanup", () => {
   it("removes only the temporary recovery prefix and proves zero residue", async () => {
+    let phase: DnaOpenLabP5ConnectedRecoveryFailurePhase =
+      "cleanup_synthetic_prefix";
     try {
       const safety = recoverySafety(providerConfiguration());
       await safety.cleanupSyntheticCase();
+      phase = "cleanup_provider_safety";
       await expect(safety.inspectProviderSafety()).resolves.toMatchObject({
         syntheticResidueObjectCount: 0,
       });
     } catch {
       throw connectedRecoveryFailure(
         createDnaOpenLabP5ConnectedRecoveryDiagnostic({
-          phase: "cleanup",
+          phase,
           completedCaseCount: 0,
         }),
       );
