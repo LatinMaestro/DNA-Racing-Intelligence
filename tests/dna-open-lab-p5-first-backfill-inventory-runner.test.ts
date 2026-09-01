@@ -2,16 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES,
+  DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS,
   DNA_OPEN_LAB_P5_TEMPORARY_COMMISSIONING_REQUESTS_PER_MINUTE,
   runDnaOpenLabP5FirstBackfillInventory,
   type DnaOpenLabP5FirstBackfillFamilyInventoryResult,
 } from "@/lib/dna-open-lab-p5-first-backfill-inventory-runner";
 import { createDnaOpenLabClientPool } from "@/lib/dna-open-lab-client-pool";
-import type {
-  DnaOpenLabClient,
-  DnaOpenLabRateLimit,
-  DnaOpenLabResponse,
-  DnaOpenLabScope,
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+  type DnaOpenLabRateLimit,
+  type DnaOpenLabResponse,
+  type DnaOpenLabScope,
 } from "@/lib/dna-open-lab-v1-client";
 
 const exactMainCommit = "a".repeat(40);
@@ -121,6 +123,106 @@ function result(
 }
 
 describe("DNA Open Lab P5 first-backfill inventory runner", () => {
+  it("retries transient malformed envelopes inside the same aggregate request budget", async () => {
+    const activePool = pool();
+    let malformedAttempts = 0;
+    const emitted: string[] = [];
+
+    const evidence = await runDnaOpenLabP5FirstBackfillInventory({
+      clientPool: activePool,
+      measurement: measurement(),
+      measureFamily: async ({ family, request }) => {
+        await request({
+          scope: familyScopes[family],
+          request: async () => {
+            if (family === "finished_races" && malformedAttempts < 2) {
+              malformedAttempts += 1;
+              throw new DnaOpenLabApiError({
+                kind: "malformed_response",
+                message: privatePayload,
+              });
+            }
+            return response({ ok: true });
+          },
+        });
+        return result(family);
+      },
+      cleanupMeasurement: async () => ({
+        persistentOwnerDataWriteCount: 0,
+        temporaryProviderResidueCount: 0,
+        rawPayloadIncludedInEvidence: false,
+        secretMaterialIncludedInEvidence: false,
+      }),
+      emitEvidence: async (canonicalJson) => {
+        emitted.push(canonicalJson);
+      },
+    });
+
+    expect(malformedAttempts).toBe(2);
+    expect(
+      activePool
+        .snapshot()
+        .lanes.reduce((total, lane) => total + lane.requestCount, 0),
+    ).toBe(8);
+    expect(evidence.families[0]).toMatchObject({
+      family: "finished_races",
+      observedApiRequestCount: 3,
+      apiRequestUpperBound: 3,
+    });
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]).not.toContain(privatePayload);
+  });
+
+  it("fails closed after the bounded malformed-envelope retry allowance", async () => {
+    const diagnostics: unknown[] = [];
+    const activePool = pool();
+
+    await expect(
+      runDnaOpenLabP5FirstBackfillInventory({
+        clientPool: activePool,
+        measurement: measurement(),
+        measureFamily: async ({ request }) => {
+          await request({
+            scope: "races",
+            request: async () => {
+              throw new DnaOpenLabApiError({
+                kind: "malformed_response",
+                message: privatePayload,
+              });
+            },
+          });
+          return result("finished_races");
+        },
+        cleanupMeasurement: async () => ({
+          persistentOwnerDataWriteCount: 0,
+          temporaryProviderResidueCount: 0,
+          rawPayloadIncludedInEvidence: false,
+          secretMaterialIncludedInEvidence: false,
+        }),
+        emitEvidence: async () => undefined,
+        recordDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+      }),
+    ).rejects.toThrow("inventory runner failed");
+
+    expect(
+      activePool
+        .snapshot()
+        .lanes.reduce((total, lane) => total + lane.requestCount, 0),
+    ).toBe(DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS);
+    expect(diagnostics).toEqual([
+      {
+        kind: "acquisition_failed",
+        family: "finished_races",
+        failureCode: "api_malformed_response",
+        completedFamilyCount: 0,
+        familyApiRequestCount: DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+        totalApiRequestCount: DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+        rateLimitedRequestCount: 0,
+      },
+    ]);
+    expect(JSON.stringify(diagnostics)).not.toContain(privatePayload);
+  });
+
   it("keeps connected acquisition diagnostics aggregate-only and allowlisted", async () => {
     const diagnostics: unknown[] = [];
     const activePool = pool();

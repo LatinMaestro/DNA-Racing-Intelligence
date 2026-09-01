@@ -205,6 +205,15 @@ Do not clear current data, disable the website or require immediate owner tier r
 
 The body envelope `status: success|error` is authoritative, including DNA's documented HTTP 305 error behavior.
 
+During the protected read-only commissioning inventory, an isolated malformed
+response envelope is retried at most twice after the first attempt through the
+same aggregate request budget. Every attempt remains included in the measured
+API and conservative provider-operation upper bounds. A third malformed
+envelope fails closed. An envelope failure is never reclassified as one omitted
+race: only a successfully decoded `races.finished` result containing an
+unidentified row may enter the separately bounded quarantine-and-omission
+policy.
+
 A sync attempt fails closed when:
 
 - the envelope is missing/malformed;

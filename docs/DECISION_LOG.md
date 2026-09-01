@@ -1237,3 +1237,21 @@ After the private Pro League milestone, continue in this order:
 - Such evidence sets the approval packet to `blocked_capacity`. Owner cost
   authorization cannot override non-positive Neon headroom, enable paid
   capacity or permit any persistent Preview or Production write.
+
+## 2026-09-02 — Malformed measurement envelopes receive bounded retries
+
+- Exact-main protected run `33546889046` passed provider prerequisites, the
+  ordered ten-case recovery suite, cleanup, post-run provider safety and the
+  unchanged-main check at the owner-approved 150 aggregate requests/minute
+  ceiling.
+- The first `finished_races` family stopped after 8,396 total API attempts when
+  attempt 8,396 returned a malformed response envelope. No request was rate
+  limited, no artifact was uploaded, no persistent owner-data write occurred
+  and cleanup left zero detected residue.
+- A malformed envelope is not evidence of one malformed race row. Retry the
+  exact read-only request at most twice after the first attempt through the
+  same aggregate pool. Count all attempts in the API, Class A and Class B upper
+  bounds and retain only aggregate diagnostics.
+- A third malformed envelope remains a blocking acquisition failure. Never
+  count it toward the owner-approved de minimis unidentified-row omission
+  ceiling because the response did not establish a decoded race observation.
