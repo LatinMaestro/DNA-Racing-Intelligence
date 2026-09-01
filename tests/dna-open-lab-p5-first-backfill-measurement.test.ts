@@ -16,6 +16,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-08-31T23:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 100,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 120,
     observedApiRequestCount: 11,
     apiRequestUpperBound: 12,
@@ -31,6 +32,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 0,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 10,
     observedApiRequestCount: 2,
     apiRequestUpperBound: 2,
@@ -46,6 +48,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 3,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 3,
     observedApiRequestCount: 1,
     apiRequestUpperBound: 1,
@@ -61,6 +64,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 25,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 25,
     observedApiRequestCount: 4,
     apiRequestUpperBound: 4,
@@ -76,6 +80,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 25,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 25,
     observedApiRequestCount: 16,
     apiRequestUpperBound: 16,
@@ -91,6 +96,7 @@ const families: readonly DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [
     observedAt: "2026-09-01T00:00:00.000Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: 30,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: 35,
     observedApiRequestCount: 6,
     apiRequestUpperBound: 7,
@@ -163,12 +169,33 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
       projectedCostMicroUsd: 15_796,
     });
     expect(report).toMatchObject({
+      sourceAuthorityComplete: true,
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,
     });
+  });
+
+  it("emits a cost bound but blocks source authority for unidentified race observations", () => {
+    const base = input();
+    const report = buildDnaOpenLabP5FirstBackfillMeasurementReport({
+      ...base,
+      families: base.families.map((family) =>
+        family.family === "finished_races"
+          ? {
+              ...family,
+              unresolvedIdentityObservationUpperBound: 2,
+            }
+          : family,
+      ),
+    });
+
+    expect(report.sourceAuthorityComplete).toBe(false);
+    expect(
+      report.measuredUpperBound.unresolvedIdentityObservationUpperBound,
+    ).toBe(2);
   });
 
   it("rejects incomplete, missing, duplicate or misclassified families", () => {

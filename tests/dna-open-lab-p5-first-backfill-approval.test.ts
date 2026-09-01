@@ -25,6 +25,7 @@ const measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound = {
   classBOperationsUpperBound: 13_000,
   neonPeakBytesUpperBound: 400_000_000,
   projectedCostMicroUsd: 50_000,
+  unresolvedIdentityObservationUpperBound: 0,
   evidenceRefs: Object.freeze(["evidence/sanitized-upper-bound.json"]),
 };
 
@@ -53,6 +54,7 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       status: "blocked_measured_upper_bound",
       technicalEvidenceComplete: true,
       measuredUpperBoundComplete: false,
+      sourceAuthorityComplete: false,
       readyForOwnerDecision: false,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewBackfillAllowed: false,
@@ -88,11 +90,43 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
     ).toMatchObject({
       status: "ready_for_owner_decision",
       measuredUpperBoundComplete: true,
+      sourceAuthorityComplete: true,
       readyForOwnerDecision: true,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,
     });
+  });
+
+  it("keeps P5 closed when the measurement contains unresolved race identity", () => {
+    const conflicted = {
+      ...measuredUpperBound,
+      unresolvedIdentityObservationUpperBound: 1,
+    };
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: conflicted,
+        ownerAuthorization: null,
+      }),
+    ).toMatchObject({
+      status: "blocked_source_authority",
+      measuredUpperBoundComplete: true,
+      sourceAuthorityComplete: false,
+      readyForOwnerDecision: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+    });
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(true),
+        measuredUpperBound: conflicted,
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 50_000,
+          approvalRef: "owner-approval:test",
+        },
+      }),
+    ).toThrow("cannot override unresolved source identity authority");
   });
 
   it("allows only the first private Preview backfill after bounded approval", () => {

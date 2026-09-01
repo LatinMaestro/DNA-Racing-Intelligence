@@ -1161,3 +1161,27 @@ After the private Pro League milestone, continue in this order:
   unsafe numeric `rid` with the allowlisted
   `finished_race_invalid_record` code. Do not emit the row, identifier, request
   window, provider message or payload and do not skip malformed source evidence.
+
+## 2026-09-01 — Identity-conflicted finished rows remain measurable but non-approvable
+
+- Protected exact-main run `33511615308` reproduced the source conflict after
+  13,305 finished-race requests at the owner-approved temporary 150 aggregate
+  requests/minute ceiling. It emitted
+  `finished_race_invalid_record`, observed zero rate-limited requests, passed
+  all ten recovery cases and provider-safety checks, left zero residue and
+  withheld the incomplete artifact.
+- A terminal non-persistent sizing crawl may now count each invalid leaf-row
+  observation as a conservative unresolved identity upper bound. It does not
+  create a DNA race ID, deduplicate or hydrate the row, log its payload or
+  locator, or admit it to canonical analysis.
+- Include that upper bound in record/storage/compact-Neon projections and emit
+  it only through sanitized measurement evidence schema v2. Midpoint overlap
+  may overcount an unidentified observation; undercounting is prohibited.
+- Any non-zero unresolved identity bound sets `sourceAuthorityComplete=false`
+  and the first-backfill packet to `blocked_source_authority`. Owner cost
+  approval cannot override the blocker, and persistent Preview/Production
+  writes remain prohibited.
+- Before persistence can proceed, add a reviewed private immutable-evidence and
+  quarantine boundary that retains the raw source observation under an
+  internal evidence locator while explicitly preventing that locator from
+  becoming a canonical DNA race identity or last-good publication fact.

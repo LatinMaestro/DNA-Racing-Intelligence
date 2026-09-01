@@ -8,6 +8,7 @@ export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS = Object.freeze([
   "api_rate_eligibility_or_response_failure",
   "evidence_checkpoint_or_generation_validation_failure",
   "authority_or_plan_drift",
+  "unresolved_source_identity_authority",
 ] as const);
 
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS = Object.freeze([
@@ -36,6 +37,7 @@ export type DnaOpenLabP5FirstBackfillMeasuredUpperBound = Readonly<{
   classBOperationsUpperBound: number;
   neonPeakBytesUpperBound: number;
   projectedCostMicroUsd: number;
+  unresolvedIdentityObservationUpperBound: number;
   evidenceRefs: readonly string[];
 }>;
 
@@ -47,6 +49,7 @@ export type DnaOpenLabP5FirstBackfillOwnerAuthorization = Readonly<{
 export type DnaOpenLabP5FirstBackfillApprovalStatus =
   | "blocked_technical_evidence"
   | "blocked_measured_upper_bound"
+  | "blocked_source_authority"
   | "ready_for_owner_decision"
   | "approved_for_first_private_preview_backfill";
 
@@ -54,6 +57,7 @@ export type DnaOpenLabP5FirstBackfillApprovalPacket = Readonly<{
   status: DnaOpenLabP5FirstBackfillApprovalStatus;
   technicalEvidenceComplete: boolean;
   measuredUpperBoundComplete: boolean;
+  sourceAuthorityComplete: boolean;
   readyForOwnerDecision: boolean;
   ownerApprovalRecorded: boolean;
   firstPersistentPrivatePreviewBackfillAllowed: boolean;
@@ -128,6 +132,10 @@ function validateMeasuredUpperBound(
   requireNonNegativeSafeInteger(
     value.projectedCostMicroUsd,
     "projectedCostMicroUsd",
+  );
+  requireNonNegativeSafeInteger(
+    value.unresolvedIdentityObservationUpperBound,
+    "unresolvedIdentityObservationUpperBound",
   );
   if (
     value.evidenceRefs.length < 1 ||
@@ -204,9 +212,19 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
 
   const technicalEvidenceComplete = input.readiness.technicalEvidenceComplete;
   const measuredUpperBoundComplete = measuredUpperBound !== null;
+  const sourceAuthorityComplete =
+    measuredUpperBound !== null &&
+    measuredUpperBound.unresolvedIdentityObservationUpperBound === 0;
   const readyForOwnerDecision =
-    technicalEvidenceComplete && measuredUpperBoundComplete;
+    technicalEvidenceComplete &&
+    measuredUpperBoundComplete &&
+    sourceAuthorityComplete;
   const ownerApprovalRecorded = input.ownerAuthorization !== null;
+  if (ownerApprovalRecorded && !sourceAuthorityComplete) {
+    approvalPacketError(
+      "owner authorization cannot override unresolved source identity authority",
+    );
+  }
   const firstPersistentPrivatePreviewBackfillAllowed =
     readyForOwnerDecision &&
     ownerApprovalRecorded &&
@@ -217,6 +235,8 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     status = "blocked_technical_evidence";
   } else if (!measuredUpperBoundComplete) {
     status = "blocked_measured_upper_bound";
+  } else if (!sourceAuthorityComplete) {
+    status = "blocked_source_authority";
   } else if (!ownerApprovalRecorded) {
     status = "ready_for_owner_decision";
   } else {
@@ -227,6 +247,7 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     status,
     technicalEvidenceComplete,
     measuredUpperBoundComplete,
+    sourceAuthorityComplete,
     readyForOwnerDecision,
     ownerApprovalRecorded,
     firstPersistentPrivatePreviewBackfillAllowed,

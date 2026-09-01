@@ -63,6 +63,7 @@ const measurement = (): DnaOpenLabP5FirstBackfillMeasurementInput => ({
     observedAt: "2026-09-01T03:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: observed as number,
+    unresolvedIdentityObservationUpperBound: 0,
     sourceRecordUpperBound: upper as number,
     observedApiRequestCount: 1,
     apiRequestUpperBound: 2,
@@ -88,11 +89,12 @@ describe("DNA Open Lab P5 first-backfill measurement invocation", () => {
     });
 
     expect(evidence).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       evidenceKind: "dna_open_lab_p5_first_backfill_measurement",
       exactMainCommit: codeHeadSha,
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
+      sourceAuthorityComplete: true,
       ownerApprovalRecorded: false,
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,

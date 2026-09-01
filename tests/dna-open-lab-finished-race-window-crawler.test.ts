@@ -133,6 +133,24 @@ describe("DNA Open Lab finished-race window crawler", () => {
     });
   });
 
+  it("counts identity-conflicted leaf observations conservatively when explicitly requested", async () => {
+    const fetchWindow = vi.fn(async () => [
+      race(7),
+      { rid: null } as unknown as DnaRaceDocument,
+      { value: "unidentified" } as unknown as DnaRaceDocument,
+    ]);
+
+    const result = await crawlDnaFinishedRaceWindows({
+      startTime: "2026-08-01T00:00:00Z",
+      endTime: "2026-08-02T00:00:00Z",
+      fetchWindow,
+      invalidRecordHandling: "count_as_unresolved_observation",
+    });
+
+    expect(result.races.map((entry) => entry.rid)).toEqual([7]);
+    expect(result.unresolvedIdentityObservationUpperBound).toBe(2);
+  });
+
   it("fails closed when a minimum-width window is still saturated", async () => {
     const fetchWindow = vi.fn(async () =>
       saturated(),

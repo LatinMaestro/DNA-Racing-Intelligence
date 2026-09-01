@@ -71,6 +71,7 @@ export type DnaOpenLabP5FirstBackfillFamilyObservation = Readonly<{
   observedApiRequestCount: number;
   observedResponseBytes: number;
   maximumObservedResponseBytes: number;
+  unresolvedIdentityObservationUpperBound: number;
   terminalUnitCount: number;
   splitCount: number;
   endpointObservations: readonly DnaOpenLabP5FirstBackfillEndpointObservation[];
@@ -84,6 +85,7 @@ export type DnaOpenLabP5FirstBackfillFamilyUpperBounds = Readonly<{
   classAOperationsUpperBound: number;
   classBOperationsUpperBound: number;
   neonIncrementalBytesUpperBound: number;
+  unresolvedIdentityObservationUpperBound: number;
 }>;
 
 type EndpointCounter = {
@@ -337,6 +339,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
     const observed = counter();
     let terminalUnitCount = 0;
     let splitCount = 0;
+    let unresolvedIdentityObservationUpperBound = 0;
 
     if (family === "finished_races") {
       const crawl = await crawlDnaFinishedRaceWindows({
@@ -352,10 +355,13 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
               records(value).length,
             execute: (client) => client.racesFinished(window),
           }),
+        invalidRecordHandling: "count_as_unresolved_observation",
       });
       observed.sourceRecordCount = crawl.races.length;
       terminalUnitCount = crawl.completedWindows.length;
       splitCount = crawl.splitCount;
+      unresolvedIdentityObservationUpperBound =
+        crawl.unresolvedIdentityObservationUpperBound;
     } else if (family === "race_activity") {
       const active = await acquire({
         request,
@@ -531,6 +537,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
       observedApiRequestCount: observed.requestCount,
       observedResponseBytes: observed.responseBytes,
       maximumObservedResponseBytes: observed.maximumResponseBytes,
+      unresolvedIdentityObservationUpperBound,
       terminalUnitCount,
       splitCount,
       endpointObservations: endpoints,
@@ -543,7 +550,13 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
       });
     const bounds = input.projectUpperBounds(observation);
     if (
-      count(bounds.sourceRecordUpperBound) < observed.sourceRecordCount ||
+      count(bounds.sourceRecordUpperBound) <
+        add(
+          observed.sourceRecordCount,
+          unresolvedIdentityObservationUpperBound,
+        ) ||
+      count(bounds.unresolvedIdentityObservationUpperBound) !==
+        unresolvedIdentityObservationUpperBound ||
       count(bounds.apiRequestUpperBound) < observed.requestCount ||
       count(bounds.retainedR2BytesUpperBound) < observed.responseBytes ||
       count(bounds.classAOperationsUpperBound) < observed.requestCount ||
@@ -557,6 +570,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
       observedAt,
       terminalInventoryObserved: true,
       observedSourceRecordCount: observed.sourceRecordCount,
+      unresolvedIdentityObservationUpperBound,
       sourceRecordUpperBound: bounds.sourceRecordUpperBound,
       apiRequestUpperBound: bounds.apiRequestUpperBound,
       retainedR2BytesUpperBound: bounds.retainedR2BytesUpperBound,

@@ -19,7 +19,7 @@ export type DnaOpenLabP5SanitizedFirstBackfillFamilyEvidence = Readonly<
 >;
 
 export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   evidenceKind: "dna_open_lab_p5_first_backfill_measurement";
   evidenceSha256: string;
   exactMainCommit: string;
@@ -40,6 +40,7 @@ export type DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence = Readonly<{
       "evidenceRefs"
     >
   >;
+  sourceAuthorityComplete: boolean;
   persistentOwnerDataWriteCount: 0;
   temporaryProviderResidueCount: 0;
   ownerApprovalRecorded: false;
@@ -134,9 +135,11 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
       neonPeakBytesUpperBound:
         report.measuredUpperBound.neonPeakBytesUpperBound,
       projectedCostMicroUsd: report.measuredUpperBound.projectedCostMicroUsd,
+      unresolvedIdentityObservationUpperBound:
+        report.measuredUpperBound.unresolvedIdentityObservationUpperBound,
     });
     const evidenceWithoutChecksum = Object.freeze({
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       evidenceKind: "dna_open_lab_p5_first_backfill_measurement" as const,
       exactMainCommit: report.exactMainCommit,
       acquisitionPlanChecksum: report.acquisitionPlanChecksum,
@@ -155,6 +158,7 @@ export async function invokeDnaOpenLabP5FirstBackfillMeasurement(
       dnaApiCostMicroUsdUpperBound: report.dnaApiCostMicroUsdUpperBound,
       neonCostMicroUsdUpperBound: report.neonCostMicroUsdUpperBound,
       measuredUpperBound: Object.freeze(safeMeasuredUpperBound),
+      sourceAuthorityComplete: report.sourceAuthorityComplete,
       persistentOwnerDataWriteCount: 0 as const,
       temporaryProviderResidueCount: 0 as const,
       ownerApprovalRecorded: false as const,
