@@ -46,8 +46,11 @@ const evidence = (
 export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
   evidence({
     requirementId: "restart_replay_idempotency",
-    status: "local_evidence_only",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33467686923",
+      "github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0",
+      "docs/P4_P5_READINESS_RECOVERY_MATRIX.md",
       "tests/dna-open-lab-current-state-acquisition-runner.test.ts",
       "tests/neon-dna-open-lab-current-state-acquisition-cycle.test.ts",
       "tests/dna-open-lab-r2-current-state-evidence.test.ts",
@@ -56,12 +59,15 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
-      "CAS checkpoints, immutable first-write evidence and conflict-safe replay are proven locally; connected Preview restart evidence is outstanding.",
+      "Exact-main connected run 33467686923 completed the ordered ten-case suite, proving restart-safe immutable R2 replay, single CAS advancement and conflict rejection with zero residue.",
   }),
   evidence({
     requirementId: "partial_failure_rate_limit_recovery",
-    status: "local_evidence_only",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33467686923",
+      "github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0",
+      "docs/P4_P5_READINESS_RECOVERY_MATRIX.md",
       "tests/dna-open-lab-current-state-acquisition-cadence.test.ts",
       "tests/dna-open-lab-current-state-acquisition-runner.test.ts",
       "tests/dna-open-lab-current-state-cycle-coordinator.test.ts",
@@ -70,12 +76,15 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
-      "Rate limits, invalid payloads, API outages and partial cycles preserve last-good state locally; connected Preview recovery evidence is outstanding.",
+      "Exact-main connected run 33467686923 proved Retry-After, lower provider allowance, outage, invalid-body, missing-evidence and atomic-publication recovery while preserving last-good state and zero residue.",
   }),
   evidence({
     requirementId: "tier_loss_reinstatement_catch_up",
-    status: "local_evidence_only",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33467686923",
+      "github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0",
+      "docs/P4_P5_READINESS_RECOVERY_MATRIX.md",
       "tests/dna-open-lab-last-good-publication.test.ts",
       "tests/dna-open-lab-current-state-acquisition-cadence.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
@@ -83,12 +92,15 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
-      "Eligibility loss pauses non-destructively and requires catch-up locally; connected loss/reinstatement evidence is outstanding.",
+      "Exact-main connected run 33467686923 proved non-destructive eligibility loss, durable paused authority and reinstatement catch-up through one complete indexed publication before clearing the pause.",
   }),
   evidence({
     requirementId: "stale_cached_site_operation",
-    status: "local_evidence_only",
+    status: "satisfied",
     evidenceRefs: Object.freeze([
+      "https://github.com/LatinMaestro/DNA-Racing-Intelligence/actions/runs/33467686923",
+      "github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0",
+      "docs/P4_P5_READINESS_RECOVERY_MATRIX.md",
       "tests/dna-open-lab-last-good-publication.test.ts",
       "tests/neon-dna-open-lab-sync-publication.test.ts",
       "tests/dna-open-lab-p5-recovery-harness.test.ts",
@@ -96,7 +108,7 @@ export const DNA_OPEN_LAB_P5_READINESS_EVIDENCE = Object.freeze([
       "tests/dna-open-lab-p5-component-recovery-executor.test.ts",
     ]),
     conclusion:
-      "Owner-scoped last-good reads remain available while sync is paused locally; protected Preview acceptance is outstanding.",
+      "Exact-main connected run 33467686923 preserved the accepted last-good serving authority throughout all ten interruptions and catch-up paths while owner/provider fingerprints remained unchanged.",
   }),
   evidence({
     requirementId: "postgres_18_physical_peak_storage",

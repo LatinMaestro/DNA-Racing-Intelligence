@@ -254,8 +254,12 @@ Present the exact cost/recovery/capacity evidence and **STOP for explicit owner 
 Current gate state: the repository exports a complete technical-requirement
 matrix. Exact-main connected run `33227770750` satisfied the API-only PostgreSQL
 18 physical/peak, private R2 footprint/cost and positive Neon headroom rows.
-Connected recovery acceptance remains outstanding, so P5 is not yet ready for
-owner approval.
+Exact-main connected run `33467686923` then completed the ordered ten-case
+recovery suite with unchanged owner/provider fingerprints and zero synthetic
+residue, satisfying the four recovery rows. Technical readiness is complete.
+The first persistent private Preview backfill remains blocked until an
+exact-main non-persistent complete-inventory measurement supplies the one-time
+API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

@@ -12,15 +12,15 @@ later approval gates. P5 approval can never authorise Production.
 
 ## Current matrix
 
-| P5 technical requirement                | Current evidence                                                                                | Remaining proof                                         |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Restart, replay and idempotency         | Local synthetic CAS checkpoint, immutable R2 first-write and replay-conflict tests              | Connected private Preview restart/replay acceptance     |
-| Partial failure and rate-limit recovery | Local synthetic 429, invalid-payload, outage and partial-cycle tests preserve last-good         | Connected private Preview recovery acceptance           |
-| Tier loss, reinstatement and catch-up   | Local synthetic eligibility pause and catch-up state tests                                      | Connected private Preview loss/reinstatement acceptance |
-| Stale cached website operation          | Local owner-scoped last-good read and pause tests                                               | Protected Preview stale-site acceptance                 |
-| PostgreSQL 18 physical and peak storage | Run `33227770750`: PostgreSQL 18, complete owner physical inventory and 3 peak samples          | Satisfied                                               |
-| Private R2 footprint and cost           | Run `33227770750`: private bounded footprint, 30-day operation/cost projection and zero residue | Satisfied                                               |
-| Positive Neon headroom                  | Run `33227770750`: 17,768,448-byte peak; 519,102,464-byte headroom below 536,870,912            | Satisfied                                               |
+| P5 technical requirement                | Current evidence                                                                                 | Remaining proof |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------- |
+| Restart, replay and idempotency         | Run `33467686923`: ordered exact-main replay/CAS cases passed with zero residue                  | Satisfied       |
+| Partial failure and rate-limit recovery | Run `33467686923`: Retry-After, lower allowance, outage, body, R2 and Neon recovery cases passed | Satisfied       |
+| Tier loss, reinstatement and catch-up   | Run `33467686923`: pause and exact-checkpoint catch-up through complete indexed publication      | Satisfied       |
+| Stale cached website operation          | Run `33467686923`: last-good remained serving through all ten cases                              | Satisfied       |
+| PostgreSQL 18 physical and peak storage | Run `33227770750`: PostgreSQL 18, complete owner physical inventory and 3 peak samples           | Satisfied       |
+| Private R2 footprint and cost           | Run `33227770750`: private bounded footprint, 30-day operation/cost projection and zero residue  | Satisfied       |
+| Positive Neon headroom                  | Run `33227770750`: 17,768,448-byte peak; 519,102,464-byte headroom below 536,870,912             | Satisfied       |
 
 The exported `DNA_OPEN_LAB_CURRENT_P5_READINESS` value is the machine-checkable
 counterpart. It keeps every non-satisfied row blocking, keeps owner approval
@@ -141,8 +141,9 @@ suite still leaves first persistent Preview sync and Production disallowed.
 ## Gate state
 
 - P4 operator infrastructure is implemented and locally synthetic.
-- P5 technical evidence is incomplete, so the project is not yet ready to ask
-  for first-persistent-sync approval.
+- P5 technical evidence is complete. The first historical backfill remains
+  blocked on the exact-main non-persistent complete-inventory measurement and
+  the owner's later exact cost-capped authorization.
 - No persistent real owner-data backfill or sync may start.
 - The bounded recovery evidence harness is implemented locally.
 - Exact-main connected capacity run `33227770750` satisfied all three capacity
@@ -150,13 +151,14 @@ suite still leaves first persistent Preview sync and Production disallowed.
   `sha256:3c9b47aff03ee63554eabf249304fd2f9009c7075c3ba407149ee3dac36823b9`.
   It measured PostgreSQL 18 peak/headroom and the bounded private R2 footprint
   and cost projection, then re-proved cleanup and zero residue.
-- The generic harness, case-specific assertion adapters and raw
-  component-observation executor are implemented. The exact-head connected
-  invocation, sanitized evidence boundary and mandatory provider-state cleanup
-  lifecycle are also implemented. Concrete bounded Neon/R2 safety inspection
-  and temporary R2 cleanup ports are implemented. The first provider-backed
-  crash/restart scenario is implemented; its private Preview execution and the
-  remaining provider-backed cases remain outstanding.
+- Exact-main connected run `33467686923` completed all ten ordered cases at
+  `0371dbb32f5cd0d56f4a41e61ee14ad399630945`. Its sanitized artifact is
+  `github-actions:artifact/9785468669#sha256:4bdcb895a49211b168ea85e147a570ab07fbc14bba4715854411812b5e751ce0`.
+  The terminal report and connected-evidence checksums were respectively
+  `d5f5f5f3b449b551a22fafa702cbe50481184bf711c5c04ee1e25b97c701f878`
+  and `a4b0826fe2f641dc7110f7584d88c84adbf7650927795b8ad391a839697e500d`.
+  Every case recorded zero persistent owner-data writes, raw payloads, secrets
+  and residue; final provider fingerprints were unchanged.
 - Migrations `0069`–`0076` are applied and smoke-tested on private Preview.
   Exact-main prerequisite run `33224616911` confirmed PostgreSQL 18, 15/15
   API-only relations, the then-listed 13/13 runtime functions, the owner/RLS
@@ -167,10 +169,9 @@ suite still leaves first persistent Preview sync and Production disallowed.
   rollback, R2 marker verification, footprint collection, cleanup, report build
   and post-run provider safety. Persistent Preview sync and Production remained
   disallowed.
-- The guarded exact-head workflow binding for the first
-  crash-after-R2-write/restart-replay scenario is implemented. Its private
-  Preview execution is the next acceptance step, followed by the remaining
-  ordered connected cases.
+- The guarded exact-head workflow binding and all ten provider-backed scenarios
+  have passed connected private Preview acceptance. Recovery evidence is no
+  longer a P5 blocker.
 - The second connected case now has a component-backed concurrency scenario:
   two workers replay one immutable temporary R2 receipt from the same synthetic
   checkpoint revision, exactly one compare-and-swap advances, the losing writer

@@ -42,7 +42,7 @@ const satisfiedReadiness = (ownerApprovalRecorded: boolean) =>
   });
 
 describe("DNA Open Lab P5 first historical backfill approval", () => {
-  it("keeps the current packet blocked on connected technical evidence", () => {
+  it("keeps the current packet blocked on the measured inventory upper bound", () => {
     expect(
       buildDnaOpenLabP5FirstBackfillApprovalPacket({
         readiness: DNA_OPEN_LAB_CURRENT_P5_READINESS,
@@ -50,8 +50,8 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
         ownerAuthorization: null,
       }),
     ).toEqual({
-      status: "blocked_technical_evidence",
-      technicalEvidenceComplete: false,
+      status: "blocked_measured_upper_bound",
+      technicalEvidenceComplete: true,
       measuredUpperBoundComplete: false,
       readyForOwnerDecision: false,
       ownerApprovalRecorded: false,
