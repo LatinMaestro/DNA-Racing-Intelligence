@@ -131,6 +131,14 @@ baseline but writes no owner data, re-proves provider safety and unchanged main,
 the sanitized recovery JSONL plus aggregate measurement JSON for seven days.
 It does not record owner approval or enable the persistent backfill.
 
+Connected failures emit only an allowlisted acquisition code, the active source
+family, completed-family count, aggregate request count and rate-limit count.
+Long crawls also emit a count-only request milestone every 500 requests. These
+diagnostics never include an exception message, URL, time window, entity ID,
+payload value, key, Vault reference or provider credential. Cleanup still runs
+before the workflow fails, and an incomplete measurement still produces no
+approval artifact.
+
 ## Mandatory stop conditions
 
 The commissioning backfill performs no further provider request or write when:

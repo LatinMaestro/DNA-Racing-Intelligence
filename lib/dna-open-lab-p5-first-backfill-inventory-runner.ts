@@ -1,4 +1,5 @@
 import type { DnaOpenLabClientPool } from "./dna-open-lab-client-pool";
+import { DnaFinishedRaceWindowCrawlerError } from "./dna-open-lab-finished-race-window-crawler";
 import {
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_MEASUREMENT_INVOCATION_AUTHORITY,
   invokeDnaOpenLabP5FirstBackfillMeasurement,
@@ -17,6 +18,7 @@ import type {
   DnaOpenLabResponse,
   DnaOpenLabScope,
 } from "./dna-open-lab-v1-client";
+import { DnaOpenLabApiError } from "./dna-open-lab-v1-client";
 
 const MAXIMUM_OBSERVED_RESPONSE_BYTES = 8 * 1024 * 1024 * 1024;
 
@@ -78,6 +80,42 @@ export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_INVENTORY_PROGRESS_STAGES =
 export type DnaOpenLabP5FirstBackfillInventoryProgressStage =
   (typeof DNA_OPEN_LAB_P5_FIRST_BACKFILL_INVENTORY_PROGRESS_STAGES)[number];
 
+export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES = Object.freeze([
+  "api_invalid_configuration",
+  "api_invalid_request",
+  "api_malformed_response",
+  "api_error",
+  "api_rate_limited",
+  "finished_race_invalid_window",
+  "finished_race_source_limit_breach",
+  "finished_race_unprovable_saturation",
+  "finished_race_conflicting_duplicate",
+  "inventory_validation",
+  "family_adapter_validation",
+  "unexpected_error",
+] as const);
+
+export type DnaOpenLabP5FirstBackfillFailureCode =
+  (typeof DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES)[number];
+
+export type DnaOpenLabP5FirstBackfillInventoryDiagnostic =
+  | Readonly<{
+      kind: "request_milestone";
+      family: DnaOpenLabP5FirstBackfillSourceFamily;
+      completedFamilyCount: number;
+      familyApiRequestCount: number;
+      totalApiRequestCount: number;
+    }>
+  | Readonly<{
+      kind: "acquisition_failed";
+      family: DnaOpenLabP5FirstBackfillSourceFamily;
+      failureCode: DnaOpenLabP5FirstBackfillFailureCode;
+      completedFamilyCount: number;
+      familyApiRequestCount: number;
+      totalApiRequestCount: number;
+      rateLimitedRequestCount: number;
+    }>;
+
 export type DnaOpenLabP5FirstBackfillInventoryRequest = <T>(input: {
   scope: DnaOpenLabScope;
   request: (
@@ -119,6 +157,28 @@ type MeasurementMetadata = Omit<
 
 function runnerError(): never {
   throw new Error("DNA Open Lab P5 first backfill inventory runner failed.");
+}
+
+function failureCode(error: unknown): DnaOpenLabP5FirstBackfillFailureCode {
+  if (error instanceof DnaOpenLabApiError) {
+    return error.kind === "api_error" ? "api_error" : `api_${error.kind}`;
+  }
+  if (error instanceof DnaFinishedRaceWindowCrawlerError) {
+    return `finished_race_${error.kind}`;
+  }
+  if (
+    error instanceof Error &&
+    error.message === "DNA Open Lab P5 first backfill inventory runner failed."
+  ) {
+    return "inventory_validation";
+  }
+  if (
+    error instanceof Error &&
+    error.message === "DNA Open Lab P5 first backfill family adapter failed."
+  ) {
+    return "family_adapter_validation";
+  }
+  return "unexpected_error";
 }
 
 function count(value: number): number {
@@ -187,6 +247,12 @@ function totalPoolRequestCount(pool: DnaOpenLabClientPool): number {
     .lanes.reduce((total, lane) => add(total, count(lane.requestCount)), 0);
 }
 
+function totalPoolRateLimitedCount(pool: DnaOpenLabClientPool): number {
+  return pool
+    .snapshot()
+    .lanes.reduce((total, lane) => add(total, count(lane.rateLimitedCount)), 0);
+}
+
 function cleanup(value: DnaOpenLabP5FirstBackfillInventoryCleanup): void {
   if (
     count(value.persistentOwnerDataWriteCount) !== 0 ||
@@ -218,14 +284,25 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
   recordProgress?: (
     stage: DnaOpenLabP5FirstBackfillInventoryProgressStage,
   ) => void;
+  recordDiagnostic?: (
+    diagnostic: DnaOpenLabP5FirstBackfillInventoryDiagnostic,
+  ) => void;
+  requestDiagnosticInterval?: number;
 }): Promise<DnaOpenLabP5SanitizedFirstBackfillMeasurementEvidence> {
   verifyPool(input.clientPool, input.temporaryCommissioningRateAuthorization);
+  const requestDiagnosticInterval = positiveCount(
+    input.requestDiagnosticInterval ?? 500,
+  );
   const initialPoolRequestCount = totalPoolRequestCount(input.clientPool);
   const families: DnaOpenLabP5FirstBackfillFamilyMeasurement[] = [];
   let acquisitionFailure = false;
+  let activeFamily: DnaOpenLabP5FirstBackfillSourceFamily = "finished_races";
+  let activeFamilyRequestCount = 0;
 
   try {
     for (const family of DNA_OPEN_LAB_P5_FIRST_BACKFILL_SOURCE_FAMILIES) {
+      activeFamily = family;
+      activeFamilyRequestCount = 0;
       const authority = FAMILY_AUTHORITY[family];
       let observedApiRequestCount = 0;
       let observedResponseBytes = 0;
@@ -245,10 +322,24 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
           request: execute,
         });
         observedApiRequestCount = add(observedApiRequestCount, 1);
+        activeFamilyRequestCount = observedApiRequestCount;
         observedResponseBytes = add(
           observedResponseBytes,
           responseBytes(response.result),
         );
+        if (observedApiRequestCount % requestDiagnosticInterval === 0) {
+          input.recordDiagnostic?.(
+            Object.freeze({
+              kind: "request_milestone",
+              family,
+              completedFamilyCount: families.length,
+              familyApiRequestCount: observedApiRequestCount,
+              totalApiRequestCount:
+                totalPoolRequestCount(input.clientPool) -
+                initialPoolRequestCount,
+            }),
+          );
+        }
         return response.result;
       };
 
@@ -307,8 +398,20 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
     ) {
       runnerError();
     }
-  } catch {
+  } catch (error) {
     acquisitionFailure = true;
+    input.recordDiagnostic?.(
+      Object.freeze({
+        kind: "acquisition_failed",
+        family: activeFamily,
+        failureCode: failureCode(error),
+        completedFamilyCount: families.length,
+        familyApiRequestCount: activeFamilyRequestCount,
+        totalApiRequestCount:
+          totalPoolRequestCount(input.clientPool) - initialPoolRequestCount,
+        rateLimitedRequestCount: totalPoolRateLimitedCount(input.clientPool),
+      }),
+    );
   }
 
   let cleanupFailure = false;
