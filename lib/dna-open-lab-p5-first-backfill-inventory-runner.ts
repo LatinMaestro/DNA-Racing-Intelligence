@@ -13,12 +13,20 @@ import {
   type DnaOpenLabP5FirstBackfillSourceFamily,
 } from "./dna-open-lab-p5-first-backfill-measurement";
 import { DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE } from "./dna-open-lab-request-budget";
-import type {
-  DnaOpenLabClient,
-  DnaOpenLabResponse,
-  DnaOpenLabScope,
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+  type DnaOpenLabResponse,
+  type DnaOpenLabScope,
 } from "./dna-open-lab-v1-client";
-import { DnaOpenLabApiError } from "./dna-open-lab-v1-client";
+/*
+ * A malformed envelope is not evidence of a malformed race row. It can be a
+ * transient provider/transport response, so the read-only commissioning
+ * inventory retries the exact request through the same aggregate budget. A
+ * persistent malformed envelope still fails closed and cannot be counted as
+ * an owner-approved omitted race observation.
+ */
+export const DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS = 3 as const;
 
 const MAXIMUM_OBSERVED_RESPONSE_BYTES = 8 * 1024 * 1024 * 1024;
 
@@ -307,6 +315,7 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
       activeFamilyRequestCount = 0;
       const authority = FAMILY_AUTHORITY[family];
       let observedApiRequestCount = 0;
+      let successfulLogicalRequestCount = 0;
       let observedResponseBytes = 0;
       const request: DnaOpenLabP5FirstBackfillInventoryRequest = async <T>({
         scope,
@@ -319,30 +328,54 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
         ) => Promise<DnaOpenLabResponse<T>>;
       }): Promise<T> => {
         if (!authority.scopes.includes(scope)) runnerError();
-        const response = await input.clientPool.execute({
-          scope,
-          request: execute,
-        });
-        observedApiRequestCount = add(observedApiRequestCount, 1);
-        activeFamilyRequestCount = observedApiRequestCount;
-        observedResponseBytes = add(
-          observedResponseBytes,
-          responseBytes(response.result),
-        );
-        if (observedApiRequestCount % requestDiagnosticInterval === 0) {
-          input.recordDiagnostic?.(
-            Object.freeze({
-              kind: "request_milestone",
-              family,
-              completedFamilyCount: families.length,
-              familyApiRequestCount: observedApiRequestCount,
-              totalApiRequestCount:
-                totalPoolRequestCount(input.clientPool) -
-                initialPoolRequestCount,
-            }),
+        const recordRequestAttempt = (): void => {
+          observedApiRequestCount = add(observedApiRequestCount, 1);
+          activeFamilyRequestCount = observedApiRequestCount;
+          if (observedApiRequestCount % requestDiagnosticInterval === 0) {
+            input.recordDiagnostic?.(
+              Object.freeze({
+                kind: "request_milestone",
+                family,
+                completedFamilyCount: families.length,
+                familyApiRequestCount: observedApiRequestCount,
+                totalApiRequestCount:
+                  totalPoolRequestCount(input.clientPool) -
+                  initialPoolRequestCount,
+              }),
+            );
+          }
+        };
+        for (
+          let attempt = 1;
+          attempt <= DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS;
+          attempt += 1
+        ) {
+          let response: DnaOpenLabResponse<T>;
+          try {
+            response = await input.clientPool.execute({
+              scope,
+              request: execute,
+            });
+          } catch (error) {
+            recordRequestAttempt();
+            if (!(
+              error instanceof DnaOpenLabApiError &&
+              error.kind === "malformed_response" &&
+              attempt < DNA_OPEN_LAB_P5_MALFORMED_RESPONSE_MAX_ATTEMPTS
+            )) {
+              throw error;
+            }
+            continue;
+          }
+          recordRequestAttempt();
+          successfulLogicalRequestCount = add(successfulLogicalRequestCount, 1);
+          observedResponseBytes = add(
+            observedResponseBytes,
+            responseBytes(response.result),
           );
+          return response.result;
         }
-        return response.result;
+        return runnerError();
       };
 
       const result = await input.measureFamily({ family, request });
@@ -358,13 +391,21 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
         result.unresolvedIdentityObservationUpperBound,
       );
       const sourceRecordUpperBound = count(result.sourceRecordUpperBound);
-      const apiRequestUpperBound = positiveCount(result.apiRequestUpperBound);
-      const retainedR2BytesUpperBound = count(result.retainedR2BytesUpperBound);
-      const classAOperationsUpperBound = count(
-        result.classAOperationsUpperBound,
+      const malformedResponseRetryCount =
+        observedApiRequestCount - successfulLogicalRequestCount;
+      if (malformedResponseRetryCount < 0) runnerError();
+      const apiRequestUpperBound = add(
+        positiveCount(result.apiRequestUpperBound),
+        malformedResponseRetryCount,
       );
-      const classBOperationsUpperBound = count(
-        result.classBOperationsUpperBound,
+      const retainedR2BytesUpperBound = count(result.retainedR2BytesUpperBound);
+      const classAOperationsUpperBound = add(
+        count(result.classAOperationsUpperBound),
+        malformedResponseRetryCount,
+      );
+      const classBOperationsUpperBound = add(
+        count(result.classBOperationsUpperBound),
+        malformedResponseRetryCount,
       );
       if (
         observedApiRequestCount < 1 ||
