@@ -11,6 +11,8 @@ export const DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_FAILURE_PHASES = Object.freeze([
   "result_assertion",
   "final_provider_safety",
   "cleanup_synthetic_prefix",
+  "cleanup_neon_safety",
+  "cleanup_r2_safety",
   "cleanup_provider_safety",
 ] as const);
 
