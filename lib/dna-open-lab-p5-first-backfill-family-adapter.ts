@@ -66,6 +66,7 @@ export type DnaOpenLabP5FirstBackfillFamilyObservation = Readonly<{
   family: DnaOpenLabP5FirstBackfillSourceFamily;
   authorityClass: DnaOpenLabP5FirstBackfillAuthorityClass;
   authorityCutoffAt: string;
+  observedAt: string;
   observedSourceRecordCount: number;
   observedApiRequestCount: number;
   observedResponseBytes: number;
@@ -305,6 +306,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
   vault: string;
   finishedRaceHistoryStartAt: string;
   authorityCutoffAt: string;
+  now?: () => string;
   projectUpperBounds: (
     observation: DnaOpenLabP5FirstBackfillFamilyObservation,
   ) => DnaOpenLabP5FirstBackfillFamilyUpperBounds;
@@ -317,6 +319,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
   const vault = requiredText(input.vault);
   const historyStartAt = timestamp(input.finishedRaceHistoryStartAt);
   const authorityCutoffAt = timestamp(input.authorityCutoffAt);
+  const now = input.now ?? (() => new Date().toISOString());
   if (Date.parse(historyStartAt) > Date.parse(authorityCutoffAt))
     adapterError();
 
@@ -517,10 +520,13 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
 
     if (observed.requestCount < 1 || terminalUnitCount < 1) adapterError();
     const endpoints = endpointObservations(observed.endpoints);
+    const observedAt = timestamp(now());
+    if (Date.parse(observedAt) < Date.parse(authorityCutoffAt)) adapterError();
     const evidenceBase = Object.freeze({
       family,
       authorityClass: FAMILY_AUTHORITY[family],
       authorityCutoffAt,
+      observedAt,
       observedSourceRecordCount: observed.sourceRecordCount,
       observedApiRequestCount: observed.requestCount,
       observedResponseBytes: observed.responseBytes,
@@ -548,6 +554,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
     return Object.freeze({
       family,
       authorityClass: FAMILY_AUTHORITY[family],
+      observedAt,
       terminalInventoryObserved: true,
       observedSourceRecordCount: observed.sourceRecordCount,
       sourceRecordUpperBound: bounds.sourceRecordUpperBound,

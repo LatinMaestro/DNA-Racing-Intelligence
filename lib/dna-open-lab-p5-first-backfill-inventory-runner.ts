@@ -81,6 +81,7 @@ export type DnaOpenLabP5FirstBackfillInventoryRequest = <T>(input: {
 export type DnaOpenLabP5FirstBackfillFamilyInventoryResult = Readonly<{
   family: DnaOpenLabP5FirstBackfillSourceFamily;
   authorityClass: DnaOpenLabP5FirstBackfillAuthorityClass;
+  observedAt: string;
   terminalInventoryObserved: boolean;
   observedSourceRecordCount: number;
   sourceRecordUpperBound: number;
@@ -187,6 +188,7 @@ function cleanup(value: DnaOpenLabP5FirstBackfillInventoryCleanup): void {
 export async function runDnaOpenLabP5FirstBackfillInventory(input: {
   clientPool: DnaOpenLabClientPool;
   measurement: MeasurementMetadata;
+  measurementCompletedAt?: () => string;
   measureFamily: (input: {
     family: DnaOpenLabP5FirstBackfillSourceFamily;
     request: DnaOpenLabP5FirstBackfillInventoryRequest;
@@ -303,6 +305,8 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
     expectedCodeHeadSha: input.measurement.exactMainCommit,
     measurement: {
       ...input.measurement,
+      measuredAt:
+        input.measurementCompletedAt?.() ?? input.measurement.measuredAt,
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
       rawPayloadIncludedInEvidence: false,

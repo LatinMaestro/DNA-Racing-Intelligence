@@ -150,6 +150,7 @@ describeConnected("hosted P5 complete first-backfill measurement", () => {
             neonCostMicroUsdUpperBound: 0,
           },
         },
+        measurementCompletedAt: () => new Date().toISOString(),
         measureFamily: adapter.measureFamily,
         cleanupMeasurement: async () => ({
           persistentOwnerDataWriteCount: 0,

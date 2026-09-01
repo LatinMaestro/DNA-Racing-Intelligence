@@ -13,6 +13,7 @@ function observation(
     family: "finished_races",
     authorityClass: "available_paginated_history_at_cutoff",
     authorityCutoffAt: "2026-09-01T00:00:00.000Z",
+    observedAt: "2026-09-01T00:00:01.000Z",
     observedSourceRecordCount: 200,
     observedApiRequestCount: 10,
     observedResponseBytes: 100_000,

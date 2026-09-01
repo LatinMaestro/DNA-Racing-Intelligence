@@ -18,6 +18,7 @@ export type DnaOpenLabP5FirstBackfillAuthorityClass =
 export type DnaOpenLabP5FirstBackfillFamilyMeasurement = Readonly<{
   family: DnaOpenLabP5FirstBackfillSourceFamily;
   authorityClass: DnaOpenLabP5FirstBackfillAuthorityClass;
+  observedAt: string;
   terminalInventoryObserved: boolean;
   observedSourceRecordCount: number;
   sourceRecordUpperBound: number;
@@ -297,6 +298,18 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     }
     if (!family.terminalInventoryObserved) {
       measurementError(`source family ${family.family} is not complete`);
+    }
+    const observedAt = timestamp(
+      family.observedAt,
+      `${family.family}.observedAt`,
+    );
+    if (
+      Date.parse(observedAt) < Date.parse(authorityCutoffAt) ||
+      Date.parse(observedAt) > Date.parse(measuredAt)
+    ) {
+      measurementError(
+        `${family.family}.observedAt must fall within the measurement interval`,
+      );
     }
     const observedSourceRecordCount = count(
       family.observedSourceRecordCount,

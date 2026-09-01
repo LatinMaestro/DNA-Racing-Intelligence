@@ -60,6 +60,7 @@ const measurement = (): DnaOpenLabP5FirstBackfillMeasurementInput => ({
       family as DnaOpenLabP5FirstBackfillMeasurementInput["families"][number]["family"],
     authorityClass:
       authorityClass as DnaOpenLabP5FirstBackfillMeasurementInput["families"][number]["authorityClass"],
+    observedAt: "2026-09-01T03:59:59.999Z",
     terminalInventoryObserved: true,
     observedSourceRecordCount: observed as number,
     sourceRecordUpperBound: upper as number,

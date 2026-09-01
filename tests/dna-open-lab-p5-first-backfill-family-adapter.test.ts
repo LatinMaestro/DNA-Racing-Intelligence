@@ -299,6 +299,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       vault: "owner-vault",
       finishedRaceHistoryStartAt: historyStartAt,
       authorityCutoffAt,
+      now: () => "2026-09-01T07:00:00.000Z",
       projectUpperBounds: (observation) => {
         observations.push(observation);
         return projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(observation);
@@ -391,6 +392,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       vault: "owner-vault",
       finishedRaceHistoryStartAt: historyStartAt,
       authorityCutoffAt,
+      now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
         apiRequestUpperBound: observation.observedApiRequestCount,
@@ -431,6 +433,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       vault: "owner-vault",
       finishedRaceHistoryStartAt: historyStartAt,
       authorityCutoffAt,
+      now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
         apiRequestUpperBound: observation.observedApiRequestCount,
@@ -452,6 +455,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
       vault: "owner-vault",
       finishedRaceHistoryStartAt: historyStartAt,
       authorityCutoffAt,
+      now: () => authorityCutoffAt,
       projectUpperBounds: (observation) => ({
         sourceRecordUpperBound: observation.observedSourceRecordCount,
         apiRequestUpperBound: observation.observedApiRequestCount,

@@ -59,6 +59,14 @@ Neon upper-bound costs, rejects a non-positive Neon headroom result and emits an
 approval-packet input with owner approval and all persistent writes still
 disabled.
 
+The historical authority cutoff is fixed before acquisition. Each family also
+records its own completion timestamp, and the aggregate measurement timestamp
+is taken only after all six families and cleanup finish. Every family timestamp
+must fall between the historical cutoff and measurement completion. This makes
+the unavoidable capture interval explicit: current-only endpoints are never
+misrepresented as though they were an instantaneous snapshot taken at the
+earlier finished-race cutoff.
+
 The connected emission boundary is
 `lib/dna-open-lab-p5-first-backfill-measurement-invocation.ts`. It rejects a
 changed head or unsafe measurement before emission, hashes every private family,
