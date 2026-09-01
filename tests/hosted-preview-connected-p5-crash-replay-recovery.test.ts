@@ -79,10 +79,15 @@ function recoverySafety(
     secretAccessKey: configuration.secretAccessKey,
     bucketName: configuration.bucketName,
   });
-  return createDnaOpenLabP5RecoveryProviderSafety({
+  const providerSafety = createDnaOpenLabP5RecoveryProviderSafety({
     inspectNeon,
     inspectR2: r2.inspect,
     cleanupR2SyntheticCase: r2.cleanupSyntheticCase,
+  });
+  return Object.freeze({
+    ...providerSafety,
+    inspectNeon,
+    inspectR2: r2.inspect,
   });
 }
 
@@ -307,6 +312,10 @@ describeCleanup("hosted Preview P5 ordered recovery cleanup", () => {
     try {
       const safety = recoverySafety(providerConfiguration());
       await safety.cleanupSyntheticCase();
+      phase = "cleanup_neon_safety";
+      await safety.inspectNeon();
+      phase = "cleanup_r2_safety";
+      await safety.inspectR2();
       phase = "cleanup_provider_safety";
       await expect(safety.inspectProviderSafety()).resolves.toMatchObject({
         syntheticResidueObjectCount: 0,
