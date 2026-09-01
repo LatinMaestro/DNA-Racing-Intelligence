@@ -1,6 +1,12 @@
 import { DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES } from "./dna-open-lab-p5-capacity-measurement";
 import type { DnaOpenLabP5FirstBackfillMeasuredUpperBound } from "./dna-open-lab-p5-first-backfill-approval";
 import { DNA_CURRENT_STATE_ACQUISITION_GROUPS } from "./dna-open-lab-current-state-acquisition-cadence";
+import {
+  classifyDnaOpenLabUnresolvedIdentityObservations,
+  DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT,
+  DNA_OPEN_LAB_UNRESOLVED_IDENTITY_CRITICAL_NOTIFICATION_THRESHOLD,
+  type DnaOpenLabUnresolvedIdentityDisposition,
+} from "./dna-open-lab-unresolved-identity-policy";
 
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_SOURCE_FAMILIES = Object.freeze([
   "finished_races",
@@ -83,6 +89,9 @@ export type DnaOpenLabP5FirstBackfillMeasurementReport = Readonly<{
   neonCostMicroUsdUpperBound: number;
   measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound;
   sourceAuthorityComplete: boolean;
+  unresolvedIdentityDisposition: DnaOpenLabUnresolvedIdentityDisposition;
+  ownerAuthorizedDeMinimisIdentityOmissionLimit: number;
+  unresolvedIdentityCriticalNotificationThreshold: number;
   persistentOwnerDataWriteCount: 0;
   temporaryProviderResidueCount: 0;
   ownerApprovalRecorded: false;
@@ -395,6 +404,10 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     families.map((family) => family.unresolvedIdentityObservationUpperBound),
     "unresolvedIdentityObservationUpperBound",
   );
+  const unresolvedIdentityDisposition =
+    classifyDnaOpenLabUnresolvedIdentityObservations(
+      unresolvedIdentityObservationUpperBound,
+    );
   const apiRequestUpperBound = add(
     families.map((family) => family.apiRequestUpperBound),
     "apiRequestUpperBound",
@@ -515,6 +528,11 @@ export function buildDnaOpenLabP5FirstBackfillMeasurementReport(
     neonCostMicroUsdUpperBound,
     measuredUpperBound,
     sourceAuthorityComplete: unresolvedIdentityObservationUpperBound === 0,
+    unresolvedIdentityDisposition,
+    ownerAuthorizedDeMinimisIdentityOmissionLimit:
+      DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT,
+    unresolvedIdentityCriticalNotificationThreshold:
+      DNA_OPEN_LAB_UNRESOLVED_IDENTITY_CRITICAL_NOTIFICATION_THRESHOLD,
     persistentOwnerDataWriteCount: 0 as const,
     temporaryProviderResidueCount: 0 as const,
     ownerApprovalRecorded: false as const,

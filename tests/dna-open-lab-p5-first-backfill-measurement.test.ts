@@ -170,6 +170,9 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
     });
     expect(report).toMatchObject({
       sourceAuthorityComplete: true,
+      unresolvedIdentityDisposition: "none",
+      ownerAuthorizedDeMinimisIdentityOmissionLimit: 25,
+      unresolvedIdentityCriticalNotificationThreshold: 1_000,
       persistentOwnerDataWriteCount: 0,
       temporaryProviderResidueCount: 0,
       ownerApprovalRecorded: false,
@@ -193,9 +196,40 @@ describe("DNA Open Lab P5 first backfill measurement", () => {
     });
 
     expect(report.sourceAuthorityComplete).toBe(false);
+    expect(report.unresolvedIdentityDisposition).toBe(
+      "owner_authorized_de_minimis_candidate",
+    );
     expect(
       report.measuredUpperBound.unresolvedIdentityObservationUpperBound,
     ).toBe(2);
+  });
+
+  it("classifies review and critical-notification volumes without authorizing persistence", () => {
+    const base = input();
+    const reportAt = (unresolvedIdentityObservationUpperBound: number) =>
+      buildDnaOpenLabP5FirstBackfillMeasurementReport({
+        ...base,
+        families: base.families.map((family) =>
+          family.family === "finished_races"
+            ? {
+                ...family,
+                unresolvedIdentityObservationUpperBound,
+                sourceRecordUpperBound:
+                  family.observedSourceRecordCount +
+                  unresolvedIdentityObservationUpperBound,
+              }
+            : family,
+        ),
+      });
+
+    expect(reportAt(26).unresolvedIdentityDisposition).toBe(
+      "owner_review_required",
+    );
+    expect(reportAt(1_000)).toMatchObject({
+      unresolvedIdentityDisposition: "critical_volume_notification_required",
+      sourceAuthorityComplete: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
+    });
   });
 
   it("rejects incomplete, missing, duplicate or misclassified families", () => {
