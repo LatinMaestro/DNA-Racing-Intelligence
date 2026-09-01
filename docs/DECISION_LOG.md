@@ -1145,3 +1145,19 @@ After the private Pro League milestone, continue in this order:
 - Never emit the provider exception message, request URL or window, entity ID,
   raw response, Vault reference, API key or other credential. These diagnostics
   do not constitute a complete inventory or P5 approval evidence.
+
+## 2026-09-01 — Finished-race rows require typed stable-identity validation
+
+- Protected exact-main run `33501119064` completed 13,311 finished-race API
+  requests at the owner-approved 150 aggregate requests/minute ceiling before
+  deterministic post-response validation failed. No request was rate limited.
+- Provider prerequisites, all ten recovery cases, recovery cleanup, post-run
+  provider safety and unchanged-main checks passed. The measurement artifact
+  remained suppressed and no persistent owner-data write occurred.
+- The successful-family and pool request counts were equal at failure, so the
+  response had returned before an untyped finished-race row condition escaped
+  as `unexpected_error`. Treat every row and `rid` as untrusted runtime data.
+- Reject a non-object row, missing/non-string/non-numeric `rid`, empty `rid` or
+  unsafe numeric `rid` with the allowlisted
+  `finished_race_invalid_record` code. Do not emit the row, identifier, request
+  window, provider message or payload and do not skip malformed source evidence.
