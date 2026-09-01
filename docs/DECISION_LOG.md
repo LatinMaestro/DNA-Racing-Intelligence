@@ -1086,3 +1086,20 @@ After the private Pro League milestone, continue in this order:
   512 MiB Neon headroom check, provider budgets, connected recovery proof and
   exact bounded owner approval remain mandatory before the first persistent
   private Preview backfill.
+
+## 2026-09-01 — First-backfill measurement is recovery-first and exact-main
+
+- Compose the reviewed projection policy into one dispatch-only protected
+  workflow that accepts only current `main` and fails if main changes during
+  execution.
+- Re-run provider prerequisites and the complete ordered connected recovery
+  suite before the real read-only inventory. Cleanup is mandatory even after a
+  failed recovery case, and measurement cannot start until recovery and cleanup
+  both pass.
+- Keep all three private API keys behind one shared 30 aggregate requests/minute
+  budget with independent buckets disabled. Read the least-privilege Neon
+  baseline twice to detect unexpected mutation; perform no persistent owner
+  write and emit no raw API payload or identity.
+- Upload only the sanitized recovery and first-backfill measurement evidence
+  after post-run provider safety and unchanged-main checks. Retain the artifact
+  for seven days and keep persistent Preview and Production prohibited.
