@@ -257,22 +257,25 @@ matrix. Exact-main connected run `33227770750` satisfied the API-only PostgreSQL
 Exact-main connected run `33467686923` then completed the ordered ten-case
 recovery suite with unchanged owner/provider fingerprints and zero synthetic
 residue, satisfying the four recovery rows. Technical readiness is complete.
-The first persistent private Preview backfill remains blocked until an
-exact-main non-persistent complete-inventory measurement supplies the one-time
-API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
+The first persistent private Preview backfill is owner-approved under the
+combined exact measurement and amendment packet described below.
 The shared six-family inventory runner fixes family order, conservative
 client-pool routing, request/response-byte accounting, terminal-bound checks,
 zero-residue cleanup and aggregate-only emission. Connected endpoint adapters
 and same-head recovery execution are complete. Exact-main run `33574168582`
-completed the policy-v2 inventory and emitted a sanitized artifact: 1,136,911
-source records, a $0.212250 one-time upper-bound projection, 489,717,760 peak
-Neon bytes and 47,153,152 bytes of positive headroom. It measured exactly one
+completed the policy-v2 inventory and emitted a sanitized artifact. Read-only
+continuation run `33680976426` then measured the three Splice Arena requests
+displaced by live race-activity pagination drift. The combined approved packet
+contains 1,137,211 source records, 17,456 logical receipts, a $0.212293 one-time
+upper-bound projection, 496,754,688 peak Neon bytes and 40,116,224 bytes of
+positive headroom. It retains exactly one
 owner-authorized de minimis unresolved identity observation. The worker now
 binds that exact measurement evidence and count into restart-safe checkpoints,
 verifies private immutable quarantine evidence, omits the row from canonical
 race/Core analysis and binds its receipt into the accepted window manifest.
 The owner approved the first persistent private Preview backfill on 2 September
-2026 with a $0.500000 maximum, covering the exact $0.212250 measured bound,
+2026 and approved the amendment on 3 September 2026 with the same $0.500000
+maximum, covering the exact $0.212293 amended bound,
 including quarantine and canonical omission of the single unidentified
 finished-race observation under every documented stop and cleanup condition.
 P5 is `approved_for_first_private_preview_backfill`; the next dependency is the
@@ -291,8 +294,10 @@ commissioning event. It hard-binds the measured evidence checksum, hashed owner
 approval reference and authority cutoff; records only request receipts and
 aggregate usage; advances receipts in global ordinal order; and increments the
 single permitted unidentified-observation count in the same transaction as its
-quarantine-bound request receipt. Completion requires all 17,453 measured
-logical requests, all six source families and exactly one bound omission.
+quarantine-bound request receipt. Migration `0079` preserves those original
+bindings and adds exact hashes for the read-only amendment measurement and
+owner amendment. Completion now requires all 17,456 measured logical requests,
+all six source families and exactly one bound omission.
 Direct runtime table access remains prohibited, exact replay is idempotent and
 authority, byte, ordinal, receipt or omission drift fails closed.
 
@@ -339,13 +344,10 @@ counts are 17,369 finished-race, seven race-activity, one token-price, four
 Vault-identity, 72 current-Core and zero splice-arena receipts. This is plan
 drift, not a corrupt checkpoint, rate failure or capacity exhaustion.
 
-No further persistent request is authorized by the existing packet. The next
-dependency is an exact-main, aggregate-only, non-persistent measurement of the
-missing splice-arena family at the standing 30 aggregate requests/minute. It
-must first reconcile the complete Neon receipt ledger read-only, retain no raw
-payload, write neither Neon nor R2, and emit a bounded projection. Any amended
-logical-request or cost ceiling requires a new explicit owner decision before
-the protected backfill may continue.
+Read-only run `33680976426` completed that measurement and the owner approved
+the amended packet while retaining the $0.500000 ceiling. The next dependency
+is exact-head review, private Preview application of migration `0079`, and the
+bounded three-request continuation through terminal six-family reconciliation.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

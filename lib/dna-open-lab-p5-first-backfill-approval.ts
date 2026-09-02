@@ -50,6 +50,7 @@ export type DnaOpenLabP5FirstBackfillMeasuredUpperBound = Readonly<{
 export type DnaOpenLabP5FirstBackfillOwnerAuthorization = Readonly<{
   maximumAuthorizedMicroUsd: number;
   approvalRef: string;
+  amendmentApprovalRef?: string;
 }>;
 
 export type DnaOpenLabP5FirstBackfillIdentityOmissionAuthority = Readonly<{
@@ -251,6 +252,14 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     if (input.ownerAuthorization.approvalRef.trim().length < 1) {
       approvalPacketError("approvalRef is required");
     }
+    if (
+      input.ownerAuthorization.amendmentApprovalRef !== undefined &&
+      input.ownerAuthorization.amendmentApprovalRef.trim().length < 1
+    ) {
+      approvalPacketError(
+        "amendmentApprovalRef must be non-empty when present",
+      );
+    }
     if (!measuredUpperBound) {
       approvalPacketError(
         "owner authorization cannot precede the measured upper bound",
@@ -335,21 +344,22 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
 export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_MEASURED_UPPER_BOUND =
   Object.freeze({
     measurementBasis: "complete_inventory_upper_bound" as const,
-    exactMainCommit: "9fc47d6b1ba95287349cbd18023254058dd744e0",
-    measuredAt: "2026-09-02T02:09:19.270Z",
+    exactMainCommit: "2e20a142af4ecd4bc48f87fee279293ce1e67ea9",
+    measuredAt: "2026-09-02T20:45:11.355Z",
     authorityCutoffAt: "2026-09-02T00:11:55.961Z",
     priceAuthorityEffectiveAt: "2026-08-07T00:00:00.000Z",
-    sourceRecordUpperBound: 1_136_911,
-    apiRequestUpperBound: 34_906,
-    retainedR2BytesUpperBound: 1_151_071_826,
-    classAOperationsUpperBound: 34_952,
-    classBOperationsUpperBound: 104_718,
+    sourceRecordUpperBound: 1_137_211,
+    apiRequestUpperBound: 34_912,
+    retainedR2BytesUpperBound: 1_151_165_717,
+    classAOperationsUpperBound: 34_960,
+    classBOperationsUpperBound: 104_736,
     neonCapacityLimitBytes: DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES,
-    neonPeakBytesUpperBound: 489_717_760,
-    projectedCostMicroUsd: 212_250,
+    neonPeakBytesUpperBound: 496_754_688,
+    projectedCostMicroUsd: 212_293,
     unresolvedIdentityObservationUpperBound: 1,
     evidenceRefs: Object.freeze([
       "github-actions:33574168582#sha256:250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4",
+      "github-actions:33680976426#sha256:f0ca07ec08525f41a5fbf630cb5b33cef5910d37ed858046ff80bb826adffc9a",
     ]),
   } satisfies DnaOpenLabP5FirstBackfillMeasuredUpperBound);
 
@@ -364,6 +374,7 @@ export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION =
   Object.freeze({
     maximumAuthorizedMicroUsd: 500_000,
     approvalRef: "owner-written-approval:2026-09-02",
+    amendmentApprovalRef: "owner-written-amended-approval:2026-09-03",
   } satisfies DnaOpenLabP5FirstBackfillOwnerAuthorization);
 
 /**
