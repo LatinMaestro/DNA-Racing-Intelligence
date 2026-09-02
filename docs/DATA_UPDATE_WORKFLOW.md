@@ -267,6 +267,17 @@ Normal sync stores compact state only:
 
 Large raw/full evidence remains outside relational tables where R2 is the safer/more economical replay store.
 
+For the approved first private Preview backfill, the request-level persistence
+coordinator rehydrates the complete contiguous Neon receipt prefix before it
+can continue. It verifies the receipt count, byte total, omission total and R2
+writer usage against the durable checkpoint. Each new logical request writes
+and verifies its immutable private R2 object first, then advances the Neon
+receipt and checkpoint atomically with compare-and-swap revision authority. A
+crash between those operations must replay the exact R2 object; changed bytes
+or metadata fail closed. Completion uses a deterministic checksum of every
+ordered durable receipt and is unavailable until the exact measured request
+limit and the one approved quarantine omission are present.
+
 ## Persistent real Preview gate
 
 A configured API key does **not** authorise persistent real backfill.
