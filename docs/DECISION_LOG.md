@@ -1373,3 +1373,16 @@ After the private Pro League milestone, continue in this order:
 - Permit completion only after exactly 17,453 request receipts cover all six
   measured source families and the bound omission count is exactly one. Keep
   direct runtime table privileges revoked and forced owner RLS enabled.
+
+## 2026-09-02 — First-backfill R2 and Neon progress is restart-safe
+
+- Rehydrate only a contiguous durable receipt prefix whose count, next ordinal,
+  byte total and omission total exactly match the owner-scoped Neon checkpoint.
+- Reconstruct R2 usage exclusively from those committed receipts before another
+  request may persist; disagreement stops the run.
+- Write and verify immutable R2 evidence before atomically recording the same
+  receipt in Neon. A crash in between may replay only the exact object and
+  ordinal, so no additional PUT or usage charge is counted.
+- Hash every ordered durable receipt into the completion identity. Completion
+  remains unavailable until the measured request limit and exactly one bound
+  finished-race quarantine omission are present.
