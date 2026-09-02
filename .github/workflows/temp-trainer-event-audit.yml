@@ -1,0 +1,65 @@
+name: Temporary Trainer event audit
+on:
+  push:
+    branches:
+      - temp/trainer-event-audit-2026-09-02
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull current two-vault Trainer candidates
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const api='https://api.dnaracing.run';
+          const esp=api+'/fbike/esports';
+          const vaults={
+            latin:'0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d',
+            apex:'0x98c745cf2543d1fbd58226066d6033ec77901427',
+          };
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          let requests=0;
+          function unwrap(v){return v&&typeof v==='object'&&!Array.isArray(v)&&'result' in v?v.result:v}
+          function arr(v){v=unwrap(v);if(Array.isArray(v))return v;if(v&&typeof v==='object')for(const k of ['bikes','cores','hids','items','data','races'])if(Array.isArray(v[k]))return v[k];return[]}
+          function hidOf(v){if(typeof v==='number')return v;if(typeof v==='string'&&/^\d+$/.test(v))return Number(v);if(v&&typeof v==='object')for(const k of ['hid','coreid','core_id','id']){const x=v[k];if(typeof x==='number')return x;if(typeof x==='string'&&/^\d+$/.test(x))return Number(x)}return null}
+          function when(r){for(const k of ['start_time','startTime','date','created_at','createdAt']){const v=r?.[k];if(typeof v==='string'){const t=Date.parse(v);if(Number.isFinite(t))return t}if(typeof v==='number'&&Number.isFinite(v))return v>1e12?v:v*1000}return null}
+          function chunks(xs,n=20){const out=[];for(let i=0;i<xs.length;i+=n)out.push(xs.slice(i,i+n));return out}
+          async function post(path,body){const r=await fetch(api+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});requests++;const text=await r.text();let j;try{j=JSON.parse(text)}catch{throw new Error(path+' nonjson '+r.status)}if(!r.ok)throw new Error(path+' HTTP '+r.status);if(j&&typeof j==='object'&&j.status==='error')throw new Error(path+' API '+(j.err??j.errmsg??'error'));await sleep(220);return unwrap(j)}
+          async function esports(path,body){const r=await fetch(esp+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});requests++;const text=await r.text();let j;try{j=JSON.parse(text)}catch{j={_text:text.slice(0,1000)}};await sleep(220);return {http:r.status,data:j}}
+          const ownership={},ownerOf={};const all=new Set();
+          for(const [label,vault] of Object.entries(vaults)){const rows=arr(await post('/fbike/vault/bikes',{vault}));const ids=rows.map(hidOf).filter(Number.isSafeInteger);ownership[label]=ids;for(const hid of ids){all.add(hid);ownerOf[hid]=label}}
+          const hids=[...all].sort((a,b)=>a-b);
+          async function bulk(path,ids=hids){const out=[];for(const batch of chunks(ids)){out.push(...arr(await post(path,{hids:batch})))}return out}
+          const mini=await bulk('/fbike/cores/mini_bulk');
+          const stats=await bulk('/fbike/cores/racing_stats_bulk');
+          const power=await bulk('/fbike/cores/power_bulk');
+          const splicing=await bulk('/fbike/cores/splicing_info_bulk');
+          const statsBy=new Map(stats.map(x=>[Number(x?.hid),x]));
+          const eligible=[];
+          for(const hid of hids){const s=statsBy.get(hid);const n=Number(s?.hstats_bike?.career?.races_n??NaN);if(Number.isFinite(n)&&n<=52)eligible.push(hid)}
+          const history={},historyMeta={},esportsStats={};
+          for(let idx=0;idx<eligible.length;idx++){
+            const hid=eligible[idx];const gathered=[];let pages=0;
+            for(let page=1;page<=12;page++){const rows=arr(await post('/fbike/i/hraces',{hid,page}));pages++;if(!rows.length)break;gathered.push(...rows);if(rows.length<50)break}
+            const ded=new Map();for(const r of gathered){const key=String(r?.rhid??r?.rid??r?.race_id??`${when(r)}:${r?.rvmode}:${r?.cb}:${r?.pos}:${r?.race_name}`);if(!ded.has(key))ded.set(key,r)}
+            const bike=[...ded.values()].filter(r=>String(r?.rvmode??'').toLowerCase()==='bike').sort((a,b)=>(when(a)||0)-(when(b)||0));
+            history[String(hid)]=bike;historyMeta[String(hid)]={pages,rows:bike.length,first:bike[0]&&when(bike[0])?new Date(when(bike[0])).toISOString():null,last:bike.at(-1)&&when(bike.at(-1))?new Date(when(bike.at(-1))).toISOString():null};
+            esportsStats[String(hid)]=await esports('/hstats',{hid,season:'all'});
+            if((idx+1)%10===0)console.log(`eligible history ${idx+1}/${eligible.length}`)
+          }
+          const artifact={pulledAt:new Date().toISOString(),requests,vaults,ownership,ownerOf,allOwned:hids.length,eligible,eligibleCounts:Object.fromEntries(Object.keys(vaults).map(k=>[k,eligible.filter(h=>ownerOf[h]===k).length])),mini,stats,power,splicing,history,historyMeta,esportsStats};
+          fs.writeFileSync('trainer-event-audit.json',JSON.stringify(artifact));
+          console.log('SUMMARY',JSON.stringify({pulledAt:artifact.pulledAt,requests,allOwned:hids.length,eligible:eligible.length,eligibleCounts:artifact.eligibleCounts}));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trainer-event-audit
+          path: trainer-event-audit.json
+          retention-days: 1
