@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { DnaOpenLabP5FirstBackfillApprovalPacket } from "./dna-open-lab-p5-first-backfill-approval";
 import {
   createDnaOpenLabP5FirstBackfillR2EvidenceWriter,
+  type DnaOpenLabP5FirstBackfillEvidenceDocument,
   type DnaOpenLabP5FirstBackfillEvidenceReceipt,
   type DnaOpenLabP5FirstBackfillEvidenceWriter,
   type DnaOpenLabP5FirstBackfillR2EvidenceStoragePort,
@@ -27,6 +28,11 @@ export type DnaOpenLabP5FirstBackfillPersistenceSnapshot = Readonly<{
   completionSha256: string | null;
 }>;
 
+export type DnaOpenLabP5FirstBackfillReplay = Readonly<{
+  status: "committed" | "pending_neon_receipt";
+  document: DnaOpenLabP5FirstBackfillEvidenceDocument;
+}>;
+
 export type DnaOpenLabP5FirstBackfillPersistenceCoordinator = Readonly<{
   initialize: () => Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot>;
   record: (input: {
@@ -37,6 +43,9 @@ export type DnaOpenLabP5FirstBackfillPersistenceCoordinator = Readonly<{
     observedAt: string;
     omittedIdentityObservationCount?: 0 | 1;
   }) => Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot>;
+  replay: (
+    requestOrdinal: number,
+  ) => Promise<DnaOpenLabP5FirstBackfillReplay | null>;
   complete: () => Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot>;
   snapshot: () => DnaOpenLabP5FirstBackfillPersistenceSnapshot | null;
 }>;
@@ -245,6 +254,39 @@ export function createDnaOpenLabP5FirstBackfillPersistenceCoordinator(input: {
     return snapshot(state);
   }
 
+  async function replay(
+    requestOrdinal: number,
+  ): Promise<DnaOpenLabP5FirstBackfillReplay | null> {
+    if (state === null || writer === null) {
+      coordinatorError("initialize must complete before replay");
+    }
+    if (!Number.isSafeInteger(requestOrdinal) || requestOrdinal < 1) {
+      coordinatorError("replay request ordinal is invalid");
+    }
+    if (requestOrdinal > state.nextRequestOrdinal) {
+      coordinatorError("replay request ordinal is ahead of its checkpoint");
+    }
+    const document = await writer.read(requestOrdinal);
+    if (requestOrdinal === state.nextRequestOrdinal) {
+      return document === null
+        ? null
+        : Object.freeze({ status: "pending_neon_receipt", document });
+    }
+    if (document === null) {
+      coordinatorError("committed receipt has no immutable evidence object");
+    }
+    const receipt = receipts[requestOrdinal - 1];
+    if (
+      receipt === undefined ||
+      document.requestOrdinal !== receipt.requestOrdinal ||
+      document.family !== receipt.family ||
+      document.observedAt !== receipt.observedAt
+    ) {
+      coordinatorError("replayed evidence disagrees with its durable receipt");
+    }
+    return Object.freeze({ status: "committed", document });
+  }
+
   async function complete(): Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot> {
     if (state === null || writer === null) {
       coordinatorError("initialize must complete before completion");
@@ -286,6 +328,7 @@ export function createDnaOpenLabP5FirstBackfillPersistenceCoordinator(input: {
   return Object.freeze({
     initialize,
     record,
+    replay,
     complete,
     snapshot: () => (state === null ? null : snapshot(state)),
   });

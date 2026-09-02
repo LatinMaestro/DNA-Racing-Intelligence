@@ -13,7 +13,16 @@ const JSON_CONTENT_TYPE = "application/json";
 export type DnaOpenLabP5FirstBackfillR2EvidenceStoragePort = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "putObjectIfAbsent" | "headObject"
->;
+> &
+  Readonly<{
+    getObject: (input: { bucketName: string; key: string }) => Promise<
+      | Readonly<{ status: "missing" }>
+      | Readonly<{
+          status: "ready";
+          body: AsyncIterable<Uint8Array>;
+        }>
+    >;
+  }>;
 
 export type DnaOpenLabP5FirstBackfillEvidenceReceipt = Readonly<{
   family: DnaOpenLabP5FirstBackfillSourceFamily;
@@ -31,6 +40,15 @@ export type DnaOpenLabP5FirstBackfillEvidenceUsage = Readonly<{
   retainedR2BytesLimit: number;
 }>;
 
+export type DnaOpenLabP5FirstBackfillEvidenceDocument = Readonly<{
+  family: DnaOpenLabP5FirstBackfillSourceFamily;
+  requestOrdinal: number;
+  endpoint: string;
+  request: unknown;
+  response: DnaOpenLabResponse<unknown>;
+  observedAt: string;
+}>;
+
 export type DnaOpenLabP5FirstBackfillEvidenceWriter = Readonly<{
   write: (input: {
     family: DnaOpenLabP5FirstBackfillSourceFamily;
@@ -40,6 +58,9 @@ export type DnaOpenLabP5FirstBackfillEvidenceWriter = Readonly<{
     response: DnaOpenLabResponse<unknown>;
     observedAt: string;
   }) => Promise<DnaOpenLabP5FirstBackfillEvidenceReceipt>;
+  read: (
+    requestOrdinal: number,
+  ) => Promise<DnaOpenLabP5FirstBackfillEvidenceDocument | null>;
   usage: () => DnaOpenLabP5FirstBackfillEvidenceUsage;
 }>;
 
@@ -152,6 +173,81 @@ function metadataValue(
     evidenceError(`evidence object metadata ${key} is unavailable`);
   }
   return value;
+}
+
+function record(
+  value: unknown,
+  field: string,
+): Readonly<Record<string, unknown>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    evidenceError(`${field} is invalid`);
+  }
+  return value as Readonly<Record<string, unknown>>;
+}
+
+function nullableCount(value: unknown, field: string): number | null {
+  if (value === null) return null;
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    evidenceError(`${field} is invalid`);
+  }
+  return Number(value);
+}
+
+function responseDocument(
+  value: Readonly<Record<string, unknown>>,
+): DnaOpenLabResponse<unknown> {
+  const rateLimit = record(value.rateLimit, "prior evidence rateLimit");
+  const rateClass = rateLimit.rateClass;
+  if (
+    !Number.isSafeInteger(value.httpStatus) ||
+    Number(value.httpStatus) < 100 ||
+    Number(value.httpStatus) > 599 ||
+    (rateClass !== null &&
+      (typeof rateClass !== "string" ||
+        rateClass.length > 128 ||
+        CONTROL_PATTERN.test(rateClass)))
+  ) {
+    evidenceError("prior evidence response is invalid");
+  }
+  return Object.freeze({
+    result: value.result,
+    httpStatus: Number(value.httpStatus),
+    rateLimit: Object.freeze({
+      limit: nullableCount(rateLimit.limit, "rateLimit.limit"),
+      remaining: nullableCount(rateLimit.remaining, "rateLimit.remaining"),
+      resetSeconds: nullableCount(
+        rateLimit.resetSeconds,
+        "rateLimit.resetSeconds",
+      ),
+      rateClass,
+      retryAfterSeconds: nullableCount(
+        rateLimit.retryAfterSeconds,
+        "rateLimit.retryAfterSeconds",
+      ),
+    }),
+  });
+}
+
+async function exactBody(input: {
+  body: AsyncIterable<Uint8Array>;
+  byteLength: number;
+}): Promise<Uint8Array> {
+  const result = new Uint8Array(input.byteLength);
+  let offset = 0;
+  for await (const chunk of input.body) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > result.byteLength
+    ) {
+      evidenceError("evidence object body exceeds its receipt");
+    }
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  if (offset !== result.byteLength) {
+    evidenceError("evidence object body is truncated");
+  }
+  return result;
 }
 
 function approvedLimits(packet: DnaOpenLabP5FirstBackfillApprovalPacket): {
@@ -423,8 +519,145 @@ export function createDnaOpenLabP5FirstBackfillR2EvidenceWriter(input: {
     return receipt;
   }
 
+  async function read(
+    requestOrdinalValue: number,
+  ): Promise<DnaOpenLabP5FirstBackfillEvidenceDocument | null> {
+    const requestOrdinal = positiveSafeInteger(
+      requestOrdinalValue,
+      "requestOrdinal",
+    );
+    if (requestOrdinal > limits.logicalRequestLimit) {
+      evidenceError("logical request exceeds the measured request bound");
+    }
+    const prior = receipts.get(requestOrdinal);
+    const key =
+      prior?.evidenceObjectKey ??
+      objectKey({
+        ownerPrefix: prefix,
+        measurementEvidenceSha256: limits.measurementEvidenceSha256,
+        requestOrdinal,
+      });
+
+    bucketPrivacy ??= input.storage
+      .readBucketPrivacy({ bucketName })
+      .then(assertPrivateBucket);
+    await bucketPrivacy;
+    const head = await input.storage.headObject({
+      bucketName,
+      key,
+    });
+    if (head.status === "missing") {
+      if (prior !== undefined) {
+        evidenceError("prior evidence object conflicts with its receipt");
+      }
+      return null;
+    }
+    const headFamily = metadataValue(head.metadata, "dna-family");
+    const headObservedAt = timestamp(
+      metadataValue(head.metadata, "dna-observed-at"),
+      "observedAt",
+    );
+    const headSha256 = metadataValue(head.metadata, "dna-body-sha256");
+    if (
+      head.contentType !== JSON_CONTENT_TYPE ||
+      !SOURCE_FAMILIES.has(
+        headFamily as DnaOpenLabP5FirstBackfillSourceFamily,
+      ) ||
+      !Number.isSafeInteger(head.byteLength) ||
+      head.byteLength < 1 ||
+      head.byteLength >
+        DNA_OPEN_LAB_P5_FIRST_BACKFILL_PROJECTION_POLICY.r2MaximumEvidenceObjectBytes ||
+      !SHA_256_PATTERN.test(headSha256) ||
+      head.checksumSha256 !== headSha256 ||
+      metadataValue(head.metadata, "dna-source") !== "dna_open_lab" ||
+      metadataValue(head.metadata, "dna-version") !== "v1" ||
+      metadataValue(head.metadata, "dna-kind") !==
+        "first_private_preview_backfill_request" ||
+      metadataValue(head.metadata, "dna-measurement-sha256") !==
+        limits.measurementEvidenceSha256 ||
+      metadataValue(head.metadata, "dna-request-ordinal") !==
+        String(requestOrdinal)
+    ) {
+      evidenceError("prior evidence object conflicts with its receipt");
+    }
+    const receipt = Object.freeze({
+      family: headFamily as DnaOpenLabP5FirstBackfillSourceFamily,
+      requestOrdinal,
+      observedAt: headObservedAt,
+      contentSha256: headSha256,
+      byteLength: head.byteLength,
+      evidenceObjectKey: key,
+    });
+    if (
+      prior !== undefined &&
+      (prior.family !== receipt.family ||
+        prior.observedAt !== receipt.observedAt ||
+        prior.contentSha256 !== receipt.contentSha256 ||
+        prior.byteLength !== receipt.byteLength ||
+        prior.evidenceObjectKey !== receipt.evidenceObjectKey)
+    ) {
+      evidenceError("prior evidence object conflicts with its receipt");
+    }
+    const opened = await input.storage.getObject({
+      bucketName,
+      key,
+    });
+    if (opened.status !== "ready") {
+      evidenceError("prior evidence object is unavailable");
+    }
+    const bytes = await exactBody({
+      body: opened.body,
+      byteLength: receipt.byteLength,
+    });
+    const decoded = new TextDecoder().decode(bytes);
+    if (sha256(decoded) !== receipt.contentSha256) {
+      evidenceError("prior evidence object checksum disagrees");
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      );
+    } catch {
+      return evidenceError("prior evidence object is not valid UTF-8 JSON");
+    }
+    const document = record(parsed, "prior evidence document");
+    const family = document.family;
+    const endpoint = document.endpoint;
+    const observedAt = document.observedAt;
+    const response = record(document.response, "prior evidence response");
+    if (
+      document.version !== 1 ||
+      document.source !== "dna_open_lab" ||
+      document.sourceVersion !== "v1" ||
+      document.measurementEvidenceSha256 !== limits.measurementEvidenceSha256 ||
+      document.requestOrdinal !== receipt.requestOrdinal ||
+      family !== receipt.family ||
+      typeof endpoint !== "string" ||
+      safeText(endpoint, "endpoint", 128) !== endpoint ||
+      metadataValue(head.metadata, "dna-endpoint") !== endpoint ||
+      typeof observedAt !== "string" ||
+      timestamp(observedAt, "observedAt") !== receipt.observedAt ||
+      !Object.hasOwn(document, "request") ||
+      !Object.hasOwn(response, "result") ||
+      canonicalJson(document) !== decoded
+    ) {
+      evidenceError("prior evidence document conflicts with its receipt");
+    }
+    const verifiedResponse = responseDocument(response);
+    return Object.freeze({
+      family: family as DnaOpenLabP5FirstBackfillSourceFamily,
+      requestOrdinal,
+      endpoint,
+      request: document.request,
+      response: verifiedResponse,
+      observedAt: receipt.observedAt,
+    });
+  }
+
   return Object.freeze({
     write,
+    read,
     usage: () =>
       Object.freeze({
         logicalRequestCount: receipts.size,

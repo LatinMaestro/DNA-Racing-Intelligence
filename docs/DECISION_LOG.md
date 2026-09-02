@@ -1386,3 +1386,19 @@ After the private Pro League milestone, continue in this order:
 - Hash every ordered durable receipt into the completion identity. Completion
   remains unavailable until the measured request limit and exactly one bound
   finished-race quarantine omission are present.
+
+## 2026-09-02 — Durable evidence is the acquisition restart source
+
+- A restarted first-backfill process must reconstruct every already-committed
+  logical response from its private immutable R2 object before it reaches the
+  first uncommitted request ordinal. Reissuing those API requests would permit
+  current-only state drift and could no longer prove the same acquisition path.
+- Verify the private bucket, Neon receipt, R2 head metadata, exact byte length,
+  SHA-256, canonical JSON envelope, measurement authority, family, ordinal and
+  observation time before returning a replayed response to acquisition logic.
+- Missing, truncated, malformed or conflicting prior evidence stops before a
+  new API request or provider write. A committed receipt is never treated as a
+  skippable gap and an uncommitted ordinal is never invented as a replay.
+- The measured six Class B operations per logical request already includes the
+  bounded read allowance required for this reconstruction. This does not alter
+  the 17,453-object, retained-byte or $0.500000 owner authorization ceilings.
