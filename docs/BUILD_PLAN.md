@@ -305,6 +305,18 @@ remain enforced and completion still requires all measured requests. The next
 dependency is the protected exact-main workflow composition and connected
 recovery/cleanup verification before executing the approved Preview event.
 
+The protected commissioning workflow is dispatch-only and exact-main guarded.
+It re-proves the existing provider boundary, executes and cleans the ordered
+recovery suite, captures last-good/owner/checkpoint fingerprints, verifies the
+new compact ledger and private R2 prefix, and only then permits the approved
+request acquisition. Post-run inspection reconciles R2 objects/bytes with the
+Neon receipt prefix and proves the pre-existing serving and owner-data
+fingerprints remain unchanged. Sanitized aggregate-only evidence is retained
+for seven days. No generation is published by this event, and missing ledger
+schema fails during the read-only preflight before an API request or R2 write.
+The next dependency is exact-head review and connected execution from current
+`main`.
+
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence

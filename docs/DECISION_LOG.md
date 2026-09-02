@@ -1423,3 +1423,23 @@ After the private Pro League milestone, continue in this order:
 - This integration does not publish a generation or execute the provider run.
   A reviewed protected exact-main workflow with post-run recovery/cleanup proof
   remains the next dependency.
+
+## 2026-09-02 — Persistent commissioning workflow is exact-main and non-publishing
+
+- Limit the first persistent private Preview backfill to an explicit manual
+  dispatch from current `main`, bound to measurement run `33574168582`, the
+  owner's $0.500000 ceiling and the one-run 150 aggregate-rpm approval.
+- Re-prove provider prerequisites and execute the ordered recovery/cleanup suite
+  before the first-backfill preflight. Missing migration `0078`, owner binding,
+  private R2 state or exact checkpoint authority fails read-only before an API
+  request or provider write.
+- Hash the pre-existing serving, owner-data, checkpoint and retained-evidence
+  state before acquisition. After success or a bounded failure, reconcile the
+  first-backfill R2 prefix with the compact Neon receipt prefix and require
+  those pre-existing fingerprints to remain identical.
+- Permit at most one exact R2-first next-ordinal object after a failed process;
+  it is recoverable only through the existing immutable replay contract. Reject
+  gaps, receiptless prefixes, byte/count overflow and completed-state drift.
+- Emit only sanitized aggregate reports with seven-day retention. This event
+  does not publish a candidate or last-good generation and cannot alter
+  Production, public access, paid capacity, wallet or game state.
