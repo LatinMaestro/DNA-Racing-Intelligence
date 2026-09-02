@@ -28,10 +28,16 @@ export type DnaOpenLabP5FirstBackfillPersistenceSnapshot = Readonly<{
   completionSha256: string | null;
 }>;
 
-export type DnaOpenLabP5FirstBackfillReplay = Readonly<{
-  status: "committed" | "pending_neon_receipt";
-  document: DnaOpenLabP5FirstBackfillEvidenceDocument;
-}>;
+export type DnaOpenLabP5FirstBackfillReplay =
+  | Readonly<{
+      status: "committed";
+      document: DnaOpenLabP5FirstBackfillEvidenceDocument;
+      omittedIdentityObservationCount: 0 | 1;
+    }>
+  | Readonly<{
+      status: "pending_neon_receipt";
+      document: DnaOpenLabP5FirstBackfillEvidenceDocument;
+    }>;
 
 export type DnaOpenLabP5FirstBackfillPersistenceCoordinator = Readonly<{
   initialize: () => Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot>;
@@ -284,7 +290,11 @@ export function createDnaOpenLabP5FirstBackfillPersistenceCoordinator(input: {
     ) {
       coordinatorError("replayed evidence disagrees with its durable receipt");
     }
-    return Object.freeze({ status: "committed", document });
+    return Object.freeze({
+      status: "committed",
+      document,
+      omittedIdentityObservationCount: receipt.omittedIdentityObservationCount,
+    });
   }
 
   async function complete(): Promise<DnaOpenLabP5FirstBackfillPersistenceSnapshot> {

@@ -105,6 +105,30 @@ function raceKey(
   return normalized;
 }
 
+/**
+ * Counts decoded finished-race observations that cannot be assigned an
+ * authoritative stable race identity. This deliberately shares the crawler's
+ * exact identity rules so persistence cannot classify a different set of rows
+ * from the inventory that produced the owner's omission authority.
+ */
+export function countDnaFinishedRaceUnresolvedIdentityObservations(
+  races: readonly DnaRaceDocument[],
+): number {
+  let count = 0;
+  for (const race of races) {
+    if (raceKey(race, "count_as_unresolved_observation") === null) {
+      count += 1;
+      if (!Number.isSafeInteger(count)) {
+        crawlerError(
+          "source_limit_breach",
+          "unresolved finished-race observation count exceeds safe range",
+        );
+      }
+    }
+  }
+  return count;
+}
+
 function iso(milliseconds: number): string {
   return new Date(milliseconds).toISOString();
 }

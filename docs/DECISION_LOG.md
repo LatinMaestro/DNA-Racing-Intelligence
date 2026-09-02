@@ -1402,3 +1402,24 @@ After the private Pro League milestone, continue in this order:
 - The measured six Class B operations per logical request already includes the
   bounded read allowance required for this reconstruction. This does not alter
   the 17,453-object, retained-byte or $0.500000 owner authorization ceilings.
+
+## 2026-09-02 — Persistent acquisition reuses the measured six-family plan
+
+- Attach a canonical endpoint and request-argument identity to every logical
+  operation emitted by the existing six-family adapter. Store that identity in
+  the immutable request envelope; never infer it from raw transport logs.
+- On restart, feed every verified committed response through the same adaptive
+  pagination and batching logic. Only the first absent global ordinal may call
+  DNA. An exact R2-first object advances its Neon receipt before the plan may
+  continue, without replacement or another API request.
+- Classify the approved unidentified finished-race observation with the
+  crawler's stable-`rid` rules. A saturated 200-row response is subdivided
+  before omission classification so an overlapping row cannot be counted more
+  than once. Any request or omission drift fails closed.
+- Bound malformed-envelope retry attempts, logical objects, retained bytes and
+  completion to measurement `33574168582`. The one-run 150 aggregate-rpm lane
+  requires its exact persistent commissioning authority; independent key
+  buckets remain disabled and the commissioned website default remains 30.
+- This integration does not publish a generation or execute the provider run.
+  A reviewed protected exact-main workflow with post-run recovery/cleanup proof
+  remains the next dependency.

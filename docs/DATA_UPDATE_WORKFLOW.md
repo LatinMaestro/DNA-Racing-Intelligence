@@ -289,6 +289,19 @@ If R2 was committed immediately before a Neon interruption, the same checks
 expose that exact next-ordinal envelope as pending so its receipt can be
 committed without replacing or reissuing the observation.
 
+The persistent acquisition runner feeds those replayed responses back through
+the same fixed six-family adapter that produced the approved inventory. Every
+logical request carries a canonical endpoint and argument identity into the R2
+envelope. A restart compares that plan identity before returning the response;
+drift stops before transport or another provider write. Only the first absent
+ordinal may call DNA, and each successful response is written to R2 and bound
+to the Neon receipt before the adapter continues. The one authorized malformed
+finished-race observation is counted with the crawler's exact stable-`rid`
+rules, while saturated windows defer classification until subdivision so a row
+cannot be counted twice. The temporary 150 aggregate-rpm commissioning lane
+requires exact measurement/cost authority; the normal website default remains
+30 aggregate rpm with independent key buckets disabled.
+
 ## Persistent real Preview gate
 
 A configured API key does **not** authorise persistent real backfill.

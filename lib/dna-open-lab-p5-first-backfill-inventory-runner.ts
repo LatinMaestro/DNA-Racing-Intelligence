@@ -126,13 +126,20 @@ export type DnaOpenLabP5FirstBackfillInventoryDiagnostic =
       rateLimitedRequestCount: number;
     }>;
 
-export type DnaOpenLabP5FirstBackfillInventoryRequest = <T>(input: {
+export type DnaOpenLabP5FirstBackfillInventoryRequestInput<T> = Readonly<{
   scope: DnaOpenLabScope;
+  endpoint?: string;
+  evidenceRequest?: unknown;
+  classifyOmittedIdentityObservationCount?: (result: T) => number;
   request: (
     client: DnaOpenLabClient,
     laneId: string,
   ) => Promise<DnaOpenLabResponse<T>>;
-}) => Promise<T>;
+}>;
+
+export type DnaOpenLabP5FirstBackfillInventoryRequest = <T>(
+  input: DnaOpenLabP5FirstBackfillInventoryRequestInput<T>,
+) => Promise<T>;
 
 export type DnaOpenLabP5FirstBackfillFamilyInventoryResult = Readonly<{
   family: DnaOpenLabP5FirstBackfillSourceFamily;
@@ -323,6 +330,9 @@ export async function runDnaOpenLabP5FirstBackfillInventory(input: {
         request: execute,
       }: {
         scope: DnaOpenLabScope;
+        endpoint?: string;
+        evidenceRequest?: unknown;
+        classifyOmittedIdentityObservationCount?: (result: T) => number;
         request: (
           client: DnaOpenLabClient,
           laneId: string,
