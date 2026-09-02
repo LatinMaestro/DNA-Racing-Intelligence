@@ -45,6 +45,38 @@ function configuration(test: ReturnType<typeof driver>) {
   };
 }
 
+function paginatedRetainedDriver(objectCount: number) {
+  const list = vi.fn<CloudflareDnaOpenLabP5RecoveryDriver["list"]>(
+    async ({ prefix, cursor, limit }) => {
+      const offset = cursor === undefined ? 0 : Number(cursor);
+      const count = Math.min(limit, objectCount - offset);
+      const objects = Array.from({ length: count }, (_, index) => {
+        const ordinal = offset + index + 1;
+        return {
+          key: `${ownerPrefix}evidence/${ordinal}.json`,
+          etag: `etag-${ordinal}`,
+          size: ordinal,
+        };
+      }).filter((object) => object.key.startsWith(prefix));
+      const nextOffset = offset + count;
+      return {
+        objects,
+        truncated: nextOffset < objectCount,
+        ...(nextOffset < objectCount ? { cursor: String(nextOffset) } : {}),
+      };
+    },
+  );
+  return {
+    port: {
+      list,
+      deleteMany: vi.fn<CloudflareDnaOpenLabP5RecoveryDriver["deleteMany"]>(
+        async () => undefined,
+      ),
+    },
+    list,
+  };
+}
+
 describe("DNA Open Lab P5 Cloudflare R2 recovery safety port", () => {
   it("fingerprints retained objects separately and removes only bounded recovery residue", async () => {
     const test = driver();
@@ -122,5 +154,28 @@ describe("DNA Open Lab P5 Cloudflare R2 recovery safety port", () => {
     await expect(duplicatePort.inspect()).rejects.toThrow(
       "provider response is invalid",
     );
+  });
+
+  it("inspects the complete authorized 17,453-object commissioning set", async () => {
+    const test = paginatedRetainedDriver(17_453);
+    const port = createCloudflareDnaOpenLabP5RecoverySafetyPort({
+      ...configuration(driver()),
+      createDriver: () => test.port,
+    });
+
+    await expect(port.inspect()).resolves.toMatchObject({
+      syntheticResidueObjectCount: 0,
+    });
+    expect(test.list).toHaveBeenCalledTimes(18);
+  });
+
+  it("still fails closed above the bounded 20,000-object inspection limit", async () => {
+    const test = paginatedRetainedDriver(20_001);
+    const port = createCloudflareDnaOpenLabP5RecoverySafetyPort({
+      ...configuration(driver()),
+      createDriver: () => test.port,
+    });
+
+    await expect(port.inspect()).rejects.toThrow("object limit exceeded");
   });
 });

@@ -7,7 +7,10 @@ import {
 } from "@aws-sdk/client-s3";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/u;
-const MAXIMUM_OBJECTS = 10_000;
+// The authorized commissioning event retains exactly 17,453 request objects.
+// Keep the inspection bounded, but leave room for the temporary recovery
+// object and pre-existing owner-scoped evidence while that event completes.
+const MAXIMUM_OBJECTS = 20_000;
 const PAGE_LIMIT = 1_000;
 
 export type DnaOpenLabP5RecoveryR2SafetySnapshot = Readonly<{
