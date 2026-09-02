@@ -137,12 +137,15 @@ The crawler treats exactly 200 results as possible saturation:
 6. hydrate full race documents in batches of at most 20.
 
 If an accepted leaf contains a row without authoritative stable identity, do
-not canonicalize, deduplicate, hydrate or publish it. Measurement may count the
+not canonicalize, deduplicate or hydrate that row. Measurement may count the
 observation as a conservative unresolved upper bound, including possible
-midpoint-overlap duplication. Persistent acquisition and last-good publication
-remain blocked until a reviewed immutable-evidence/quarantine boundary retains
-the source observation without pretending its internal locator is a DNA race
-identity.
+midpoint-overlap duplication. Persistent acquisition remains blocked unless an
+exact measurement-evidence checksum and owner-authorized bound are present.
+Under that bounded authority, the worker verifies the private immutable R2
+quarantine object, binds its receipt into the accepted window manifest, omits
+the row from canonical/statistical publication and advances the cumulative
+omission count atomically. Missing authority, authority drift or a count breach
+keeps the checkpoint pending and preserves last-good serving.
 
 The checkpoint records enough information to restart without losing or duplicating accepted coverage.
 

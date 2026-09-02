@@ -7,6 +7,7 @@ import {
   type DnaFinishedRaceBackfillCheckpoint,
   type DnaFinishedRaceBackfillCheckpointRepository,
   type DnaFinishedRaceIdentityConflictQuarantine,
+  type DnaFinishedRaceIdentityOmissionAuthority,
   type DnaFinishedRaceWindowPublication,
   type DnaFinishedRaceWindowPublicationReceipt,
   type StoredDnaFinishedRaceBackfillCheckpoint,
@@ -173,6 +174,7 @@ async function run(input: {
   endTime?: string;
   minimumWindowMilliseconds?: number;
   identityConflictQuarantine?: IdentityConflictQuarantine;
+  identityOmissionAuthority?: DnaFinishedRaceIdentityOmissionAuthority;
 }) {
   const identityConflictQuarantine =
     input.identityConflictQuarantine ?? new IdentityConflictQuarantine();
@@ -185,6 +187,9 @@ async function run(input: {
     publisher: input.publisher.publish,
     identityConflictQuarantine: identityConflictQuarantine.quarantine,
     observedAt: "2026-08-27T09:00:00Z",
+    ...(input.identityOmissionAuthority === undefined
+      ? {}
+      : { identityOmissionAuthority: input.identityOmissionAuthority }),
     ...(input.minimumWindowMilliseconds === undefined
       ? {}
       : { minimumWindowMilliseconds: input.minimumWindowMilliseconds }),
@@ -226,6 +231,134 @@ describe("DNA Open Lab finished-race backfill", () => {
       publishedWindowDocumentCount: 0,
     });
     expect(repository.stored?.checkpoint.pendingWindows).toHaveLength(1);
+  });
+
+  it("binds an authorized de minimis quarantine receipt and advances without inventing identity", async () => {
+    const repository = new MemoryCheckpointRepository();
+    const publisher = new IdempotentPublisher();
+    const identityConflictQuarantine = new IdentityConflictQuarantine();
+    const unidentified = { rid: null, timing: { elapsed: 12.3 } };
+    const source = clientWith({
+      finished: () =>
+        [{ rid: 7 }, unidentified] as unknown as readonly DnaRaceDocument[],
+    });
+
+    const result = await run({
+      repository,
+      publisher,
+      client: source.client,
+      identityConflictQuarantine,
+      identityOmissionAuthority: {
+        measurementEvidenceSha256: "c".repeat(64),
+        maximumObservationCount: 1,
+      },
+    });
+
+    expect(result.kind).toBe("published");
+    expect(source.docCalls).toEqual([[7]]);
+    const published = [...publisher.publications.values()][0];
+    expect(published?.discoveredRaces).toEqual([{ rid: 7 }]);
+    expect(published?.identityConflictQuarantineReceipts).toEqual([
+      expect.objectContaining({
+        rawEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      }),
+    ]);
+    expect(repository.stored?.checkpoint).toMatchObject({
+      completedWindowCount: 1,
+      publishedWindowDocumentCount: 1,
+      omittedIdentityObservationCount: 1,
+      identityOmissionAuthority: {
+        measurementEvidenceSha256: "c".repeat(64),
+        maximumObservationCount: 1,
+      },
+    });
+  });
+
+  it("quarantines every conflict but denies publication when the measured omission bound would be exceeded", async () => {
+    const repository = new MemoryCheckpointRepository();
+    const publisher = new IdempotentPublisher();
+    const identityConflictQuarantine = new IdentityConflictQuarantine();
+    const source = clientWith({
+      finished: () =>
+        [
+          { rid: 7 },
+          { rid: null, elapsed: 12.3 },
+          { elapsed: 12.4 },
+        ] as unknown as readonly DnaRaceDocument[],
+    });
+
+    await expect(
+      run({
+        repository,
+        publisher,
+        client: source.client,
+        identityConflictQuarantine,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256: "c".repeat(64),
+          maximumObservationCount: 1,
+        },
+      }),
+    ).rejects.toMatchObject({ kind: "unresolved_source_identity" });
+
+    expect(identityConflictQuarantine.calls).toHaveLength(2);
+    expect(source.docCalls).toHaveLength(0);
+    expect(publisher.callCount).toBe(0);
+    expect(repository.stored?.checkpoint).toMatchObject({
+      completedWindowCount: 0,
+      omittedIdentityObservationCount: 0,
+    });
+  });
+
+  it("rejects omission authority above the hard owner limit before API work", async () => {
+    const repository = new MemoryCheckpointRepository();
+    const publisher = new IdempotentPublisher();
+    const source = clientWith({ finished: () => [] });
+
+    await expect(
+      run({
+        repository,
+        publisher,
+        client: source.client,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256: "c".repeat(64),
+          maximumObservationCount: 26,
+        },
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_configuration" });
+
+    expect(source.finishedCalls).toHaveLength(0);
+    expect(repository.saveCount).toBe(0);
+  });
+
+  it("rejects measurement-evidence drift on restart before API work", async () => {
+    const repository = new MemoryCheckpointRepository();
+    const publisher = new IdempotentPublisher();
+    const source = clientWith({ finished: () => [] });
+    const firstAuthority = {
+      measurementEvidenceSha256: "c".repeat(64),
+      maximumObservationCount: 1,
+    } as const;
+
+    await run({
+      repository,
+      publisher,
+      client: source.client,
+      identityOmissionAuthority: firstAuthority,
+    });
+    const secondSource = clientWith({ finished: () => [] });
+    await expect(
+      run({
+        repository,
+        publisher,
+        client: secondSource.client,
+        identityOmissionAuthority: {
+          ...firstAuthority,
+          measurementEvidenceSha256: "d".repeat(64),
+        },
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_configuration" });
+
+    expect(secondSource.finishedCalls).toHaveLength(0);
   });
 
   it("publishes one bounded window, checkpoints exact progress, then becomes complete", async () => {
@@ -483,6 +616,8 @@ describe("DNA Open Lab finished-race backfill", () => {
         successfulFinishedRaceRequestCount: 0,
         raceDocumentRequestCount: 0,
         publishedWindowDocumentCount: 0,
+        identityOmissionAuthority: null,
+        omittedIdentityObservationCount: 0,
       },
     });
     const publisher = new IdempotentPublisher();

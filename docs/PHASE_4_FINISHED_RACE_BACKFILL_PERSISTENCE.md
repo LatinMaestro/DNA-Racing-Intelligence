@@ -46,9 +46,15 @@ content for an existing window key fails closed.
   is derived from window, source ordinal and raw checksum; it is explicitly
   marked non-canonical and non-last-good and is never substituted for DNA race
   identity.
-- An identity-conflicted window cannot hydrate documents, publish a window
-  manifest or advance its checkpoint. Exact retry reuses the same immutable
-  quarantine object.
+- By default, an identity-conflicted window cannot hydrate documents, publish a
+  window manifest or advance its checkpoint. Exact retry reuses the same
+  immutable quarantine object.
+- The sole exception is exact measurement-bound omission authority capped at
+  25 observations. The checkpoint persists its measurement-evidence checksum,
+  maximum and cumulative omitted count. Only identified races are hydrated;
+  every quarantine receipt is verified and bound into the version-2 window
+  manifest; checkpoint and receipt advance atomically. Authority drift or a
+  cumulative bound breach fails closed.
 - Durable receipts can be read later for P5 replay/recovery verification without
   exposing raw evidence.
 
@@ -58,9 +64,9 @@ All tests and migration smoke checks use deterministic synthetic windows, hashes
 object keys and counts. This slice performs no connected DNA Open Lab call, hosted
 Neon migration, real R2 write, persistent API backfill or Vercel deployment.
 
-The first persistent real Preview sync remains blocked by P5 source authority,
-capacity/recovery evidence and exact bounded owner approval. The quarantine
-boundary preserves the conflict for review; it does not resolve or waive it.
+The first persistent real Preview sync remains blocked until the exact bounded
+P5 owner approval is recorded. The quarantine boundary preserves omitted source
+evidence for review and never converts it into a race identity.
 
 ## Deferred P4 work
 

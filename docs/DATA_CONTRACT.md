@@ -185,18 +185,24 @@ and keep persistence approval blocked.
 The persistent backfill boundary retains each such raw observation in private
 immutable R2 under an opaque evidence locator derived from its window, source
 ordinal and raw checksum. Metadata and the stored envelope both mark it
-non-canonical and non-last-good. The window remains pending: no hydration,
-window manifest, canonical fact or checkpoint advance is allowed until source
-identity authority is resolved.
+non-canonical and non-last-good. Without exact owner-authorized measurement
+authority, the window remains pending: no hydration, window manifest, canonical
+fact or checkpoint advance is allowed. With that authority, the worker may
+accept only the identified rows, bind every verified quarantine receipt into
+the accepted window manifest and advance the cumulative omitted-observation
+count atomically with the window receipt.
 
 Owner direction permits a genuinely de minimis omission after complete
 measurement: at most 25 aggregate unresolved observations may become candidates
 for quarantine-and-omit treatment. Counts from 26 through 999 require a new
 owner review; 1,000 or more require a critical-volume notification. Every
 non-zero count remains disclosed, and classification alone never authorizes a
-persistent write. The worker must still enforce the measured bound, bind every
-quarantine receipt to the accepted window and exclude omitted observations from
-all claimed sample/completeness counts.
+persistent write. The worker enforces the measurement-evidence checksum and
+measured bound on initialization and every restart. Authority drift or a
+cumulative count above the bound fails before hydration/publication. Every
+quarantine receipt is bound to the accepted window, and omitted observations
+are excluded from all race identity, hydration, performance and claimed
+sample/completeness counts.
 
 The crawler retains durable window/checkpoint state so restart and access loss do not restart history blindly.
 

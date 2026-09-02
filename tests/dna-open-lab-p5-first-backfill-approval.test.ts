@@ -62,6 +62,7 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       firstPersistentPrivatePreviewBackfillAllowed: false,
       productionChangesAllowed: false,
       measuredUpperBound: null,
+      identityOmissionAuthority: null,
       ownerAuthorization: null,
       stopConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS,
       cleanupConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
@@ -132,10 +133,12 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
     ).toThrow("cannot override non-positive Neon headroom");
   });
 
-  it("keeps P5 closed when the measurement contains unresolved race identity", () => {
+  it("keeps P5 closed until exact measured de minimis omission authority is bound", () => {
+    const measurementEvidenceSha256 = "a".repeat(64);
     const conflicted = {
       ...measuredUpperBound,
       unresolvedIdentityObservationUpperBound: 1,
+      evidenceRefs: Object.freeze([`sha256:${measurementEvidenceSha256}`]),
     };
     expect(
       buildDnaOpenLabP5FirstBackfillApprovalPacket({
@@ -151,6 +154,26 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       firstPersistentPrivatePreviewBackfillAllowed: false,
     });
 
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: conflicted,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256,
+          maximumObservationCount: 1,
+        },
+        ownerAuthorization: null,
+      }),
+    ).toMatchObject({
+      status: "ready_for_owner_decision",
+      sourceAuthorityComplete: true,
+      readyForOwnerDecision: true,
+      identityOmissionAuthority: {
+        measurementEvidenceSha256,
+        maximumObservationCount: 1,
+      },
+    });
+
     expect(() =>
       buildDnaOpenLabP5FirstBackfillApprovalPacket({
         readiness: satisfiedReadiness(true),
@@ -161,6 +184,58 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
         },
       }),
     ).toThrow("cannot override unresolved source identity authority");
+
+    expect(
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(true),
+        measuredUpperBound: conflicted,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256,
+          maximumObservationCount: 1,
+        },
+        ownerAuthorization: {
+          maximumAuthorizedMicroUsd: 50_000,
+          approvalRef: "owner-approval:exact-bounded-preview",
+        },
+      }),
+    ).toMatchObject({
+      status: "approved_for_first_private_preview_backfill",
+      firstPersistentPrivatePreviewBackfillAllowed: true,
+      sourceAuthorityComplete: true,
+    });
+  });
+
+  it("rejects omission authority that exceeds or drifts from exact measurement evidence", () => {
+    const measurementEvidenceSha256 = "a".repeat(64);
+    const conflicted = {
+      ...measuredUpperBound,
+      unresolvedIdentityObservationUpperBound: 1,
+      evidenceRefs: Object.freeze([`sha256:${measurementEvidenceSha256}`]),
+    };
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: conflicted,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256,
+          maximumObservationCount: 26,
+        },
+        ownerAuthorization: null,
+      }),
+    ).toThrow("identity omission authority is invalid");
+
+    expect(() =>
+      buildDnaOpenLabP5FirstBackfillApprovalPacket({
+        readiness: satisfiedReadiness(false),
+        measuredUpperBound: conflicted,
+        identityOmissionAuthority: {
+          measurementEvidenceSha256: "b".repeat(64),
+          maximumObservationCount: 1,
+        },
+        ownerAuthorization: null,
+      }),
+    ).toThrow("must match the exact measured count and evidence");
   });
 
   it("allows only the first private Preview backfill after bounded approval", () => {
@@ -178,6 +253,47 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       ownerApprovalRecorded: true,
       firstPersistentPrivatePreviewBackfillAllowed: true,
       productionChangesAllowed: false,
+    });
+  });
+
+  it("makes exact-main measurement 33574168582 ready for the bounded owner decision", () => {
+    const measurementEvidenceSha256 =
+      "250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4";
+    const packet = buildDnaOpenLabP5FirstBackfillApprovalPacket({
+      readiness: satisfiedReadiness(false),
+      measuredUpperBound: {
+        measurementBasis: "complete_inventory_upper_bound",
+        exactMainCommit: "9fc47d6b1ba95287349cbd18023254058dd744e0",
+        measuredAt: "2026-09-02T02:09:19.270Z",
+        authorityCutoffAt: "2026-09-02T00:11:55.961Z",
+        priceAuthorityEffectiveAt: "2026-08-07T00:00:00.000Z",
+        sourceRecordUpperBound: 1_136_911,
+        apiRequestUpperBound: 34_906,
+        retainedR2BytesUpperBound: 1_151_071_826,
+        classAOperationsUpperBound: 34_952,
+        classBOperationsUpperBound: 104_718,
+        neonCapacityLimitBytes: 536_870_912,
+        neonPeakBytesUpperBound: 489_717_760,
+        projectedCostMicroUsd: 212_250,
+        unresolvedIdentityObservationUpperBound: 1,
+        evidenceRefs: Object.freeze([
+          `github-actions:33574168582#sha256:${measurementEvidenceSha256}`,
+        ]),
+      },
+      identityOmissionAuthority: {
+        measurementEvidenceSha256,
+        maximumObservationCount: 1,
+      },
+      ownerAuthorization: null,
+    });
+
+    expect(packet).toMatchObject({
+      status: "ready_for_owner_decision",
+      neonCapacityWithinLimit: true,
+      sourceAuthorityComplete: true,
+      readyForOwnerDecision: true,
+      ownerApprovalRecorded: false,
+      firstPersistentPrivatePreviewBackfillAllowed: false,
     });
   });
 
