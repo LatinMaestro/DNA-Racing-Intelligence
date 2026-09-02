@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildDnaOpenLabP5FirstBackfillApprovalPacket,
+  DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+  DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION,
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
   DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS,
   type DnaOpenLabP5FirstBackfillMeasuredUpperBound,
 } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import {
   assessDnaOpenLabP5Readiness,
-  DNA_OPEN_LAB_CURRENT_P5_READINESS,
   DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
 } from "@/lib/dna-open-lab-p5-readiness";
 
@@ -44,28 +45,25 @@ const satisfiedReadiness = (ownerApprovalRecorded: boolean) =>
   });
 
 describe("DNA Open Lab P5 first historical backfill approval", () => {
-  it("keeps the current packet blocked on the measured inventory upper bound", () => {
+  it("records the current exact bounded owner approval without authorizing Production", () => {
     expect(
-      buildDnaOpenLabP5FirstBackfillApprovalPacket({
-        readiness: DNA_OPEN_LAB_CURRENT_P5_READINESS,
-        measuredUpperBound: null,
-        ownerAuthorization: null,
-      }),
-    ).toEqual({
-      status: "blocked_measured_upper_bound",
+      DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+    ).toMatchObject({
+      status: "approved_for_first_private_preview_backfill",
       technicalEvidenceComplete: true,
-      measuredUpperBoundComplete: false,
-      neonCapacityWithinLimit: false,
-      sourceAuthorityComplete: false,
-      readyForOwnerDecision: false,
-      ownerApprovalRecorded: false,
-      firstPersistentPrivatePreviewBackfillAllowed: false,
+      measuredUpperBoundComplete: true,
+      neonCapacityWithinLimit: true,
+      sourceAuthorityComplete: true,
+      readyForOwnerDecision: true,
+      ownerApprovalRecorded: true,
+      firstPersistentPrivatePreviewBackfillAllowed: true,
       productionChangesAllowed: false,
-      measuredUpperBound: null,
-      identityOmissionAuthority: null,
-      ownerAuthorization: null,
       stopConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS,
       cleanupConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
+    });
+    expect(DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION).toEqual({
+      maximumAuthorizedMicroUsd: 500_000,
+      approvalRef: "owner-written-approval:2026-09-02",
     });
   });
 
