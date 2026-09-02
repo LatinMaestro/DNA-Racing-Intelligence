@@ -302,6 +302,16 @@ cannot be counted twice. The temporary 150 aggregate-rpm commissioning lane
 requires exact measurement/cost authority; the normal website default remains
 30 aggregate rpm with independent key buckets disabled.
 
+The first persistent commissioning event is available only through the
+dispatch-only exact-main workflow. It runs provider prerequisite and ordered
+recovery/cleanup checks before a read-only preflight records hashes of the
+existing serving, owner-data, checkpoint and retained-evidence state. The
+acquisition step cannot start if the exact ledger functions or owner scope are
+missing. Its final inspection reconciles the immutable R2 prefix to the Neon
+receipt prefix, permits at most the single R2-first next-ordinal object needed
+for crash recovery, and requires every pre-existing safety fingerprint to be
+unchanged. It performs no candidate or last-good publication.
+
 ## Persistent real Preview gate
 
 A configured API key does **not** authorise persistent real backfill.

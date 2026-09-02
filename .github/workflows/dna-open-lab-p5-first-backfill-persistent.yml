@@ -1,0 +1,202 @@
+name: DNA Open Lab P5 persistent private Preview first backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      measurement_run:
+        description: Exact approved complete-inventory measurement run
+        required: true
+        default: "33574168582"
+        type: choice
+        options:
+          - "33574168582"
+      maximum_authorized_usd:
+        description: Exact owner-authorized one-time provider cost ceiling
+        required: true
+        default: "0.50"
+        type: choice
+        options:
+          - "0.50"
+      commissioning_requests_per_minute:
+        description: Owner-authorized aggregate API ceiling for this one run
+        required: true
+        default: "150"
+        type: choice
+        options:
+          - "150"
+      approve_temporary_150_rpm:
+        description: Confirm temporary 150 aggregate rpm for this one run
+        required: true
+        default: false
+        type: boolean
+      execute_approved_private_preview_backfill:
+        description: Confirm the approved persistent private Preview event
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-p5-persistent-private-preview-first-backfill
+  cancel-in-progress: false
+
+jobs:
+  exact-main-persistent-first-backfill:
+    name: Exact-main guarded persistent private Preview first backfill
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "1"
+      DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL: "1"
+      DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_REQUESTS_PER_MINUTE: ${{ inputs.commissioning_requests_per_minute }}
+      DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_TEMPORARY_150_RPM_APPROVED: ${{ inputs.approve_temporary_150_rpm }}
+      DNA_OPEN_LAB_P5_PROVIDER_PREFLIGHT: "1"
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Require exact main dispatch
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This approved provider workflow may only run from main."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The approved provider workflow head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate exact owner authorization without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_VAULT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_SECRET_ACCESS_KEY",
+          ];
+          for (const name of required) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing or invalid");
+            }
+          }
+          const keys = required
+            .filter((name) => name.startsWith("DNA_OPEN_LAB_API_KEY_"))
+            .map((name) => process.env[name]);
+          if (new Set(keys).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required");
+          }
+          if (
+            "${{ inputs.measurement_run }}" !== "33574168582" ||
+            "${{ inputs.maximum_authorized_usd }}" !== "0.50" ||
+            "${{ inputs.commissioning_requests_per_minute }}" !== "150" ||
+            "${{ inputs.approve_temporary_150_rpm }}" !== "true" ||
+            "${{ inputs.execute_approved_private_preview_backfill }}" !== "true"
+          ) {
+            throw new Error("The selected persistent P5 event is not authorized");
+          }
+          console.log("Validated the exact bounded private Preview authorization without printing private values.");
+          NODE
+      - name: Re-prove provider prerequisites
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-provider-prerequisites.test.ts
+      - name: Execute guarded ordered recovery suite
+        id: recovery
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-crash-replay-recovery.test.ts
+      - name: Prove recovery cleanup
+        id: recovery_cleanup
+        if: always()
+        env:
+          DNA_OPEN_LAB_P5_CONNECTED_RECOVERY_ORDERED_SUITE: "0"
+          DNA_OPEN_LAB_P5_RECOVERY_CLEANUP_ONLY: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-crash-replay-recovery.test.ts
+      - name: Preflight persistent checkpoint and last-good fingerprints
+        id: preflight
+        if: >-
+          steps.recovery.outcome == 'success' &&
+          steps.recovery_cleanup.outcome == 'success'
+        env:
+          DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_MODE: preflight
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-first-backfill-persistent.test.ts
+      - name: Execute approved persistent private Preview first backfill
+        id: backfill
+        if: steps.preflight.outcome == 'success'
+        env:
+          DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_MODE: execute
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-first-backfill-persistent.test.ts
+      - name: Inspect durable checkpoint and prove last-good unchanged
+        id: inspect
+        if: always() && steps.preflight.outcome == 'success'
+        env:
+          DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_MODE: inspect
+          DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_EXECUTION_OUTCOME: ${{ steps.backfill.outcome }}
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-first-backfill-persistent.test.ts
+      - name: Prove exact main remained unchanged
+        id: exact_main
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the approved provider workflow."
+            exit 1
+          fi
+      - name: Upload sanitized persistent-event evidence
+        if: >-
+          steps.preflight.outcome == 'success' &&
+          steps.inspect.outcome == 'success' &&
+          steps.exact_main.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dna-open-lab-p5-persistent-first-backfill-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/dna-open-lab-p5-first-backfill-preflight.json
+            ${{ runner.temp }}/dna-open-lab-p5-first-backfill-execution.json
+            ${{ runner.temp }}/dna-open-lab-p5-first-backfill-inspection.json
+          if-no-files-found: warn
+          retention-days: 7
