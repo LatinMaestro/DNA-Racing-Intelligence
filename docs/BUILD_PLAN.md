@@ -328,6 +328,25 @@ than five minutes, so its test allowance is 15 minutes within the existing
 330-minute workflow ceiling. No acquisition or cleanup authority is broadened
 by these corrections.
 
+Protected run `33667455941` then replayed and reconciled the durable prefix and
+stopped correctly at the exact 17,453-request authority ceiling. The safe
+checkpoint contains 17,453 contiguous receipts and 874,221,544 retained R2
+bytes with the one approved omission, but no completion identity. Live
+current-state pagination grew after measurement: `race_activity` required
+seven pages instead of four, so its three additional pages consumed the three
+ordinal slots originally measured for `splice_arena`. The resulting family
+counts are 17,369 finished-race, seven race-activity, one token-price, four
+Vault-identity, 72 current-Core and zero splice-arena receipts. This is plan
+drift, not a corrupt checkpoint, rate failure or capacity exhaustion.
+
+No further persistent request is authorized by the existing packet. The next
+dependency is an exact-main, aggregate-only, non-persistent measurement of the
+missing splice-arena family at the standing 30 aggregate requests/minute. It
+must first reconcile the complete Neon receipt ledger read-only, retain no raw
+payload, write neither Neon nor R2, and emit a bounded projection. Any amended
+logical-request or cost ceiling requires a new explicit owner decision before
+the protected backfill may continue.
+
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence
