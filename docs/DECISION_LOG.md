@@ -1313,3 +1313,25 @@ After the private Pro League milestone, continue in this order:
   Preview backfill requires explicit owner approval of the exact $0.212250
   maximum plus every documented stop and cleanup condition. Production remains
   prohibited.
+
+## 2026-09-02 — Owner authorizes the first bounded persistent Preview backfill
+
+- Record the owner's explicit written authorization for the first persistent
+  private Preview DNA API backfill measured by run `33574168582`.
+- Set the exact maximum authorized amount to $0.500000 (500,000 micro-USD),
+  which covers but does not replace the measured $0.212250 conservative upper
+  bound.
+- Authorize quarantine and canonical/statistical omission of exactly one
+  unidentified finished-race observation, bound to sanitized measurement
+  evidence SHA-256
+  `250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4`.
+- Accept every documented stop and cleanup condition. Cost, capacity, provider
+  budget, rate/eligibility/body authority, evidence/checkpoint/generation,
+  authority drift, missing quarantine receipt or an omission count above one
+  still stops the backfill and preserves last-good serving.
+- This is one-time private Preview persistence authority only. It does not
+  authorize Production, public access, paid capacity, recurring cost, wallet or
+  game actions.
+- P5 status is now `approved_for_first_private_preview_backfill`. Provider
+  writes may begin only through a reviewed protected exact-main workflow that
+  binds this authority before its first API request or provider write.
