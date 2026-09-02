@@ -3,9 +3,10 @@
 ## Authority
 
 This matrix records repository truth for the first persistent real owner-data
-sync in a protected private Preview. It does not authorise that sync. Every P5
-technical requirement must have exact evidence and the owner must then approve
-the first persistent Preview sync explicitly.
+sync in a protected private Preview. Every P5 technical requirement has exact
+evidence, and the owner explicitly approved the bounded first Preview backfill
+on 2 September 2026. The approval is limited to the measured run `33574168582`
+authority and the recorded $0.500000 ceiling.
 
 Production schema, data, deployment, API secret and game actions remain separate
 later approval gates. P5 approval can never authorise Production.
@@ -24,8 +25,8 @@ later approval gates. P5 approval can never authorise Production.
 
 The exported `DNA_OPEN_LAB_CURRENT_P5_READINESS` value is the machine-checkable
 counterpart. It keeps every non-satisfied row blocking, keeps owner approval
-separate from technical readiness and always reports Production changes as
-disallowed.
+separate from technical readiness, records the current bounded first-backfill
+approval and always reports Production changes as disallowed.
 
 The recovery harness executes the cases below in a fixed order, one case per
 invocation. Its checkpoint is bound to one exact code head and provider scope.
@@ -57,7 +58,8 @@ record containing the case identifier, bounded counts, pass state and
 checkpoint/report hashes. Provider configuration, owner and object identities,
 payloads, summaries and provider errors cannot cross the emission boundary.
 Only the tenth complete passing report can mark connected recovery evidence
-complete; even then, persistent Preview sync and Production remain disallowed.
+complete. The first bounded persistent Preview backfill is now separately
+authorized; Production remains disallowed.
 
 The guarded provider lifecycle buffers that sanitized record until the case has
 finished, mandatory cleanup succeeds and a second provider inspection proves
