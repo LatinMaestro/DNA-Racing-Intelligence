@@ -1465,3 +1465,28 @@ After the private Pro League milestone, continue in this order:
 - The failed recovery attempt performed no API acquisition. Resume only from
   the exact durable ordinal after this correction is reviewed, exact-head green
   and merged.
+
+## 2026-09-03 — Current-state drift stops P5 at the exact approved ceiling
+
+- Protected run `33667455941` passed exact-main, authorization, provider,
+  ordered recovery, cleanup and checkpoint preflight before acquisition. It
+  retained a contiguous 17,453-receipt checkpoint with 874,221,544 private R2
+  bytes and the one approved quarantine-bound omission; last-good publication
+  remained unchanged.
+- The original measurement contained four `race_activity` pages and three
+  `splice_arena` pages. At execution time `race_activity` exposed seven pages.
+  The three new current-state pages consumed the final approved ordinals before
+  the splice family began, leaving the durable family counts at 17,369, seven,
+  one, four, 72 and zero respectively.
+- Treat this as the documented `authority_or_plan_drift` stop. Do not overwrite
+  a current-state page, omit the missing splice family, relabel a receipt or
+  silently raise the 17,453-request boundary. The complete checkpoint remains
+  recoverable and non-published.
+- Permit one exact-main, read-only splice-family measurement at the standing 30
+  aggregate requests/minute. It may read and reconcile the existing Neon
+  ledger, call only `splice.arena`, retain no response bodies and write neither
+  Neon nor R2. Its sanitized aggregate evidence may support an amended bound;
+  it does not itself authorize another persistent request.
+- Stop for an explicit owner amendment after that measurement. Production,
+  public access, paid capacity, independent rate buckets and every wallet or
+  game action remain prohibited.
