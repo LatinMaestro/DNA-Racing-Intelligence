@@ -1335,3 +1335,23 @@ After the private Pro League milestone, continue in this order:
 - P5 status is now `approved_for_first_private_preview_backfill`. Provider
   writes may begin only through a reviewed protected exact-main workflow that
   binds this authority before its first API request or provider write.
+
+## 2026-09-02 — Commissioning persistence must match the measured request boundary
+
+- Run `33574168582` priced one immutable private R2 object per logical API
+  request. It did not price one object per finished race or a `races.docs`
+  hydration request for each batch of discovered race IDs.
+- Do not execute the legacy per-race hydration writer for the approved first
+  backfill. At the measured population it would introduce more than a million
+  Class A writes and tens of thousands of API requests outside the authorized
+  $0.500000 ceiling.
+- Persist each complete API request/response envelope once under an opaque
+  owner- and measurement-scoped R2 key. Bind a global request ordinal, family,
+  observation timestamp, checksum and byte count into the immutable receipt.
+- Exact restart receipts may reuse an existing verified object without another
+  PUT. Conflicting bytes, family/ordinal reuse, a non-private bucket, an object
+  above 8 MiB, envelope overhead above 16 KiB, more than 17,453 logical objects
+  or more than 1,151,071,826 retained bytes stops before further persistence.
+- This aligns execution with the approved API/R2 cost model; it does not itself
+  authorize a provider run. The protected exact-main workflow, durable receipt
+  checkpoint and cleanup proof remain required before the first write.
