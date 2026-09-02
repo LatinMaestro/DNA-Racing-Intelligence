@@ -263,11 +263,17 @@ API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
 The shared six-family inventory runner fixes family order, conservative
 client-pool routing, request/response-byte accounting, terminal-bound checks,
 zero-residue cleanup and aggregate-only emission. Connected endpoint adapters
-and same-head recovery execution are complete. Run `33530224891` traversed all
-six families and cleanup but failed during final report construction, so it
-emitted no artifact. Over-limit Neon projections are now retained as explicit
-`blocked_capacity` evidence; the measured cost packet remains outstanding until
-a corrected exact-main run emits the sanitized aggregate artifact.
+and same-head recovery execution are complete. Run `33562156694` completed the
+exact-main inventory and emitted a sanitized artifact: 1,136,863 source records,
+one owner-authorized de minimis unresolved identity observation, a $0.211814
+one-time R2 upper-bound projection and a 5,778,740,666-byte policy-v1 Neon peak.
+The archive-first persistence boundary does not retain historical race rows in
+Neon, so projection policy v2 now separates historical R2 archive receipts from
+materialized current state. P5 remains `blocked_capacity` until a fresh
+exact-main run proves positive headroom under that policy and the resulting
+exact bounded owner approval is recorded. The measured one-row omission also
+requires worker-side quarantine/omit enforcement before that approval can open
+persistence; it must never become a fabricated canonical race identity.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

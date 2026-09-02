@@ -1268,3 +1268,25 @@ After the private Pro League milestone, continue in this order:
 - Bound malformed-window recovery to 64 subdivisions. A persistently unreadable
   minimum-width window or exhausted split allowance remains fail closed rather
   than inventing data or silently omitting an unknown population.
+
+## 2026-09-02 — Historical backfill projection follows archive-first persistence
+
+- Exact-main run `33562156694` completed all six inventory families, emitted
+  sanitized evidence and left zero provider residue. It observed 1,134,850
+  identified finished races plus one unresolved identity candidate and projected
+  a $0.211814 one-time R2 upper bound at 150 aggregate requests/minute without
+  rate limiting or persistent writes.
+- Retain the policy-v1 5,778,740,666-byte Neon result as valid blocked evidence
+  for that exact plan. Do not reinterpret or delete it.
+- Correct the forward projection to match the implemented persistence boundary:
+  complete historical response/race evidence remains private and immutable in
+  R2; Neon retains bounded finished-window receipts/checkpoints, current-state
+  generations and compact analytical/publication controls, not one relational
+  row or raw body per historical race.
+- Charge historical Neon at 24 KiB physical allowance per logical request plus
+  2 MiB family overhead. Charge recurring current state at 16 KiB per source
+  record, 8 KiB per logical request and 2 MiB per family. These bounds include
+  indexes and candidate/last-good overlap and do not weaken R2 recovery.
+- Require a fresh exact-main complete measurement under projection policy v2.
+  Positive projected headroom still does not authorize persistent Preview data;
+  the measured exact cost cap and owner approval remain mandatory.
