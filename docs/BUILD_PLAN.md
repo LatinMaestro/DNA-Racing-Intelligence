@@ -276,8 +276,15 @@ The owner approved the first persistent private Preview backfill on 2 September
 including quarantine and canonical omission of the single unidentified
 finished-race observation under every documented stop and cleanup condition.
 P5 is `approved_for_first_private_preview_backfill`; the next dependency is the
-reviewed exact-main commissioning workflow and its connected execution. This
-approval does not permit Production, paid capacity or public access.
+reviewed exact-main commissioning workflow and its connected execution. The
+commissioning writer must retain exactly one immutable private R2 object per
+measured logical API request. The legacy per-race `races.docs` hydration writer
+is outside the measured API/Class A bounds and is prohibited for this event.
+The request-level writer now binds every object and restart receipt to the exact
+measurement evidence, rejects immutable conflicts, rehydrates usage from
+durable receipts and stops at the measured logical-request, retained-byte,
+single-object and envelope caps. This approval does not permit Production, paid
+capacity or public access.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
