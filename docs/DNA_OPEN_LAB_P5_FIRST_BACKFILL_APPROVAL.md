@@ -230,3 +230,22 @@ On any stop or failure the worker must:
 After a successful first backfill, normal operation returns to checkpoint-only
 daily catch-up under the existing zero-ongoing-cost budgets. A successful P5
 packet never enables paid capacity automatically.
+
+## Execution drift and continuation measurement
+
+Protected run `33667455941` reached the exact approved 17,453-request boundary
+with a valid contiguous checkpoint, 874,221,544 retained R2 bytes, the one
+approved omission and no completion identity. The current-only race-activity
+inventory had grown from four measured pages to seven. Those three additional
+pages occupied the three request ordinals that the original measurement had
+assigned to splice-arena, leaving no authorized ordinal for that required
+family. The worker therefore applied the mandatory authority/plan-drift stop;
+it did not publish or exceed the packet.
+
+The existing approval does not authorize persistence beyond that checkpoint.
+An exact-main workflow may now perform only a read-only splice-arena
+continuation measurement at 30 aggregate requests/minute. It must reconcile
+the full receipt prefix from Neon, emit only aggregate sanitized evidence,
+retain no raw response body and make zero Neon, R2, publication or Production
+writes. The measured incremental logical/API/storage bounds must be presented
+for an explicit owner amendment before persistent acquisition can resume.
