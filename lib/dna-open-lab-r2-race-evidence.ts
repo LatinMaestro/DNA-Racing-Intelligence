@@ -566,8 +566,51 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       );
     }
 
+    const identityConflictQuarantineObjects =
+      [] as Array<DnaFinishedRaceIdentityConflictQuarantineReceipt>;
+    const seenQuarantineLocators = new Set<string>();
+    for (const receipt of publication.identityConflictQuarantineReceipts) {
+      const expectedObjectKey = unresolvedIdentityObjectKey({
+        ownerPrefix: prefix,
+        evidenceLocatorSha256: receipt.evidenceLocatorSha256,
+      });
+      if (
+        !SHA_256_PATTERN.test(receipt.evidenceLocatorSha256) ||
+        !SHA_256_PATTERN.test(receipt.rawEvidenceSha256) ||
+        !SHA_256_PATTERN.test(receipt.bodySha256) ||
+        !Number.isSafeInteger(receipt.byteLength) ||
+        receipt.byteLength < 1 ||
+        receipt.objectKey !== expectedObjectKey ||
+        seenQuarantineLocators.has(receipt.evidenceLocatorSha256)
+      ) {
+        evidenceError("finished-race quarantine receipt is invalid");
+      }
+      const head = await configuration.storage.headObject({
+        bucketName,
+        key: receipt.objectKey,
+      });
+      if (
+        head.status !== "ready" ||
+        head.contentType !== JSON_CONTENT_TYPE ||
+        head.byteLength !== receipt.byteLength ||
+        head.checksumSha256 !== receipt.bodySha256 ||
+        metadataValue(head.metadata, "dna-authority") !==
+          "unresolved_source_identity" ||
+        metadataValue(head.metadata, "dna-evidence-locator-sha256") !==
+          receipt.evidenceLocatorSha256 ||
+        metadataValue(head.metadata, "dna-raw-sha256") !==
+          receipt.rawEvidenceSha256 ||
+        metadataValue(head.metadata, "dna-canonical-publishable") !== "false" ||
+        metadataValue(head.metadata, "dna-last-good-publishable") !== "false"
+      ) {
+        evidenceError("finished-race quarantine archive is inconsistent");
+      }
+      seenQuarantineLocators.add(receipt.evidenceLocatorSha256);
+      identityConflictQuarantineObjects.push(receipt);
+    }
+
     const manifest = Object.freeze({
-      schemaVersion: 1,
+      schemaVersion: 2,
       source: "dna_open_lab",
       sourceVersion: "v1",
       endpoint: "races.finished",
@@ -576,6 +619,9 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       window: publication.window,
       discoveredRaces: publication.discoveredRaces,
       raceDocumentObjects: Object.freeze(raceDocumentObjects),
+      identityConflictQuarantineObjects: Object.freeze(
+        identityConflictQuarantineObjects,
+      ),
     });
     const body = objectBody(manifest, maximumObjectBytes);
     const objectKey = finishedWindowObjectKey({
@@ -590,6 +636,9 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       "dna-window-key": publication.windowKey,
       "dna-content-sha256": publication.contentSha256,
       "dna-document-count": String(publication.hydratedDocuments.length),
+      "dna-omitted-identity-count": String(
+        identityConflictQuarantineObjects.length,
+      ),
     });
     await putVerifiedObject({
       storage: configuration.storage,

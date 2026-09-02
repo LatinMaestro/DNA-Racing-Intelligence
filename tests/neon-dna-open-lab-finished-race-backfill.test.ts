@@ -32,6 +32,8 @@ function checkpoint(
     successfulFinishedRaceRequestCount: 0,
     raceDocumentRequestCount: 0,
     publishedWindowDocumentCount: 0,
+    identityOmissionAuthority: null,
+    omittedIdentityObservationCount: 0,
     ...overrides,
   });
 }

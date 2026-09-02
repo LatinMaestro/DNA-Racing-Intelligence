@@ -1,5 +1,6 @@
 import type { DnaOpenLabP5ReadinessAssessment } from "@/lib/dna-open-lab-p5-readiness";
 import { DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES } from "@/lib/dna-open-lab-p5-capacity-measurement";
+import { DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT } from "@/lib/dna-open-lab-unresolved-identity-policy";
 
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_STOP_CONDITIONS = Object.freeze([
   "projected_cost_exceeds_authorized_maximum",
@@ -48,6 +49,11 @@ export type DnaOpenLabP5FirstBackfillOwnerAuthorization = Readonly<{
   approvalRef: string;
 }>;
 
+export type DnaOpenLabP5FirstBackfillIdentityOmissionAuthority = Readonly<{
+  measurementEvidenceSha256: string;
+  maximumObservationCount: number;
+}>;
+
 export type DnaOpenLabP5FirstBackfillApprovalStatus =
   | "blocked_technical_evidence"
   | "blocked_measured_upper_bound"
@@ -67,6 +73,7 @@ export type DnaOpenLabP5FirstBackfillApprovalPacket = Readonly<{
   firstPersistentPrivatePreviewBackfillAllowed: boolean;
   productionChangesAllowed: false;
   measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound | null;
+  identityOmissionAuthority: DnaOpenLabP5FirstBackfillIdentityOmissionAuthority | null;
   ownerAuthorization: DnaOpenLabP5FirstBackfillOwnerAuthorization | null;
   stopConditions: readonly DnaOpenLabP5FirstBackfillStopCondition[];
   cleanupConditions: readonly DnaOpenLabP5FirstBackfillCleanupCondition[];
@@ -174,6 +181,7 @@ function validateMeasuredUpperBound(
 export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
   readiness: DnaOpenLabP5ReadinessAssessment;
   measuredUpperBound: DnaOpenLabP5FirstBackfillMeasuredUpperBound | null;
+  identityOmissionAuthority?: DnaOpenLabP5FirstBackfillIdentityOmissionAuthority | null;
   ownerAuthorization: DnaOpenLabP5FirstBackfillOwnerAuthorization | null;
 }): DnaOpenLabP5FirstBackfillApprovalPacket {
   if (
@@ -192,6 +200,38 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
   const measuredUpperBound = input.measuredUpperBound
     ? validateMeasuredUpperBound(input.measuredUpperBound)
     : null;
+  const identityOmissionAuthority = input.identityOmissionAuthority ?? null;
+  if (identityOmissionAuthority !== null) {
+    if (
+      !/^[a-f0-9]{64}$/u.test(
+        identityOmissionAuthority.measurementEvidenceSha256,
+      ) ||
+      !Number.isSafeInteger(
+        identityOmissionAuthority.maximumObservationCount,
+      ) ||
+      identityOmissionAuthority.maximumObservationCount < 1 ||
+      identityOmissionAuthority.maximumObservationCount >
+        DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT
+    ) {
+      approvalPacketError("identity omission authority is invalid");
+    }
+    if (!measuredUpperBound) {
+      approvalPacketError(
+        "identity omission authority cannot precede the measured upper bound",
+      );
+    }
+    if (
+      measuredUpperBound.unresolvedIdentityObservationUpperBound !==
+        identityOmissionAuthority.maximumObservationCount ||
+      !measuredUpperBound.evidenceRefs.some((reference) =>
+        reference.includes(identityOmissionAuthority.measurementEvidenceSha256),
+      )
+    ) {
+      approvalPacketError(
+        "identity omission authority must match the exact measured count and evidence",
+      );
+    }
+  }
 
   if (
     input.readiness.ownerApprovalRecorded !== Boolean(input.ownerAuthorization)
@@ -231,7 +271,8 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
       measuredUpperBound.neonCapacityLimitBytes;
   const sourceAuthorityComplete =
     measuredUpperBound !== null &&
-    measuredUpperBound.unresolvedIdentityObservationUpperBound === 0;
+    (measuredUpperBound.unresolvedIdentityObservationUpperBound === 0 ||
+      identityOmissionAuthority !== null);
   const readyForOwnerDecision =
     technicalEvidenceComplete &&
     measuredUpperBoundComplete &&
@@ -279,6 +320,7 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     firstPersistentPrivatePreviewBackfillAllowed,
     productionChangesAllowed: false,
     measuredUpperBound,
+    identityOmissionAuthority,
     ownerAuthorization: input.ownerAuthorization
       ? Object.freeze({ ...input.ownerAuthorization })
       : null,

@@ -136,6 +136,7 @@ function publication(
     }),
     discoveredRaces: documents.map(({ rid }) => ({ rid })),
     hydratedDocuments: Object.freeze(hydratedDocuments),
+    identityConflictQuarantineReceipts: Object.freeze([]),
   });
 }
 
@@ -290,6 +291,87 @@ describe("DNA Open Lab private R2 Race evidence", () => {
       expected.contentSha256,
     );
     expect(manifest?.[1].metadata["dna-document-count"]).toBe("2");
+    expect(manifest?.[1].metadata["dna-omitted-identity-count"]).toBe("0");
+  });
+
+  it("binds verified non-canonical quarantine evidence into the accepted window manifest", async () => {
+    const storage = new MemoryR2Storage();
+    const documents = [
+      { rid: 7, full: true },
+    ] satisfies readonly DnaRaceDocument[];
+    const client = createDnaOpenLabR2RaceDocumentClient({
+      client: sourceClient(documents),
+      configuration: configuration(storage),
+    });
+    await client.raceDocs([7]);
+    const quarantine = createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+      configuration(storage),
+    );
+    const observation = { rid: null, elapsed: 12.3 };
+    const quarantineReceipt = await quarantine({
+      window: {
+        startTime: "2026-08-01T00:00:00.000Z",
+        endTime: "2026-08-01T00:10:00.000Z",
+      },
+      sourceObservationOrdinal: 2,
+      observation,
+      rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
+    });
+    const publish = createDnaOpenLabR2FinishedRaceWindowPublisher(
+      configuration(storage),
+    );
+    const expected = {
+      ...publication(documents),
+      identityConflictQuarantineReceipts: Object.freeze([quarantineReceipt]),
+    };
+
+    await publish(expected);
+    const manifest = [...storage.objects.entries()].find(([key]) =>
+      key.endsWith(`/finished-windows/${expected.windowKey}.json`),
+    );
+    const decoded = JSON.parse(
+      new TextDecoder().decode(manifest?.[1].body),
+    ) as Record<string, unknown>;
+
+    expect(manifest?.[1].metadata["dna-omitted-identity-count"]).toBe("1");
+    expect(decoded).toMatchObject({
+      schemaVersion: 2,
+      identityConflictQuarantineObjects: [quarantineReceipt],
+    });
+  });
+
+  it("denies publication when a bound quarantine receipt no longer has immutable R2 evidence", async () => {
+    const storage = new MemoryR2Storage();
+    const quarantine = createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(
+      configuration(storage),
+    );
+    const observation = { rid: null, elapsed: 12.3 };
+    const quarantineReceipt = await quarantine({
+      window: {
+        startTime: "2026-08-01T00:00:00.000Z",
+        endTime: "2026-08-01T00:10:00.000Z",
+      },
+      sourceObservationOrdinal: 1,
+      observation,
+      rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
+    });
+    storage.objects.delete(quarantineReceipt.objectKey);
+    const publish = createDnaOpenLabR2FinishedRaceWindowPublisher(
+      configuration(storage),
+    );
+
+    await expect(
+      publish({
+        ...publication([]),
+        identityConflictQuarantineReceipts: Object.freeze([quarantineReceipt]),
+      }),
+    ).rejects.toThrow("finished-race quarantine archive is inconsistent");
+
+    expect(
+      [...storage.objects.keys()].some((key) =>
+        key.includes("/races/finished-windows/"),
+      ),
+    ).toBe(false);
   });
 
   it("fails closed when a window references a full race doc that was not archived", async () => {

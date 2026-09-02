@@ -19,6 +19,7 @@ import type {
   DnaRaceIdentifier,
 } from "./dna-open-lab-v1-client";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
+import { DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT } from "./dna-open-lab-unresolved-identity-policy";
 
 export const DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION = 1 as const;
 export const DNA_FINISHED_RACE_BACKFILL_MAX_PENDING_WINDOWS = 128 as const;
@@ -35,6 +36,13 @@ export type DnaFinishedRaceBackfillCheckpoint = Readonly<{
   successfulFinishedRaceRequestCount: number;
   raceDocumentRequestCount: number;
   publishedWindowDocumentCount: number;
+  identityOmissionAuthority: DnaFinishedRaceIdentityOmissionAuthority | null;
+  omittedIdentityObservationCount: number;
+}>;
+
+export type DnaFinishedRaceIdentityOmissionAuthority = Readonly<{
+  measurementEvidenceSha256: string;
+  maximumObservationCount: number;
 }>;
 
 export type StoredDnaFinishedRaceBackfillCheckpoint = Readonly<{
@@ -64,6 +72,7 @@ export type DnaFinishedRaceWindowPublication = Readonly<{
   window: DnaFinishedRaceWindow;
   discoveredRaces: readonly DnaRaceDocument[];
   hydratedDocuments: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
+  identityConflictQuarantineReceipts: readonly DnaFinishedRaceIdentityConflictQuarantineReceipt[];
 }>;
 
 export type DnaFinishedRaceWindowPublicationReceipt = Readonly<{
@@ -191,6 +200,25 @@ function positiveSafeInteger(value: number, field: string): number {
   return value;
 }
 
+function identityOmissionAuthority(
+  value: DnaFinishedRaceIdentityOmissionAuthority | null | undefined,
+): DnaFinishedRaceIdentityOmissionAuthority | null {
+  if (value === null || value === undefined) return null;
+  if (
+    !SHA_256_PATTERN.test(value.measurementEvidenceSha256) ||
+    !Number.isSafeInteger(value.maximumObservationCount) ||
+    value.maximumObservationCount < 1 ||
+    value.maximumObservationCount >
+      DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT
+  ) {
+    backfillError(
+      "invalid_configuration",
+      "finished-race identity omission authority is invalid",
+    );
+  }
+  return Object.freeze({ ...value });
+}
+
 function timestampMilliseconds(value: string, field: string): number {
   if (typeof value !== "string" || value.trim() === "") {
     backfillError("invalid_checkpoint", `${field} is required`);
@@ -282,6 +310,25 @@ export function validateDnaFinishedRaceBackfillCheckpoint(
     seen.add(identity);
     return normalized;
   });
+  const normalizedIdentityOmissionAuthority = identityOmissionAuthority(
+    checkpoint.identityOmissionAuthority,
+  );
+  const omittedIdentityObservationCount = nonNegativeSafeInteger(
+    checkpoint.omittedIdentityObservationCount,
+    "omittedIdentityObservationCount",
+  );
+  if (
+    (normalizedIdentityOmissionAuthority === null &&
+      omittedIdentityObservationCount !== 0) ||
+    (normalizedIdentityOmissionAuthority !== null &&
+      omittedIdentityObservationCount >
+        normalizedIdentityOmissionAuthority.maximumObservationCount)
+  ) {
+    backfillError(
+      "invalid_checkpoint",
+      "omitted identity count exceeds persisted omission authority",
+    );
+  }
 
   return Object.freeze({
     version: DNA_FINISHED_RACE_BACKFILL_CHECKPOINT_VERSION,
@@ -305,6 +352,8 @@ export function validateDnaFinishedRaceBackfillCheckpoint(
       checkpoint.publishedWindowDocumentCount,
       "publishedWindowDocumentCount",
     ),
+    identityOmissionAuthority: normalizedIdentityOmissionAuthority,
+    omittedIdentityObservationCount,
   });
 }
 
@@ -441,6 +490,7 @@ function publicationHashes(input: {
   window: DnaFinishedRaceWindow;
   discoveredRaces: readonly DnaRaceDocument[];
   hydration: DnaRaceDocumentHydrationResult | null;
+  identityConflictQuarantineReceipts: readonly DnaFinishedRaceIdentityConflictQuarantineReceipt[];
 }): Readonly<{ windowKey: string; contentSha256: string }> {
   const windowKey = createHash("sha256")
     .update(
@@ -459,6 +509,8 @@ function publicationHashes(input: {
       input.hydration?.documents.map(
         (document) => document.rawEvidenceSha256,
       ) ?? [],
+    identityConflictQuarantineReceipts:
+      input.identityConflictQuarantineReceipts,
   });
   return Object.freeze({ windowKey, contentSha256 });
 }
@@ -467,6 +519,7 @@ function initialCheckpoint(input: {
   startTime: string;
   endTime: string;
   minimumWindowMilliseconds: number;
+  identityOmissionAuthority: DnaFinishedRaceIdentityOmissionAuthority | null;
 }): DnaFinishedRaceBackfillCheckpoint {
   const rootWindow = normalizeWindow(
     { startTime: input.startTime, endTime: input.endTime },
@@ -482,6 +535,8 @@ function initialCheckpoint(input: {
     successfulFinishedRaceRequestCount: 0,
     raceDocumentRequestCount: 0,
     publishedWindowDocumentCount: 0,
+    identityOmissionAuthority: input.identityOmissionAuthority,
+    omittedIdentityObservationCount: 0,
   });
 }
 
@@ -490,6 +545,7 @@ async function loadOrCreateCheckpoint(input: {
   startTime: string;
   endTime: string;
   minimumWindowMilliseconds: number;
+  identityOmissionAuthority: DnaFinishedRaceIdentityOmissionAuthority | null;
 }): Promise<StoredDnaFinishedRaceBackfillCheckpoint> {
   const existing = await input.repository.load();
   if (existing !== null) {
@@ -516,6 +572,15 @@ async function loadOrCreateCheckpoint(input: {
         "minimumWindowMilliseconds differs from persisted checkpoint",
       );
     }
+    if (
+      dnaOpenLabRawEvidenceSha256(checkpoint.identityOmissionAuthority) !==
+      dnaOpenLabRawEvidenceSha256(input.identityOmissionAuthority)
+    ) {
+      backfillError(
+        "invalid_configuration",
+        "identity omission authority differs from persisted checkpoint",
+      );
+    }
     return Object.freeze({ revision: existing.revision, checkpoint });
   }
 
@@ -535,6 +600,7 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
   identityConflictQuarantine: DnaFinishedRaceIdentityConflictQuarantine;
   observedAt: string;
   minimumWindowMilliseconds?: number;
+  identityOmissionAuthority?: DnaFinishedRaceIdentityOmissionAuthority | null;
 }): Promise<DnaFinishedRaceBackfillStepResult> {
   const minimumWindowMilliseconds = positiveSafeInteger(
     input.minimumWindowMilliseconds ?? 1,
@@ -545,6 +611,9 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
     startTime: input.startTime,
     endTime: input.endTime,
     minimumWindowMilliseconds,
+    identityOmissionAuthority: identityOmissionAuthority(
+      input.identityOmissionAuthority,
+    ),
   });
   const checkpoint = stored.checkpoint;
   const currentWindow = checkpoint.pendingWindows[0];
@@ -602,6 +671,8 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
           }),
     )
     .filter((conflict) => conflict !== null);
+  const identityConflictQuarantineReceipts =
+    [] as Array<DnaFinishedRaceIdentityConflictQuarantineReceipt>;
   if (identityConflicts.length > 0) {
     for (const conflict of identityConflicts) {
       const receipt = await input.identityConflictQuarantine({
@@ -614,14 +685,24 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
         receipt,
         rawEvidenceSha256: conflict.rawEvidenceSha256,
       });
+      identityConflictQuarantineReceipts.push(receipt);
     }
-    backfillError(
-      "unresolved_source_identity",
-      `finished-race window contains ${identityConflicts.length} quarantined observation(s) without authoritative identity`,
-    );
+    const authority = checkpoint.identityOmissionAuthority;
+    const nextOmittedCount =
+      checkpoint.omittedIdentityObservationCount + identityConflicts.length;
+    if (
+      authority === null ||
+      nextOmittedCount > authority.maximumObservationCount
+    ) {
+      backfillError(
+        "unresolved_source_identity",
+        `finished-race window would exceed authorized identity omission authority with ${nextOmittedCount} observation(s)`,
+      );
+    }
   }
 
-  const raceIds = uniqueRaceIds(races);
+  const acceptedRaces = races.filter(hasAuthoritativeRaceIdentity);
+  const raceIds = uniqueRaceIds(acceptedRaces);
   const hydration =
     raceIds.length === 0
       ? null
@@ -634,16 +715,20 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
   const hydratedDocuments = hydration?.documents ?? Object.freeze([]);
   const hashes = publicationHashes({
     window: currentWindow,
-    discoveredRaces: races,
+    discoveredRaces: acceptedRaces,
     hydration,
+    identityConflictQuarantineReceipts,
   });
   const publicationReceipt = validateDnaFinishedRaceWindowPublicationReceipt(
     await input.publisher(
       Object.freeze({
         ...hashes,
         window: currentWindow,
-        discoveredRaces: races,
+        discoveredRaces: acceptedRaces,
         hydratedDocuments,
+        identityConflictQuarantineReceipts: Object.freeze(
+          identityConflictQuarantineReceipts,
+        ),
       }),
     ),
   );
@@ -667,6 +752,8 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
       checkpoint.raceDocumentRequestCount + (hydration?.batchCount ?? 0),
     publishedWindowDocumentCount:
       checkpoint.publishedWindowDocumentCount + hydratedDocuments.length,
+    omittedIdentityObservationCount:
+      checkpoint.omittedIdentityObservationCount + identityConflicts.length,
   });
   const nextStored = await input.checkpointRepository.save({
     expectedRevision: stored.revision,
