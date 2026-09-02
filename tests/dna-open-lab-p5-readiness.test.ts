@@ -8,12 +8,12 @@ import {
 } from "@/lib/dna-open-lab-p5-readiness";
 
 describe("DNA Open Lab P5 readiness", () => {
-  it("keeps the current first-real-sync gate closed", () => {
+  it("records the bounded owner approval for the first real Preview sync", () => {
     expect(DNA_OPEN_LAB_CURRENT_P5_READINESS).toEqual({
       technicalEvidenceComplete: true,
       readyForOwnerApproval: true,
-      ownerApprovalRecorded: false,
-      firstPersistentPrivatePreviewSyncAllowed: false,
+      ownerApprovalRecorded: true,
+      firstPersistentPrivatePreviewSyncAllowed: true,
       productionChangesAllowed: false,
       blockingRequirementIds: [],
     });

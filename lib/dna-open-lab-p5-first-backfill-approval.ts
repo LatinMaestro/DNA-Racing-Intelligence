@@ -1,4 +1,7 @@
-import type { DnaOpenLabP5ReadinessAssessment } from "@/lib/dna-open-lab-p5-readiness";
+import {
+  DNA_OPEN_LAB_CURRENT_P5_READINESS,
+  type DnaOpenLabP5ReadinessAssessment,
+} from "@/lib/dna-open-lab-p5-readiness";
 import { DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES } from "@/lib/dna-open-lab-p5-capacity-measurement";
 import { DNA_OPEN_LAB_OWNER_AUTHORIZED_DE_MINIMIS_IDENTITY_OMISSION_LIMIT } from "@/lib/dna-open-lab-unresolved-identity-policy";
 
@@ -328,3 +331,52 @@ export function buildDnaOpenLabP5FirstBackfillApprovalPacket(input: {
     cleanupConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
   });
 }
+
+export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_MEASURED_UPPER_BOUND =
+  Object.freeze({
+    measurementBasis: "complete_inventory_upper_bound" as const,
+    exactMainCommit: "9fc47d6b1ba95287349cbd18023254058dd744e0",
+    measuredAt: "2026-09-02T02:09:19.270Z",
+    authorityCutoffAt: "2026-09-02T00:11:55.961Z",
+    priceAuthorityEffectiveAt: "2026-08-07T00:00:00.000Z",
+    sourceRecordUpperBound: 1_136_911,
+    apiRequestUpperBound: 34_906,
+    retainedR2BytesUpperBound: 1_151_071_826,
+    classAOperationsUpperBound: 34_952,
+    classBOperationsUpperBound: 104_718,
+    neonCapacityLimitBytes: DNA_OPEN_LAB_P5_NEON_LIMIT_BYTES,
+    neonPeakBytesUpperBound: 489_717_760,
+    projectedCostMicroUsd: 212_250,
+    unresolvedIdentityObservationUpperBound: 1,
+    evidenceRefs: Object.freeze([
+      "github-actions:33574168582#sha256:250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4",
+    ]),
+  } satisfies DnaOpenLabP5FirstBackfillMeasuredUpperBound);
+
+export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_IDENTITY_OMISSION_AUTHORITY =
+  Object.freeze({
+    measurementEvidenceSha256:
+      "250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4",
+    maximumObservationCount: 1,
+  } satisfies DnaOpenLabP5FirstBackfillIdentityOmissionAuthority);
+
+export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION =
+  Object.freeze({
+    maximumAuthorizedMicroUsd: 500_000,
+    approvalRef: "owner-written-approval:2026-09-02",
+  } satisfies DnaOpenLabP5FirstBackfillOwnerAuthorization);
+
+/**
+ * Current exact authority for the one-time private Preview backfill. This
+ * permits only the bounded first backfill; Production remains prohibited.
+ */
+export const DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET =
+  buildDnaOpenLabP5FirstBackfillApprovalPacket({
+    readiness: DNA_OPEN_LAB_CURRENT_P5_READINESS,
+    measuredUpperBound:
+      DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_MEASURED_UPPER_BOUND,
+    identityOmissionAuthority:
+      DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_IDENTITY_OMISSION_AUTHORITY,
+    ownerAuthorization:
+      DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION,
+  });

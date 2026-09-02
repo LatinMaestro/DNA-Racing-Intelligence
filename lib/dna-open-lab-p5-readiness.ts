@@ -236,5 +236,5 @@ export function assessDnaOpenLabP5Readiness(input: {
 
 export const DNA_OPEN_LAB_CURRENT_P5_READINESS = assessDnaOpenLabP5Readiness({
   evidence: DNA_OPEN_LAB_P5_READINESS_EVIDENCE,
-  ownerApprovalRecorded: false,
+  ownerApprovalRecorded: true,
 });

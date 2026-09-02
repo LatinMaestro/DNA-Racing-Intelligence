@@ -2,8 +2,8 @@
 
 ## Current conclusion
 
-The first persistent private Preview historical backfill remains prohibited
-until exact bounded owner approval is recorded. Exact-main protected run
+The first persistent private Preview historical backfill is now authorized
+within the exact bounded owner approval recorded on 2 September 2026. Exact-main protected run
 `33574168582` completed the ten-case recovery suite and all six read-only
 inventory families from commit
 `9fc47d6b1ba95287349cbd18023254058dd744e0`, emitted its sanitized artifact and
@@ -24,9 +24,12 @@ fails closed.
 
 The sanitized measurement evidence SHA-256 is
 `250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4`.
-Classification and worker readiness do not authorize a persistent write. The
-owner must still approve the exact $0.212250 maximum and the mandatory
-stop/cleanup conditions below.
+The owner authorized up to $0.500000 for this one commissioning event, covering
+the measured $0.212250 upper bound, and accepted the exact one-observation
+quarantine/omission authority plus every mandatory stop and cleanup condition
+below. This authority permits only the first persistent private Preview
+backfill. It does not permit Production, paid capacity, public access or a game
+transaction.
 
 The connected capacity run `33227770750` remains valid evidence for PostgreSQL
 18 peak/headroom and a bounded synthetic R2 cost projection. It does **not**
