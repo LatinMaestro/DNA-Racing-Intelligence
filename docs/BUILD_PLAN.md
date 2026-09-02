@@ -286,6 +286,16 @@ durable receipts and stops at the measured logical-request, retained-byte,
 single-object and envelope caps. This approval does not permit Production, paid
 capacity or public access.
 
+Migration `0078` adds the matching compact owner-RLS Neon ledger for this exact
+commissioning event. It hard-binds the measured evidence checksum, hashed owner
+approval reference and authority cutoff; records only request receipts and
+aggregate usage; advances receipts in global ordinal order; and increments the
+single permitted unidentified-observation count in the same transaction as its
+quarantine-bound request receipt. Completion requires all 17,453 measured
+logical requests, all six source families and exactly one bound omission.
+Direct runtime table access remains prohibited, exact replay is idempotent and
+authority, byte, ordinal, receipt or omission drift fails closed.
+
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence

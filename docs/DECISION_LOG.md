@@ -1355,3 +1355,21 @@ After the private Pro League milestone, continue in this order:
 - This aligns execution with the approved API/R2 cost model; it does not itself
   authorize a provider run. The protected exact-main workflow, durable receipt
   checkpoint and cleanup proof remain required before the first write.
+
+## 2026-09-02 — First-backfill Neon ledger is exact and compact
+
+- Persist the commissioning checkpoint as one owner-scoped run row plus one
+  compact receipt row per measured logical API request; do not place raw API
+  response bodies or per-race historical facts in Neon.
+- Bind initialization to measurement evidence SHA-256
+  `250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4`,
+  the hashed written approval reference and the measured authority cutoff.
+- Require global ordinal append order and compare-and-swap revision authority.
+  Exact durable replay returns the current state without double-counting bytes;
+  conflicting replay, gaps, authority drift or capacity overflow fails closed.
+- Bind the sole unidentified finished-race omission to the same request receipt
+  that locates its private immutable R2 evidence. Increment the receipt, byte
+  and omission counters in one transaction; never create a canonical race ID.
+- Permit completion only after exactly 17,453 request receipts cover all six
+  measured source families and the bound omission count is exactly one. Keep
+  direct runtime table privileges revoked and forced owner RLS enabled.

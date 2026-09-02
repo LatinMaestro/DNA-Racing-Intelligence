@@ -147,6 +147,15 @@ the row from canonical/statistical publication and advances the cumulative
 omission count atomically. Missing authority, authority drift or a count breach
 keeps the checkpoint pending and preserves last-good serving.
 
+For the first approved private Preview backfill, the durable Neon ledger stores
+one compact row per request-level R2 receipt. A new ordinal can commit only when
+it is the next expected request and the compare-and-swap revision, exact
+measurement checksum, byte caps and owner scope all agree. The unidentified
+finished-race observation is represented only by an omission count on its
+verified request receipt; that count and the receipt commit atomically. The run
+cannot become complete until every measured request and all six families are
+present and the cumulative omission count is exactly one.
+
 The checkpoint records enough information to restart without losing or duplicating accepted coverage.
 
 ## Last-good publication
