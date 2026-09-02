@@ -278,6 +278,17 @@ or metadata fail closed. Completion uses a deterministic checksum of every
 ordered durable receipt and is unavailable until the exact measured request
 limit and the one approved quarantine omission are present.
 
+On process restart, the coordinator reads each prior request envelope from R2
+through its committed Neon receipt. It rechecks private-bucket state, object
+head metadata, exact bytes, checksum, canonical JSON and embedded measurement,
+family, ordinal and observation-time authority before acquisition logic may
+reuse the stored response. This reconstructs adaptive pagination and current-
+state plan inputs without reissuing an already committed API request. Missing
+or conflicting replay evidence stops before the first new request or write.
+If R2 was committed immediately before a Neon interruption, the same checks
+expose that exact next-ordinal envelope as pending so its receipt can be
+committed without replacing or reissuing the observation.
+
 ## Persistent real Preview gate
 
 A configured API key does **not** authorise persistent real backfill.

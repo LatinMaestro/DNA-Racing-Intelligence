@@ -82,6 +82,19 @@ class MemoryR2Storage implements DnaOpenLabP5FirstBackfillR2EvidenceStoragePort 
       metadata: object.metadata,
     });
   }
+
+  async getObject(input: { bucketName: string; key: string }) {
+    const object = this.objects.get(input.key);
+    if (object === undefined) {
+      return Object.freeze({ status: "missing" as const });
+    }
+    return Object.freeze({
+      status: "ready" as const,
+      body: (async function* () {
+        yield object.body;
+      })(),
+    });
+  }
 }
 
 function writer(
@@ -164,6 +177,75 @@ describe("DNA Open Lab P5 first-backfill request evidence", () => {
     expect(storage.privacyReadCount).toBe(1);
     expect(evidence.usage().logicalRequestCount).toBe(1);
     expect(evidence.usage().retainedR2Bytes).toBe(first.byteLength);
+  });
+
+  it("reads and verifies committed evidence for restart reconstruction", async () => {
+    const storage = new MemoryR2Storage();
+    const firstWriter = writer(storage);
+    const receipt = await firstWriter.write(observation([{ rid: 1001 }]));
+    const restarted = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
+      ownerId: "private-owner@example.test",
+      bucketName: "dna-racing-private-preview",
+      storage,
+      approvalPacket: DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+      priorReceipts: [receipt],
+    });
+
+    await expect(restarted.read(1)).resolves.toEqual(
+      expect.objectContaining({
+        family: "finished_races",
+        requestOrdinal: 1,
+        endpoint: "races.finished",
+        request: { page: 1, limit: 100 },
+        response: expect.objectContaining({ result: [{ rid: 1001 }] }),
+        observedAt: "2026-09-02T03:00:00.000Z",
+      }),
+    );
+    await expect(restarted.read(2)).resolves.toBeNull();
+
+    const receiptlessRestart = writer(storage);
+    await expect(receiptlessRestart.read(1)).resolves.toEqual(
+      expect.objectContaining({
+        family: "finished_races",
+        requestOrdinal: 1,
+        response: expect.objectContaining({ result: [{ rid: 1001 }] }),
+      }),
+    );
+  });
+
+  it("fails closed when a prior object body is missing or corrupted", async () => {
+    const storage = new MemoryR2Storage();
+    const firstWriter = writer(storage);
+    const receipt = await firstWriter.write(observation([{ rid: 1001 }]));
+    const restarted = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
+      ownerId: "private-owner@example.test",
+      bucketName: "dna-racing-private-preview",
+      storage,
+      approvalPacket: DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+      priorReceipts: [receipt],
+    });
+    storage.objects.delete(receipt.evidenceObjectKey);
+    await expect(restarted.read(1)).rejects.toThrow(
+      "prior evidence object conflicts with its receipt",
+    );
+  });
+
+  it("rejects bytes that disagree with immutable head authority", async () => {
+    const storage = new MemoryR2Storage();
+    const firstWriter = writer(storage);
+    const receipt = await firstWriter.write(observation([{ rid: 1001 }]));
+    const existing = storage.objects.get(receipt.evidenceObjectKey);
+    if (existing === undefined) throw new Error("synthetic object missing");
+    const corrupted = Uint8Array.from(existing.body);
+    corrupted[corrupted.byteLength - 1] = 32;
+    storage.objects.set(
+      receipt.evidenceObjectKey,
+      Object.freeze({ ...existing, body: corrupted }),
+    );
+
+    await expect(writer(storage).read(1)).rejects.toThrow(
+      "prior evidence object checksum disagrees",
+    );
   });
 
   it("fails closed if one ordinal is reused for different evidence", async () => {

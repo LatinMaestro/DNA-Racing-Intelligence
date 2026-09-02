@@ -102,6 +102,28 @@ function harness(input?: {
     written.set(request.requestOrdinal, receipt);
     return receipt;
   });
+  const read = vi.fn(async (requestOrdinal: number) => {
+    const receipt = written.get(requestOrdinal);
+    if (receipt === undefined) return null;
+    return Object.freeze({
+      family: receipt.family,
+      requestOrdinal,
+      endpoint: "races.finished",
+      request: Object.freeze({ replay: requestOrdinal }),
+      response: Object.freeze({
+        result: Object.freeze([{ rid: requestOrdinal }]),
+        httpStatus: 200,
+        rateLimit: Object.freeze({
+          limit: 150,
+          remaining: 149,
+          resetSeconds: 60,
+          rateClass: "api_key" as const,
+          retryAfterSeconds: null,
+        }),
+      }),
+      observedAt: receipt.observedAt,
+    });
+  });
   const coordinator = createDnaOpenLabP5FirstBackfillPersistenceCoordinator({
     ownerId: "private-owner",
     bucketName: "private-preview",
@@ -112,6 +134,7 @@ function harness(input?: {
       expect(priorReceipts).toEqual(prior);
       return {
         write,
+        read,
         usage: () => ({
           logicalRequestCount: written.size,
           retainedR2Bytes: [...written.values()].reduce(
@@ -124,7 +147,7 @@ function harness(input?: {
       };
     },
   });
-  return { coordinator, ledger, write };
+  return { coordinator, ledger, write, read };
 }
 
 const request = Object.freeze({
@@ -163,6 +186,37 @@ describe("DNA Open Lab P5 first-backfill persistence coordinator", () => {
     );
     expect(test.ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({ expectedRevision: "2" }),
+    );
+  });
+
+  it("replays a committed response and stops at the next request ordinal", async () => {
+    const test = harness();
+    await test.coordinator.initialize();
+    await expect(test.coordinator.replay(1)).resolves.toEqual(
+      expect.objectContaining({
+        status: "committed",
+        document: expect.objectContaining({
+          requestOrdinal: 1,
+          endpoint: "races.finished",
+          response: expect.objectContaining({ result: [{ rid: 1 }] }),
+        }),
+      }),
+    );
+    await expect(test.coordinator.replay(2)).resolves.toBeNull();
+    expect(test.read).toHaveBeenCalledTimes(2);
+  });
+
+  it("exposes an R2-first interruption only as a pending Neon receipt", async () => {
+    const test = harness({ recordFailsOnce: true });
+    await test.coordinator.initialize();
+    await expect(test.coordinator.record(request)).rejects.toThrow(
+      "synthetic Neon interruption",
+    );
+    await expect(test.coordinator.replay(2)).resolves.toEqual(
+      expect.objectContaining({
+        status: "pending_neon_receipt",
+        document: expect.objectContaining({ requestOrdinal: 2 }),
+      }),
     );
   });
 
