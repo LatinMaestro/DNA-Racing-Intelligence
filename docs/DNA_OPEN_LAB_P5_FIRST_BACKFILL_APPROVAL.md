@@ -149,6 +149,23 @@ remain in R2. The policy fails closed on arithmetic overflow or when any
 observed response plus its envelope would exceed the existing 8 MiB immutable
 evidence-object boundary.
 
+The matching persistent evidence boundary is
+`lib/dna-open-lab-p5-first-backfill-r2-evidence.ts`. It stores one canonical
+request/response envelope per measured logical request beneath an opaque
+owner-scoped and measurement-scoped private R2 key. A stable global request
+ordinal prevents two families from claiming the same priced object slot.
+Existing objects must match the exact bytes and metadata; a durable receipt may
+resume usage accounting without another PUT. The writer stops before exceeding
+17,453 logical evidence objects, 1,151,071,826 retained bytes, the 8 MiB object
+limit or the 16 KiB per-request envelope allowance from run `33574168582`.
+
+The generic historical race hydrator that fetches `races.docs` and writes one
+R2 object per race is not the execution path measured by this approval. Applying
+it to more than 1.13 million finished races would add unpriced API requests and
+Class A operations. It is therefore prohibited for this one-time commissioning
+event unless a new complete measurement and bounded owner approval explicitly
+price that different plan.
+
 The policy is not capacity evidence by itself. The protected same-head
 measurement must still combine it with the current Neon baseline, the approved
 512 MiB limit, fresh provider pricing and the connected recovery proof. Until
