@@ -12,9 +12,13 @@ describe("DNA Open Lab P5 persistent first-backfill workflow", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
     expect(workflow).toContain('default: "33574168582"');
+    expect(workflow).toContain('default: "33680976426"');
     expect(workflow).toContain('default: "0.50"');
     expect(workflow).toContain('default: "150"');
     expect(workflow).toContain("execute_approved_private_preview_backfill:");
+    expect(workflow).toContain(
+      '"${{ inputs.amendment_measurement_run }}" !== "33680976426"',
+    );
     expect(workflow).toContain('GITHUB_REF}" != "refs/heads/main"');
     expect(workflow).toContain(
       '"$(git rev-parse origin/main)" != "${GITHUB_SHA}"',

@@ -2,16 +2,17 @@
 
 ## Current conclusion
 
-The first persistent private Preview historical backfill is now authorized
-within the exact bounded owner approval recorded on 2 September 2026. Exact-main protected run
-`33574168582` completed the ten-case recovery suite and all six read-only
-inventory families from commit
-`9fc47d6b1ba95287349cbd18023254058dd744e0`, emitted its sanitized artifact and
-verified zero persistent writes and zero residue. Projection policy version 2
-measured 1,136,911 source records, 34,906 API requests, 1,151,071,826 retained
-private R2 bytes, 489,717,760 peak Neon bytes and a $0.212250 one-time cost upper
-bound. The 536,870,912-byte Neon ceiling retains 47,153,152 bytes of projected
-headroom.
+The first persistent private Preview historical backfill is authorized under
+the original approval recorded on 2 September 2026 and the exact bounded
+amendment recorded on 3 September 2026. Exact-main protected run `33574168582`
+supplied the complete base inventory, and exact-main read-only run `33680976426`
+measured the three missing Splice Arena pages after live current-state drift.
+The combined amended packet is bound to commit
+`2e20a142af4ecd4bc48f87fee279293ce1e67ea9` and measures 1,137,211 source
+records, 34,912 API attempts, 17,456 logical receipts, 1,151,165,717 retained
+private R2 bytes, 34,960 Class A operations, 104,736 Class B operations,
+496,754,688 peak Neon bytes and a $0.212293 one-time cost upper bound. The
+536,870,912-byte Neon ceiling retains 40,116,224 bytes of projected headroom.
 
 The same run measured exactly one unresolved finished-race observation. It is
 within the owner-authorized de minimis classification ceiling and is never
@@ -22,10 +23,12 @@ identity/statistics and binds the quarantine receipt into the accepted window
 manifest. Changed authority or a cumulative count above the measured bound
 fails closed.
 
-The sanitized measurement evidence SHA-256 is
+The base sanitized measurement evidence SHA-256 is
 `250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4`.
+The amendment evidence SHA-256 is
+`f0ca07ec08525f41a5fbf630cb5b33cef5910d37ed858046ff80bb826adffc9a`.
 The owner authorized up to $0.500000 for this one commissioning event, covering
-the measured $0.212250 upper bound, and accepted the exact one-observation
+the amended $0.212293 upper bound, and accepted the exact one-observation
 quarantine/omission authority plus every mandatory stop and cleanup condition
 below. This authority permits only the first persistent private Preview
 backfill. It does not permit Production, paid capacity, public access or a game
@@ -156,8 +159,9 @@ owner-scoped and measurement-scoped private R2 key. A stable global request
 ordinal prevents two families from claiming the same priced object slot.
 Existing objects must match the exact bytes and metadata; a durable receipt may
 resume usage accounting without another PUT. The writer stops before exceeding
-17,453 logical evidence objects, 1,151,071,826 retained bytes, the 8 MiB object
-limit or the 16 KiB per-request envelope allowance from run `33574168582`.
+17,456 logical evidence objects, 1,151,165,717 retained bytes, the 8 MiB object
+limit or the 16 KiB per-request envelope allowance bound by runs `33574168582`
+and `33680976426`.
 
 The generic historical race hydrator that fetches `races.docs` and writes one
 R2 object per race is not the execution path measured by this approval. Applying
@@ -242,10 +246,14 @@ assigned to splice-arena, leaving no authorized ordinal for that required
 family. The worker therefore applied the mandatory authority/plan-drift stop;
 it did not publish or exceed the packet.
 
-The existing approval does not authorize persistence beyond that checkpoint.
-An exact-main workflow may now perform only a read-only splice-arena
-continuation measurement at 30 aggregate requests/minute. It must reconcile
-the full receipt prefix from Neon, emit only aggregate sanitized evidence,
-retain no raw response body and make zero Neon, R2, publication or Production
-writes. The measured incremental logical/API/storage bounds must be presented
-for an explicit owner amendment before persistent acquisition can resume.
+Exact-main read-only run `33680976426` reconciled that checkpoint and measured
+exactly three missing Splice Arena requests: 300 records, 44,739 response bytes,
+zero 429 responses and no persistent write at the fixed 30 aggregate
+requests/minute ceiling. Its conservative incremental bounds are three logical
+receipts, six API attempts, 93,891 R2 bytes, eight Class A operations, 18 Class
+B operations and 7,036,928 Neon bytes. The owner explicitly approved the
+combined amended packet while retaining the absolute $0.500000 ceiling and all
+existing fail-closed, cleanup, non-publication and non-Production conditions.
+Migration `0079` preserves the original measurement/approval binding, adds the
+separate amendment evidence/approval binding and permits only ordinals
+17,454–17,456 before terminal six-family completion.

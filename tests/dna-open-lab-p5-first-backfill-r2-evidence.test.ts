@@ -160,8 +160,8 @@ describe("DNA Open Lab P5 first-backfill request evidence", () => {
     expect(evidence.usage()).toEqual({
       logicalRequestCount: 1,
       retainedR2Bytes: receipt.byteLength,
-      logicalRequestLimit: 17_453,
-      retainedR2BytesLimit: 1_151_071_826,
+      logicalRequestLimit: 17_456,
+      retainedR2BytesLimit: 1_151_165_717,
     });
   });
 
@@ -307,7 +307,7 @@ describe("DNA Open Lab P5 first-backfill request evidence", () => {
     const storage = new MemoryR2Storage();
     const evidence = writer(storage);
 
-    await expect(evidence.write(observation([], 17_454))).rejects.toThrow(
+    await expect(evidence.write(observation([], 17_457))).rejects.toThrow(
       "exceeds the measured request bound",
     );
     await expect(

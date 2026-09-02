@@ -10,6 +10,13 @@ on:
         type: choice
         options:
           - "33574168582"
+      amendment_measurement_run:
+        description: Exact approved read-only splice continuation measurement run
+        required: true
+        default: "33680976426"
+        type: choice
+        options:
+          - "33680976426"
       maximum_authorized_usd:
         description: Exact owner-authorized one-time provider cost ceiling
         required: true
@@ -122,6 +129,7 @@ jobs:
           }
           if (
             "${{ inputs.measurement_run }}" !== "33574168582" ||
+            "${{ inputs.amendment_measurement_run }}" !== "33680976426" ||
             "${{ inputs.maximum_authorized_usd }}" !== "0.50" ||
             "${{ inputs.commissioning_requests_per_minute }}" !== "150" ||
             "${{ inputs.approve_temporary_150_rpm }}" !== "true" ||

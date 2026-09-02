@@ -5,8 +5,9 @@
 This matrix records repository truth for the first persistent real owner-data
 sync in a protected private Preview. Every P5 technical requirement has exact
 evidence, and the owner explicitly approved the bounded first Preview backfill
-on 2 September 2026. The approval is limited to the measured run `33574168582`
-authority and the recorded $0.500000 ceiling.
+on 2 September 2026 and its amendment on 3 September 2026. Authority is jointly
+bound to runs `33574168582` and `33680976426` and retains the recorded
+$0.500000 ceiling.
 
 Production schema, data, deployment, API secret and game actions remain separate
 later approval gates. P5 approval can never authorise Production.

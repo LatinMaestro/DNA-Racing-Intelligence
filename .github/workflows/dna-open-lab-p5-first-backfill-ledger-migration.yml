@@ -47,7 +47,19 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run first-backfill ledger smoke test
+      - name: Run amended first-backfill ledger smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0079_dna_open_lab_p5_first_backfill_amendment.smoke.sql
+      - name: Reverse first-backfill amendment migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0079_dna_open_lab_p5_first_backfill_amendment.down.sql
+      - name: Verify first-backfill amendment removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0079_dna_open_lab_p5_first_backfill_amendment.removal.sql
+      - name: Run original first-backfill ledger smoke test after reversal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0078_dna_open_lab_p5_first_backfill_ledger.smoke.sql

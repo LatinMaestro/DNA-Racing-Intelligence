@@ -1490,3 +1490,25 @@ After the private Pro League milestone, continue in this order:
 - Stop for an explicit owner amendment after that measurement. Production,
   public access, paid capacity, independent rate buckets and every wallet or
   game action remain prohibited.
+
+## 2026-09-03 — Owner approves the bounded three-request P5 amendment
+
+- Accept exact-main read-only run `33680976426` at
+  `2e20a142af4ecd4bc48f87fee279293ce1e67ea9` as sanitized authority for the
+  missing Splice Arena continuation. It measured three logical requests, 300
+  records, 44,739 response bytes, zero 429 responses and zero persistent writes
+  at the fixed 30 aggregate requests/minute ceiling.
+- Bind amendment evidence SHA-256
+  `f0ca07ec08525f41a5fbf630cb5b33cef5910d37ed858046ff80bb826adffc9a`
+  alongside the original measurement evidence. Combined upper bounds are
+  1,137,211 source records, 17,456 logical receipts, 34,912 API attempts,
+  1,151,165,717 R2 bytes, 34,960 Class A operations, 104,736 Class B operations,
+  496,754,688 Neon bytes and $0.212293 projected cost.
+- Record the owner's explicit approval of that amended packet while retaining
+  the absolute $0.500000 ceiling and every existing fail-closed, cleanup,
+  one-omission, non-publication and non-Production condition.
+- Preserve the original measurement and approval hashes in the durable ledger.
+  Migration `0079` adds separate immutable amendment hashes and permits only
+  ordinals 17,454 through 17,456 before exact six-family completion.
+- After terminal reconciliation, return recurring website operation to the
+  conservative 30 aggregate requests/minute and zero-ongoing-cost policy.

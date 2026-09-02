@@ -26,10 +26,14 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_access_run: false,
     runtime_can_access_receipt: false,
     runtime_can_initialize: true,
+    runtime_can_initialize_amended: true,
     runtime_can_record: true,
+    runtime_can_record_amended: true,
     runtime_can_complete: true,
+    runtime_can_complete_amended: true,
     runtime_can_read_run: true,
     runtime_can_read_receipts: true,
+    runtime_can_read_amended_receipts: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -114,6 +118,9 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
         .update("owner-written-approval:2026-09-02", "utf8")
         .digest("hex"),
       "2026-09-02T00:11:55.961Z",
+      createHash("sha256")
+        .update("owner-written-amended-approval:2026-09-03", "utf8")
+        .digest("hex"),
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
@@ -202,11 +209,11 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
       [isolation()],
       [
         running({
-          revision: "17455",
+          revision: "17458",
           status: "complete",
-          next_request_ordinal: 17_454,
-          logical_request_count: 17_453,
-          retained_r2_bytes: "1151071826",
+          next_request_ordinal: 17_457,
+          logical_request_count: 17_456,
+          retained_r2_bytes: "1151165717",
           omitted_identity_observation_count: 1,
           completion_sha256: completion,
         }),
@@ -215,7 +222,7 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
 
     await expect(
       test.ledger.complete({
-        expectedRevision: "17454",
+        expectedRevision: "17457",
         completionSha256: completion,
       }),
     ).resolves.toMatchObject({
@@ -225,7 +232,7 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
     expect(test.query.mock.calls[3]?.[1]).toEqual([
       databaseOwnerId,
       measurementSha,
-      "17454",
+      "17457",
       completion,
     ]);
   });
