@@ -312,7 +312,7 @@ describeConnected("hosted Preview P5 ordered recovery suite", () => {
         }),
       );
     }
-  }, 300_000);
+  }, 900_000);
 });
 
 describeCleanup("hosted Preview P5 ordered recovery cleanup", () => {

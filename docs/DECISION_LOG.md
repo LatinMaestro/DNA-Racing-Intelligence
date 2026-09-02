@@ -1457,6 +1457,11 @@ After the private Pro League milestone, continue in this order:
   escaped-key rejection and synthetic-prefix-only deletion. The approved
   logical-object, retained-byte and $0.500000 persistence ceilings remain
   unchanged.
+- The corrected scan passed the first five ordered recovery cases against
+  15,821 retained objects, then reached the previous five-minute test timeout;
+  the independent cleanup proof passed with zero residue. Allow up to 15
+  minutes for the exhaustive connected suite, still inside the workflow's
+  existing 330-minute bound and before acquisition.
 - The failed recovery attempt performed no API acquisition. Resume only from
   the exact durable ordinal after this correction is reviewed, exact-head green
   and merged.

@@ -323,7 +323,10 @@ stopped before acquisition even though the approved commissioning inventory is
 17,453 immutable request objects. The inspector must cover that complete
 authorized inventory while retaining a finite owner-prefix ceiling, prefix
 escape checks, duplicate/cursor validation and synthetic-prefix-only deletion.
-No acquisition or cleanup authority is broadened by this correction.
+At the measured inventory size the full ten-case connected proof may take more
+than five minutes, so its test allowance is 15 minutes within the existing
+330-minute workflow ceiling. No acquisition or cleanup authority is broadened
+by these corrections.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
