@@ -271,8 +271,13 @@ owner-authorized de minimis unresolved identity observation. The worker now
 binds that exact measurement evidence and count into restart-safe checkpoints,
 verifies private immutable quarantine evidence, omits the row from canonical
 race/Core analysis and binds its receipt into the accepted window manifest.
-P5 is `ready_for_owner_decision` but remains closed until the owner explicitly
-approves the exact $0.212250 maximum and documented stop/cleanup conditions.
+The owner approved the first persistent private Preview backfill on 2 September
+2026 with a $0.500000 maximum, covering the exact $0.212250 measured bound,
+including quarantine and canonical omission of the single unidentified
+finished-race observation under every documented stop and cleanup condition.
+P5 is `approved_for_first_private_preview_backfill`; the next dependency is the
+reviewed exact-main commissioning workflow and its connected execution. This
+approval does not permit Production, paid capacity or public access.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
