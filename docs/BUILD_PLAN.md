@@ -296,6 +296,15 @@ logical requests, all six source families and exactly one bound omission.
 Direct runtime table access remains prohibited, exact replay is idempotent and
 authority, byte, ordinal, receipt or omission drift fails closed.
 
+The fixed six-family adapter is now connected to the persistent coordinator.
+Endpoint/argument identities are stored with each request envelope, committed
+and R2-first responses replay into the adaptive plan before any new API call,
+and only the first absent ordinal may acquire and persist. The same stable-`rid`
+classifier binds the sole approved omission, exact logical/API attempt limits
+remain enforced and completion still requires all measured requests. The next
+dependency is the protected exact-main workflow composition and connected
+recovery/cleanup verification before executing the approved Preview event.
+
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence

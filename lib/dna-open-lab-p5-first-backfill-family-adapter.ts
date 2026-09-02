@@ -1,4 +1,5 @@
 import {
+  countDnaFinishedRaceUnresolvedIdentityObservations,
   crawlDnaFinishedRaceWindows,
   DNA_FINISHED_RACE_WINDOW_LIMIT,
 } from "./dna-open-lab-finished-race-window-crawler";
@@ -246,6 +247,8 @@ async function acquire<T>(input: {
   request: DnaOpenLabP5FirstBackfillInventoryRequest;
   scope: "vault" | "races" | "cores" | "tokens" | "splice";
   endpoint: string;
+  evidenceRequest: unknown;
+  classifyOmittedIdentityObservationCount?: (result: T) => number;
   counter: FamilyCounter;
   sourceRecordCount: (value: T) => number;
   execute: (
@@ -255,6 +258,14 @@ async function acquire<T>(input: {
 }): Promise<T> {
   const result = await input.request<T>({
     scope: input.scope,
+    endpoint: input.endpoint,
+    evidenceRequest: input.evidenceRequest,
+    ...(input.classifyOmittedIdentityObservationCount === undefined
+      ? {}
+      : {
+          classifyOmittedIdentityObservationCount:
+            input.classifyOmittedIdentityObservationCount,
+        }),
     request: input.execute,
   });
   note(input.counter, input.endpoint, result, input.sourceRecordCount(result));
@@ -361,6 +372,13 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
             request,
             scope: "races",
             endpoint: "races.finished",
+            evidenceRequest: window,
+            classifyOmittedIdentityObservationCount: (value) => {
+              const rows = records(value) as readonly DnaRaceDocument[];
+              return rows.length === DNA_FINISHED_RACE_WINDOW_LIMIT
+                ? 0
+                : countDnaFinishedRaceUnresolvedIdentityObservations(rows);
+            },
             counter: observed,
             sourceRecordCount: (value: readonly DnaRaceDocument[]) =>
               records(value).length,
@@ -379,6 +397,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "races",
         endpoint: "races.active",
+        evidenceRequest: Object.freeze({}),
         counter: observed,
         sourceRecordCount: (value) => records(value).length,
         execute: (client) => client.racesActive(),
@@ -389,6 +408,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
           request,
           scope: "races",
           endpoint: "races.fills",
+          evidenceRequest: Object.freeze({ rids: Object.freeze([...batch]) }),
           counter: observed,
           sourceRecordCount: (value) => records(value).length,
           execute: (client) => client.raceFills(batch),
@@ -405,6 +425,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "tokens",
         endpoint: "tokens.prices",
+        evidenceRequest: Object.freeze({}),
         counter: observed,
         sourceRecordCount: (value) => {
           record(value);
@@ -418,6 +439,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "vault",
         endpoint: "vault.info",
+        evidenceRequest: Object.freeze({ vault }),
         counter: observed,
         sourceRecordCount: (value) => {
           record(value);
@@ -429,6 +451,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "vault",
         endpoint: "vault.cores_full",
+        evidenceRequest: Object.freeze({ vault }),
         counter: observed,
         sourceRecordCount: (value) => records(value).length,
         execute: (client) => client.vaultCoresFull(vault),
@@ -437,6 +460,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "vault",
         endpoint: "vault.tier_badge",
+        evidenceRequest: Object.freeze({ vault }),
         counter: observed,
         sourceRecordCount: (value) => {
           record(value);
@@ -448,6 +472,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
         request,
         scope: "vault",
         endpoint: "vault.recent_races",
+        evidenceRequest: Object.freeze({ vault }),
         counter: observed,
         sourceRecordCount: (value) => records(value).length,
         execute: (client) => client.vaultRecentRaces(vault),
@@ -475,6 +500,9 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
             request,
             scope: "cores",
             endpoint,
+            evidenceRequest: Object.freeze({
+              hids: Object.freeze([...batch]),
+            }),
             counter: observed,
             sourceRecordCount: (value) => records(value).length,
             execute: (client) =>
@@ -500,6 +528,10 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
             request,
             scope: "splice",
             endpoint: `splice.arena.${mode}`,
+            evidenceRequest: Object.freeze({
+              filter: Object.freeze({ rvmode: mode }),
+              page,
+            }),
             counter: observed,
             sourceRecordCount: (value: DnaSpliceArenaResult) =>
               records(record(value).cores).length,
