@@ -1290,3 +1290,26 @@ After the private Pro League milestone, continue in this order:
 - Require a fresh exact-main complete measurement under projection policy v2.
   Positive projected headroom still does not authorize persistent Preview data;
   the measured exact cost cap and owner approval remain mandatory.
+
+## 2026-09-02 — Exact bounded P5 packet is ready for owner decision
+
+- Exact-main protected run `33574168582` completed the ten-case recovery suite,
+  all six non-persistent inventory families, cleanup and unchanged-main checks
+  at the one-run 150 aggregate requests/minute ceiling. No rate failure,
+  persistent owner-data write or provider residue occurred.
+- Bind the sanitized evidence SHA-256
+  `250984ef3371aa4f9b0b256b498b18083b1d1c2559de1882b8ee51c90dc30fe4`
+  to 1,136,911 source records, 34,906 API requests, 1,151,071,826 retained
+  private R2 bytes, 489,717,760 peak Neon bytes, 47,153,152 bytes of Neon
+  headroom and a $0.212250 maximum projected one-time cost.
+- The single unidentified finished-race observation remains non-canonical. Its
+  raw evidence must be privately quarantined; only identified races may be
+  hydrated or enter Core/race statistics; the quarantine receipt and cumulative
+  omitted count advance atomically with the accepted window.
+- Missing or changed measurement authority, missing/inconsistent R2 quarantine
+  evidence or any cumulative count above one stops the backfill and preserves
+  last-good serving.
+- P5 is decision-ready, not write-authorized. The first persistent private
+  Preview backfill requires explicit owner approval of the exact $0.212250
+  maximum plus every documented stop and cleanup condition. Production remains
+  prohibited.

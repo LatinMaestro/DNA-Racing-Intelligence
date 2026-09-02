@@ -263,17 +263,16 @@ API/R2/Neon upper bound and the owner explicitly approves its exact cost cap.
 The shared six-family inventory runner fixes family order, conservative
 client-pool routing, request/response-byte accounting, terminal-bound checks,
 zero-residue cleanup and aggregate-only emission. Connected endpoint adapters
-and same-head recovery execution are complete. Run `33562156694` completed the
-exact-main inventory and emitted a sanitized artifact: 1,136,863 source records,
-one owner-authorized de minimis unresolved identity observation, a $0.211814
-one-time R2 upper-bound projection and a 5,778,740,666-byte policy-v1 Neon peak.
-The archive-first persistence boundary does not retain historical race rows in
-Neon, so projection policy v2 now separates historical R2 archive receipts from
-materialized current state. P5 remains `blocked_capacity` until a fresh
-exact-main run proves positive headroom under that policy and the resulting
-exact bounded owner approval is recorded. The measured one-row omission also
-requires worker-side quarantine/omit enforcement before that approval can open
-persistence; it must never become a fabricated canonical race identity.
+and same-head recovery execution are complete. Exact-main run `33574168582`
+completed the policy-v2 inventory and emitted a sanitized artifact: 1,136,911
+source records, a $0.212250 one-time upper-bound projection, 489,717,760 peak
+Neon bytes and 47,153,152 bytes of positive headroom. It measured exactly one
+owner-authorized de minimis unresolved identity observation. The worker now
+binds that exact measurement evidence and count into restart-safe checkpoints,
+verifies private immutable quarantine evidence, omits the row from canonical
+race/Core analysis and binds its receipt into the accepted window manifest.
+P5 is `ready_for_owner_decision` but remains closed until the owner explicitly
+approves the exact $0.212250 maximum and documented stop/cleanup conditions.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
