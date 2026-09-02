@@ -317,6 +317,14 @@ schema fails during the read-only preflight before an API request or R2 write.
 The next dependency is exact-head review and connected execution from current
 `main`.
 
+Connected execution exposed one bounded recovery-inspection capacity mismatch:
+after the durable receipt prefix passed 10,000 objects, the safety inspector
+stopped before acquisition even though the approved commissioning inventory is
+17,453 immutable request objects. The inspector must cover that complete
+authorized inventory while retaining a finite owner-prefix ceiling, prefix
+escape checks, duplicate/cursor validation and synthetic-prefix-only deletion.
+No acquisition or cleanup authority is broadened by this correction.
+
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence

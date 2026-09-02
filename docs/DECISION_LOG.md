@@ -1443,3 +1443,20 @@ After the private Pro League milestone, continue in this order:
 - Emit only sanitized aggregate reports with seven-day retention. This event
   does not publish a candidate or last-good generation and cannot alter
   Production, public access, paid capacity, wallet or game state.
+
+## 2026-09-02 — Recovery inspection covers the authorized commissioning set
+
+- A restart after 15,821 durable receipts stopped in the synthetic recovery
+  guard before API acquisition because its owner-prefix inspection ceiling was
+  10,000 objects, below the already approved 17,453-object backfill boundary.
+- Raise only the bounded read-only recovery inspection ceiling to 20,000
+  objects. This covers the exact commissioning inventory plus temporary
+  recovery and pre-existing owner-scoped evidence without permitting an
+  unbounded scan.
+- Preserve owner-prefix hashing, pagination validation, duplicate rejection,
+  escaped-key rejection and synthetic-prefix-only deletion. The approved
+  logical-object, retained-byte and $0.500000 persistence ceilings remain
+  unchanged.
+- The failed recovery attempt performed no API acquisition. Resume only from
+  the exact durable ordinal after this correction is reviewed, exact-head green
+  and merged.
