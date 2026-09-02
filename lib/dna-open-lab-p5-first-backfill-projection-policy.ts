@@ -9,7 +9,7 @@ import type {
  * packet. None of these constants are provider prices.
  */
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_PROJECTION_POLICY = Object.freeze({
-  version: 1 as const,
+  version: 2 as const,
   r2StandardOnly: true as const,
   r2MaximumEvidenceObjectBytes: 8 * 1024 * 1024,
   r2EvidenceEnvelopeBytesPerLogicalRequest: 16_384,
@@ -18,10 +18,10 @@ export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_PROJECTION_POLICY = Object.freeze({
   r2AuditListPasses: 2,
   r2ListPageObjectLimit: 1_000,
   r2ClassBOperationsPerLogicalRequest: 6,
-  neonPhysicalBytesPerObservedResponseByte: 6,
-  neonPhysicalBytesPerSourceRecord: 2_048,
-  neonControlBytesPerLogicalRequest: 32_768,
-  neonControlBytesPerFamily: 1_048_576,
+  historicalArchiveNeonPhysicalBytesPerLogicalRequest: 24_576,
+  currentStateNeonPhysicalBytesPerSourceRecord: 16_384,
+  currentStateNeonControlBytesPerLogicalRequest: 8_192,
+  neonControlBytesPerFamily: 2_097_152,
 });
 
 function projectionError(message: string): never {
@@ -69,13 +69,27 @@ function add(values: readonly number[], field: string): number {
  * assumes no compression. Operation bounds allow one replay of every PUT, two
  * complete paginated audit listings and six reads per logical object.
  *
- * Compact Neon does not retain raw API bodies. Its incremental physical peak
- * is the larger of six times observed response bytes or 2 KiB per source
- * record, plus explicit request and family control/index overhead.
+ * Compact Neon does not retain raw API bodies. Finished-race history is
+ * archive-first: private immutable R2 remains the complete evidence boundary,
+ * while Neon retains only bounded window receipts/checkpoints and aggregate
+ * generation controls. The historical bound therefore charges 24 KiB of
+ * physical heap/index/overlap allowance per logical request and no per-race
+ * row allowance.
+ *
+ * Recurring current-state families are intentionally materialized in Neon.
+ * Their bound charges 16 KiB per observed source record, 8 KiB per logical
+ * request and 2 MiB per family for generation/control/index overhead. These
+ * physical allowances include candidate/last-good overlap; raw response bytes
+ * remain recoverable from R2 and are never duplicated into Neon.
  */
 export function projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
   observation: DnaOpenLabP5FirstBackfillFamilyObservation,
 ): DnaOpenLabP5FirstBackfillFamilyUpperBounds {
+  const historicalArchive =
+    observation.authorityClass === "available_paginated_history_at_cutoff";
+  if (historicalArchive !== (observation.family === "finished_races")) {
+    projectionError("source family and authority class do not match");
+  }
   const sourceRecords = count(
     observation.observedSourceRecordCount,
     "observedSourceRecordCount",
@@ -152,28 +166,34 @@ export function projectDnaOpenLabP5FirstBackfillFamilyUpperBounds(
     policy.r2ClassBOperationsPerLogicalRequest,
     "classBOperationsUpperBound",
   );
-  const byteLedNeonPeak = multiply(
-    responseBytes,
-    policy.neonPhysicalBytesPerObservedResponseByte,
-    "byte-led Neon peak",
-  );
-  const recordLedNeonPeak = multiply(
-    projectedSourceRecords,
-    policy.neonPhysicalBytesPerSourceRecord,
-    "record-led Neon peak",
-  );
-  const neonIncrementalBytesUpperBound = add(
-    [
-      Math.max(byteLedNeonPeak, recordLedNeonPeak),
-      multiply(
-        logicalRequests,
-        policy.neonControlBytesPerLogicalRequest,
-        "Neon request control bytes",
-      ),
-      policy.neonControlBytesPerFamily,
-    ],
-    "neonIncrementalBytesUpperBound",
-  );
+  const neonIncrementalBytesUpperBound = historicalArchive
+    ? add(
+        [
+          multiply(
+            logicalRequests,
+            policy.historicalArchiveNeonPhysicalBytesPerLogicalRequest,
+            "historical archive Neon request bytes",
+          ),
+          policy.neonControlBytesPerFamily,
+        ],
+        "neonIncrementalBytesUpperBound",
+      )
+    : add(
+        [
+          multiply(
+            projectedSourceRecords,
+            policy.currentStateNeonPhysicalBytesPerSourceRecord,
+            "current-state Neon record bytes",
+          ),
+          multiply(
+            logicalRequests,
+            policy.currentStateNeonControlBytesPerLogicalRequest,
+            "current-state Neon request control bytes",
+          ),
+          policy.neonControlBytesPerFamily,
+        ],
+        "neonIncrementalBytesUpperBound",
+      );
 
   return Object.freeze({
     sourceRecordUpperBound: projectedSourceRecords,

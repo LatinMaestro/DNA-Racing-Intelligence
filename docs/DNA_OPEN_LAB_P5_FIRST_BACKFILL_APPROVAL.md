@@ -3,19 +3,30 @@
 ## Current conclusion
 
 The first persistent private Preview historical backfill remains prohibited. The
-packet is currently `blocked_measured_upper_bound`. Exact-main connected run
-`33467686923` completed the protected ten-case recovery suite, so all seven P5
-technical requirements are satisfied. The owner's general approval intent for
-real API data is recorded, but it is not yet the required bounded authorization:
-the exact one-time upper-bound amount has not been measured or presented.
+packet is currently `blocked_capacity`. Exact-main protected run `33562156694`
+completed the protected ten-case recovery suite and all six read-only inventory
+families from commit `33853e902580aae6e1efb7798b4b9f822e8a5781`, emitted its
+sanitized artifact and verified zero writes/residue. It measured one unresolved
+finished-race identity observation, which is within the owner-authorized de
+minimis quarantine-and-omit ceiling, but the version-1 projection charged
+5,778,740,666 bytes of Neon peak against the fixed 536,870,912-byte limit.
 
-Exact-main run `33530224891` completed all six non-persistent inventory
-families and verified cleanup at the owner-approved 150 aggregate requests per
-minute, but final measurement construction failed before emitting its sanitized
-artifact. Provider safety and unchanged-main checks passed. The contract now
-retains an over-limit projected Neon peak as explicit blocked evidence instead
-of discarding the complete measurement. A new exact-main run is still required
-to produce the reviewable aggregate packet.
+That blocked estimate exposed a policy/architecture mismatch rather than a
+provider-capacity decision: full historical API payloads and race rows belong in
+private immutable R2, while Neon migration `0070` stores only bounded
+checkpoint/window receipts and the existing current-state migrations store the
+small serving generation. Projection policy version 2 now models that reviewed
+archive-first boundary. A new exact-main measurement is required because the
+prior artifact remains immutably bound to policy version 1 and its exact plan
+checksum; it cannot be reinterpreted after the fact.
+
+The single unresolved observation is not silently accepted by this projection
+change. Before bounded owner approval can open persistence, the worker and
+approval packet must enforce the recorded de minimis policy: quarantine the
+immutable malformed evidence, omit it from canonical identity/statistics,
+prove the complete measured count is at most 25 and report that omission in the
+published generation. Until that enforcement is exact-head green, source
+authority remains a separate closed gate after capacity.
 
 The connected capacity run `33227770750` remains valid evidence for PostgreSQL
 18 peak/headroom and a bounded synthetic R2 cost projection. It does **not**
@@ -125,11 +136,14 @@ logical API request retains one uncompressed immutable R2 evidence object with
 a 16 KiB canonical envelope allowance. API and Class A bounds allow one replay,
 R2 audit coverage includes two complete paginated listings, and Class B allows
 six integrity/reconstruction reads per logical object. Compact-Neon physical
-peak is the larger of six times observed response bytes or 2 KiB per source
-record, plus explicit per-request and per-family control/index overhead. The
-policy is intentionally stricter than observed payload size and fails closed on
-arithmetic overflow or when any observed response plus its envelope would
-exceed the existing 8 MiB immutable evidence-object boundary.
+peak follows the persistence class. Finished-race history is archive-first and
+receives 24 KiB per logical request for window receipts, indexes and overlap
+plus 2 MiB family overhead, with no per-race Neon row. Recurring current-state
+families receive 16 KiB per source record, 8 KiB per logical request and 2 MiB
+family overhead, including candidate/last-good overlap. Full response bytes
+remain in R2. The policy fails closed on arithmetic overflow or when any
+observed response plus its envelope would exceed the existing 8 MiB immutable
+evidence-object boundary.
 
 The policy is not capacity evidence by itself. The protected same-head
 measurement must still combine it with the current Neon baseline, the approved
