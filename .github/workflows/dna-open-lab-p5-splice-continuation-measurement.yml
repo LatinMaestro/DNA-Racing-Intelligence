@@ -1,0 +1,121 @@
+name: DNA Open Lab P5 splice continuation measurement
+
+on:
+  workflow_dispatch:
+    inputs:
+      original_measurement_run:
+        description: Exact original approved complete-inventory measurement run
+        required: true
+        default: "33574168582"
+        type: choice
+        options:
+          - "33574168582"
+      acknowledge_read_only_continuation:
+        description: Confirm read-only 30-rpm measurement with no persistence
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-p5-splice-continuation-measurement
+  cancel-in-progress: false
+
+jobs:
+  exact-main-splice-continuation-measurement:
+    name: Exact-main guarded read-only splice continuation measurement
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_P5_SPLICE_CONTINUATION_MEASUREMENT: "1"
+    steps:
+      - name: Require exact main dispatch
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This read-only provider workflow may only run from main."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The read-only provider workflow head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded read-only authority without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+          ];
+          for (const name of required) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing or invalid");
+            }
+          }
+          const keys = required
+            .filter((name) => name.startsWith("DNA_OPEN_LAB_API_KEY_"))
+            .map((name) => process.env[name]);
+          if (new Set(keys).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required");
+          }
+          if (
+            "${{ inputs.original_measurement_run }}" !== "33574168582" ||
+            "${{ inputs.acknowledge_read_only_continuation }}" !== "true"
+          ) {
+            throw new Error("The selected read-only continuation is not authorized");
+          }
+          console.log("Validated the bounded 30-rpm read-only continuation without printing private values.");
+          NODE
+      - name: Measure missing splice family from the safe checkpoint
+        id: measurement
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-splice-continuation-measurement.test.ts
+      - name: Prove exact main remained unchanged
+        id: exact_main
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the read-only provider workflow."
+            exit 1
+          fi
+      - name: Upload sanitized continuation evidence
+        if: >-
+          steps.measurement.outcome == 'success' &&
+          steps.exact_main.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dna-open-lab-p5-splice-continuation-measurement-${{ github.run_id }}
+          path: ${{ runner.temp }}/dna-open-lab-p5-splice-continuation-measurement.json
+          if-no-files-found: error
+          retention-days: 7
