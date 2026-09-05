@@ -1,0 +1,73 @@
+name: TEMPORARY current Arena breeding analysis - DO NOT MERGE
+
+# TEMPORARY OPERATIONAL WORKFLOW ONLY.
+# Owner-authorized 5 Sep 2026 read-only Arena/breeding analysis.
+# DO NOT COPY, CHERRY-PICK, OPEN A PR FOR, OR MERGE THIS WORKFLOW INTO main.
+# It performs DNA Open Lab READ requests only and uploads a sanitized derived artifact.
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-current-arena-breeding-analysis-do-not-merge.test.ts
+      - .github/workflows/temporary-current-arena-breeding-analysis-do-not-merge.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-current-arena-breeding-analysis-do-not-merge-2026-09-05
+  cancel-in-progress: false
+
+jobs:
+  arena-breeding-read-only:
+    name: TEMPORARY ONLY - current Arena breeding read - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      TEMP_CURRENT_ARENA_BREEDING_ANALYSIS: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+
+    steps:
+      - name: Guard temporary branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+          echo "Temporary read-only Arena analysis confirmed. This must never be merged into main."
+
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install existing repository dependencies without scripts
+        run: npm ci --ignore-scripts
+
+      - name: Run current Arena breeding scan
+        run: npx vitest run tests/temporary-current-arena-breeding-analysis-do-not-merge.test.ts --reporter=dot
+
+      - name: Prove tracked repository files were not modified
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+
+      - name: Upload sanitized Arena breeding artifact for one day
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-current-arena-breeding-${{ github.run_id }}
+          path: artifacts/temporary-current-arena-breeding-analysis.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
