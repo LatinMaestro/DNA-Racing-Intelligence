@@ -1,0 +1,41 @@
+name: TEMPORARY full-vault all-distance breeding discovery - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-full-vault-breeding-discovery-do-not-merge.test.ts
+      - .github/workflows/temporary-full-vault-breeding-discovery-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  analyze:
+    name: TEMPORARY ONLY - full-vault all-distance breeding discovery - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMP_FULL_VAULT_BREEDING: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Guard temporary branch
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-full-vault-breeding-discovery-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-full-vault-breeding-${{ github.run_id }}
+          path: artifacts/temporary-full-vault-breeding-discovery.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
