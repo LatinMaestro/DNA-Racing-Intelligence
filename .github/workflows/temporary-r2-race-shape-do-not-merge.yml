@@ -1,0 +1,36 @@
+name: TEMPORARY retained R2 race shape - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-r2-race-shape-do-not-merge.test.ts
+      - .github/workflows/temporary-r2-race-shape-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    name: TEMPORARY ONLY - retained R2 race shape - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMP_R2_RACE_SHAPE: '1'
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+    steps:
+      - name: Guard temporary branch
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-r2-race-shape-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
