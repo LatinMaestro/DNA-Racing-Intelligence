@@ -6,6 +6,9 @@ const enabled = process.env.TEMP_PROMISING_PAIR_BOARD === "1";
 const d = enabled ? describe : describe.skip;
 
 const PAIRS = [
+  [19423, 16757, "Better Luck Next Time x She Will Reign", "exact repeat of Lightning Gale"],
+  [19423, 11848, "Better Luck Next Time x Reese Dylan", "exact repeat of Legacy Runner"],
+  [20862, 9089, "Cold Rush x Vixey", "exact repeat of Silent Bruiser; Vixey family test"],
   [1675, 22164, "Allurity x Flame Dash", "proven long breeder x emerging 2200 racer"],
   [583, 20365, "Cash Bag x Lightning Gale", "proven long breeder x elite BLNT daughter"],
   [1675, 20365, "Allurity x Lightning Gale", "proven long breeder x elite BLNT daughter"],
