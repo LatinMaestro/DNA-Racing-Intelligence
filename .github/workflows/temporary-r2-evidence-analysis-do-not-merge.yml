@@ -1,0 +1,83 @@
+name: TEMPORARY R2 evidence analysis - DO NOT MERGE
+
+# TEMPORARY OPERATIONAL WORKFLOW ONLY.
+# DO NOT COPY, CHERRY-PICK, OPEN A PR FOR, OR MERGE THIS WORKFLOW INTO main.
+# It exists only on the temporary branch named below and performs read-only
+# LIST/GET access against already-retained P5 R2 evidence.
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - TEMPORARY_R2_ANALYSIS_DO_NOT_MERGE.md
+      - scripts/temporary-r2-evidence-analysis.mjs
+      - .github/workflows/temporary-r2-evidence-analysis-do-not-merge.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-r2-evidence-analysis-do-not-merge-2026-09-05
+  cancel-in-progress: false
+
+jobs:
+  temporary-read-only-analysis:
+    name: TEMPORARY ONLY - read retained R2 evidence - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      TARGET_VAULT: '0x5a29C2f20faf3f5160D27EfA5100aA10E9Bb934d'
+      TEMP_ANALYSIS_OUTPUT_DIR: temp-analysis-output
+      AWS_EC2_METADATA_DISABLED: 'true'
+
+    steps:
+      - name: Guard temporary branch and prohibit main execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]; then
+            echo "This temporary workflow may run only on its disposable analysis branch."
+            exit 1
+          fi
+          echo "Temporary read-only analysis branch confirmed. Nothing in this workflow is intended for main."
+
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install existing repository dependencies without scripts
+        run: npm ci --ignore-scripts
+
+      - name: Run temporary read-only R2 evidence analysis
+        run: node scripts/temporary-r2-evidence-analysis.mjs
+
+      - name: Prove tracked repository files were not modified by analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+
+      - name: Upload sanitized derived analysis for one day only
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-r2-derived-analysis-${{ github.run_id }}
+          path: temp-analysis-output/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
