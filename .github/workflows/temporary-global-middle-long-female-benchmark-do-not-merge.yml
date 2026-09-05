@@ -1,0 +1,49 @@
+name: TEMPORARY global middle-long female benchmark - DO NOT MERGE
+
+# TEMPORARY READ-ONLY DNA API WORKFLOW. DO NOT MERGE INTO main.
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-global-middle-long-female-benchmark-do-not-merge.test.ts
+      - .github/workflows/temporary-global-middle-long-female-benchmark-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    name: TEMPORARY ONLY - global female breeding benchmark - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TEMP_GLOBAL_FEMALE_BENCHMARK: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - name: Guard branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing dependencies without scripts
+        run: npm ci --ignore-scripts
+      - name: Run read-only global female benchmark
+        run: npx vitest run tests/temporary-global-middle-long-female-benchmark-do-not-merge.test.ts --reporter=verbose
+      - name: Prove tracked files unchanged
+        run: git diff --exit-code && git diff --cached --exit-code
+      - name: Upload sanitized result for one day
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-global-female-benchmark-${{ github.run_id }}
+          path: artifacts/temporary-global-middle-long-female-benchmark.json
+          retention-days: 1
+          if-no-files-found: error
