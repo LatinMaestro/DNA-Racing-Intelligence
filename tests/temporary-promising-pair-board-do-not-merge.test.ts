@@ -8,6 +8,11 @@ const d = enabled ? describe : describe.skip;
 const PAIRS = [
   [19423, 16757, "Better Luck Next Time x She Will Reign", "exact repeat of Lightning Gale"],
   [19423, 11848, "Better Luck Next Time x Reese Dylan", "exact repeat of Legacy Runner"],
+  [949, 16757, "Hibiscus x She Will Reign", "exact repeat family of Mistfall and Forge Serpent"],
+  [583, 16757, "Cash Bag x She Will Reign", "proven long sire x multi-offspring broodmare"],
+  [1675, 16757, "Allurity x She Will Reign", "high-tail sire x multi-offspring broodmare"],
+  [583, 11848, "Cash Bag x Reese Dylan", "proven long sire x Legacy Runner dam"],
+  [1675, 11848, "Allurity x Reese Dylan", "high-tail sire x Legacy Runner dam"],
   [20862, 9089, "Cold Rush x Vixey", "exact repeat of Silent Bruiser; Vixey family test"],
   [1675, 22164, "Allurity x Flame Dash", "proven long breeder x emerging 2200 racer"],
   [583, 20365, "Cash Bag x Lightning Gale", "proven long breeder x elite BLNT daughter"],
