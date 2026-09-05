@@ -1,0 +1,50 @@
+name: TEMPORARY Mario mate offspring scan - DO NOT MERGE
+
+# TEMPORARY READ-ONLY DNA API WORKFLOW. DO NOT MERGE INTO main.
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-mario-mate-offspring-scan-do-not-merge.test.ts
+      - .github/workflows/temporary-mario-mate-offspring-scan-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  scan-offspring:
+    name: TEMPORARY ONLY - Mario mate offspring scan - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TEMP_MARIO_MATE_OFFSPRING_SCAN: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing dependencies without scripts
+        run: npm ci --ignore-scripts
+      - name: Run read-only offspring scan
+        run: npx vitest run tests/temporary-mario-mate-offspring-scan-do-not-merge.test.ts --reporter=dot
+      - name: Prove tracked files unchanged
+        run: git diff --exit-code && git diff --cached --exit-code
+      - name: Upload sanitized results for one day
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-mario-mate-offspring-${{ github.run_id }}
+          path: artifacts/temporary-mario-mate-offspring-scan.json
+          retention-days: 1
+          if-no-files-found: error
