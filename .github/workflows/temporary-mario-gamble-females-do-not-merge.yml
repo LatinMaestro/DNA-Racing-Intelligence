@@ -1,0 +1,34 @@
+name: TEMPORARY Mario gamble females - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-mario-gamble-females-do-not-merge.test.ts
+      - .github/workflows/temporary-mario-gamble-females-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  check:
+    name: TEMPORARY ONLY - Mario gamble female checks - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMP_MARIO_GAMBLE_FEMALES: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-mario-gamble-females-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-mario-gamble-females-${{ github.run_id }}
+          path: artifacts/temporary-mario-gamble-females.json
+          retention-days: 1
