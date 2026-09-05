@@ -1,0 +1,33 @@
+name: TEMPORARY race detail and Core stats shape - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-race-detail-and-core-stats-shape-do-not-merge.test.ts
+      - .github/workflows/temporary-race-detail-and-core-stats-shape-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    name: TEMPORARY ONLY - race detail and Core stats shape - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMP_RACE_DETAIL_SHAPE: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard temporary branch
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-race-detail-and-core-stats-shape-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
