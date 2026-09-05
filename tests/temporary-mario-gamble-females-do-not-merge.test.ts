@@ -1,0 +1,9 @@
+import { mkdir,writeFile } from "node:fs/promises";
+import { describe,expect,it } from "vitest";
+import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
+/** TEMPORARY / DO NOT MERGE. Read-only pair_info/splicing_info only. */
+const enabled=process.env.TEMP_MARIO_GAMBLE_FEMALES==="1"; const d=enabled?describe:describe.skip;
+const MARIO=13423; const C=[[9166,"Lethal Claw"],[20524,"Starline"],[23282,"Swift Fist"],[9089,"Vixey"],[20827,"Cyber Dancer"],[23260,"Scarlet Panther"]] as const;
+function req(n:string){const v=process.env[n];if(!v)throw new Error(`${n} missing`);return v;}
+function ids(v:any):number[]{if(v==null)return[];if(Array.isArray(v))return[...new Set(v.flatMap(ids))];const n=Number(v);if(Number.isSafeInteger(n)&&n>0)return[n];if(typeof v!=="object")return[];for(const k of ["hid","id","core_id","coreId","token_id","tokenId"]){const q=ids(v[k]);if(q.length)return q;}return[...new Set(Object.values(v).flatMap(ids))];}
+d("TEMPORARY Mario gamble female checks",()=>{it("reads projections and prior offspring",async()=>{const c=createDnaOpenLabV1Client({apiKey:req("DNA_OPEN_LAB_API_KEY_1")});const out=[];for(const [mother,label] of C){const [p,s]=await Promise.all([c.splicePairInfo({fatherCoreId:MARIO,motherCoreId:mother}),c.coreSplicingInfoBulk([mother])]);const sr:any=s.result[0]??{};out.push({mother,label,baby:p.result.baby_info,priorOffspring:ids((sr.splice_core as any)?.life_splices),lifeSplicesN:(sr.splice_core as any)?.life_splices_n??null});}console.log("MARIO_GAMBLE_FEMALES",JSON.stringify(out,null,2));await mkdir("artifacts",{recursive:true});await writeFile("artifacts/temporary-mario-gamble-females.json",JSON.stringify({temporary:true,doNotMerge:true,out},null,2));expect(out.length).toBe(C.length);});});
