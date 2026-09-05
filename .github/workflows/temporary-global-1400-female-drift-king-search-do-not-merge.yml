@@ -1,0 +1,39 @@
+name: TEMPORARY global 1400 female Drift King search - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-global-1400-female-drift-king-search-do-not-merge.test.ts
+      - .github/workflows/temporary-global-1400-female-drift-king-search-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  scan:
+    name: TEMPORARY ONLY - global 1400 female search - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEMP_GLOBAL_1400_FEMALE_SEARCH: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: '0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d'
+    steps:
+      - name: Guard temporary branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-global-1400-female-drift-king-search-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-global-1400-female-search-${{ github.run_id }}
+          path: artifacts/temporary-global-1400-female-drift-king-search.json
+          retention-days: 1
