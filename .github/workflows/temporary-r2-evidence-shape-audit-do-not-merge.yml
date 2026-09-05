@@ -1,0 +1,68 @@
+name: TEMPORARY R2 evidence shape audit - DO NOT MERGE
+
+# TEMPORARY OPERATIONAL WORKFLOW ONLY.
+# DO NOT COPY, CHERRY-PICK, OPEN A PR FOR, OR MERGE THIS WORKFLOW INTO main.
+# R2 LIST/GET only; no DNA API request and no provider/database write.
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - scripts/temporary-r2-evidence-shape-audit.mjs
+      - .github/workflows/temporary-r2-evidence-shape-audit-do-not-merge.yml
+
+permissions:
+  contents: read
+
+jobs:
+  schema-only-audit:
+    name: TEMPORARY ONLY - schema-only retained R2 audit - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      TEMP_ANALYSIS_OUTPUT_DIR: temp-shape-output
+      AWS_EC2_METADATA_DISABLED: 'true'
+
+    steps:
+      - name: Guard temporary branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install existing repository dependencies without scripts
+        run: npm ci --ignore-scripts
+
+      - name: Run schema-only retained-evidence audit
+        run: node scripts/temporary-r2-evidence-shape-audit.mjs
+
+      - name: Prove tracked repository files were not modified
+        run: git diff --exit-code && git diff --cached --exit-code
+
+      - name: Upload schema-only audit for one day
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-r2-shape-audit-${{ github.run_id }}
+          path: temp-shape-output/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
