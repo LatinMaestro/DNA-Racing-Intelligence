@@ -1,0 +1,64 @@
+name: TEMPORARY current Arena offspring analysis - DO NOT MERGE
+
+# TEMPORARY OPERATIONAL WORKFLOW ONLY. READ-ONLY DNA API.
+# DO NOT COPY, CHERRY-PICK, OPEN A PR FOR, OR MERGE INTO main.
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-current-arena-offspring-analysis-do-not-merge.test.ts
+      - .github/workflows/temporary-current-arena-offspring-analysis-do-not-merge.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-current-arena-offspring-analysis-do-not-merge-2026-09-05
+  cancel-in-progress: false
+
+jobs:
+  arena-offspring-read-only:
+    name: TEMPORARY ONLY - Arena offspring evidence - DO NOT MERGE
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      TEMP_CURRENT_ARENA_OFFSPRING_ANALYSIS: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard temporary branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF}" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]
+          echo "Temporary read-only offspring analysis confirmed; never merge into main."
+      - name: Checkout temporary branch only
+        uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing repository dependencies without scripts
+        run: npm ci --ignore-scripts
+      - name: Run Arena offspring evidence scan
+        run: npx vitest run tests/temporary-current-arena-offspring-analysis-do-not-merge.test.ts --reporter=dot
+      - name: Prove tracked repository files were not modified
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Upload sanitized offspring artifact for one day
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-current-arena-offspring-${{ github.run_id }}
+          path: artifacts/temporary-current-arena-offspring-analysis.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
