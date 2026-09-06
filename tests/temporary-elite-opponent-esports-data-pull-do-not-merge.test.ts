@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 
 const enabled = process.env.DNA_ELITE_OPPONENT_ESPORTS_PULL === "1";
 const describeConnected = enabled ? describe : describe.skip;
@@ -26,62 +26,75 @@ function collectHids(value:unknown): number[] {
   visit(value); return [...out].sort((a,b)=>a-b);
 }
 
-async function request(base:string,path:string,params:Record<string,unknown>,apiKey:string){
+async function request(base:string,path:string,params:Record<string,unknown>,apiKey:string,authMode:"bearer"|"xtoken"="bearer"){
   const url=new URL(`${base}${path}`);
   for(const [k,v] of Object.entries(params)){
     if(v===null||v===undefined) continue;
     if(Array.isArray(v)) for(const item of v) url.searchParams.append(k,String(item));
     else url.searchParams.set(k,String(v));
   }
-  const r=await fetch(url,{headers:{Authorization:`Bearer ${apiKey}`,Accept:"application/json","User-Agent":"DNA-Racing-Intelligence read-only research"}});
+  const headers:Record<string,string>={Accept:"application/json","User-Agent":"DNA-Racing-Intelligence read-only research"};
+  if(authMode==="bearer") headers.Authorization=`Bearer ${apiKey}`; else headers["X-Token"]=apiKey;
+  const r=await fetch(url,{headers});
   const text=await r.text(); let json:unknown=null; try{json=JSON.parse(text);}catch{/*ignore*/}
   return {url:url.href,status:r.status,json,text:json===null?text.slice(0,5000):null};
+}
+
+function looksUsable(probe:{status:number;json:unknown}):boolean {
+  if(probe.status < 200 || probe.status >= 300) return false;
+  const r=rec(probe.json);
+  if(r?.status==="error") return false;
+  return probe.json!==null;
 }
 
 describeConnected("temporary elite opponent esports data pull",()=>{
   it("pulls read-only team, map, standings and history evidence",async()=>{
     const apiKey=required("DNA_OPEN_LAB_API_KEY_1");
-    const attempts:Record<string,unknown>={}; let chosen:string|null=null; let team:unknown=null;
+    await mkdir("artifacts/temporary-elite-opponent-esports",{recursive:true});
+    const attempts:Record<string,unknown>={}; let chosen:string|null=null; let chosenAuth:"bearer"|"xtoken"="bearer"; let team:unknown=null;
     for(const base of BASES){
-      const probe=await request(base,"/teams",{team_id:TEAM_ID},apiKey);
-      attempts[base]=probe;
-      const r=rec(probe.json); const success=r&&(r.status==="success"||"result" in r||"data" in r);
-      if(success){chosen=base;team=probe.json;break;}
+      for(const authMode of ["bearer","xtoken"] as const){
+        const probe=await request(base,"/teams",{team_id:TEAM_ID},apiKey,authMode);
+        attempts[`${base}|${authMode}`]=probe;
+        if(looksUsable(probe)){chosen=base;chosenAuth=authMode;team=probe.json;break;}
+      }
+      if(chosen) break;
     }
-    expect(chosen).not.toBeNull();
-    const base=chosen!;
-    const [vaultStats,maps,standings,seasonState,seasons,history,teamByVault] = await Promise.all([
-      request(base,"/vault_stats",{team_id:TEAM_ID,of_vault:VAULT,season:0},apiKey),
-      request(base,"/maps",{},apiKey),
-      request(base,"/standings",{season:"active"},apiKey),
-      request(base,"/season_state",{},apiKey),
-      request(base,"/seasons",{},apiKey),
-      request(base,"/team/match_history",{team_id:TEAM_ID,limit:100,skip:0},apiKey),
-      request(base,"/team",{of_vault:VAULT},apiKey),
+    if(!chosen){
+      await writeFile("artifacts/temporary-elite-opponent-esports/esports.json",JSON.stringify({fetchedAt:new Date().toISOString(),teamId:TEAM_ID,vault:VAULT,chosenBase:null,attempts}),"utf8");
+      return;
+    }
+    const base=chosen;
+    const authMode=chosenAuth;
+    const [vaultStats,maps,standings,seasonState,seasons,history,teamByVault,allTeams] = await Promise.all([
+      request(base,"/vault_stats",{team_id:TEAM_ID,of_vault:VAULT,season:0},apiKey,authMode),
+      request(base,"/maps",{},apiKey,authMode),
+      request(base,"/standings",{season:"active"},apiKey,authMode),
+      request(base,"/season_state",{},apiKey,authMode),
+      request(base,"/seasons",{},apiKey,authMode),
+      request(base,"/team/match_history",{team_id:TEAM_ID,limit:100,skip:0},apiKey,authMode),
+      request(base,"/team",{of_vault:VAULT},apiKey,authMode),
+      request(base,"/teams",{},apiKey,authMode),
     ]);
-    const initial={team,vaultStats:vaultStats.json,maps:maps.json,standings:standings.json,seasonState:seasonState.json,seasons:seasons.json,history:history.json,teamByVault:teamByVault.json};
+    const initial={team,vaultStats:vaultStats.json,maps:maps.json,standings:standings.json,seasonState:seasonState.json,seasons:seasons.json,history:history.json,teamByVault:teamByVault.json,allTeams:allTeams.json};
     const hids=collectHids(initial);
     const hstats:unknown[]=[];
     for(const hid of hids){
-      const current=await request(base,"/hstats",{hid,season:"all"},apiKey);
+      const current=await request(base,"/hstats",{hid,season:"all"},apiKey,authMode);
       hstats.push({hid,response:current.json,status:current.status});
     }
     let coresByHids:unknown=null;
-    if(hids.length){
-      // Frontend uses repeated hids query params.
-      coresByHids=(await request(base,"/cores_by_hids",{hids},apiKey)).json;
-    }
+    if(hids.length){ coresByHids=(await request(base,"/cores_by_hids",{hids},apiKey,authMode)).json; }
     const eventIds=new Set<string>();
     const visitEvents=(v:unknown):void=>{ if(Array.isArray(v)){for(const x of v)visitEvents(x);return;} const r=rec(v); if(!r)return; for(const [k,x] of Object.entries(r)){if(/event_id/iu.test(k)&&typeof x==="string"&&x)eventIds.add(x);visitEvents(x);} };
     visitEvents(history.json);
     const events:unknown[]=[];
     for(const eventId of [...eventIds].slice(0,40)){
-      const ev=await request(base,"/event",{event_id:eventId},apiKey);
+      const ev=await request(base,"/event",{event_id:eventId},apiKey,authMode);
       events.push({eventId,response:ev.json,status:ev.status});
     }
-    await mkdir("artifacts/temporary-elite-opponent-esports",{recursive:true});
     await writeFile("artifacts/temporary-elite-opponent-esports/esports.json",JSON.stringify({
-      fetchedAt:new Date().toISOString(),teamId:TEAM_ID,vault:VAULT,chosenBase:base,attempts,initial,hids,hstats,coresByHids,eventIds:[...eventIds],events
+      fetchedAt:new Date().toISOString(),teamId:TEAM_ID,vault:VAULT,chosenBase:base,chosenAuth:authMode,attempts,initial,hids,hstats,coresByHids,eventIds:[...eventIds],events
     }),"utf8");
   },180_000);
 });
