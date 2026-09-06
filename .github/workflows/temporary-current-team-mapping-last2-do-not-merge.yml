@@ -1,0 +1,62 @@
+name: TEMPORARY current team mapping + last 2 matches - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - .github/workflows/temporary-current-team-mapping-last2-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  audit:
+    name: TEMPORARY ONLY - current team + last 2 matches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Guard temporary branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull public Esports team/history/event state read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node <<'NODE'
+          const BASE='https://api.dnaracing.run/fbike/esports';
+          const VAULT='0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d';
+          const TEAM='953adec8ad';
+          async function post(path,body){
+            const r=await fetch(BASE+path,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json','User-Agent':'DNA-Racing-Intelligence read-only current mapping audit'},body:JSON.stringify(body)});
+            const text=await r.text(); let json=null; try{json=JSON.parse(text)}catch{}
+            return {status:r.status,json,text:json===null?text.slice(0,1000):null};
+          }
+          const [team,history,maps,raceTypes]=await Promise.all([
+            post('/team',{of_vault:VAULT}),
+            post('/team/match_history',{team_id:TEAM,limit:100,skip:0,bucket:null}),
+            post('/maps',{}),
+            post('/race_types',{})
+          ]);
+          const rows=Array.isArray(history?.json?.result?.rows)?history.json.result.rows:[];
+          const finished=rows.filter(x=>x&&x.stage==='finished').sort((a,b)=>Date.parse(b.finished_at||0)-Date.parse(a.finished_at||0)).slice(0,2);
+          const upcoming=rows.filter(x=>x&&x.stage!=='finished').sort((a,b)=>Date.parse(a.start_time||0)-Date.parse(b.start_time||0)).slice(0,3);
+          const events=[];
+          for(const row of [...finished,...upcoming]){
+            if(!row?.event_id) continue;
+            events.push({event_id:row.event_id,kind:row.stage==='finished'?'finished':'upcoming',response:await post('/event',{event_id:row.event_id})});
+          }
+          const out={generatedAt:new Date().toISOString(),temporary:true,doNotMerge:true,team,history:{status:history.status,finished,upcoming},maps,raceTypes,events};
+          await require('node:fs/promises').writeFile('artifacts/current-team-mapping-last2.json',JSON.stringify(out,null,2));
+          console.log('CURRENT_TEAM_LAST2_SUMMARY',JSON.stringify({generatedAt:out.generatedAt,teamUpdated:team?.json?.result?.updated_at,roster:team?.json?.result?.cores_list?.length,finished:finished.map(x=>({event_id:x.event_id,opponent:x.opponent?.team_name,maps:x.map_allocated,result:x.result,finished_at:x.finished_at})),upcoming:upcoming.map(x=>({event_id:x.event_id,opponent:x.opponent?.team_name,stage:x.stage,start_time:x.start_time}))}));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-current-team-mapping-last2-${{ github.run_id }}
+          path: artifacts/current-team-mapping-last2.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
