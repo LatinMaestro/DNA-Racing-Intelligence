@@ -1,0 +1,36 @@
+name: TEMPORARY esports public API discovery - DO NOT MERGE
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-esports-public-api-discovery-do-not-merge.test.ts
+      - .github/workflows/temporary-esports-public-api-discovery-do-not-merge.yml
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DNA_ESPORTS_PUBLIC_API_DISCOVERY: '1'
+    steps:
+      - name: Guard temporary branch
+        run: test "$GITHUB_REF" = "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-esports-public-api-discovery-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-esports-api-${{ github.run_id }}
+          path: artifacts/temporary-esports-api/
+          retention-days: 1
