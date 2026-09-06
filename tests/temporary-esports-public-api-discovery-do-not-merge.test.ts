@@ -7,10 +7,10 @@ const TEAM_ID = "68082d17da";
 const VAULT = "0xa95db43f2f3e59d9fb6db54b4e98fc714bced07b";
 const PAGE = `https://esports.dnaracing.run/teams?team_id=${TEAM_ID}`;
 
-function snippets(text: string, needle: string, radius = 600): string[] {
+function snippets(text: string, needle: string, radius = 1200): string[] {
   const out: string[] = [];
   let at = 0;
-  while ((at = text.indexOf(needle, at)) >= 0 && out.length < 30) {
+  while ((at = text.indexOf(needle, at)) >= 0 && out.length < 50) {
     out.push(text.slice(Math.max(0, at - radius), Math.min(text.length, at + needle.length + radius)));
     at += needle.length;
   }
@@ -40,12 +40,12 @@ describeConnected("temporary esports public api discovery", () => {
     const js = await jsResponse.text();
 
     const relevant = [
-      ...snippets(js, "YC="),
+      ...snippets(js, "YC="), ...snippets(js, "JC="),
+      ...snippets(js, "HC="), ...snippets(js, "VC="),
+      ...snippets(js, "J="), ...snippets(js, "function J"),
       ...snippets(js, "api.dnaracing.run"),
-      ...snippets(js, "vault_stats"),
-      ...snippets(js, "cores_by_hids"),
-      ...snippets(js, "all_teams"),
-      ...snippets(js, "team_id:e"),
+      ...snippets(js, "vault_stats"), ...snippets(js, "cores_by_hids"),
+      ...snippets(js, "all_teams"), ...snippets(js, "team_id:e"),
     ];
 
     const urlCandidates = [...new Set(
@@ -75,6 +75,7 @@ describeConnected("temporary esports public api discovery", () => {
     }
 
     await mkdir("artifacts/temporary-esports-api",{recursive:true});
+    await writeFile("artifacts/temporary-esports-api/frontend.js", js, "utf8");
     await writeFile("artifacts/temporary-esports-api/discovery.json", JSON.stringify({
       fetchedAt:new Date().toISOString(), scriptUrl, scriptLength:js.length, relevant, urlCandidates, bases, probes
     }), "utf8");
