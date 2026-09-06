@@ -1,0 +1,37 @@
+name: TEMPORARY elite opponent esports data pull - DO NOT MERGE
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-elite-opponent-esports-data-pull-do-not-merge.test.ts
+      - .github/workflows/temporary-elite-opponent-esports-data-pull-do-not-merge.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    if: github.ref == 'refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DNA_ELITE_OPPONENT_ESPORTS_PULL: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard temporary branch
+        run: test "$GITHUB_REF" = "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-elite-opponent-esports-data-pull-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-DO-NOT-MERGE-elite-opponent-esports-${{ github.run_id }}
+          path: artifacts/temporary-elite-opponent-esports/
+          retention-days: 1
