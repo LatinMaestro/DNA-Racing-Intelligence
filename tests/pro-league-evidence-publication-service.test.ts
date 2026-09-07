@@ -87,7 +87,7 @@ function source(overrides: Partial<SpillableProLeagueExactFormatSource> = {}) {
 }
 
 function repository() {
-  const begin = vi.fn(async () => "staging" as const);
+  const begin = vi.fn(async (): Promise<"staging" | "published"> => "staging");
   const stageRows = vi.fn(async (_ownerId, input) =>
     input.rows.map((_: unknown, index: number) => ({
       ordinal: input.startOrdinal + index,
