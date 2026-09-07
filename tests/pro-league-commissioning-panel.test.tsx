@@ -107,6 +107,29 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      currentState: {
+        status: "connected",
+        latestObservedAt: "2026-09-07T01:02:00.000Z",
+        cores: [
+          {
+            displayName: "Silver Comet",
+            latestObservedAt: "2026-09-07T01:02:00.000Z",
+            bikePower: {
+              powerSourceValue: 82,
+              adjustedOddsSourceValue: 1.9,
+              varianceSourceValue: 0.11,
+              raceCount: 12,
+            },
+            stamina: { current: 4, maximum: 10, nextRefillAt: null },
+            listing: {},
+            bikeSkinAttached: true,
+            trailsAttached: false,
+            racingStatsObserved: true,
+            ownerObserved: true,
+            splicingObserved: true,
+          },
+        ],
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -117,6 +140,10 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Four-map assignment");
     expect(markup).toContain("168 race lines");
     expect(markup).toContain("Population coverage gaps");
+    expect(markup).toContain("Current API dimensions");
+    expect(markup).toContain("Adjusted odds");
+    expect(markup).toContain("82");
+    expect(markup).not.toContain("private-wallet");
     expect(markup).not.toContain(privateCoreId);
     expect(markup).not.toContain(state.evidence!.generationId);
   });

@@ -5,6 +5,7 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonCorePayoutFormatProfileRepositoryFromEnvironment } from "@/lib/neon-core-payout-format-profile-repository";
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
+import { neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
@@ -62,6 +63,10 @@ export default async function ProLeaguePage() {
       rosteredCoreIds: [],
       vaultRepository,
       evidenceRepository,
+      currentStateRepository:
+        neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
     }),
   ]);
 

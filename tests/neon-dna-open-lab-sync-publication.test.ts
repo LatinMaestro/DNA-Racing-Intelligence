@@ -757,6 +757,42 @@ describe("Neon DNA Open Lab sync publication", () => {
     });
   });
 
+  it("reads serving supplemental Core dimensions from one generation", async () => {
+    const power = supplementalCoreEvidence().supplementalCore.power[0]!;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [currentState()],
+      [
+        {
+          generation_id: generationId,
+          source_core_id: "101",
+          family: "power",
+          observed_at: new Date(power.observedAt),
+          raw_evidence_sha256: power.rawEvidenceSha256,
+          canonical: power.canonical,
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.readServingSupplementalCores({ ownerId }),
+    ).resolves.toEqual({
+      generationId,
+      rows: [
+        {
+          generationId,
+          sourceCoreId: "101",
+          family: "power",
+          observedAt: power.observedAt,
+          rawEvidenceSha256: power.rawEvidenceSha256,
+          canonical: power.canonical,
+        },
+      ],
+    });
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+  });
+
   it("reads and revalidates the serving generation's receipt index", async () => {
     const index = completeCurrentStateEvidence().evidenceIndex;
     const test = harness([
