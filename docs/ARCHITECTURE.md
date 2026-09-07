@@ -50,7 +50,7 @@ The API boundary must:
 - never expose the key to browser code, Git, CI logs, Issue comments or chat;
 - treat the response body envelope `status: success|error` as authoritative, including documented error bodies returned with HTTP 305;
 - surface rate-limit metadata and respect `Retry-After` on 429;
-- assume correctness at the minimum supported tier of 30 requests/minute;
+- assume correctness at the safe 30 requests/minute default and fallback;
 - use documented bulk bounds rather than relying on higher-tier throughput;
 - tolerate optional additive response fields while failing closed on invalid required contract data; and
 - preserve endpoint/version/retrieval provenance plus deterministic raw checksums at the canonical boundary.
@@ -112,7 +112,9 @@ Examples of local strategic state include notes, manual ME strategy, Pro League 
 
 ## 7. Sync and backfill architecture
 
-The scheduler is designed for 30 requests/minute and uses bulk endpoints first.
+The scheduler uses bulk endpoints first and one owner-controlled aggregate rate
+from 30 to 150 requests/minute. Every elevated setting expires and automatically
+fails back to 30 on provider reduction or any rate-limit outcome.
 
 Historical race backfill uses an adaptive finished-race crawler:
 

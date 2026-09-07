@@ -79,7 +79,26 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     ).toBe(false);
   });
 
-  it("refreshes every family together at the daily boundary", () => {
+  it("uses the effective owner policy rate as the shared batch ceiling", () => {
+    const schedule = createDnaCurrentStateAcquisitionSchedule({
+      evaluatedAt,
+      maximumAggregateRequestsPerMinute: 60,
+      plan: createDnaCurrentStateSyncPlan({
+        vault: "synthetic-owner",
+        ownedCoreIds: Array.from({ length: 100 }, (_, index) => index + 1),
+        activeRaceIds: Array.from(
+          { length: 100 },
+          (_, index) => `race-${index + 1}`,
+        ),
+      }),
+    });
+    expect(schedule.maximumAggregateRequestsPerMinute).toBe(60);
+    expect(schedule.requestBatches.every((batch) => batch.length <= 60)).toBe(
+      true,
+    );
+  });
+
+  it("refreshes only the continuously due family", () => {
     const recent = checkpoints();
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
@@ -94,8 +113,12 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
       },
     });
 
-    expect(schedule.dueGroups).toEqual(DNA_CURRENT_STATE_ACQUISITION_GROUPS);
-    expect(schedule.requestBatches.flat()).toHaveLength(18);
+    expect(schedule.dueGroups).toEqual(["race_activity"]);
+    expect(
+      schedule.requestBatches
+        .flat()
+        .every((entry) => entry.group === "race_activity"),
+    ).toBe(true);
     expect(schedule.nextEvaluationAt).toBe(evaluatedAt);
   });
 
@@ -103,12 +126,12 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
       plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
-      checkpoints: checkpoints(),
+      checkpoints: checkpoints("2026-08-28T12:29:59.500Z"),
     });
 
     expect(schedule.status).toBe("idle");
     expect(schedule.scheduledRequestCount).toBe(0);
-    expect(schedule.nextEvaluationAt).toBe("2026-08-29T12:29:30.000Z");
+    expect(schedule.nextEvaluationAt).toBe("2026-08-28T12:30:01.500Z");
   });
 
   it("does not schedule work before an authoritative retry boundary", () => {
@@ -127,7 +150,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     });
   });
 
-  it("requires every due refresh plus cached evidence before publication", () => {
+  it("requires every due refresh while leaving non-due cache validation to staggered publication", () => {
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
       plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
@@ -163,7 +186,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
         completedGroups: [...DNA_CURRENT_STATE_ACQUISITION_GROUPS],
         evidenceObservedAt: missingCache,
       }),
-    ).toEqual({ publishable: false, incompleteGroups: ["splice_arena"] });
+    ).toEqual({ publishable: true, incompleteGroups: [] });
   });
 
   it("can constrain completion to an explicit non-publication control phase", () => {

@@ -12,15 +12,16 @@ represented as DNA endpoint guarantees or API semantics:
 
 | Acquisition group  | Minimum local interval | Recurring evidence                                         |
 | ------------------ | ---------------------- | ---------------------------------------------------------- |
-| Race activity      | 24 hours               | active races and bounded fill batches                      |
-| Token prices       | 24 hours               | current/reference-only Token prices                        |
-| Vault identity     | 24 hours               | Vault info, ownership, tier badge and recent-race identity |
-| Core current state | 24 hours               | bounded identity plus seven supplemental Core families     |
-| Splice Arena       | 24 hours               | complete paginated Arena modes/pages/listings              |
+| Race activity      | 2 seconds              | active races and bounded fill batches                      |
+| Token prices       | 15 minutes             | current/reference-only Token prices                        |
+| Vault identity     | 5 minutes              | Vault info, ownership, tier badge and recent-race identity |
+| Core current state | 15 minutes             | bounded identity plus seven supplemental Core families     |
+| Splice Arena       | 5 minutes              | complete paginated Arena modes/pages/listings              |
 
-The shared boundary deliberately creates one complete daily website refresh.
-If any family is due, every recurring family is due. This is the owner's
-zero-ongoing-cost policy, not a claim about DNA endpoint freshness.
+The scheduler continuously selects only due families. Staggered publication
+combines refreshed receipts with verified last-good receipts for unchanged
+families; it never publishes a partial generation. These intervals are owner
+policy, not claims about DNA endpoint freshness.
 
 Official pair info and pair validation remain explicit on-demand reads. They do
 not enter the recurring crawl, do not prove a completed splice and never perform
@@ -29,14 +30,15 @@ a transaction.
 ## Request and publication boundaries
 
 - Recurring requests are grouped deterministically and partitioned into batches
-  no larger than the conservative base allowance of 30 aggregate requests.
+  no larger than the effective owner policy (30–150 aggregate requests/minute).
 - A logical batch is not permission to bypass the client pool. Every request
   must still pass through its lane budget and the shared aggregate budget.
-- `X-RateLimit-*`, `Retry-After`, 429 and a lower observed allowance can only
-  delay work. An advertised 80/150 tier cannot raise the configured 30-request
-  aggregate ceiling.
-- A new daily generation is publishable only after every recurring group
-  succeeds. Failed cycles keep the previous complete generation.
+- `X-RateLimit-*`, `Retry-After`, response-body errors, 429 and a lower observed
+  allowance can only delay or lower work. Provider evidence never raises the
+  owner setting automatically.
+- A new generation is publishable only after every due group succeeds and all
+  non-due receipts reconstruct valid cached evidence. Failed cycles keep the
+  previous complete generation.
 - Missing, partial or future-dated evidence blocks publication and preserves the
   previous serving generation.
 - Before discovery or acquisition, the operator checks current R2 use plus the

@@ -46,6 +46,12 @@ export type DnaOpenLabClientPoolSnapshot = Readonly<{
   lanes: readonly DnaOpenLabClientPoolLaneSnapshot[];
 }>;
 
+export type DnaOpenLabClientPoolRateObservation = Readonly<{
+  laneId: string;
+  rateLimited: boolean;
+  providerLimit: number | null;
+}>;
+
 export type DnaOpenLabClientPool = Readonly<{
   execute: <T>(input: {
     scope: DnaOpenLabScope;
@@ -144,6 +150,9 @@ export function createDnaOpenLabClientPool(input: {
   aggregateRequestsPerMinute?: number;
   maximumLaneRequestsPerMinute?: number;
   allowIndependentRateBuckets?: boolean;
+  onRateObservation?: (
+    observation: DnaOpenLabClientPoolRateObservation,
+  ) => void | Promise<void>;
 }): DnaOpenLabClientPool {
   if (input.lanes.length < 1 || input.lanes.length > MAXIMUM_POOL_LANES) {
     poolError(`pool requires between 1 and ${MAXIMUM_POOL_LANES} lanes`);
@@ -154,13 +163,30 @@ export function createDnaOpenLabClientPool(input: {
     input.sleep ??
     ((milliseconds: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
-  const maximumLaneRequestsPerMinute = positiveSafeInteger(
-    input.maximumLaneRequestsPerMinute ??
-      DEFAULT_MAXIMUM_LANE_REQUESTS_PER_MINUTE,
-    "maximumLaneRequestsPerMinute",
-  );
   const independentRateBucketsEnabled =
     input.allowIndependentRateBuckets === true;
+  const onRateObservation = input.onRateObservation;
+  const emitRateObservation = async (
+    observation: DnaOpenLabClientPoolRateObservation,
+  ) => {
+    try {
+      await onRateObservation?.(observation);
+    } catch {
+      // Telemetry persistence must never replace the authoritative API result.
+    }
+  };
+  const aggregateRequestsPerMinute = positiveSafeInteger(
+    input.aggregateRequestsPerMinute ?? DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE,
+    "aggregateRequestsPerMinute",
+  );
+  const maximumLaneRequestsPerMinute = positiveSafeInteger(
+    input.maximumLaneRequestsPerMinute ??
+      Math.max(
+        DEFAULT_MAXIMUM_LANE_REQUESTS_PER_MINUTE,
+        aggregateRequestsPerMinute,
+      ),
+    "maximumLaneRequestsPerMinute",
+  );
 
   const seenLaneIds = new Set<string>();
   const laneStates: LaneState[] = input.lanes.map((lane) => {
@@ -177,7 +203,7 @@ export function createDnaOpenLabClientPool(input: {
         nowMilliseconds,
         sleep,
         initialRequestsPerMinute: Math.min(
-          DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE,
+          aggregateRequestsPerMinute,
           maximumLaneRequestsPerMinute,
         ),
         maximumRequestsPerMinute: maximumLaneRequestsPerMinute,
@@ -191,11 +217,6 @@ export function createDnaOpenLabClientPool(input: {
   const aggregateBudget = independentRateBucketsEnabled
     ? null
     : (() => {
-        const aggregateRequestsPerMinute = positiveSafeInteger(
-          input.aggregateRequestsPerMinute ??
-            DEFAULT_AGGREGATE_REQUESTS_PER_MINUTE,
-          "aggregateRequestsPerMinute",
-        );
         return createDnaOpenLabRequestBudget({
           nowMilliseconds,
           sleep,
@@ -219,6 +240,11 @@ export function createDnaOpenLabClientPool(input: {
         input.request(input.lane.client, input.lane.id),
       );
       input.lane.successCount += 1;
+      await emitRateObservation({
+        laneId: input.lane.id,
+        rateLimited: false,
+        providerLimit: response.rateLimit.limit,
+      });
       return response;
     } catch (error) {
       if (
@@ -279,6 +305,19 @@ export function createDnaOpenLabClientPool(input: {
           ? await run()
           : await aggregateBudget.execute(run);
       } catch (error) {
+        if (
+          error instanceof DnaOpenLabApiError &&
+          error.kind === "rate_limited"
+        ) {
+          aggregateBudget?.reduceEffectiveRequestsPerMinute(
+            DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+          );
+          await emitRateObservation({
+            laneId: lane.id,
+            rateLimited: true,
+            providerLimit: error.rateLimit?.limit ?? null,
+          });
+        }
         const mayFailOver =
           independentRateBucketsEnabled &&
           error instanceof DnaOpenLabApiError &&

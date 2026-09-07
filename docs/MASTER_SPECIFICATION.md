@@ -403,9 +403,11 @@ Eligibility restrictions are hard filters and must include element/class rules
 such as Metal-only races. Rank from exact race type plus exact distance evidence,
 valid time/speed, variance, sample, freshness and known field strength; keep raw
 win/podium rates and historical stars secondary. Invalidate recommendations when
-the live field changes. Operate within the shared conservative 30 aggregate
-requests/minute budget using bulk-first/change-aware polling. Never enter a race,
-connect a wallet or submit a game transaction.
+the live field changes. Operate through the owner-controlled shared aggregate
+request budget using bulk-first/change-aware polling. The safe default and
+automatic fallback are 30 requests/minute; an explicitly timed 31–150 setting
+may be used while the current DNA tier permits it. Never enter a race, connect a
+wallet or submit a game transaction.
 
 ### 4.15 Vault Performance and accounting
 

@@ -6,6 +6,11 @@ export const modules = [
     shortDescription: "Snapshot provenance and freshness",
   },
   {
+    href: "/api-sync",
+    label: "API Sync",
+    shortDescription: "Live acquisition rate and safety",
+  },
+  {
     href: "/vault",
     label: "Vault",
     shortDescription: "Owned cores and Maiden state",

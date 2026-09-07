@@ -20,11 +20,11 @@ export type DnaCurrentStateAcquisitionGroup =
 
 export const DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS =
   Object.freeze({
-    race_activity: 24 * 60 * 60_000,
-    token_prices: 24 * 60 * 60_000,
-    vault_identity: 24 * 60 * 60_000,
-    core_current_state: 24 * 60 * 60_000,
-    splice_arena: 24 * 60 * 60_000,
+    race_activity: 2_000,
+    token_prices: 15 * 60_000,
+    vault_identity: 5 * 60_000,
+    core_current_state: 15 * 60_000,
+    splice_arena: 5 * 60_000,
   } satisfies Readonly<Record<DnaCurrentStateAcquisitionGroup, number>>);
 
 export type DnaCurrentStateAcquisitionCheckpoint = Readonly<{
@@ -40,7 +40,7 @@ export type DnaCurrentStateAcquisitionSchedule = Readonly<{
   evaluatedAt: string;
   status: "ready" | "idle" | "retry_blocked";
   completionScope: "all_current_state" | "scheduled_requests_only";
-  maximumAggregateRequestsPerMinute: typeof DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  maximumAggregateRequestsPerMinute: number;
   dueGroups: readonly DnaCurrentStateAcquisitionGroup[];
   requestBatches: readonly (readonly DnaScheduledCurrentStateRequest[])[];
   scheduledRequestCount: number;
@@ -120,16 +120,17 @@ function endpointGroup(
 
 function requestBatches(
   requests: readonly DnaScheduledCurrentStateRequest[],
+  maximumAggregateRequestsPerMinute: number,
 ): readonly (readonly DnaScheduledCurrentStateRequest[])[] {
   const result: (readonly DnaScheduledCurrentStateRequest[])[] = [];
   for (
     let offset = 0;
     offset < requests.length;
-    offset += DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE
+    offset += maximumAggregateRequestsPerMinute
   ) {
     result.push(
       Object.freeze(
-        requests.slice(offset, offset + DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE),
+        requests.slice(offset, offset + maximumAggregateRequestsPerMinute),
       ),
     );
   }
@@ -143,13 +144,13 @@ function allRequests(
 }
 
 /**
- * Builds a deterministic daily acquisition schedule. The shared 24-hour
- * interval is the owner's zero-ongoing-cost freshness policy, not undocumented
- * DNA endpoint semantics. All recurring families therefore become due
- * together and publish as one complete valid generation.
- * Batches are capped at the same conservative 30-request aggregate allowance
- * as the client pool; execution must still pass through that pool so headers,
- * Retry-After and a lower observed allowance remain authoritative.
+ * Builds a deterministic continuous acquisition schedule. Race activity is
+ * evaluated at the safe 30-rpm floor while slower-changing families use wider
+ * intervals. Only due families are requested; complete cached evidence for the
+ * other families remains part of last-good publication validation. Batches use
+ * the current owner policy's effective aggregate rate, while every request
+ * still passes through the client pool so headers, Retry-After and a lower
+ * observed allowance remain authoritative.
  *
  * Pair previews/validation are intentionally on-demand and never enter the
  * recurring current-state crawl.
@@ -164,9 +165,22 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
     >
   >;
   retryNotBefore?: string | null;
+  maximumAggregateRequestsPerMinute?: number;
 }): DnaCurrentStateAcquisitionSchedule {
   const evaluatedAt = timestamp(input.evaluatedAt, "evaluatedAt");
   const evaluatedMilliseconds = Date.parse(evaluatedAt);
+  const maximumAggregateRequestsPerMinute =
+    input.maximumAggregateRequestsPerMinute ??
+    DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  if (
+    !Number.isSafeInteger(maximumAggregateRequestsPerMinute) ||
+    maximumAggregateRequestsPerMinute < 1 ||
+    maximumAggregateRequestsPerMinute > 150
+  ) {
+    acquisitionError(
+      "maximumAggregateRequestsPerMinute must be between 1 and 150",
+    );
+  }
   const retryNotBefore =
     input.retryNotBefore === null || input.retryNotBefore === undefined
       ? null
@@ -202,7 +216,7 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
       evaluatedAt,
       status: "retry_blocked",
       completionScope: "all_current_state",
-      maximumAggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+      maximumAggregateRequestsPerMinute,
       dueGroups: Object.freeze([]),
       requestBatches: Object.freeze([]),
       scheduledRequestCount: 0,
@@ -211,19 +225,14 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
     });
   }
 
-  const completeRefreshDue = DNA_CURRENT_STATE_ACQUISITION_GROUPS.some(
-    (group) => {
-      const completed = checkpointMilliseconds.get(group);
-      return (
-        completed === undefined ||
-        evaluatedMilliseconds - completed >=
-          DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
-      );
-    },
-  );
-  const dueGroups = completeRefreshDue
-    ? [...DNA_CURRENT_STATE_ACQUISITION_GROUPS]
-    : [];
+  const dueGroups = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter((group) => {
+    const completed = checkpointMilliseconds.get(group);
+    return (
+      completed === undefined ||
+      evaluatedMilliseconds - completed >=
+        DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
+    );
+  });
   const dueSet = new Set(dueGroups);
   const scheduled = allRequests(input.plan)
     .map((request) => ({ group: endpointGroup(request), request }))
@@ -246,10 +255,16 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
   return Object.freeze({
     evaluatedAt,
     status: dueGroups.length > 0 ? "ready" : "idle",
-    completionScope: "all_current_state",
-    maximumAggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+    completionScope:
+      dueGroups.length === DNA_CURRENT_STATE_ACQUISITION_GROUPS.length
+        ? "all_current_state"
+        : "scheduled_requests_only",
+    maximumAggregateRequestsPerMinute,
     dueGroups: Object.freeze(dueGroups),
-    requestBatches: requestBatches(scheduled),
+    requestBatches: requestBatches(
+      scheduled,
+      maximumAggregateRequestsPerMinute,
+    ),
     scheduledRequestCount: scheduled.length,
     nextEvaluationAt: new Date(
       Math.max(evaluatedMilliseconds, nextDueMilliseconds),

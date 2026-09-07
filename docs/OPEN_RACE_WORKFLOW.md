@@ -222,9 +222,11 @@ Where no eligible Core has a supportable payout case, the preferred output is
 
 ## 10. Live scan request budget
 
-The scanner shares the conservative base allowance of no more than 30 aggregate
-requests/minute across the configured key pool. It must not assume that the
-entire allowance is continuously available.
+The scanner shares the owner-controlled aggregate allowance across the
+configured key pool. The safe default and automatic fallback are 30
+requests/minute; a timed 31–150 setting may be used while current DNA tier
+authority permits it. It must not assume that the entire configured allowance
+is continuously available.
 
 Use a bulk-first, change-aware plan:
 
