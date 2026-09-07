@@ -1,0 +1,40 @@
+name: TEMPORARY breeding Arena vault evaluation 2026-09-07
+
+on:
+  push:
+    branches:
+      - temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+    paths:
+      - tests/temporary-breeding-arena-vault-evaluation-2026-09-07.test.ts
+      - .github/workflows/temporary-breeding-arena-vault-evaluation-2026-09-07.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-breeding-arena-vault-evaluation-2026-09-07
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      TEMP_BREEDING_ARENA_VAULT_EVALUATION: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/temporary-breeding-arena-vault-evaluation-2026-09-07.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-breeding-arena-vault-evaluation-${{ github.run_id }}
+          path: ${{ runner.temp }}/temporary-breeding-arena-vault-evaluation.json
+          if-no-files-found: error
+          retention-days: 3
