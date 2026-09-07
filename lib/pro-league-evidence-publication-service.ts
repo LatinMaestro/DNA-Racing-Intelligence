@@ -83,6 +83,7 @@ export async function publishSpillableProLeagueEvidence(
     benchmark: [],
     profile: [],
   };
+  let sourceReadStarted = false;
 
   async function flush(family: ProLeagueEvidenceFamily): Promise<void> {
     const rows = pending[family];
@@ -136,7 +137,9 @@ export async function publishSpillableProLeagueEvidence(
       };
     }
 
-    for await (const row of input.source.readRows()) {
+    const rows = input.source.readRows();
+    sourceReadStarted = true;
+    for await (const row of rows) {
       pending[row.kind].push({
         naturalKey: naturalKey(row),
         payload: payload(row),
@@ -173,6 +176,6 @@ export async function publishSpillableProLeagueEvidence(
       unbenchmarkedEntryCount,
     };
   } finally {
-    await input.source.cleanup();
+    if (!sourceReadStarted) await input.source.cleanup();
   }
 }
