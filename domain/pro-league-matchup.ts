@@ -598,7 +598,7 @@ function analyseMap(
   };
 }
 
-function coverageGaps(
+export function buildProLeagueCoverageGaps(
   ours: ProLeagueMatchupVault,
 ): readonly ProLeagueCoverageGap[] {
   const demands = new Map<
@@ -770,7 +770,7 @@ export function buildProLeagueMatchupAnalysis(
       ...map,
       selectionRank: rank.get(map.mapId)!,
     })),
-    coverageGaps: coverageGaps(input.ourVault),
+    coverageGaps: buildProLeagueCoverageGaps(input.ourVault),
     substitutionStrategy: {
       annualMaximum: proLeagueCurrentRules.maximumSubstitutionsPerYear,
       initialRosterCounting:

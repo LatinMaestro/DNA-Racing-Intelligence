@@ -1687,3 +1687,22 @@ After the private Pro League milestone, continue in this order:
   keeping time, valid speed, consistency, sample, freshness and same-type plus
   distance authority intact. This slice performs no ranking, roster write,
   deployment, provider call or game action.
+
+## 2026-09-07 — draft Pro League rosters are quality-first and rule-valid
+
+- Score owned candidates only from the pinned active generation and the same
+  published Bike race type plus exact distance. Weight line demand across all
+  four maps, with the first 16 race points visible separately because they can
+  decide a map before later lines are reached.
+- Order candidates lexicographically by population-relative time, consistency,
+  exact-cell coverage, sample and freshness. Retain wins, Top-3 results, stars
+  and opposition as supporting context only; never let a high raw result count
+  outrank superior intrinsic evidence.
+- Search the quality order within a strict candidate and node bound for the
+  largest valid roster up to 25, enforcing every current owner-confirmed
+  element, Genesis, F-number, high-generation and female rule. Fail closed when
+  the bound is reached or no compliant 12-Core roster exists.
+- Label best-owned but population-weak and unproven structural selections as
+  provisional, preserve population gaps, and require testing before lock. The
+  output is an immutable draft only: it neither persists nor submits a roster
+  and does not consume an annual substitution.
