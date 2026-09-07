@@ -83,13 +83,13 @@ For example, if elite performers in a format are themselves volatile, a similarl
 
 The shared domain layer exposes these inference states:
 
-| Assessment | Meaning | Discovery response |
-| --- | --- | --- |
-| `strong_inferred_fit` | Candidate central and ceiling pace both reach the elite format cohort | Prioritise a targeted direct-format probe |
-| `ceiling_inferred_fit` | Central pace is weaker but ceiling reaches the elite cohort | Test for a volatile/first-place specialist role |
-| `central_inferred_fit` | Central pace reaches elite median but ceiling evidence is weaker | Test for repeatable/top-three style usefulness |
-| `mismatch` | Candidate does not currently reach the elite cohort on central or ceiling evidence | Do not prioritise that format from transfer evidence alone |
-| `unavailable` | Candidate distribution or benchmark is unavailable | Gather the missing evidence first |
+| Assessment             | Meaning                                                                            | Discovery response                                         |
+| ---------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `strong_inferred_fit`  | Candidate central and ceiling pace both reach the elite format cohort              | Prioritise a targeted direct-format probe                  |
+| `ceiling_inferred_fit` | Central pace is weaker but ceiling reaches the elite cohort                        | Test for a volatile/first-place specialist role            |
+| `central_inferred_fit` | Central pace reaches elite median but ceiling evidence is weaker                   | Test for repeatable/top-three style usefulness             |
+| `mismatch`             | Candidate does not currently reach the elite cohort on central or ceiling evidence | Do not prioritise that format from transfer evidence alone |
+| `unavailable`          | Candidate distribution or benchmark is unavailable                                 | Gather the missing evidence first                          |
 
 Every transfer result is explicitly `inferenceOnly: true` and `provenFormatSpecialist: false`.
 

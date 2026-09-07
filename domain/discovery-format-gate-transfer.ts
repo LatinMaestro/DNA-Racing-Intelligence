@@ -35,8 +35,7 @@ export type DiscoveryFormatGateCohortRankingMetric =
   | "configured_format_metric";
 
 export type DiscoveryDispersionKind =
-  | "coefficient_of_variation"
-  | "normalized_range_proxy";
+  "coefficient_of_variation" | "normalized_range_proxy";
 
 export type DiscoveryDispersionObservation = Readonly<{
   kind: DiscoveryDispersionKind;
@@ -302,10 +301,16 @@ export function inferDiscoveryFormatGateTransferFit(
     "Minimum direct format sample",
   );
   if (input.centralSpeedMetresPerSecond !== null) {
-    positiveFinite(input.centralSpeedMetresPerSecond, "Candidate central speed");
+    positiveFinite(
+      input.centralSpeedMetresPerSecond,
+      "Candidate central speed",
+    );
   }
   if (input.ceilingSpeedMetresPerSecond !== null) {
-    positiveFinite(input.ceilingSpeedMetresPerSecond, "Candidate ceiling speed");
+    positiveFinite(
+      input.ceilingSpeedMetresPerSecond,
+      "Candidate ceiling speed",
+    );
   }
   if (input.dispersion !== null) {
     nonNegativeFinite(input.dispersion.value, "Candidate dispersion");
@@ -378,7 +383,10 @@ export function inferDiscoveryFormatGateTransferFit(
     input.ceilingSpeedMetresPerSecond,
     benchmark.ceilingSpeedMetresPerSecond,
   );
-  const repeatabilityFit = dispersionFit(input.dispersion, benchmark.dispersion);
+  const repeatabilityFit = dispersionFit(
+    input.dispersion,
+    benchmark.dispersion,
+  );
   const centralStrength = fitStrength(centralPaceFit);
   const ceilingStrength = fitStrength(ceilingPaceFit);
 

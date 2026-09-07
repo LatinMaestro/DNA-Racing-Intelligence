@@ -136,7 +136,10 @@ describe("Discovery format/gate transfer inference", () => {
     expect(result.confidence).toBe("low");
     expect(result.recommendedAction).toBe("targeted_format_probe");
     expect(result.reasons).toEqual(
-      expect.arrayContaining(["distance_sample_small", "benchmark_sample_small"]),
+      expect.arrayContaining([
+        "distance_sample_small",
+        "benchmark_sample_small",
+      ]),
     );
   });
 
