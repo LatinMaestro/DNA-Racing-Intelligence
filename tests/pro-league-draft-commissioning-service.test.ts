@@ -252,6 +252,26 @@ describe("Pro League draft commissioning service", () => {
     );
   });
 
+  it("retains the historical draft when current API dimensions are invalid", async () => {
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        currentStateRepository: {
+          readServingSupplementalCores: vi.fn(async () => {
+            throw new Error("current generation unavailable");
+          }),
+        },
+      }),
+    );
+
+    expect(result.connectionStatus).toBe("read_model_connected");
+    expect(result.currentState).toMatchObject({
+      status: "invalid_generation",
+      cores: [],
+    });
+    expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
+    expect(result.lineup?.totals.lineCount).toBe(168);
+  });
+
   it("exposes evidence and diagnostics but no lineup when no roster is valid", async () => {
     const result = await loadProLeagueDraftCommissioningState(
       input({ vaultRepository: vault("male") }),

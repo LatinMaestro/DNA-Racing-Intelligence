@@ -15,7 +15,11 @@ const REQUIRED_FAMILIES = Object.freeze([
 ] as const);
 
 export type ProLeagueCurrentCoreState = Readonly<{
-  status: "not_configured" | "active_generation_unavailable" | "connected";
+  status:
+    | "not_configured"
+    | "active_generation_unavailable"
+    | "invalid_generation"
+    | "connected";
   latestObservedAt: string | null;
   cores: readonly Readonly<{
     displayName: string;
@@ -45,13 +49,18 @@ export type ProLeagueCurrentCoreState = Readonly<{
 }>;
 
 function unavailable(
-  status: "not_configured" | "active_generation_unavailable",
+  status:
+    "not_configured" | "active_generation_unavailable" | "invalid_generation",
 ): ProLeagueCurrentCoreState {
   return Object.freeze({
     status,
     latestObservedAt: null,
     cores: Object.freeze([]),
   });
+}
+
+export function invalidProLeagueCurrentCoreState(): ProLeagueCurrentCoreState {
+  return unavailable("invalid_generation");
 }
 
 function scalarPresent(value: JsonSourceValue): boolean {
@@ -93,6 +102,9 @@ export async function loadProLeagueCurrentCoreState(
       );
     }
     return unavailable("active_generation_unavailable");
+  }
+  if (input.selectedCores.length === 0) {
+    throw new Error("Pro League current Core selection is empty.");
   }
 
   const byCore = new Map<

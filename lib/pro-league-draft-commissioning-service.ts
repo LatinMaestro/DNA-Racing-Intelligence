@@ -12,6 +12,7 @@ import {
 } from "@/lib/pro-league-active-vault-evidence-service";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
 import {
+  invalidProLeagueCurrentCoreState,
   loadProLeagueCurrentCoreState,
   type ProLeagueCurrentCoreState,
 } from "@/lib/pro-league-current-core-state-service";
@@ -141,7 +142,7 @@ export async function loadProLeagueDraftCommissioningState(
     ownerId: authenticatedOwnerId,
     selectedCores,
     repository: input.currentStateRepository ?? null,
-  });
+  }).catch(() => invalidProLeagueCurrentCoreState());
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
