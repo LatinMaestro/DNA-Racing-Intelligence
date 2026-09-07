@@ -12,6 +12,11 @@ in `DISCOVERY_METHODOLOGY_V2.md` and implemented in
 that shared contract for Bike, Horse and Car instead of rebuilding mode-specific
 heuristics in the UI.
 
+Untested format/gate opportunity inference is specified in
+`DISCOVERY_FORMAT_GATE_TRANSFER.md` and implemented in
+`domain/discovery-format-gate-transfer.ts`. The workspace must distinguish
+inferred format fit from proven direct format performance.
+
 ## Application boundary
 
 - Verify the authenticated Clerk owner against the server-only allowlist before
@@ -42,6 +47,13 @@ heuristics in the UI.
 - Keep central pace, ceiling pace, repeatability/variance, sample size,
   opposition-adjusted stars and exact-format/gate evidence as separate visible
   axes. A single `+%` value or opaque score cannot represent all of them.
+- Where a Core lacks direct starts in a format/gate cell, compare its
+  same-mode/exact-distance central pace, ceiling and dispersion with the
+  top-performing cohort for that exact format/gate. This is transfer-fit
+  evidence only and must remain labelled inferred until direct starts exist.
+- Benchmark transfer fit only against a same-mode, same-distance, same-format and
+  same-gate cohort with an explicit elite-percentile definition and source
+  cutoff. Never compare Bike format cohorts with Horse or Car evidence.
 - A wide-range Core is not automatically weak: elite ceiling with ordinary
   central pace is a `variance_format` question until repeatability is resolved.
 - A no-star outcome is caution only after repeated quality-known opportunities
@@ -109,7 +121,12 @@ The next Discovery UI iteration must also expose, where authority exists:
 - observed min/max range explicitly labelled as a range proxy when raw
   observations are unavailable;
 - opposition-adjusted star evidence;
-- exact format/gate evidence;
+- direct exact format/gate evidence;
+- inferred format/gate fit for untested cells, including elite-cohort definition,
+  central fit, ceiling fit, dispersion fit, confidence and direct-format sample
+  count;
+- a visible `INFERRED` versus `DIRECT` evidence label so untested suitability is
+  never displayed as proven specialist performance;
 - settled main-distance state;
 - side-distance questions;
 - the two-band rule-out plan; and
@@ -119,15 +136,18 @@ The UI must not hide these axes behind a single unexplained Discovery score.
 
 ## Cross-mode boundary
 
-`DISCOVERY_METHODOLOGY_V2.md` applies to Bike, Horse and Car. Exact distances,
-band definitions, star semantics, gate/field structures, ageing rules and other
-mode-specific facts remain separate configuration authority. Bike distances
-must never be copied into Horse or Car merely to populate the workspace.
+`DISCOVERY_METHODOLOGY_V2.md` and `DISCOVERY_FORMAT_GATE_TRANSFER.md` apply to
+Bike, Horse and Car. Exact distances, band definitions, star semantics,
+gate/field structures, format success metrics, ageing rules and other
+mode-specific facts remain separate configuration authority. Bike distances or
+format assumptions must never be copied into Horse or Car merely to populate the
+workspace.
 
 ## Deferred work
 
 - provider-specific owner-scoped candidate SQL;
 - representative chronological holdout and calibration evidence;
+- authoritative format/gate elite-cohort benchmark producers;
 - authoritative Horse and Car exact-distance configurations;
 - current tournament configuration;
 - manual review actions; and
