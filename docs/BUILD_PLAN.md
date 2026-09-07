@@ -345,9 +345,23 @@ Vault-identity, 72 current-Core and zero splice-arena receipts. This is plan
 drift, not a corrupt checkpoint, rate failure or capacity exhaustion.
 
 Read-only run `33680976426` completed that measurement and the owner approved
-the amended packet while retaining the $0.500000 ceiling. The next dependency
-is exact-head review, private Preview application of migration `0079`, and the
-bounded three-request continuation through terminal six-family reconciliation.
+the amended packet while retaining the $0.500000 ceiling. Migration `0079` was
+then applied only to private Preview and protected run `33688023472` resumed.
+That run safely persisted ordinals 17,454–17,456, but immutable replay proved
+they were the first three requests of a still-incomplete tenth
+`core_current_state` batch rather than `splice_arena`. The ledger therefore
+remains `running`, unpublished and internally consistent at 17,456 receipts,
+874,310,005 R2 bytes and one omission. This corrects the earlier diagnosis:
+the 17,453 checkpoint was not terminal for the Core family, so the
+Splice-only amendment was insufficient.
+
+The next dependency is an exact-main, read-only 30-rpm residual measurement.
+It must reconstruct the Core request plan from the immutable `vault.cores_full`
+receipt, verify the three late Core receipt identities, measure only the
+remaining Core endpoints plus all Splice pages, prove Neon/R2/last-good state
+unchanged, and emit sanitized aggregate bounds. Persistence remains closed
+until that evidence is reviewed and any required further owner amendment is
+explicitly approved.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

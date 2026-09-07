@@ -34,7 +34,7 @@ function splitMalformedFinishedRaceWindow(error: unknown): boolean {
   );
 }
 
-const CORE_BULK_LIMIT = 20;
+export const DNA_OPEN_LAB_P5_CORE_BULK_LIMIT = 20 as const;
 const RACE_BULK_LIMIT = 20;
 const MAXIMUM_ARENA_PAGES_PER_MODE = 512;
 const MAXIMUM_OBSERVED_BYTES = 8 * 1024 * 1024 * 1024;
@@ -54,7 +54,7 @@ const FAMILY_AUTHORITY = Object.freeze({
   >
 >);
 
-const CORE_ENDPOINTS = Object.freeze([
+export const DNA_OPEN_LAB_P5_CORE_ENDPOINTS = Object.freeze([
   "cores.info_bulk",
   "cores.racing_stats_bulk",
   "cores.power_bulk",
@@ -65,7 +65,8 @@ const CORE_ENDPOINTS = Object.freeze([
   "cores.splicing_info_bulk",
 ] as const);
 
-type CoreEndpoint = (typeof CORE_ENDPOINTS)[number];
+export type DnaOpenLabP5CoreEndpoint =
+  (typeof DNA_OPEN_LAB_P5_CORE_ENDPOINTS)[number];
 
 export type DnaOpenLabP5FirstBackfillEndpointObservation = Readonly<{
   endpoint: string;
@@ -293,7 +294,7 @@ function coreResultIds(value: unknown): readonly number[] {
 }
 
 function invokeCoreEndpoint(input: {
-  endpoint: CoreEndpoint;
+  endpoint: DnaOpenLabP5CoreEndpoint;
   client: DnaOpenLabClient;
   hids: readonly number[];
 }): Promise<DnaOpenLabResponse<readonly DnaOpenLabRecord<object>[]>> {
@@ -492,10 +493,13 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
       terminalUnitCount = 4;
     } else if (family === "core_current_state") {
       if (ownedCoreIds === null || ownedCoreIds.length < 1) adapterError();
-      const coreBatches = batches(ownedCoreIds, CORE_BULK_LIMIT);
+      const coreBatches = batches(
+        ownedCoreIds,
+        DNA_OPEN_LAB_P5_CORE_BULK_LIMIT,
+      );
       for (const batch of coreBatches) {
         const batchSet = new Set(batch);
-        for (const endpoint of CORE_ENDPOINTS) {
+        for (const endpoint of DNA_OPEN_LAB_P5_CORE_ENDPOINTS) {
           const result = await acquire({
             request,
             scope: "cores",
@@ -517,7 +521,8 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
           }
         }
       }
-      terminalUnitCount = coreBatches.length * CORE_ENDPOINTS.length;
+      terminalUnitCount =
+        coreBatches.length * DNA_OPEN_LAB_P5_CORE_ENDPOINTS.length;
     } else if (family === "splice_arena") {
       for (const mode of RACE_MODES) {
         const seenCoreIds = new Set<number>();
@@ -632,7 +637,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
 
 export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_ENDPOINT_LIMITS = Object.freeze({
   finishedRaceWindow: DNA_FINISHED_RACE_WINDOW_LIMIT,
-  coreBulk: CORE_BULK_LIMIT,
+  coreBulk: DNA_OPEN_LAB_P5_CORE_BULK_LIMIT,
   raceBulk: RACE_BULK_LIMIT,
   arenaPagesPerMode: MAXIMUM_ARENA_PAGES_PER_MODE,
 });
