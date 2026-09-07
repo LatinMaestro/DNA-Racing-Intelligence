@@ -1,0 +1,132 @@
+name: DNA Open Lab P5 terminal residual measurement
+
+on:
+  workflow_dispatch:
+    inputs:
+      failed_continuation_run:
+        description: Exact failed continuation whose complete checkpoint is measured
+        required: true
+        default: "33688023472"
+        type: choice
+        options:
+          - "33688023472"
+      acknowledge_read_only_residual:
+        description: Confirm bounded read-only 30-rpm measurement with no persistence
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-p5-terminal-residual-measurement
+  cancel-in-progress: false
+
+jobs:
+  exact-main-terminal-residual-measurement:
+    name: Exact-main guarded read-only terminal residual measurement
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_P5_TERMINAL_RESIDUAL_MEASUREMENT: "1"
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Require exact main dispatch
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This read-only provider workflow may only run from main."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The read-only provider workflow head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded read-only authority without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_VAULT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_SECRET_ACCESS_KEY",
+          ];
+          for (const name of required) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing or invalid");
+            }
+          }
+          const keys = required
+            .filter((name) => name.startsWith("DNA_OPEN_LAB_API_KEY_"))
+            .map((name) => process.env[name]);
+          if (new Set(keys).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required");
+          }
+          if (
+            "${{ inputs.failed_continuation_run }}" !== "33688023472" ||
+            "${{ inputs.acknowledge_read_only_residual }}" !== "true"
+          ) {
+            throw new Error("The selected read-only residual measurement is not authorized");
+          }
+          console.log("Validated the bounded 30-rpm read-only residual measurement without printing private values.");
+          NODE
+      - name: Measure exact Core tail and Splice residual
+        id: measurement
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-p5-terminal-residual-measurement.test.ts
+      - name: Prove exact main remained unchanged
+        id: exact_main
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the read-only provider workflow."
+            exit 1
+          fi
+      - name: Upload sanitized terminal residual evidence
+        if: >-
+          steps.measurement.outcome == 'success' &&
+          steps.exact_main.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dna-open-lab-p5-terminal-residual-measurement-${{ github.run_id }}
+          path: ${{ runner.temp }}/dna-open-lab-p5-terminal-residual-measurement.json
+          if-no-files-found: error
+          retention-days: 7
