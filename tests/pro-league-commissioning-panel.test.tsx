@@ -130,6 +130,36 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      raceOpportunities: {
+        status: "connected",
+        observedAt: "2026-09-07T01:03:00.000Z",
+        scannedRaceCount: 5,
+        qualifyingRaceCount: 1,
+        priorityGapCount: 1,
+        exactGapMatchingAvailable: false,
+        directRaceLinkAvailable: false,
+        raceEntryAllowed: false,
+        opportunities: [
+          {
+            sourceRaceId: "private-race-456",
+            displayName: "Half-full Bike Race",
+            status: "filling",
+            observedAt: "2026-09-07T01:03:00.000Z",
+            gateCount: 6,
+            filledGateCount: 3,
+            availableGateCount: 3,
+            fillPercentage: 50,
+            formatSourceValue: "normal",
+            raceClassSourceValue: 3,
+            entryFeeUsd: 2.5,
+            paymentAsset: "DEZ",
+            fixedFeesByAsset: { DEZ: 0.25 },
+            startAt: null,
+            entrantCount: 3,
+            gapMatchStatus: "exact_type_and_distance_unavailable",
+          },
+        ],
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -142,9 +172,13 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Population coverage gaps");
     expect(markup).toContain("Current API dimensions");
     expect(markup).toContain("Adjusted odds");
+    expect(markup).toContain("Open Bike race opportunities");
+    expect(markup).toContain("Half-full Bike Race");
+    expect(markup).toContain("cannot yet be matched");
     expect(markup).toContain("82");
     expect(markup).not.toContain("private-wallet");
     expect(markup).not.toContain(privateCoreId);
+    expect(markup).not.toContain("private-race-456");
     expect(markup).not.toContain(state.evidence!.generationId);
   });
 

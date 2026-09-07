@@ -17,6 +17,12 @@ import {
   type ProLeagueCurrentCoreState,
 } from "@/lib/pro-league-current-core-state-service";
 import type { DnaOpenLabSupplementalCoreReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import type { DnaOpenLabCurrentRaceReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import {
+  invalidProLeagueRaceOpportunityState,
+  loadProLeagueRaceOpportunities,
+  type ProLeagueRaceOpportunityState,
+} from "@/lib/pro-league-race-opportunity-service";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -41,6 +47,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   roster: ProLeagueDraftRosterRecommendation | null;
   lineup: ProLeagueDraftLineupRecommendation | null;
   currentState?: ProLeagueCurrentCoreState;
+  raceOpportunities?: ProLeagueRaceOpportunityState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -76,6 +83,7 @@ export async function loadProLeagueDraftCommissioningState(
     vaultRepository: OwnerVaultCatalogueRepository;
     evidenceRepository: ProLeagueEvidenceReadRepository | null;
     currentStateRepository?: DnaOpenLabSupplementalCoreReadRepository | null;
+    currentRaceRepository?: DnaOpenLabCurrentRaceReadRepository | null;
     pageSize?: number;
     maximumSearchNodes?: number;
   }>,
@@ -143,6 +151,14 @@ export async function loadProLeagueDraftCommissioningState(
     selectedCores,
     repository: input.currentStateRepository ?? null,
   }).catch(() => invalidProLeagueCurrentCoreState());
+  const priorityGapCount = roster.coverageGaps.filter(
+    ({ discoveryPriority }) => discoveryPriority !== "maintain",
+  ).length;
+  const raceOpportunities = await loadProLeagueRaceOpportunities({
+    ownerId: authenticatedOwnerId,
+    priorityGapCount,
+    repository: input.currentRaceRepository ?? null,
+  }).catch(() => invalidProLeagueRaceOpportunityState(priorityGapCount));
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
@@ -154,5 +170,6 @@ export async function loadProLeagueDraftCommissioningState(
     roster,
     lineup,
     currentState,
+    raceOpportunities,
   });
 }
