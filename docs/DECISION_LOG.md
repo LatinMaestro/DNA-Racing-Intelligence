@@ -1651,3 +1651,22 @@ After the private Pro League milestone, continue in this order:
 - Keep publication out of this slice. The next dependency is an owner-isolated,
   complete-generation staging and last-good activation boundary; no partial
   Pro League generation may become visible.
+
+## 2026-09-07 — Pro League evidence publishes only as a verified last-good generation
+
+- Migration `0084` binds each owner-local evidence generation to the exact
+  active Race dataset version, active source-version-set digest and evidence
+  cutoff used by the spillable exact-format reducer.
+- Stage benchmark and Core-profile rows in bounded replay-safe batches. Derive
+  row hashes from stored JSONB in PostgreSQL, then require exact family counts,
+  contiguous ordinals and the matching deterministic two-family digest before
+  publication.
+- Advance the active owner pointer in the same transaction that seals the
+  immutable generation and its rows. Failed, incomplete, stale or conflicting
+  work remains invisible and cannot replace the previous last-good generation.
+- Permit the least-privilege runtime to use only the five owner-scoped
+  generation functions. It receives no direct table access, and private reads
+  return only bounded pages from the active generation.
+- This boundary persists compact derived evidence only. It does not publish a
+  website generation, repeat API acquisition, expose raw payloads, or perform a
+  roster or game action.
