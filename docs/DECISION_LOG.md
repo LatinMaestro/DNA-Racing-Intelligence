@@ -1616,3 +1616,21 @@ After the private Pro League milestone, continue in this order:
   observations with forced RLS and function-only runtime access. Continuous
   work remains bounded by R2 zero-cost guards, durable checkpoints, immutable
   evidence, complete-generation validation and last-good serving.
+
+## 2026-09-07 — Pro League exact-format benchmark reconstruction
+
+- Pro League historical evidence is partitioned by the same published Bike
+  race type and exact distance; distance-only evidence cannot masquerade as a
+  direct map-line match.
+- Owner-confirmed Race Merge payout mechanisms reconstruct published types only
+  through gate-aware mappings: two-gate Winner Take All is `1v1`, other
+  published Winner Take All cells are WTA, and published Top-3 cells are
+  Madness. `rformat` is not substituted for the payout mechanism.
+- Missing/unsupported payout labels, non-Bike rows, unpublished cells and cells
+  without both winner and Top-3 evidence remain explicitly unavailable.
+- Population and Core evidence now retains time, valid derived speed,
+  consistency, sample and freshness. Raw wins/Top-3s remain supporting context.
+  Exact-format star/opponent quality stays unavailable until a chronological
+  join can prove it; missing opposition evidence is never favourable.
+- The first producer is a bounded reference implementation. Complete archive
+  use requires the next spillable and owner-isolated publication slice.
