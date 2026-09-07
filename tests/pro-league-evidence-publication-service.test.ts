@@ -74,7 +74,11 @@ function source(overrides: Partial<SpillableProLeagueExactFormatSource> = {}) {
     unbenchmarkedPublishedCellEntryCount: () => 0,
     readRows: () =>
       (async function* () {
-        for (const row of rows) yield row;
+        try {
+          for (const row of rows) yield row;
+        } finally {
+          await cleanup();
+        }
       })(),
     cleanup,
     ...overrides,
@@ -83,7 +87,7 @@ function source(overrides: Partial<SpillableProLeagueExactFormatSource> = {}) {
 }
 
 function repository() {
-  const begin = vi.fn(async () => "staging" as const);
+  const begin = vi.fn(async (): Promise<"staging" | "published"> => "staging");
   const stageRows = vi.fn(async (_ownerId, input) =>
     input.rows.map((_: unknown, index: number) => ({
       ordinal: input.startOrdinal + index,
@@ -163,6 +167,46 @@ describe("Pro League evidence publication service", () => {
         maximumRowsPerBatch: 1,
       }),
     ).rejects.toThrow("database unavailable");
+    expect(target.publish).not.toHaveBeenCalled();
+    expect(inputSource.cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("cleans an unread source when an identical generation is already published", async () => {
+    const inputSource = source();
+    const target = repository();
+    target.begin.mockResolvedValueOnce("published");
+    vi.mocked(target.value.readActiveGeneration).mockResolvedValueOnce({
+      generationId,
+      raceDatasetVersionId: "84000000-0000-4000-8000-000000000201",
+      sourceVersionSetSha256: "c".repeat(64),
+      evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
+      inputObservationCount: 4,
+      acceptedEntryCount: 2,
+      nonBikeEntryCount: 1,
+      missingFormatEntryCount: 1,
+      unsupportedFormatEntryCount: 0,
+      unpublishedCellEntryCount: 0,
+      unbenchmarkedEntryCount: 0,
+      benchmarkCount: 1,
+      profileCount: 1,
+      payloadSha256: "d".repeat(64),
+      publishedAt: "2026-09-07T01:01:00.000Z",
+    });
+
+    await expect(
+      publishSpillableProLeagueEvidence({
+        ownerId: "private_owner",
+        generationId,
+        raceDatasetVersionId: "84000000-0000-4000-8000-000000000201",
+        workerId: "evidence-worker",
+        sourceVersionSetSha256: "c".repeat(64),
+        evidenceCutoffAt: "2026-09-07T01:00:00Z",
+        publishedAt: "2026-09-07T01:01:00Z",
+        source: inputSource.value,
+        repository: target.value,
+      }),
+    ).resolves.toMatchObject({ disposition: "existing" });
+    expect(target.stageRows).not.toHaveBeenCalled();
     expect(target.publish).not.toHaveBeenCalled();
     expect(inputSource.cleanup).toHaveBeenCalledOnce();
   });
