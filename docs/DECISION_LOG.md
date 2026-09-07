@@ -1768,3 +1768,19 @@ After the private Pro League milestone, continue in this order:
 - If current-state persistence is absent, no serving generation exists, or any
   selected Core family is incomplete, retain the historical last-good roster
   recommendation and withhold the incomplete current dimensions.
+
+## 2026-09-08 — Pro League active-race opportunities remain authority-bounded
+
+- Read only the owner-scoped last-good active-race and fill snapshot generation.
+  Surface Bike races only when both body-authoritative statuses are `filling`,
+  at least `ceil(gates / 2)` gates are filled and at least one gate remains.
+- Revalidate one-to-one race/fill identity, fill counts and observation times.
+  A malformed or changing generation hides the opportunity section without
+  weakening the verified historical roster and four-map lineup.
+- The current API race contract has no authoritative explicit distance or Pro
+  League race-type field. Do not parse race names, `format`, class or other
+  source values to invent those facts; therefore no exact population-gap match,
+  Core ranking or entry recommendation is emitted yet.
+- Do not guess a DNA race-entry URL. Present the timestamped race name, fill,
+  fees and scheduling fields for owner manual inspection only. The read model
+  cannot enter a race, connect a wallet or perform any game transaction.

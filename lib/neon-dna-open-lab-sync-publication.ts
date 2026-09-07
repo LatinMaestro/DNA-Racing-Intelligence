@@ -1208,6 +1208,39 @@ export type DnaOpenLabSupplementalCoreReadRepository = Pick<
   "readServingSupplementalCores"
 >;
 
+export type DnaOpenLabCurrentRaceReadRepository = Pick<
+  NeonDnaOpenLabSyncPublicationRepository,
+  "readServingCurrentRaces"
+>;
+
+export function neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    runtimeRole?: string;
+  }>,
+): DnaOpenLabCurrentRaceReadRepository | null {
+  const databaseUrl = environment.databaseUrl?.trim() ?? "";
+  const databaseOwnerId = environment.databaseOwnerId?.trim() ?? "";
+  const runtimeRole = environment.runtimeRole?.trim() ?? "";
+  if (databaseUrl === "" || databaseOwnerId === "" || runtimeRole === "") {
+    return null;
+  }
+  try {
+    const repository = createNeonDnaOpenLabSyncPublicationRepository({
+      databaseUrl,
+      databaseOwnerId,
+      runtimeRole,
+    });
+    return Object.freeze({
+      readServingCurrentRaces:
+        repository.readServingCurrentRaces.bind(repository),
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment(
   environment: Readonly<{
     databaseUrl?: string;

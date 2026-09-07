@@ -496,6 +496,15 @@ not narrow the shared Horse, Car and Bike Discovery domain defined in
 - use active race/fill API data to surface suitable manual racing opportunities without entering races; and
 - ingest finished results automatically after sync and update readiness.
 
+The first P8 slice now reads the owner-scoped last-good active-race/fill
+generation and surfaces only Bike races whose body-authoritative status is
+`filling`, whose filled gates meet the rounded-up 50% threshold and which retain
+at least one open gate. The current API contract does not expose authoritative
+distance or Pro League race type, so these observations remain manual-inspection
+opportunities: they are not matched to a specific population gap, do not rank a
+Core and do not guess a DNA race URL. Invalid current-race evidence hides only
+this section while the verified roster and lineup remain available.
+
 Exit: daily owner Discovery queue for Pro League.
 
 ## P9 — Pro League breeding acceleration

@@ -47,6 +47,13 @@ function sourceMetric(value: unknown): string {
   return "Available";
 }
 
+function fixedFees(values: Readonly<Record<string, number>>): string {
+  const entries = Object.entries(values);
+  return entries.length === 0
+    ? "None reported"
+    : entries.map(([asset, amount]) => `${amount} ${asset}`).join(", ");
+}
+
 function SummaryCard({
   label: cardLabel,
   value,
@@ -93,6 +100,7 @@ export function ProLeagueCommissioningPanel({
   const priorityGaps = roster.coverageGaps.filter(
     ({ discoveryPriority }) => discoveryPriority !== "maintain",
   );
+  const raceOpportunities = state.raceOpportunities;
 
   return (
     <section
@@ -341,6 +349,72 @@ export function ProLeagueCommissioningPanel({
           </ul>
         </div>
       ) : null}
+
+      {raceOpportunities === undefined ? null : (
+        <div>
+          <h3 className="text-lg font-semibold">
+            Open Bike race opportunities
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Read-only API snapshot scanned {raceOpportunities.scannedRaceCount}{" "}
+            active race(s). Only Bike races still marked filling, at least 50%
+            filled and with an open gate are shown. No entry or wallet action is
+            available here.
+          </p>
+          {raceOpportunities.status !== "connected" ? (
+            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+              Current race opportunities are unavailable. The last-good roster,
+              lineup and gap analysis remain visible.
+            </p>
+          ) : raceOpportunities.opportunities.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+              No API-visible Bike race currently meets the fill and open-gate
+              threshold in this snapshot.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {raceOpportunities.opportunities.map((race) => (
+                <li
+                  className="rounded-xl border border-[var(--border)] p-4"
+                  key={race.sourceRaceId}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-semibold">{race.displayName}</p>
+                    <span className="text-xs font-semibold text-[var(--accent)]">
+                      {race.filledGateCount}/{race.gateCount} gates ·{" "}
+                      {race.fillPercentage}%
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {race.availableGateCount} open · {race.entrantCount}{" "}
+                    entrant(s) · {race.entryFeeUsd} USD · {race.paymentAsset} ·
+                    observed {timestamp(race.observedAt)}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Scheduled{" "}
+                    {race.startAt === null
+                      ? "not reported"
+                      : timestamp(race.startAt)}
+                    {" · "}Source format {sourceMetric(race.formatSourceValue)}
+                    {" · "}Source class{" "}
+                    {sourceMetric(race.raceClassSourceValue)}
+                    {" · "}Fixed fees {fixedFees(race.fixedFeesByAsset)}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
+                    API distance and Pro League race-type authority are
+                    unavailable, so this race cannot yet be matched to the{" "}
+                    {raceOpportunities.priorityGapCount} priority population
+                    gap(s) or receive a Core recommendation. Verify those
+                    details in DNA before manual entry. A direct race link is
+                    also withheld until its route is authoritatively
+                    established.
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {roster.operationalWarnings.length > 0 ? (
         <div>
