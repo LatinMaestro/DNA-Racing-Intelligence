@@ -250,6 +250,13 @@ describe("Pro League draft commissioning service", () => {
         automaticRaceEntryAllowed: false,
         automaticRosterMutationAllowed: false,
       },
+      breedingObjectives: {
+        status: "persistence_not_configured",
+        decisionSupportOnly: true,
+        recommendationAllowed: false,
+        automaticPairValidationAllowed: false,
+        spliceExecutionAllowed: false,
+      },
     });
     expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
     expect(result.lineup?.maps).toHaveLength(4);
@@ -294,6 +301,30 @@ describe("Pro League draft commissioning service", () => {
       status: "invalid_generation",
       opportunities: [],
       raceEntryAllowed: false,
+    });
+    expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
+    expect(result.lineup?.totals.lineCount).toBe(168);
+  });
+
+  it("retains the historical draft when breeding evidence is invalid", async () => {
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        breedingRepository: {
+          status: "ready",
+          loadRankingEvidenceByOwner: vi.fn(async () => {
+            throw new Error("breeding generation unavailable");
+          }),
+        },
+        now: new Date("2026-09-08T00:00:00.000Z"),
+      }),
+    );
+
+    expect(result.connectionStatus).toBe("read_model_connected");
+    expect(result.breedingObjectives).toMatchObject({
+      status: "invalid_evidence",
+      objectives: [],
+      recommendationAllowed: false,
+      spliceExecutionAllowed: false,
     });
     expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
     expect(result.lineup?.totals.lineCount).toBe(168);
