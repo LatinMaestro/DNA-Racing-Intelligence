@@ -5,6 +5,7 @@ import type {
   ProLeagueMatchupCore,
   ProLeagueMatchupVault,
 } from "@/domain/pro-league-matchup";
+import { buildProLeagueDraftLineupRecommendation } from "@/domain/pro-league-lineup-recommendation";
 import { buildProLeagueDraftRosterRecommendation } from "@/domain/pro-league-roster-recommendation";
 import type { ActiveProLeagueEvidenceGeneration } from "@/lib/neon-pro-league-evidence-generation-repository";
 
@@ -314,5 +315,143 @@ describe("Pro League draft roster recommendation", () => {
         versionNumber: 1,
       }),
     ).toThrow("generation digest is invalid");
+  });
+});
+
+describe("Pro League draft lineup recommendation", () => {
+  it("maps all 168 lines through exact-cell bulk assignments", () => {
+    const roster = recommend(
+      Array.from({ length: 12 }, (_, index) => core(index)),
+    );
+    const result = buildProLeagueDraftLineupRecommendation({
+      roster,
+      lineupVersionId: "lineup-draft-v1",
+      versionNumber: 1,
+    });
+
+    expect(result.maps).toHaveLength(4);
+    expect(result.lineup.maps.flatMap(({ entries }) => entries)).toHaveLength(
+      168,
+    );
+    expect(result.totals).toMatchObject({
+      lineCount: 168,
+      first16LineCount: 64,
+    });
+    expect(result.totals.bulkAssignmentCount).toBeLessThan(168);
+    expect(
+      result.assignmentCommands.every(
+        ({ scope }) => scope === "same_type_and_distance",
+      ),
+    ).toBe(true);
+    expect(
+      new Set(
+        result.maps
+          .flatMap(({ lines }) => lines)
+          .filter(
+            ({ evidenceStatus }) =>
+              evidenceStatus === "no_exact_format_evidence",
+          )
+          .map(({ coreId }) => coreId),
+      ).size,
+    ).toBeGreaterThan(1);
+    for (const map of result.maps) {
+      const cellAssignments = new Map<string, string>();
+      for (const line of map.lines) {
+        const cell = `${line.raceType}:${line.distanceMetres}`;
+        expect(cellAssignments.get(cell) ?? line.coreId).toBe(line.coreId);
+        cellAssignments.set(cell, line.coreId);
+      }
+    }
+  });
+
+  it("maps a cell to faster intrinsic evidence despite fewer raw wins", () => {
+    const roster = recommend([
+      core(0, {
+        exactFormatEvidence: [
+          evidence("winning_range", {
+            medianMilliseconds: 50_000,
+            standardDeviationMilliseconds: 900,
+            winCount: 12,
+            topThreeCount: 12,
+          }),
+        ],
+      }),
+      core(1, {
+        exactFormatEvidence: [
+          evidence("winning_range", {
+            medianMilliseconds: 48_000,
+            standardDeviationMilliseconds: 400,
+            winCount: 1,
+            topThreeCount: 2,
+          }),
+        ],
+      }),
+      ...Array.from({ length: 10 }, (_, index) => core(index + 2)),
+    ]);
+    const result = buildProLeagueDraftLineupRecommendation({
+      roster,
+      lineupVersionId: "lineup-draft-v1",
+      versionNumber: 1,
+    });
+    const line = result.maps[0]!.lines.find(
+      (value) => value.raceType === "1v1" && value.distanceMetres === 1_000,
+    );
+
+    expect(line).toMatchObject({
+      coreId: "core-01",
+      evidenceStatus: "winning_range",
+      provisional: false,
+      evidence: { supportingOutcomes: { winCount: 1 } },
+    });
+    expect(result.selectionMethod.resultEvidenceRole).toBe(
+      "supporting_only_not_ranked",
+    );
+  });
+
+  it("keeps weak and missing cells provisional instead of inventing confidence", () => {
+    const roster = recommend(
+      Array.from({ length: 12 }, (_, index) =>
+        core(index, {
+          exactFormatEvidence: [evidence("outside_top_three_range")],
+        }),
+      ),
+    );
+    const result = buildProLeagueDraftLineupRecommendation({
+      roster,
+      lineupVersionId: "lineup-draft-v1",
+      versionNumber: 1,
+    });
+    const weak = result.maps[0]!.lines.find(
+      (value) => value.raceType === "1v1" && value.distanceMetres === 1_000,
+    );
+    const missing = result.maps[0]!.lines.find(
+      (value) =>
+        value.raceType === "6 gate madness" && value.distanceMetres === 1_000,
+    );
+
+    expect(weak).toMatchObject({
+      evidenceStatus: "population_weak_provisional",
+      provisional: true,
+    });
+    expect(missing).toMatchObject({
+      evidenceStatus: "no_exact_format_evidence",
+      provisional: true,
+      evidence: null,
+    });
+    expect(result.totals.provisionalLineCount).toBeGreaterThan(0);
+  });
+
+  it("rejects a lineup when no compliant draft roster exists", () => {
+    const roster = recommend(
+      Array.from({ length: 12 }, (_, index) => core(index, { sex: "male" })),
+    );
+
+    expect(() =>
+      buildProLeagueDraftLineupRecommendation({
+        roster,
+        lineupVersionId: "lineup-draft-v1",
+        versionNumber: 1,
+      }),
+    ).toThrow("requires a compliant draft roster");
   });
 });
