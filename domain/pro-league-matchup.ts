@@ -402,22 +402,14 @@ function validIntrinsicEvidence(
   );
 }
 
-function validateCore(core: ProLeagueMatchupCore): string {
-  const coreId = identity(core.coreId, "Pro League matchup Core ID");
-  if (coreId !== core.coreId) {
-    throw new Error("Pro League matchup Core IDs must be canonical.");
+export function assertValidProLeagueExactFormatEvidence(
+  value: unknown,
+): asserts value is ProLeagueExactFormatEvidence {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("Pro League exact-format evidence is invalid.");
   }
-  identity(core.displayName, "Pro League matchup Core name");
-  if (
-    core.rosterStatus !== "rostered" &&
-    core.rosterStatus !== "not_rostered"
-  ) {
-    throw new Error("Pro League matchup roster status is invalid.");
-  }
-  if (!Array.isArray(core.exactFormatEvidence)) {
-    throw new Error("Pro League exact-format evidence must be an array.");
-  }
-  for (const profile of core.exactFormatEvidence) {
+  const profile = value as ProLeagueExactFormatEvidence;
+  try {
     identity(profile.raceType, "Pro League race type");
     const observedAt = new Date(profile.dataCurrentThrough);
     if (
@@ -439,8 +431,30 @@ function validateCore(core: ProLeagueMatchupCore): string {
       Number.isNaN(observedAt.getTime()) ||
       observedAt.toISOString() !== profile.dataCurrentThrough
     ) {
-      throw new Error("Pro League exact-format evidence is invalid.");
+      throw new Error("invalid");
     }
+  } catch {
+    throw new Error("Pro League exact-format evidence is invalid.");
+  }
+}
+
+function validateCore(core: ProLeagueMatchupCore): string {
+  const coreId = identity(core.coreId, "Pro League matchup Core ID");
+  if (coreId !== core.coreId) {
+    throw new Error("Pro League matchup Core IDs must be canonical.");
+  }
+  identity(core.displayName, "Pro League matchup Core name");
+  if (
+    core.rosterStatus !== "rostered" &&
+    core.rosterStatus !== "not_rostered"
+  ) {
+    throw new Error("Pro League matchup roster status is invalid.");
+  }
+  if (!Array.isArray(core.exactFormatEvidence)) {
+    throw new Error("Pro League exact-format evidence must be an array.");
+  }
+  for (const profile of core.exactFormatEvidence) {
+    assertValidProLeagueExactFormatEvidence(profile);
   }
   return coreId;
 }

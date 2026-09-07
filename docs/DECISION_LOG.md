@@ -1670,3 +1670,20 @@ After the private Pro League milestone, continue in this order:
 - This boundary persists compact derived evidence only. It does not publish a
   website generation, repeat API acquisition, expose raw payloads, or perform a
   roster or game action.
+
+## 2026-09-07 — private Pro League reads pin one active evidence generation
+
+- Build the private owner candidate pool only from the active verified profile
+  generation and the current owner-scoped My Vault catalogue. Do not combine
+  partial staging rows, inactive generations or non-owned population profiles.
+- Page through the population profile family within the database bound while
+  retaining only owned Core evidence in application memory. Require exact
+  ordinal and natural-key coverage, the declared profile count and the same
+  active generation identity before and after the read.
+- Treat an absent active generation as unavailable and fail closed if the
+  pointer changes, profile coverage ends early, extra rows exist, evidence
+  exceeds its cutoff, or a rostered Core is outside My Vault.
+- Reuse the exact-format intrinsic-evidence validator used by matchup analysis,
+  keeping time, valid speed, consistency, sample, freshness and same-type plus
+  distance authority intact. This slice performs no ranking, roster write,
+  deployment, provider call or game action.
