@@ -1,7 +1,7 @@
 # Phase 7 Pro League exact-format benchmark authority
 
-Status: bounded reference producer implemented; spillable publication and
-private read persistence remain the next delivery slice.
+Status: bounded reference and complete-archive spillable producers implemented;
+private atomic persistence and read wiring remain the next delivery slice.
 
 ## Purpose
 
@@ -57,11 +57,32 @@ The producer does not generalise them into a nearby cell.
   remain `unavailable` until a point-in-time-safe exact-format join supplies
   them. Missing field quality is never favourable.
 
+## Complete-archive execution
+
+`race-archive-spillable-pro-league-exact-format.ts` applies the same contract to
+an asynchronous archive without retaining the full input or a full cell in
+worker memory. It:
+
+- externally sorts and rejects duplicate natural race-entry identities before
+  accepting any published cell;
+- externally groups accepted evidence by published type and exact distance;
+- calculates exact replay-checked winner and Top-3 distributions from bounded
+  scratch runs;
+- externally regroups each cell by Core for exact per-Core statistics;
+- emits benchmark then profile rows as a single-use stream; and
+- owns and removes every scratch run after success, failure, early iterator
+  return or explicit pre-read cleanup.
+
+The in-memory record ceiling controls sort chunks rather than the archive size.
+Independent observation, run-object, benchmark and profile bounds remain
+fail-closed. Reference-equivalence tests cover multiple merge passes,
+analytical samples, unavailable cells, audit counts, duplicates, future data
+and cleanup.
+
 ## Remaining boundary
 
-The reference producer is deliberately bounded and validates the contract with
-synthetic observations. The next slice must implement an external-sort/spillable
-producer for the complete archive, add compact owner-isolated Preview
-persistence and serve the exact-format read model. It must publish only as part
-of a complete valid generation and keep last-good data when reconstruction or
-publication fails.
+The next slice must add compact owner-isolated Preview persistence and serve the
+exact-format read model. It must stage the entire benchmark/profile stream,
+validate exact counts and a deterministic generation identity, activate it
+atomically only after the complete generation succeeds, and keep serving the
+prior last-good generation when reconstruction or publication fails.

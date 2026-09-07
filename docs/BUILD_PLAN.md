@@ -453,8 +453,10 @@ to a published Pro League cell. It emits population/Core time, valid speed,
 dispersion, sample and freshness evidence while keeping outcome counts separate
 and exact-format opponent/star evidence unavailable until a safe join exists.
 Unsupported and unpublished combinations fail closed. See
-`PHASE_7_PRO_LEAGUE_EXACT_FORMAT_BENCHMARKS.md`. The next slice is its spillable
-complete-archive producer and compact owner-isolated publication/read model.
+`PHASE_7_PRO_LEAGUE_EXACT_FORMAT_BENCHMARKS.md`. The complete archive now uses
+an external-sort producer with exact reference equivalence and bounded scratch
+cleanup. The next slice is compact owner-isolated atomic publication and private
+read wiring.
 
 Add separately presented current API dimensions where available:
 

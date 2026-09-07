@@ -175,7 +175,7 @@ function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function rounded(value: number): number {
+export function roundedProLeagueExactFormatMetric(value: number): number {
   return Math.round(value * 1_000) / 1_000;
 }
 
@@ -186,11 +186,17 @@ function distribution(values: readonly number[]) {
   const p25 = percentile(sorted, 0.25);
   const p75 = percentile(sorted, 0.75);
   return Object.freeze({
-    p25Milliseconds: rounded(p25),
-    medianMilliseconds: rounded(percentile(sorted, 0.5)),
-    p75Milliseconds: rounded(p75),
-    standardDeviationMilliseconds: rounded(Math.sqrt(variance)),
-    interquartileRangeMilliseconds: rounded(p75 - p25),
+    p25Milliseconds: roundedProLeagueExactFormatMetric(p25),
+    medianMilliseconds: roundedProLeagueExactFormatMetric(
+      percentile(sorted, 0.5),
+    ),
+    p75Milliseconds: roundedProLeagueExactFormatMetric(p75),
+    standardDeviationMilliseconds: roundedProLeagueExactFormatMetric(
+      Math.sqrt(variance),
+    ),
+    interquartileRangeMilliseconds: roundedProLeagueExactFormatMetric(
+      p75 - p25,
+    ),
   });
 }
 
@@ -206,16 +212,20 @@ function profileDistribution(values: readonly number[]) {
   const p75 = percentile(sorted, 0.75);
   return Object.freeze({
     bestMilliseconds: sorted[0]!,
-    medianMilliseconds: rounded(percentile(sorted, 0.5)),
-    trimmedMeanMilliseconds: rounded(mean(trimmed)),
-    standardDeviationMilliseconds: rounded(
+    medianMilliseconds: roundedProLeagueExactFormatMetric(
+      percentile(sorted, 0.5),
+    ),
+    trimmedMeanMilliseconds: roundedProLeagueExactFormatMetric(mean(trimmed)),
+    standardDeviationMilliseconds: roundedProLeagueExactFormatMetric(
       Math.sqrt(mean(sorted.map((value) => (value - average) ** 2))),
     ),
-    interquartileRangeMilliseconds: rounded(p75 - p25),
+    interquartileRangeMilliseconds: roundedProLeagueExactFormatMetric(
+      p75 - p25,
+    ),
   });
 }
 
-function benchmarkAssessment(input: {
+export function proLeagueExactFormatBenchmarkAssessment(input: {
   elapsedTime: RaceArchiveProLeagueExactFormatProfile["elapsedTime"];
   benchmark: ProLeagueExactFormatPopulationBenchmark;
 }): ProLeagueMatchupAssessment {
@@ -238,7 +248,7 @@ function benchmarkAssessment(input: {
   return "outside_top_three_range";
 }
 
-function unavailableSupportingEvidence(input: {
+export function unavailableProLeagueExactFormatSupportingEvidence(input: {
   winCount: number;
   topThreeCount: number;
 }): RaceArchiveProLeagueExactFormatProfile["supportingEvidence"] {
@@ -501,30 +511,32 @@ export function proLeagueExactFormatEvidenceFromRaceArchive(input: {
             new Date(refreshedAt),
           ),
           dataCurrentThrough,
-          benchmarkAssessment: benchmarkAssessment({
+          benchmarkAssessment: proLeagueExactFormatBenchmarkAssessment({
             elapsedTime,
             benchmark: populationBenchmark,
           }),
           elapsedTime,
           speed: Object.freeze({
-            bestMetresPerSecond: rounded(
+            bestMetresPerSecond: roundedProLeagueExactFormatMetric(
               first.cell.distanceMetres /
                 (elapsedTime.bestMilliseconds / 1_000),
             ),
-            medianMetresPerSecond: rounded(
+            medianMetresPerSecond: roundedProLeagueExactFormatMetric(
               first.cell.distanceMetres /
                 (elapsedTime.medianMilliseconds / 1_000),
             ),
           }),
           populationBenchmark,
-          supportingEvidence: unavailableSupportingEvidence({
-            winCount: values.filter(
-              ({ observation }) => observation.finishPosition === 1,
-            ).length,
-            topThreeCount: values.filter(
-              ({ observation }) => observation.finishPosition <= 3,
-            ).length,
-          }),
+          supportingEvidence: unavailableProLeagueExactFormatSupportingEvidence(
+            {
+              winCount: values.filter(
+                ({ observation }) => observation.finishPosition === 1,
+              ).length,
+              topThreeCount: values.filter(
+                ({ observation }) => observation.finishPosition <= 3,
+              ).length,
+            },
+          ),
         }),
       ];
     },
