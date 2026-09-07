@@ -1,0 +1,48 @@
+# Phase 9 Pro League breeding ranking persistence
+
+## Purpose
+
+Migration `0085` and the server-only Neon adapter preserve the held Pro League
+breeding research inputs as a compact, owner-isolated last-good generation.
+This removes the need to recompute or pass private pair evidence through a page
+request while keeping the website read path incapable of publication or game
+action.
+
+## Publication contract
+
+- A generation is limited to 200 ranking inputs, 2,000 candidate pairs, 4 MiB
+  total canonical JSON and 512 KiB per ranking.
+- The publisher supplies deterministic canonical JSON and SHA-256 row
+  envelopes. PostgreSQL parses each payload, verifies its ranking identity and
+  candidate array, recomputes every row digest, exact count, byte count and the
+  generation digest, then activates the generation in one transaction.
+- Exact retries are idempotent. Conflicting retries, invalid digests, partial or
+  over-bound generations, and evidence-cutoff regressions fail without moving
+  the active pointer.
+- Forced row-level security partitions all three tables by owner. The runtime
+  role has no direct table privileges and can use only the owner-scoped publish
+  and read functions.
+
+## Read contract
+
+The server adapter uses a repeatable-read, read-only transaction pinned to the
+configured owner. It verifies RLS and runtime-role safety, row order, hashes,
+counts, canonical bytes and the generation digest before returning evidence to
+the existing breeding workspace. Missing active state returns an explicit empty
+source; invalid state fails the optional section without hiding the last-good
+Pro League roster and 168-race map.
+
+The environment factory exposes only `loadRankingEvidenceByOwner` to website
+callers. It deliberately omits publication.
+
+## Authority and commissioning status
+
+This store contains research inputs, not approved pair recommendations. It does
+not establish race-type pair evidence, perform official pair validation, pass
+Gate E, connect a wallet or execute a splice. Fresh `pair_validate`, `pair_info`
+and applicable Arena evidence remain mandatory at owner decision time.
+
+The migration is exercised synthetically through apply, smoke, reverse and
+removal checks in CI. It is not applied to hosted Neon by merging the code and
+the adapter remains disconnected from the private route until a deliberate
+environment migration is approved and completed.
