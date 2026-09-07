@@ -1,0 +1,57 @@
+name: TEMPORARY Trainer 67 ranking pull - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - .github/workflows/temporary-trainer67-ranking-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  pull:
+    name: TEMPORARY ONLY - Trainer 67 live telemetry - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard temporary branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull Trainer-eligible Core telemetry read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          const BASE='https://api.dnaracing.run/fbike/pub/v1';
+          const KEY=process.env.DNA_OPEN_LAB_API_KEY_1;
+          const cores=[[20523,'Desert Echo'],[20524,'Starline'],[20582,'Green Charger'],[20775,'Bad Habit'],[20768,'Cold Shoulder'],[20769,'Blue Vortex'],[20765,'Divine Rush'],[20778,'Green Halo'],[20773,'Kinetic Spark'],[20862,'Cold Rush'],[21505,'Soft Voltage'],[21516,'Solar Ember'],[21722,'Bubble Trouble'],[21752,'Blazing Karma'],[21749,'Royal Cascade'],[22002,'Stormveil'],[22131,'Crown of Thunder'],[22148,'Mistfall'],[22145,'First Light'],[22100,'Second Wind'],[22170,'Sandstone'],[22168,'Phoenix Crown'],[22175,'Ashfall'],[22128,'Magma Pulse'],[22129,'Cinder King'],[22330,'Dark Inheritance'],[22347,'Darling Cash'],[22333,'Radiant Blitz'],[22338,'Divine Riot'],[22345,'Nyxara'],[22428,'Vespera'],[23267,'Twilight Havoc'],[23230,'Burning Obelisk'],[23263,'Tidal Strike'],[23239,'Thunder Matrix'],[23276,'Cryo Havoc'],[23268,'Wicked Flare'],[23277,'Brazen Mantis'],[23283,'Titan Mage'],[23271,'Flux Dagger'],[23269,'Livid Jaguar'],[23273,'Edge Panther'],[23294,'Brutal Bullet'],[23388,'Violet Jaguar'],[23387,'Viral Gauntlet'],[23399,'Hex Crusher'],[23394,'Core Oracle'],[23391,'Fierce Shield'],[23429,'Lynx Mystic'],[23466,'Vapor Blade'],[23442,'Vivid Rebel'],[23477,'Covert Meteor'],[23484,'Phantom Panther'],[23457,'Silent Bruiser'],[23486,'Bold Nexus'],[23462,'Hollow Rebel'],[23467,'Forge Serpent'],[23470,'Steel Blaze'],[9166,'Lethal Claw'],[25555,'Cyber Overdrive'],[25557,'Frozen Blade'],[25574,'Frost Rocket'],[25558,'Iron Dynamo'],[25562,'Nervy Runner'],[25564,'Creeper'],[9216,'Peak Crown'],[25565,'Final Flash']];
+          const hids=cores.map(x=>x[0]);
+          const chunks=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function req(path,method='GET',body){
+            const r=await fetch(BASE+path,{method,headers:{Authorization:`Bearer ${KEY}`,Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
+            const j=await r.json(); if(!r.ok||j.status!=='success')throw new Error(`${path} ${r.status} ${JSON.stringify(j).slice(0,300)}`); return j.result;
+          }
+          const telemetry=[]; const stats=[];
+          for(const batch of chunks(hids,20)){
+            telemetry.push(...await req('/cores/telemetry_bulk','POST',{hids:batch})); await sleep(220);
+            stats.push(...await req('/cores/racing_stats_bulk','POST',{hids:batch})); await sleep(220);
+          }
+          const benchmarks={};
+          for(const cb of [10,12,14,16,18,20,22]){
+            const x=await req(`/cores/${hids[0]}/telemetry_benchmark?cb=${cb}`); benchmarks[cb]=x.benchmark; await sleep(220);
+          }
+          const out={generatedAt:new Date().toISOString(),temporary:true,doNotMerge:true,cores,telemetry,stats,benchmarks};
+          await writeFile('artifacts/trainer67-live.json',JSON.stringify(out,null,2));
+          console.log('TRAINER67_LIVE',JSON.stringify({generatedAt:out.generatedAt,cores:cores.length,telemetry:telemetry.length,stats:stats.length}));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-trainer67-live-${{ github.run_id }}
+          path: artifacts/trainer67-live.json
+          if-no-files-found: error
+          retention-days: 1
