@@ -1784,3 +1784,20 @@ After the private Pro League milestone, continue in this order:
 - Do not guess a DNA race-entry URL. Present the timestamped race name, fill,
   fees and scheduling fields for owner manual inspection only. The read model
   cannot enter a race, connect a wallet or perform any game transaction.
+
+## 2026-09-08 — Pro League Discovery queue protects evidence and substitution budgets
+
+- Derive a bounded Bike-only experiment queue from high/medium population gaps
+  and the active verified exact-format generation. Prioritise non-rostered
+  challengers, then provisional and marginal roster members; nucleus members do
+  not consume routine Discovery capacity.
+- Retain the shared ten-race exact-distance minimum. Recommend at most three
+  additional races per review cycle, or one confirmation for a weak sample with
+  fewer than four starts. At four starts, weak intrinsic time without known
+  strong-field support is stopped; raw wins and Top-3s cannot rescue the path.
+- Same-race-type adjacent-distance evidence may seed a hypothesis only. It does
+  not increment the exact-distance sample and stays visibly separate. Missing
+  lineage or opposition quality remains unknown and is never favourable.
+- Substitution-ledger usage and the initial-roster counting policy are not yet
+  connected to this page. Reserve all ten annual substitutions. The queue is
+  advisory and cannot enter a race, mutate a roster or perform a game action.

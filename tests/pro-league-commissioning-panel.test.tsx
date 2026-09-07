@@ -160,6 +160,52 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      discoveryQueue: {
+        authority: "active_verified_exact_format_generation",
+        evidenceCutoffAt: "2026-09-01T00:00:00.000Z",
+        exactDistanceMinimumRaceCount: 10,
+        diagnostics: {
+          priorityGapCount: 1,
+          eligibleExperimentCount: 1,
+          truncatedExperimentCount: 0,
+          stoppedWeakPathCount: 1,
+          conflictingEvidenceCount: 0,
+          unresolvedCandidateCellCount: 0,
+        },
+        substitutionBudget: {
+          maximumPerYear: 10,
+          usedCount: null,
+          remainingCount: null,
+          initialRosterCountingPolicy: "unresolved",
+          guidance: "Preserve the annual budget.",
+        },
+        automaticRaceEntryAllowed: false,
+        automaticRosterMutationAllowed: false,
+        experiments: [
+          {
+            coreId: privateCoreId,
+            displayName: "Silver Comet",
+            raceType: "1v1",
+            distanceMetres: 1000,
+            mapIds: ["map-1"],
+            raceLineCount: 4,
+            gapPriority: "high",
+            gapStatus: "unproven",
+            rosterImpact: "prove_provisional_member_before_lock",
+            hypothesisSource: "exact_distance_sample",
+            sourceDistanceMetres: 1000,
+            benchmarkSignal: "top_three_range",
+            directRaceCount: 7,
+            observationsToMinimum: 3,
+            recommendedNextRaceCount: 3,
+            decision: "complete_exact_minimum",
+            evidenceCurrentThrough: "2026-09-01T00:00:00.000Z",
+            warnings: ["EXPERIMENTAL_SMALL_SAMPLE"],
+            automaticRaceEntryAllowed: false,
+            automaticRosterMutationAllowed: false,
+          },
+        ],
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -173,6 +219,8 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Current API dimensions");
     expect(markup).toContain("Adjusted odds");
     expect(markup).toContain("Open Bike race opportunities");
+    expect(markup).toContain("Pro League Discovery experiments");
+    expect(markup).toContain("7/10 exact-distance races");
     expect(markup).toContain("Half-full Bike Race");
     expect(markup).toContain("cannot yet be matched");
     expect(markup).toContain("82");

@@ -244,6 +244,12 @@ describe("Pro League draft commissioning service", () => {
         generationId: generation.generationId,
         totals: { lineCount: 168, first16LineCount: 64 },
       },
+      discoveryQueue: {
+        authority: "active_verified_exact_format_generation",
+        exactDistanceMinimumRaceCount: 10,
+        automaticRaceEntryAllowed: false,
+        automaticRosterMutationAllowed: false,
+      },
     });
     expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
     expect(result.lineup?.maps).toHaveLength(4);
