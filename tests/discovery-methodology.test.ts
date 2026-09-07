@@ -227,9 +227,11 @@ describe("cross-mode discovery methodology", () => {
 
       expect(plan.mode).toBe(mode);
       expect(plan.discoveryClass).toBe("variance_format");
-      expect(plan.recommendedTestDistancesMetres.every((distance) =>
-        configuration.supportedDistancesMetres.includes(distance),
-      )).toBe(true);
+      expect(
+        plan.recommendedTestDistancesMetres.every((distance) =>
+          configuration.supportedDistancesMetres.includes(distance),
+        ),
+      ).toBe(true);
     }
   });
 

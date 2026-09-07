@@ -27,11 +27,7 @@ export type DiscoveryRunnerArchetype =
   (typeof discoveryRunnerArchetypes)[number];
 
 export type DiscoveryPaceAssessment =
-  | "elite"
-  | "strong"
-  | "average"
-  | "weak"
-  | "unavailable";
+  "elite" | "strong" | "average" | "weak" | "unavailable";
 
 export type DiscoveryRepeatabilityAssessment =
   | "tight"
@@ -42,11 +38,7 @@ export type DiscoveryRepeatabilityAssessment =
   | "unavailable";
 
 export type DiscoverySupportAssessment =
-  | "strong_support"
-  | "supporting"
-  | "neutral"
-  | "caution"
-  | "unavailable";
+  "strong_support" | "supporting" | "neutral" | "caution" | "unavailable";
 
 export type DiscoveryDistanceMethodologyEvidence = Readonly<{
   mode: ProbeMode;
@@ -222,7 +214,9 @@ function bandForDistance(
   for (const band of ["short", "middle", "long"] as const) {
     if (configuration.bands[band].includes(distanceMetres)) return band;
   }
-  throw new Error("Discovery methodology distance is not in the mode configuration.");
+  throw new Error(
+    "Discovery methodology distance is not in the mode configuration.",
+  );
 }
 
 function opportunityScore(
@@ -238,11 +232,13 @@ function opportunityScore(
   );
 }
 
-export function selectDiscoveryTwoBandTestPlan(input: Readonly<{
-  configuration: DiscoveryModeDistanceConfiguration;
-  anchorDistanceMetres: number;
-  distanceEvidence: readonly DiscoveryDistanceMethodologyEvidence[];
-}>): Readonly<{
+export function selectDiscoveryTwoBandTestPlan(
+  input: Readonly<{
+    configuration: DiscoveryModeDistanceConfiguration;
+    anchorDistanceMetres: number;
+    distanceEvidence: readonly DiscoveryDistanceMethodologyEvidence[];
+  }>,
+): Readonly<{
   bands: readonly [DiscoveryDistanceBand, DiscoveryDistanceBand];
   distancesMetres: readonly number[];
 }> {
@@ -252,7 +248,10 @@ export function selectDiscoveryTwoBandTestPlan(input: Readonly<{
   );
   const anchorBand = bandForDistance(input.configuration, anchorDistanceMetres);
   const evidenceByDistance = new Map(
-    input.distanceEvidence.map((evidence) => [evidence.distanceMetres, evidence]),
+    input.distanceEvidence.map((evidence) => [
+      evidence.distanceMetres,
+      evidence,
+    ]),
   );
 
   let bands: readonly [DiscoveryDistanceBand, DiscoveryDistanceBand];
@@ -274,12 +273,13 @@ export function selectDiscoveryTwoBandTestPlan(input: Readonly<{
     bands = longScore > shortScore ? ["middle", "long"] : ["short", "middle"];
   }
 
-  const distancesMetres = [...new Set(bands.flatMap((band) => input.configuration.bands[band]))]
-    .sort(
-      (left, right) =>
-        Math.abs(left - anchorDistanceMetres) - Math.abs(right - anchorDistanceMetres) ||
-        left - right,
-    );
+  const distancesMetres = [
+    ...new Set(bands.flatMap((band) => input.configuration.bands[band])),
+  ].sort(
+    (left, right) =>
+      Math.abs(left - anchorDistanceMetres) -
+        Math.abs(right - anchorDistanceMetres) || left - right,
+  );
 
   return Object.freeze({
     bands: Object.freeze([...bands]) as unknown as readonly [
@@ -297,19 +297,27 @@ function validateEvidence(
     throw new Error("Discovery methodology Core mode is invalid.");
   }
   if (input.configuration.mode !== input.mode) {
-    throw new Error("Discovery methodology configuration mode does not match the Core mode.");
+    throw new Error(
+      "Discovery methodology configuration mode does not match the Core mode.",
+    );
   }
   const supported = new Set(input.configuration.supportedDistancesMetres);
   const seen = new Set<number>();
   for (const evidence of input.distanceEvidence) {
     if (evidence.mode !== input.mode) {
-      throw new Error("Discovery methodology evidence mode does not match the Core mode.");
+      throw new Error(
+        "Discovery methodology evidence mode does not match the Core mode.",
+      );
     }
     if (!supported.has(evidence.distanceMetres)) {
-      throw new Error("Discovery methodology evidence uses an unsupported exact distance.");
+      throw new Error(
+        "Discovery methodology evidence uses an unsupported exact distance.",
+      );
     }
     if (seen.has(evidence.distanceMetres)) {
-      throw new Error("Discovery methodology evidence distances must be unique.");
+      throw new Error(
+        "Discovery methodology evidence distances must be unique.",
+      );
     }
     seen.add(evidence.distanceMetres);
     count(
@@ -324,12 +332,11 @@ function strongestAnchor(
   evidence: readonly DiscoveryDistanceMethodologyEvidence[],
 ): number | null {
   if (evidence.length === 0) return null;
-  return [...evidence]
-    .sort(
-      (left, right) =>
-        opportunityScore(right) - opportunityScore(left) ||
-        left.distanceMetres - right.distanceMetres,
-    )[0]!.distanceMetres;
+  return [...evidence].sort(
+    (left, right) =>
+      opportunityScore(right) - opportunityScore(left) ||
+      left.distanceMetres - right.distanceMetres,
+  )[0]!.distanceMetres;
 }
 
 export function buildDiscoveryCoreMethodologyPlan(
@@ -345,17 +352,25 @@ export function buildDiscoveryCoreMethodologyPlan(
 
   if (
     input.mainDistanceMetres !== null &&
-    !input.configuration.supportedDistancesMetres.includes(input.mainDistanceMetres)
+    !input.configuration.supportedDistancesMetres.includes(
+      input.mainDistanceMetres,
+    )
   ) {
     throw new Error("Discovery methodology main distance is unsupported.");
   }
 
-  const archetypeEntries = evidence.map((value) => [
-    value.distanceMetres,
-    classifyDiscoveryRunnerArchetype(value, minimumAnalyticalSample),
-  ] as const);
+  const archetypeEntries = evidence.map(
+    (value) =>
+      [
+        value.distanceMetres,
+        classifyDiscoveryRunnerArchetype(value, minimumAnalyticalSample),
+      ] as const,
+  );
   const archetypes = Object.freeze(
-    Object.fromEntries(archetypeEntries) as Record<number, DiscoveryRunnerArchetype>,
+    Object.fromEntries(archetypeEntries) as Record<
+      number,
+      DiscoveryRunnerArchetype
+    >,
   );
   const reasons = new Set<DiscoveryCoreMethodologyPlan["reasons"][number]>();
 
@@ -425,7 +440,11 @@ export function buildDiscoveryCoreMethodologyPlan(
 
   const archetypeValues = Object.values(archetypes);
   const hasVarianceOrFormat = archetypeValues.some((value) =>
-    ["volatile_elite", "volatile_ceiling", "format_specialist_candidate"].includes(value),
+    [
+      "volatile_elite",
+      "volatile_ceiling",
+      "format_specialist_candidate",
+    ].includes(value),
   );
   const hasPromotionSignal = archetypeValues.some((value) =>
     ["repeatable_elite", "high_upside_low_sample"].includes(value),

@@ -133,15 +133,15 @@ Mode-specific distance bands remain configuration, not universal constants.
 
 The shared domain contract exposes the following runner archetypes.
 
-| Archetype | Meaning | Discovery response |
-| --- | --- | --- |
-| `repeatable_elite` | Strong/elite central pace with acceptable repeatability | Promote evidence; grow sample only as needed |
-| `volatile_elite` | Strong/elite central pace but wide range | Keep testing repeatability and format fit |
-| `volatile_ceiling` | Ordinary/weak central pace but strong/elite ceiling | Test whether the ceiling repeats; do not bench early |
-| `format_specialist_candidate` | Ordinary central pace but strong star/exact-format support | Target the successful format/gate/distance |
-| `high_upside_low_sample` | Strong/elite central or ceiling signal below minimum sample | Grow the exact-distance sample before settling |
-| `ordinary` | Adequate sample with no elite central, ceiling or format signal | Enter rule-out workflow rather than immediate bench |
-| `unresolved` | Evidence missing or too thin | Gather only the minimum evidence needed to classify |
+| Archetype                     | Meaning                                                         | Discovery response                                   |
+| ----------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| `repeatable_elite`            | Strong/elite central pace with acceptable repeatability         | Promote evidence; grow sample only as needed         |
+| `volatile_elite`              | Strong/elite central pace but wide range                        | Keep testing repeatability and format fit            |
+| `volatile_ceiling`            | Ordinary/weak central pace but strong/elite ceiling             | Test whether the ceiling repeats; do not bench early |
+| `format_specialist_candidate` | Ordinary central pace but strong star/exact-format support      | Target the successful format/gate/distance           |
+| `high_upside_low_sample`      | Strong/elite central or ceiling signal below minimum sample     | Grow the exact-distance sample before settling       |
+| `ordinary`                    | Adequate sample with no elite central, ceiling or format signal | Enter rule-out workflow rather than immediate bench  |
+| `unresolved`                  | Evidence missing or too thin                                    | Gather only the minimum evidence needed to classify  |
 
 These archetypes describe evidence. They are not permanent labels and can change
 as the sample grows.
