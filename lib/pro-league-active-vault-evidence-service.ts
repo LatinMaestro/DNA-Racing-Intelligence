@@ -26,6 +26,11 @@ export type ActiveProLeagueVaultEvidence = Readonly<{
   ownedCoreWithoutEvidenceCount: number;
 }>;
 
+export type ProLeagueEvidenceReadRepository = Pick<
+  NeonProLeagueEvidenceGenerationRepository,
+  "readActiveGeneration" | "listActiveRows"
+>;
+
 function identity(value: unknown, label: string): string {
   if (typeof value !== "string") {
     throw new Error(`Pro League ${label} is invalid.`);
@@ -86,7 +91,7 @@ export async function loadActiveProLeagueVaultEvidence(
     vaultDisplayName: string;
     rosteredCoreIds: readonly string[];
     vaultRepository: OwnerVaultCatalogueRepository;
-    evidenceRepository: NeonProLeagueEvidenceGenerationRepository;
+    evidenceRepository: ProLeagueEvidenceReadRepository;
     pageSize?: number;
   }>,
 ): Promise<ActiveProLeagueVaultEvidence | null> {

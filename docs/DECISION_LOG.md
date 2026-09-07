@@ -1725,3 +1725,17 @@ After the private Pro League milestone, continue in this order:
   disguises missing evidence or creates a confident recommendation.
 - Fully map Miracles for contingency coverage while keeping map pick/denial a
   match-specific decision. The draft does not persist, submit or lock a lineup.
+
+## 2026-09-08 — private Pro League commissioning reads one atomic generation
+
+- Compose the active owner evidence, quality-first roster draft and complete
+  four-map lineup into one immutable private read model. Every output carries
+  the same evidence-generation identity and point-in-time cutoff.
+- Give the commissioning boundary only active-generation read operations. It
+  cannot stage, publish, persist or submit evidence, rosters or lineups.
+- Keep identity, persistence, absent-generation and no-valid-roster states
+  explicit. An unavailable draft may expose bounded diagnostics, but it cannot
+  fabricate a lineup.
+- Preserve the previous active generation by failing closed on short, extra,
+  inconsistent or pointer-drifting evidence. Partial and staging generations
+  remain invisible to website reads.
