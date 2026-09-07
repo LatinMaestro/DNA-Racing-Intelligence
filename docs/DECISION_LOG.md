@@ -1801,3 +1801,15 @@ After the private Pro League milestone, continue in this order:
 - Substitution-ledger usage and the initial-roster counting policy are not yet
   connected to this page. Reserve all ten annual substitutions. The queue is
   advisory and cannot enter a race, mutate a roster or perform a game action.
+
+## 2026-09-08 — Pro League breeding objectives remain held research
+
+- Translate verified high- and medium-priority Pro League coverage gaps into
+  bounded Bike exact-distance breeding research objectives.
+- Preserve separate Vault-gap and elite-upside views; Vault fit cannot suppress
+  an exceptional hypothesis.
+- Do not infer race-type pair quality from distance-only evidence. Car, Horse,
+  adjacent-distance, stale and unknown evidence cannot fill a Pro League gap.
+- Require fresh official `pair_validate`, `pair_info` and applicable Arena state
+  at owner decision time. Gate E remains held, and the website cannot recommend
+  or execute a splice.
