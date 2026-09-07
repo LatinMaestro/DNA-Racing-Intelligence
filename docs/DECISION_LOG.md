@@ -1512,3 +1512,28 @@ After the private Pro League milestone, continue in this order:
   ordinals 17,454 through 17,456 before exact six-family completion.
 - After terminal reconciliation, return recurring website operation to the
   conservative 30 aggregate requests/minute and zero-ongoing-cost policy.
+
+## 2026-09-07 — Owner approves the complete P5 terminal residual packet
+
+- Accept exact-main read-only run `34092069860` at
+  `3109282539dcb5f30c3135a3055a230ee80e1042` as terminal residual authority.
+  It reconciled the 17,456-receipt checkpoint and measured five remaining Core
+  requests plus three Splice Arena pages: 375 records, 56,898 response bytes,
+  zero 429 responses and zero persistent writes at 30 aggregate requests/minute.
+- Bind checkpoint-measurement evidence SHA-256
+  `6b37abfef198cf8bb4dca395b238bf07b0f0961da5b3e2a1f1215a66ff431e9b`
+  and residual evidence SHA-256
+  `95485e7720f1dc04f8fdbf10f1e11c85a1999d448dc61c802896435dcfd2a173`
+  alongside the original and first-amendment authority.
+- Set exact terminal bounds of 1,137,586 source records, 17,464 logical
+  receipts, 34,928 API attempts, 1,151,353,687 retained R2 bytes, 34,980 Class
+  A operations, 104,784 Class B operations, 507,158,528 Neon bytes and a
+  $0.212404 projected one-time cost.
+- Record the owner's explicit terminal approval and $2.000000 absolute
+  fail-closed ceiling. The higher ceiling is contingency headroom, not a
+  spending target. Every existing provider, capacity, recovery, cleanup,
+  one-omission, non-publication and non-Production condition remains binding.
+- Permit only `core_current_state` ordinals 17,457–17,461 followed by
+  `splice_arena` ordinals 17,462–17,464. No additional identity omission is
+  authorized. Completion requires the exact six-family counts and immutable
+  receipt reconciliation before P6 may begin.

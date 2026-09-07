@@ -355,13 +355,17 @@ remains `running`, unpublished and internally consistent at 17,456 receipts,
 the 17,453 checkpoint was not terminal for the Core family, so the
 Splice-only amendment was insufficient.
 
-The next dependency is an exact-main, read-only 30-rpm residual measurement.
-It must reconstruct the Core request plan from the immutable `vault.cores_full`
-receipt, verify the three late Core receipt identities, measure only the
-remaining Core endpoints plus all Splice pages, prove Neon/R2/last-good state
-unchanged, and emit sanitized aggregate bounds. Persistence remains closed
-until that evidence is reviewed and any required further owner amendment is
-explicitly approved.
+Exact-main read-only run `34092069860` completed the terminal residual
+measurement at 30 aggregate requests/minute: five remaining Core requests and
+three Splice pages, 375 records, 56,898 response bytes, zero 429s and zero
+persistent writes. The owner approved the resulting 17,464-receipt packet on
+7 September 2026 and raised the absolute fail-closed commissioning ceiling to
+$2.000000; the measured projection remains $0.212404. Migration `0080` binds
+both terminal evidence hashes, the approval hash, exact family/ordinal tail and
+the cost ceiling while preserving every earlier authority hash. The next
+dependency is exact-head review, private Preview migration verification and
+bounded terminal persistence. P6 begins only after complete six-family
+reconciliation; no generation is published by P5.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 

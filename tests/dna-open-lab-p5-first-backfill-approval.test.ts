@@ -62,21 +62,23 @@ describe("DNA Open Lab P5 first historical backfill approval", () => {
       cleanupConditions: DNA_OPEN_LAB_P5_FIRST_BACKFILL_CLEANUP_CONDITIONS,
     });
     expect(DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_OWNER_AUTHORIZATION).toEqual({
-      maximumAuthorizedMicroUsd: 500_000,
+      maximumAuthorizedMicroUsd: 2_000_000,
       approvalRef: "owner-written-approval:2026-09-02",
       amendmentApprovalRef: "owner-written-amended-approval:2026-09-03",
+      terminalResidualApprovalRef:
+        "owner-written-terminal-residual-approval:2026-09-07",
     });
     expect(
       DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET.measuredUpperBound,
     ).toMatchObject({
-      exactMainCommit: "2e20a142af4ecd4bc48f87fee279293ce1e67ea9",
-      sourceRecordUpperBound: 1_137_211,
-      apiRequestUpperBound: 34_912,
-      retainedR2BytesUpperBound: 1_151_165_717,
-      classAOperationsUpperBound: 34_960,
-      classBOperationsUpperBound: 104_736,
-      neonPeakBytesUpperBound: 496_754_688,
-      projectedCostMicroUsd: 212_293,
+      exactMainCommit: "3109282539dcb5f30c3135a3055a230ee80e1042",
+      sourceRecordUpperBound: 1_137_586,
+      apiRequestUpperBound: 34_928,
+      retainedR2BytesUpperBound: 1_151_353_687,
+      classAOperationsUpperBound: 34_980,
+      classBOperationsUpperBound: 104_784,
+      neonPeakBytesUpperBound: 507_158_528,
+      projectedCostMicroUsd: 212_404,
     });
   });
 
