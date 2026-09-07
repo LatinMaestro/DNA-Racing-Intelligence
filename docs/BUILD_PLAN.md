@@ -447,6 +447,15 @@ needed by the published maps. If the API still lacks authoritative elapsed time,
 distance or result fields, show that historical dimension as unavailable rather
 than fabricating it or reviving CSV as a delivery dependency.
 
+The bounded reference producer is now implemented. It accepts only Bike rows
+whose owner-confirmed payout mechanism plus gate count and exact distance maps
+to a published Pro League cell. It emits population/Core time, valid speed,
+dispersion, sample and freshness evidence while keeping outcome counts separate
+and exact-format opponent/star evidence unavailable until a safe join exists.
+Unsupported and unpublished combinations fail closed. See
+`PHASE_7_PRO_LEAGUE_EXACT_FORMAT_BENCHMARKS.md`. The next slice is its spillable
+complete-archive producer and compact owner-isolated publication/read model.
+
 Add separately presented current API dimensions where available:
 
 - power;

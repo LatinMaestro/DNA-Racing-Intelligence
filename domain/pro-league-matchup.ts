@@ -13,13 +13,21 @@ export type ProLeagueMatchupAssessment =
   "winning_range" | "top_three_range" | "outside_top_three_range";
 
 export type ProLeagueExactFormatPopulationBenchmark = Readonly<{
+  dataCurrentThrough: string;
   raceEntryCount: number;
+  coreCount: number;
   winningEntryCount: number;
   topThreeEntryCount: number;
+  winningP25Milliseconds: number;
   winningMedianMilliseconds: number;
   winningP75Milliseconds: number;
+  winningStandardDeviationMilliseconds: number;
+  winningInterquartileRangeMilliseconds: number;
+  topThreeP25Milliseconds: number;
   topThreeMedianMilliseconds: number;
   topThreeP75Milliseconds: number;
+  topThreeStandardDeviationMilliseconds: number;
+  topThreeInterquartileRangeMilliseconds: number;
 }>;
 
 export type ProLeagueExactFormatSupportingEvidence = Readonly<{
@@ -325,6 +333,9 @@ function validIntrinsicEvidence(
   profile: ProLeagueExactFormatEvidence,
 ): boolean {
   const { elapsedTime, speed, populationBenchmark } = profile;
+  const benchmarkCurrentThrough = new Date(
+    populationBenchmark.dataCurrentThrough,
+  );
   return (
     positiveFinite(elapsedTime.bestMilliseconds) &&
     positiveFinite(elapsedTime.medianMilliseconds) &&
@@ -346,6 +357,9 @@ function validIntrinsicEvidence(
     ) <= 0.001 &&
     Number.isSafeInteger(populationBenchmark.raceEntryCount) &&
     populationBenchmark.raceEntryCount > 0 &&
+    Number.isSafeInteger(populationBenchmark.coreCount) &&
+    populationBenchmark.coreCount > 0 &&
+    populationBenchmark.coreCount <= populationBenchmark.raceEntryCount &&
     Number.isSafeInteger(populationBenchmark.winningEntryCount) &&
     populationBenchmark.winningEntryCount > 0 &&
     Number.isSafeInteger(populationBenchmark.topThreeEntryCount) &&
@@ -354,18 +368,35 @@ function validIntrinsicEvidence(
       populationBenchmark.topThreeEntryCount &&
     populationBenchmark.topThreeEntryCount <=
       populationBenchmark.raceEntryCount &&
+    positiveFinite(populationBenchmark.winningP25Milliseconds) &&
     positiveFinite(populationBenchmark.winningMedianMilliseconds) &&
     positiveFinite(populationBenchmark.winningP75Milliseconds) &&
+    nonNegativeFinite(
+      populationBenchmark.winningStandardDeviationMilliseconds,
+    ) &&
+    nonNegativeFinite(
+      populationBenchmark.winningInterquartileRangeMilliseconds,
+    ) &&
+    positiveFinite(populationBenchmark.topThreeP25Milliseconds) &&
     positiveFinite(populationBenchmark.topThreeMedianMilliseconds) &&
     positiveFinite(populationBenchmark.topThreeP75Milliseconds) &&
+    nonNegativeFinite(
+      populationBenchmark.topThreeStandardDeviationMilliseconds,
+    ) &&
+    nonNegativeFinite(
+      populationBenchmark.topThreeInterquartileRangeMilliseconds,
+    ) &&
+    populationBenchmark.winningP25Milliseconds <=
+      populationBenchmark.winningMedianMilliseconds &&
     populationBenchmark.winningMedianMilliseconds <=
       populationBenchmark.winningP75Milliseconds &&
+    populationBenchmark.topThreeP25Milliseconds <=
+      populationBenchmark.topThreeMedianMilliseconds &&
     populationBenchmark.topThreeMedianMilliseconds <=
       populationBenchmark.topThreeP75Milliseconds &&
-    populationBenchmark.winningMedianMilliseconds <=
-      populationBenchmark.topThreeMedianMilliseconds &&
-    populationBenchmark.winningP75Milliseconds <=
-      populationBenchmark.topThreeP75Milliseconds &&
+    !Number.isNaN(benchmarkCurrentThrough.getTime()) &&
+    benchmarkCurrentThrough.toISOString() ===
+      populationBenchmark.dataCurrentThrough &&
     validSupportingEvidence(profile.supportingEvidence, profile.raceCount) &&
     derivedAssessment(profile) === profile.benchmarkAssessment
   );

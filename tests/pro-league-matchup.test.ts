@@ -68,13 +68,21 @@ function evidence(
       medianMetresPerSecond: speed(medianMilliseconds),
     },
     populationBenchmark: {
+      dataCurrentThrough: "2026-08-28T00:00:00.000Z",
       raceEntryCount: 1_000,
+      coreCount: 300,
       winningEntryCount: 100,
       topThreeEntryCount: 300,
+      winningP25Milliseconds: 48_000,
       winningMedianMilliseconds: 50_000,
       winningP75Milliseconds: 52_000,
+      winningStandardDeviationMilliseconds: 1_200,
+      winningInterquartileRangeMilliseconds: 4_000,
+      topThreeP25Milliseconds: 53_000,
       topThreeMedianMilliseconds: 55_000,
       topThreeP75Milliseconds: 57_000,
+      topThreeStandardDeviationMilliseconds: 1_400,
+      topThreeInterquartileRangeMilliseconds: 4_000,
     },
     supportingEvidence: {
       outcomes: { status: "available", winCount, topThreeCount },
@@ -441,8 +449,19 @@ describe("Pro League matchup analysis", () => {
       ...evidence("1v1", 1_000, "winning_range"),
       benchmarkAssessment: "outside_top_three_range" as const,
     };
+    const invalidPopulationCoverage = {
+      ...evidence("1v1", 1_000, "winning_range"),
+      populationBenchmark: {
+        ...evidence("1v1", 1_000, "winning_range").populationBenchmark,
+        coreCount: 1_001,
+      },
+    };
 
-    for (const invalid of [invalidSpeed, invalidAssessment]) {
+    for (const invalid of [
+      invalidSpeed,
+      invalidAssessment,
+      invalidPopulationCoverage,
+    ]) {
       expect(() =>
         buildProLeagueMatchupAnalysis({
           ourVault: vault("ours", [core("invalid", [invalid])]),
