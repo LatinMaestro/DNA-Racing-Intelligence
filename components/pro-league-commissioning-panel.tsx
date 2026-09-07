@@ -101,6 +101,7 @@ export function ProLeagueCommissioningPanel({
     ({ discoveryPriority }) => discoveryPriority !== "maintain",
   );
   const raceOpportunities = state.raceOpportunities;
+  const discoveryQueue = state.discoveryQueue;
 
   return (
     <section
@@ -349,6 +350,73 @@ export function ProLeagueCommissioningPanel({
           </ul>
         </div>
       ) : null}
+
+      {discoveryQueue === undefined ? null : (
+        <div>
+          <h3 className="text-lg font-semibold">
+            Pro League Discovery experiments
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Bike-only tests that could prove a provisional member or challenge a
+            marginal roster slot. Each experiment targets the authoritative{" "}
+            {discoveryQueue.exactDistanceMinimumRaceCount}-race exact-distance
+            minimum. Race entry and roster changes remain manual.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
+            Annual substitution usage is not yet connected. Preserve all{" "}
+            {discoveryQueue.substitutionBudget.maximumPerYear} substitutions
+            until the ledger and initial-roster counting rule are confirmed.{" "}
+            {discoveryQueue.diagnostics.stoppedWeakPathCount} weak path(s) were
+            stopped early; {discoveryQueue.diagnostics.conflictingEvidenceCount}{" "}
+            conflicting path(s) require review. Showing{" "}
+            {discoveryQueue.experiments.length} of{" "}
+            {discoveryQueue.diagnostics.eligibleExperimentCount} justified
+            experiment(s).
+          </p>
+          {discoveryQueue.experiments.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+              No bounded owned-Core experiment is currently justified by the
+              available exact or adjacent-distance evidence.
+            </p>
+          ) : (
+            <ol className="mt-3 space-y-3">
+              {discoveryQueue.experiments.map((experiment, index) => (
+                <li
+                  className="rounded-xl border border-[var(--border)] p-4"
+                  key={`${experiment.coreId}/${experiment.raceType}/${experiment.distanceMetres}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-semibold">
+                      {index + 1}. {experiment.displayName} ·{" "}
+                      {experiment.raceType}
+                      {" · "}
+                      {experiment.distanceMetres} m
+                    </p>
+                    <span className="text-xs font-semibold text-[var(--accent)]">
+                      {label(experiment.gapPriority)} priority · next{" "}
+                      {experiment.recommendedNextRaceCount} race(s)
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                    {experiment.directRaceCount}/
+                    {discoveryQueue.exactDistanceMinimumRaceCount}{" "}
+                    exact-distance races · {experiment.raceLineCount} published
+                    map line(s) · {label(experiment.rosterImpact)}.
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    {experiment.hypothesisSource ===
+                    "adjacent_distance_same_race_type"
+                      ? `Adjacent ${experiment.sourceDistanceMetres} m evidence is hypothesis-only.`
+                      : "Existing exact-distance evidence remains a small-sample hypothesis."}{" "}
+                    Lineage evidence and opposition quality remain unknown when
+                    flagged; neither is treated favourably.
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
 
       {raceOpportunities === undefined ? null : (
         <div>

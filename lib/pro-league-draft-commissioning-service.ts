@@ -3,6 +3,10 @@ import {
   type ProLeagueDraftLineupRecommendation,
 } from "@/domain/pro-league-lineup-recommendation";
 import {
+  buildProLeagueDiscoveryExperimentQueue,
+  type ProLeagueDiscoveryExperimentQueue,
+} from "@/domain/pro-league-discovery-experiment-queue";
+import {
   buildProLeagueDraftRosterRecommendation,
   type ProLeagueDraftRosterRecommendation,
 } from "@/domain/pro-league-roster-recommendation";
@@ -48,6 +52,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   lineup: ProLeagueDraftLineupRecommendation | null;
   currentState?: ProLeagueCurrentCoreState;
   raceOpportunities?: ProLeagueRaceOpportunityState;
+  discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -164,6 +169,7 @@ export async function loadProLeagueDraftCommissioningState(
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
     versionNumber: 1,
   });
+  const discoveryQueue = buildProLeagueDiscoveryExperimentQueue(roster);
   return Object.freeze({
     connectionStatus: "read_model_connected",
     evidence,
@@ -171,5 +177,6 @@ export async function loadProLeagueDraftCommissioningState(
     lineup,
     currentState,
     raceOpportunities,
+    discoveryQueue,
   });
 }

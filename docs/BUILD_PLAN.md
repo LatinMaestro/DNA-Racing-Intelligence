@@ -505,6 +505,18 @@ opportunities: they are not matched to a specific population gap, do not rank a
 Core and do not guess a DNA race URL. Invalid current-race evidence hides only
 this section while the verified roster and lineup remain available.
 
+The second P8 slice turns high/medium population gaps into a bounded Bike-only
+experiment queue for non-rostered challengers and provisional/marginal roster
+members. Exact-distance samples are advanced in batches of at most three toward
+the ten-race minimum. A credible same-race-type adjacent-distance result may
+seed a clearly labelled hypothesis, but never counts as direct evidence. Weak
+time evidence receives at most one confirmation before four starts and is then
+stopped; raw wins cannot rescue an intrinsically weak path. Known strong-field
+evidence creates a manual conflict review instead of a favourable assumption.
+Lineage and annual substitution-ledger usage remain explicitly unavailable in
+this read model, so all ten substitutions stay reserved and the queue cannot
+enter a race or change the roster.
+
 Exit: daily owner Discovery queue for Pro League.
 
 ## P9 — Pro League breeding acceleration
