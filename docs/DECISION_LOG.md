@@ -1634,3 +1634,20 @@ After the private Pro League milestone, continue in this order:
   join can prove it; missing opposition evidence is never favourable.
 - The first producer is a bounded reference implementation. Complete archive
   use requires the next spillable and owner-isolated publication slice.
+
+## 2026-09-07 — complete Pro League archive reduction is spillable
+
+- Preserve the bounded producer as the executable authority reference and add
+  a second producer for the complete asynchronous race archive.
+- Reject duplicate natural identities before filtering, apply the same
+  point-in-time and published-cell rules, and externally sort by cell and Core
+  so full input and full-cell arrays are never retained in worker memory.
+- Calculate winner, Top-3 and per-Core distributions exactly from replayable
+  sorted scratch runs. Match the reference output, including dispersion,
+  trimmed means, freshness, sample labels and unavailable opposition/star
+  evidence.
+- Stream benchmark/profile rows once and clean all owned scratch objects after
+  success, failure, early return or explicit pre-read cleanup.
+- Keep publication out of this slice. The next dependency is an owner-isolated,
+  complete-generation staging and last-good activation boundary; no partial
+  Pro League generation may become visible.
