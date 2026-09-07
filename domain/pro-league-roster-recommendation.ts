@@ -6,6 +6,7 @@ import {
   type ProLeagueMatchupCore,
   type ProLeagueMatchupVault,
 } from "@/domain/pro-league-matchup";
+import { coreClasses, elements } from "@/domain/game-rules";
 import { proLeagueMaps, type ProLeagueMapId } from "@/domain/pro-league-maps";
 import {
   auditProLeagueRoster,
@@ -22,6 +23,9 @@ import {
 import type { ActiveProLeagueEvidenceGeneration } from "@/lib/neon-pro-league-evidence-generation-repository";
 
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9._:/-]{0,127}$/iu;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 // The selector is intentionally fail-closed. A private owner vault should stay
 // far below this, and the bound prevents an unexpectedly broad read from
 // turning a website request into an unbounded combinatorial search.
@@ -255,8 +259,20 @@ function weightedAverage(
 }
 
 function candidate(core: ProLeagueMatchupCore): ProLeagueRosterCandidateScore {
+  const coreId = identity(core.coreId, "candidate Core ID");
   if (core.displayName.trim() === "") {
     throw new Error(`Pro League Core ${core.coreId} must be named.`);
+  }
+  if (
+    !elements.includes(core.element) ||
+    !coreClasses.includes(core.coreClass) ||
+    (core.sex !== "male" && core.sex !== "female") ||
+    !Number.isSafeInteger(core.fNumber) ||
+    core.fNumber < 1 ||
+    core.fNumber > 1_000_000 ||
+    !Array.isArray(core.exactFormatEvidence)
+  ) {
+    throw new Error(`Pro League Core ${coreId} metadata is invalid.`);
   }
   const seen = new Set<string>();
   const cells = core.exactFormatEvidence.map((profile) => {
@@ -341,7 +357,7 @@ function candidate(core: ProLeagueMatchupCore): ProLeagueRosterCandidateScore {
   ];
   return Object.freeze({
     core: Object.freeze({
-      coreId: identity(core.coreId, "candidate Core ID"),
+      coreId,
       displayName: core.displayName.trim(),
       element: core.element,
       coreClass: core.coreClass,
@@ -578,8 +594,17 @@ export function buildProLeagueDraftRosterRecommendation(
   }>,
 ): ProLeagueDraftRosterRecommendation {
   identity(input.vault.vaultId, "Vault ID");
-  identity(input.generation.generationId, "evidence generation ID");
+  if (!UUID_PATTERN.test(input.generation.generationId)) {
+    throw new Error("Pro League evidence generation ID is invalid.");
+  }
+  if (
+    !SHA256_PATTERN.test(input.generation.sourceVersionSetSha256) ||
+    !SHA256_PATTERN.test(input.generation.payloadSha256)
+  ) {
+    throw new Error("Pro League evidence generation digest is invalid.");
+  }
   timestamp(input.generation.evidenceCutoffAt, "evidence cutoff");
+  timestamp(input.generation.publishedAt, "evidence publication timestamp");
   if (
     !Array.isArray(input.vault.cores) ||
     input.vault.cores.length > MAXIMUM_CANDIDATES

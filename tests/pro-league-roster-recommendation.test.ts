@@ -296,4 +296,23 @@ describe("Pro League draft roster recommendation", () => {
       ]),
     ).toThrow("exceeds the active generation cutoff");
   });
+
+  it("rejects invalid Core metadata and generation digests at the domain edge", () => {
+    expect(() => recommend([core(1, { fNumber: 0 })])).toThrow(
+      "metadata is invalid",
+    );
+
+    expect(() =>
+      buildProLeagueDraftRosterRecommendation({
+        vault: {
+          vaultId: "my-vault",
+          displayName: "My Vault",
+          cores: Array.from({ length: 12 }, (_, index) => core(index)),
+        },
+        generation: { ...generation, payloadSha256: "invalid" },
+        rosterVersionId: "draft-v1",
+        versionNumber: 1,
+      }),
+    ).toThrow("generation digest is invalid");
+  });
 });
