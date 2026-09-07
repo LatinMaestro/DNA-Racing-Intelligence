@@ -1,0 +1,38 @@
+name: TEMPORARY full-vault discovery variance - DO NOT MERGE
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-full-vault-discovery-variance-2026-09-07-do-not-merge.test.ts
+      - .github/workflows/temporary-full-vault-discovery-variance-2026-09-07-do-not-merge.yml
+permissions:
+  contents: read
+jobs:
+  analyze:
+    name: TEMPORARY ONLY - full-vault discovery variance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMP_FULL_VAULT_DISCOVERY_VARIANCE: '1'
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - name: Guard temporary branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-full-vault-discovery-variance-2026-09-07-do-not-merge.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-full-vault-discovery-variance-${{ github.run_id }}
+          path: artifacts/temporary-full-vault-discovery-variance-2026-09-07.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
