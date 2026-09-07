@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type {
   ProLeagueCandidate,
@@ -589,11 +590,13 @@ export function ProLeagueWorkspace({
   connectionStatus,
   preparation,
   lastImportedAt,
+  commissioning,
 }: Readonly<{
   audit: ProLeagueRosterAudit;
   connectionStatus: ProLeaguePreparationConnectionStatus;
   preparation: ProLeaguePreparation | null;
   lastImportedAt: string | null;
+  commissioning?: ReactNode;
 }>) {
   const connection = connectionCopy[connectionStatus];
   return (
@@ -637,6 +640,8 @@ export function ProLeagueWorkspace({
           {connection.detail}
         </p>
       </section>
+
+      {commissioning}
 
       <MapAuthority />
 

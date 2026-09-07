@@ -4,7 +4,10 @@ import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
 } from "@/lib/neon-import-persistence-driver";
-import { createNeonProLeagueEvidenceGenerationRepository } from "@/lib/neon-pro-league-evidence-generation-repository";
+import {
+  createNeonProLeagueEvidenceGenerationRepository,
+  neonProLeagueEvidenceReadRepositoryFromEnvironment,
+} from "@/lib/neon-pro-league-evidence-generation-repository";
 
 const databaseOwnerId = "84000000-0000-4000-8000-000000000001";
 const generationId = "84000000-0000-4000-8000-000000000301";
@@ -84,6 +87,29 @@ const metadata = {
 };
 
 describe("Neon Pro League evidence generation repository", () => {
+  it("fails closed without complete read environment configuration", () => {
+    expect(
+      neonProLeagueEvidenceReadRepositoryFromEnvironment({
+        databaseUrl: "postgresql://private.example/dna",
+      }),
+    ).toBeNull();
+  });
+
+  it("exposes only active-generation read methods to website callers", () => {
+    const repository = neonProLeagueEvidenceReadRepositoryFromEnvironment({
+      databaseUrl: "postgresql://private.example/dna",
+      databaseOwnerId,
+      ownerId,
+      runtimeRole,
+    });
+    expect(repository).not.toBeNull();
+    expect(Object.keys(repository!).sort()).toEqual([
+      "listActiveRows",
+      "readActiveGeneration",
+    ]);
+    expect(Object.isFrozen(repository)).toBe(true);
+  });
+
   it("begins a resumable owner-scoped generation in a serializable transaction", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],

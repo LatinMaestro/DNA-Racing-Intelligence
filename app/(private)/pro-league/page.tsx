@@ -1,3 +1,4 @@
+import { ProLeagueCommissioningPanel } from "@/components/pro-league-commissioning-panel";
 import { ProLeagueWorkspace } from "@/components/pro-league-workspace";
 import { auditProLeagueRoster } from "@/domain/pro-league-roster";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
@@ -5,6 +6,8 @@ import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-
 import { neonCorePayoutFormatProfileRepositoryFromEnvironment } from "@/lib/neon-core-payout-format-profile-repository";
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
+import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 import {
   createProLeaguePreparationRepository,
   loadProLeaguePreparationPageState,
@@ -24,29 +27,49 @@ export default async function ProLeaguePage() {
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   };
-  const state = await loadProLeaguePreparationPageState({
-    authenticatedOwnerId,
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: createProLeaguePreparationRepository({
-      vaultRepository:
-        neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
-      performanceRepository:
-        neonCorePerformanceProfileRepositoryFromEnvironment(
-          databaseEnvironment,
-        ),
-      benchmarkRepository:
-        neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
-      payoutFormatRepository:
-        neonCorePayoutFormatProfileRepositoryFromEnvironment(
-          databaseEnvironment,
-        ),
+  const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID ?? null;
+  const vaultRepository =
+    neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment);
+  const evidenceRepository = neonProLeagueEvidenceReadRepositoryFromEnvironment(
+    {
+      ...databaseEnvironment,
+      ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
+    },
+  );
+  const [state, commissioning] = await Promise.all([
+    loadProLeaguePreparationPageState({
+      authenticatedOwnerId,
+      configuredOwnerId,
+      repository: createProLeaguePreparationRepository({
+        vaultRepository,
+        performanceRepository:
+          neonCorePerformanceProfileRepositoryFromEnvironment(
+            databaseEnvironment,
+          ),
+        benchmarkRepository:
+          neonDiscoveryBenchmarkRepositoryFromEnvironment(databaseEnvironment),
+        payoutFormatRepository:
+          neonCorePayoutFormatProfileRepositoryFromEnvironment(
+            databaseEnvironment,
+          ),
+      }),
     }),
-  });
+    loadProLeagueDraftCommissioningState({
+      authenticatedOwnerId,
+      configuredOwnerId,
+      vaultId: "my-vault",
+      vaultDisplayName: "My Vault",
+      rosteredCoreIds: [],
+      vaultRepository,
+      evidenceRepository,
+    }),
+  ]);
 
   return (
     <ProLeagueWorkspace
       audit={auditProLeagueRoster([])}
       connectionStatus={state.connectionStatus}
+      commissioning={<ProLeagueCommissioningPanel state={commissioning} />}
       lastImportedAt={state.lastImportedAt}
       preparation={state.preparation}
     />
