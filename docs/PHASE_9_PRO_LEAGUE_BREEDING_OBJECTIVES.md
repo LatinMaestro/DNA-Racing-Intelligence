@@ -22,3 +22,17 @@ rankings; it does not create a new breeding model.
 The objective queue cannot call the DNA API, validate a pair automatically,
 connect a wallet, execute a splice, create an economic record or mutate the Pro
 League roster.
+
+## Private website read model
+
+The Pro League commissioning service may load the existing breeding ranking
+repository only after the authenticated owner matches the configured owner and
+an active roster evidence generation has produced a valid draft. Performance
+evidence newer than that roster generation's cutoff is rejected.
+
+The website projection removes ranking IDs, pair IDs and parent Core IDs before
+the objective state reaches the rendering component. Candidates are displayed
+as ordinal research pairs with only their source class, evidence confidence,
+confirmed offspring-rule projection and held experimental measures. Missing or
+invalid breeding persistence hides this optional section without hiding the
+last-good roster, lineup, Discovery queue or population gaps.
