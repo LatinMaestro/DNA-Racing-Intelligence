@@ -183,6 +183,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.up.sql
       - name: Run Core performance profile smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.smoke.sql
+      - name: Apply Pro League breeding ranking generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.up.sql
+      - name: Run Pro League breeding ranking generation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.smoke.sql
+      - name: Reverse Pro League breeding ranking generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.down.sql
+      - name: Verify Pro League breeding ranking generation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.removal.sql
       - name: Reverse Core performance profile migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.down.sql
       - name: Verify Core performance profile removal
