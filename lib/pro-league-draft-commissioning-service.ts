@@ -27,6 +27,12 @@ import {
   loadProLeagueRaceOpportunities,
   type ProLeagueRaceOpportunityState,
 } from "@/lib/pro-league-race-opportunity-service";
+import type { BreedingRankingRepository } from "@/lib/breeding-workspace-service";
+import {
+  loadProLeagueBreedingObjectiveState,
+  unavailableProLeagueBreedingObjectiveState,
+  type ProLeagueBreedingObjectiveState,
+} from "@/lib/pro-league-breeding-objective-service";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -53,6 +59,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   currentState?: ProLeagueCurrentCoreState;
   raceOpportunities?: ProLeagueRaceOpportunityState;
   discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
+  breedingObjectives?: ProLeagueBreedingObjectiveState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -89,6 +96,8 @@ export async function loadProLeagueDraftCommissioningState(
     evidenceRepository: ProLeagueEvidenceReadRepository | null;
     currentStateRepository?: DnaOpenLabSupplementalCoreReadRepository | null;
     currentRaceRepository?: DnaOpenLabCurrentRaceReadRepository | null;
+    breedingRepository?: BreedingRankingRepository;
+    now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
   }>,
@@ -170,6 +179,19 @@ export async function loadProLeagueDraftCommissioningState(
     versionNumber: 1,
   });
   const discoveryQueue = buildProLeagueDiscoveryExperimentQueue(roster);
+  const breedingObjectives = await loadProLeagueBreedingObjectiveState({
+    authenticatedOwnerId,
+    configuredOwnerId,
+    roster,
+    repository: input.breedingRepository ?? { status: "not_configured" },
+    now: input.now ?? new Date(),
+  }).catch(() =>
+    unavailableProLeagueBreedingObjectiveState(
+      "invalid_evidence",
+      roster.evidenceCutoffAt,
+      priorityGapCount,
+    ),
+  );
   return Object.freeze({
     connectionStatus: "read_model_connected",
     evidence,
@@ -178,5 +200,6 @@ export async function loadProLeagueDraftCommissioningState(
     currentState,
     raceOpportunities,
     discoveryQueue,
+    breedingObjectives,
   });
 }
