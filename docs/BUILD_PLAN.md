@@ -455,8 +455,14 @@ and exact-format opponent/star evidence unavailable until a safe join exists.
 Unsupported and unpublished combinations fail closed. See
 `PHASE_7_PRO_LEAGUE_EXACT_FORMAT_BENCHMARKS.md`. The complete archive now uses
 an external-sort producer with exact reference equivalence and bounded scratch
-cleanup. The next slice is compact owner-isolated atomic publication and private
-read wiring.
+cleanup. Migration `0084` and its server-only repository stage the streamed
+benchmark/profile rows in replay-safe bounded batches, verify exact counts,
+contiguous ordinals and a deterministic payload digest, and atomically advance
+an owner-isolated last-good pointer. Private reads expose only that complete
+active generation; partial or stale generations remain invisible. See
+`PHASE_7_PRO_LEAGUE_EVIDENCE_GENERATION.md`. The next slice is API-backed roster
+candidate/profile assembly from this evidence plus generation-bound current
+owned-Core state.
 
 Add separately presented current API dimensions where available:
 
