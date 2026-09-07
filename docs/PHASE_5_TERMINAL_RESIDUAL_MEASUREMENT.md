@@ -37,11 +37,15 @@ The connected run is limited to 32 residual logical requests, three API-key
 lanes under one aggregate bucket, four immutable evidence reads and zero R2 or
 Neon writes. It cannot complete the ledger or publish a serving generation.
 
-## Gate
+## Completed gate
 
-The current amendment remains historical authority for the work it bounded,
-but it cannot authorize requests beyond ordinal 17,456. After the sanitized
-residual artifact is reviewed, any increased receipt/API/R2/Class A/Class B/
-Neon/cost maxima require a separate explicit owner amendment while retaining
-the absolute USD $0.50 ceiling and all existing cleanup, omission,
-non-publication and non-Production conditions.
+Exact-main run `34092069860` completed this measurement on 7 September 2026.
+It measured five Core-tail requests and three Splice Arena requests: 375
+records, 56,898 response bytes, zero 429s and zero persistent writes. The owner
+approved its exact terminal packet and raised the absolute fail-closed maximum
+to USD $2.00; the measured one-time projection remains $0.212404.
+
+Migration `0080` binds both sanitized terminal evidence hashes and the approval
+hash while permitting only ordinals 17,457–17,464 in the measured family order.
+All cleanup, single-omission, non-publication and non-Production conditions
+remain unchanged.

@@ -27,13 +27,17 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_access_receipt: false,
     runtime_can_initialize: true,
     runtime_can_initialize_amended: true,
+    runtime_can_initialize_terminal: true,
     runtime_can_record: true,
     runtime_can_record_amended: true,
+    runtime_can_record_terminal: true,
     runtime_can_complete: true,
     runtime_can_complete_amended: true,
+    runtime_can_complete_terminal: true,
     runtime_can_read_run: true,
     runtime_can_read_receipts: true,
     runtime_can_read_amended_receipts: true,
+    runtime_can_read_terminal_receipts: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
     runtime_is_superuser: false,
@@ -120,6 +124,9 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
       "2026-09-02T00:11:55.961Z",
       createHash("sha256")
         .update("owner-written-amended-approval:2026-09-03", "utf8")
+        .digest("hex"),
+      createHash("sha256")
+        .update("owner-written-terminal-residual-approval:2026-09-07", "utf8")
         .digest("hex"),
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
@@ -209,11 +216,11 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
       [isolation()],
       [
         running({
-          revision: "17458",
+          revision: "17466",
           status: "complete",
-          next_request_ordinal: 17_457,
-          logical_request_count: 17_456,
-          retained_r2_bytes: "1151165717",
+          next_request_ordinal: 17_465,
+          logical_request_count: 17_464,
+          retained_r2_bytes: "1151353687",
           omitted_identity_observation_count: 1,
           completion_sha256: completion,
         }),
@@ -222,7 +229,7 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
 
     await expect(
       test.ledger.complete({
-        expectedRevision: "17457",
+        expectedRevision: "17465",
         completionSha256: completion,
       }),
     ).resolves.toMatchObject({
@@ -232,7 +239,7 @@ describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
     expect(test.query.mock.calls[3]?.[1]).toEqual([
       databaseOwnerId,
       measurementSha,
-      "17457",
+      "17465",
       completion,
     ]);
   });

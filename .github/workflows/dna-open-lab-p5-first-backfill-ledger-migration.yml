@@ -47,7 +47,19 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run amended first-backfill ledger smoke test
+      - name: Run terminal residual ledger smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0080_dna_open_lab_p5_terminal_residual_authority.smoke.sql
+      - name: Reverse terminal residual authority migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0080_dna_open_lab_p5_terminal_residual_authority.down.sql
+      - name: Verify terminal residual authority removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0080_dna_open_lab_p5_terminal_residual_authority.removal.sql
+      - name: Run amended first-backfill ledger smoke test after reversal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0079_dna_open_lab_p5_first_backfill_amendment.smoke.sql

@@ -17,13 +17,20 @@ on:
         type: choice
         options:
           - "33680976426"
+      terminal_residual_measurement_run:
+        description: Exact approved read-only terminal residual measurement run
+        required: true
+        default: "34092069860"
+        type: choice
+        options:
+          - "34092069860"
       maximum_authorized_usd:
         description: Exact owner-authorized one-time provider cost ceiling
         required: true
-        default: "0.50"
+        default: "2.00"
         type: choice
         options:
-          - "0.50"
+          - "2.00"
       commissioning_requests_per_minute:
         description: Owner-authorized aggregate API ceiling for this one run
         required: true
@@ -130,7 +137,8 @@ jobs:
           if (
             "${{ inputs.measurement_run }}" !== "33574168582" ||
             "${{ inputs.amendment_measurement_run }}" !== "33680976426" ||
-            "${{ inputs.maximum_authorized_usd }}" !== "0.50" ||
+            "${{ inputs.terminal_residual_measurement_run }}" !== "34092069860" ||
+            "${{ inputs.maximum_authorized_usd }}" !== "2.00" ||
             "${{ inputs.commissioning_requests_per_minute }}" !== "150" ||
             "${{ inputs.approve_temporary_150_rpm }}" !== "true" ||
             "${{ inputs.execute_approved_private_preview_backfill }}" !== "true"

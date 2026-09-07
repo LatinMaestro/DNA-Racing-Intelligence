@@ -86,17 +86,26 @@ const VERIFY_ISOLATION_SQL = [
   "    'dna.initialize_dna_open_lab_p5_first_backfill_run(uuid,text,text,timestamp with time zone,text)', 'EXECUTE')",
   "    AS runtime_can_initialize_amended,",
   "  has_function_privilege(session_user,",
+  "    'dna.initialize_dna_open_lab_p5_first_backfill_terminal_run(uuid,text,text,timestamp with time zone,text,text)', 'EXECUTE')",
+  "    AS runtime_can_initialize_terminal,",
+  "  has_function_privilege(session_user,",
   "    'dna.record_dna_open_lab_p5_first_backfill_receipt(uuid,text,bigint,integer,text,timestamp with time zone,text,integer,text,integer,boolean)', 'EXECUTE')",
   "    AS runtime_can_record,",
   "  has_function_privilege(session_user,",
   "    'dna.record_dna_open_lab_p5_first_backfill_amended_receipt(uuid,text,bigint,integer,text,timestamp with time zone,text,integer,text,integer,boolean)', 'EXECUTE')",
   "    AS runtime_can_record_amended,",
   "  has_function_privilege(session_user,",
+  "    'dna.record_dna_open_lab_p5_first_backfill_terminal_receipt(uuid,text,bigint,integer,text,timestamp with time zone,text,integer,text,integer,boolean)', 'EXECUTE')",
+  "    AS runtime_can_record_terminal,",
+  "  has_function_privilege(session_user,",
   "    'dna.complete_dna_open_lab_p5_first_backfill_run(uuid,text,bigint,text)', 'EXECUTE')",
   "    AS runtime_can_complete,",
   "  has_function_privilege(session_user,",
   "    'dna.complete_dna_open_lab_p5_first_backfill_amended_run(uuid,text,bigint,text)', 'EXECUTE')",
   "    AS runtime_can_complete_amended,",
+  "  has_function_privilege(session_user,",
+  "    'dna.complete_dna_open_lab_p5_first_backfill_terminal_run(uuid,text,bigint,text)', 'EXECUTE')",
+  "    AS runtime_can_complete_terminal,",
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_p5_first_backfill_run(uuid,text)', 'EXECUTE')",
   "    AS runtime_can_read_run,",
@@ -106,6 +115,9 @@ const VERIFY_ISOLATION_SQL = [
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_p5_first_backfill_amended_receipts(uuid,text,integer,integer)', 'EXECUTE')",
   "    AS runtime_can_read_amended_receipts,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_p5_first_backfill_terminal_receipts(uuid,text,integer,integer)', 'EXECUTE')",
+  "    AS runtime_can_read_terminal_receipts,",
   "  session_user::text AS session_user_name, current_user::text AS current_user_name,",
   "  role.rolsuper AS runtime_is_superuser, role.rolbypassrls AS runtime_bypasses_rls,",
   "  role.rolcreaterole AS runtime_can_create_roles, role.rolcreatedb AS runtime_can_create_databases,",
@@ -234,9 +246,9 @@ function state(row: DbRow): DnaOpenLabP5FirstBackfillLedgerState {
     "omitted_identity_observation_count",
   );
   if (
-    logicalRequestCount > 17_456 ||
+    logicalRequestCount > 17_464 ||
     nextRequestOrdinal !== logicalRequestCount + 1 ||
-    retainedR2Bytes > 1_151_165_717 ||
+    retainedR2Bytes > 1_151_353_687 ||
     omittedIdentityObservationCount > 1
   ) {
     throw new Error("P5 first-backfill ledger state exceeds its authority.");
@@ -272,7 +284,7 @@ function durableReceipt(row: DbRow): DnaOpenLabP5FirstBackfillDurableReceipt {
   const byteLength = safeInteger(row.byte_length, "byte_length", 1);
   if (
     !SOURCE_FAMILIES.has(family) ||
-    requestOrdinal > 17_456 ||
+    requestOrdinal > 17_464 ||
     byteLength > 8_388_608
   ) {
     throw new Error("durable receipt exceeds its authority");
@@ -323,13 +335,17 @@ function verifyIsolation(
   for (const field of [
     "runtime_can_initialize",
     "runtime_can_initialize_amended",
+    "runtime_can_initialize_terminal",
     "runtime_can_record",
     "runtime_can_record_amended",
+    "runtime_can_record_terminal",
     "runtime_can_complete",
     "runtime_can_complete_amended",
+    "runtime_can_complete_terminal",
     "runtime_can_read_run",
     "runtime_can_read_receipts",
     "runtime_can_read_amended_receipts",
+    "runtime_can_read_terminal_receipts",
   ] as const) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -399,6 +415,14 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
   const amendmentApprovalRefSha256 = createHash("sha256")
     .update(authorization.amendmentApprovalRef, "utf8")
     .digest("hex");
+  if (authorization.terminalResidualApprovalRef === undefined) {
+    throw new Error(
+      "P5 first-backfill ledger requires terminal residual approval.",
+    );
+  }
+  const terminalResidualApprovalRefSha256 = createHash("sha256")
+    .update(authorization.terminalResidualApprovalRef, "utf8")
+    .digest("hex");
   const authorityCutoffAt = timestamp(
     measured.authorityCutoffAt,
     "authorityCutoffAt",
@@ -449,13 +473,14 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
           return state(
             oneRow(
               await client.query(
-                "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.initialize_dna_open_lab_p5_first_backfill_run($1::uuid,$2::text,$3::text,$4::timestamptz,$5::text)",
+                "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.initialize_dna_open_lab_p5_first_backfill_terminal_run($1::uuid,$2::text,$3::text,$4::timestamptz,$5::text,$6::text)",
                 [
                   databaseOwnerId,
                   measurementSha256,
                   approvalRefSha256,
                   authorityCutoffAt,
                   amendmentApprovalRefSha256,
+                  terminalResidualApprovalRefSha256,
                 ],
               ),
               "P5 first-backfill ledger initialization",
@@ -482,7 +507,7 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
       if (
         !Number.isSafeInteger(afterRequestOrdinal) ||
         afterRequestOrdinal < 0 ||
-        afterRequestOrdinal > 17_456 ||
+        afterRequestOrdinal > 17_464 ||
         !Number.isSafeInteger(limit) ||
         limit < 1 ||
         limit > MAXIMUM_RECEIPT_PAGE
@@ -493,7 +518,7 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
         readOnly: true,
         async run(client) {
           const result = await client.query(
-            "SELECT family, request_ordinal, observed_at, content_sha256, byte_length, evidence_object_key, omitted_identity_observation_count, quarantine_bound FROM dna.read_dna_open_lab_p5_first_backfill_amended_receipts($1::uuid,$2::text,$3::integer,$4::integer)",
+            "SELECT family, request_ordinal, observed_at, content_sha256, byte_length, evidence_object_key, omitted_identity_observation_count, quarantine_bound FROM dna.read_dna_open_lab_p5_first_backfill_terminal_receipts($1::uuid,$2::text,$3::integer,$4::integer)",
             [databaseOwnerId, measurementSha256, afterRequestOrdinal, limit],
           );
           return Object.freeze(
@@ -517,7 +542,9 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
           return state(
             oneRow(
               await client.query(
-                "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.record_dna_open_lab_p5_first_backfill_amended_receipt($1::uuid,$2::text,$3::bigint,$4::integer,$5::text,$6::timestamptz,$7::text,$8::integer,$9::text,$10::integer,$11::boolean)",
+                receipt.requestOrdinal <= 17_456
+                  ? "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.record_dna_open_lab_p5_first_backfill_amended_receipt($1::uuid,$2::text,$3::bigint,$4::integer,$5::text,$6::timestamptz,$7::text,$8::integer,$9::text,$10::integer,$11::boolean)"
+                  : "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.record_dna_open_lab_p5_first_backfill_terminal_receipt($1::uuid,$2::text,$3::bigint,$4::integer,$5::text,$6::timestamptz,$7::text,$8::integer,$9::text,$10::integer,$11::boolean)",
                 [
                   databaseOwnerId,
                   measurementSha256,
@@ -548,7 +575,7 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
           return state(
             oneRow(
               await client.query(
-                "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.complete_dna_open_lab_p5_first_backfill_amended_run($1::uuid,$2::text,$3::bigint,$4::text)",
+                "SELECT revision::text, status, next_request_ordinal, logical_request_count, retained_r2_bytes::text, omitted_identity_observation_count, completion_sha256 FROM dna.complete_dna_open_lab_p5_first_backfill_terminal_run($1::uuid,$2::text,$3::bigint,$4::text)",
                 [databaseOwnerId, measurementSha256, expected, completion],
               ),
               "P5 first-backfill ledger completion",
