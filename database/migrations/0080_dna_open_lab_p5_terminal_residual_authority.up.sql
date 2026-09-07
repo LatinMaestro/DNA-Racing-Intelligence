@@ -155,11 +155,10 @@ BEGIN
      OR p_measurement_evidence_sha256 <> v_measurement_sha
      OR p_expected_revision IS NULL OR p_expected_revision < 1
      OR p_request_ordinal NOT BETWEEN 17457 AND 17464
-     OR p_family <> CASE
-       WHEN p_request_ordinal BETWEEN 17457 AND 17461
-         THEN 'core_current_state'
-       ELSE 'splice_arena'
-     END
+     OR (p_request_ordinal BETWEEN 17457 AND 17461
+         AND p_family <> 'core_current_state')
+     OR (p_request_ordinal BETWEEN 17462 AND 17464
+         AND p_family <> 'splice_arena')
      OR p_content_sha256 !~ '^[a-f0-9]{64}$'
      OR p_byte_length NOT BETWEEN 1 AND 8388608
      OR length(p_evidence_object_key) NOT BETWEEN 1 AND 4096
