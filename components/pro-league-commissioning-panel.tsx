@@ -54,6 +54,12 @@ function fixedFees(values: Readonly<Record<string, number>>): string {
     : entries.map(([asset, amount]) => `${amount} ${asset}`).join(", ");
 }
 
+function percentage(basisPoints: number): string {
+  return `${(basisPoints / 100).toLocaleString("en-AU", {
+    maximumFractionDigits: 2,
+  })}%`;
+}
+
 function SummaryCard({
   label: cardLabel,
   value,
@@ -102,6 +108,7 @@ export function ProLeagueCommissioningPanel({
   );
   const raceOpportunities = state.raceOpportunities;
   const discoveryQueue = state.discoveryQueue;
+  const breedingObjectives = state.breedingObjectives;
 
   return (
     <section
@@ -480,6 +487,100 @@ export function ProLeagueCommissioningPanel({
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+      )}
+
+      {breedingObjectives === undefined ? null : (
+        <div>
+          <h3 className="text-lg font-semibold">
+            Pro League breeding research
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Verified roster gaps may be matched to held Bike breeding research
+            at the exact distance. Pair performance is not race-type-specific,
+            Gate E remains held, and no validation, wallet or splice action is
+            available here.
+          </p>
+          {breedingObjectives.status !== "connected" ? (
+            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+              {breedingObjectives.status === "persistence_not_configured"
+                ? "The compact owner breeding ranking repository is not connected. The verified roster, lineup and gap analysis remain available."
+                : "Breeding ranking evidence failed owner, cutoff or integrity validation. It is hidden while the verified roster, lineup and gap analysis remain available."}
+            </p>
+          ) : breedingObjectives.objectives.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+              No high- or medium-priority roster gap currently requires a
+              breeding research objective.
+            </p>
+          ) : (
+            <div className="mt-3 space-y-4">
+              <p className="text-xs leading-5 text-[var(--warning)]">
+                Historical breeding evidence is current through{" "}
+                {breedingObjectives.performanceDataCurrentThrough === null
+                  ? "not available"
+                  : timestamp(breedingObjectives.performanceDataCurrentThrough)}
+                . Current official pair validation, pair information and any
+                Arena availability must be checked again at owner decision time.
+              </p>
+              {breedingObjectives.objectives.map((objective) => (
+                <article
+                  className="rounded-xl border border-[var(--border)] p-4"
+                  key={objective.objectiveId}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-semibold">
+                      {objective.raceType} · {objective.distanceMetres} m
+                    </p>
+                    <span className="text-xs font-semibold text-[var(--accent)]">
+                      {label(objective.gapPriority)} priority ·{" "}
+                      {objective.raceLineCount} map line(s)
+                    </span>
+                  </div>
+                  {objective.candidates.length === 0 ? (
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                      WAIT — no current exact-distance Bike pair research meets
+                      the held evidence gates. Adjacent-distance or cross-mode
+                      evidence is not substituted.
+                    </p>
+                  ) : (
+                    <ol className="mt-3 space-y-3">
+                      {objective.candidates.map((candidate) => (
+                        <li
+                          className="rounded-lg border border-[var(--border)] p-3"
+                          key={candidate.candidateNumber}
+                        >
+                          <p className="font-medium">
+                            Research pair {candidate.candidateNumber} ·{" "}
+                            {candidate.predictedOffspringClass} ·{" "}
+                            {candidate.predictedOffspringElement} · F
+                            {candidate.predictedOffspringFNumber}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                            {label(candidate.evidenceConfidence)} confidence ·{" "}
+                            {label(candidate.source)} · roles{" "}
+                            {candidate.researchRoles.map(label).join(" + ")}.
+                            Experimental exceptional upside{" "}
+                            {percentage(candidate.exceptionalUpsideBasisPoints)}
+                            ; stronger-or-exceptional{" "}
+                            {percentage(
+                              candidate.strongerOrExceptionalBasisPoints,
+                            )}
+                            ; Vault fit{" "}
+                            {percentage(candidate.vaultFitBasisPoints)}.
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
+                    Race-type pair evidence unavailable · official pair
+                    validation and pair information required · breeding outcome
+                    remains probabilistic.
+                  </p>
+                </article>
+              ))}
+            </div>
           )}
         </div>
       )}
