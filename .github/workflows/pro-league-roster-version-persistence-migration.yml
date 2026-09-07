@@ -44,6 +44,14 @@ jobs:
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0081_pro_league_roster_version_persistence.smoke.sql
+      - name: Reverse dependent Pro League lineup and match-lock migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0082_pro_league_lineup_match_lock_persistence.down.sql
+      - name: Verify dependent Pro League lineup and match-lock removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0082_pro_league_lineup_match_lock_persistence.removal.sql
       - name: Reverse Pro League roster persistence migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
