@@ -423,7 +423,7 @@ GRANT EXECUTE ON FUNCTION dna.read_pro_league_lineup_version(uuid,text)
   TO dna_app_runtime;
 GRANT EXECUTE ON FUNCTION dna.store_pro_league_match_lock(
   uuid,text,text,text,text,text,text,text,text,timestamptz,timestamptz,text,
-  text,text,text,text,text,text,text,text,text
+  text,text,text,text,text,text,text,text
 ) TO dna_app_runtime;
 GRANT EXECUTE ON FUNCTION dna.read_pro_league_match_lock(uuid,text)
   TO dna_app_runtime;
