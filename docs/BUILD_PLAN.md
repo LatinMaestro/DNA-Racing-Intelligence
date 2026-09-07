@@ -383,8 +383,13 @@ reasons and point-in-time evidence identities, keeps alternates outside the
 rostered count, carries the unresolved initial-roster counting policy explicitly,
 and independently revalidates the current roster caps at the database boundary.
 Migration `0081` and its server-only repository provide this boundary. See
-`docs/PHASE_6_PRO_LEAGUE_ROSTER_PERSISTENCE.md`. Versioned four-map lineup
-and match-lock persistence remains the next dependency-ready P6 slice.
+`docs/PHASE_6_PRO_LEAGUE_ROSTER_PERSISTENCE.md`. The second persistence slice
+adds complete reusable four-map lineup versions and immutable match locks bound
+to an exact roster version. Migration `0082` independently enforces owner
+isolation, roster membership, 168-line completeness and match-map policy, while
+the repository revalidates the exact published catalogue and fingerprints.
+See `docs/PHASE_6_PRO_LEAGUE_LINEUP_MATCH_LOCK_PERSISTENCE.md`. Protected
+Preview migration verification is next after reviewed merge.
 
 Implement the current roster authority:
 

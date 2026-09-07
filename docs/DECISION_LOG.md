@@ -1578,3 +1578,22 @@ After the private Pro League milestone, continue in this order:
   versions, multi-Core exchanges, future evidence and cross-owner access fail
   closed. This slice stores no raw API payload and performs no DNA roster or game
   action.
+
+## 2026-09-07 — P6 lineups and match locks freeze exact local strategy
+
+- A reusable lineup version binds to one immutable roster version and must
+  preserve all 168 published Bike race lines across Anchor, Glory, Measure and
+  Miracles. Each expanded line retains map, race number, exact race type,
+  distance, gate allocation, mapped Core and assignment provenance.
+- `same_type_and_distance` expansion remains confined to the selected map.
+  Domain reads revalidate the exact published catalogue; the database rejects
+  incomplete maps, duplicate lines, non-rostered Cores and authority drift.
+- A match lock freezes the exact lineup and roster versions, participating
+  Vaults, our side, schedule/lock time, home pick and denial, away pick, resolved
+  third map, match-specific third-map policy/source and any explicit fallback.
+- Both observed third-map policies remain available per match; neither becomes a
+  universal inferred rule. Map/roster submission remains manual and no game
+  action is added.
+- Migration `0082` uses forced owner RLS, function-only runtime access,
+  serializable immutable writes, repeatable-read reads, deterministic replay and
+  conflict failure. It stores no raw API payload.

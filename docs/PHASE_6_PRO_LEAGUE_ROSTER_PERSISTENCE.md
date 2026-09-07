@@ -1,6 +1,6 @@
 # Phase 6 Pro League roster persistence
 
-Status: first P6 persistence slice implemented for review
+Status: first P6 persistence slice merged; migration `0082` builds on it
 
 ## Boundary
 
@@ -59,7 +59,6 @@ chain, lifecycle smoke test, reverse migration and removal proof.
 
 ## Next slice
 
-Persist versioned four-map lineups and match-lock snapshots against an immutable
-roster version. The write boundary must reuse the published 42-race catalogue,
-expand `same_type_and_distance` only within the selected map, reject non-roster
-Cores and report both total and first-16 coverage.
+Migration `0082` now implements versioned four-map lineups and immutable match
+locks against these roster versions. After reviewed merge, apply both P6
+migrations to the protected private Preview with synthetic, reversible evidence.
