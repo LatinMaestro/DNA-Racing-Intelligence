@@ -1706,3 +1706,22 @@ After the private Pro League milestone, continue in this order:
   provisional, preserve population gaps, and require testing before lock. The
   output is an immutable draft only: it neither persists nor submits a roster
   and does not consume an annual substitution.
+
+## 2026-09-08 — draft Pro League mapping is exact-format and complete
+
+- Map every one of the 168 published Bike lines from a compliant draft roster,
+  selecting within the same race type and exact distance by population band,
+  intrinsic time, consistency, sample and freshness. Raw wins and Top-3 counts
+  remain supporting context and cannot alter the assignment order.
+- Use the supported same-type-plus-distance scope once per unique cell in each
+  map. Preserve all expanded race lines and their source assignment so the
+  owner can still apply an explicit single-race override during review.
+- Break genuinely equal evidence by lower assigned line load to avoid needless
+  concentration, then stable roster position and Core ID. Do not treat this as
+  authoritative ageing optimisation because current ageing and protected
+  Tournament status are not part of the exact-format generation.
+- Keep population-weak, hypothesis-only, stale and missing exact-format cells
+  provisional. A structural fallback completes the reviewable draft but never
+  disguises missing evidence or creates a confident recommendation.
+- Fully map Miracles for contingency coverage while keeping map pick/denial a
+  match-specific decision. The draft does not persist, submit or lock a lineup.
