@@ -1739,3 +1739,17 @@ After the private Pro League milestone, continue in this order:
 - Preserve the previous active generation by failing closed on short, extra,
   inconsistent or pointer-drifting evidence. Partial and staging generations
   remain invisible to website reads.
+
+## 2026-09-08 — the private Pro League page renders the verified draft read model
+
+- Connect the private Pro League route to the owner Vault and active evidence
+  generation through a frozen read-only repository facade. The route cannot
+  reach generation staging or publication methods.
+- Render the rules-compliant recommended roster, population coverage gaps and
+  every expanded assignment across the four published maps while preserving
+  the existing preparation and authority views.
+- Show explicit identity, persistence, absent-generation and unavailable-draft
+  states. Never blend a partial generation into the last-good website view.
+- Display Core names for owner use but suppress private Core IDs and evidence
+  generation IDs from the rendered page. This remains a review-only website
+  surface with no roster, lineup, match-lock or game submission action.

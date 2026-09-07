@@ -158,6 +158,11 @@ export type NeonProLeagueEvidenceGenerationRepository = Readonly<{
   ) => Promise<readonly ActiveProLeagueEvidenceRow[]>;
 }>;
 
+export type ProLeagueEvidenceReadRepository = Pick<
+  NeonProLeagueEvidenceGenerationRepository,
+  "readActiveGeneration" | "listActiveRows"
+>;
+
 function row(value: unknown, label: string): Row {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`Pro League evidence ${label} row is invalid.`);
@@ -623,4 +628,45 @@ export function createNeonProLeagueEvidenceGenerationRepository(
       });
     },
   };
+}
+
+type ProLeagueEvidenceReadEnvironment = Readonly<{
+  databaseUrl?: string;
+  databaseOwnerId?: string;
+  ownerId?: string;
+  runtimeRole?: string;
+}>;
+
+function configured(value: string | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  return normalized === "" ? null : normalized;
+}
+
+export function neonProLeagueEvidenceReadRepositoryFromEnvironment(
+  environment: ProLeagueEvidenceReadEnvironment,
+  sessionFactory?: NeonImportPersistenceSessionFactory,
+): ProLeagueEvidenceReadRepository | null {
+  const databaseUrl = configured(environment.databaseUrl);
+  const databaseOwnerId = configured(environment.databaseOwnerId);
+  const ownerId = configured(environment.ownerId);
+  const runtimeRole = configured(environment.runtimeRole);
+  if (
+    databaseUrl === null ||
+    databaseOwnerId === null ||
+    ownerId === null ||
+    runtimeRole === null
+  ) {
+    return null;
+  }
+  const repository = createNeonProLeagueEvidenceGenerationRepository({
+    databaseUrl,
+    databaseOwnerId,
+    ownerId,
+    runtimeRole,
+    ...(sessionFactory === undefined ? {} : { sessionFactory }),
+  });
+  return Object.freeze({
+    readActiveGeneration: repository.readActiveGeneration,
+    listActiveRows: repository.listActiveRows,
+  });
 }
