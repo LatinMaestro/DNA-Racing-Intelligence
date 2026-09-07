@@ -41,6 +41,19 @@ export type DnaOpenLabP5FirstBackfillPersistentAcquisitionResult = Readonly<{
   newlyPersistedLogicalRequestCount: number;
 }>;
 
+export type DnaOpenLabP5FirstBackfillPersistentAcquisitionProgress = Readonly<{
+  stage:
+    | "initialize"
+    | "replay"
+    | "api_request"
+    | "record"
+    | "family_complete"
+    | "complete";
+  family: DnaOpenLabP5FirstBackfillSourceFamily | null;
+  requestOrdinal: number;
+  endpoint: string | null;
+}>;
+
 const FAMILY_SCOPES = Object.freeze({
   finished_races: Object.freeze(["races"] as const),
   race_activity: Object.freeze(["races"] as const),
@@ -228,10 +241,19 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
   }) => Promise<DnaOpenLabP5FirstBackfillFamilyInventoryResult>;
   rateAuthorization?: DnaOpenLabP5PersistentCommissioningRateAuthorization;
   now?: () => string;
+  onProgress?: (
+    progress: DnaOpenLabP5FirstBackfillPersistentAcquisitionProgress,
+  ) => void;
 }): Promise<DnaOpenLabP5FirstBackfillPersistentAcquisitionResult> {
   verifyPool(input);
   const limits = approvedLimits(input.approvalPacket);
   const initialPoolRequestCount = totalPoolRequestCount(input.clientPool);
+  input.onProgress?.({
+    stage: "initialize",
+    family: null,
+    requestOrdinal: 0,
+    endpoint: null,
+  });
   const initialized = await input.coordinator.initialize();
   if (initialized.status === "complete") {
     if (
@@ -284,6 +306,12 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
       if (ordinal > limits.logicalRequestLimit) {
         return acquisitionError("logical request bound would be exceeded");
       }
+      input.onProgress?.({
+        stage: "replay",
+        family,
+        requestOrdinal: ordinal,
+        endpoint,
+      });
       const replay = await input.coordinator.replay(ordinal);
       if (replay !== null) {
         verifyReplay<T>({
@@ -334,6 +362,12 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
           );
         }
         try {
+          input.onProgress?.({
+            stage: "api_request",
+            family,
+            requestOrdinal: ordinal,
+            endpoint,
+          });
           response = await input.clientPool.execute({ scope, request });
           break;
         } catch (error) {
@@ -351,6 +385,12 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
         return acquisitionError("API response remained malformed");
       }
       const observedAt = timestamp(now());
+      input.onProgress?.({
+        stage: "record",
+        family,
+        requestOrdinal: ordinal,
+        endpoint,
+      });
       await input.coordinator.record({
         family,
         endpoint,
@@ -375,6 +415,12 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
       acquisitionError("family did not complete its terminal inventory");
     }
     families.push(result);
+    input.onProgress?.({
+      stage: "family_complete",
+      family,
+      requestOrdinal: requestOrdinal - 1,
+      endpoint: null,
+    });
   }
 
   verifyPool(input);
@@ -383,6 +429,12 @@ export async function runDnaOpenLabP5FirstBackfillPersistentAcquisition(input: {
       "acquisition did not reproduce the measured request count",
     );
   }
+  input.onProgress?.({
+    stage: "complete",
+    family: null,
+    requestOrdinal: requestOrdinal - 1,
+    endpoint: null,
+  });
   const persistence = await input.coordinator.complete();
   if (
     persistence.status !== "complete" ||
