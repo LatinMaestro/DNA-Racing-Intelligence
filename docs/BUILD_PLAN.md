@@ -362,14 +362,29 @@ persistent writes. The owner approved the resulting 17,464-receipt packet on
 7 September 2026 and raised the absolute fail-closed commissioning ceiling to
 $2.000000; the measured projection remains $0.212404. Migration `0080` binds
 both terminal evidence hashes, the approval hash, exact family/ordinal tail and
-the cost ceiling while preserving every earlier authority hash. The next
-dependency is exact-head review, private Preview migration verification and
-bounded terminal persistence. P6 begins only after complete six-family
-reconciliation; no generation is published by P5.
+the cost ceiling while preserving every earlier authority hash. Protected run
+`34100143132` then completed the authorized tail and its post-write inspection:
+17,464 immutable receipts, 874,370,990 R2 bytes, the exact six measured family
+counts, one approved omission and no last-good publication. Preview Neon used
+28,082,176 bytes. The workflow's final exact-main guard reported repository
+drift after the write because `main` advanced during the run; the independently
+completed reconciliation remained valid and no additional API or provider
+write was authorized. P5 is complete. Its temporary 150-request commissioning
+lane is retired and all subsequent operation returns to the 30 aggregate
+requests/minute default.
 
 Exit: technically safe API data path ready for owner-approved real Preview persistence.
 
 ## P6 — Current Pro League domain, validator and persistence
+
+The first persistence slice now defines immutable, owner-isolated roster
+versions and an append-only annual substitution ledger. It freezes member roles,
+reasons and point-in-time evidence identities, keeps alternates outside the
+rostered count, carries the unresolved initial-roster counting policy explicitly,
+and independently revalidates the current roster caps at the database boundary.
+Migration `0081` and its server-only repository provide this boundary. See
+`docs/PHASE_6_PRO_LEAGUE_ROSTER_PERSISTENCE.md`. Versioned four-map lineup
+and match-lock persistence remains the next dependency-ready P6 slice.
 
 Implement the current roster authority:
 
