@@ -1,10 +1,10 @@
-name: Pro League roster version persistence migration
+name: Pro League lineup and match-lock persistence migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/pro-league-roster-version-persistence-migration.yml"
+      - ".github/workflows/pro-league-lineup-match-lock-persistence-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,23 +40,15 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run Pro League roster persistence smoke test
+      - name: Run Pro League lineup and match-lock smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0081_pro_league_roster_version_persistence.smoke.sql
-      - name: Reverse dependent Pro League lineup and match-lock migration
+          database/migrations/0082_pro_league_lineup_match_lock_persistence.smoke.sql
+      - name: Reverse Pro League lineup and match-lock migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0082_pro_league_lineup_match_lock_persistence.down.sql
-      - name: Verify dependent Pro League lineup and match-lock removal
+      - name: Verify Pro League lineup and match-lock removal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0082_pro_league_lineup_match_lock_persistence.removal.sql
-      - name: Reverse Pro League roster persistence migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0081_pro_league_roster_version_persistence.down.sql
-      - name: Verify Pro League roster persistence removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0081_pro_league_roster_version_persistence.removal.sql
