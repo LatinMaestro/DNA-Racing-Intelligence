@@ -1813,3 +1813,15 @@ After the private Pro League milestone, continue in this order:
 - Require fresh official `pair_validate`, `pair_info` and applicable Arena state
   at owner decision time. Gate E remains held, and the website cannot recommend
   or execute a splice.
+
+## 2026-09-08 — private Pro League breeding reads suppress pair identity
+
+- Load the held breeding objective inputs only through the authenticated
+  owner-scoped ranking repository and only after a valid active-generation
+  roster draft exists.
+- Reject historical breeding performance cutoffs later than the active Pro
+  League evidence cutoff. Preserve separate Arena/current validation authority.
+- Remove ranking IDs, pair IDs and parent Core IDs from the website projection;
+  render ordinal research pairs and bounded non-identifying evidence only.
+- Treat missing or invalid breeding persistence as an optional-section failure.
+  The last-good roster, lineup, Discovery queue and coverage gaps remain visible.
