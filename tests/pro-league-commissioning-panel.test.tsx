@@ -206,6 +206,58 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      breedingObjectives: {
+        status: "connected",
+        evidenceCutoffAt: "2026-09-01T00:00:00.000Z",
+        performanceDataCurrentThrough: "2026-09-01T00:00:00.000Z",
+        arenaDataCurrentThrough: null,
+        diagnostics: {
+          priorityGapCount: 1,
+          researchCandidateCount: 1,
+          waitingObjectiveCount: 0,
+          staleOrUnknownRankingCount: 0,
+          nonBikePairRowCount: 0,
+        },
+        decisionSupportOnly: true,
+        recommendationAllowed: false,
+        automaticPairValidationAllowed: false,
+        spliceExecutionAllowed: false,
+        objectives: [
+          {
+            objectiveId: "1v1:1000",
+            raceType: "1v1",
+            distanceMetres: 1000,
+            mapIds: ["map-1"],
+            raceLineCount: 4,
+            gapPriority: "high",
+            gapStatus: "unproven",
+            status: "research_candidates",
+            warnings: ["GATE_E_NOT_PASSED"],
+            candidates: [
+              {
+                candidateNumber: 1,
+                source: "owned_owned",
+                evidenceConfidence: "high",
+                predictedOffspringClass: "Freak",
+                predictedOffspringElement: "Earth",
+                predictedOffspringFNumber: 18,
+                exceptionalUpsideBasisPoints: 2000,
+                strongerOrExceptionalBasisPoints: 6000,
+                vaultFitBasisPoints: 8000,
+                researchRoles: ["vault_gap", "elite_upside"],
+                performanceEvidenceScope: "bike_exact_distance_only",
+                proLeagueRaceTypeEvidence: "unavailable",
+                officialPairValidation: "required_at_decision_time",
+                officialPairInfo: "required_at_decision_time",
+                recommendationAllowed: false,
+                spliceExecutionAllowed: false,
+                pairId: "private-pair-id",
+                parentCoreIds: ["private-parent-a", "private-parent-b"],
+              },
+            ],
+          },
+        ],
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -220,12 +272,17 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Adjusted odds");
     expect(markup).toContain("Open Bike race opportunities");
     expect(markup).toContain("Pro League Discovery experiments");
+    expect(markup).toContain("Pro League breeding research");
+    expect(markup).toContain("Research pair 1");
+    expect(markup).toContain("Race-type pair evidence unavailable");
     expect(markup).toContain("7/10 exact-distance races");
     expect(markup).toContain("Half-full Bike Race");
     expect(markup).toContain("cannot yet be matched");
     expect(markup).toContain("82");
     expect(markup).not.toContain("private-wallet");
     expect(markup).not.toContain(privateCoreId);
+    expect(markup).not.toContain("private-pair-id");
+    expect(markup).not.toContain("private-parent");
     expect(markup).not.toContain("private-race-456");
     expect(markup).not.toContain(state.evidence!.generationId);
   });
