@@ -9,9 +9,8 @@ const d = enabled ? describe : describe.skip;
 const LATIN_VAULT = "0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d";
 const LATIN_TEAM = "953adec8ad";
 const BLACK_VAULT = "0xa95db43f2f3e59d9fb6db54b4e98fc714bced07b";
-const BLACK_TEAM = "68082d17da";
 const ES_BASE = "https://api.dnaracing.run/fbike/esports";
-const START = "2026-09-06T14:00:00.000Z"; // 7 Sep 00:00 Brisbane
+const START = "2026-09-06T14:00:00.000Z";
 const END = "2026-09-07T14:00:00.000Z";
 const CBS = [10,12,14,16,18,20,22] as const;
 type Rec = Record<string, unknown>;
@@ -21,7 +20,6 @@ function req(n: string) { const v = process.env[n]?.trim() ?? ""; if (!v) throw 
 function chunks<T>(a: readonly T[], n: number) { const o:T[][]=[]; for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n) as T[]); return o; }
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 async function post(path:string, body:Rec){ const r=await fetch(`${ES_BASE}${path}`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json","User-Agent":"DNA-Racing-Intelligence read-only post-day audit"},body:JSON.stringify(body)}); const text=await r.text(); let json:unknown=null; try{json=JSON.parse(text)}catch{} return {status:r.status,json,text:json===null?text.slice(0,1500):null}; }
-function resultRows(v:unknown):Rec[]{ const r=rec(v); return Array.isArray(r.result)?r.result.map(rec):[]; }
 async function hstats(ids:number[]){ const out=[]; for(const batch of chunks(ids,12)){ const rows=await Promise.all(batch.map(async id=>({hid:id,...await post("/hstats",{hid:id,season:"all"})}))); out.push(...rows); await sleep(160);} return out; }
 
 d("TEMPORARY post-day Esports roster evaluation - DO NOT MERGE",()=>{it("pulls current roster, today's events, race stars, telemetry and Black Sheep comparison",async()=>{
@@ -32,7 +30,8 @@ d("TEMPORARY post-day Esports roster evaluation - DO NOT MERGE",()=>{it("pulls c
  const roster = Array.isArray(rec(rec(latinTeam.json).result).cores_list) ? (rec(rec(latinTeam.json).result).cores_list as unknown[]).map(hid).filter((x):x is number=>x!==null) : [];
  const blackRoster = Array.isArray(rec(rec(blackTeam.json).result).cores_list) ? (rec(rec(blackTeam.json).result).cores_list as unknown[]).map(hid).filter((x):x is number=>x!==null) : [];
  expect(roster).toHaveLength(25); expect(blackRoster.length).toBeGreaterThanOrEqual(12);
- const historyRows=resultRows(history.json); const today=historyRows.filter(x=>x.stage==="finished"&&typeof x.finished_at==="string"&&Date.parse(String(x.finished_at))>=Date.parse(START)&&Date.parse(String(x.finished_at))<Date.parse(END)).sort((a,b)=>Date.parse(String(a.start_time))-Date.parse(String(b.start_time)));
+ const historyResult=rec(rec(history.json).result); const historyRows=Array.isArray(historyResult.rows)?historyResult.rows.map(rec):[];
+ const today=historyRows.filter(x=>x.stage==="finished"&&typeof x.finished_at==="string"&&Date.parse(String(x.finished_at))>=Date.parse(START)&&Date.parse(String(x.finished_at))<Date.parse(END)).sort((a,b)=>Date.parse(String(a.start_time))-Date.parse(String(b.start_time)));
  expect(today.length).toBeGreaterThan(0);
  const events=[]; const rids=new Map<string,DnaRaceIdentifier>();
  for(const row of today){ const eventId=String(row.event_id); const er=await post("/event",{event_id:eventId}); const e=rec(rec(er.json).result); events.push({eventId,row,response:er}); const ma=rec(e.map_association); for(const slot of Object.values(ma)){ const races=rec(rec(slot).races); for(const rr of Object.values(races)){ const rid0=rec(rr).rid; if(typeof rid0==="string"||typeof rid0==="number") rids.set(String(rid0),rid0); } } await sleep(100); }
