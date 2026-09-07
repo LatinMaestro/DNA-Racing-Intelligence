@@ -241,12 +241,14 @@ describe("DNA Open Lab P5 persistent first-backfill acquisition", () => {
   it("persists the exact six-family sequence and completes at measured bounds", async () => {
     const clientPool = pool();
     const persisted = coordinator();
+    const progress = vi.fn();
     const result = await runDnaOpenLabP5FirstBackfillPersistentAcquisition({
       clientPool: clientPool.pool,
       approvalPacket: approval(),
       coordinator: persisted.coordinator,
       measureFamily: measurer(),
       now: () => observedAt,
+      onProgress: progress,
     });
 
     expect(result).toMatchObject({
@@ -263,6 +265,18 @@ describe("DNA Open Lab P5 persistent first-backfill acquisition", () => {
       DNA_OPEN_LAB_P5_FIRST_BACKFILL_SOURCE_FAMILIES,
     );
     expect(persisted.complete).toHaveBeenCalledOnce();
+    expect(progress).toHaveBeenCalledWith({
+      stage: "api_request",
+      family: "finished_races",
+      requestOrdinal: 1,
+      endpoint: "finished_races.endpoint",
+    });
+    expect(progress).toHaveBeenLastCalledWith({
+      stage: "complete",
+      family: null,
+      requestOrdinal: 6,
+      endpoint: null,
+    });
   });
 
   it("replays committed and R2-first responses without another API call", async () => {

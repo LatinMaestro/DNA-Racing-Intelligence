@@ -17,9 +17,13 @@ import {
 import {
   DNA_OPEN_LAB_P5_PERSISTENT_COMMISSIONING_REQUESTS_PER_MINUTE,
   runDnaOpenLabP5FirstBackfillPersistentAcquisition,
+  type DnaOpenLabP5FirstBackfillPersistentAcquisitionProgress,
   type DnaOpenLabP5PersistentCommissioningRateAuthorization,
 } from "@/lib/dna-open-lab-p5-first-backfill-persistent-acquisition";
-import { createDnaOpenLabV1Client } from "@/lib/dna-open-lab-v1-client";
+import {
+  DnaOpenLabApiError,
+  createDnaOpenLabV1Client,
+} from "@/lib/dna-open-lab-v1-client";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaOpenLabP5RecoverySafetyInspector } from "@/lib/neon-dna-open-lab-p5-recovery-safety-port";
 
@@ -301,6 +305,37 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   });
 }
 
+function safeFailureEvidence(error: unknown): Readonly<{
+  failureComponent: string;
+  failureKind: string;
+  httpStatus: number | null;
+  messageSha256: string;
+}> {
+  const message = error instanceof Error ? error.message : "non_error_throw";
+  const failureComponent = message.startsWith(
+    "DNA Open Lab P5 persistent acquisition:",
+  )
+    ? "acquisition_guard"
+    : message.startsWith("DNA Open Lab P5 first backfill persistence:")
+      ? "persistence_guard"
+      : message === "DNA Open Lab P5 first backfill family adapter failed."
+        ? "family_adapter_guard"
+        : error instanceof DnaOpenLabApiError
+          ? "dna_api"
+          : "unknown";
+  return Object.freeze({
+    failureComponent,
+    failureKind:
+      error instanceof DnaOpenLabApiError
+        ? error.kind
+        : error instanceof Error && /^(?:Abort|Timeout)Error$/u.test(error.name)
+          ? error.name
+          : "unclassified",
+    httpStatus: error instanceof DnaOpenLabApiError ? error.httpStatus : null,
+    messageSha256: createHash("sha256").update(message, "utf8").digest("hex"),
+  });
+}
+
 describeConnected("hosted P5 persistent private Preview first backfill", () => {
   it("preflights, executes or inspects the exact approved checkpoint", async () => {
     try {
@@ -378,14 +413,59 @@ describeConnected("hosted P5 persistent private Preview first backfill", () => {
               DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
             ledger: ledger(input),
           });
-        const result = await runDnaOpenLabP5FirstBackfillPersistentAcquisition({
-          clientPool,
-          approvalPacket:
-            DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
-          coordinator,
-          measureFamily: adapter.measureFamily,
-          rateAuthorization: rateAuthorization(),
-        });
+        let progress: DnaOpenLabP5FirstBackfillPersistentAcquisitionProgress =
+          Object.freeze({
+            stage: "initialize",
+            family: null,
+            requestOrdinal: 0,
+            endpoint: null,
+          });
+        let result: Awaited<
+          ReturnType<typeof runDnaOpenLabP5FirstBackfillPersistentAcquisition>
+        >;
+        try {
+          result = await runDnaOpenLabP5FirstBackfillPersistentAcquisition({
+            clientPool,
+            approvalPacket:
+              DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+            coordinator,
+            measureFamily: adapter.measureFamily,
+            rateAuthorization: rateAuthorization(),
+            onProgress: (value) => {
+              progress = value;
+            },
+          });
+        } catch (error) {
+          const poolSnapshot = clientPool.snapshot();
+          const persistence = coordinator.snapshot();
+          await writeJson(join(input.runnerTemp, EXECUTION_REPORT), {
+            schemaVersion: 1,
+            evidenceKind: "dna_open_lab_p5_persistent_first_backfill_execution",
+            providerScope: "private_preview",
+            status: "failed_closed",
+            failure: safeFailureEvidence(error),
+            progress,
+            logicalRequestCount: persistence?.logicalRequestCount ?? 0,
+            retainedR2Bytes: persistence?.retainedR2Bytes ?? 0,
+            omittedIdentityObservationCount:
+              persistence?.omittedIdentityObservationCount ?? 0,
+            apiRequestAttemptCount: poolSnapshot.lanes.reduce(
+              (total, lane) => total + lane.requestCount,
+              0,
+            ),
+            rateLimitedResponseCount: poolSnapshot.lanes.reduce(
+              (total, lane) => total + lane.rateLimitedCount,
+              0,
+            ),
+            independentRateBucketsEnabled:
+              poolSnapshot.independentRateBucketsEnabled,
+            publicationPerformed: false,
+            productionChangesAllowed: false,
+            rawPayloadIncluded: false,
+            secretMaterialIncluded: false,
+          });
+          throw error;
+        }
         const poolSnapshot = clientPool.snapshot();
         await writeJson(join(input.runnerTemp, EXECUTION_REPORT), {
           schemaVersion: 1,

@@ -36,6 +36,7 @@ describe("DNA Open Lab P5 persistent first-backfill workflow", () => {
     expect(workflow).toContain("steps.preflight.outcome == 'success'");
     expect(workflow).toContain("steps.inspect.outcome == 'success'");
     expect(workflow).toContain("steps.exact_main.outcome == 'success'");
+    expect(workflow).toContain("always() &&");
     expect(workflow).toContain(
       "DNA_OPEN_LAB_P5_PERSISTENT_FIRST_BACKFILL_REQUESTS_PER_MINUTE:",
     );

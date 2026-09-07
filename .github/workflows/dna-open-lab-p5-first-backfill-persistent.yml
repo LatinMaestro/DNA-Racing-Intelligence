@@ -204,6 +204,7 @@ jobs:
           fi
       - name: Upload sanitized persistent-event evidence
         if: >-
+          always() &&
           steps.preflight.outcome == 'success' &&
           steps.inspect.outcome == 'success' &&
           steps.exact_main.outcome == 'success'
