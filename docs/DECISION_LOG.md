@@ -1537,3 +1537,44 @@ After the private Pro League milestone, continue in this order:
   `splice_arena` ordinals 17,462–17,464. No additional identity omission is
   authorized. Completion requires the exact six-family counts and immutable
   receipt reconciliation before P6 may begin.
+
+## 2026-09-07 — P5 terminal persistence is complete
+
+- Protected run `34100143132` persisted only the eight owner-authorized terminal
+  residual requests and completed the post-write inspection on exact execution
+  head `a8ae85dd61fafd8246f502ae17a5d0e0fd9eed62`.
+- The durable Preview checkpoint is complete at 17,464 receipts and 874,370,990
+  private immutable R2 bytes. Exact family counts are 17,369 finished-race,
+  seven race-activity, one token-price, four Vault-identity, 80 current-Core and
+  three Splice Arena receipts. The single approved unidentified race observation
+  remains quarantined and omitted from canonical facts.
+- Preview Neon used 28,082,176 bytes. No candidate or last-good generation was
+  published, and no Production, Vercel, public, wallet, roster or game action
+  occurred.
+- `main` advanced while the protected workflow was running, so its final
+  exact-main guard correctly made the overall workflow conclusion red. The
+  acquisition and independent post-write reconciliation had already succeeded;
+  no completed request is repeated and the exact terminal state remains the
+  provider authority.
+- P5 is closed. Retire the temporary 150 aggregate requests/minute commissioning
+  lane and use the conservative 30 aggregate requests/minute website default.
+  Exact terminal rate-limit counters were not retained after the artifact was
+  withheld by the main-drift guard, so no 429 or header claim is inferred.
+
+## 2026-09-07 — P6 roster versions and substitutions use local immutable authority
+
+- Migration `0081` stores immutable owner-local Pro League roster versions,
+  separate alternates and an append-only annual substitution ledger under forced
+  owner RLS and function-only runtime access.
+- Each version freezes the current ruleset and owner strategy IDs, explicit
+  initial-roster counting interpretation, evidence cutoff, member roles,
+  selection reasons and point-in-time evidence identities. Current API ownership
+  may inform validation but cannot overwrite historical local strategy.
+- Independently enforce the 12–25 named-Core roster, percentage-rounded female
+  minimum, element and Genesis caps, F-number constraints, contiguous version
+  numbering and ten-substitution annual ceiling at both domain and database
+  boundaries.
+- Exact replay is idempotent; conflicting fingerprints, non-consecutive roster
+  versions, multi-Core exchanges, future evidence and cross-owner access fail
+  closed. This slice stores no raw API payload and performs no DNA roster or game
+  action.
