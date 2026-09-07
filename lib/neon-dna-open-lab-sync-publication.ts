@@ -9,6 +9,13 @@ import type { AdaptedCoreDetailsRow } from "../domain/source-adapters";
 import type { DnaOpenLabEvidence } from "./dna-open-lab-v1-adapters";
 import type {
   CanonicalActiveRaceSnapshot,
+  CanonicalCoreAttachedAssetsSnapshot,
+  CanonicalCoreListingSnapshot,
+  CanonicalCoreOwnerSnapshot,
+  CanonicalCorePowerSnapshot,
+  CanonicalCoreRacingStatsSnapshot,
+  CanonicalCoreSplicingSnapshot,
+  CanonicalCoreStaminaSnapshot,
   CanonicalRaceFillSnapshot,
 } from "./dna-open-lab-v1-adapters";
 import {
@@ -66,6 +73,9 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
   readServingCurrentRaces: (input: {
     ownerId: string;
   }) => Promise<DnaOpenLabServingCurrentRaces>;
+  readServingSupplementalCores: (input: {
+    ownerId: string;
+  }) => Promise<DnaOpenLabServingSupplementalCores>;
   readServingCurrentStateEvidenceIndex: (input: {
     ownerId: string;
     validatedAt: string;
@@ -83,6 +93,34 @@ export type DnaOpenLabServingCurrentRaces = Readonly<{
   generationId: string | null;
   activeRaces: readonly DnaCurrentRaceMaterializationRow<CanonicalActiveRaceSnapshot>[];
   raceFills: readonly DnaCurrentRaceMaterializationRow<CanonicalRaceFillSnapshot>[];
+}>;
+
+export type DnaOpenLabServingSupplementalCore = Readonly<{
+  generationId: string;
+  sourceCoreId: string;
+  family:
+    | "racing_stats"
+    | "power"
+    | "listing"
+    | "attached_assets"
+    | "owner"
+    | "stamina"
+    | "splicing";
+  observedAt: string;
+  rawEvidenceSha256: string;
+  canonical:
+    | CanonicalCoreRacingStatsSnapshot
+    | CanonicalCorePowerSnapshot
+    | CanonicalCoreListingSnapshot
+    | CanonicalCoreAttachedAssetsSnapshot
+    | CanonicalCoreOwnerSnapshot
+    | CanonicalCoreStaminaSnapshot
+    | CanonicalCoreSplicingSnapshot;
+}>;
+
+export type DnaOpenLabServingSupplementalCores = Readonly<{
+  generationId: string | null;
+  rows: readonly DnaOpenLabServingSupplementalCore[];
 }>;
 
 const SET_OWNER_SCOPE_SQL =
@@ -281,6 +319,13 @@ const READ_SERVING_RACE_FILLS_SQL = [
   "SELECT generation_id::text, source_race_id, observed_at, raw_evidence_sha256, canonical",
   "FROM dna.read_dna_open_lab_serving_race_fills($1::uuid)",
   "ORDER BY source_race_id",
+].join("\n");
+
+const READ_SERVING_SUPPLEMENTAL_CORES_SQL = [
+  "SELECT generation_id::text, source_core_id::text, family, observed_at,",
+  "  raw_evidence_sha256, canonical",
+  "FROM dna.read_dna_open_lab_serving_supplemental_cores($1::uuid)",
+  "ORDER BY family, source_core_id",
 ].join("\n");
 
 const READ_SERVING_CURRENT_STATE_EVIDENCE_INDEX_SQL = [
@@ -518,6 +563,56 @@ function servingRaceRow<
     observedAt: timestamp(row.observed_at, "observed_at"),
     rawEvidenceSha256,
     canonical: canonical as T,
+  });
+}
+
+const supplementalSourceType = Object.freeze({
+  racing_stats: "core_racing_stats_snapshot",
+  power: "core_power_snapshot",
+  listing: "core_listing_snapshot",
+  attached_assets: "core_attached_assets_snapshot",
+  owner: "core_owner_snapshot",
+  stamina: "core_stamina_snapshot",
+  splicing: "core_splicing_snapshot",
+} as const);
+
+function servingSupplementalCore(
+  rowValue: unknown,
+): DnaOpenLabServingSupplementalCore {
+  const row = record(rowValue, "DNA Open Lab serving supplemental Core");
+  const sourceCoreId = positiveSafeIntegerText(
+    row.source_core_id,
+    "source_core_id",
+  );
+  const family = text(row.family, "family");
+  if (!(family in supplementalSourceType)) {
+    throw new Error("DNA Open Lab supplemental Core family is invalid");
+  }
+  const typedFamily = family as keyof typeof supplementalSourceType;
+  const canonical = jsonRecord(row.canonical, "canonical");
+  if (
+    canonical.sourceType !== supplementalSourceType[typedFamily] ||
+    canonical.sourceCoreId !== sourceCoreId
+  ) {
+    throw new Error("DNA Open Lab supplemental Core authority is invalid");
+  }
+  const rawEvidenceSha256 = text(
+    row.raw_evidence_sha256,
+    "raw_evidence_sha256",
+  );
+  if (!/^[a-f0-9]{64}$/u.test(rawEvidenceSha256)) {
+    throw new Error("raw_evidence_sha256 is invalid");
+  }
+  return Object.freeze({
+    generationId: uuid(
+      text(row.generation_id, "generation_id"),
+      "generation_id",
+    ),
+    sourceCoreId,
+    family: typedFamily,
+    observedAt: timestamp(row.observed_at, "observed_at"),
+    rawEvidenceSha256,
+    canonical: canonical as DnaOpenLabServingSupplementalCore["canonical"],
   });
 }
 
@@ -1051,6 +1146,45 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
       });
     },
 
+    async readServingSupplementalCores(request) {
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          const stateResult = state(
+            await client.query(READ_STATE_SQL, [databaseOwnerId]),
+          );
+          const result = await client.query(
+            READ_SERVING_SUPPLEMENTAL_CORES_SQL,
+            [databaseOwnerId],
+          );
+          const rows = result.rows.map(servingSupplementalCore);
+          if (stateResult.servingGenerationId === null) {
+            if (rows.length !== 0) {
+              throw new Error(
+                "DNA Open Lab supplemental Core rows exist without a serving generation",
+              );
+            }
+            return Object.freeze({
+              generationId: null,
+              rows: Object.freeze([]),
+            });
+          }
+          for (const row of rows) {
+            if (row.generationId !== stateResult.servingGenerationId) {
+              throw new Error(
+                "DNA Open Lab supplemental Core serving generation is inconsistent",
+              );
+            }
+          }
+          return Object.freeze({
+            generationId: stateResult.servingGenerationId,
+            rows: Object.freeze(rows),
+          });
+        },
+      });
+    },
+
     async readServingCurrentStateEvidenceIndex(request) {
       const validatedAt = timestamp(request.validatedAt, "validatedAt");
       return transaction({
@@ -1067,4 +1201,37 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
       });
     },
   });
+}
+
+export type DnaOpenLabSupplementalCoreReadRepository = Pick<
+  NeonDnaOpenLabSyncPublicationRepository,
+  "readServingSupplementalCores"
+>;
+
+export function neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    runtimeRole?: string;
+  }>,
+): DnaOpenLabSupplementalCoreReadRepository | null {
+  const databaseUrl = environment.databaseUrl?.trim() ?? "";
+  const databaseOwnerId = environment.databaseOwnerId?.trim() ?? "";
+  const runtimeRole = environment.runtimeRole?.trim() ?? "";
+  if (databaseUrl === "" || databaseOwnerId === "" || runtimeRole === "") {
+    return null;
+  }
+  try {
+    const repository = createNeonDnaOpenLabSyncPublicationRepository({
+      databaseUrl,
+      databaseOwnerId,
+      runtimeRole,
+    });
+    return Object.freeze({
+      readServingSupplementalCores:
+        repository.readServingSupplementalCores.bind(repository),
+    });
+  } catch {
+    return null;
+  }
 }

@@ -460,9 +460,13 @@ benchmark/profile rows in replay-safe bounded batches, verify exact counts,
 contiguous ordinals and a deterministic payload digest, and atomically advance
 an owner-isolated last-good pointer. Private reads expose only that complete
 active generation; partial or stale generations remain invisible. See
-`PHASE_7_PRO_LEAGUE_EVIDENCE_GENERATION.md`. The next slice is API-backed roster
-candidate/profile assembly from this evidence plus generation-bound current
-owned-Core state.
+`PHASE_7_PRO_LEAGUE_EVIDENCE_GENERATION.md`. The active generation now feeds a
+quality-first, rule-valid roster and complete four-map draft on the private
+page. The same page reads the serving supplemental Core generation for the
+selected roster and presents current power, adjusted odds, variance, API race
+count, stamina, listing and attached assets separately from historical ranking
+evidence. Missing current families fail closed; owner values and raw payloads
+are never rendered.
 
 Add separately presented current API dimensions where available:
 

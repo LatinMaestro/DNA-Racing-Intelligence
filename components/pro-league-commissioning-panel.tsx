@@ -35,6 +35,18 @@ function timestamp(value: string): string {
   }).format(parsed);
 }
 
+function sourceMetric(value: unknown): string {
+  if (value === null || value === undefined) return "Unavailable";
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  return "Available";
+}
+
 function SummaryCard({
   label: cardLabel,
   value,
@@ -123,6 +135,84 @@ export function ProLeagueCommissioningPanel({
           value={selected?.length ?? "Unavailable"}
         />
       </div>
+
+      {state.currentState === undefined ? null : state.currentState.status !==
+        "connected" ? (
+        <div className="rounded-xl border border-[var(--border)] p-5">
+          <h3 className="font-semibold">Current API Core state unavailable</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            The historical exact-format recommendation remains usable. Current
+            power, odds, variance, stamina, assets, listing, owner and splicing
+            observations stay hidden until one complete last-good API generation
+            is available.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-lg font-semibold">Current API dimensions</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Last observed {timestamp(state.currentState.latestObservedAt!)}.
+            These point-in-time fields are presented separately and do not alter
+            the historical performance ranking until predictive lift is
+            validated.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                <tr>
+                  <th className="pb-2 pr-4">Core</th>
+                  <th className="pb-2 pr-4">Bike power</th>
+                  <th className="pb-2 pr-4">Adjusted odds</th>
+                  <th className="pb-2 pr-4">Variance</th>
+                  <th className="pb-2 pr-4">API races</th>
+                  <th className="pb-2 pr-4">Stamina</th>
+                  <th className="pb-2 pr-4">Listing</th>
+                  <th className="pb-2">Assets</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {state.currentState.cores.map((core, index) => (
+                  <tr key={`${core.displayName}/${String(index)}`}>
+                    <td className="py-2 pr-4 font-medium">
+                      {core.displayName}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {sourceMetric(core.bikePower.powerSourceValue)}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {sourceMetric(core.bikePower.adjustedOddsSourceValue)}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {sourceMetric(core.bikePower.varianceSourceValue)}
+                    </td>
+                    <td className="py-2 pr-4">{core.bikePower.raceCount}</td>
+                    <td className="py-2 pr-4">
+                      {core.stamina.current}/{core.stamina.maximum}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {core.listing.priceSourceValue === undefined
+                        ? "Not listed"
+                        : `${core.listing.priceSourceValue} ${
+                            core.listing.paymentAssetSourceValue ?? ""
+                          }`.trim()}
+                    </td>
+                    <td className="py-2">
+                      {core.bikeSkinAttached || core.trailsAttached
+                        ? "Attached"
+                        : "None observed"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+            Racing statistics, owner state and splicing state are also verified
+            for every listed roster Core. Wallet addresses and raw payloads are
+            never rendered.
+          </p>
+        </div>
+      )}
 
       {state.connectionStatus === "draft_unavailable" ||
       selected === undefined ? (

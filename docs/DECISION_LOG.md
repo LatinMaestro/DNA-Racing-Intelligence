@@ -1753,3 +1753,18 @@ After the private Pro League milestone, continue in this order:
 - Display Core names for owner use but suppress private Core IDs and evidence
   generation IDs from the rendered page. This remains a review-only website
   surface with no roster, lineup, match-lock or game submission action.
+
+## 2026-09-08 — current API Core state stays separate from performance ranking
+
+- Read supplemental Core dimensions only through the owner-scoped function for
+  the active last-good current-state generation. Verify every returned row is
+  generation-consistent and that each recommended roster Core has exactly one
+  racing-stat, power, listing, attached-asset, owner, stamina and splicing row.
+- Present Bike power, adjusted odds, variance, API race count, stamina, listing
+  and asset presence as timestamped current observations. Do not add them to the
+  historical exact-format ranking until their predictive lift is validated.
+- Suppress source Core IDs, wallet/owner values and raw canonical payloads from
+  the page. Show only the named roster Core and bounded operational fields.
+- If current-state persistence is absent, no serving generation exists, or any
+  selected Core family is incomplete, retain the historical last-good roster
+  recommendation and withhold the incomplete current dimensions.

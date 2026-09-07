@@ -11,6 +11,12 @@ import {
   type ProLeagueEvidenceReadRepository,
 } from "@/lib/pro-league-active-vault-evidence-service";
 import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
+import {
+  invalidProLeagueCurrentCoreState,
+  loadProLeagueCurrentCoreState,
+  type ProLeagueCurrentCoreState,
+} from "@/lib/pro-league-current-core-state-service";
+import type { DnaOpenLabSupplementalCoreReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -34,6 +40,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   evidence: ProLeagueDraftCommissioningEvidenceSummary | null;
   roster: ProLeagueDraftRosterRecommendation | null;
   lineup: ProLeagueDraftLineupRecommendation | null;
+  currentState?: ProLeagueCurrentCoreState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -68,6 +75,7 @@ export async function loadProLeagueDraftCommissioningState(
     rosteredCoreIds: readonly string[];
     vaultRepository: OwnerVaultCatalogueRepository;
     evidenceRepository: ProLeagueEvidenceReadRepository | null;
+    currentStateRepository?: DnaOpenLabSupplementalCoreReadRepository | null;
     pageSize?: number;
     maximumSearchNodes?: number;
   }>,
@@ -124,6 +132,17 @@ export async function loadProLeagueDraftCommissioningState(
       lineup: null,
     });
   }
+  const selectedCores = roster.draftRoster.members
+    .filter(({ disposition }) => disposition === "rostered")
+    .map(({ core }) => ({
+      sourceCoreId: core.coreId,
+      displayName: core.displayName,
+    }));
+  const currentState = await loadProLeagueCurrentCoreState({
+    ownerId: authenticatedOwnerId,
+    selectedCores,
+    repository: input.currentStateRepository ?? null,
+  }).catch(() => invalidProLeagueCurrentCoreState());
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
@@ -134,5 +153,6 @@ export async function loadProLeagueDraftCommissioningState(
     evidence,
     roster,
     lineup,
+    currentState,
   });
 }
