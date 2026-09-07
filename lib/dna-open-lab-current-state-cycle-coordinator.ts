@@ -88,6 +88,7 @@ export function createDnaCurrentStateScheduledCycleAuthority(input: {
   evaluatedAt: string;
   plan: DnaCurrentStateSyncPlan;
   priorIndex: DnaCurrentStateEvidenceIndex | null;
+  maximumAggregateRequestsPerMinute?: number;
 }): DnaCurrentStateScheduledCycleAuthority {
   let cachedEvidenceObservedAt: Partial<
     Record<DnaCurrentStateAcquisitionGroup, string>
@@ -124,6 +125,12 @@ export function createDnaCurrentStateScheduledCycleAuthority(input: {
     schedule: createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt: input.evaluatedAt,
       plan: input.plan,
+      ...(input.maximumAggregateRequestsPerMinute === undefined
+        ? {}
+        : {
+            maximumAggregateRequestsPerMinute:
+              input.maximumAggregateRequestsPerMinute,
+          }),
       ...(checkpoints === undefined ? {} : { checkpoints }),
     }),
     cachedEvidenceObservedAt: Object.freeze(cachedEvidenceObservedAt),
@@ -158,6 +165,7 @@ export async function runDnaCurrentStateScheduledCycleStep(input: {
   recordedAt: string;
   acceptedAt: string;
   plan: DnaCurrentStateSyncPlan;
+  maximumAggregateRequestsPerMinute?: number;
   checkpointRepository: DnaCurrentStateAcquisitionCycleCheckpointRepository;
   publicationRepository: NeonDnaOpenLabSyncPublicationRepository;
   pool: DnaOpenLabClientPool;
@@ -183,6 +191,12 @@ export async function runDnaCurrentStateScheduledCycleStep(input: {
     evaluatedAt: input.evaluatedAt,
     plan: input.plan,
     priorIndex,
+    ...(input.maximumAggregateRequestsPerMinute === undefined
+      ? {}
+      : {
+          maximumAggregateRequestsPerMinute:
+            input.maximumAggregateRequestsPerMinute,
+        }),
   });
   if (authority.schedule.status !== "ready") {
     return Object.freeze({

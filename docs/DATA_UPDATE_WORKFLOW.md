@@ -15,7 +15,8 @@ A normal background cycle is:
 
 1. load the last durable checkpoint for the source family;
 2. prove API access/scope/rate budget where needed;
-3. fetch bounded pages/windows/bulk groups within the 30 requests/minute design tier;
+3. fetch bounded pages/windows/bulk groups within the current owner policy's
+   effective aggregate rate, defaulting and failing back to 30 requests/minute;
 4. validate the authoritative response envelope and provider contract;
 5. canonicalize provider payloads while retaining provenance/checksum evidence;
 6. write private R2 evidence/cache objects where useful;
@@ -37,11 +38,14 @@ A partial cycle cannot replace the previous last-good dataset.
 | Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                          |
 | Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                    |
 
-## Zero-cost daily scheduling
+## Zero-cost continuous scheduling
 
-The normal private website target is one complete refresh per day. The
-30-requests/minute value remains a burst ceiling while that bounded refresh is
-running; it is not a continuously running cadence.
+The normal private website continuously evaluates due API work. Active-race
+inventory/fills receive the shortest interval for Open Race usefulness, while
+slower-changing families use wider intervals and immutable cached evidence.
+Thirty requests/minute remains the permanent safe default and fallback. The
+owner may temporarily set any whole-number aggregate limit from 31 through 150
+requests/minute when the current DNA tier explicitly permits it.
 
 It must:
 
@@ -55,11 +59,17 @@ It must:
 
 Higher tiers may reduce catch-up duration but do not change data semantics.
 
-Current-state acquisition uses one shared 24-hour minimum interval for active
-races/fills, current Token reference prices, Vault/ownership, supplemental Core
-state and complete Splice Arena pagination. When any recurring family becomes
-due, every family is reacquired and must validate before the complete generation
-can publish. Pair info/validation remains on-demand.
+Current-state acquisition evaluates active races/fills every two seconds, Vault
+and Splice state every five minutes, and Core/Token state every fifteen minutes.
+The shared request pool enforces actual throughput. Only due families are
+reacquired; unchanged families are reconstructed from the verified last-good
+receipt index before a complete valid generation can publish. Pair
+info/validation remains on-demand.
+
+Every elevated rate requires a maximum 31-day expiry. An expired policy, an
+advertised provider limit of 30 or lower, or any rate-limit outcome while the
+rate is elevated lowers the effective aggregate rate to 30. Recovery never
+auto-raises; the owner must deliberately save a new elevated setting.
 
 Cloudflare R2 Standard is guarded by operating budgets set to 80% of the
 published free allowances: 8 GB retained storage, 800,000 monthly Class A
@@ -72,7 +82,7 @@ last-good generation. Paid usage is never enabled automatically.
 
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
-explicit P5 approval. Later daily cycles resume only from durable checkpoints
+explicit P5 approval. Later continuous cycles resume only from durable checkpoints
 and retrieve missing/new evidence rather than repeating history.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup

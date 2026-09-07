@@ -106,7 +106,7 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
     expect(dnaCurrentStatePublicationMode(authority.schedule)).toBe("full");
   });
 
-  it("keeps validated last-good receipt authority idle before the daily boundary", () => {
+  it("uses validated last-good receipt authority for a staggered race refresh", () => {
     const { plan, priorIndex } = fixture();
     const authority = createDnaCurrentStateScheduledCycleAuthority({
       evaluatedAt: "2026-08-28T12:02:00.000Z",
@@ -114,7 +114,13 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
       priorIndex,
     });
 
-    expect(authority.schedule).toMatchObject({ status: "idle", dueGroups: [] });
+    expect(authority.schedule).toMatchObject({
+      status: "ready",
+      dueGroups: ["race_activity"],
+    });
+    expect(dnaCurrentStatePublicationMode(authority.schedule)).toBe(
+      "staggered",
+    );
     expect(authority.cachedEvidenceObservedAt).toEqual({
       race_activity: firstAt,
       token_prices: firstAt,

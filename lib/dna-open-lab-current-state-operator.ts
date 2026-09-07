@@ -75,6 +75,7 @@ export async function runDnaCurrentStateOperatorStep(input: {
   }) => Promise<DnaOpenLabStoredCurrentStateEvidence>;
   currentR2Usage: DnaOpenLabR2Usage;
   plannedRefreshR2Usage: DnaOpenLabR2Usage;
+  maximumAggregateRequestsPerMinute?: number;
 }): Promise<DnaCurrentStateOperatorStepResult> {
   const budget = evaluateDnaOpenLabZeroCostRefresh({
     currentUsage: input.currentR2Usage,
@@ -114,6 +115,12 @@ export async function runDnaCurrentStateOperatorStep(input: {
     recordedAt: input.recordedAt,
     acceptedAt: input.acceptedAt,
     plan: discovery.plan,
+    ...(input.maximumAggregateRequestsPerMinute === undefined
+      ? {}
+      : {
+          maximumAggregateRequestsPerMinute:
+            input.maximumAggregateRequestsPerMinute,
+        }),
     checkpointRepository: input.checkpointRepository,
     publicationRepository: input.publicationRepository,
     pool: input.pool,

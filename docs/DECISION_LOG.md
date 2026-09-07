@@ -1597,3 +1597,22 @@ After the private Pro League milestone, continue in this order:
 - Migration `0082` uses forced owner RLS, function-only runtime access,
   serializable immutable writes, repeatable-read reads, deterministic replay and
   conflict failure. It stores no raw API payload.
+
+## 2026-09-07 — continuous API sync uses an owner rate policy with a 30-rpm fuse
+
+- Replace the one-complete-refresh-per-day operating target with continuous,
+  group-specific change-aware acquisition. Active race state is evaluated most
+  frequently; slower-changing families retain wider intervals.
+- Add an authenticated private **API Sync** control for any whole-number limit
+  from 30 through the currently proven 150 aggregate requests/minute ceiling,
+  with common values suggested. Thirty remains the permanent default and
+  fail-safe; no API key or raw payload reaches the browser or policy table.
+- Require every setting above 30 to expire within 31 days. Lower the effective
+  rate to 30 when that timer expires, when provider authority reports a limit of
+  30 or lower, or after any rate-limit outcome while elevated.
+- Never auto-raise after fallback. The owner must deliberately re-enable the
+  timed higher rate after confirming the current DNA tier.
+- Migration `0083` stores the owner-isolated policy and sanitized rate
+  observations with forced RLS and function-only runtime access. Continuous
+  work remains bounded by R2 zero-cost guards, durable checkpoints, immutable
+  evidence, complete-generation validation and last-good serving.

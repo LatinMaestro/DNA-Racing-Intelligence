@@ -10,7 +10,7 @@ import {
 
 describe("DNA Open Lab zero-cost refresh policy", () => {
   it("keeps recurring operation budgets well below the free allowances", () => {
-    expect(DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS).toBe(86_400_000);
+    expect(DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS).toBe(2_000);
     expect(
       DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS.classAOperations,
     ).toBeLessThan(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations);
@@ -28,7 +28,7 @@ describe("DNA Open Lab zero-cost refresh policy", () => {
     );
   });
 
-  it("allows a daily refresh that remains inside every operating budget", () => {
+  it("allows a continuous refresh step that remains inside every operating budget", () => {
     expect(
       evaluateDnaOpenLabZeroCostRefresh({
         currentUsage: {
@@ -44,7 +44,7 @@ describe("DNA Open Lab zero-cost refresh policy", () => {
       }),
     ).toMatchObject({
       allowed: true,
-      action: "run_daily_refresh",
+      action: "run_continuous_refresh",
       blockerIds: [],
       paidUsageAllowed: false,
       preserveLastGood: true,

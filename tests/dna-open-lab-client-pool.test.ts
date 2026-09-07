@@ -222,6 +222,90 @@ describe("DNA Open Lab client pool", () => {
     expect(snapshot.aggregateBudget?.effectiveRequestsPerMinute).toBe(30);
   });
 
+  it("runs an explicitly configured elevated aggregate policy and reports rate evidence", async () => {
+    const observations: unknown[] = [];
+    const pool = createDnaOpenLabClientPool({
+      lanes: [lane("key-1")],
+      aggregateRequestsPerMinute: 150,
+      onRateObservation: (observation) => {
+        observations.push(observation);
+      },
+    });
+
+    await pool.execute({
+      scope: "races",
+      request: async () =>
+        response({ ok: true }, rateLimit({ limit: 150, remaining: 149 })),
+    });
+
+    expect(pool.snapshot().aggregateBudget?.effectiveRequestsPerMinute).toBe(
+      150,
+    );
+    expect(pool.snapshot().lanes[0]?.budget.effectiveRequestsPerMinute).toBe(
+      150,
+    );
+    expect(observations).toEqual([
+      { laneId: "key-1", rateLimited: false, providerLimit: 150 },
+    ]);
+  });
+
+  it("reports authoritative rate-limit evidence without exposing credentials", async () => {
+    const observations: unknown[] = [];
+    const pool = createDnaOpenLabClientPool({
+      lanes: [lane("key-1")],
+      aggregateRequestsPerMinute: 150,
+      onRateObservation: (observation) => {
+        observations.push(observation);
+      },
+    });
+    await expect(
+      pool.execute({
+        scope: "races",
+        request: async () => {
+          throw new DnaOpenLabApiError({
+            kind: "rate_limited",
+            message: "synthetic",
+            rateLimit: rateLimit({ limit: 30, remaining: 0 }),
+          });
+        },
+      }),
+    ).rejects.toMatchObject({ kind: "rate_limited" });
+    expect(observations).toEqual([
+      { laneId: "key-1", rateLimited: true, providerLimit: 30 },
+    ]);
+    expect(pool.snapshot().aggregateBudget?.effectiveRequestsPerMinute).toBe(
+      30,
+    );
+  });
+
+  it("falls the live aggregate pool back to 30 and preserves the API error when observation persistence fails", async () => {
+    const pool = createDnaOpenLabClientPool({
+      lanes: [lane("key-1")],
+      aggregateRequestsPerMinute: 150,
+      onRateObservation: async () => {
+        throw new Error("synthetic persistence outage");
+      },
+    });
+    await expect(
+      pool.execute({
+        scope: "races",
+        request: async () => {
+          throw new DnaOpenLabApiError({
+            kind: "rate_limited",
+            message: "authoritative rate limit",
+            rateLimit: rateLimit({ limit: null, remaining: null }),
+          });
+        },
+      }),
+    ).rejects.toMatchObject({
+      kind: "rate_limited",
+      message: "authoritative rate limit",
+    });
+    expect(pool.snapshot().aggregateBudget?.effectiveRequestsPerMinute).toBe(
+      30,
+    );
+  });
+
   it("fails closed when no configured key has the requested scope", async () => {
     const pool = createDnaOpenLabClientPool({
       lanes: [lane("key-1", ["vault"]), lane("key-2", ["cores"])],

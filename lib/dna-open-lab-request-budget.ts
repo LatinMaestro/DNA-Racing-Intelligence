@@ -22,6 +22,7 @@ export type DnaOpenLabRequestBudget = Readonly<{
     request: () => Promise<DnaOpenLabResponse<T>>,
   ) => Promise<DnaOpenLabResponse<T>>;
   observeRateLimit: (rateLimit: DnaOpenLabRateLimit) => void;
+  reduceEffectiveRequestsPerMinute: (requestsPerMinute: number) => void;
   snapshot: () => DnaOpenLabRequestBudgetSnapshot;
 }>;
 
@@ -121,6 +122,13 @@ export function createDnaOpenLabRequestBudget(
     }
   };
 
+  const reduceEffectiveRequestsPerMinute = (requestsPerMinute: number) => {
+    effectiveRequestsPerMinute = Math.min(
+      effectiveRequestsPerMinute,
+      positiveSafeInteger(requestsPerMinute, "requestsPerMinute"),
+    );
+  };
+
   const waitForPermit = async () => {
     while (true) {
       const now = nowMilliseconds();
@@ -184,5 +192,10 @@ export function createDnaOpenLabRequestBudget(
     });
   };
 
-  return Object.freeze({ execute, observeRateLimit, snapshot });
+  return Object.freeze({
+    execute,
+    observeRateLimit,
+    reduceEffectiveRequestsPerMinute,
+    snapshot,
+  });
 }
