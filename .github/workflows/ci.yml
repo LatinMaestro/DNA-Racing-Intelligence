@@ -201,6 +201,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.up.sql
       - name: Run Pro League breeding publication write guard smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.smoke.sql
+      - name: Apply finished-race incremental cycle migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.up.sql
+      - name: Run finished-race incremental cycle smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.smoke.sql
+      - name: Reverse finished-race incremental cycle migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.down.sql
+      - name: Verify finished-race incremental cycle removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.removal.sql
       - name: Reverse Pro League breeding publication write guard migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.down.sql
       - name: Verify Pro League breeding publication write guard removal

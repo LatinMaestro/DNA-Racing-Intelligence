@@ -85,6 +85,13 @@ requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later continuous cycles resume only from durable checkpoints
 and retrieve missing/new evidence rather than repeating history.
 
+Recurring finished-race history uses the separate versioned cycle/attempt
+ledger in migration `0089`. The immutable P5 checkpoint remains untouched.
+Each owner-local cycle fixes its bounds and predecessor; first attempts begin
+unprocessed, progress is monotonic, replacement attempts carry the exact
+superseded checkpoint, and only complete cycles can become the next boundary.
+This closes A1; scheduling, collection and publication remain A2 work.
+
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
 [`DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md`](DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md).

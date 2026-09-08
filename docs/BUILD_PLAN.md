@@ -537,6 +537,13 @@ Exit: official-validation-backed breeding queue.
 
 ## P10 — Private Pro League Preview commissioning
 
+The recurring finished-race A1 prerequisite uses migration `0089` to preserve
+the immutable P5 baseline while versioning each later owner-local window and
+its recoverable attempts. Complete cycles form one contiguous chain;
+checkpoint progress is monotonic and terminal attempts cannot be rewritten.
+Daily scheduling, collection, validation and last-good publication remain the
+next A2 commissioning slice.
+
 After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;

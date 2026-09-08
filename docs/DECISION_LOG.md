@@ -1965,3 +1965,19 @@ After the private Pro League milestone, continue in this order:
   wallet data.
 - Viewing archive coverage cannot call the DNA API, write Neon or R2, publish a
   generation, deploy or perform a game action.
+
+## 2026-09-08 — Recurring history has versioned cycles and recoverable attempts
+
+- Preserve the completed P5 backfill checkpoint as immutable baseline
+  authority; recurring refreshes use an additive cycle/attempt ledger.
+- Bind every owner-local finished-race cycle to immutable lower/upper bounds
+  and the prior complete cycle. Require exact boundary continuity so a later
+  cycle cannot silently leave a history gap.
+- Begin attempt one at the unprocessed root. Permit a replacement only after
+  its predecessor is superseded and only from the predecessor's exact durable
+  checkpoint.
+- Keep progress monotonic and make pause, resume, completion and supersession
+  compare-and-swap transitions. Completion and supersession are terminal.
+- Do not carry the exceptional first-backfill identity omission into recurring
+  refreshes. This persistence boundary does not itself call DNA, write R2 or
+  publish a generation.
