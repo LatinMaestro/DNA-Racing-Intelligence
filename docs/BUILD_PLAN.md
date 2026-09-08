@@ -584,8 +584,16 @@ operator now composes every source and persistence authority under one explicit
 owner-scoped write-armed packet, publishes finished history before current
 state, maps interruptions to last-good health and rejects any aggregate rate
 above 30 rpm or independent key buckets. It remains dormant: no route, page,
-Worker or schedule imports it. The next A2 boundary is switching website reads
-to the complete combined serving authority.
+Worker or schedule imports it. Website reads now use the combined
+last-good pointer for current races, fills, supplemental Cores, evidence and
+sync health. The recurring capacity projection evaluates independent R2 and
+Neon billing windows and fails closed on stale measurements, unsafe storage
+class, monthly budget exhaustion or an unsafe single-refresh envelope. Its
+concrete server-only provider source reads Cloudflare's per-bucket R2 GraphQL
+metrics and Neon's project consumption fields, exposes no provider identifiers
+or credentials, and rejects malformed, ambiguous or drifting responses. The
+remaining A3/A4 boundary is connected read-only Preview preflight followed by
+the bounded incremental commissioning run and recovery proof.
 
 After owner-approved persistent API sync:
 
