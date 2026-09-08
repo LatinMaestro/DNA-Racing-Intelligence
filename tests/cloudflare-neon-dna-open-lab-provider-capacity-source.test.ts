@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createCloudflareNeonDnaOpenLabProviderCapacitySource } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
+import {
+  cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
+  createCloudflareNeonDnaOpenLabProviderCapacitySource,
+} from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
 
 const accountId = "a".repeat(32);
 const measuredAt = new Date("2026-09-09T01:12:34.000Z");
@@ -253,5 +256,48 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       invalidTime.value.measure({ ownerId: "owner-1" }),
     ).rejects.toThrow("measurement failed");
     expect(invalidTime.fetcher).not.toHaveBeenCalled();
+  });
+
+  it("fails closed without a complete server environment", () => {
+    const fetcher = vi.fn<typeof globalThis.fetch>();
+    expect(
+      cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
+        {
+          authorizedOwnerId: "owner-1",
+          cloudflareAccountId: accountId,
+          cloudflareApiToken: "cloudflare-read-token",
+          r2BucketName: "dna-private-evidence",
+          r2StorageClass: "Standard",
+          neonApiKey: "neon-read-token",
+        },
+        { fetch: fetcher },
+      ),
+    ).toEqual({ status: "not_configured" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("composes the strict source from a complete server environment", async () => {
+    const fetcher = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(response(cloudflareData()))
+      .mockResolvedValueOnce(response(neonData()));
+    const value = cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
+      {
+        authorizedOwnerId: "owner-1",
+        cloudflareAccountId: accountId,
+        cloudflareApiToken: "cloudflare-read-token",
+        r2BucketName: "dna-private-evidence",
+        r2StorageClass: "Standard",
+        neonApiKey: "neon-read-token",
+        neonProjectId: "project-1",
+      },
+      { fetch: fetcher, now: () => measuredAt },
+    );
+    if (value.status !== "ready") throw new Error("expected source");
+    await expect(value.measure({ ownerId: "owner-1" })).resolves.toMatchObject({
+      evidenceSource: "provider_api",
+      r2StorageClass: "Standard",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });

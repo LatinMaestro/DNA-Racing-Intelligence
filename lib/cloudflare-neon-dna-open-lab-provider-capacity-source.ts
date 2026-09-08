@@ -89,6 +89,16 @@ export type CloudflareNeonDnaOpenLabProviderCapacityConfiguration = Readonly<{
   fetch?: typeof globalThis.fetch;
 }>;
 
+export type CloudflareNeonDnaOpenLabProviderCapacityEnvironment = Readonly<{
+  authorizedOwnerId?: string;
+  cloudflareAccountId?: string;
+  cloudflareApiToken?: string;
+  r2BucketName?: string;
+  r2StorageClass?: string;
+  neonApiKey?: string;
+  neonProjectId?: string;
+}>;
+
 type ProviderRecord = Record<string, unknown>;
 
 function boundedText(value: string, field: string, maximum: number): string {
@@ -379,5 +389,54 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
         throw new Error("Provider capacity measurement failed.");
       }
     },
+  });
+}
+
+function configured(value: string | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  return normalized === "" ? null : normalized;
+}
+
+/**
+ * Fail-closed server composition for Preview and the eventual daily operator.
+ * Missing credentials make capacity unavailable without opening a provider
+ * request. Present but malformed configuration is rejected by the strict
+ * constructor rather than silently changing provider identity.
+ */
+export function cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
+  environment: CloudflareNeonDnaOpenLabProviderCapacityEnvironment,
+  options: Readonly<{
+    now?: () => Date;
+    fetch?: typeof globalThis.fetch;
+  }> = {},
+): DnaOpenLabProviderCapacityMeasurementSource {
+  const authorizedOwnerId = configured(environment.authorizedOwnerId);
+  const cloudflareAccountId = configured(environment.cloudflareAccountId);
+  const cloudflareApiToken = configured(environment.cloudflareApiToken);
+  const r2BucketName = configured(environment.r2BucketName);
+  const r2StorageClass = configured(environment.r2StorageClass);
+  const neonApiKey = configured(environment.neonApiKey);
+  const neonProjectId = configured(environment.neonProjectId);
+  if (
+    authorizedOwnerId === null ||
+    cloudflareAccountId === null ||
+    cloudflareApiToken === null ||
+    r2BucketName === null ||
+    r2StorageClass === null ||
+    neonApiKey === null ||
+    neonProjectId === null
+  ) {
+    return Object.freeze({ status: "not_configured" });
+  }
+  return createCloudflareNeonDnaOpenLabProviderCapacitySource({
+    authorizedOwnerId,
+    cloudflareAccountId,
+    cloudflareApiToken,
+    r2BucketName,
+    r2StorageClass,
+    neonApiKey,
+    neonProjectId,
+    ...(options.now === undefined ? {} : { now: options.now }),
+    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
   });
 }

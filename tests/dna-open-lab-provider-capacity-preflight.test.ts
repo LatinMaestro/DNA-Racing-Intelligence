@@ -131,6 +131,19 @@ describe("DNA Open Lab provider capacity preflight", () => {
     ).not.toContain(original.preflightSha256);
   });
 
+  it("binds the exact 40-character GitHub commit head", async () => {
+    const gate = preflight();
+    const exactGitHubHead = "7c36605b42d4a807be12b8abe49ee3885ff3af68";
+    const result = await gate.value.inspect({
+      ...invocation,
+      exactCodeHeadSha: exactGitHubHead,
+    });
+    expect(result).toMatchObject({
+      status: "ready",
+      exactCodeHeadSha: exactGitHubHead,
+    });
+  });
+
   it("keeps the authority digest stable while the same measurement remains fresh", async () => {
     const firstGate = preflight();
     const laterGate = preflight({

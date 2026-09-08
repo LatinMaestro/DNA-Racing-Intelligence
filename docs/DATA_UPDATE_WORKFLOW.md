@@ -122,6 +122,18 @@ configured writer storage class remains an explicit input because Cloudflare's
 R2 analytics datasets do not report object storage class; a value other than
 `Standard` is preserved so the projection rejects it.
 
+Run `DNA Open Lab daily refresh provider preflight` from the exact current
+`main` head before any bounded Preview refresh. The workflow has read-only
+repository permission and receives `AUTHORIZED_CLERK_USER_ID`,
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `NEON_API_KEY` and
+`NEON_PROJECT_ID` only from GitHub secrets. It does not receive a database URL,
+R2 S3 writer credentials or DNA API keys. It verifies that `main` remains
+unchanged around the measurement and prints only readiness, blocker IDs, safe
+remaining cadence and no-write/no-paid-use flags. The receipt is bound to its
+exact GitHub commit and a five-minute validity window; rerun the preflight for
+the actual commissioning cycle rather than treating an older green run as
+persistent authority.
+
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later daily cycles resume only from durable checkpoints

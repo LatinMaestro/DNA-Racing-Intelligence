@@ -592,8 +592,15 @@ class, monthly budget exhaustion or an unsafe single-refresh envelope. Its
 concrete server-only provider source reads Cloudflare's per-bucket R2 GraphQL
 metrics and Neon's project consumption fields, exposes no provider identifiers
 or credentials, and rejects malformed, ambiguous or drifting responses. The
-remaining A3/A4 boundary is connected read-only Preview preflight followed by
-the bounded incremental commissioning run and recovery proof.
+dispatch-only `DNA Open Lab daily refresh provider preflight` workflow is its
+first connected use. It is restricted to the exact current `main` head, has no
+database URL, R2 writer credential or DNA API key, and emits only bounded
+readiness. Its provisional per-refresh envelope is 1,000,000 R2 bytes, 100
+Class A operations, 200 Class B operations, 250,000 Neon bytes and 500
+milli-CU-hours. A held result performs no write; a ready result is valid only
+for its five-minute receipt and does not authorize the persistent refresh. The
+remaining A3/A4 boundary is executing this read-only Preview preflight,
+followed by the bounded incremental commissioning run and recovery proof.
 
 After owner-approved persistent API sync:
 
