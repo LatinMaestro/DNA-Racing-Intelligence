@@ -25,9 +25,11 @@ export type DnaOpenLabDailyRefreshGeneration = Readonly<{
 
 export type DnaOpenLabDailyRefreshGenerationRepository = Readonly<{
   load(
+    ownerId: string,
     refreshCycleId: string,
   ): Promise<DnaOpenLabDailyRefreshGeneration | null>;
   publish(
+    ownerId: string,
     generation: DnaOpenLabDailyRefreshGeneration,
   ): Promise<DnaOpenLabDailyRefreshGeneration>;
 }>;
@@ -235,7 +237,10 @@ export async function runDnaOpenLabDailyRefreshStep(input: {
   }
 
   const expected = { refreshCycleId, budgetWindowId, budgetRequestSha256 };
-  const prior = await input.generationRepository.load(refreshCycleId);
+  const prior = await input.generationRepository.load(
+    input.ownerId,
+    refreshCycleId,
+  );
   if (prior !== null) {
     const accepted = generation(prior, expected);
     assertActualWithinPlan(accepted.actualR2Usage, plannedR2Usage);
@@ -297,7 +302,7 @@ export async function runDnaOpenLabDailyRefreshStep(input: {
     expected,
   );
   const published = generation(
-    await input.generationRepository.publish(candidate),
+    await input.generationRepository.publish(input.ownerId, candidate),
     expected,
   );
   if (JSON.stringify(published) !== JSON.stringify(candidate)) {

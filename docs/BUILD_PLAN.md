@@ -577,8 +577,11 @@ reservation, finished-history last-good publication and current-state serving
 generation agree, then advances one owner-local combined serving pointer in the
 same transaction. Exact replay cannot move that pointer; source drift,
 non-monotonic successors and use above the reserved envelope fail closed. The
-next A2 boundary is the server-only repository adapter and switching website
-reads to this complete combined serving authority.
+server-only Neon adapter verifies both forced-RLS relations, the exact
+owner-to-authenticated-user mapping and a non-privileged runtime session before
+calling the function-only read or publication boundary. The next A2 boundary
+is wiring this adapter into the private daily operator and switching website
+reads to the complete combined serving authority.
 
 After owner-approved persistent API sync:
 
