@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createDnaOpenLabSyncRatePolicy } from "@/domain/dna-open-lab-sync-rate-policy";
+import { createInitialDnaLastGoodSyncState } from "@/lib/dna-open-lab-last-good-publication";
 import type { ProLeagueExactFormatEvidence } from "@/domain/pro-league-matchup";
 import type {
   ActiveProLeagueEvidenceGeneration,
@@ -175,6 +176,12 @@ function input(
       set: vi.fn(async () => syncPolicy),
       recordObservation: vi.fn(async () => syncPolicy),
     },
+    syncHealthRepository: {
+      readServingSyncHealth: vi.fn(async () => ({
+        state: createInitialDnaLastGoodSyncState(),
+        evidenceIndex: null,
+      })),
+    },
     now: new Date("2026-09-08T00:00:00.000Z"),
     pageSize: 5,
     ...overrides,
@@ -288,6 +295,13 @@ describe("Pro League draft commissioning service", () => {
         connectionStatus: "connected",
         policy: { effectiveRequestsPerMinute: 30 },
       },
+      syncHealth: {
+        connectionStatus: "connected",
+        syncStatus: "never_synced",
+        lastGood: null,
+        readOnly: true,
+        refreshTriggered: false,
+      },
       readiness: {
         status: "blocked",
         ownerAcceptanceRequired: true,
@@ -321,6 +335,28 @@ describe("Pro League draft commissioning service", () => {
     expect(result.currentState).toMatchObject({
       status: "invalid_generation",
       cores: [],
+    });
+    expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
+    expect(result.lineup?.totals.lineCount).toBe(168);
+  });
+
+  it("retains the historical draft when sync health authority is invalid", async () => {
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        syncHealthRepository: {
+          readServingSyncHealth: vi.fn(async () => {
+            throw new Error("sync state unavailable");
+          }),
+        },
+      }),
+    );
+
+    expect(result.connectionStatus).toBe("read_model_connected");
+    expect(result.syncHealth).toMatchObject({
+      connectionStatus: "invalid_state",
+      lastGood: null,
+      readOnly: true,
+      refreshTriggered: false,
     });
     expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
     expect(result.lineup?.totals.lineCount).toBe(168);

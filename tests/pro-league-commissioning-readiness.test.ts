@@ -32,6 +32,9 @@ const readyInput: ProLeagueCommissioningReadinessInput = {
   effectiveRequestsPerMinute: 30,
   apiRateFallbackActive: false,
   lastProviderLimit: null,
+  apiSyncHealthConnected: true,
+  apiSyncStatus: "current",
+  lastGoodCurrentStateAvailable: true,
   discoveryQueueAvailable: true,
   discoveryExperimentCount: 3,
   openRaceStateConnected: true,
@@ -78,6 +81,23 @@ describe("Pro League commissioning readiness", () => {
         code: "API_REFRESH_CONTROL",
         status: "review",
         requiredForProtectedPreview: false,
+      }),
+    );
+  });
+
+  it("keeps paused sync visible as review while last-good remains available", () => {
+    const result = assessProLeagueCommissioningReadiness({
+      ...readyInput,
+      apiSyncStatus: "paused",
+    });
+
+    expect(result.status).toBe("ready_for_protected_preview_review");
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        code: "API_SYNC_HEALTH",
+        status: "review",
+        requiredForProtectedPreview: false,
+        detail: expect.stringContaining("last-good version remains serving"),
       }),
     );
   });
