@@ -99,6 +99,15 @@ out-of-window measurement or an arithmetic overflow fails closed. Reduce the
 catch-up cadence to the reported safe count or pause and retain the combined
 last-good generation; never enable paid usage automatically.
 
+The private daily operator obtains that projection through a read-only provider
+preflight before opening the durable refresh coordinator. Measurements must be
+provider-sourced and no more than five minutes old. One sanitized receipt binds
+the exact code head, hashed owner scope, refresh cycle, billing window and both
+R2 and Neon per-refresh upper bounds. Exact replay produces the same authority;
+changing any bound or identity produces a different digest. An unavailable,
+failed, malformed, future or stale measurement, or any projected capacity
+blocker, returns a held receipt before API, R2 or Neon refresh writes begin.
+
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later daily cycles resume only from durable checkpoints
