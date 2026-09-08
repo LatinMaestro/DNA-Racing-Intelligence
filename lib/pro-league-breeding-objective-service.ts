@@ -39,11 +39,11 @@ export type ProLeagueBreedingObjectiveState = Readonly<{
   spliceExecutionAllowed: false;
 }>;
 
-function latest(values: readonly (string | null)[]): string | null {
+function earliest(values: readonly (string | null)[]): string | null {
   return (
     values
       .filter((value): value is string => value !== null)
-      .sort((left, right) => right.localeCompare(left))[0] ?? null
+      .sort((left, right) => left.localeCompare(right))[0] ?? null
   );
 }
 
@@ -176,10 +176,10 @@ export async function loadProLeagueBreedingObjectiveState(
     input.roster,
     workspace.rankings,
   );
-  const performanceDataCurrentThrough = latest(
+  const performanceDataCurrentThrough = earliest(
     workspace.rankings.map(({ dataCurrentThrough }) => dataCurrentThrough),
   );
-  const arenaDataCurrentThrough = latest(
+  const arenaDataCurrentThrough = earliest(
     workspace.rankings.map(
       ({ arenaDataCurrentThrough }) => arenaDataCurrentThrough,
     ),

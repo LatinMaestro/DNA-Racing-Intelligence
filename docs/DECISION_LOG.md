@@ -1914,6 +1914,8 @@ After the private Pro League milestone, continue in this order:
 - For current Core state, use the oldest observation across every required
   family and rostered Core as the safe current-through boundary; a newer single
   field must not make an older complete snapshot appear current.
+- Apply the same oldest-observation rule across the breeding evidence included
+  in the owner read model, independently for performance and Arena authority.
 - Keep ageing, stale and unknown last-good information visible but mark it as a
   protected Preview review item. Freshness labels do not authorize a refresh,
   deployment, roster/map submission, race entry or breeding action.
