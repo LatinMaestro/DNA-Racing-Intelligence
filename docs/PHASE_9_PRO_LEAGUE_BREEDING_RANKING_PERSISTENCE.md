@@ -60,6 +60,22 @@ explicit held state; cross-owner access, changed identity/digest and any stale
 authority binding fail before the compact publisher is called. The website read
 facades cannot obtain this runner or its publication target.
 
+## Immutable accepted-analysis source
+
+Migration `0086` stores only an explicitly accepted, complete analysis snapshot
+as one canonical immutable payload. PostgreSQL and the server adapter both
+verify its exact ranking count, candidate count, byte count, SHA-256 digest,
+authority timestamps and unique ranking identities. Exact retries are
+idempotent; a conflicting replay of the same analysis ID fails without changing
+the stored snapshot.
+
+Forced row-level security partitions snapshots by owner. The runtime role has
+no direct table access and receives only owner-scoped record and exact-ID read
+functions. The environment factory exposes only the read method used by the
+publication runner, so website requests cannot accept or overwrite analysis.
+Missing snapshots remain an explicit held state, and corrupt or changed stored
+content fails closed before compact ranking publication.
+
 ## Authority and commissioning status
 
 This store contains research inputs, not approved pair recommendations. It does
@@ -67,8 +83,8 @@ not establish race-type pair evidence, perform official pair validation, pass
 Gate E, connect a wallet or execute a splice. Fresh `pair_validate`, `pair_info`
 and applicable Arena evidence remain mandatory at owner decision time.
 
-The migration is exercised synthetically through apply, smoke, reverse and
-removal checks in CI. On 2026-09-08, migration `0085` was also applied to the
+Migrations `0085` and `0086` are exercised synthetically through apply, smoke,
+reverse and removal checks in CI. On 2026-09-08, migration `0085` was also applied to the
 existing non-default private Neon `preview` branch. Its lifecycle and cleanup
 completed with zero synthetic owners, generations, ranking rows or active rows
 remaining. The connector role cannot impersonate `dna_app_runtime`, so hosted
@@ -81,7 +97,7 @@ generation still produces the held unavailable/empty state. No website request
 can obtain the publisher, and these changes do not publish a generation, deploy
 Preview, alter Production or authorize a breeding transaction.
 
-The accepted-analysis composition is implemented and tested but is not wired to
-either page. The source-to-publication runner is also implemented, but no
-accepted source snapshot currently exists in Preview, so no generation has been
+The accepted-analysis composition, immutable source and source-to-publication
+runner are implemented and tested but are not wired to either page. No accepted
+source snapshot currently exists in Preview, so no generation has been
 published.

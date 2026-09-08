@@ -1825,3 +1825,15 @@ After the private Pro League milestone, continue in this order:
   render ordinal research pairs and bounded non-identifying evidence only.
 - Treat missing or invalid breeding persistence as an optional-section failure.
   The last-good roster, lineup, Discovery queue and coverage gaps remain visible.
+
+## 2026-09-08 — accepted breeding analysis is immutable and owner-scoped
+
+- Persist an explicitly accepted, complete analysis as one bounded canonical
+  payload keyed by owner and analysis ID; do not store partial working state.
+- Recompute and verify exact ranking/candidate counts, canonical bytes, SHA-256,
+  timestamps and ranking identity in both PostgreSQL and the server adapter.
+- Permit exact idempotent replay only. Reject conflicting replay, cross-owner
+  access and content or authority drift before last-good ranking publication.
+- Expose only exact owner-scoped reads to the publication runner. This storage
+  does not accept research on behalf of the owner, pass Gate E, recommend a
+  pair, connect a wallet or execute a splice.
