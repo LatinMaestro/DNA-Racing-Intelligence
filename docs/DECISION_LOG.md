@@ -1882,3 +1882,14 @@ After the private Pro League milestone, continue in this order:
   write, pair recommendation or breeding execution is authorized.
 - Keep the preflight out of pages, routes, Workers and schedules. A ready receipt
   is evidence for a later deliberate commissioning decision, not approval.
+
+## 2026-09-08 — map preparation ranks owned evidence without inventing opponents
+
+- Rank home-map preference from the verified 168-line draft using the first 16
+  race points first, then the complete 42-line map. Fewer exact-evidence gaps
+  and provisional lines outrank stronger population-supported coverage.
+- Publish the inverse weakest-first order for defensive preparation because an
+  opponent may target owned evidence gaps. Raw race results are not used.
+- Keep opponent-specific denial and head-to-head advice explicitly held until
+  authoritative opponent identities and exact-format evidence exist. The plan
+  cannot lock, submit or change a lineup or match selection.
