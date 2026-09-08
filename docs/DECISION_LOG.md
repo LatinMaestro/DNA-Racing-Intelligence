@@ -1893,3 +1893,15 @@ After the private Pro League milestone, continue in this order:
 - Keep opponent-specific denial and head-to-head advice explicitly held until
   authoritative opponent identities and exact-format evidence exist. The plan
   cannot lock, submit or change a lineup or match selection.
+
+## 2026-09-08 — Pro League Preview readiness separates blockers from limitations
+
+- Present one owner-readable checklist covering the active evidence, compliant
+  roster, complete four-map assignment, current Core state, Discovery queue,
+  open-race limits, breeding research and read-only safety boundary.
+- Treat missing or inconsistent owner evidence as a blocker. Keep known API
+  capability gaps, opponent evidence, substitution policy and owner acceptance
+  visible as review items rather than inventing authority or hiding them.
+- A blocker-free result means ready for protected Preview review only. It does
+  not approve or perform a deployment, Production activation, roster or map
+  submission, race entry, pair recommendation, splice or other game action.
