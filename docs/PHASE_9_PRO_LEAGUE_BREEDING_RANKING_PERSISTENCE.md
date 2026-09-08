@@ -126,3 +126,9 @@ analysis source, current authority source and guarded ranking publisher. It has
 no route or scheduler entry point and refuses execution without one explicit
 versioned invocation packet that opts into the persistent write. The command
 still cannot validate a pair, pass Gate E, connect a wallet or execute a splice.
+
+A separate server-only preflight can inspect the accepted snapshot and current
+authority without receiving the publisher. Its compact held/ready receipt
+always records that no persistent write occurred or was authorized. It is not
+wired to a page, route, Worker or scheduler, and a ready receipt is not approval
+to publish, recommend a pair or perform breeding.
