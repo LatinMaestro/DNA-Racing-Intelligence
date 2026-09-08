@@ -1,3 +1,5 @@
+import type { FreshnessState } from "@/domain/freshness";
+
 export type ProLeagueCommissioningReadinessCheck = Readonly<{
   code:
     | "ACTIVE_EVIDENCE"
@@ -6,6 +8,7 @@ export type ProLeagueCommissioningReadinessCheck = Readonly<{
     | "COMPLETE_MAP_ASSIGNMENT"
     | "MAP_PREPARATION"
     | "CURRENT_CORE_STATE"
+    | "LAST_GOOD_FRESHNESS"
     | "DISCOVERY_QUEUE"
     | "OPEN_RACE_LIMITATIONS"
     | "BREEDING_RESEARCH"
@@ -50,6 +53,11 @@ export type ProLeagueCommissioningReadinessInput = Readonly<{
   mapPreparationCount: number;
   currentCoreStateConnected: boolean;
   currentCoreCount: number;
+  historicalEvidenceFreshness: FreshnessState;
+  currentCoreFreshness: FreshnessState;
+  openRaceFreshness: FreshnessState;
+  breedingPerformanceFreshness: FreshnessState;
+  breedingArenaFreshness: FreshnessState;
   discoveryQueueAvailable: boolean;
   discoveryExperimentCount: number;
   openRaceStateConnected: boolean;
@@ -141,6 +149,15 @@ export function assessProLeagueCommissioningReadiness(
     input.currentCoreStateConnected &&
     rosterReady &&
     currentCoreCount === rosteredCoreCount;
+  const freshness = [
+    input.historicalEvidenceFreshness,
+    input.currentCoreFreshness,
+    input.openRaceFreshness,
+    input.breedingPerformanceFreshness,
+    input.breedingArenaFreshness,
+  ] as const;
+  const allEvidenceCurrent = freshness.every((value) => value === "current");
+  const freshnessDetail = `Historical evidence ${input.historicalEvidenceFreshness}; current Core state ${input.currentCoreFreshness}; open races ${input.openRaceFreshness}; breeding performance ${input.breedingPerformanceFreshness}; breeding Arena ${input.breedingArenaFreshness}.`;
 
   const checks = Object.freeze([
     check(
@@ -190,6 +207,12 @@ export function assessProLeagueCommissioningReadiness(
       currentCoreReady
         ? `Current API state is complete for all ${currentCoreCount} rostered Cores.`
         : "Current API state must be complete for every rostered Core.",
+    ),
+    check(
+      "LAST_GOOD_FRESHNESS",
+      allEvidenceCurrent ? "pass" : "review",
+      false,
+      `${freshnessDetail} Ageing, stale or unavailable evidence remains visible as last-good information and requires owner review; it is never presented as current.`,
     ),
     check(
       "DISCOVERY_QUEUE",

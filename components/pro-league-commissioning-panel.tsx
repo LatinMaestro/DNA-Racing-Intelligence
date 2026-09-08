@@ -129,9 +129,10 @@ export function ProLeagueCommissioningPanel({
         </h2>
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           Evidence is current through {timestamp(evidence.evidenceCutoffAt)} and
-          was activated {timestamp(evidence.publishedAt)}. Rankings use the same
-          Bike race type and exact distance; wins and Top 3 results remain
-          supporting context only.
+          was activated {timestamp(evidence.publishedAt)}. Historical evidence
+          freshness: {label(evidence.freshness)}. Rankings use the same Bike
+          race type and exact distance; wins and Top 3 results remain supporting
+          context only.
         </p>
       </div>
 
@@ -214,10 +215,12 @@ export function ProLeagueCommissioningPanel({
         <div>
           <h3 className="text-lg font-semibold">Current API dimensions</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Last observed {timestamp(state.currentState.latestObservedAt!)}.
-            These point-in-time fields are presented separately and do not alter
-            the historical performance ranking until predictive lift is
-            validated.
+            Complete required observations are available through{" "}
+            {timestamp(state.currentState.dataCurrentThrough!)} (
+            {label(state.currentState.freshness)}); the newest field was
+            observed {timestamp(state.currentState.latestObservedAt!)}. These
+            point-in-time fields are presented separately and do not alter the
+            historical performance ranking until predictive lift is validated.
           </p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
@@ -536,6 +539,12 @@ export function ProLeagueCommissioningPanel({
             filled and with an open gate are shown. No entry or wallet action is
             available here.
           </p>
+          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+            Snapshot freshness: {label(raceOpportunities.freshness)}
+            {raceOpportunities.observedAt === null
+              ? ". Observation time is unavailable."
+              : ` through ${timestamp(raceOpportunities.observedAt)}.`}
+          </p>
           {raceOpportunities.status !== "connected" ? (
             <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
               Current race opportunities are unavailable. The last-good roster,
@@ -602,6 +611,19 @@ export function ProLeagueCommissioningPanel({
             Gate E remains held, and no validation, wallet or splice action is
             available here.
           </p>
+          {breedingObjectives.status === "connected" ? (
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+              Performance evidence:{" "}
+              {label(breedingObjectives.performanceFreshness)}
+              {breedingObjectives.performanceDataCurrentThrough === null
+                ? " (time unavailable)"
+                : ` through ${timestamp(breedingObjectives.performanceDataCurrentThrough)}`}
+              . Arena evidence: {label(breedingObjectives.arenaFreshness)}
+              {breedingObjectives.arenaDataCurrentThrough === null
+                ? " (time unavailable)."
+                : ` through ${timestamp(breedingObjectives.arenaDataCurrentThrough)}.`}
+            </p>
+          ) : null}
           {breedingObjectives.status !== "connected" ? (
             <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
               {breedingObjectives.status === "persistence_not_configured"
@@ -616,12 +638,8 @@ export function ProLeagueCommissioningPanel({
           ) : (
             <div className="mt-3 space-y-4">
               <p className="text-xs leading-5 text-[var(--warning)]">
-                Historical breeding evidence is current through{" "}
-                {breedingObjectives.performanceDataCurrentThrough === null
-                  ? "not available"
-                  : timestamp(breedingObjectives.performanceDataCurrentThrough)}
-                . Current official pair validation, pair information and any
-                Arena availability must be checked again at owner decision time.
+                Current official pair validation, pair information and any Arena
+                availability must be checked again at owner decision time.
               </p>
               {breedingObjectives.objectives.map((objective) => (
                 <article

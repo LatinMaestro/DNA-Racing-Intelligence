@@ -1,3 +1,4 @@
+import { deriveFreshness, type FreshnessState } from "@/domain/freshness";
 import type {
   DnaOpenLabCurrentRaceReadRepository,
   DnaOpenLabServingCurrentRaces,
@@ -31,6 +32,7 @@ export type ProLeagueRaceOpportunityState = Readonly<{
     | "invalid_generation"
     | "connected";
   observedAt: string | null;
+  freshness: FreshnessState;
   scannedRaceCount: number;
   qualifyingRaceCount: number;
   priorityGapCount: number;
@@ -48,6 +50,7 @@ function unavailable(
   return Object.freeze({
     status,
     observedAt: null,
+    freshness: "unknown",
     scannedRaceCount: 0,
     qualifyingRaceCount: 0,
     priorityGapCount,
@@ -64,9 +67,13 @@ export function invalidProLeagueRaceOpportunityState(
   return unavailable("invalid_generation", priorityGapCount);
 }
 
-function timestamp(value: string, label: string): string {
+function timestamp(value: string, label: string, now: Date): string {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString() !== value ||
+    parsed.getTime() > now.getTime()
+  ) {
     throw new Error(`Pro League race opportunity ${label} is invalid.`);
   }
   return value;
@@ -96,6 +103,7 @@ function verifyGeneration(serving: DnaOpenLabServingCurrentRaces): void {
 function opportunity(
   active: DnaOpenLabServingCurrentRaces["activeRaces"][number],
   fill: DnaOpenLabServingCurrentRaces["raceFills"][number],
+  now: Date,
 ): ProLeagueRaceOpportunity | null {
   if (
     active.canonical.sourceRaceId !== fill.canonical.sourceRaceId ||
@@ -103,8 +111,12 @@ function opportunity(
   ) {
     throw new Error("Pro League active-race and fill identities changed.");
   }
-  const activeObservedAt = timestamp(active.observedAt, "active observation");
-  const fillObservedAt = timestamp(fill.observedAt, "fill observation");
+  const activeObservedAt = timestamp(
+    active.observedAt,
+    "active observation",
+    now,
+  );
+  const fillObservedAt = timestamp(fill.observedAt, "fill observation", now);
   if (
     active.canonical.mode !== "bike" ||
     active.canonical.status.trim().toLowerCase() !== "filling" ||
@@ -155,8 +167,13 @@ export async function loadProLeagueRaceOpportunities(
     ownerId: string;
     priorityGapCount: number;
     repository: DnaOpenLabCurrentRaceReadRepository | null;
+    now?: Date;
   }>,
 ): Promise<ProLeagueRaceOpportunityState> {
+  const now = input.now ?? new Date();
+  if (Number.isNaN(now.getTime())) {
+    throw new Error("Pro League race opportunity freshness time is invalid.");
+  }
   if (
     !Number.isSafeInteger(input.priorityGapCount) ||
     input.priorityGapCount < 0
@@ -185,7 +202,7 @@ export async function loadProLeagueRaceOpportunities(
       if (fill === undefined) {
         throw new Error("Pro League active race has no fill observation.");
       }
-      return opportunity(active, fill);
+      return opportunity(active, fill, now);
     })
     .filter((value): value is ProLeagueRaceOpportunity => value !== null)
     .sort(
@@ -199,12 +216,16 @@ export async function loadProLeagueRaceOpportunities(
   const observedAt = serving.activeRaces
     .flatMap((value) => [value.observedAt])
     .concat(serving.raceFills.map((value) => value.observedAt))
-    .map((value) => timestamp(value, "observation"))
+    .map((value) => timestamp(value, "observation", now))
     .sort()
     .at(0);
   return Object.freeze({
     status: "connected",
     observedAt: observedAt ?? null,
+    freshness: deriveFreshness(
+      observedAt === undefined ? null : new Date(observedAt),
+      now,
+    ),
     scannedRaceCount: serving.activeRaces.length,
     qualifyingRaceCount: opportunities.length,
     priorityGapCount: input.priorityGapCount,

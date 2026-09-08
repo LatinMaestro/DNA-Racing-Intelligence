@@ -85,6 +85,7 @@ describe("Pro League race opportunity service", () => {
       ownerId,
       priorityGapCount: 4,
       repository: repository(values),
+      now: new Date("2026-09-08T00:00:00.000Z"),
     });
 
     expect(result).toMatchObject({
@@ -92,6 +93,8 @@ describe("Pro League race opportunity service", () => {
       scannedRaceCount: 6,
       qualifyingRaceCount: 2,
       priorityGapCount: 4,
+      observedAt: "2026-09-07T20:00:00.000Z",
+      freshness: "current",
       exactGapMatchingAvailable: false,
       directRaceLinkAvailable: false,
       raceEntryAllowed: false,
@@ -104,6 +107,22 @@ describe("Pro League race opportunity service", () => {
       fillPercentage: 60,
       gapMatchStatus: "exact_type_and_distance_unavailable",
     });
+  });
+
+  it("labels an old last-good race snapshot as stale", async () => {
+    const value = race({ id: "old-race", gateCount: 4, filledGateCount: 2 });
+    const old = {
+      active: { ...value.active, observedAt: "2026-08-30T00:00:00.000Z" },
+      fill: { ...value.fill, observedAt: "2026-08-30T00:00:00.000Z" },
+    };
+    await expect(
+      loadProLeagueRaceOpportunities({
+        ownerId,
+        priorityGapCount: 1,
+        repository: repository([old]),
+        now: new Date("2026-09-08T00:00:00.000Z"),
+      }),
+    ).resolves.toMatchObject({ freshness: "stale" });
   });
 
   it("reports absent configuration and absent last-good generation explicitly", async () => {

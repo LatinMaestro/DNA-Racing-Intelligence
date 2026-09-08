@@ -112,11 +112,14 @@ describe("Pro League current Core state service", () => {
       ownerId: "private_owner",
       selectedCores: [{ sourceCoreId: "101", displayName: "Silver Comet" }],
       repository: repository(),
+      now: new Date("2026-09-08T00:00:00.000Z"),
     });
 
     expect(result).toMatchObject({
       status: "connected",
       latestObservedAt: observedAt,
+      dataCurrentThrough: observedAt,
+      freshness: "current",
       cores: [
         {
           displayName: "Silver Comet",
@@ -135,6 +138,26 @@ describe("Pro League current Core state service", () => {
     });
     expect(JSON.stringify(result)).not.toContain("private-wallet-not-rendered");
     expect(JSON.stringify(result)).not.toContain("101");
+  });
+
+  it("uses the oldest required observation for conservative freshness", async () => {
+    const values = rows().map((value, index) =>
+      index === 0
+        ? { ...value, observedAt: "2026-08-30T00:00:00.000Z" }
+        : value,
+    );
+    await expect(
+      loadProLeagueCurrentCoreState({
+        ownerId: "private_owner",
+        selectedCores: [{ sourceCoreId: "101", displayName: "Silver Comet" }],
+        repository: repository(values),
+        now: new Date("2026-09-08T00:00:00.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      dataCurrentThrough: "2026-08-30T00:00:00.000Z",
+      latestObservedAt: observedAt,
+      freshness: "stale",
+    });
   });
 
   it("fails closed when a selected Core is missing a current family", async () => {

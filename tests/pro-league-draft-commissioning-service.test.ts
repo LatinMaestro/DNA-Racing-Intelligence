@@ -163,6 +163,7 @@ function input(
     rosteredCoreIds: [],
     vaultRepository: vault(),
     evidenceRepository: repository(),
+    now: new Date("2026-09-08T00:00:00.000Z"),
     pageSize: 5,
     ...overrides,
   };
@@ -231,6 +232,7 @@ describe("Pro League draft commissioning service", () => {
       connectionStatus: "read_model_connected",
       evidence: {
         generationId: generation.generationId,
+        freshness: "current",
         populationProfileCount: 12,
         ownedProfileCount: 12,
         unownedProfileCount: 0,
