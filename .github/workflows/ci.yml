@@ -205,6 +205,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.up.sql
       - name: Run finished-race incremental cycle smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.smoke.sql
+      - name: Apply finished-race incremental progress migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0090_dna_open_lab_finished_race_incremental_progress.up.sql
+      - name: Run finished-race incremental progress smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0090_dna_open_lab_finished_race_incremental_progress.smoke.sql
+      - name: Reverse finished-race incremental progress migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0090_dna_open_lab_finished_race_incremental_progress.down.sql
+      - name: Verify finished-race incremental progress removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0090_dna_open_lab_finished_race_incremental_progress.removal.sql
       - name: Reverse finished-race incremental cycle migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.down.sql
       - name: Verify finished-race incremental cycle removal

@@ -369,6 +369,14 @@ The normal finished-race sync/backfill path should:
 - update canonical historical evidence and affected aggregates idempotently; and
 - expose recent-race/readiness changes after last-good publication.
 
+Post-P5 collection uses a separate stable cycle per bounded refresh window.
+Each accepted R2 window receipt and its checkpoint advance commit atomically;
+split-only progress carries no publication receipt. API or response failures
+pause the exact checkpoint, honour provider retry metadata and retain the
+serving last-good generation. Completing collection does not activate the new
+evidence: complete receipt validation and one consistent generation publication
+remain separate required steps.
+
 The website remains read-only and never enters the race.
 
 ## Optional CSV workflow — benched

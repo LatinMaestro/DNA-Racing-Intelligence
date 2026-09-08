@@ -49,9 +49,13 @@ function isolation(overrides: Record<string, unknown> = {}) {
     cycle_force_rls: true,
     attempt_rls: true,
     attempt_force_rls: true,
+    receipt_rls: true,
+    receipt_force_rls: true,
     runtime_can_access_cycle: false,
     runtime_can_access_attempt: false,
+    runtime_can_access_receipt: false,
     runtime_can_save: true,
+    runtime_can_save_progress: true,
     runtime_can_read: true,
     runtime_can_read_latest: true,
     session_user_name: runtimeRole,
@@ -144,6 +148,51 @@ describe("Neon DNA finished-race incremental cycle", () => {
       [],
     ]);
     await expect(latest.repository.loadLatestComplete()).resolves.toBeNull();
+  });
+
+  it("atomically saves crawler progress and its immutable publication binding", async () => {
+    const initial = cycle();
+    const next = {
+      ...initial,
+      checkpoint: {
+        ...initial.checkpoint,
+        pendingWindows: Object.freeze([]),
+        completedWindowCount: 1,
+        successfulFinishedRaceRequestCount: 1,
+        raceDocumentRequestCount: 1,
+        publishedWindowDocumentCount: 1,
+      },
+    };
+    const publication = {
+      window: initial.checkpoint.rootWindow,
+      receipt: {
+        windowKey: "c".repeat(64),
+        contentSha256: "d".repeat(64),
+        documentCount: 1,
+        manifestObjectKey: `dna-open-lab/v1/${"e".repeat(64)}/races/finished-windows/${"c".repeat(64)}.json`,
+        manifestBodySha256: "f".repeat(64),
+        manifestByteLength: 256,
+      },
+    } as const;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ revision: "2", cycle: next }],
+    ]);
+
+    await expect(
+      test.repository.saveProgress({
+        expectedRevision: "1",
+        cycle: next,
+        publication,
+      }),
+    ).resolves.toEqual({ revision: "2", cycle: next });
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      "1",
+      JSON.stringify(next),
+      JSON.stringify(publication),
+    ]);
   });
 
   it("fails closed on unsafe isolation and invalid request authority", async () => {
