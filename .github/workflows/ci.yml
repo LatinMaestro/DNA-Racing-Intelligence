@@ -229,6 +229,12 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.up.sql
       - name: Run daily refresh generation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.smoke.sql
+      - name: Apply combined serving reads migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0095_dna_open_lab_combined_serving_reads.up.sql
+      - name: Reverse combined serving reads migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0095_dna_open_lab_combined_serving_reads.down.sql
+      - name: Verify combined serving reads removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0095_dna_open_lab_combined_serving_reads.removal.sql
       - name: Reverse daily refresh generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.down.sql
       - name: Verify daily refresh generation removal
