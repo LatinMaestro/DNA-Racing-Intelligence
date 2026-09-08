@@ -44,6 +44,14 @@ jobs:
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.smoke.sql
+      - name: Reverse dependent combined serving reads migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0095_dna_open_lab_combined_serving_reads.down.sql
+      - name: Verify dependent combined serving reads removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0095_dna_open_lab_combined_serving_reads.removal.sql
       - name: Reverse dependent daily refresh generation migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
