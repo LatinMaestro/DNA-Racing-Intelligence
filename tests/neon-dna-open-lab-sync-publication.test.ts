@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { DnaCurrentStateCandidate } from "@/lib/dna-open-lab-last-good-publication";
-import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import {
+  createDnaOpenLabCombinedServingReadRepository,
+  createNeonDnaOpenLabSyncPublicationRepository,
+} from "@/lib/neon-dna-open-lab-sync-publication";
 import type { DnaOpenLabEvidence } from "@/lib/dna-open-lab-v1-adapters";
 import type { AdaptedCoreDetailsRow } from "@/domain/source-adapters";
 import type {
@@ -850,6 +853,80 @@ describe("Neon DNA Open Lab sync publication", () => {
     });
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
     expect(test.events.filter((event) => event === "COMMIT")).toHaveLength(1);
+  });
+
+  it("shares one atomic combined serving generation across a page request", async () => {
+    const index = completeCurrentStateEvidence().evidenceIndex;
+    const race = currentRaceEvidence();
+    const active = race.activeRaces[0]!;
+    const fill = race.raceFills[0]!;
+    const power = supplementalCoreEvidence().supplementalCore.power[0]!;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [currentState({ sync_status: "catching_up", catch_up_required: true })],
+      [
+        {
+          generation_id: generationId,
+          source_race_id: active.canonical.sourceRaceId,
+          observed_at: new Date(active.observedAt),
+          raw_evidence_sha256: active.rawEvidenceSha256,
+          canonical: active.canonical,
+        },
+      ],
+      [
+        {
+          generation_id: generationId,
+          source_race_id: fill.canonical.sourceRaceId,
+          observed_at: new Date(fill.observedAt),
+          raw_evidence_sha256: fill.rawEvidenceSha256,
+          canonical: fill.canonical,
+        },
+      ],
+      [
+        {
+          generation_id: generationId,
+          source_core_id: "101",
+          family: "power",
+          observed_at: new Date(power.observedAt),
+          raw_evidence_sha256: power.rawEvidenceSha256,
+          canonical: power.canonical,
+        },
+      ],
+      [
+        {
+          generation_id: generationId,
+          plan_sha256: index.planSha256,
+          indexed_at: new Date(index.indexedAt),
+          receipt_count: index.receipts.length,
+          receipt_index: index,
+        },
+      ],
+    ]);
+    const validatedAt = "2026-08-27T12:03:00.000Z";
+    const shared = createDnaOpenLabCombinedServingReadRepository({
+      repository: test.repository,
+      validatedAt,
+    });
+
+    const [currentRaces, supplementalCores, syncHealth] = await Promise.all([
+      shared.readServingCurrentRaces({ ownerId }),
+      shared.readServingSupplementalCores({ ownerId }),
+      shared.readServingSyncHealth({ ownerId, validatedAt }),
+    ]);
+
+    expect(currentRaces.generationId).toBe(generationId);
+    expect(supplementalCores.generationId).toBe(generationId);
+    expect(syncHealth.state.servingGenerationId).toBe(generationId);
+    expect(syncHealth.evidenceIndex?.generationId).toBe(generationId);
+    expect(test.sessionFactory).toHaveBeenCalledTimes(1);
+    expect(test.events.filter((event) => event === "COMMIT")).toHaveLength(1);
+    expect(test.events.join("\n")).toContain(
+      "read_dna_open_lab_combined_serving_sync_state",
+    );
+    expect(test.events.join("\n")).toContain(
+      "read_dna_open_lab_combined_serving_current_state_evidence_index",
+    );
   });
 
   it("rolls back when forced-RLS or least-privilege evidence is unsafe", async () => {

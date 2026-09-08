@@ -5,11 +5,7 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonCorePayoutFormatProfileRepositoryFromEnvironment } from "@/lib/neon-core-payout-format-profile-repository";
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
-import {
-  neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment,
-  neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment,
-  neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment,
-} from "@/lib/neon-dna-open-lab-sync-publication";
+import { neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-rate-policy-repository";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import { neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
@@ -37,6 +33,12 @@ export default async function ProLeaguePage() {
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   };
   const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID ?? null;
+  const now = new Date();
+  const combinedServingRepository =
+    neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment({
+      ...databaseEnvironment,
+      validatedAt: now.toISOString(),
+    });
   const vaultRepository =
     neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment);
   const evidenceRepository = neonProLeagueEvidenceReadRepositoryFromEnvironment(
@@ -71,14 +73,8 @@ export default async function ProLeaguePage() {
       rosteredCoreIds: [],
       vaultRepository,
       evidenceRepository,
-      currentStateRepository:
-        neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment(
-          databaseEnvironment,
-        ),
-      currentRaceRepository:
-        neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment(
-          databaseEnvironment,
-        ),
+      currentStateRepository: combinedServingRepository,
+      currentRaceRepository: combinedServingRepository,
       breedingRepository:
         neonProLeagueBreedingRankingReadRepositoryFromEnvironment({
           ...databaseEnvironment,
@@ -88,10 +84,7 @@ export default async function ProLeaguePage() {
         neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(
           databaseEnvironment,
         ),
-      syncHealthRepository:
-        neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment(
-          databaseEnvironment,
-        ),
+      syncHealthRepository: combinedServingRepository,
       historyCoverageRepository:
         neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
           {
@@ -102,7 +95,7 @@ export default async function ProLeaguePage() {
           },
           DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
         ),
-      now: new Date(),
+      now,
     }),
   ]);
 
