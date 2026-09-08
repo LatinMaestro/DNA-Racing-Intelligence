@@ -244,6 +244,19 @@ describe("Pro League draft commissioning service", () => {
         generationId: generation.generationId,
         totals: { lineCount: 168, first16LineCount: 64 },
       },
+      mapPreparation: {
+        authority: "verified_owned_exact_format_lineup_only",
+        generationId: generation.generationId,
+        homePreferenceOrder: expect.arrayContaining([
+          "map-1",
+          "map-2",
+          "map-3",
+          "map-4",
+        ]),
+        opponentDenialStatus: "held_without_opponent_exact_format_evidence",
+        headToHeadStatus: "unavailable",
+        matchActionAllowed: false,
+      },
       discoveryQueue: {
         authority: "active_verified_exact_format_generation",
         exactDistanceMinimumRaceCount: 10,

@@ -107,6 +107,61 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      mapPreparation: {
+        authority: "verified_owned_exact_format_lineup_only",
+        generationId: "private-generation-id",
+        evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
+        homePreferenceOrder: ["map-1", "map-2", "map-3", "map-4"],
+        defensivePreparationOrder: ["map-4", "map-3", "map-2", "map-1"],
+        assessments: [
+          {
+            mapId: "map-1",
+            name: "Anchor",
+            readiness: "supported",
+            first16: {
+              winningRangeLineCount: 12,
+              topThreeRangeLineCount: 4,
+              provisionalLineCount: 0,
+              noExactEvidenceLineCount: 0,
+            },
+            fullMap: {
+              winningRangeLineCount: 30,
+              topThreeRangeLineCount: 12,
+              provisionalLineCount: 0,
+              noExactEvidenceLineCount: 0,
+            },
+          },
+          ...["map-2", "map-3", "map-4"].map((mapId, index) => ({
+            mapId,
+            name: ["Glory", "Measure", "Miracles"][index],
+            readiness: "provisional",
+            first16: {
+              winningRangeLineCount: 8,
+              topThreeRangeLineCount: 4,
+              provisionalLineCount: 4,
+              noExactEvidenceLineCount: 0,
+            },
+            fullMap: {
+              winningRangeLineCount: 24,
+              topThreeRangeLineCount: 10,
+              provisionalLineCount: 8,
+              noExactEvidenceLineCount: 0,
+            },
+          })),
+        ],
+        opponentDenialStatus: "held_without_opponent_exact_format_evidence",
+        headToHeadStatus: "unavailable",
+        matchActionAllowed: false,
+        selectionMethod: {
+          primaryWindow: "first_16_race_points",
+          secondaryWindow: "complete_42_line_map",
+          order:
+            "fewest_evidence_gaps_then_fewest_provisional_then_most_population_supported",
+          resultEvidenceRole: "not_used",
+          missingOppositionQuality: "unknown_never_favourable",
+        },
+        warnings: [],
+      },
       currentState: {
         status: "connected",
         latestObservedAt: "2026-09-07T01:02:00.000Z",
@@ -266,6 +321,11 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Current exact-format recommendation");
     expect(markup).toContain("Silver Comet");
     expect(markup).toContain("Four-map assignment");
+    expect(markup).toContain("Map preparation order");
+    expect(markup).toContain(
+      "Home preference: Anchor → Glory → Measure → Miracles",
+    );
+    expect(markup).toContain("Opponent-specific denial");
     expect(markup).toContain("168 race lines");
     expect(markup).toContain("Population coverage gaps");
     expect(markup).toContain("Current API dimensions");
@@ -285,6 +345,7 @@ describe("Pro League commissioning panel", () => {
     expect(markup).not.toContain("private-parent");
     expect(markup).not.toContain("private-race-456");
     expect(markup).not.toContain(state.evidence!.generationId);
+    expect(markup).not.toContain(state.mapPreparation!.generationId);
   });
 
   it("shows evidence while withholding an unavailable draft", () => {

@@ -3,6 +3,10 @@ import {
   type ProLeagueDraftLineupRecommendation,
 } from "@/domain/pro-league-lineup-recommendation";
 import {
+  buildProLeagueMapPreparationPlan,
+  type ProLeagueMapPreparationPlan,
+} from "@/domain/pro-league-map-preparation";
+import {
   buildProLeagueDiscoveryExperimentQueue,
   type ProLeagueDiscoveryExperimentQueue,
 } from "@/domain/pro-league-discovery-experiment-queue";
@@ -56,6 +60,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   evidence: ProLeagueDraftCommissioningEvidenceSummary | null;
   roster: ProLeagueDraftRosterRecommendation | null;
   lineup: ProLeagueDraftLineupRecommendation | null;
+  mapPreparation?: ProLeagueMapPreparationPlan;
   currentState?: ProLeagueCurrentCoreState;
   raceOpportunities?: ProLeagueRaceOpportunityState;
   discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
@@ -178,6 +183,7 @@ export async function loadProLeagueDraftCommissioningState(
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
     versionNumber: 1,
   });
+  const mapPreparation = buildProLeagueMapPreparationPlan(lineup);
   const discoveryQueue = buildProLeagueDiscoveryExperimentQueue(roster);
   const breedingObjectives = await loadProLeagueBreedingObjectiveState({
     authenticatedOwnerId,
@@ -197,6 +203,7 @@ export async function loadProLeagueDraftCommissioningState(
     evidence,
     roster,
     lineup,
+    mapPreparation,
     currentState,
     raceOpportunities,
     discoveryQueue,

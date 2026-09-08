@@ -109,6 +109,7 @@ export function ProLeagueCommissioningPanel({
   const raceOpportunities = state.raceOpportunities;
   const discoveryQueue = state.discoveryQueue;
   const breedingObjectives = state.breedingObjectives;
+  const mapPreparation = state.mapPreparation;
 
   return (
     <section
@@ -266,6 +267,59 @@ export function ProLeagueCommissioningPanel({
               ))}
             </ol>
           </div>
+
+          {mapPreparation === undefined ? null : (
+            <div>
+              <h3 className="text-lg font-semibold">Map preparation order</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Home preference:{" "}
+                {mapPreparation.homePreferenceOrder
+                  .map(
+                    (mapId) =>
+                      mapPreparation.assessments.find(
+                        (assessment) => assessment.mapId === mapId,
+                      )?.name ?? label(mapId),
+                  )
+                  .join(" → ")}
+                . Defensive preparation starts with{" "}
+                {mapPreparation.defensivePreparationOrder
+                  .map(
+                    (mapId) =>
+                      mapPreparation.assessments.find(
+                        (assessment) => assessment.mapId === mapId,
+                      )?.name ?? label(mapId),
+                  )
+                  .join(" → ")}
+                .
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
+                This order compares owned exact-format coverage, prioritising
+                the first 16 race points. Opponent-specific denial and
+                head-to-head advice remain held because authoritative opponent
+                evidence is unavailable. No match or lineup action is enabled.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {mapPreparation.assessments.map((assessment) => (
+                  <div
+                    className="rounded-xl border border-[var(--border)] p-4"
+                    key={assessment.mapId}
+                  >
+                    <p className="font-semibold">{assessment.name}</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--accent)]">
+                      {label(assessment.readiness)}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                      First 16: {assessment.first16.winningRangeLineCount}{" "}
+                      winning-range, {assessment.first16.topThreeRangeLineCount}{" "}
+                      Top-3-range, {assessment.first16.provisionalLineCount}{" "}
+                      provisional, {assessment.first16.noExactEvidenceLineCount}{" "}
+                      without exact evidence.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {state.lineup === null ? null : (
             <div>
