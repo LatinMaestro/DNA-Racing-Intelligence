@@ -555,9 +555,12 @@ B operations before provider work. Migration `0092` makes that admission
 durable: owner-scoped billing windows begin from measured usage, concurrent
 refreshes reserve their upper bounds atomically, actual use can only reconcile
 within the reservation, and unresolved reservations block rollover rather than
-being silently released. Complete history/current-state cycle composition is
-the next A2 boundary; connected Preview measurement and commissioning remain
-later A3/A4 work.
+being silently released. Migration `0093` exposes restart-safe server-only
+reservation/accounting calls, and the Neon adapter verifies the owner, both
+forced-RLS relations and the non-privileged runtime role before using them.
+Wiring that authority around the complete refresh and composing
+history/current-state collection are the next A2 boundary; connected Preview
+measurement and commissioning remain later A3/A4 work.
 
 After owner-approved persistent API sync:
 

@@ -217,6 +217,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0092_dna_open_lab_r2_budget_reservation.up.sql
       - name: Run R2 budget reservation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0092_dna_open_lab_r2_budget_reservation.smoke.sql
+      - name: Apply R2 budget operator API migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.up.sql
+      - name: Run R2 budget operator API smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.smoke.sql
+      - name: Reverse R2 budget operator API migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.down.sql
+      - name: Verify R2 budget operator API removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.removal.sql
       - name: Reverse R2 budget reservation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0092_dna_open_lab_r2_budget_reservation.down.sql
       - name: Verify R2 budget reservation removal

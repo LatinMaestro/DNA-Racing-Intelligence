@@ -84,7 +84,10 @@ If any budget would be exceeded, the operator performs no provider request or
 write and continues serving the last-good generation. A reservation remains
 charged until actual use is explicitly reconciled, including a zero-use
 reconciliation after proving that no provider work began. Paid usage is never
-enabled automatically.
+enabled automatically. Migration `0093` keeps the original reservation and
+accounting timestamps across a process restart; its server-only Neon adapter
+uses the stable cycle/request hashes and verifies forced owner isolation before
+calling either function.
 
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
