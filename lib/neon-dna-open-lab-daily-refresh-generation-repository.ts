@@ -20,6 +20,14 @@ type Environment = Readonly<{
   runtimeRole: string | undefined;
 }>;
 
+export type NeonDnaOpenLabDailyRefreshGenerationRepository =
+  DnaOpenLabDailyRefreshGenerationRepository &
+    Readonly<{
+      loadLastGood(
+        ownerId: string,
+      ): Promise<DnaOpenLabDailyRefreshGeneration | null>;
+    }>;
+
 function normalized(value: string | undefined): string | null {
   const result = value?.trim() ?? "";
   return result === "" ? null : result;
@@ -106,7 +114,7 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
     runtimeRole: string;
     sessionFactory?: NeonImportPersistenceSessionFactory;
   }>,
-): DnaOpenLabDailyRefreshGenerationRepository {
+): NeonDnaOpenLabDailyRefreshGenerationRepository {
   const databaseUrl = input.databaseUrl.trim();
   const databaseOwnerId = input.databaseOwnerId.trim();
   const runtimeRole = input.runtimeRole.trim();
@@ -122,6 +130,7 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
 
   async function transact<T>(
     ownerId: string,
+    readOnly: boolean,
     work: (
       query: (
         sql: string,
@@ -132,7 +141,9 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
     const session = await sessionFactory(databaseUrl);
     let started = false;
     try {
-      await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+      await session.client.query(
+        `BEGIN ISOLATION LEVEL SERIALIZABLE${readOnly ? " READ ONLY" : ""}`,
+      );
       started = true;
       await session.client.query(
         "SELECT set_config('app.owner_id', $1, true)",
@@ -146,7 +157,22 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
         active.relforcerowsecurity AS active_force_rls,
         session_user::text AS session_user_name,
         current_user::text AS current_user_name,
-        role.rolsuper, role.rolbypassrls
+        role.rolsuper, role.rolbypassrls,
+        has_function_privilege(
+          session_user,
+          'dna.read_dna_open_lab_daily_refresh_generation(uuid,text)',
+          'EXECUTE'
+        ) AS can_read_generation,
+        has_function_privilege(
+          session_user,
+          'dna.read_dna_open_lab_daily_refresh_last_good(uuid)',
+          'EXECUTE'
+        ) AS can_read_last_good,
+        has_function_privilege(
+          session_user,
+          'dna.publish_dna_open_lab_daily_refresh_generation(uuid,text,text,text,text,uuid,bigint,bigint,bigint,timestamptz)',
+          'EXECUTE'
+        ) AS can_publish_generation
         FROM dna.app_owner owner
         JOIN pg_catalog.pg_class generation
           ON generation.oid = 'dna.dna_open_lab_daily_refresh_generation'::regclass
@@ -169,7 +195,10 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
         evidence.session_user_name !== runtimeRole ||
         evidence.current_user_name !== runtimeRole ||
         evidence.rolsuper !== false ||
-        evidence.rolbypassrls !== false
+        evidence.rolbypassrls !== false ||
+        evidence.can_read_generation !== true ||
+        evidence.can_read_last_good !== true ||
+        evidence.can_publish_generation !== true
       ) {
         throw new Error("DNA Open Lab daily refresh owner isolation denied");
       }
@@ -193,7 +222,7 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
       if (!SHA256_PATTERN.test(refreshCycleId)) {
         throw new Error("refreshCycleId is invalid");
       }
-      return transact(ownerId, async (query) => {
+      return transact(ownerId, true, async (query) => {
         const result = await query(
           "SELECT * FROM dna.read_dna_open_lab_daily_refresh_generation($1::uuid,$2::text)",
           [databaseOwnerId, refreshCycleId],
@@ -204,6 +233,17 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
         return result.rows.length === 0 ? null : mapGeneration(result.rows[0]);
       });
     },
+    loadLastGood: (ownerId) =>
+      transact(ownerId, true, async (query) => {
+        const result = await query(
+          "SELECT * FROM dna.read_dna_open_lab_daily_refresh_last_good($1::uuid)",
+          [databaseOwnerId],
+        );
+        if (result.rows.length > 1) {
+          throw new Error("daily refresh last-good generation is ambiguous");
+        }
+        return result.rows.length === 0 ? null : mapGeneration(result.rows[0]);
+      }),
     publish: (ownerId, generation) => {
       const refreshCycleId = sha256(
         generation.refreshCycleId,
@@ -225,7 +265,7 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
         generation.currentStateGenerationId,
         "currentStateGenerationId",
       );
-      return transact(ownerId, async (query) => {
+      return transact(ownerId, false, async (query) => {
         const result = await query(
           "SELECT * FROM dna.publish_dna_open_lab_daily_refresh_generation($1::uuid,$2::text,$3::text,$4::text,$5::text,$6::uuid,$7::bigint,$8::bigint,$9::bigint,$10::timestamptz)",
           [
@@ -253,7 +293,7 @@ export function createNeonDnaOpenLabDailyRefreshGenerationRepository(
 export function neonDnaOpenLabDailyRefreshGenerationRepositoryFromEnvironment(
   environment: Environment,
   sessionFactory?: NeonImportPersistenceSessionFactory,
-): DnaOpenLabDailyRefreshGenerationRepository | null {
+): NeonDnaOpenLabDailyRefreshGenerationRepository | null {
   const databaseUrl = normalized(environment.databaseUrl);
   const databaseOwnerId = normalized(environment.databaseOwnerId);
   const runtimeRole = normalized(environment.runtimeRole);
