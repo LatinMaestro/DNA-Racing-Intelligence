@@ -2043,3 +2043,23 @@ After the private Pro League milestone, continue in this order:
 - Keep the composition root out of routes, pages, Workers and schedules until
   Preview commissioning wiring is reviewed. Composition does not itself call
   DNA, write Neon/R2, deploy or authorize any game action.
+
+## 2026-09-09 — Recurring capacity uses sanitized provider measurements
+
+- Read the current R2 bucket storage and operation totals from Cloudflare's
+  documented GraphQL analytics datasets and read current project storage,
+  compute use and exact consumption-period bounds from Neon's project API.
+- Restrict the source to one configured application owner before either
+  provider request. Require exactly one matching Cloudflare account and Neon
+  project, reject ambiguous groups, duplicate or unknown operation classes,
+  identity drift, missing values and invalid windows.
+- Convert provider compute seconds conservatively by rounding up to
+  milli-CU-hours. Emit only normalized totals, billing bounds, storage class
+  and measurement timestamps; never emit provider identifiers, response
+  bodies, tokens or provider error details.
+- Cloudflare analytics do not expose per-object storage class. Bind the
+  configured writer class into the measurement and let the existing projection
+  refuse anything except `Standard` before DNA API acquisition or provider
+  writes.
+- This adapter is read-only code. It does not call DNA Open Lab, write Neon or
+  R2, deploy Preview/Production, enable paid usage or authorize a game action.

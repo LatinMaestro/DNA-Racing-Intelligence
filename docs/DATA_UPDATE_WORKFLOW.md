@@ -108,6 +108,20 @@ changing any bound or identity produces a different digest. An unavailable,
 failed, malformed, future or stale measurement, or any projected capacity
 blocker, returns a held receipt before API, R2 or Neon refresh writes begin.
 
+The concrete server-only measurement source performs exactly two read-only
+provider requests: Cloudflare GraphQL queries the documented per-bucket R2
+operations and latest storage datasets for the current UTC month, while Neon
+`GET /projects/{project_id}` supplies project-wide synthetic storage,
+CU-weighted compute usage and the provider's exact consumption-period bounds.
+The adapter accepts only its configured owner, requires exactly one matching
+Cloudflare account and Neon project, rejects unknown or duplicate R2 operation
+classes, rounds compute seconds up to milli-CU-hours and returns only normalized
+totals and timestamps. Missing provider fields, project drift, invalid windows,
+non-success responses or transport failures are sanitized and fail closed. The
+configured writer storage class remains an explicit input because Cloudflare's
+R2 analytics datasets do not report object storage class; a value other than
+`Standard` is preserved so the projection rejects it.
+
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later daily cycles resume only from durable checkpoints
