@@ -84,11 +84,21 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
     ownerId: string;
     validatedAt: string;
   }) => Promise<DnaOpenLabServingSyncHealth>;
+  readCombinedServingBundle: (input: {
+    ownerId: string;
+    validatedAt: string;
+  }) => Promise<DnaOpenLabCombinedServingBundle>;
 }>;
 
 export type DnaOpenLabServingSyncHealth = Readonly<{
   state: DnaLastGoodSyncState;
   evidenceIndex: DnaCurrentStateEvidenceIndex | null;
+}>;
+
+export type DnaOpenLabCombinedServingBundle = Readonly<{
+  currentRaces: DnaOpenLabServingCurrentRaces;
+  supplementalCores: DnaOpenLabServingSupplementalCores;
+  syncHealth: DnaOpenLabServingSyncHealth;
 }>;
 
 export type DnaOpenLabServingOwnedCore = Readonly<{
@@ -340,6 +350,38 @@ const READ_SERVING_SUPPLEMENTAL_CORES_SQL = [
 const READ_SERVING_CURRENT_STATE_EVIDENCE_INDEX_SQL = [
   "SELECT generation_id::text, plan_sha256, indexed_at, receipt_count, receipt_index",
   "FROM dna.read_dna_open_lab_serving_current_state_evidence_index($1::uuid)",
+].join("\n");
+
+const READ_COMBINED_SERVING_STATE_SQL = [
+  "SELECT accepted_generation_id::text, accepted_observed_at, accepted_at,",
+  "  serving_generation_id::text, sync_status, catch_up_required, last_attempt_at,",
+  "  last_interruption_reason, last_interruption_at, retry_after_seconds,",
+  "  last_catch_up_completed_at",
+  "FROM dna.read_dna_open_lab_combined_serving_sync_state($1::uuid)",
+].join("\n");
+
+const READ_COMBINED_SERVING_ACTIVE_RACES_SQL = [
+  "SELECT generation_id::text, source_race_id, observed_at, raw_evidence_sha256, canonical",
+  "FROM dna.read_dna_open_lab_combined_serving_active_races($1::uuid)",
+  "ORDER BY source_race_id",
+].join("\n");
+
+const READ_COMBINED_SERVING_RACE_FILLS_SQL = [
+  "SELECT generation_id::text, source_race_id, observed_at, raw_evidence_sha256, canonical",
+  "FROM dna.read_dna_open_lab_combined_serving_race_fills($1::uuid)",
+  "ORDER BY source_race_id",
+].join("\n");
+
+const READ_COMBINED_SERVING_SUPPLEMENTAL_CORES_SQL = [
+  "SELECT generation_id::text, source_core_id::text, family, observed_at,",
+  "  raw_evidence_sha256, canonical",
+  "FROM dna.read_dna_open_lab_combined_serving_supplemental_cores($1::uuid)",
+  "ORDER BY family, source_core_id",
+].join("\n");
+
+const READ_COMBINED_SERVING_EVIDENCE_INDEX_SQL = [
+  "SELECT generation_id::text, plan_sha256, indexed_at, receipt_count, receipt_index",
+  "FROM dna.read_dna_open_lab_combined_serving_current_state_evidence_index($1::uuid)",
 ].join("\n");
 
 function record(value: unknown, field: string): DbRow {
@@ -1239,6 +1281,108 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
         },
       });
     },
+
+    async readCombinedServingBundle(request) {
+      const validatedAt = timestamp(request.validatedAt, "validatedAt");
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          const syncState = state(
+            await client.query(READ_COMBINED_SERVING_STATE_SQL, [
+              databaseOwnerId,
+            ]),
+          );
+          const activeResult = await client.query(
+            READ_COMBINED_SERVING_ACTIVE_RACES_SQL,
+            [databaseOwnerId],
+          );
+          const fillResult = await client.query(
+            READ_COMBINED_SERVING_RACE_FILLS_SQL,
+            [databaseOwnerId],
+          );
+          const supplementalResult = await client.query(
+            READ_COMBINED_SERVING_SUPPLEMENTAL_CORES_SQL,
+            [databaseOwnerId],
+          );
+          const evidenceIndex = servingEvidenceIndex(
+            await client.query(READ_COMBINED_SERVING_EVIDENCE_INDEX_SQL, [
+              databaseOwnerId,
+            ]),
+            validatedAt,
+          );
+          const parsedActiveRaces = activeResult.rows.map((row) =>
+            servingRaceRow<CanonicalActiveRaceSnapshot>(
+              row,
+              "active_race_snapshot",
+            ),
+          );
+          const parsedRaceFills = fillResult.rows.map((row) =>
+            servingRaceRow<CanonicalRaceFillSnapshot>(
+              row,
+              "race_fill_snapshot",
+            ),
+          );
+          const supplementalRows = supplementalResult.rows.map(
+            servingSupplementalCore,
+          );
+          const generationRows = [
+            ...parsedActiveRaces,
+            ...parsedRaceFills,
+            ...supplementalRows,
+          ];
+          if (syncState.servingGenerationId === null) {
+            if (generationRows.length !== 0 || evidenceIndex !== null) {
+              throw new Error(
+                "DNA Open Lab combined rows exist without a serving generation",
+              );
+            }
+          } else if (
+            generationRows.some(
+              ({ generationId }) =>
+                generationId !== syncState.servingGenerationId,
+            ) ||
+            evidenceIndex?.generationId !== syncState.servingGenerationId
+          ) {
+            throw new Error(
+              "DNA Open Lab combined serving generation is inconsistent",
+            );
+          }
+          const currentRaces = Object.freeze({
+            generationId: syncState.servingGenerationId,
+            activeRaces: Object.freeze(
+              parsedActiveRaces.map((row) =>
+                Object.freeze({
+                  sourceRaceId: row.sourceRaceId,
+                  observedAt: row.observedAt,
+                  rawEvidenceSha256: row.rawEvidenceSha256,
+                  canonical: row.canonical,
+                }),
+              ),
+            ),
+            raceFills: Object.freeze(
+              parsedRaceFills.map((row) =>
+                Object.freeze({
+                  sourceRaceId: row.sourceRaceId,
+                  observedAt: row.observedAt,
+                  rawEvidenceSha256: row.rawEvidenceSha256,
+                  canonical: row.canonical,
+                }),
+              ),
+            ),
+          });
+          const supplementalCores = Object.freeze({
+            generationId: syncState.servingGenerationId,
+            rows: Object.freeze(supplementalRows),
+          });
+          return Object.freeze({
+            currentRaces,
+            supplementalCores,
+            syncHealth: Object.freeze({ state: syncState, evidenceIndex }),
+          });
+        },
+      });
+    },
   });
 }
 
@@ -1256,6 +1400,81 @@ export type DnaOpenLabCurrentRaceReadRepository = Pick<
   NeonDnaOpenLabSyncPublicationRepository,
   "readServingCurrentRaces"
 >;
+
+export type DnaOpenLabCombinedServingReadRepository =
+  DnaOpenLabCurrentRaceReadRepository &
+    DnaOpenLabSupplementalCoreReadRepository &
+    DnaOpenLabSyncHealthReadRepository;
+
+export function createDnaOpenLabCombinedServingReadRepository(input: {
+  repository: Pick<
+    NeonDnaOpenLabSyncPublicationRepository,
+    "readCombinedServingBundle"
+  >;
+  validatedAt: string;
+}): DnaOpenLabCombinedServingReadRepository {
+  const validatedAt = timestamp(input.validatedAt, "validatedAt");
+  let bundleOwnerId: string | null = null;
+  let bundlePromise: Promise<DnaOpenLabCombinedServingBundle> | null = null;
+  function load(ownerId: string): Promise<DnaOpenLabCombinedServingBundle> {
+    const normalizedOwnerId = owner(ownerId);
+    if (bundleOwnerId !== null && bundleOwnerId !== normalizedOwnerId) {
+      return Promise.reject(
+        new Error("DNA Open Lab combined serving owner changed"),
+      );
+    }
+    bundleOwnerId = normalizedOwnerId;
+    bundlePromise ??= input.repository.readCombinedServingBundle({
+      ownerId: normalizedOwnerId,
+      validatedAt,
+    });
+    return bundlePromise;
+  }
+  return Object.freeze({
+    async readServingCurrentRaces(request) {
+      return (await load(request.ownerId)).currentRaces;
+    },
+    async readServingSupplementalCores(request) {
+      return (await load(request.ownerId)).supplementalCores;
+    },
+    async readServingSyncHealth(request) {
+      if (timestamp(request.validatedAt, "validatedAt") !== validatedAt) {
+        throw new Error("DNA Open Lab combined serving timestamp changed");
+      }
+      return (await load(request.ownerId)).syncHealth;
+    },
+  });
+}
+
+export function neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    runtimeRole?: string;
+    validatedAt: string;
+  }>,
+): DnaOpenLabCombinedServingReadRepository | null {
+  const databaseUrl = environment.databaseUrl?.trim() ?? "";
+  const databaseOwnerId = environment.databaseOwnerId?.trim() ?? "";
+  const runtimeRole = environment.runtimeRole?.trim() ?? "";
+  if (databaseUrl === "" || databaseOwnerId === "" || runtimeRole === "") {
+    return null;
+  }
+  try {
+    const validatedAt = timestamp(environment.validatedAt, "validatedAt");
+    const repository = createNeonDnaOpenLabSyncPublicationRepository({
+      databaseUrl,
+      databaseOwnerId,
+      runtimeRole,
+    });
+    return createDnaOpenLabCombinedServingReadRepository({
+      repository,
+      validatedAt,
+    });
+  } catch {
+    return null;
+  }
+}
 
 export function neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment(
   environment: Readonly<{
