@@ -26,6 +26,9 @@ function ownerEvidence() {
     current_user_name: "dna_app_runtime",
     rolsuper: false,
     rolbypassrls: false,
+    can_read_generation: true,
+    can_read_last_good: true,
+    can_publish_generation: true,
   };
 }
 
@@ -70,9 +73,12 @@ function harness(sequence: readonly (readonly unknown[])[]) {
       statements.push(normalized);
       values.push(queryValues ?? []);
       if (
-        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
-          normalized,
-        )
+        [
+          "BEGIN ISOLATION LEVEL SERIALIZABLE",
+          "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY",
+          "COMMIT",
+          "ROLLBACK",
+        ].includes(normalized)
       ) {
         return { rows: [] };
       }
@@ -118,6 +124,46 @@ describe("Neon DNA Open Lab daily refresh generation repository", () => {
       test.statements.some((entry) => entry.includes("relforcerowsecurity")),
     ).toBe(true);
     expect(test.close).toHaveBeenCalledOnce();
+    expect(test.statements).toContain(
+      "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY",
+    );
+  });
+
+  it("loads the combined last-good pointer in a serializable read-only transaction", async () => {
+    const test = harness([[{}], [ownerEvidence()], [generationRow()]]);
+
+    await expect(repository(test).loadLastGood(ownerId)).resolves.toEqual(
+      candidate(),
+    );
+    const index = test.statements.findIndex((entry) =>
+      entry.startsWith(
+        "SELECT * FROM dna.read_dna_open_lab_daily_refresh_last_good",
+      ),
+    );
+    expect(index).toBeGreaterThan(0);
+    expect(test.values[index]).toEqual([databaseOwnerId]);
+    expect(test.statements[0]).toBe(
+      "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY",
+    );
+  });
+
+  it("returns no last-good generation until a complete refresh is active", async () => {
+    const test = harness([[{}], [ownerEvidence()], []]);
+
+    await expect(repository(test).loadLastGood(ownerId)).resolves.toBeNull();
+  });
+
+  it("fails closed when the combined last-good pointer is ambiguous", async () => {
+    const test = harness([
+      [{}],
+      [ownerEvidence()],
+      [generationRow(), generationRow()],
+    ]);
+
+    await expect(repository(test).loadLastGood(ownerId)).rejects.toThrow(
+      "last-good generation is ambiguous",
+    );
+    expect(test.statements).toContain("ROLLBACK");
   });
 
   it("publishes the complete authority through the function-only boundary", async () => {
@@ -127,9 +173,12 @@ describe("Neon DNA Open Lab daily refresh generation repository", () => {
       repository(test).publish(ownerId, candidate()),
     ).resolves.toEqual(candidate());
     const index = test.statements.findIndex((entry) =>
-      entry.includes("publish_dna_open_lab_daily_refresh_generation"),
+      entry.startsWith(
+        "SELECT * FROM dna.publish_dna_open_lab_daily_refresh_generation",
+      ),
     );
     expect(index).toBeGreaterThan(0);
+    expect(test.statements[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE");
     expect(test.values[index]).toEqual([
       databaseOwnerId,
       hash("a"),
