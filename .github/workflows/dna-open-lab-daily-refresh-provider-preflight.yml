@@ -63,11 +63,15 @@ jobs:
             "NEON_API_KEY",
             "NEON_PROJECT_ID",
           ];
-          for (const name of required) {
+          const invalid = required.filter((name) => {
             const value = process.env[name];
-            if (!value || value.trim() !== value || value.length > 4096) {
-              throw new Error(name + " is missing or invalid");
-            }
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error(
+              "Missing or invalid provider-preflight settings: " +
+                invalid.join(", "),
+            );
           }
           console.log("Validated read-only provider-preflight configuration.");
           NODE
