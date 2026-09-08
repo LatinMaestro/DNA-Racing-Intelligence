@@ -2,10 +2,10 @@
 
 ## Decision
 
-The commissioned private website continuously evaluates API work rather than
-waiting for one daily refresh. Active race inventory/fills use the shortest
-interval; slower-changing Vault, Core, Token and Splice families use wider
-change-aware intervals and share one aggregate request budget.
+The commissioned private website targets one complete bounded refresh every 24
+hours. All recurring current-state families are reacquired together and share
+one aggregate request budget. The rate setting controls burst throughput only;
+it does not create a continuous website crawl.
 
 The authenticated owner can enter any whole-number aggregate limit from 30 to
 150 requests per minute from the private **API Sync** page, with 30, 60, 90,
@@ -37,10 +37,10 @@ outcome and numeric advertised limit are persisted; successful requests do not
 create policy-table write volume. Scheduler batches use the same effective
 aggregate rate.
 
-Continuous cycles remain bulk-first, checkpointed, idempotent and last-good.
-Only due families are fetched; a staggered publication reconstructs unchanged
-families from verified immutable receipts. R2 monthly free-tier guards run
-before provider work and fail closed before paid use.
+Daily cycles remain bulk-first, checkpointed, idempotent and last-good. When
+any recurring family is due, all recurring families are fetched for one
+complete generation. R2 monthly and per-refresh free-tier guards run before
+provider work and fail closed before paid use.
 
 This implementation adds no hosted migration, deployment, public route, paid
 plan, wallet connection or game transaction.

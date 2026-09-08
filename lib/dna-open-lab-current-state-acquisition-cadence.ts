@@ -20,11 +20,11 @@ export type DnaCurrentStateAcquisitionGroup =
 
 export const DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS =
   Object.freeze({
-    race_activity: 2_000,
-    token_prices: 15 * 60_000,
-    vault_identity: 5 * 60_000,
-    core_current_state: 15 * 60_000,
-    splice_arena: 5 * 60_000,
+    race_activity: 24 * 60 * 60_000,
+    token_prices: 24 * 60 * 60_000,
+    vault_identity: 24 * 60 * 60_000,
+    core_current_state: 24 * 60 * 60_000,
+    splice_arena: 24 * 60 * 60_000,
   } satisfies Readonly<Record<DnaCurrentStateAcquisitionGroup, number>>);
 
 export type DnaCurrentStateAcquisitionCheckpoint = Readonly<{
@@ -144,13 +144,12 @@ function allRequests(
 }
 
 /**
- * Builds a deterministic continuous acquisition schedule. Race activity is
- * evaluated at the safe 30-rpm floor while slower-changing families use wider
- * intervals. Only due families are requested; complete cached evidence for the
- * other families remains part of last-good publication validation. Batches use
- * the current owner policy's effective aggregate rate, while every request
- * still passes through the client pool so headers, Retry-After and a lower
- * observed allowance remain authoritative.
+ * Builds a deterministic daily acquisition schedule. Once any recurring
+ * family reaches the 24-hour boundary, every recurring family is reacquired so
+ * one complete internally consistent generation can publish. Batches use the
+ * current owner policy's effective aggregate rate, while every request still
+ * passes through the client pool so headers, Retry-After and a lower observed
+ * allowance remain authoritative.
  *
  * Pair previews/validation are intentionally on-demand and never enter the
  * recurring current-state crawl.
@@ -225,14 +224,20 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
     });
   }
 
-  const dueGroups = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter((group) => {
-    const completed = checkpointMilliseconds.get(group);
-    return (
-      completed === undefined ||
-      evaluatedMilliseconds - completed >=
-        DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
-    );
-  });
+  const individuallyDueGroups = DNA_CURRENT_STATE_ACQUISITION_GROUPS.filter(
+    (group) => {
+      const completed = checkpointMilliseconds.get(group);
+      return (
+        completed === undefined ||
+        evaluatedMilliseconds - completed >=
+          DNA_CURRENT_STATE_ACQUISITION_INTERVAL_MILLISECONDS[group]
+      );
+    },
+  );
+  const dueGroups =
+    individuallyDueGroups.length > 0
+      ? [...DNA_CURRENT_STATE_ACQUISITION_GROUPS]
+      : [];
   const dueSet = new Set(dueGroups);
   const scheduled = allRequests(input.plan)
     .map((request) => ({ group: endpointGroup(request), request }))
@@ -255,10 +260,7 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
   return Object.freeze({
     evaluatedAt,
     status: dueGroups.length > 0 ? "ready" : "idle",
-    completionScope:
-      dueGroups.length === DNA_CURRENT_STATE_ACQUISITION_GROUPS.length
-        ? "all_current_state"
-        : "scheduled_requests_only",
+    completionScope: "all_current_state",
     maximumAggregateRequestsPerMinute,
     dueGroups: Object.freeze(dueGroups),
     requestBatches: requestBatches(

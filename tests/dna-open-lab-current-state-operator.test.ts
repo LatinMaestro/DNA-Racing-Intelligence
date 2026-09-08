@@ -81,6 +81,32 @@ describe("DNA Open Lab current-state operator", () => {
     expect(runners.scheduled).not.toHaveBeenCalled();
   });
 
+  it("fails closed before discovery when one refresh exceeds its operation allowance", async () => {
+    const result = await runDnaCurrentStateOperatorStep({
+      ...baseInput,
+      plannedRefreshR2Usage: {
+        storageBytes: 1_000,
+        classAOperations: 1_001,
+        classBOperations: 2_001,
+      },
+    });
+
+    expect(result).toMatchObject({
+      kind: "budget_blocked",
+      budget: {
+        allowed: false,
+        blockerIds: [
+          "class_a_refresh_limit_exceeded",
+          "class_b_refresh_limit_exceeded",
+        ],
+        paidUsageAllowed: false,
+        preserveLastGood: true,
+      },
+    });
+    expect(runners.discovery).not.toHaveBeenCalled();
+    expect(runners.scheduled).not.toHaveBeenCalled();
+  });
+
   it("stops after one in-progress discovery step", async () => {
     runners.discovery.mockResolvedValue(
       Object.freeze({

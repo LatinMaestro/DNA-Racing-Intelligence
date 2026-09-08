@@ -38,14 +38,15 @@ A partial cycle cannot replace the previous last-good dataset.
 | Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                          |
 | Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                    |
 
-## Zero-cost continuous scheduling
+## Zero-cost daily scheduling
 
-The normal private website continuously evaluates due API work. Active-race
-inventory/fills receive the shortest interval for Open Race usefulness, while
-slower-changing families use wider intervals and immutable cached evidence.
-Thirty requests/minute remains the permanent safe default and fallback. The
-owner may temporarily set any whole-number aggregate limit from 31 through 150
-requests/minute when the current DNA tier explicitly permits it.
+The commissioned private website targets one complete API refresh every 24
+hours. When any recurring family is due, every recurring family is reacquired
+and a new generation is published only after the whole cycle validates. Thirty
+requests/minute remains the permanent safe default and burst ceiling while the
+bounded refresh is running. The owner may temporarily set any whole-number
+aggregate limit from 31 through 150 requests/minute when the current DNA tier
+explicitly permits it.
 
 It must:
 
@@ -59,12 +60,9 @@ It must:
 
 Higher tiers may reduce catch-up duration but do not change data semantics.
 
-Current-state acquisition evaluates active races/fills every two seconds, Vault
-and Splice state every five minutes, and Core/Token state every fifteen minutes.
-The shared request pool enforces actual throughput. Only due families are
-reacquired; unchanged families are reconstructed from the verified last-good
-receipt index before a complete valid generation can publish. Pair
-info/validation remains on-demand.
+Current-state acquisition evaluates all recurring families together at the
+daily boundary. The shared request pool enforces actual throughput. Pair
+info/validation remains on-demand and outside the recurring crawl.
 
 Every elevated rate requires a maximum 31-day expiry. An expired policy, an
 advertised provider limit of 30 or lower, or any rate-limit outcome while the
@@ -82,7 +80,7 @@ last-good generation. Paid usage is never enabled automatically.
 
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
-explicit P5 approval. Later continuous cycles resume only from durable checkpoints
+explicit P5 approval. Later daily cycles resume only from durable checkpoints
 and retrieve missing/new evidence rather than repeating history.
 
 Recurring finished-race history uses the separate versioned cycle/attempt
@@ -93,8 +91,9 @@ superseded checkpoint, and only complete cycles can become the next boundary.
 The server-only collector binds each immutable R2 window receipt to checkpoint
 progress in one transaction. Before a completed cycle becomes visible,
 migration `0091` requires those receipts to form one exact contiguous cover,
-match the checkpoint's counts and bytes, and retain the immediately prior
-published cycle as last-good. The receipt-set checksum is re-evaluated while
+match the checkpoint's receipt and document counts, bind exact byte metadata,
+and retain the immediately prior published cycle as last-good. The receipt-set
+checksum is re-evaluated while
 the publication lock is held, so a partial or drifted set cannot cross the
 single pointer update. Scheduling and provider-budget admission remain A2/A3
 work.
