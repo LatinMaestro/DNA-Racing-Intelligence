@@ -1861,3 +1861,14 @@ After the private Pro League milestone, continue in this order:
 - Grant only the guarded assertion function. Keep direct evidence and dataset
   table access denied, preserve last-good on failure and leave website routes
   unable to obtain the publication target.
+
+## 2026-09-08 — breeding publication command remains dormant and explicit
+
+- Compose the immutable accepted-analysis source, independent current-authority
+  source and guarded compact publisher only in a server-side commissioning
+  command. Do not import the command from a route, page, Worker or scheduler.
+- Require one versioned invocation packet that identifies the accepted analysis
+  and digest and explicitly opts into the persistent write. Missing database
+  configuration or accepted evidence remains a held state.
+- This command publishes research evidence only. It does not validate or
+  recommend a pair, pass Gate E, connect a wallet or execute a game action.
