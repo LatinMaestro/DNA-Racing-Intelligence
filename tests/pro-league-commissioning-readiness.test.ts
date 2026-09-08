@@ -28,6 +28,10 @@ const readyInput: ProLeagueCommissioningReadinessInput = {
   openRaceFreshness: "current",
   breedingPerformanceFreshness: "current",
   breedingArenaFreshness: "unknown",
+  apiRatePolicyConnected: true,
+  effectiveRequestsPerMinute: 30,
+  apiRateFallbackActive: false,
+  lastProviderLimit: null,
   discoveryQueueAvailable: true,
   discoveryExperimentCount: 3,
   openRaceStateConnected: true,
@@ -60,6 +64,22 @@ describe("Pro League commissioning readiness", () => {
     expect(result.protectedPreviewDeploymentAllowed).toBe(false);
     expect(result.productionActivationAllowed).toBe(false);
     expect(result.rosterOrMapSubmissionAllowed).toBe(false);
+  });
+
+  it("flags an elevated API rate for explicit Preview review", () => {
+    const result = assessProLeagueCommissioningReadiness({
+      ...readyInput,
+      effectiveRequestsPerMinute: 150,
+    });
+
+    expect(result.status).toBe("ready_for_protected_preview_review");
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        code: "API_REFRESH_CONTROL",
+        status: "review",
+        requiredForProtectedPreview: false,
+      }),
+    );
   });
 
   it("keeps stale last-good evidence visible as an owner review item", () => {

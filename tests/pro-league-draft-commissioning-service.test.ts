@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createDnaOpenLabSyncRatePolicy } from "@/domain/dna-open-lab-sync-rate-policy";
 import type { ProLeagueExactFormatEvidence } from "@/domain/pro-league-matchup";
 import type {
   ActiveProLeagueEvidenceGeneration,
@@ -155,6 +156,11 @@ function input(
     Parameters<typeof loadProLeagueDraftCommissioningState>[0]
   > = {},
 ): Parameters<typeof loadProLeagueDraftCommissioningState>[0] {
+  const syncPolicy = createDnaOpenLabSyncRatePolicy({
+    requestedRequestsPerMinute: 30,
+    now: "2026-09-08T00:00:00.000Z",
+    version: 1,
+  });
   return {
     authenticatedOwnerId: ownerId,
     configuredOwnerId: ownerId,
@@ -163,6 +169,12 @@ function input(
     rosteredCoreIds: [],
     vaultRepository: vault(),
     evidenceRepository: repository(),
+    syncRatePolicyRepository: {
+      status: "ready",
+      read: vi.fn(async () => syncPolicy),
+      set: vi.fn(async () => syncPolicy),
+      recordObservation: vi.fn(async () => syncPolicy),
+    },
     now: new Date("2026-09-08T00:00:00.000Z"),
     pageSize: 5,
     ...overrides,
@@ -271,6 +283,10 @@ describe("Pro League draft commissioning service", () => {
         recommendationAllowed: false,
         automaticPairValidationAllowed: false,
         spliceExecutionAllowed: false,
+      },
+      syncRatePolicy: {
+        connectionStatus: "connected",
+        policy: { effectiveRequestsPerMinute: 30 },
       },
       readiness: {
         status: "blocked",

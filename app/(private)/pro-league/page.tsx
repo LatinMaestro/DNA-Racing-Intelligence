@@ -9,6 +9,7 @@ import {
   neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment,
   neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment,
 } from "@/lib/neon-dna-open-lab-sync-publication";
+import { neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-rate-policy-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
@@ -80,6 +81,10 @@ export default async function ProLeaguePage() {
           ...databaseEnvironment,
           ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
         }),
+      syncRatePolicyRepository:
+        neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
       now: new Date(),
     }),
   ]);

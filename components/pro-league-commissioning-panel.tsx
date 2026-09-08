@@ -111,6 +111,7 @@ export function ProLeagueCommissioningPanel({
   const breedingObjectives = state.breedingObjectives;
   const mapPreparation = state.mapPreparation;
   const readiness = state.readiness;
+  const syncRatePolicy = state.syncRatePolicy;
 
   return (
     <section
@@ -196,6 +197,39 @@ export function ProLeagueCommissioningPanel({
             This checklist cannot deploy Preview or Production, submit a roster
             or map, enter a race, recommend a breeding pair, or perform a game
             action. Owner acceptance remains a separate deliberate step.
+          </p>
+        </div>
+      )}
+
+      {syncRatePolicy === undefined ? null : (
+        <div className="rounded-xl border border-[var(--border)] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">API refresh safety</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {syncRatePolicy.connectionStatus === "connected"
+                  ? "The owner-only rate policy is connected."
+                  : "The owner rate policy is unavailable, so the safe default applies."}
+              </p>
+            </div>
+            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+              {syncRatePolicy.policy.effectiveRequestsPerMinute} aggregate rpm
+            </p>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Requested {syncRatePolicy.policy.requestedRequestsPerMinute} rpm ·
+            provider limit{" "}
+            {syncRatePolicy.policy.lastProviderLimit === null
+              ? "not reported"
+              : `${syncRatePolicy.policy.lastProviderLimit} rpm`}
+            {syncRatePolicy.policy.fallbackReason === null
+              ? ""
+              : ` · safe fallback: ${label(syncRatePolicy.policy.fallbackReason)}`}
+            .
+          </p>
+          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+            This is rate-control status only. It does not claim that a refresh
+            is running or complete; last-good evidence remains authoritative.
           </p>
         </div>
       )}

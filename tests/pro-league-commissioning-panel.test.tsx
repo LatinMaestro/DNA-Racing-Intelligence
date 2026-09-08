@@ -341,6 +341,21 @@ describe("Pro League commissioning panel", () => {
         productionActivationAllowed: false,
         rosterOrMapSubmissionAllowed: false,
       },
+      syncRatePolicy: {
+        connectionStatus: "connected",
+        expectedVersion: 1,
+        policy: {
+          requestedRequestsPerMinute: 30,
+          effectiveRequestsPerMinute: 30,
+          elevatedUntil: null,
+          fallbackReason: null,
+          consecutiveRateLimits: 0,
+          lastRateLimitedAt: null,
+          lastProviderLimit: 150,
+          version: 1,
+          updatedAt: "2026-09-07T01:04:00.000Z",
+        },
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -349,6 +364,9 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Current exact-format recommendation");
     expect(markup).toContain("Protected Preview readiness");
     expect(markup).toContain("ready for a protected owner review");
+    expect(markup).toContain("API refresh safety");
+    expect(markup).toContain("30 aggregate rpm");
+    expect(markup).toContain("does not claim that a refresh is running");
     expect(markup).toContain(
       "Owner acceptance remains a separate deliberate step",
     );

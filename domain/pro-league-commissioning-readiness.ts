@@ -9,6 +9,7 @@ export type ProLeagueCommissioningReadinessCheck = Readonly<{
     | "MAP_PREPARATION"
     | "CURRENT_CORE_STATE"
     | "LAST_GOOD_FRESHNESS"
+    | "API_REFRESH_CONTROL"
     | "DISCOVERY_QUEUE"
     | "OPEN_RACE_LIMITATIONS"
     | "BREEDING_RESEARCH"
@@ -58,6 +59,10 @@ export type ProLeagueCommissioningReadinessInput = Readonly<{
   openRaceFreshness: FreshnessState;
   breedingPerformanceFreshness: FreshnessState;
   breedingArenaFreshness: FreshnessState;
+  apiRatePolicyConnected: boolean;
+  effectiveRequestsPerMinute: number;
+  apiRateFallbackActive: boolean;
+  lastProviderLimit: number | null;
   discoveryQueueAvailable: boolean;
   discoveryExperimentCount: number;
   openRaceStateConnected: boolean;
@@ -130,6 +135,24 @@ export function assessProLeagueCommissioningReadiness(
     input.breedingObjectiveCount,
     "breeding objective count",
   );
+  const effectiveRequestsPerMinute = boundedInteger(
+    input.effectiveRequestsPerMinute,
+    "effective API request rate",
+  );
+  if (effectiveRequestsPerMinute < 30 || effectiveRequestsPerMinute > 150) {
+    throw new Error(
+      "Pro League commissioning readiness effective API request rate is invalid.",
+    );
+  }
+  if (
+    input.lastProviderLimit !== null &&
+    (!Number.isSafeInteger(input.lastProviderLimit) ||
+      input.lastProviderLimit < 1)
+  ) {
+    throw new Error(
+      "Pro League commissioning readiness provider limit is invalid.",
+    );
+  }
   const activeEvidenceReady =
     input.activeEvidence && populationProfileCount > 0 && ownedProfileCount > 0;
   const rosterReady =
@@ -213,6 +236,16 @@ export function assessProLeagueCommissioningReadiness(
       allEvidenceCurrent ? "pass" : "review",
       false,
       `${freshnessDetail} Ageing, stale or unavailable evidence remains visible as last-good information and requires owner review; it is never presented as current.`,
+    ),
+    check(
+      "API_REFRESH_CONTROL",
+      input.apiRatePolicyConnected && effectiveRequestsPerMinute === 30
+        ? "pass"
+        : "review",
+      false,
+      input.apiRatePolicyConnected
+        ? `${effectiveRequestsPerMinute} aggregate requests per minute are effective${input.apiRateFallbackActive ? " under automatic safe fallback" : ""}; the last provider limit is ${input.lastProviderLimit === null ? "unavailable" : String(input.lastProviderLimit)}.`
+        : "The owner rate policy could not be read, so the website remains on the safe 30-request-per-minute default. This does not prove that a refresh is running.",
     ),
     check(
       "DISCOVERY_QUEUE",
