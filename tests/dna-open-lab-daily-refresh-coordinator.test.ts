@@ -110,16 +110,18 @@ function budgetRepository(input?: {
 function generationRepository(existing?: DnaOpenLabDailyRefreshGeneration) {
   let stored = existing ?? null;
   const load = vi.fn(async () => stored);
-  const publish = vi.fn(async (candidate) => {
-    if (
-      stored !== null &&
-      JSON.stringify(stored) !== JSON.stringify(candidate)
-    ) {
-      throw new Error("synthetic generation conflict");
-    }
-    stored = Object.freeze(candidate);
-    return stored;
-  });
+  const publish = vi.fn(
+    async (_ownerId: string, candidate: DnaOpenLabDailyRefreshGeneration) => {
+      if (
+        stored !== null &&
+        JSON.stringify(stored) !== JSON.stringify(candidate)
+      ) {
+        throw new Error("synthetic generation conflict");
+      }
+      stored = Object.freeze(candidate);
+      return stored;
+    },
+  );
   return {
     repository: { load, publish } as DnaOpenLabDailyRefreshGenerationRepository,
     load,
@@ -315,7 +317,10 @@ describe("DNA Open Lab daily refresh coordinator", () => {
       accounting: { status: "accounted", actualUsage: actualR2Usage },
     });
     expect(test.budget.reserve).toHaveBeenCalledTimes(1);
-    expect(test.generations.publish).toHaveBeenCalledTimes(1);
+    expect(test.generations.publish).toHaveBeenCalledWith(
+      "private-owner",
+      expect.objectContaining({ refreshCycleId }),
+    );
     expect(test.budget.account).toHaveBeenCalledTimes(1);
     expect(test.generations.publish.mock.invocationCallOrder[0]).toBeLessThan(
       test.budget.account.mock.invocationCallOrder[0]!,

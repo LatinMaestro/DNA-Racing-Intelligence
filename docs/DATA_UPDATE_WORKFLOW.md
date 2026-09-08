@@ -119,8 +119,11 @@ locks and verifies the exact reservation, requires both source publications to
 be their current last-good authorities, enforces the finished-history
 predecessor and non-regressing current observation, and refuses measured usage
 above the reserved envelope. Runtime access is function-only under forced RLS.
-The remaining boundary is its server-only Neon adapter and switching website
-reads only through the complete combined serving pointer.
+The server-only Neon adapter opens a serializable transaction, proves the
+database owner matches the authenticated owner and both generation relations
+have forced RLS under the non-privileged runtime role, then uses only those
+functions. The remaining boundary is private operator wiring and switching
+website reads only through the complete combined serving pointer.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
