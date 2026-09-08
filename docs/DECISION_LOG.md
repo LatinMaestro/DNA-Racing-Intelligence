@@ -1872,3 +1872,13 @@ After the private Pro League milestone, continue in this order:
   configuration or accepted evidence remains a held state.
 - This command publishes research evidence only. It does not validate or
   recommend a pair, pass Gate E, connect a wallet or execute a game action.
+
+## 2026-09-08 — commissioning preflight cannot obtain the publisher
+
+- Provide a separate server-only, read-only preflight that loads the immutable
+  accepted analysis and current authority but never receives the Neon publisher.
+- Return a small held/ready receipt with the verified analysis digest, counts
+  and authority timestamps. Every receipt states that no write occurred and no
+  write, pair recommendation or breeding execution is authorized.
+- Keep the preflight out of pages, routes, Workers and schedules. A ready receipt
+  is evidence for a later deliberate commissioning decision, not approval.
