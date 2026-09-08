@@ -50,8 +50,8 @@ remaining. The connector role cannot impersonate `dna_app_runtime`, so hosted
 verification checked the runtime grants and forced RLS directly while exact
 runtime-role execution remained covered by CI.
 
-The private Pro League route now constructs only the read facade from its
-server-side environment. Missing configuration or a missing active generation
-still produces the held unavailable/empty state. No website request can obtain
-the publisher, and this change does not publish a generation, deploy Preview,
-alter Production or authorize a breeding transaction.
+The private Pro League and Breeding routes now construct only the read facade
+from their server-side environments. Missing configuration or a missing active
+generation still produces the held unavailable/empty state. No website request
+can obtain the publisher, and these changes do not publish a generation, deploy
+Preview, alter Production or authorize a breeding transaction.
