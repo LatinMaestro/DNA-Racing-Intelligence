@@ -1945,3 +1945,23 @@ After the private Pro League milestone, continue in this order:
 - Keep paused and catching-up states as protected Preview review items while a
   verified last-good version remains available. Reading status cannot trigger
   acquisition, advance a checkpoint, publish data or perform a game action.
+
+## 2026-09-08 — Historical baseline coverage is separate from current-state health
+
+- Read the completed first-backfill checkpoint through the existing
+  owner-isolated, serializable, read-only ledger boundary.
+- Show the exact completed baseline totals only when the durable terminal state
+  matches all approved authority: 17,464 receipts, including 17,369
+  finished-race receipts, 874,370,990 private immutable R2 bytes and one
+  approved quarantined identity omission.
+- Use the fixed 2026-09-02 authority cutoff as the baseline data-current-through
+  boundary. Do not describe the later persistence completion date as newer race
+  evidence.
+- Keep the baseline distinct from recurring history refresh. The website must
+  say that post-cutoff finished races still require a separate durable
+  incremental checkpoint and complete catch-up before history is current.
+- Expose only a short derived version fingerprint. Never render the completion
+  checksum, request identities, object keys, raw payloads, owner identifiers or
+  wallet data.
+- Viewing archive coverage cannot call the DNA API, write Neon or R2, publish a
+  generation, deploy or perform a game action.

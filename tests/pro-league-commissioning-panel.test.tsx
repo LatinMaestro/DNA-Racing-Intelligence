@@ -391,6 +391,20 @@ describe("Pro League commissioning panel", () => {
         readOnly: true,
         refreshTriggered: false,
       },
+      historyCoverage: {
+        connectionStatus: "connected",
+        baselineStatus: "complete",
+        dataCurrentThrough: "2026-09-02T00:11:55.961Z",
+        versionFingerprint: "abcdef123456",
+        sourceRecordUpperBound: 1_137_586,
+        receiptCount: 17_464,
+        finishedRaceReceiptCount: 17_369,
+        retainedR2Bytes: 874_370_990,
+        omittedIdentityObservationCount: 1,
+        incrementalRefreshStatus: "not_connected",
+        readOnly: true,
+        refreshTriggered: false,
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -408,6 +422,17 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Token Prices");
     expect(markup).toContain("Last interruption: Rate Limited");
     expect(markup).toContain("cannot start a refresh");
+    expect(markup).toContain("Historical race archive");
+    expect(markup).toContain(
+      "one-time private baseline is complete as version abcdef123456",
+    );
+    expect(markup).toContain("17,464");
+    expect(markup).toContain("17,369");
+    expect(markup).toContain("874.4 MB");
+    expect(markup).toContain(
+      "This baseline is not a recurring history refresh",
+    );
+    expect(markup).toContain("1,137,586");
     expect(markup).toContain(
       "Owner acceptance remains a separate deliberate step",
     );

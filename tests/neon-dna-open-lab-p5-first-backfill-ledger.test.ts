@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
-import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import {
+  createNeonDnaOpenLabP5FirstBackfillLedger,
+  neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment,
+} from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -98,6 +101,28 @@ function harness(rows: readonly (readonly unknown[])[]) {
 }
 
 describe("Neon DNA Open Lab P5 first-backfill ledger", () => {
+  it("exposes only the read method to the website environment factory", () => {
+    const readRepository =
+      neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
+        {
+          databaseUrl: "postgresql://private.example/dna",
+          databaseOwnerId,
+          ownerId,
+          runtimeRole,
+        },
+        DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+      );
+
+    expect(readRepository).not.toBeNull();
+    expect(Object.keys(readRepository ?? {})).toEqual(["load"]);
+    expect(
+      neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
+        { databaseUrl: "", databaseOwnerId, ownerId, runtimeRole },
+        DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+      ),
+    ).toBeNull();
+  });
+
   it("initializes the exact approved authority in a serializable transaction", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],

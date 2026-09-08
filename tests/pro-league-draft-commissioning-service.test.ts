@@ -182,6 +182,17 @@ function input(
         evidenceIndex: null,
       })),
     },
+    historyCoverageRepository: {
+      load: vi.fn(async () => ({
+        revision: "17466",
+        status: "complete" as const,
+        nextRequestOrdinal: 17_465,
+        logicalRequestCount: 17_464,
+        retainedR2Bytes: 874_370_990,
+        omittedIdentityObservationCount: 1,
+        completionSha256: "a".repeat(64),
+      })),
+    },
     now: new Date("2026-09-08T00:00:00.000Z"),
     pageSize: 5,
     ...overrides,
@@ -302,6 +313,16 @@ describe("Pro League draft commissioning service", () => {
         readOnly: true,
         refreshTriggered: false,
       },
+      historyCoverage: {
+        connectionStatus: "connected",
+        baselineStatus: "complete",
+        dataCurrentThrough: "2026-09-02T00:11:55.961Z",
+        receiptCount: 17_464,
+        finishedRaceReceiptCount: 17_369,
+        incrementalRefreshStatus: "not_connected",
+        readOnly: true,
+        refreshTriggered: false,
+      },
       readiness: {
         status: "blocked",
         ownerAcceptanceRequired: true,
@@ -355,6 +376,28 @@ describe("Pro League draft commissioning service", () => {
     expect(result.syncHealth).toMatchObject({
       connectionStatus: "invalid_state",
       lastGood: null,
+      readOnly: true,
+      refreshTriggered: false,
+    });
+    expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
+    expect(result.lineup?.totals.lineCount).toBe(168);
+  });
+
+  it("retains the historical draft when archive coverage authority is invalid", async () => {
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        historyCoverageRepository: {
+          load: vi.fn(async () => {
+            throw new Error("archive checkpoint unavailable");
+          }),
+        },
+      }),
+    );
+
+    expect(result.connectionStatus).toBe("read_model_connected");
+    expect(result.historyCoverage).toMatchObject({
+      connectionStatus: "invalid_state",
+      baselineStatus: "not_started",
       readOnly: true,
       refreshTriggered: false,
     });

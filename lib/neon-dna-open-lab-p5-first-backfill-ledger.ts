@@ -60,6 +60,11 @@ export type DnaOpenLabP5FirstBackfillLedger = Readonly<{
   }) => Promise<DnaOpenLabP5FirstBackfillLedgerState>;
 }>;
 
+export type DnaOpenLabP5FirstBackfillStatusReadRepository = Pick<
+  DnaOpenLabP5FirstBackfillLedger,
+  "load"
+>;
+
 const SET_OWNER_SCOPE_SQL =
   "SELECT set_config('app.owner_id', $1, true) AS owner_scope";
 
@@ -585,4 +590,39 @@ export function createNeonDnaOpenLabP5FirstBackfillLedger(input: {
       });
     },
   });
+}
+
+export function neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    ownerId?: string;
+    runtimeRole?: string;
+  }>,
+  approvalPacket: DnaOpenLabP5FirstBackfillApprovalPacket,
+): DnaOpenLabP5FirstBackfillStatusReadRepository | null {
+  const databaseUrl = environment.databaseUrl?.trim() ?? "";
+  const databaseOwnerId = environment.databaseOwnerId?.trim() ?? "";
+  const ownerId = environment.ownerId?.trim() ?? "";
+  const runtimeRole = environment.runtimeRole?.trim() ?? "";
+  if (
+    databaseUrl === "" ||
+    databaseOwnerId === "" ||
+    ownerId === "" ||
+    runtimeRole === ""
+  ) {
+    return null;
+  }
+  try {
+    const ledger = createNeonDnaOpenLabP5FirstBackfillLedger({
+      databaseUrl,
+      databaseOwnerId,
+      ownerId,
+      runtimeRole,
+      approvalPacket,
+    });
+    return Object.freeze({ load: ledger.load.bind(ledger) });
+  } catch {
+    return null;
+  }
 }
