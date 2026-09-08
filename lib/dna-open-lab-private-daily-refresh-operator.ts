@@ -42,6 +42,13 @@ import type {
   DnaRaceMode,
 } from "./dna-open-lab-v1-client";
 import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy";
+import {
+  DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
+  DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
+  type DnaOpenLabProviderCapacityPreflight,
+  type DnaOpenLabProviderCapacityPreflightReceipt,
+} from "./dna-open-lab-provider-capacity-preflight";
+import type { DnaOpenLabNeonUsage } from "./dna-open-lab-zero-cost-provider-capacity";
 import { createNeonDnaCurrentStateAcquisitionCycleCheckpointRepository } from "./neon-dna-open-lab-current-state-acquisition-cycle";
 import { neonDnaOpenLabDailyRefreshGenerationRepositoryFromEnvironment } from "./neon-dna-open-lab-daily-refresh-generation-repository";
 import { createNeonDnaFinishedRaceIncrementalCycleRepository } from "./neon-dna-open-lab-finished-race-incremental-cycle";
@@ -63,9 +70,11 @@ export type DnaOpenLabPrivateDailyRefreshInvocation = Readonly<{
   intent: typeof DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_INTENT;
   allowPersistentWrite: true;
   authenticatedOwnerId: string;
+  exactCodeHeadSha: string;
   refreshCycleId: string;
   budgetWindowId: string;
   plannedR2Usage: DnaOpenLabR2Usage;
+  plannedNeonUsage: DnaOpenLabNeonUsage;
   currentR2Usage: DnaOpenLabR2Usage;
   finishedHistoryUpperBoundAt: string;
   currentStateCycleId: string;
@@ -81,6 +90,7 @@ export type DnaOpenLabPrivateDailyRefreshInvocation = Readonly<{
 }>;
 
 export type DnaOpenLabPrivateDailyRefreshSources = Readonly<{
+  providerCapacityPreflight: DnaOpenLabProviderCapacityPreflight;
   finishedHistoryClient: Pick<DnaOpenLabClient, "racesFinished" | "raceDocs">;
   requestBudget: DnaOpenLabRequestBudget;
   finishedHistoryPublisher: DnaFinishedRaceWindowPublisher;
@@ -114,9 +124,16 @@ export type DnaOpenLabPrivateDailyRefreshOperator =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      execute: (
-        invocation: DnaOpenLabPrivateDailyRefreshInvocation,
-      ) => Promise<DnaOpenLabDailyRefreshStepResult>;
+      execute: (invocation: DnaOpenLabPrivateDailyRefreshInvocation) => Promise<
+        | DnaOpenLabDailyRefreshStepResult
+        | Readonly<{
+            kind: "provider_capacity_held";
+            preflight: Extract<
+              DnaOpenLabProviderCapacityPreflightReceipt,
+              { status: "held" }
+            >;
+          }>
+      >;
     }>;
 
 function requiredIdentity(value: string, field: string): string {
@@ -293,6 +310,23 @@ export function createDnaOpenLabPrivateDailyRefreshOperator(input: {
         );
       }
       assertConservativeRateSafety({ invocation, sources: input.sources });
+      const providerCapacity =
+        await input.sources.providerCapacityPreflight.inspect({
+          preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
+          intent: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
+          authenticatedOwnerId,
+          exactCodeHeadSha: invocation.exactCodeHeadSha,
+          refreshCycleId: invocation.refreshCycleId,
+          budgetWindowId: invocation.budgetWindowId,
+          plannedR2UsagePerRefresh: invocation.plannedR2Usage,
+          plannedNeonUsagePerRefresh: invocation.plannedNeonUsage,
+        });
+      if (providerCapacity.status === "held") {
+        return Object.freeze({
+          kind: "provider_capacity_held" as const,
+          preflight: providerCapacity,
+        });
+      }
       return runDnaOpenLabDailyRefreshStep({
         ownerId: authenticatedOwnerId,
         refreshCycleId: invocation.refreshCycleId,
