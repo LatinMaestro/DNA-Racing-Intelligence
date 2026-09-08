@@ -1837,3 +1837,14 @@ After the private Pro League milestone, continue in this order:
 - Expose only exact owner-scoped reads to the publication runner. This storage
   does not accept research on behalf of the owner, pass Gate E, recommend a
   pair, connect a wallet or execute a splice.
+
+## 2026-09-08 — breeding publication authority is independently current
+
+- Resolve the active Pro League evidence cutoff and accepted performance/Arena
+  import timestamps through one owner-scoped repeatable-read database snapshot.
+- Require the active Pro League evidence generation to still reference the
+  active, accepted and aggregate-complete race dataset. A newer active race
+  dataset or an incomplete active Arena dataset keeps publication held.
+- Grant only the guarded authority read function and no new direct table
+  access. Keep the Pro League evidence tables inaccessible to the runtime, and
+  do not make this source available to website routes.

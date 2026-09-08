@@ -60,6 +60,15 @@ explicit held state; cross-owner access, changed identity/digest and any stale
 authority binding fail before the compact publisher is called. The website read
 facades cannot obtain this runner or its publication target.
 
+Migration `0087` and its server-only adapter resolve that current authority
+from one repeatable-read owner-scoped database snapshot. Publication authority
+exists only when the active Pro League evidence generation still points to the
+active, accepted and aggregate-complete race dataset. If an active Arena
+dataset exists, it must also be accepted and aggregate-complete; otherwise the
+authority read returns the held state. This migration grants only the guarded
+function and no additional direct table access; the active Pro League evidence
+tables remain inaccessible to the runtime.
+
 ## Immutable accepted-analysis source
 
 Migration `0086` stores only an explicitly accepted, complete analysis snapshot
@@ -83,9 +92,10 @@ not establish race-type pair evidence, perform official pair validation, pass
 Gate E, connect a wallet or execute a splice. Fresh `pair_validate`, `pair_info`
 and applicable Arena evidence remain mandatory at owner decision time.
 
-Migrations `0085` and `0086` are exercised synthetically through apply, smoke,
+Migrations `0085`, `0086` and `0087` are exercised synthetically through apply, smoke,
 reverse and removal checks in CI. On 2026-09-08, migration `0085` was also applied to the
-existing non-default private Neon `preview` branch. Its lifecycle and cleanup
+existing non-default private Neon `preview` branch. Migration `0086` was later
+applied there with zero accepted rows. Their lifecycle and cleanup
 completed with zero synthetic owners, generations, ranking rows or active rows
 remaining. The connector role cannot impersonate `dna_app_runtime`, so hosted
 verification checked the runtime grants and forced RLS directly while exact
@@ -97,7 +107,7 @@ generation still produces the held unavailable/empty state. No website request
 can obtain the publisher, and these changes do not publish a generation, deploy
 Preview, alter Production or authorize a breeding transaction.
 
-The accepted-analysis composition, immutable source and source-to-publication
-runner are implemented and tested but are not wired to either page. No accepted
-source snapshot currently exists in Preview, so no generation has been
-published.
+The accepted-analysis composition, immutable source, independently loaded
+authority source and source-to-publication runner are implemented and tested
+but are not wired to either page. No accepted source snapshot currently exists
+in Preview, so no generation has been published.
