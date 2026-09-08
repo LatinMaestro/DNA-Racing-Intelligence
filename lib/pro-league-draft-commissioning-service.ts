@@ -7,6 +7,10 @@ import {
   type ProLeagueMapPreparationPlan,
 } from "@/domain/pro-league-map-preparation";
 import {
+  assessProLeagueCommissioningReadiness,
+  type ProLeagueCommissioningReadiness,
+} from "@/domain/pro-league-commissioning-readiness";
+import {
   buildProLeagueDiscoveryExperimentQueue,
   type ProLeagueDiscoveryExperimentQueue,
 } from "@/domain/pro-league-discovery-experiment-queue";
@@ -61,6 +65,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   roster: ProLeagueDraftRosterRecommendation | null;
   lineup: ProLeagueDraftLineupRecommendation | null;
   mapPreparation?: ProLeagueMapPreparationPlan;
+  readiness?: ProLeagueCommissioningReadiness;
   currentState?: ProLeagueCurrentCoreState;
   raceOpportunities?: ProLeagueRaceOpportunityState;
   discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
@@ -198,12 +203,65 @@ export async function loadProLeagueDraftCommissioningState(
       priorityGapCount,
     ),
   );
+  const cutoffs = [
+    roster.evidenceCutoffAt,
+    lineup.evidenceCutoffAt,
+    mapPreparation.evidenceCutoffAt,
+    discoveryQueue.evidenceCutoffAt,
+    breedingObjectives.evidenceCutoffAt,
+  ];
+  const rosteredMembers = roster.draftRoster.members.filter(
+    ({ disposition }) => disposition === "rostered",
+  );
+  const readiness = assessProLeagueCommissioningReadiness({
+    activeEvidence: true,
+    populationProfileCount: evidence.populationProfileCount,
+    ownedProfileCount: evidence.ownedProfileCount,
+    ownedCoreWithoutEvidenceCount: evidence.ownedCoreWithoutEvidenceCount,
+    generationCutoffsConsistent: cutoffs.every(
+      (cutoff) => cutoff === evidence.evidenceCutoffAt,
+    ),
+    rosterAvailable: true,
+    rosterCompliant: roster.draftRoster.audit.readiness === "compliant",
+    rosteredCoreCount: rosteredMembers.length,
+    namedRosteredCoreCount: rosteredMembers.filter(
+      ({ core }) => core.displayName.trim() !== "",
+    ).length,
+    lineupAvailable: true,
+    mapCount: lineup.maps.length,
+    lineCount: lineup.totals.lineCount,
+    first16LineCount: lineup.totals.first16LineCount,
+    mapPreparationAvailable: true,
+    mapPreparationCount: mapPreparation.assessments.length,
+    currentCoreStateConnected: currentState.status === "connected",
+    currentCoreCount: currentState.cores.length,
+    discoveryQueueAvailable: true,
+    discoveryExperimentCount: discoveryQueue.experiments.length,
+    openRaceStateConnected: raceOpportunities.status === "connected",
+    exactOpenRaceGapMatchingAvailable:
+      raceOpportunities.exactGapMatchingAvailable,
+    breedingResearchConnected: breedingObjectives.status === "connected",
+    breedingObjectiveCount: breedingObjectives.objectives.length,
+    substitutionLedgerResolved:
+      discoveryQueue.substitutionBudget.initialRosterCountingPolicy !==
+      "unresolved",
+    opponentExactFormatEvidenceAvailable: false,
+    everyAutomaticOrGameActionDisabled:
+      !mapPreparation.matchActionAllowed &&
+      !discoveryQueue.automaticRaceEntryAllowed &&
+      !discoveryQueue.automaticRosterMutationAllowed &&
+      !raceOpportunities.raceEntryAllowed &&
+      !breedingObjectives.recommendationAllowed &&
+      !breedingObjectives.automaticPairValidationAllowed &&
+      !breedingObjectives.spliceExecutionAllowed,
+  });
   return Object.freeze({
     connectionStatus: "read_model_connected",
     evidence,
     roster,
     lineup,
     mapPreparation,
+    readiness,
     currentState,
     raceOpportunities,
     discoveryQueue,

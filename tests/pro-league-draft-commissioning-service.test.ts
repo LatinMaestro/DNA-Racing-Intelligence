@@ -270,7 +270,17 @@ describe("Pro League draft commissioning service", () => {
         automaticPairValidationAllowed: false,
         spliceExecutionAllowed: false,
       },
+      readiness: {
+        status: "blocked",
+        ownerAcceptanceRequired: true,
+        protectedPreviewDeploymentAllowed: false,
+        productionActivationAllowed: false,
+        rosterOrMapSubmissionAllowed: false,
+      },
     });
+    expect(result.readiness?.checks).toContainEqual(
+      expect.objectContaining({ code: "CURRENT_CORE_STATE", status: "block" }),
+    );
     expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
     expect(result.lineup?.maps).toHaveLength(4);
     expect(result.lineup?.maps.every(({ lines }) => lines.length === 42)).toBe(

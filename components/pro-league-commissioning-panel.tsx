@@ -110,6 +110,7 @@ export function ProLeagueCommissioningPanel({
   const discoveryQueue = state.discoveryQueue;
   const breedingObjectives = state.breedingObjectives;
   const mapPreparation = state.mapPreparation;
+  const readiness = state.readiness;
 
   return (
     <section
@@ -152,6 +153,51 @@ export function ProLeagueCommissioningPanel({
           value={selected?.length ?? "Unavailable"}
         />
       </div>
+
+      {readiness === undefined ? null : (
+        <div className="rounded-xl border border-[var(--border)] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">
+                Protected Preview readiness
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {readiness.status === "ready_for_protected_preview_review"
+                  ? "The core Pro League package is ready for a protected owner review."
+                  : "The core Pro League package still has blocking evidence gaps."}
+              </p>
+            </div>
+            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+              {readiness.summary.passCount} passed ·{" "}
+              {readiness.summary.reviewCount} review ·{" "}
+              {readiness.summary.blockCount} blocked
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {readiness.checks.map((check) => (
+              <div
+                className="rounded-lg border border-[var(--border)] p-4"
+                key={check.code}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold">{label(check.code)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    {label(check.status)}
+                  </p>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  {check.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+            This checklist cannot deploy Preview or Production, submit a roster
+            or map, enter a race, recommend a breeding pair, or perform a game
+            action. Owner acceptance remains a separate deliberate step.
+          </p>
+        </div>
+      )}
 
       {state.currentState === undefined ? null : state.currentState.status !==
         "connected" ? (

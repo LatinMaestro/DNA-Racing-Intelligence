@@ -313,12 +313,39 @@ describe("Pro League commissioning panel", () => {
           },
         ],
       },
+      readiness: {
+        status: "ready_for_protected_preview_review",
+        checks: [
+          {
+            code: "ACTIVE_EVIDENCE",
+            status: "pass",
+            requiredForProtectedPreview: true,
+            detail: "Verified evidence is active.",
+          },
+          {
+            code: "OWNER_PREVIEW_ACCEPTANCE",
+            status: "review",
+            requiredForProtectedPreview: false,
+            detail: "Owner acceptance has not been performed.",
+          },
+        ],
+        summary: { passCount: 1, reviewCount: 1, blockCount: 0 },
+        ownerAcceptanceRequired: true,
+        protectedPreviewDeploymentAllowed: false,
+        productionActivationAllowed: false,
+        rosterOrMapSubmissionAllowed: false,
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
       <ProLeagueCommissioningPanel state={state} />,
     );
     expect(markup).toContain("Current exact-format recommendation");
+    expect(markup).toContain("Protected Preview readiness");
+    expect(markup).toContain("ready for a protected owner review");
+    expect(markup).toContain(
+      "Owner acceptance remains a separate deliberate step",
+    );
     expect(markup).toContain("Silver Comet");
     expect(markup).toContain("Four-map assignment");
     expect(markup).toContain("Map preparation order");
