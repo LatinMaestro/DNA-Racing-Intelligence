@@ -102,7 +102,7 @@ and applicable Arena evidence remain mandatory at owner decision time.
 
 Migrations `0085`, `0086`, `0087` and `0088` are exercised synthetically
 through apply, smoke, reverse and removal checks in CI. On 2026-09-08,
-migrations `0084` through `0087` were applied to the existing non-default
+migrations `0084` through `0088` were applied to the existing non-default
 private Neon `preview` branch with zero active evidence, accepted-analysis or
 breeding-ranking rows. Their lifecycle and cleanup
 completed with zero synthetic owners, generations, ranking rows or active rows
@@ -120,3 +120,9 @@ The accepted-analysis composition, immutable source, independently loaded
 authority source and source-to-publication runner are implemented and tested
 but are not wired to either page. No accepted source snapshot currently exists
 in Preview, so no generation has been published.
+
+The dormant server-only publication command composes the immutable accepted
+analysis source, current authority source and guarded ranking publisher. It has
+no route or scheduler entry point and refuses execution without one explicit
+versioned invocation packet that opts into the persistent write. The command
+still cannot validate a pair, pass Gate E, connect a wallet or execute a splice.

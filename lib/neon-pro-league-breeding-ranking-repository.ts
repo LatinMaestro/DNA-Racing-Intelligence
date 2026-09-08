@@ -5,6 +5,7 @@ import {
   type BreedingPairRankingInput,
 } from "@/domain/breeding-pair-ranking";
 import type { BreedingRankingRepository } from "@/lib/breeding-workspace-service";
+import type { ProLeagueBreedingPublicationTarget } from "@/lib/pro-league-breeding-ranking-publication-runner";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -616,4 +617,35 @@ export function neonProLeagueBreedingRankingReadRepositoryFromEnvironment(
     status: "ready",
     loadRankingEvidenceByOwner: repository.loadRankingEvidenceByOwner,
   });
+}
+
+export function neonProLeagueBreedingRankingPublicationTargetFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    ownerId?: string;
+    runtimeRole?: string;
+  }>,
+  sessionFactory?: NeonImportPersistenceSessionFactory,
+): ProLeagueBreedingPublicationTarget {
+  const databaseUrl = configured(environment.databaseUrl);
+  const databaseOwnerId = configured(environment.databaseOwnerId);
+  const ownerId = configured(environment.ownerId);
+  const runtimeRole = configured(environment.runtimeRole);
+  if (
+    databaseUrl === null ||
+    databaseOwnerId === null ||
+    ownerId === null ||
+    runtimeRole === null
+  ) {
+    return Object.freeze({ status: "not_configured" });
+  }
+  const repository = createNeonProLeagueBreedingRankingRepository({
+    databaseUrl,
+    databaseOwnerId,
+    ownerId,
+    runtimeRole,
+    ...(sessionFactory === undefined ? {} : { sessionFactory }),
+  });
+  return Object.freeze({ status: "ready", publish: repository.publish });
 }
