@@ -547,8 +547,13 @@ including pause/Retry-After and superseded-attempt recovery. No live scheduler
 is enabled. Migration `0091` now validates the exact contiguous receipt set,
 rechecks its checksum and totals under the publication lock, and atomically
 advances a separate incremental-history last-good pointer. Partial, gapped,
-overlapping, drifted or out-of-order cycles remain invisible. Daily orchestration
-and provider-budget admission remain the next A2/A3 boundary.
+overlapping, drifted or out-of-order cycles remain invisible. Daily
+orchestration now reacquires all recurring current-state families together at
+the 24-hour boundary. Its admission check rejects projected monthly budget
+exhaustion and also refuses a single refresh above 1,000 Class A or 2,000 Class
+B operations before provider work. Persisted billing-window usage authority
+and complete history/current-state cycle composition remain the next A2/A3
+boundary.
 
 After owner-approved persistent API sync:
 

@@ -1,4 +1,5 @@
-export const DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS = 2_000;
+export const DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS =
+  24 * 60 * 60_000;
 
 export const DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES = Object.freeze({
   storageBytes: 10_000_000_000,
@@ -33,6 +34,8 @@ export const DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS =
   });
 
 export const DNA_OPEN_LAB_ZERO_COST_BLOCKER_IDS = Object.freeze([
+  "class_a_refresh_limit_exceeded",
+  "class_b_refresh_limit_exceeded",
   "storage_budget_exhausted",
   "class_a_budget_exhausted",
   "class_b_budget_exhausted",
@@ -49,7 +52,7 @@ export type DnaOpenLabR2Usage = Readonly<{
 
 export type DnaOpenLabZeroCostRefreshDecision = Readonly<{
   allowed: boolean;
-  action: "run_continuous_refresh" | "pause_and_serve_last_good";
+  action: "run_daily_refresh" | "pause_and_serve_last_good";
   blockerIds: readonly DnaOpenLabZeroCostBlockerId[];
   targetRefreshIntervalMilliseconds: typeof DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS;
   projectedUsage: DnaOpenLabR2Usage;
@@ -109,11 +112,25 @@ export function evaluateDnaOpenLabZeroCostRefresh(input: {
   currentUsage: DnaOpenLabR2Usage;
   plannedRefreshUsage: DnaOpenLabR2Usage;
 }): DnaOpenLabZeroCostRefreshDecision {
-  const projectedUsage = addUsage(
-    usage(input.currentUsage, "currentUsage"),
-    usage(input.plannedRefreshUsage, "plannedRefreshUsage"),
+  const currentUsage = usage(input.currentUsage, "currentUsage");
+  const plannedRefreshUsage = usage(
+    input.plannedRefreshUsage,
+    "plannedRefreshUsage",
   );
+  const projectedUsage = addUsage(currentUsage, plannedRefreshUsage);
   const blockerIds: DnaOpenLabZeroCostBlockerId[] = [];
+  if (
+    plannedRefreshUsage.classAOperations >
+    DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classAOperations
+  ) {
+    blockerIds.push("class_a_refresh_limit_exceeded");
+  }
+  if (
+    plannedRefreshUsage.classBOperations >
+    DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classBOperations
+  ) {
+    blockerIds.push("class_b_refresh_limit_exceeded");
+  }
   if (
     projectedUsage.storageBytes > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes
   ) {
@@ -134,7 +151,7 @@ export function evaluateDnaOpenLabZeroCostRefresh(input: {
   const allowed = blockerIds.length === 0;
   return Object.freeze({
     allowed,
-    action: allowed ? "run_continuous_refresh" : "pause_and_serve_last_good",
+    action: allowed ? "run_daily_refresh" : "pause_and_serve_last_good",
     blockerIds: Object.freeze(blockerIds),
     targetRefreshIntervalMilliseconds:
       DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS,

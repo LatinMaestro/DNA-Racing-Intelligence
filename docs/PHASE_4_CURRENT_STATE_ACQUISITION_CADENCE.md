@@ -12,16 +12,15 @@ represented as DNA endpoint guarantees or API semantics:
 
 | Acquisition group  | Minimum local interval | Recurring evidence                                         |
 | ------------------ | ---------------------- | ---------------------------------------------------------- |
-| Race activity      | 2 seconds              | active races and bounded fill batches                      |
-| Token prices       | 15 minutes             | current/reference-only Token prices                        |
-| Vault identity     | 5 minutes              | Vault info, ownership, tier badge and recent-race identity |
-| Core current state | 15 minutes             | bounded identity plus seven supplemental Core families     |
-| Splice Arena       | 5 minutes              | complete paginated Arena modes/pages/listings              |
+| Race activity      | 24 hours               | active races and bounded fill batches                      |
+| Token prices       | 24 hours               | current/reference-only Token prices                        |
+| Vault identity     | 24 hours               | Vault info, ownership, tier badge and recent-race identity |
+| Core current state | 24 hours               | bounded identity plus seven supplemental Core families     |
+| Splice Arena       | 24 hours               | complete paginated Arena modes/pages/listings              |
 
-The scheduler continuously selects only due families. Staggered publication
-combines refreshed receipts with verified last-good receipts for unchanged
-families; it never publishes a partial generation. These intervals are owner
-policy, not claims about DNA endpoint freshness.
+When any recurring family reaches the daily boundary, the scheduler reacquires
+every recurring family and publishes only a complete generation. These
+intervals are owner policy, not claims about DNA endpoint freshness.
 
 Official pair info and pair validation remain explicit on-demand reads. They do
 not enter the recurring crawl, do not prove a completed splice and never perform

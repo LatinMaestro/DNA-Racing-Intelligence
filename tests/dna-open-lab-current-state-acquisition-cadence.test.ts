@@ -98,7 +98,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     );
   });
 
-  it("refreshes only the continuously due family", () => {
+  it("reacquires every family when any family reaches the daily boundary", () => {
     const recent = checkpoints();
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
@@ -113,12 +113,11 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
       },
     });
 
-    expect(schedule.dueGroups).toEqual(["race_activity"]);
-    expect(
-      schedule.requestBatches
-        .flat()
-        .every((entry) => entry.group === "race_activity"),
-    ).toBe(true);
+    expect(schedule.dueGroups).toEqual(DNA_CURRENT_STATE_ACQUISITION_GROUPS);
+    expect(schedule.requestBatches.flat().map((entry) => entry.group)).toEqual(
+      expect.arrayContaining([...DNA_CURRENT_STATE_ACQUISITION_GROUPS]),
+    );
+    expect(schedule.completionScope).toBe("all_current_state");
     expect(schedule.nextEvaluationAt).toBe(evaluatedAt);
   });
 
@@ -131,7 +130,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
 
     expect(schedule.status).toBe("idle");
     expect(schedule.scheduledRequestCount).toBe(0);
-    expect(schedule.nextEvaluationAt).toBe("2026-08-28T12:30:01.500Z");
+    expect(schedule.nextEvaluationAt).toBe("2026-08-29T12:29:59.500Z");
   });
 
   it("does not schedule work before an authoritative retry boundary", () => {
@@ -150,7 +149,7 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     });
   });
 
-  it("requires every due refresh while leaving non-due cache validation to staggered publication", () => {
+  it("requires every family before the daily generation can publish", () => {
     const schedule = createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt,
       plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
@@ -186,7 +185,10 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
         completedGroups: [...DNA_CURRENT_STATE_ACQUISITION_GROUPS],
         evidenceObservedAt: missingCache,
       }),
-    ).toEqual({ publishable: true, incompleteGroups: [] });
+    ).toEqual({
+      publishable: false,
+      incompleteGroups: ["splice_arena"],
+    });
   });
 
   it("can constrain completion to an explicit non-publication control phase", () => {

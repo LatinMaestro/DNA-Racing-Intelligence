@@ -10,7 +10,7 @@ import {
 
 describe("DNA Open Lab zero-cost refresh policy", () => {
   it("keeps recurring operation budgets well below the free allowances", () => {
-    expect(DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS).toBe(2_000);
+    expect(DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS).toBe(86_400_000);
     expect(
       DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS.classAOperations,
     ).toBeLessThan(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations);
@@ -28,7 +28,7 @@ describe("DNA Open Lab zero-cost refresh policy", () => {
     );
   });
 
-  it("allows a continuous refresh step that remains inside every operating budget", () => {
+  it("allows a daily refresh that remains inside its cycle and operating budgets", () => {
     expect(
       evaluateDnaOpenLabZeroCostRefresh({
         currentUsage: {
@@ -44,8 +44,34 @@ describe("DNA Open Lab zero-cost refresh policy", () => {
       }),
     ).toMatchObject({
       allowed: true,
-      action: "run_continuous_refresh",
+      action: "run_daily_refresh",
       blockerIds: [],
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    });
+  });
+
+  it("refuses a single refresh above its conservative operation allowance", () => {
+    expect(
+      evaluateDnaOpenLabZeroCostRefresh({
+        currentUsage: {
+          storageBytes: 1_000,
+          classAOperations: 100,
+          classBOperations: 200,
+        },
+        plannedRefreshUsage: {
+          storageBytes: 1_000,
+          classAOperations: 1_001,
+          classBOperations: 2_001,
+        },
+      }),
+    ).toMatchObject({
+      allowed: false,
+      action: "pause_and_serve_last_good",
+      blockerIds: [
+        "class_a_refresh_limit_exceeded",
+        "class_b_refresh_limit_exceeded",
+      ],
       paidUsageAllowed: false,
       preserveLastGood: true,
     });
