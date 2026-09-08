@@ -38,6 +38,11 @@ import {
 } from "@/lib/pro-league-race-opportunity-service";
 import type { BreedingRankingRepository } from "@/lib/breeding-workspace-service";
 import {
+  loadDnaOpenLabSyncRatePageState,
+  type DnaOpenLabSyncRatePageState,
+  type DnaOpenLabSyncRatePolicyRepository,
+} from "@/lib/dna-open-lab-sync-rate-policy-service";
+import {
   loadProLeagueBreedingObjectiveState,
   unavailableProLeagueBreedingObjectiveState,
   type ProLeagueBreedingObjectiveState,
@@ -72,6 +77,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   raceOpportunities?: ProLeagueRaceOpportunityState;
   discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
   breedingObjectives?: ProLeagueBreedingObjectiveState;
+  syncRatePolicy?: DnaOpenLabSyncRatePageState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -109,6 +115,7 @@ export async function loadProLeagueDraftCommissioningState(
     currentStateRepository?: DnaOpenLabSupplementalCoreReadRepository | null;
     currentRaceRepository?: DnaOpenLabCurrentRaceReadRepository | null;
     breedingRepository?: BreedingRankingRepository;
+    syncRatePolicyRepository?: DnaOpenLabSyncRatePolicyRepository;
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
@@ -215,6 +222,12 @@ export async function loadProLeagueDraftCommissioningState(
       priorityGapCount,
     ),
   );
+  const syncRatePolicy = await loadDnaOpenLabSyncRatePageState({
+    authenticatedOwnerId,
+    configuredOwnerId,
+    repository: input.syncRatePolicyRepository ?? { status: "not_configured" },
+    now,
+  });
   const cutoffs = [
     roster.evidenceCutoffAt,
     lineup.evidenceCutoffAt,
@@ -252,6 +265,11 @@ export async function loadProLeagueDraftCommissioningState(
     openRaceFreshness: raceOpportunities.freshness,
     breedingPerformanceFreshness: breedingObjectives.performanceFreshness,
     breedingArenaFreshness: breedingObjectives.arenaFreshness,
+    apiRatePolicyConnected: syncRatePolicy.connectionStatus === "connected",
+    effectiveRequestsPerMinute:
+      syncRatePolicy.policy.effectiveRequestsPerMinute,
+    apiRateFallbackActive: syncRatePolicy.policy.fallbackReason !== null,
+    lastProviderLimit: syncRatePolicy.policy.lastProviderLimit,
     discoveryQueueAvailable: true,
     discoveryExperimentCount: discoveryQueue.experiments.length,
     openRaceStateConnected: raceOpportunities.status === "connected",
@@ -283,5 +301,6 @@ export async function loadProLeagueDraftCommissioningState(
     raceOpportunities,
     discoveryQueue,
     breedingObjectives,
+    syncRatePolicy,
   });
 }

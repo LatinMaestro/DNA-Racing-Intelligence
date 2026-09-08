@@ -1919,3 +1919,15 @@ After the private Pro League milestone, continue in this order:
 - Keep ageing, stale and unknown last-good information visible but mark it as a
   protected Preview review item. Freshness labels do not authorize a refresh,
   deployment, roster/map submission, race entry or breeding action.
+
+## 2026-09-08 — Pro League reports API rate safety without claiming sync health
+
+- Reuse the owner-isolated API rate policy on `/pro-league` and show the
+  effective aggregate rate, requested rate, last advertised provider limit and
+  any automatic fallback reason.
+- Treat a connected 30-rpm policy as the conservative commissioning baseline.
+  Keep missing policy persistence or an elevated effective rate visible as an
+  owner review item while retaining the fail-closed 30-rpm default.
+- State explicitly that rate-policy visibility does not prove a refresh is
+  running or complete. Last-good evidence and its freshness labels remain the
+  website's serving authority.
