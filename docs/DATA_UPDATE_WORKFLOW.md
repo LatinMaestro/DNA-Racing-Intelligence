@@ -73,10 +73,18 @@ Cloudflare R2 Standard is guarded by operating budgets set to 80% of the
 published free allowances: 8 GB retained storage, 800,000 monthly Class A
 operations and 8,000,000 monthly Class B operations. One daily refresh may plan
 at most 1,000 Class A and 2,000 Class B operations, or 31,000/62,000 over any
-31-day planning horizon. Before discovery or acquisition writes, the operator
-adds the proposed refresh to current billing-window usage. If any budget would
-be exceeded, it performs no provider request or write and continues serving the
-last-good generation. Paid usage is never enabled automatically.
+31-day planning horizon. Before discovery or acquisition writes, migration
+`0092` atomically reserves the proposed upper bound against a durable,
+owner-scoped billing window. The window begins from a provider measurement and
+counts both accounted use and every outstanding reservation, so concurrent
+refreshes cannot oversubscribe a free allowance. Exact reservation and
+accounting replays are idempotent; conflicts, use above the reservation,
+overlapping windows and rollover with an unreconciled reservation fail closed.
+If any budget would be exceeded, the operator performs no provider request or
+write and continues serving the last-good generation. A reservation remains
+charged until actual use is explicitly reconciled, including a zero-use
+reconciliation after proving that no provider work began. Paid usage is never
+enabled automatically.
 
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
@@ -95,8 +103,9 @@ match the checkpoint's receipt and document counts, bind exact byte metadata,
 and retain the immediately prior published cycle as last-good. The receipt-set
 checksum is re-evaluated while
 the publication lock is held, so a partial or drifted set cannot cross the
-single pointer update. Scheduling and provider-budget admission remain A2/A3
-work.
+single pointer update. Migration `0092` supplies durable provider-budget
+admission; composing finished history and current-state collection into one
+complete daily generation remains A2 work.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

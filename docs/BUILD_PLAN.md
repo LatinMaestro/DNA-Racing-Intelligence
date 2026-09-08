@@ -551,9 +551,13 @@ overlapping, drifted or out-of-order cycles remain invisible. Daily
 orchestration now reacquires all recurring current-state families together at
 the 24-hour boundary. Its admission check rejects projected monthly budget
 exhaustion and also refuses a single refresh above 1,000 Class A or 2,000 Class
-B operations before provider work. Persisted billing-window usage authority
-and complete history/current-state cycle composition remain the next A2/A3
-boundary.
+B operations before provider work. Migration `0092` makes that admission
+durable: owner-scoped billing windows begin from measured usage, concurrent
+refreshes reserve their upper bounds atomically, actual use can only reconcile
+within the reservation, and unresolved reservations block rollover rather than
+being silently released. Complete history/current-state cycle composition is
+the next A2 boundary; connected Preview measurement and commissioning remain
+later A3/A4 work.
 
 After owner-approved persistent API sync:
 
