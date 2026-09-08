@@ -52,6 +52,14 @@ Publication time cannot precede source acceptance. Exact retries remain safe
 through the repository's deterministic generation contract. Empty or partial
 analysis can never replace the active last-good generation.
 
+The server-only publication runner now loads the current roster, performance
+and Arena authority independently before reading the requested immutable
+accepted analysis. The caller must provide the exact accepted analysis ID and
+digest. A missing source, missing authority or missing target remains an
+explicit held state; cross-owner access, changed identity/digest and any stale
+authority binding fail before the compact publisher is called. The website read
+facades cannot obtain this runner or its publication target.
+
 ## Authority and commissioning status
 
 This store contains research inputs, not approved pair recommendations. It does
@@ -74,5 +82,6 @@ can obtain the publisher, and these changes do not publish a generation, deploy
 Preview, alter Production or authorize a breeding transaction.
 
 The accepted-analysis composition is implemented and tested but is not wired to
-either page. No accepted source snapshot currently exists in Preview, so no
-generation has been published.
+either page. The source-to-publication runner is also implemented, but no
+accepted source snapshot currently exists in Preview, so no generation has been
+published.
