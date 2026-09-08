@@ -35,7 +35,9 @@ export type ProLeagueBreedingRankingPublisher = Readonly<{
   publish: NeonProLeagueBreedingRankingRepository["publish"];
 }>;
 
-function canonicalJson(value: unknown): string {
+export function acceptedProLeagueBreedingAnalysisCanonicalJson(
+  value: unknown,
+): string {
   if (value === undefined) {
     throw new Error("Accepted breeding analysis contains an undefined value.");
   }
@@ -47,12 +49,17 @@ function canonicalJson(value: unknown): string {
     return encoded;
   }
   if (Array.isArray(value)) {
-    return `[${value.map((entry) => canonicalJson(entry)).join(",")}]`;
+    return `[${value
+      .map((entry) => acceptedProLeagueBreedingAnalysisCanonicalJson(entry))
+      .join(",")}]`;
   }
   return `{${Object.entries(value as Record<string, unknown>)
     .filter(([, entry]) => entry !== undefined)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+    .map(
+      ([key, entry]) =>
+        `${JSON.stringify(key)}:${acceptedProLeagueBreedingAnalysisCanonicalJson(entry)}`,
+    )
     .join(",")}}`;
 }
 
@@ -60,7 +67,7 @@ export function acceptedProLeagueBreedingAnalysisSha256(
   analysis: AcceptedProLeagueBreedingAnalysis,
 ): string {
   return createHash("sha256")
-    .update(canonicalJson(analysis), "utf8")
+    .update(acceptedProLeagueBreedingAnalysisCanonicalJson(analysis), "utf8")
     .digest("hex");
 }
 

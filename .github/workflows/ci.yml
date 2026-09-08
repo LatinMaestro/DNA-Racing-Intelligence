@@ -187,6 +187,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.up.sql
       - name: Run Pro League breeding ranking generation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.smoke.sql
+      - name: Apply accepted Pro League breeding analysis migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0086_accepted_pro_league_breeding_analysis.up.sql
+      - name: Run accepted Pro League breeding analysis smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0086_accepted_pro_league_breeding_analysis.smoke.sql
+      - name: Reverse accepted Pro League breeding analysis migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0086_accepted_pro_league_breeding_analysis.down.sql
+      - name: Verify accepted Pro League breeding analysis removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0086_accepted_pro_league_breeding_analysis.removal.sql
       - name: Reverse Pro League breeding ranking generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.down.sql
       - name: Verify Pro League breeding ranking generation removal
