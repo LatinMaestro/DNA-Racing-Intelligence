@@ -818,6 +818,40 @@ describe("Neon DNA Open Lab sync publication", () => {
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
   });
 
+  it("reads sync state and the serving receipt index in one read-only transaction", async () => {
+    const index = completeCurrentStateEvidence().evidenceIndex;
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [currentState()],
+      [
+        {
+          generation_id: generationId,
+          plan_sha256: index.planSha256,
+          indexed_at: new Date(index.indexedAt),
+          receipt_count: index.receipts.length,
+          receipt_index: index,
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.readServingSyncHealth({
+        ownerId,
+        validatedAt: "2026-08-27T12:03:00.000Z",
+      }),
+    ).resolves.toMatchObject({
+      state: {
+        acceptedGenerationId: generationId,
+        servingGenerationId: generationId,
+        syncStatus: "current",
+      },
+      evidenceIndex: index,
+    });
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+    expect(test.events.filter((event) => event === "COMMIT")).toHaveLength(1);
+  });
+
   it("rolls back when forced-RLS or least-privilege evidence is unsafe", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],

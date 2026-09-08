@@ -7,6 +7,7 @@ import { neonCorePayoutFormatProfileRepositoryFromEnvironment } from "@/lib/neon
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import {
   neonDnaOpenLabCurrentRaceReadRepositoryFromEnvironment,
+  neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment,
   neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment,
 } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-rate-policy-repository";
@@ -83,6 +84,10 @@ export default async function ProLeaguePage() {
         }),
       syncRatePolicyRepository:
         neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(
+          databaseEnvironment,
+        ),
+      syncHealthRepository:
+        neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment(
           databaseEnvironment,
         ),
       now: new Date(),

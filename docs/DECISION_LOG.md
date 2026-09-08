@@ -1931,3 +1931,17 @@ After the private Pro League milestone, continue in this order:
 - State explicitly that rate-policy visibility does not prove a refresh is
   running or complete. Last-good evidence and its freshness labels remain the
   website's serving authority.
+
+## 2026-09-08 — Pro League reads atomic last-good sync health
+
+- Read the owner sync state and active immutable current-state receipt index in
+  one serializable read-only transaction so a publication cannot split the
+  displayed authority across two generations.
+- Show current, paused, catching-up or never-synced status; the last attempt and
+  interruption where present; and conservative per-family current-through and
+  completion times derived only from the complete serving receipt index.
+- Identify the serving version with a short derived fingerprint. Do not render
+  the internal generation ID, request keys, object keys or evidence checksums.
+- Keep paused and catching-up states as protected Preview review items while a
+  verified last-good version remains available. Reading status cannot trigger
+  acquisition, advance a checkpoint, publish data or perform a game action.

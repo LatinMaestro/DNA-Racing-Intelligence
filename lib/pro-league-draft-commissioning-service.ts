@@ -47,6 +47,12 @@ import {
   unavailableProLeagueBreedingObjectiveState,
   type ProLeagueBreedingObjectiveState,
 } from "@/lib/pro-league-breeding-objective-service";
+import {
+  invalidProLeagueSyncHealthState,
+  loadProLeagueSyncHealthState,
+  type ProLeagueSyncHealthState,
+} from "@/lib/pro-league-sync-health-service";
+import type { DnaOpenLabSyncHealthReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -78,6 +84,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   discoveryQueue?: ProLeagueDiscoveryExperimentQueue;
   breedingObjectives?: ProLeagueBreedingObjectiveState;
   syncRatePolicy?: DnaOpenLabSyncRatePageState;
+  syncHealth?: ProLeagueSyncHealthState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -116,6 +123,7 @@ export async function loadProLeagueDraftCommissioningState(
     currentRaceRepository?: DnaOpenLabCurrentRaceReadRepository | null;
     breedingRepository?: BreedingRankingRepository;
     syncRatePolicyRepository?: DnaOpenLabSyncRatePolicyRepository;
+    syncHealthRepository?: DnaOpenLabSyncHealthReadRepository | null;
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
@@ -228,6 +236,12 @@ export async function loadProLeagueDraftCommissioningState(
     repository: input.syncRatePolicyRepository ?? { status: "not_configured" },
     now,
   });
+  const syncHealth = await loadProLeagueSyncHealthState({
+    authenticatedOwnerId,
+    configuredOwnerId,
+    repository: input.syncHealthRepository ?? null,
+    now,
+  }).catch(() => invalidProLeagueSyncHealthState());
   const cutoffs = [
     roster.evidenceCutoffAt,
     lineup.evidenceCutoffAt,
@@ -270,6 +284,9 @@ export async function loadProLeagueDraftCommissioningState(
       syncRatePolicy.policy.effectiveRequestsPerMinute,
     apiRateFallbackActive: syncRatePolicy.policy.fallbackReason !== null,
     lastProviderLimit: syncRatePolicy.policy.lastProviderLimit,
+    apiSyncHealthConnected: syncHealth.connectionStatus === "connected",
+    apiSyncStatus: syncHealth.syncStatus,
+    lastGoodCurrentStateAvailable: syncHealth.lastGood !== null,
     discoveryQueueAvailable: true,
     discoveryExperimentCount: discoveryQueue.experiments.length,
     openRaceStateConnected: raceOpportunities.status === "connected",
@@ -302,5 +319,6 @@ export async function loadProLeagueDraftCommissioningState(
     discoveryQueue,
     breedingObjectives,
     syncRatePolicy,
+    syncHealth,
   });
 }

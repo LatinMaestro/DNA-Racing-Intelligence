@@ -10,6 +10,7 @@ export type ProLeagueCommissioningReadinessCheck = Readonly<{
     | "CURRENT_CORE_STATE"
     | "LAST_GOOD_FRESHNESS"
     | "API_REFRESH_CONTROL"
+    | "API_SYNC_HEALTH"
     | "DISCOVERY_QUEUE"
     | "OPEN_RACE_LIMITATIONS"
     | "BREEDING_RESEARCH"
@@ -63,6 +64,9 @@ export type ProLeagueCommissioningReadinessInput = Readonly<{
   effectiveRequestsPerMinute: number;
   apiRateFallbackActive: boolean;
   lastProviderLimit: number | null;
+  apiSyncHealthConnected: boolean;
+  apiSyncStatus: "never_synced" | "current" | "paused" | "catching_up" | null;
+  lastGoodCurrentStateAvailable: boolean;
   discoveryQueueAvailable: boolean;
   discoveryExperimentCount: number;
   openRaceStateConnected: boolean;
@@ -246,6 +250,22 @@ export function assessProLeagueCommissioningReadiness(
       input.apiRatePolicyConnected
         ? `${effectiveRequestsPerMinute} aggregate requests per minute are effective${input.apiRateFallbackActive ? " under automatic safe fallback" : ""}; the last provider limit is ${input.lastProviderLimit === null ? "unavailable" : String(input.lastProviderLimit)}.`
         : "The owner rate policy could not be read, so the website remains on the safe 30-request-per-minute default. This does not prove that a refresh is running.",
+    ),
+    check(
+      "API_SYNC_HEALTH",
+      input.apiSyncHealthConnected &&
+        input.apiSyncStatus === "current" &&
+        input.lastGoodCurrentStateAvailable
+        ? "pass"
+        : "review",
+      false,
+      !input.apiSyncHealthConnected
+        ? "Current-state sync health is unavailable. Last-good roster and map guidance remain available."
+        : input.lastGoodCurrentStateAvailable
+          ? input.apiSyncStatus === "current"
+            ? "The current-state API sync is current and a complete last-good version is serving."
+            : `The current-state API sync is ${input.apiSyncStatus ?? "unavailable"}; its complete last-good version remains serving while recovery catches up.`
+          : "No complete current-state last-good version is available yet.",
     ),
     check(
       "DISCOVERY_QUEUE",

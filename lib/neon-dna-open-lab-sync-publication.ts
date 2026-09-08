@@ -80,6 +80,15 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
     ownerId: string;
     validatedAt: string;
   }) => Promise<DnaCurrentStateEvidenceIndex | null>;
+  readServingSyncHealth: (input: {
+    ownerId: string;
+    validatedAt: string;
+  }) => Promise<DnaOpenLabServingSyncHealth>;
+}>;
+
+export type DnaOpenLabServingSyncHealth = Readonly<{
+  state: DnaLastGoodSyncState;
+  evidenceIndex: DnaCurrentStateEvidenceIndex | null;
 }>;
 
 export type DnaOpenLabServingOwnedCore = Readonly<{
@@ -1200,8 +1209,43 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
         },
       });
     },
+
+    async readServingSyncHealth(request) {
+      const validatedAt = timestamp(request.validatedAt, "validatedAt");
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          const syncState = state(
+            await client.query(READ_STATE_SQL, [databaseOwnerId]),
+          );
+          const evidenceIndex = servingEvidenceIndex(
+            await client.query(READ_SERVING_CURRENT_STATE_EVIDENCE_INDEX_SQL, [
+              databaseOwnerId,
+            ]),
+            validatedAt,
+          );
+          if (
+            (syncState.servingGenerationId === null) !==
+              (evidenceIndex === null) ||
+            (evidenceIndex !== null &&
+              evidenceIndex.generationId !== syncState.servingGenerationId)
+          ) {
+            throw new Error(
+              "DNA Open Lab sync state and serving evidence index are inconsistent",
+            );
+          }
+          return Object.freeze({ state: syncState, evidenceIndex });
+        },
+      });
+    },
   });
 }
+
+export type DnaOpenLabSyncHealthReadRepository = Pick<
+  NeonDnaOpenLabSyncPublicationRepository,
+  "readServingSyncHealth"
+>;
 
 export type DnaOpenLabSupplementalCoreReadRepository = Pick<
   NeonDnaOpenLabSyncPublicationRepository,
@@ -1263,6 +1307,33 @@ export function neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment(
     return Object.freeze({
       readServingSupplementalCores:
         repository.readServingSupplementalCores.bind(repository),
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    runtimeRole?: string;
+  }>,
+): DnaOpenLabSyncHealthReadRepository | null {
+  const databaseUrl = environment.databaseUrl?.trim() ?? "";
+  const databaseOwnerId = environment.databaseOwnerId?.trim() ?? "";
+  const runtimeRole = environment.runtimeRole?.trim() ?? "";
+  if (databaseUrl === "" || databaseOwnerId === "" || runtimeRole === "") {
+    return null;
+  }
+  try {
+    const repository = createNeonDnaOpenLabSyncPublicationRepository({
+      databaseUrl,
+      databaseOwnerId,
+      runtimeRole,
+    });
+    return Object.freeze({
+      readServingSyncHealth: repository.readServingSyncHealth.bind(repository),
     });
   } catch {
     return null;

@@ -356,6 +356,41 @@ describe("Pro League commissioning panel", () => {
           updatedAt: "2026-09-07T01:04:00.000Z",
         },
       },
+      syncHealth: {
+        connectionStatus: "connected",
+        syncStatus: "paused",
+        catchUpRequired: true,
+        lastAttemptAt: "2026-09-07T01:05:00.000Z",
+        lastInterruption: {
+          reason: "rate_limited",
+          at: "2026-09-07T01:05:00.000Z",
+          retryAfterSeconds: 60,
+        },
+        lastCatchUpCompletedAt: null,
+        lastGood: {
+          versionFingerprint: "1a2b3c4d5e6f",
+          dataCurrentThrough: "2026-09-07T01:00:00.000Z",
+          publishedAt: "2026-09-07T01:01:00.000Z",
+          indexedAt: "2026-09-07T01:00:30.000Z",
+          receiptCount: 17,
+        },
+        families: [
+          {
+            family: "race_activity",
+            dataCurrentThrough: "2026-09-07T00:59:00.000Z",
+            lastCompletedAt: "2026-09-07T01:00:00.000Z",
+            receiptCount: 2,
+          },
+          {
+            family: "token_prices",
+            dataCurrentThrough: "2026-09-07T00:58:00.000Z",
+            lastCompletedAt: "2026-09-07T00:58:00.000Z",
+            receiptCount: 1,
+          },
+        ],
+        readOnly: true,
+        refreshTriggered: false,
+      },
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
@@ -367,6 +402,12 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("API refresh safety");
     expect(markup).toContain("30 aggregate rpm");
     expect(markup).toContain("does not claim that a refresh is running");
+    expect(markup).toContain("API refresh status");
+    expect(markup).toContain("verified last-good version 1a2b3c4d5e6f");
+    expect(markup).toContain("Race Activity");
+    expect(markup).toContain("Token Prices");
+    expect(markup).toContain("Last interruption: Rate Limited");
+    expect(markup).toContain("cannot start a refresh");
     expect(markup).toContain(
       "Owner acceptance remains a separate deliberate step",
     );

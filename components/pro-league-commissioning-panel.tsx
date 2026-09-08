@@ -112,6 +112,7 @@ export function ProLeagueCommissioningPanel({
   const mapPreparation = state.mapPreparation;
   const readiness = state.readiness;
   const syncRatePolicy = state.syncRatePolicy;
+  const syncHealth = state.syncHealth;
 
   return (
     <section
@@ -230,6 +231,70 @@ export function ProLeagueCommissioningPanel({
           <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
             This is rate-control status only. It does not claim that a refresh
             is running or complete; last-good evidence remains authoritative.
+          </p>
+        </div>
+      )}
+
+      {syncHealth === undefined ? null : (
+        <div className="rounded-xl border border-[var(--border)] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">API refresh status</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {syncHealth.connectionStatus === "connected"
+                  ? syncHealth.lastGood === null
+                    ? "The sync status is connected, but no complete current-state version is available yet."
+                    : `The website is serving verified last-good version ${syncHealth.lastGood.versionFingerprint}.`
+                  : "Current-state sync status is unavailable. Existing historical recommendations remain visible."}
+              </p>
+            </div>
+            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+              {label(syncHealth.syncStatus ?? syncHealth.connectionStatus)}
+            </p>
+          </div>
+
+          {syncHealth.lastGood === null ? null : (
+            <>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Complete current-state evidence through{" "}
+                {timestamp(syncHealth.lastGood.dataCurrentThrough)} · published{" "}
+                {timestamp(syncHealth.lastGood.publishedAt)} ·{" "}
+                {syncHealth.lastGood.receiptCount} verified receipts.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {syncHealth.families.map((family) => (
+                  <div
+                    className="rounded-lg border border-[var(--border)] p-4"
+                    key={family.family}
+                  >
+                    <p className="font-semibold">{label(family.family)}</p>
+                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                      Current through {timestamp(family.dataCurrentThrough)}
+                      <br />
+                      Last completed {timestamp(family.lastCompletedAt)} ·{" "}
+                      {family.receiptCount} receipts
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {syncHealth.lastInterruption === null ? null : (
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              Last interruption: {label(syncHealth.lastInterruption.reason)} at{" "}
+              {timestamp(syncHealth.lastInterruption.at)}
+              {syncHealth.lastInterruption.retryAfterSeconds === null
+                ? ""
+                : ` · retry after ${syncHealth.lastInterruption.retryAfterSeconds} seconds`}
+              . The complete last-good version remains active.
+            </p>
+          )}
+
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+            This status is owner-only and read-only. Viewing it cannot start a
+            refresh, advance a checkpoint, publish data or perform a game
+            action.
           </p>
         </div>
       )}
