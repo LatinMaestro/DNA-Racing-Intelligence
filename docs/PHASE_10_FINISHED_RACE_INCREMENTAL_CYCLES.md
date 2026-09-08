@@ -1,7 +1,8 @@
 # P10 finished-race incremental cycles
 
-Status: A1 persistence and recovery boundary implemented; A2 orchestration is
-the next dependency.
+Status: A1 persistence and recovery boundary implemented; the first A2
+collection/checkpoint slice is implemented. Complete-cycle validation and
+last-good generation publication remain the next dependency.
 
 ## Purpose
 
@@ -37,9 +38,31 @@ latest-complete reads, successor chaining, superseded-attempt recovery,
 conflict rejection, cross-owner denial and proof that the P5 table is
 unchanged. Down/removal evidence cleanly removes only the new additive model.
 
+## A2 collection step
+
+Migration `0090` binds each accepted incremental window receipt to its stable
+cycle in the same serializable transaction that advances the cycle checkpoint.
+It reuses the immutable R2 window contract while keeping recurring receipts
+separate from the one-time P5 ledger. Exact replay returns the already accepted
+revision; changed content, changed bounds, skipped windows, arbitrary counter
+movement and cross-owner access fail closed.
+
+The server-only incremental runner derives the next lower bound from the latest
+complete cycle (or the exact P5 cutoff for the first cycle), resumes the active
+attempt, and advances at most one bounded crawler step. A saturated response is
+split without hydration. A successful window is hydrated, written through the
+idempotent evidence publisher and atomically checkpointed. `Retry-After`, API
+eligibility and invalid-response failures pause the same durable checkpoint and
+notify the last-good state without discarding it. Superseded attempts resume
+from their exact predecessor checkpoint.
+
+Collection completion is only a durable input to the next validation stage.
+The runner has no recommendation-generation or last-good publication
+dependency, so completing an incremental cycle cannot expose partial data.
+
 ## Deliberate boundary
 
-This change does not schedule a refresh, call DNA, write R2, publish a data
-generation or alter Preview/Production. A2 will compose this ledger with the
-existing bounded crawler, immutable evidence sink, validation, generation
-publication and last-good serving controls.
+This implementation does not schedule a refresh, call DNA, write hosted R2,
+publish a data generation or alter Preview/Production. The next A2 slice will
+validate the complete receipt set and compose one all-or-nothing generation
+publication while preserving the prior last-good version on every failure.

@@ -3,7 +3,9 @@ import { createHash } from "node:crypto";
 import {
   validateDnaFinishedRaceBackfillCheckpoint,
   type DnaFinishedRaceBackfillCheckpoint,
+  type DnaFinishedRaceWindowPublicationReceipt,
 } from "./dna-open-lab-finished-race-backfill";
+import type { DnaFinishedRaceWindow } from "./dna-open-lab-finished-race-window-crawler";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 
 export const DNA_FINISHED_RACE_INCREMENTAL_CYCLE_VERSION = 1 as const;
@@ -68,6 +70,14 @@ export type DnaFinishedRaceIncrementalCycleRepository = Readonly<{
   save: (input: {
     expectedRevision: string | null;
     cycle: DnaFinishedRaceIncrementalCycle;
+  }) => Promise<StoredDnaFinishedRaceIncrementalCycle>;
+  saveProgress: (input: {
+    expectedRevision: string;
+    cycle: DnaFinishedRaceIncrementalCycle;
+    publication?: Readonly<{
+      window: DnaFinishedRaceWindow;
+      receipt: DnaFinishedRaceWindowPublicationReceipt;
+    }>;
   }) => Promise<StoredDnaFinishedRaceIncrementalCycle>;
 }>;
 

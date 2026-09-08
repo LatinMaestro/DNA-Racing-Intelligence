@@ -4,6 +4,7 @@ import {
   type DnaFinishedRaceIncrementalCycleRepository,
   type StoredDnaFinishedRaceIncrementalCycle,
 } from "./dna-open-lab-finished-race-incremental-cycle";
+import { validateDnaFinishedRaceWindowPublicationReceipt } from "./dna-open-lab-finished-race-backfill";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 import {
   createDefaultNeonImportPersistenceSession,
@@ -29,6 +30,7 @@ const VERIFY_ISOLATION_SQL = [
   "  owner.clerk_user_id AS authenticated_owner_id,",
   "  cycle.relrowsecurity AS cycle_rls, cycle.relforcerowsecurity AS cycle_force_rls,",
   "  attempt.relrowsecurity AS attempt_rls, attempt.relforcerowsecurity AS attempt_force_rls,",
+  "  receipt.relrowsecurity AS receipt_rls, receipt.relforcerowsecurity AS receipt_force_rls,",
   "  (has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_cycle', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_cycle', 'INSERT')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_cycle', 'UPDATE')",
@@ -39,8 +41,15 @@ const VERIFY_ISOLATION_SQL = [
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_attempt', 'UPDATE')",
   "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_attempt', 'DELETE'))",
   "    AS runtime_can_access_attempt,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'DELETE'))",
+  "    AS runtime_can_access_receipt,",
   "  has_function_privilege(session_user,",
   "    'dna.save_dna_open_lab_finished_race_incremental_cycle(uuid,bigint,jsonb)', 'EXECUTE') AS runtime_can_save,",
+  "  has_function_privilege(session_user,",
+  "    'dna.save_dna_open_lab_finished_race_incremental_progress(uuid,bigint,jsonb,jsonb)', 'EXECUTE') AS runtime_can_save_progress,",
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_finished_race_incremental_cycle(uuid,text,integer)', 'EXECUTE') AS runtime_can_read,",
   "  has_function_privilege(session_user,",
@@ -55,6 +64,8 @@ const VERIFY_ISOLATION_SQL = [
   "  ON cycle.oid = 'dna.dna_open_lab_finished_race_incremental_cycle'::regclass",
   "JOIN pg_catalog.pg_class attempt",
   "  ON attempt.oid = 'dna.dna_open_lab_finished_race_incremental_attempt'::regclass",
+  "JOIN pg_catalog.pg_class receipt",
+  "  ON receipt.oid = 'dna.dna_open_lab_finished_race_incremental_window_receipt'::regclass",
   "JOIN pg_catalog.pg_roles role ON role.rolname = session_user",
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
@@ -162,6 +173,8 @@ function verifyIsolation(
     "cycle_force_rls",
     "attempt_rls",
     "attempt_force_rls",
+    "receipt_rls",
+    "receipt_force_rls",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -171,7 +184,8 @@ function verifyIsolation(
   }
   if (
     bool(row.runtime_can_access_cycle, "runtime_can_access_cycle") ||
-    bool(row.runtime_can_access_attempt, "runtime_can_access_attempt")
+    bool(row.runtime_can_access_attempt, "runtime_can_access_attempt") ||
+    bool(row.runtime_can_access_receipt, "runtime_can_access_receipt")
   ) {
     throw new Error(
       "DNA finished-race incremental table access is not bounded.",
@@ -179,6 +193,7 @@ function verifyIsolation(
   }
   for (const field of [
     "runtime_can_save",
+    "runtime_can_save_progress",
     "runtime_can_read",
     "runtime_can_read_latest",
   ]) {
@@ -324,6 +339,51 @@ export function createNeonDnaFinishedRaceIncrementalCycleRepository(input: {
           ) {
             throw new Error(
               "DNA finished-race incremental cycle response drifted.",
+            );
+          }
+          return saved;
+        },
+      });
+    },
+
+    async saveProgress(request) {
+      const normalizedCycle = validateDnaFinishedRaceIncrementalCycle(
+        request.cycle,
+      );
+      const expectedRevision = revision(
+        request.expectedRevision,
+        "expectedRevision",
+      );
+      const publication =
+        request.publication === undefined
+          ? null
+          : Object.freeze({
+              window: request.publication.window,
+              receipt: validateDnaFinishedRaceWindowPublicationReceipt(
+                request.publication.receipt,
+              ),
+            });
+      return transaction({
+        readOnly: false,
+        async run(client) {
+          const result = await client.query(
+            "SELECT revision::text, cycle FROM dna.save_dna_open_lab_finished_race_incremental_progress($1::uuid,$2::bigint,$3::jsonb,$4::jsonb)",
+            [
+              databaseOwnerId,
+              expectedRevision,
+              JSON.stringify(normalizedCycle),
+              publication === null ? null : JSON.stringify(publication),
+            ],
+          );
+          const saved = stored(
+            oneRow(result, "DNA finished-race incremental progress save"),
+          );
+          if (
+            dnaOpenLabRawEvidenceSha256(saved.cycle) !==
+            dnaOpenLabRawEvidenceSha256(normalizedCycle)
+          ) {
+            throw new Error(
+              "DNA finished-race incremental progress response drifted.",
             );
           }
           return saved;

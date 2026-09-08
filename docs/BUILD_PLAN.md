@@ -541,8 +541,11 @@ The recurring finished-race A1 prerequisite uses migration `0089` to preserve
 the immutable P5 baseline while versioning each later owner-local window and
 its recoverable attempts. Complete cycles form one contiguous chain;
 checkpoint progress is monotonic and terminal attempts cannot be rewritten.
-Daily scheduling, collection, validation and last-good publication remain the
-next A2 commissioning slice.
+Migration `0090` and the server-only A2 collection runner now bind each
+idempotent immutable window receipt atomically to one monotonic cycle checkpoint,
+including pause/Retry-After and superseded-attempt recovery. No live scheduler
+or publication entry point is enabled. Complete receipt-set validation and
+all-or-nothing last-good generation publication remain the next A2 slice.
 
 After owner-approved persistent API sync:
 

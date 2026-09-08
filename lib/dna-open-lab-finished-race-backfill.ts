@@ -515,7 +515,7 @@ function publicationHashes(input: {
   return Object.freeze({ windowKey, contentSha256 });
 }
 
-function initialCheckpoint(input: {
+export function createDnaFinishedRaceBackfillCheckpoint(input: {
   startTime: string;
   endTime: string;
   minimumWindowMilliseconds: number;
@@ -586,7 +586,7 @@ async function loadOrCreateCheckpoint(input: {
 
   return input.repository.save({
     expectedRevision: null,
-    checkpoint: initialCheckpoint(input),
+    checkpoint: createDnaFinishedRaceBackfillCheckpoint(input),
   });
 }
 
