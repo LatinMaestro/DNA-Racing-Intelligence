@@ -29,6 +29,9 @@ const VERIFY_ISOLATION_SQL = `
       'dna.publish_pro_league_breeding_ranking_generation(uuid,uuid,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,integer,integer,character,jsonb,timestamp with time zone)',
       'EXECUTE') AS runtime_can_publish,
     has_function_privilege(session_user,
+      'dna.assert_current_pro_league_breeding_publication_authority(uuid,timestamp with time zone,timestamp with time zone,timestamp with time zone)',
+      'EXECUTE') AS runtime_can_assert_authority,
+    has_function_privilege(session_user,
       'dna.read_active_pro_league_breeding_ranking_generation(uuid)',
       'EXECUTE') AS runtime_can_read,
     session_user::text AS session_user_name,
@@ -59,6 +62,9 @@ const VERIFY_ISOLATION_SQL = `
 const PUBLISH_SQL = `SELECT * FROM dna.publish_pro_league_breeding_ranking_generation(
   $1::uuid,$2::uuid,$3::text,$4::timestamptz,$5::timestamptz,$6::timestamptz,
   $7::integer,$8::integer,$9::character(64),$10::jsonb,$11::timestamptz
+)`;
+const ASSERT_CURRENT_AUTHORITY_SQL = `SELECT dna.assert_current_pro_league_breeding_publication_authority(
+  $1::uuid,$2::timestamptz,$3::timestamptz,$4::timestamptz
 )`;
 const READ_SQL =
   "SELECT * FROM dna.read_active_pro_league_breeding_ranking_generation($1::uuid)";
@@ -259,6 +265,7 @@ function verifyIsolation(
     !bool(row.all_force_rls_enabled, "forced RLS state") ||
     bool(row.runtime_can_access_tables, "direct table privilege") ||
     !bool(row.runtime_can_publish, "publication privilege") ||
+    !bool(row.runtime_can_assert_authority, "authority assertion privilege") ||
     !bool(row.runtime_can_read, "read privilege") ||
     text(row.session_user_name, "session role") !== runtimeRole ||
     text(row.current_user_name, "current role") !== runtimeRole ||
@@ -374,6 +381,12 @@ export function createNeonProLeagueBreedingRankingRepository(
       verifyGenerationAuthority(authority);
       const prepared = publicationRows(publication.rankings, authority);
       return transaction(ownerId, "SERIALIZABLE", async (client) => {
+        await client.query(ASSERT_CURRENT_AUTHORITY_SQL, [
+          config.databaseOwnerId,
+          authority.rosterEvidenceCutoffAt,
+          authority.latestAcceptedPerformanceImportAt,
+          authority.latestAcceptedArenaImportAt,
+        ]);
         const result = await client.query(PUBLISH_SQL, [
           config.databaseOwnerId,
           publication.generationId,

@@ -197,6 +197,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0087_pro_league_breeding_publication_authority.up.sql
       - name: Run Pro League breeding publication authority smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0087_pro_league_breeding_publication_authority.smoke.sql
+      - name: Apply Pro League breeding publication write guard migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.up.sql
+      - name: Run Pro League breeding publication write guard smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.smoke.sql
+      - name: Reverse Pro League breeding publication write guard migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.down.sql
+      - name: Verify Pro League breeding publication write guard removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0088_pro_league_breeding_publication_write_guard.removal.sql
       - name: Reverse Pro League breeding publication authority migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0087_pro_league_breeding_publication_authority.down.sql
       - name: Verify Pro League breeding publication authority removal

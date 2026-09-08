@@ -1848,3 +1848,16 @@ After the private Pro League milestone, continue in this order:
 - Grant only the guarded authority read function and no new direct table
   access. Keep the Pro League evidence tables inaccessible to the runtime, and
   do not make this source available to website routes.
+
+## 2026-09-08 — final breeding publication rechecks authority atomically
+
+- Before writing a compact breeding generation, lock the owner's Race Merge
+  and Arena dataset streams and the active Pro League evidence publication
+  boundary in the same serializable transaction.
+- Re-read the guarded roster, performance and Arena authority under those
+  locks. Reject any missing or changed value before calling the generation
+  publisher, so a separately accepted snapshot cannot cross a stale
+  time-of-check/time-of-use boundary.
+- Grant only the guarded assertion function. Keep direct evidence and dataset
+  table access denied, preserve last-good on failure and leave website routes
+  unable to obtain the publication target.
