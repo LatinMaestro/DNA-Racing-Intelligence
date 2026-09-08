@@ -558,9 +558,9 @@ within the reservation, and unresolved reservations block rollover rather than
 being silently released. Migration `0093` exposes restart-safe server-only
 reservation/accounting calls, and the Neon adapter verifies the owner, both
 forced-RLS relations and the non-privileged runtime role before using them.
-Wiring that authority around the complete refresh and composing
-history/current-state collection are the next A2 boundary; connected Preview
-measurement and commissioning remain later A3/A4 work.
+The private operator now wires that authority around the complete refresh and
+composes history/current-state collection. Connected Preview measurement and
+commissioning remain later A3/A4 work.
 
 The top-level daily refresh coordinator now derives one stable budget request
 from the refresh cycle, measured billing window and whole-cycle upper bound. It
@@ -579,9 +579,13 @@ same transaction. Exact replay cannot move that pointer; source drift,
 non-monotonic successors and use above the reserved envelope fail closed. The
 server-only Neon adapter verifies both forced-RLS relations, the exact
 owner-to-authenticated-user mapping and a non-privileged runtime session before
-calling the function-only read or publication boundary. The next A2 boundary
-is wiring this adapter into the private daily operator and switching website
-reads to the complete combined serving authority.
+calling the function-only read or publication boundary. The private daily
+operator now composes every source and persistence authority under one explicit
+owner-scoped write-armed packet, publishes finished history before current
+state, maps interruptions to last-good health and rejects any aggregate rate
+above 30 rpm or independent key buckets. It remains dormant: no route, page,
+Worker or schedule imports it. The next A2 boundary is switching website reads
+to the complete combined serving authority.
 
 After owner-approved persistent API sync:
 

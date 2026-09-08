@@ -122,8 +122,15 @@ above the reserved envelope. Runtime access is function-only under forced RLS.
 The server-only Neon adapter opens a serializable transaction, proves the
 database owner matches the authenticated owner and both generation relations
 have forced RLS under the non-privileged runtime role, then uses only those
-functions. The remaining boundary is private operator wiring and switching
-website reads only through the complete combined serving pointer.
+functions. The private operator now composes the durable budget, finished-race
+cycle/publication, current-state cycle/publication and combined-generation
+repositories behind one explicitly write-armed owner-scoped invocation. It
+publishes a complete finished-history receipt set before current-state work,
+maps history interruption state into the shared last-good health boundary and
+refuses elevated or independent API buckets above the conservative 30-rpm
+policy. It is not imported by a route, page, Worker or schedule. The remaining
+boundary is switching website reads only through the complete combined serving
+pointer, followed by bounded Preview commissioning.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

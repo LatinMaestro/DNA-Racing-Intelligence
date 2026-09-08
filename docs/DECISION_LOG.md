@@ -2027,3 +2027,19 @@ After the private Pro League milestone, continue in this order:
 - Make exact publication replay read-only. Conflicting replay, cross-owner
   access, partial source publication, source-pointer drift or budget drift
   fails closed without changing the prior combined last-good generation.
+
+## 2026-09-08 — Private daily refresh has one dormant composition root
+
+- Compose durable R2 budget admission, recurring finished-history collection
+  and publication, current-state collection and publication, and the combined
+  last-good generation behind one server-only operator.
+- Require an exact versioned, owner-scoped invocation that explicitly permits
+  the bounded persistent step. Reject an unarmed or cross-owner packet before
+  any database or provider work.
+- Publish the complete finished-history receipt set before current-state work;
+  map history API interruptions into the shared last-good sync-health state.
+- Refuse an API runtime above 30 aggregate requests/minute or one using
+  independent key buckets. Higher rates remain separately owner-authorised.
+- Keep the composition root out of routes, pages, Workers and schedules until
+  Preview commissioning wiring is reviewed. Composition does not itself call
+  DNA, write Neon/R2, deploy or authorize any game action.
