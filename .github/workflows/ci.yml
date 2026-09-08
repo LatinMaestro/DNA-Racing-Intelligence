@@ -221,6 +221,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.up.sql
       - name: Run R2 budget operator API smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.smoke.sql
+      - name: Apply daily refresh generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.up.sql
+      - name: Run daily refresh generation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.smoke.sql
+      - name: Reverse daily refresh generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.down.sql
+      - name: Verify daily refresh generation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0094_dna_open_lab_daily_refresh_generation.removal.sql
       - name: Reverse R2 budget operator API migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0093_dna_open_lab_r2_budget_operator_api.down.sql
       - name: Verify R2 budget operator API removal

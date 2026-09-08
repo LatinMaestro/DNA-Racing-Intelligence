@@ -572,8 +572,13 @@ R2 use before accounting; restart after generation publication therefore
 finishes the same accounting identity without repeating source work. Missing or
 changed billing authority, budget refusal, actual use above the reservation or
 generation identity drift fails closed. Durable Neon persistence for the
-combined generation and use of its serving pointer by the website are the next
-A2 boundary.
+combined generation is migration `0094`: it verifies that the exact budget
+reservation, finished-history last-good publication and current-state serving
+generation agree, then advances one owner-local combined serving pointer in the
+same transaction. Exact replay cannot move that pointer; source drift,
+non-monotonic successors and use above the reserved envelope fail closed. The
+next A2 boundary is the server-only repository adapter and switching website
+reads to this complete combined serving authority.
 
 After owner-approved persistent API sync:
 

@@ -1,10 +1,10 @@
-name: DNA Open Lab finished-race incremental publication migration
+name: DNA Open Lab daily refresh generation migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/dna-open-lab-finished-race-incremental-publication-migration.yml"
+      - ".github/workflows/dna-open-lab-daily-refresh-generation-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,23 +40,15 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run finished-race incremental publication smoke test
+      - name: Run daily refresh generation smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0091_dna_open_lab_finished_race_incremental_publication.smoke.sql
-      - name: Reverse dependent daily refresh generation migration
+          database/migrations/0094_dna_open_lab_daily_refresh_generation.smoke.sql
+      - name: Reverse daily refresh generation migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0094_dna_open_lab_daily_refresh_generation.down.sql
-      - name: Verify dependent daily refresh generation removal
+      - name: Verify daily refresh generation removal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0094_dna_open_lab_daily_refresh_generation.removal.sql
-      - name: Reverse finished-race incremental publication migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0091_dna_open_lab_finished_race_incremental_publication.down.sql
-      - name: Verify finished-race incremental publication removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0091_dna_open_lab_finished_race_incremental_publication.removal.sql
