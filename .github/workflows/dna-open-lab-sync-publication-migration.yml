@@ -39,6 +39,14 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
+      - name: Reverse dependent daily refresh generation migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0094_dna_open_lab_daily_refresh_generation.down.sql
+      - name: Verify dependent daily refresh generation removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0094_dna_open_lab_daily_refresh_generation.removal.sql
       - name: Reverse dependent current-state evidence index migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
