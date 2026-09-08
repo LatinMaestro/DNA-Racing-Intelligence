@@ -2063,3 +2063,21 @@ After the private Pro League milestone, continue in this order:
   writes.
 - This adapter is read-only code. It does not call DNA Open Lab, write Neon or
   R2, deploy Preview/Production, enable paid usage or authorize a game action.
+
+## 2026-09-09 — Connected capacity preflight is exact-main and read-only
+
+- Compose the Cloudflare/Neon measurement source only when every owner and
+  provider setting is present. Missing settings return `not_configured` before
+  either provider request; malformed present settings fail closed.
+- Accept the current 40-character GitHub object ID, as well as a future
+  64-character Git object ID, for exact-code authority. Keep refresh-cycle and
+  billing-window identities as 64-character SHA-256 values.
+- Add one dispatch-only workflow that proves its checkout is still current
+  `main` before and after measurement. Give it read-only repository permission
+  and no database URL, R2 writer credential or DNA API key.
+- Project a conservative provisional daily envelope and expose only a bounded
+  safe report. Do not log raw provider responses, provider identifiers,
+  credentials or current usage totals.
+- A blocker or measurement failure stops the workflow. A successful result is
+  a five-minute Preview commissioning preflight only; it does not authorize a
+  persistent refresh, Production change, paid use or game action.

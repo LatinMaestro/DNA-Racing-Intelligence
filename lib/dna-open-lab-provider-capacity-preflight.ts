@@ -15,6 +15,7 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS =
   5 * 60 * 1000;
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 
 export type DnaOpenLabProviderCapacityMeasurement = Readonly<{
   evidenceSource: "provider_api";
@@ -136,6 +137,14 @@ function sha256(value: unknown, field: string): string {
   return normalized;
 }
 
+function gitObjectId(value: unknown, field: string): string {
+  const normalized = identity(value, field).toLowerCase();
+  if (!GIT_OBJECT_ID_PATTERN.test(normalized)) {
+    throw new Error(`DNA Open Lab provider preflight ${field} is invalid.`);
+  }
+  return normalized;
+}
+
 function instant(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const parsed = new Date(value);
@@ -233,7 +242,7 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
       if (authenticatedOwnerId !== configuredOwnerId) {
         throw new Error("DNA Open Lab provider preflight owner scope denied.");
       }
-      const exactCodeHeadSha = sha256(
+      const exactCodeHeadSha = gitObjectId(
         invocation.exactCodeHeadSha,
         "exact code head",
       );
