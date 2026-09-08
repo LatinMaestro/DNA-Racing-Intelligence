@@ -89,6 +89,16 @@ accounting timestamps across a process restart; its server-only Neon adapter
 uses the stable cycle/request hashes and verifies forced owner isolation before
 calling either function.
 
+Before Preview commissioning, project every remaining daily refresh in the
+current provider billing window from dated measurements and conservative
+per-refresh upper bounds. The projection must confirm R2 Standard storage and
+projected R2 and Neon usage within the recurring operating budgets. Neon stops
+at 500,000,000 storage bytes and 80,000 milli-CU-hours. A non-Standard
+R2 class, an unsafe single-refresh envelope, an exhausted monthly budget, an
+out-of-window measurement or an arithmetic overflow fails closed. Reduce the
+catch-up cadence to the reported safe count or pause and retain the combined
+last-good generation; never enable paid usage automatically.
+
 The first historical backfill is a separate bounded commissioning event. It
 requires an upper-bound estimate, an exact owner-authorised maximum cost and
 explicit P5 approval. Later daily cycles resume only from durable checkpoints
