@@ -113,9 +113,14 @@ one stable reservation to both runners, advances finished history first and
 accounts measured actual use only after a complete combined generation is
 durably published. If a process stops between generation publication and
 accounting, replay loads that exact generation and accounts its stored actual
-use without calling either source runner. The remaining boundary is the
-owner-isolated Neon combined-generation repository and switching website reads
-only through its complete serving pointer.
+use without calling either source runner. Migration `0094` persists that
+combined generation and its single owner-local active pointer. Publication
+locks and verifies the exact reservation, requires both source publications to
+be their current last-good authorities, enforces the finished-history
+predecessor and non-regressing current observation, and refuses measured usage
+above the reserved envelope. Runtime access is function-only under forced RLS.
+The remaining boundary is its server-only Neon adapter and switching website
+reads only through the complete combined serving pointer.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

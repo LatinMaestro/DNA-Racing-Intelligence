@@ -2012,3 +2012,18 @@ After the private Pro League milestone, continue in this order:
 - Missing or changed billing authority, refusal at reservation, actual use
   above the reserved upper bound or generation identity drift fails closed and
   retains the full reservation plus the prior last-good serving state.
+
+## 2026-09-08 — Daily refresh publication has one combined serving authority
+
+- Bind each complete refresh to its exact billing-window reservation,
+  finished-history publication and current-state generation in one immutable
+  owner-scoped row.
+- Advance one separate combined last-good pointer only after both source
+  pointers identify those exact publications and measured R2 use remains
+  within the reservation.
+- Require the next finished-history publication to name the previous combined
+  history cycle and require current-state observation time and publication time
+  to remain monotonic.
+- Make exact publication replay read-only. Conflicting replay, cross-owner
+  access, partial source publication, source-pointer drift or budget drift
+  fails closed without changing the prior combined last-good generation.
