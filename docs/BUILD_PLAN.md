@@ -544,8 +544,11 @@ checkpoint progress is monotonic and terminal attempts cannot be rewritten.
 Migration `0090` and the server-only A2 collection runner now bind each
 idempotent immutable window receipt atomically to one monotonic cycle checkpoint,
 including pause/Retry-After and superseded-attempt recovery. No live scheduler
-or publication entry point is enabled. Complete receipt-set validation and
-all-or-nothing last-good generation publication remain the next A2 slice.
+is enabled. Migration `0091` now validates the exact contiguous receipt set,
+rechecks its checksum and totals under the publication lock, and atomically
+advances a separate incremental-history last-good pointer. Partial, gapped,
+overlapping, drifted or out-of-order cycles remain invisible. Daily orchestration
+and provider-budget admission remain the next A2/A3 boundary.
 
 After owner-approved persistent API sync:
 

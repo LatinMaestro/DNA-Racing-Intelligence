@@ -90,7 +90,14 @@ ledger in migration `0089`. The immutable P5 checkpoint remains untouched.
 Each owner-local cycle fixes its bounds and predecessor; first attempts begin
 unprocessed, progress is monotonic, replacement attempts carry the exact
 superseded checkpoint, and only complete cycles can become the next boundary.
-This closes A1; scheduling, collection and publication remain A2 work.
+The server-only collector binds each immutable R2 window receipt to checkpoint
+progress in one transaction. Before a completed cycle becomes visible,
+migration `0091` requires those receipts to form one exact contiguous cover,
+match the checkpoint's counts and bytes, and retain the immediately prior
+published cycle as last-good. The receipt-set checksum is re-evaluated while
+the publication lock is held, so a partial or drifted set cannot cross the
+single pointer update. Scheduling and provider-budget admission remain A2/A3
+work.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
