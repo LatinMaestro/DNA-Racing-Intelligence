@@ -1994,3 +1994,21 @@ After the private Pro League milestone, continue in this order:
   last-good history pointer atomically.
 - A partial, gapped, overlapping, drifted or out-of-order candidate remains
   invisible and cannot replace the prior last-good history boundary.
+
+## 2026-09-08 — One durable budget reservation covers the whole daily refresh
+
+- Derive one stable request identity from the refresh cycle, measured R2
+  billing window and complete planned upper bound before either history or
+  current-state acquisition advances.
+- Advance finished history first. Only when it is complete may current-state
+  acquisition advance, preserving the existing one-provider-request maximum
+  per coordinator invocation.
+- Publish a combined immutable generation only after both source publications
+  are complete. Persist measured actual R2 use with that generation before
+  reconciling the budget reservation.
+- If a process stops after generation publication but before accounting, load
+  the exact generation and finish the same accounting identity without calling
+  either source runner again.
+- Missing or changed billing authority, refusal at reservation, actual use
+  above the reserved upper bound or generation identity drift fails closed and
+  retains the full reservation plus the prior last-good serving state.
