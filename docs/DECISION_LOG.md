@@ -1981,3 +1981,16 @@ After the private Pro League milestone, continue in this order:
 - Do not carry the exceptional first-backfill identity omission into recurring
   refreshes. This persistence boundary does not itself call DNA, write R2 or
   publish a generation.
+
+## 2026-09-08 — Recurring history publishes only from an exact receipt set
+
+- Treat every complete post-baseline finished-race cycle as a separate
+  immutable publication candidate; the P5 baseline remains unchanged.
+- Require its window receipts to be unique, ordered and one contiguous exact
+  cover from the cycle's lower bound through its upper bound. Receipt and
+  document totals must match the terminal checkpoint.
+- Recompute the receipt-set checksum while holding the owner publication lock,
+  require the immediately prior published cycle, and advance one separate
+  last-good history pointer atomically.
+- A partial, gapped, overlapping, drifted or out-of-order candidate remains
+  invisible and cannot replace the prior last-good history boundary.

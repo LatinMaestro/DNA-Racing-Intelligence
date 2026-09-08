@@ -1,10 +1,10 @@
-name: DNA Open Lab finished-race incremental progress migration
+name: DNA Open Lab finished-race incremental publication migration
 
 on:
   pull_request:
     paths:
       - "database/migrations/**"
-      - ".github/workflows/dna-open-lab-finished-race-incremental-progress-migration.yml"
+      - ".github/workflows/dna-open-lab-finished-race-incremental-publication-migration.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,23 +40,15 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
-      - name: Run finished-race incremental progress smoke test
+      - name: Run finished-race incremental publication smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0090_dna_open_lab_finished_race_incremental_progress.smoke.sql
-      - name: Reverse dependent finished-race incremental publication migration
+          database/migrations/0091_dna_open_lab_finished_race_incremental_publication.smoke.sql
+      - name: Reverse finished-race incremental publication migration
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0091_dna_open_lab_finished_race_incremental_publication.down.sql
-      - name: Verify dependent finished-race incremental publication removal
+      - name: Verify finished-race incremental publication removal
         run: >-
           psql --set ON_ERROR_STOP=1 --file
           database/migrations/0091_dna_open_lab_finished_race_incremental_publication.removal.sql
-      - name: Reverse finished-race incremental progress migration
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0090_dna_open_lab_finished_race_incremental_progress.down.sql
-      - name: Verify finished-race incremental progress removal
-        run: >-
-          psql --set ON_ERROR_STOP=1 --file
-          database/migrations/0090_dna_open_lab_finished_race_incremental_progress.removal.sql
