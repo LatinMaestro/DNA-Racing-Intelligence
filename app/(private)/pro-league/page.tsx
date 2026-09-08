@@ -11,6 +11,8 @@ import {
   neonDnaOpenLabSupplementalCoreReadRepositoryFromEnvironment,
 } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-rate-policy-repository";
+import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import { neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
@@ -89,6 +91,16 @@ export default async function ProLeaguePage() {
       syncHealthRepository:
         neonDnaOpenLabSyncHealthReadRepositoryFromEnvironment(
           databaseEnvironment,
+        ),
+      historyCoverageRepository:
+        neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
+          {
+            ...databaseEnvironment,
+            ...(configuredOwnerId === null
+              ? {}
+              : { ownerId: configuredOwnerId }),
+          },
+          DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
         ),
       now: new Date(),
     }),

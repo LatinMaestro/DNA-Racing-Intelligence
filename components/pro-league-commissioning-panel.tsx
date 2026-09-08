@@ -60,6 +60,12 @@ function percentage(basisPoints: number): string {
   })}%`;
 }
 
+function megabytes(bytes: number): string {
+  return `${(bytes / 1_000_000).toLocaleString("en-AU", {
+    maximumFractionDigits: 1,
+  })} MB`;
+}
+
 function SummaryCard({
   label: cardLabel,
   value,
@@ -113,6 +119,7 @@ export function ProLeagueCommissioningPanel({
   const readiness = state.readiness;
   const syncRatePolicy = state.syncRatePolicy;
   const syncHealth = state.syncHealth;
+  const historyCoverage = state.historyCoverage;
 
   return (
     <section
@@ -295,6 +302,74 @@ export function ProLeagueCommissioningPanel({
             This status is owner-only and read-only. Viewing it cannot start a
             refresh, advance a checkpoint, publish data or perform a game
             action.
+          </p>
+        </div>
+      )}
+
+      {historyCoverage === undefined ? null : (
+        <div className="rounded-xl border border-[var(--border)] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">Historical race archive</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {historyCoverage.connectionStatus !== "connected"
+                  ? "Historical archive status is unavailable. Existing verified recommendations remain visible."
+                  : historyCoverage.baselineStatus === "complete"
+                    ? `The one-time private baseline is complete as version ${historyCoverage.versionFingerprint ?? "unavailable"}.`
+                    : historyCoverage.baselineStatus === "in_progress"
+                      ? "The private baseline checkpoint is incomplete; no complete-history claim is made."
+                      : "The private historical baseline has not started."}
+              </p>
+            </div>
+            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
+              {label(
+                historyCoverage.connectionStatus === "connected"
+                  ? historyCoverage.baselineStatus
+                  : historyCoverage.connectionStatus,
+              )}
+            </p>
+          </div>
+
+          {historyCoverage.connectionStatus === "connected" ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard
+                label="Archive receipts"
+                value={historyCoverage.receiptCount.toLocaleString("en-AU")}
+              />
+              <SummaryCard
+                label="Finished-race receipts"
+                value={
+                  historyCoverage.finishedRaceReceiptCount?.toLocaleString(
+                    "en-AU",
+                  ) ?? "Pending"
+                }
+              />
+              <SummaryCard
+                label="Private archive size"
+                value={megabytes(historyCoverage.retainedR2Bytes)}
+              />
+              <SummaryCard
+                label="Approved omissions"
+                value={historyCoverage.omittedIdentityObservationCount}
+              />
+            </div>
+          ) : null}
+
+          {historyCoverage.dataCurrentThrough === null ? null : (
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              Complete baseline coverage is bounded through{" "}
+              {timestamp(historyCoverage.dataCurrentThrough)}. The measured
+              inventory contained up to{" "}
+              {historyCoverage.sourceRecordUpperBound.toLocaleString("en-AU")}{" "}
+              source records.
+            </p>
+          )}
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+            This baseline is not a recurring history refresh. New finished races
+            after its cutoff still require a separate durable incremental
+            checkpoint and complete catch-up before the website may call history
+            current. Viewing this status cannot call the API, write Neon or R2,
+            publish data or perform a game action.
           </p>
         </div>
       )}

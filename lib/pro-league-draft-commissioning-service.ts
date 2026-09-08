@@ -53,6 +53,12 @@ import {
   type ProLeagueSyncHealthState,
 } from "@/lib/pro-league-sync-health-service";
 import type { DnaOpenLabSyncHealthReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import {
+  invalidProLeagueHistoryCoverageState,
+  loadProLeagueHistoryCoverageState,
+  type ProLeagueHistoryCoverageState,
+} from "@/lib/pro-league-history-coverage-service";
+import type { DnaOpenLabP5FirstBackfillStatusReadRepository } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -85,6 +91,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   breedingObjectives?: ProLeagueBreedingObjectiveState;
   syncRatePolicy?: DnaOpenLabSyncRatePageState;
   syncHealth?: ProLeagueSyncHealthState;
+  historyCoverage?: ProLeagueHistoryCoverageState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -124,6 +131,7 @@ export async function loadProLeagueDraftCommissioningState(
     breedingRepository?: BreedingRankingRepository;
     syncRatePolicyRepository?: DnaOpenLabSyncRatePolicyRepository;
     syncHealthRepository?: DnaOpenLabSyncHealthReadRepository | null;
+    historyCoverageRepository?: DnaOpenLabP5FirstBackfillStatusReadRepository | null;
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
@@ -242,6 +250,12 @@ export async function loadProLeagueDraftCommissioningState(
     repository: input.syncHealthRepository ?? null,
     now,
   }).catch(() => invalidProLeagueSyncHealthState());
+  const historyCoverage = await loadProLeagueHistoryCoverageState({
+    authenticatedOwnerId,
+    configuredOwnerId,
+    repository: input.historyCoverageRepository ?? null,
+    now,
+  }).catch(() => invalidProLeagueHistoryCoverageState());
   const cutoffs = [
     roster.evidenceCutoffAt,
     lineup.evidenceCutoffAt,
@@ -320,5 +334,6 @@ export async function loadProLeagueDraftCommissioningState(
     breedingObjectives,
     syncRatePolicy,
     syncHealth,
+    historyCoverage,
   });
 }
