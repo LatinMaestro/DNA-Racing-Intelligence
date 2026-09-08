@@ -52,12 +52,17 @@ const invocation: DnaOpenLabPrivateDailyRefreshInvocation = Object.freeze({
   intent: "advance_private_daily_refresh",
   allowPersistentWrite: true,
   authenticatedOwnerId: ownerId,
+  exactCodeHeadSha: "4".repeat(64),
   refreshCycleId: cycleId,
   budgetWindowId: windowId,
   plannedR2Usage: {
     storageBytes: 10_000,
     classAOperations: 20,
     classBOperations: 30,
+  },
+  plannedNeonUsage: {
+    storageBytes: 5_000,
+    computeMilliCuHours: 50,
   },
   currentR2Usage: {
     storageBytes: 1_000,
@@ -76,6 +81,12 @@ const invocation: DnaOpenLabPrivateDailyRefreshInvocation = Object.freeze({
 
 function sources(): DnaOpenLabPrivateDailyRefreshSources {
   return {
+    providerCapacityPreflight: {
+      inspect: vi.fn().mockResolvedValue({
+        status: "ready",
+        readyForRefresh: true,
+      }),
+    },
     finishedHistoryClient: {},
     requestBudget: {
       snapshot: () => ({ effectiveRequestsPerMinute: 30 }),
@@ -206,6 +217,36 @@ describe("DNA Open Lab private daily refresh operator", () => {
       "requires one conservative aggregate client-pool budget",
     );
     expect(mocks.runDailyRefresh).not.toHaveBeenCalled();
+  });
+
+  it("stops before persistence and provider work when fresh capacity is held", async () => {
+    const sourcePorts = sources();
+    vi.mocked(sourcePorts.providerCapacityPreflight.inspect).mockResolvedValue({
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+      status: "held",
+      readyForRefresh: false,
+      reason: "capacity_blocked",
+      blockerIds: ["neon_compute_budget_exhausted"],
+    });
+    const operator = createDnaOpenLabPrivateDailyRefreshOperator({
+      configuredOwnerId: ownerId,
+      sources: sourcePorts,
+      repositories: repositories().value,
+    });
+
+    await expect(operator.execute(invocation)).resolves.toMatchObject({
+      kind: "provider_capacity_held",
+      preflight: {
+        reason: "capacity_blocked",
+        blockerIds: ["neon_compute_budget_exhausted"],
+      },
+    });
+    expect(mocks.runDailyRefresh).not.toHaveBeenCalled();
+    expect(mocks.runFinishedHistory).not.toHaveBeenCalled();
+    expect(mocks.runCurrentState).not.toHaveBeenCalled();
   });
 
   it("publishes completed history before advancing current state under one coordinator", async () => {
