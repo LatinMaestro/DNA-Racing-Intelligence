@@ -1,0 +1,12 @@
+BEGIN;
+REVOKE ALL ON FUNCTION dna.read_dna_open_lab_r2_budget_window(uuid) FROM dna_app_runtime;
+REVOKE ALL ON FUNCTION dna.account_dna_open_lab_r2_budget(uuid,text,text,text,bigint,bigint,bigint,timestamptz) FROM dna_app_runtime;
+REVOKE ALL ON FUNCTION dna.reserve_dna_open_lab_r2_budget(uuid,text,text,text,bigint,bigint,bigint,timestamptz) FROM dna_app_runtime;
+REVOKE ALL ON FUNCTION dna.open_dna_open_lab_r2_budget_window(uuid,text,timestamptz,timestamptz,timestamptz,bigint,bigint,bigint) FROM dna_app_runtime;
+DROP FUNCTION dna.read_dna_open_lab_r2_budget_window(uuid);
+DROP FUNCTION dna.account_dna_open_lab_r2_budget(uuid,text,text,text,bigint,bigint,bigint,timestamptz);
+DROP FUNCTION dna.reserve_dna_open_lab_r2_budget(uuid,text,text,text,bigint,bigint,bigint,timestamptz);
+DROP FUNCTION dna.open_dna_open_lab_r2_budget_window(uuid,text,timestamptz,timestamptz,timestamptz,bigint,bigint,bigint);
+DROP TABLE dna.dna_open_lab_r2_budget_reservation;
+DROP TABLE dna.dna_open_lab_r2_budget_window;
+COMMIT;
