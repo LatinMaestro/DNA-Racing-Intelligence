@@ -35,6 +35,23 @@ Pro League roster and 168-race map.
 The environment factory exposes only `loadRankingEvidenceByOwner` to website
 callers. It deliberately omits publication.
 
+## Accepted-analysis publication boundary
+
+Publication is a separate server-only composition step. It accepts only a
+source snapshot marked both accepted and complete, with a non-empty ranking and
+candidate set, exact expected counts, canonical authority timestamps and a
+SHA-256 digest over the complete accepted analysis. It rejects changed content,
+duplicate ranking identity, count drift, cross-owner access, mismatched authority
+bindings and any attempt to claim Pro League race-type breeding evidence that
+the API does not provide. Only after every check passes may it call the compact
+generation publisher.
+
+The snapshot must bind every ranking to the same accepted performance import,
+the applicable accepted Arena import and the active roster evidence cutoff.
+Publication time cannot precede source acceptance. Exact retries remain safe
+through the repository's deterministic generation contract. Empty or partial
+analysis can never replace the active last-good generation.
+
 ## Authority and commissioning status
 
 This store contains research inputs, not approved pair recommendations. It does
@@ -55,3 +72,7 @@ from their server-side environments. Missing configuration or a missing active
 generation still produces the held unavailable/empty state. No website request
 can obtain the publisher, and these changes do not publish a generation, deploy
 Preview, alter Production or authorize a breeding transaction.
+
+The accepted-analysis composition is implemented and tested but is not wired to
+either page. No accepted source snapshot currently exists in Preview, so no
+generation has been published.
