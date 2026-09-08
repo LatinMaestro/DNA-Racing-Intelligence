@@ -40,6 +40,14 @@ jobs:
           for migration in database/migrations/*.up.sql; do
             psql --set ON_ERROR_STOP=1 --file "$migration"
           done
+      - name: Reverse dependent R2 budget operator API migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0093_dna_open_lab_r2_budget_operator_api.down.sql
+      - name: Verify dependent R2 budget operator API removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0093_dna_open_lab_r2_budget_operator_api.removal.sql
       - name: Run R2 budget reservation smoke test
         run: >-
           psql --set ON_ERROR_STOP=1 --file
