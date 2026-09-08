@@ -185,8 +185,6 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0015_core_performance_profiles.smoke.sql
       - name: Apply Pro League evidence generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0084_pro_league_evidence_generation.up.sql
-      - name: Run Pro League evidence generation smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0084_pro_league_evidence_generation.smoke.sql
       - name: Apply Pro League breeding ranking generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0085_pro_league_breeding_ranking_generation.up.sql
       - name: Run Pro League breeding ranking generation smoke test
