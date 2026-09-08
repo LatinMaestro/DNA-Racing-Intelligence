@@ -69,6 +69,14 @@ authority read returns the held state. This migration grants only the guarded
 function and no additional direct table access; the active Pro League evidence
 tables remain inaccessible to the runtime.
 
+Migration `0088` closes the final write-boundary race. The publisher's
+serializable transaction first locks the owner's Race Merge and Arena dataset
+streams plus the active Pro League evidence publication lock, then re-reads and
+compares the exact roster cutoff and performance/Arena import timestamps. Any
+missing, superseded or incomplete authority aborts before a ranking-generation
+write. The runtime receives execute access only to this guarded assertion and
+still has no direct access to the underlying tables.
+
 ## Immutable accepted-analysis source
 
 Migration `0086` stores only an explicitly accepted, complete analysis snapshot
@@ -92,10 +100,11 @@ not establish race-type pair evidence, perform official pair validation, pass
 Gate E, connect a wallet or execute a splice. Fresh `pair_validate`, `pair_info`
 and applicable Arena evidence remain mandatory at owner decision time.
 
-Migrations `0085`, `0086` and `0087` are exercised synthetically through apply, smoke,
-reverse and removal checks in CI. On 2026-09-08, migration `0085` was also applied to the
-existing non-default private Neon `preview` branch. Migration `0086` was later
-applied there with zero accepted rows. Their lifecycle and cleanup
+Migrations `0085`, `0086`, `0087` and `0088` are exercised synthetically
+through apply, smoke, reverse and removal checks in CI. On 2026-09-08,
+migrations `0084` through `0087` were applied to the existing non-default
+private Neon `preview` branch with zero active evidence, accepted-analysis or
+breeding-ranking rows. Their lifecycle and cleanup
 completed with zero synthetic owners, generations, ranking rows or active rows
 remaining. The connector role cannot impersonate `dna_app_runtime`, so hosted
 verification checked the runtime grants and forced RLS directly while exact

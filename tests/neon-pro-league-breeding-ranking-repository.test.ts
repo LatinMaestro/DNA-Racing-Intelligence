@@ -28,6 +28,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
     all_force_rls_enabled: true,
     runtime_can_access_tables: false,
     runtime_can_publish: true,
+    runtime_can_assert_authority: true,
     runtime_can_read: true,
     session_user_name: runtimeRole,
     current_user_name: runtimeRole,
@@ -138,6 +139,7 @@ describe("Neon Pro League breeding ranking repository", () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [isolation()],
+      [],
       [
         {
           disposition: "published",
@@ -166,6 +168,12 @@ describe("Neon Pro League breeding ranking repository", () => {
     );
     expect(test.query.mock.calls[3]?.[1]).toEqual([
       databaseOwnerId,
+      "2026-09-07T01:00:00.000Z",
+      "2026-09-07T00:30:00.000Z",
+      null,
+    ]);
+    expect(test.query.mock.calls[4]?.[1]).toEqual([
+      databaseOwnerId,
       generationId,
       "breeding-worker",
       "2026-09-07T01:00:00.000Z",
@@ -184,6 +192,52 @@ describe("Neon Pro League breeding ranking repository", () => {
       "2026-09-07T02:00:00.000Z",
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("rolls back before publication when current authority changed", async () => {
+    const test = harness([[{ owner_scope: databaseOwnerId }], [isolation()]]);
+    test.query.mockImplementationOnce(async (statement: string) => {
+      test.events.push(statement.replace(/\s+/gu, " ").trim());
+      return { rows: [] };
+    });
+    test.query.mockImplementationOnce(async (statement: string) => {
+      test.events.push(statement.replace(/\s+/gu, " ").trim());
+      return { rows: [{ owner_scope: databaseOwnerId }] };
+    });
+    test.query.mockImplementationOnce(async (statement: string) => {
+      test.events.push(statement.replace(/\s+/gu, " ").trim());
+      return { rows: [isolation()] };
+    });
+    test.query.mockImplementationOnce(async (statement: string) => {
+      test.events.push(statement.replace(/\s+/gu, " ").trim());
+      throw new Error(
+        "current Pro League breeding publication authority changed",
+      );
+    });
+    test.query.mockImplementationOnce(async (statement: string) => {
+      test.events.push(statement.replace(/\s+/gu, " ").trim());
+      return { rows: [] };
+    });
+
+    await expect(
+      test.repository.publish(ownerId, {
+        generationId,
+        workerId: "breeding-worker",
+        rosterEvidenceCutoffAt: "2026-09-07T01:00:00.000Z",
+        latestAcceptedPerformanceImportAt: "2026-09-07T00:30:00.000Z",
+        latestAcceptedArenaImportAt: null,
+        publishedAt: "2026-09-07T02:00:00.000Z",
+        rankings: [minimalRanking()],
+      }),
+    ).rejects.toThrow("authority changed");
+    expect(
+      test.events.some((event) =>
+        event.startsWith(
+          "SELECT * FROM dna.publish_pro_league_breeding_ranking_generation",
+        ),
+      ),
+    ).toBe(false);
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
   it("rejects ranking authority that does not match the generation", async () => {
