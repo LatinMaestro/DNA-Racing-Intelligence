@@ -43,6 +43,15 @@ Gate E, connect a wallet or execute a splice. Fresh `pair_validate`, `pair_info`
 and applicable Arena evidence remain mandatory at owner decision time.
 
 The migration is exercised synthetically through apply, smoke, reverse and
-removal checks in CI. It is not applied to hosted Neon by merging the code and
-the adapter remains disconnected from the private route until a deliberate
-environment migration is approved and completed.
+removal checks in CI. On 2026-09-08, migration `0085` was also applied to the
+existing non-default private Neon `preview` branch. Its lifecycle and cleanup
+completed with zero synthetic owners, generations, ranking rows or active rows
+remaining. The connector role cannot impersonate `dna_app_runtime`, so hosted
+verification checked the runtime grants and forced RLS directly while exact
+runtime-role execution remained covered by CI.
+
+The private Pro League route now constructs only the read facade from its
+server-side environment. Missing configuration or a missing active generation
+still produces the held unavailable/empty state. No website request can obtain
+the publisher, and this change does not publish a generation, deploy Preview,
+alter Production or authorize a breeding transaction.
