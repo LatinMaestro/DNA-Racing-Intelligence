@@ -1,3 +1,4 @@
+import { deriveFreshness, type FreshnessState } from "@/domain/freshness";
 import type { JsonSourceValue } from "@/lib/dna-open-lab-v1-adapters";
 import type {
   DnaOpenLabServingSupplementalCore,
@@ -21,9 +22,12 @@ export type ProLeagueCurrentCoreState = Readonly<{
     | "invalid_generation"
     | "connected";
   latestObservedAt: string | null;
+  dataCurrentThrough: string | null;
+  freshness: FreshnessState;
   cores: readonly Readonly<{
     displayName: string;
     latestObservedAt: string;
+    dataCurrentThrough: string;
     bikePower: Readonly<{
       powerSourceValue: JsonSourceValue;
       adjustedOddsSourceValue: JsonSourceValue;
@@ -55,6 +59,8 @@ function unavailable(
   return Object.freeze({
     status,
     latestObservedAt: null,
+    dataCurrentThrough: null,
+    freshness: "unknown",
     cores: Object.freeze([]),
   });
 }
@@ -89,8 +95,13 @@ export async function loadProLeagueCurrentCoreState(
       displayName: string;
     }>[];
     repository: DnaOpenLabSupplementalCoreReadRepository | null;
+    now?: Date;
   }>,
 ): Promise<ProLeagueCurrentCoreState> {
+  const now = input.now ?? new Date();
+  if (Number.isNaN(now.getTime())) {
+    throw new Error("Pro League current Core freshness time is invalid.");
+  }
   if (input.repository === null) return unavailable("not_configured");
   const serving = await input.repository.readServingSupplementalCores({
     ownerId: input.ownerId,
@@ -150,11 +161,24 @@ export async function loadProLeagueCurrentCoreState(
     ) {
       throw new Error("Pro League current Core family authority is invalid.");
     }
-    const latestObservedAt = [...rows.values()]
-      .map((row) => row.observedAt)
-      .sort()
-      .at(-1);
-    if (latestObservedAt === undefined) {
+    const observationTimes = [...rows.values()]
+      .map((row) => {
+        const parsed = new Date(row.observedAt);
+        if (
+          Number.isNaN(parsed.getTime()) ||
+          parsed.toISOString() !== row.observedAt ||
+          parsed.getTime() > now.getTime()
+        ) {
+          throw new Error(
+            "Pro League current Core observation time is invalid.",
+          );
+        }
+        return row.observedAt;
+      })
+      .sort();
+    const latestObservedAt = observationTimes.at(-1);
+    const dataCurrentThrough = observationTimes.at(0);
+    if (latestObservedAt === undefined || dataCurrentThrough === undefined) {
       throw new Error(
         "Pro League current Core observation time is unavailable.",
       );
@@ -162,6 +186,7 @@ export async function loadProLeagueCurrentCoreState(
     return Object.freeze({
       displayName: selected.displayName,
       latestObservedAt,
+      dataCurrentThrough,
       bikePower: power.canonical.byMode.bike,
       stamina: Object.freeze({
         current: stamina.canonical.current,
@@ -195,9 +220,18 @@ export async function loadProLeagueCurrentCoreState(
     .map((core) => core.latestObservedAt)
     .sort()
     .at(-1);
+  const dataCurrentThrough = cores
+    .map((core) => core.dataCurrentThrough)
+    .sort()
+    .at(0);
   return Object.freeze({
     status: "connected",
     latestObservedAt: latestObservedAt ?? null,
+    dataCurrentThrough: dataCurrentThrough ?? null,
+    freshness: deriveFreshness(
+      dataCurrentThrough === undefined ? null : new Date(dataCurrentThrough),
+      now,
+    ),
     cores: Object.freeze(cores),
   });
 }

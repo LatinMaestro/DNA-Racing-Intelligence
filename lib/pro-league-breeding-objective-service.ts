@@ -1,3 +1,4 @@
+import { deriveFreshness, type FreshnessState } from "@/domain/freshness";
 import {
   buildProLeagueBreedingObjectiveQueue,
   type ProLeagueBreedingObjective,
@@ -28,6 +29,8 @@ export type ProLeagueBreedingObjectiveState = Readonly<{
   evidenceCutoffAt: string;
   performanceDataCurrentThrough: string | null;
   arenaDataCurrentThrough: string | null;
+  performanceFreshness: FreshnessState;
+  arenaFreshness: FreshnessState;
   objectives: readonly PublicProLeagueBreedingObjective[];
   diagnostics: ProLeagueBreedingObjectiveQueue["diagnostics"];
   decisionSupportOnly: true;
@@ -36,11 +39,11 @@ export type ProLeagueBreedingObjectiveState = Readonly<{
   spliceExecutionAllowed: false;
 }>;
 
-function latest(values: readonly (string | null)[]): string | null {
+function earliest(values: readonly (string | null)[]): string | null {
   return (
     values
       .filter((value): value is string => value !== null)
-      .sort((left, right) => right.localeCompare(left))[0] ?? null
+      .sort((left, right) => left.localeCompare(right))[0] ?? null
   );
 }
 
@@ -64,6 +67,8 @@ export function unavailableProLeagueBreedingObjectiveState(
     evidenceCutoffAt,
     performanceDataCurrentThrough: null,
     arenaDataCurrentThrough: null,
+    performanceFreshness: "unknown",
+    arenaFreshness: "unknown",
     objectives: Object.freeze([]),
     diagnostics: emptyDiagnostics(priorityGapCount),
     decisionSupportOnly: true,
@@ -171,16 +176,30 @@ export async function loadProLeagueBreedingObjectiveState(
     input.roster,
     workspace.rankings,
   );
+  const performanceDataCurrentThrough = earliest(
+    workspace.rankings.map(({ dataCurrentThrough }) => dataCurrentThrough),
+  );
+  const arenaDataCurrentThrough = earliest(
+    workspace.rankings.map(
+      ({ arenaDataCurrentThrough }) => arenaDataCurrentThrough,
+    ),
+  );
   return Object.freeze({
     status: "connected",
     evidenceCutoffAt: queue.evidenceCutoffAt,
-    performanceDataCurrentThrough: latest(
-      workspace.rankings.map(({ dataCurrentThrough }) => dataCurrentThrough),
+    performanceDataCurrentThrough,
+    arenaDataCurrentThrough,
+    performanceFreshness: deriveFreshness(
+      performanceDataCurrentThrough === null
+        ? null
+        : new Date(performanceDataCurrentThrough),
+      input.now,
     ),
-    arenaDataCurrentThrough: latest(
-      workspace.rankings.map(
-        ({ arenaDataCurrentThrough }) => arenaDataCurrentThrough,
-      ),
+    arenaFreshness: deriveFreshness(
+      arenaDataCurrentThrough === null
+        ? null
+        : new Date(arenaDataCurrentThrough),
+      input.now,
     ),
     objectives: Object.freeze(queue.objectives.map(publicObjective)),
     diagnostics: queue.diagnostics,

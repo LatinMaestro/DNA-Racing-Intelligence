@@ -23,6 +23,11 @@ const readyInput: ProLeagueCommissioningReadinessInput = {
   mapPreparationCount: 4,
   currentCoreStateConnected: true,
   currentCoreCount: 25,
+  historicalEvidenceFreshness: "current",
+  currentCoreFreshness: "current",
+  openRaceFreshness: "current",
+  breedingPerformanceFreshness: "current",
+  breedingArenaFreshness: "unknown",
   discoveryQueueAvailable: true,
   discoveryExperimentCount: 3,
   openRaceStateConnected: true,
@@ -45,6 +50,7 @@ describe("Pro League commissioning readiness", () => {
         .filter(({ status }) => status === "review")
         .map(({ code }) => code),
     ).toEqual([
+      "LAST_GOOD_FRESHNESS",
       "OPEN_RACE_LIMITATIONS",
       "SUBSTITUTION_LEDGER",
       "OPPONENT_EVIDENCE",
@@ -54,6 +60,22 @@ describe("Pro League commissioning readiness", () => {
     expect(result.protectedPreviewDeploymentAllowed).toBe(false);
     expect(result.productionActivationAllowed).toBe(false);
     expect(result.rosterOrMapSubmissionAllowed).toBe(false);
+  });
+
+  it("keeps stale last-good evidence visible as an owner review item", () => {
+    const result = assessProLeagueCommissioningReadiness({
+      ...readyInput,
+      historicalEvidenceFreshness: "stale",
+    });
+
+    expect(result.status).toBe("ready_for_protected_preview_review");
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        code: "LAST_GOOD_FRESHNESS",
+        status: "review",
+        requiredForProtectedPreview: false,
+      }),
+    );
   });
 
   it("blocks when current state does not cover every recommended Core", () => {

@@ -124,6 +124,8 @@ describe("Pro League breeding objective service", () => {
       status: "connected",
       evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
       performanceDataCurrentThrough: "2026-09-07T00:00:00.000Z",
+      performanceFreshness: "current",
+      arenaFreshness: "unknown",
       objectives: [
         {
           raceType: "6 gate madness",

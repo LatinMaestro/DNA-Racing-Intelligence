@@ -1905,3 +1905,17 @@ After the private Pro League milestone, continue in this order:
 - A blocker-free result means ready for protected Preview review only. It does
   not approve or perform a deployment, Production activation, roster or map
   submission, race entry, pair recommendation, splice or other game action.
+
+## 2026-09-08 — commissioning freshness is conservative and visible
+
+- Label historical evidence, complete current Core state, open-race snapshots,
+  breeding performance evidence and breeding Arena evidence as current,
+  ageing, stale or unknown using the shared three-day/seven-day policy.
+- For current Core state, use the oldest observation across every required
+  family and rostered Core as the safe current-through boundary; a newer single
+  field must not make an older complete snapshot appear current.
+- Apply the same oldest-observation rule across the breeding evidence included
+  in the owner read model, independently for performance and Arena authority.
+- Keep ageing, stale and unknown last-good information visible but mark it as a
+  protected Preview review item. Freshness labels do not authorize a refresh,
+  deployment, roster/map submission, race entry or breeding action.

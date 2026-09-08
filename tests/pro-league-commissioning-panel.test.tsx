@@ -30,6 +30,7 @@ describe("Pro League commissioning panel", () => {
         generationId: "84000000-0000-4000-8000-000000000301",
         evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
         publishedAt: "2026-09-07T01:01:00.000Z",
+        freshness: "current",
         populationProfileCount: 1200,
         ownedProfileCount: 22,
         unownedProfileCount: 1178,
@@ -165,6 +166,8 @@ describe("Pro League commissioning panel", () => {
       currentState: {
         status: "connected",
         latestObservedAt: "2026-09-07T01:02:00.000Z",
+        dataCurrentThrough: "2026-09-06T23:00:00.000Z",
+        freshness: "current",
         cores: [
           {
             displayName: "Silver Comet",
@@ -188,6 +191,7 @@ describe("Pro League commissioning panel", () => {
       raceOpportunities: {
         status: "connected",
         observedAt: "2026-09-07T01:03:00.000Z",
+        freshness: "current",
         scannedRaceCount: 5,
         qualifyingRaceCount: 1,
         priorityGapCount: 1,
@@ -266,6 +270,8 @@ describe("Pro League commissioning panel", () => {
         evidenceCutoffAt: "2026-09-01T00:00:00.000Z",
         performanceDataCurrentThrough: "2026-09-01T00:00:00.000Z",
         arenaDataCurrentThrough: null,
+        performanceFreshness: "stale",
+        arenaFreshness: "unknown",
         diagnostics: {
           priorityGapCount: 1,
           researchCandidateCount: 1,
@@ -356,6 +362,10 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("168 race lines");
     expect(markup).toContain("Population coverage gaps");
     expect(markup).toContain("Current API dimensions");
+    expect(markup).toContain("Historical evidence freshness: Current");
+    expect(markup).toContain("Snapshot freshness: Current");
+    expect(markup).toContain("Performance evidence: Stale");
+    expect(markup).toContain("Arena evidence: Unknown");
     expect(markup).toContain("Adjusted odds");
     expect(markup).toContain("Open Bike race opportunities");
     expect(markup).toContain("Pro League Discovery experiments");
@@ -382,6 +392,7 @@ describe("Pro League commissioning panel", () => {
         generationId: "84000000-0000-4000-8000-000000000301",
         evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
         publishedAt: "2026-09-07T01:01:00.000Z",
+        freshness: "current",
         populationProfileCount: 100,
         ownedProfileCount: 3,
         unownedProfileCount: 97,

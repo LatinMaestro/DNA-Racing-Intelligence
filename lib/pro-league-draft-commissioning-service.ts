@@ -1,3 +1,4 @@
+import { deriveFreshness, type FreshnessState } from "@/domain/freshness";
 import {
   buildProLeagueDraftLineupRecommendation,
   type ProLeagueDraftLineupRecommendation,
@@ -48,6 +49,7 @@ export type ProLeagueDraftCommissioningEvidenceSummary = Readonly<{
   generationId: string;
   evidenceCutoffAt: string;
   publishedAt: string;
+  freshness: FreshnessState;
   populationProfileCount: number;
   ownedProfileCount: number;
   unownedProfileCount: number;
@@ -126,6 +128,10 @@ export async function loadProLeagueDraftCommissioningState(
   ) {
     return empty("persistence_not_configured");
   }
+  const now = input.now ?? new Date();
+  if (Number.isNaN(now.getTime())) {
+    throw new Error("Pro League commissioning freshness time is invalid.");
+  }
 
   const active = await loadActiveProLeagueVaultEvidence({
     ownerId: authenticatedOwnerId,
@@ -142,6 +148,10 @@ export async function loadProLeagueDraftCommissioningState(
     generationId: active.generation.generationId,
     evidenceCutoffAt: active.generation.evidenceCutoffAt,
     publishedAt: active.generation.publishedAt,
+    freshness: deriveFreshness(
+      new Date(active.generation.evidenceCutoffAt),
+      now,
+    ),
     populationProfileCount: active.populationProfileCount,
     ownedProfileCount: active.ownedProfileCount,
     unownedProfileCount: active.unownedProfileCount,
@@ -174,6 +184,7 @@ export async function loadProLeagueDraftCommissioningState(
     ownerId: authenticatedOwnerId,
     selectedCores,
     repository: input.currentStateRepository ?? null,
+    now,
   }).catch(() => invalidProLeagueCurrentCoreState());
   const priorityGapCount = roster.coverageGaps.filter(
     ({ discoveryPriority }) => discoveryPriority !== "maintain",
@@ -182,6 +193,7 @@ export async function loadProLeagueDraftCommissioningState(
     ownerId: authenticatedOwnerId,
     priorityGapCount,
     repository: input.currentRaceRepository ?? null,
+    now,
   }).catch(() => invalidProLeagueRaceOpportunityState(priorityGapCount));
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
@@ -195,7 +207,7 @@ export async function loadProLeagueDraftCommissioningState(
     configuredOwnerId,
     roster,
     repository: input.breedingRepository ?? { status: "not_configured" },
-    now: input.now ?? new Date(),
+    now,
   }).catch(() =>
     unavailableProLeagueBreedingObjectiveState(
       "invalid_evidence",
@@ -235,6 +247,11 @@ export async function loadProLeagueDraftCommissioningState(
     mapPreparationCount: mapPreparation.assessments.length,
     currentCoreStateConnected: currentState.status === "connected",
     currentCoreCount: currentState.cores.length,
+    historicalEvidenceFreshness: evidence.freshness,
+    currentCoreFreshness: currentState.freshness,
+    openRaceFreshness: raceOpportunities.freshness,
+    breedingPerformanceFreshness: breedingObjectives.performanceFreshness,
+    breedingArenaFreshness: breedingObjectives.arenaFreshness,
     discoveryQueueAvailable: true,
     discoveryExperimentCount: discoveryQueue.experiments.length,
     openRaceStateConnected: raceOpportunities.status === "connected",
