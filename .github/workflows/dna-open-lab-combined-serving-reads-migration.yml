@@ -1,0 +1,58 @@
+name: DNA Open Lab combined serving reads migration
+
+on:
+  pull_request:
+    paths:
+      - "database/migrations/**"
+      - ".github/workflows/dna-open-lab-combined-serving-reads-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dna_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete migration chain
+        run: |
+          for migration in database/migrations/*.up.sql; do
+            psql --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Run combined serving reads smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0095_dna_open_lab_combined_serving_reads.smoke.sql
+      - name: Reverse combined serving reads migration
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0095_dna_open_lab_combined_serving_reads.down.sql
+      - name: Verify combined serving reads removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0095_dna_open_lab_combined_serving_reads.removal.sql
+      - name: Run daily refresh generation smoke test
+        run: >-
+          psql --set ON_ERROR_STOP=1 --file
+          database/migrations/0094_dna_open_lab_daily_refresh_generation.smoke.sql
