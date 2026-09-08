@@ -562,6 +562,19 @@ Wiring that authority around the complete refresh and composing
 history/current-state collection are the next A2 boundary; connected Preview
 measurement and commissioning remain later A3/A4 work.
 
+The top-level daily refresh coordinator now derives one stable budget request
+from the refresh cycle, measured billing window and whole-cycle upper bound. It
+reserves that complete envelope before either source runner advances, runs
+finished history before current state so one invocation still performs at most
+one provider request, and withholds final budget accounting until both source
+publications are complete. A successful generation stores its measured actual
+R2 use before accounting; restart after generation publication therefore
+finishes the same accounting identity without repeating source work. Missing or
+changed billing authority, budget refusal, actual use above the reservation or
+generation identity drift fails closed. Durable Neon persistence for the
+combined generation and use of its serving pointer by the website are the next
+A2 boundary.
+
 After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;

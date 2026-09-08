@@ -108,7 +108,14 @@ checksum is re-evaluated while
 the publication lock is held, so a partial or drifted set cannot cross the
 single pointer update. Migration `0092` supplies durable provider-budget
 admission; composing finished history and current-state collection into one
-complete daily generation remains A2 work.
+complete daily generation remains A2 work. The top-level coordinator now binds
+one stable reservation to both runners, advances finished history first and
+accounts measured actual use only after a complete combined generation is
+durably published. If a process stops between generation publication and
+accounting, replay loads that exact generation and accounts its stored actual
+use without calling either source runner. The remaining boundary is the
+owner-isolated Neon combined-generation repository and switching website reads
+only through its complete serving pointer.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
