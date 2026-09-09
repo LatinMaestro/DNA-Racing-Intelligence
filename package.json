@@ -25,7 +25,7 @@
     "@aws-sdk/s3-request-presigner": "3.1106.0",
     "@clerk/nextjs": "7.6.0",
     "@neondatabase/serverless": "1.1.0",
-    "next": "16.2.11",
+    "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -47,6 +47,6 @@
     "js-yaml": "4.3.1",
     "nanoid": "3.3.18",
     "postcss": "8.5.26",
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }

@@ -2093,3 +2093,13 @@ After the private Pro League milestone, continue in this order:
   usage in failure output.
 - The stage ID is diagnostic only. Every failure remains held before DNA API,
   R2 or Neon refresh writes and retains the prior last-good generation.
+
+## 2026-09-09 — Critical framework advisories block commissioning
+
+- Canonical PR validation identified newly published high/critical advisories
+  affecting the pinned Next.js and Sharp production dependency graph.
+- Advance to patched exact pins Next.js `16.3.4` and Sharp `0.35.4`; accept the
+  generated Next.js route/root-parameter type reference and lockfile changes.
+- Require a zero-vulnerability production dependency audit plus the full
+  build, test, TypeScript, lint, formatting, secret, Worker and migration suite
+  before merging or resuming the read-only provider preflight.
