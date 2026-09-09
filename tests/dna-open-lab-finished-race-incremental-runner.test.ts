@@ -164,6 +164,41 @@ describe("DNA finished-race incremental runner", () => {
     ).toEqual({ reason: "operator_hold", retryAfterSeconds: null });
   });
 
+  it("distinguishes content-free DNA transport and upstream availability", () => {
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaOpenLabApiError({
+          kind: "transport_error",
+          message: "content free",
+        }),
+      ),
+    ).toEqual({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: "dna_transport_unavailable",
+    });
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaOpenLabApiError({
+          kind: "api_error",
+          message: "content free",
+          httpStatus: 503,
+        }),
+      ),
+    ).toEqual({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: "dna_upstream_unavailable",
+    });
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(new Error("private detail")),
+    ).toEqual({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: "unclassified_unavailable",
+    });
+  });
+
   it("collects one immutable window, then completes without publishing a generation", async () => {
     const test = fixture(async () => response([{ rid: 17 }]));
 

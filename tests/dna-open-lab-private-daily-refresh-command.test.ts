@@ -331,4 +331,46 @@ describe("DNA Open Lab private daily refresh command", () => {
       preserveLastGood: true,
     });
   });
+
+  it("retains a content-free finished-history availability diagnostic", async () => {
+    const order: string[] = [];
+    const source = sources();
+    const repository = budget(order);
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now,
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => measurement()),
+        },
+        budgetRepository: repository.value,
+        sourcesFromMeasurement: () => ({
+          status: "ready",
+          sources: source.value,
+        }),
+        operatorFromSources: () => ({
+          status: "ready",
+          execute: vi.fn(async () => ({
+            kind: "finished_history" as const,
+            step: {
+              kind: "paused" as const,
+              reason: "api_unavailable" as const,
+              retryAt: null,
+              unavailableDiagnostic: "dna_transport_unavailable" as const,
+              stored: {} as never,
+            },
+          })),
+        }),
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "held",
+      stepCount: 1,
+      terminalKind:
+        "finished_history:paused:api_unavailable:dna_transport_unavailable",
+      preserveLastGood: true,
+    });
+  });
 });

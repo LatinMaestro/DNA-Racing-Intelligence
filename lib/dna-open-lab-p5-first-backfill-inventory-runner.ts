@@ -94,6 +94,7 @@ export const DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES = Object.freeze([
   "api_malformed_response",
   "api_error",
   "api_rate_limited",
+  "api_transport_error",
   "finished_race_invalid_window",
   "finished_race_invalid_record",
   "finished_race_source_limit_breach",

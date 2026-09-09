@@ -25,13 +25,22 @@ import { classifyDnaCurrentStateAcquisitionFailure } from "./dna-open-lab-curren
 import { DnaRaceDocumentHydrationError } from "./dna-open-lab-race-document-hydrator";
 import { DnaOpenLabR2RaceEvidenceProviderError } from "./dna-open-lab-r2-race-evidence";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
-import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+} from "./dna-open-lab-v1-client";
+
+export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
+  | "dna_transport_unavailable"
+  | "dna_upstream_unavailable"
+  | "unclassified_unavailable";
 
 export type DnaFinishedRaceIncrementalStepResult =
   | Readonly<{
       kind: "paused";
       reason: DnaFinishedRaceIncrementalPauseReason;
       retryAt: string | null;
+      unavailableDiagnostic?: DnaFinishedRaceIncrementalUnavailableDiagnostic;
       stored: StoredDnaFinishedRaceIncrementalCycle;
     }>
   | Readonly<{
@@ -51,6 +60,7 @@ export type DnaFinishedRaceIncrementalStepResult =
 export type DnaFinishedRaceIncrementalFailureDirective = Readonly<{
   reason: DnaFinishedRaceIncrementalPauseReason;
   retryAfterSeconds: number | null;
+  unavailableDiagnostic?: DnaFinishedRaceIncrementalUnavailableDiagnostic;
 }>;
 
 function timestamp(value: string, field: string): string {
@@ -86,6 +96,25 @@ export function classifyDnaFinishedRaceIncrementalFailure(
       retryAfterSeconds: null,
     });
   }
+  if (error instanceof DnaOpenLabApiError) {
+    if (error.kind === "transport_error") {
+      return Object.freeze({
+        reason: "api_unavailable",
+        retryAfterSeconds: null,
+        unavailableDiagnostic: "dna_transport_unavailable",
+      });
+    }
+    if (
+      error.kind === "api_error" &&
+      (error.httpStatus === null || error.httpStatus >= 500)
+    ) {
+      return Object.freeze({
+        reason: "api_unavailable",
+        retryAfterSeconds: null,
+        unavailableDiagnostic: "dna_upstream_unavailable",
+      });
+    }
+  }
   const recovery = classifyDnaCurrentStateAcquisitionFailure({
     error,
     operation: "current_state_request",
@@ -99,6 +128,12 @@ export function classifyDnaFinishedRaceIncrementalFailure(
           ? "invalid_response"
           : recovery.reason,
     retryAfterSeconds: recovery.retryAfterSeconds,
+    ...(recovery.reason === "api_unavailable"
+      ? {
+          unavailableDiagnostic:
+            "unclassified_unavailable" as DnaFinishedRaceIncrementalUnavailableDiagnostic,
+        }
+      : {}),
   });
 }
 
@@ -355,6 +390,9 @@ export async function runDnaFinishedRaceIncrementalStep(input: {
       kind: "paused",
       reason: directive.reason,
       retryAt,
+      ...(directive.unavailableDiagnostic === undefined
+        ? {}
+        : { unavailableDiagnostic: directive.unavailableDiagnostic }),
       stored,
     });
   }

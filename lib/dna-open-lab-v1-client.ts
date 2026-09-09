@@ -26,6 +26,7 @@ export type DnaOpenLabResponse<T> = Readonly<{
 export type DnaOpenLabApiErrorKind =
   | "invalid_configuration"
   | "invalid_request"
+  | "transport_error"
   | "malformed_response"
   | "api_error"
   | "rate_limited";
@@ -552,12 +553,20 @@ export function createDnaOpenLabV1Client(input: {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(requestInput.body);
     }
-    const response = await transport(`${baseUrl}${requestInput.path}`, {
-      method: requestInput.method,
-      headers,
-      ...(body === undefined ? {} : { body }),
-      cache: "no-store",
-    });
+    let response: Response;
+    try {
+      response = await transport(`${baseUrl}${requestInput.path}`, {
+        method: requestInput.method,
+        headers,
+        ...(body === undefined ? {} : { body }),
+        cache: "no-store",
+      });
+    } catch {
+      throw new DnaOpenLabApiError({
+        kind: "transport_error",
+        message: "DNA Open Lab transport is unavailable",
+      });
+    }
     return readEnvelope<T>(response);
   };
 
