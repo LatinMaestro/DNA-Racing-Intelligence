@@ -1,0 +1,147 @@
+name: DNA Open Lab bounded private Preview daily refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      finished_history_upper_bound_at:
+        description: Fixed UTC cutoff reused for every resume of this refresh cycle
+        required: true
+        type: string
+      maximum_steps:
+        description: Maximum one-request operator steps in this bounded run
+        required: true
+        default: "30"
+        type: choice
+        options:
+          - "1"
+          - "30"
+          - "100"
+      execute_bounded_private_preview_refresh:
+        description: Confirm bounded persistent writes to private Preview only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-bounded-private-preview-daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  exact-main-bounded-private-preview-refresh:
+    name: Exact-main bounded private Preview refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_COMMAND: "1"
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_MAXIMUM_STEPS: ${{ inputs.maximum_steps }}
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT: ${{ inputs.finished_history_upper_bound_at }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit Preview write arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This bounded private Preview refresh may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_bounded_private_preview_refresh }}" != "true" ]]; then
+            echo "The bounded private Preview refresh was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The bounded private Preview refresh head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT",
+            "DNA_OPEN_LAB_VAULT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid bounded Preview settings: " + invalid.join(", "));
+          }
+          const cutoff = new Date(process.env.DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT);
+          if (
+            Number.isNaN(cutoff.getTime()) ||
+            cutoff.toISOString() !== process.env.DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT ||
+            cutoff.getTime() > Date.now()
+          ) {
+            throw new Error("The finished-history upper bound must be a canonical past UTC timestamp.");
+          }
+          const keys = [
+            process.env.DNA_OPEN_LAB_API_KEY_1,
+            process.env.DNA_OPEN_LAB_API_KEY_2,
+            process.env.DNA_OPEN_LAB_API_KEY_3,
+          ];
+          if (new Set(keys).size !== 3) {
+            throw new Error("Three distinct DNA Open Lab API keys are required.");
+          }
+          console.log("Validated the bounded private Preview configuration without printing private values.");
+          NODE
+      - name: Execute bounded resumable private Preview refresh
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-private-daily-refresh-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the bounded private Preview refresh."
+            exit 1
+          fi

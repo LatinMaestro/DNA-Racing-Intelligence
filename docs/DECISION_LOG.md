@@ -2222,3 +2222,20 @@ After the private Pro League milestone, continue in this order:
   authority. Compose all recurring API requests behind one aggregate 30-rpm
   pool and meter the shared immutable R2 evidence adapter before adding the
   bounded Preview operator command.
+
+## 2026-09-09 — Preview refresh reconciliation is restart-conservative
+
+- Expose the private daily operator only through an exact-main manual Preview
+  workflow with a fixed UTC history upper bound, an explicit persistent-write
+  arm and a maximum of 100 one-request steps.
+- Obtain one fresh Cloudflare/Neon measurement and pass its cached evidence to
+  the preflight before opening or reusing the matching durable billing window.
+- Derive stable owner-scoped refresh, current-state and budget-window identities
+  so a later workflow invocation resumes rather than forks the cycle.
+- The concrete R2 meter is process-local while a cycle may span multiple
+  short-lived runners. At final publication, therefore account the complete
+  preflight-approved R2 reservation, not the final runner's partial reading.
+  This deliberately overstates usage, preserves restart safety and can never
+  increase free-tier authority.
+- Emit only identifiers, step state and safety booleans. Do not log API bodies,
+  provider measurements, credentials or owner payloads.
