@@ -307,6 +307,23 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         "unable to execute query, please try again later",
         "cloudflare_graphql_unavailable",
       ],
+      [
+        "access denied by private provider scope",
+        "cloudflare_graphql_authorization_rejected",
+      ],
+      [
+        "private dataset time window rejected",
+        "cloudflare_graphql_dataset_limit_rejected",
+      ],
+      [
+        "private variable validation failed",
+        "cloudflare_graphql_query_rejected",
+      ],
+      ["private request throttled", "cloudflare_graphql_rate_limited"],
+      [
+        "private provider temporarily unavailable",
+        "cloudflare_graphql_unavailable",
+      ],
       ["private provider diagnostic", "cloudflare_graphql_rejected"],
     ] as const;
     for (const [privateMessage, failureId] of graphqlCases) {

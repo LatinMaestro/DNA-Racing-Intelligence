@@ -133,9 +133,11 @@ Connected measurement failures expose only one fixed allowlisted stage ID:
 measurement clock; Cloudflare transport, HTTP, GraphQL authorization, query,
 dataset-limit, rate-limit, availability, unclassified GraphQL or usage;
 Neon transport, HTTP or usage; or unexpected measurement failure. Cloudflare
-classification uses only the provider's documented message classes and emits
-only the fixed ID. The IDs contain no provider response, message, HTTP status,
-URL, account/project/bucket identity or secret. They locate a held read-only
+classification first recognizes the provider's documented messages, then uses
+only broad semantic terms from those same documented authorization, query,
+dataset-limit, rate-limit and availability families. It emits only the fixed
+ID. The IDs contain no provider response, message, HTTP status, URL,
+account/project/bucket identity or secret. They locate a held read-only
 preflight without turning the failure into capacity evidence or permitting
 API/provider writes.
 

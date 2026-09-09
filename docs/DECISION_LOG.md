@@ -2152,3 +2152,15 @@ After the private Pro League milestone, continue in this order:
   accepts the complete payload. Missing or invalid data still fails closed.
 - This compatibility boundary exposes no provider content and authorizes no DNA
   call, provider write, paid use, deployment or game action.
+
+## 2026-09-09 — Cloudflare failure-family fallback remains content-free
+
+- The exact-main preflight still returned a non-empty Cloudflare GraphQL error
+  outside the provider's published example phrases; accepting an empty error
+  container did not change that result.
+- Classify only broad semantic terms belonging to the same documented
+  authorization, query, dataset-limit, rate-limit and availability families.
+  Continue to return the generic rejection when no family matches.
+- Emit only the fixed family ID. Never retain or expose the provider message,
+  response, account/bucket identity, credential or HTTP detail, and keep every
+  such result held before DNA API work or provider writes.
