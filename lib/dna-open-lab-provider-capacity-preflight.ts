@@ -14,6 +14,36 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT =
 export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS =
   5 * 60 * 1000;
 
+export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
+  "measurement_clock_invalid",
+  "cloudflare_transport_failed",
+  "cloudflare_http_rejected",
+  "cloudflare_graphql_rejected",
+  "cloudflare_usage_invalid",
+  "neon_transport_failed",
+  "neon_http_rejected",
+  "neon_usage_invalid",
+  "unexpected_measurement_failure",
+] as const;
+
+export type DnaOpenLabProviderCapacityMeasurementFailureId =
+  (typeof DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS)[number];
+
+const MEASUREMENT_FAILURE_ID_SET = new Set<string>(
+  DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS,
+);
+
+/** Fixed, non-sensitive failure authority for connected measurement diagnostics. */
+export class DnaOpenLabProviderCapacityMeasurementError extends Error {
+  readonly failureId: DnaOpenLabProviderCapacityMeasurementFailureId;
+
+  constructor(failureId: DnaOpenLabProviderCapacityMeasurementFailureId) {
+    super("Provider capacity measurement failed.");
+    this.name = "DnaOpenLabProviderCapacityMeasurementError";
+    this.failureId = failureId;
+  }
+}
+
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 
@@ -71,6 +101,7 @@ export type DnaOpenLabProviderCapacityPreflightReceipt =
         readyForRefresh: false;
         reason: DnaOpenLabProviderCapacityHeldReason;
         blockerIds: readonly DnaOpenLabProviderCapacityBlockerId[];
+        measurementFailureId?: DnaOpenLabProviderCapacityMeasurementFailureId | null;
       }>)
   | (SafeReceipt &
       Readonly<{
@@ -104,6 +135,7 @@ const SAFE = Object.freeze({
 function held(
   reason: DnaOpenLabProviderCapacityHeldReason,
   blockerIds: readonly DnaOpenLabProviderCapacityBlockerId[] = [],
+  measurementFailureId: DnaOpenLabProviderCapacityMeasurementFailureId | null = null,
 ): DnaOpenLabProviderCapacityPreflightReceipt {
   return Object.freeze({
     ...SAFE,
@@ -111,7 +143,20 @@ function held(
     readyForRefresh: false as const,
     reason,
     blockerIds: Object.freeze([...blockerIds]),
+    measurementFailureId,
   });
+}
+
+function measurementFailureId(
+  error: unknown,
+): DnaOpenLabProviderCapacityMeasurementFailureId {
+  if (
+    error instanceof DnaOpenLabProviderCapacityMeasurementError &&
+    MEASUREMENT_FAILURE_ID_SET.has(error.failureId)
+  ) {
+    return error.failureId;
+  }
+  return "unexpected_measurement_failure";
 }
 
 function identity(value: unknown, field: string): string {
@@ -262,8 +307,8 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
         measurement = await input.measurementSource.measure({
           ownerId: authenticatedOwnerId,
         });
-      } catch {
-        return held("measurement_failed");
+      } catch (error) {
+        return held("measurement_failed", [], measurementFailureId(error));
       }
       if (
         measurement === null ||

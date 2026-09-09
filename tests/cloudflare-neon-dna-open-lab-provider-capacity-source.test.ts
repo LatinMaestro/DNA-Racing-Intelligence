@@ -4,6 +4,7 @@ import {
   cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
   createCloudflareNeonDnaOpenLabProviderCapacitySource,
 } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
+import { DnaOpenLabProviderCapacityMeasurementError } from "@/lib/dna-open-lab-provider-capacity-preflight";
 
 const accountId = "a".repeat(32);
 const measuredAt = new Date("2026-09-09T01:12:34.000Z");
@@ -157,7 +158,12 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
   });
 
   it.each([
-    ["unknown R2 action", cloudflareData("UnknownAction"), neonData()],
+    [
+      "unknown R2 action",
+      cloudflareData("UnknownAction"),
+      neonData(),
+      "cloudflare_usage_invalid",
+    ],
     [
       "duplicate R2 action",
       {
@@ -182,12 +188,19 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         },
       },
       neonData(),
+      "cloudflare_usage_invalid",
     ],
-    ["project drift", cloudflareData(), neonData({ id: "project-2" })],
+    [
+      "project drift",
+      cloudflareData(),
+      neonData({ id: "project-2" }),
+      "neon_usage_invalid",
+    ],
     [
       "missing project storage",
       cloudflareData(),
       neonData({ synthetic_storage_size: undefined }),
+      "neon_usage_invalid",
     ],
     [
       "invalid Neon window",
@@ -195,8 +208,9 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       neonData({
         consumption_period_end: "2026-09-05T00:00:00.000Z",
       }),
+      "neon_usage_invalid",
     ],
-  ])("fails closed on %s", async (_label, cloudflare, neon) => {
+  ])("fails closed on %s", async (_label, cloudflare, neon, failureId) => {
     const fixture = source({
       fetch: vi
         .fn<typeof globalThis.fetch>()
@@ -204,21 +218,33 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         .mockResolvedValueOnce(response(neon)),
     });
     if (fixture.value.status !== "ready") throw new Error("expected source");
-    await expect(fixture.value.measure({ ownerId: "owner-1" })).rejects.toThrow(
-      "Provider capacity measurement failed",
-    );
+    await expect(
+      fixture.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({
+      message: "Provider capacity measurement failed.",
+      failureId,
+    });
   });
 
-  it("sanitizes provider errors and non-success responses", async () => {
+  it("sanitizes and classifies provider errors and non-success responses", async () => {
     const fixture = source({
       fetch: vi.fn(async () => {
         throw new Error("secret provider URL and token detail");
       }),
     });
     if (fixture.value.status !== "ready") throw new Error("expected source");
-    await expect(
-      fixture.value.measure({ ownerId: "owner-1" }),
-    ).rejects.not.toThrow(/secret provider URL|token detail/u);
+    const transportFailure = await fixture.value
+      .measure({ ownerId: "owner-1" })
+      .catch((error: unknown) => error);
+    expect(transportFailure).toBeInstanceOf(
+      DnaOpenLabProviderCapacityMeasurementError,
+    );
+    expect(transportFailure).toMatchObject({
+      failureId: "cloudflare_transport_failed",
+    });
+    expect(String(transportFailure)).not.toMatch(
+      /secret provider URL|token detail/u,
+    );
 
     const rejected = source({
       fetch: vi
@@ -229,7 +255,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     if (rejected.value.status !== "ready") throw new Error("expected source");
     await expect(
       rejected.value.measure({ ownerId: "owner-1" }),
-    ).rejects.toThrow("Provider capacity measurement failed");
+    ).rejects.toMatchObject({ failureId: "cloudflare_http_rejected" });
   });
 
   it("rejects malformed configuration and time before provider access", async () => {

@@ -2081,3 +2081,15 @@ After the private Pro League milestone, continue in this order:
 - A blocker or measurement failure stops the workflow. A successful result is
   a five-minute Preview commissioning preflight only; it does not authorize a
   persistent refresh, Production change, paid use or game action.
+
+## 2026-09-09 — Provider measurement failures have allowlisted stages
+
+- A connected provider-capacity failure may identify only a fixed measurement
+  stage: measurement clock, Cloudflare transport/HTTP/GraphQL/usage, Neon
+  transport/HTTP/usage or unexpected measurement failure.
+- Preserve deterministic Cloudflare-first reporting if both concurrent
+  read-only provider calls fail. Never emit provider response bodies, HTTP
+  status values, URLs, account/project/bucket identities, credentials or raw
+  usage in failure output.
+- The stage ID is diagnostic only. Every failure remains held before DNA API,
+  R2 or Neon refresh writes and retains the prior last-good generation.

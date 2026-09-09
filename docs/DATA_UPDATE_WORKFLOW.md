@@ -122,6 +122,13 @@ configured writer storage class remains an explicit input because Cloudflare's
 R2 analytics datasets do not report object storage class; a value other than
 `Standard` is preserved so the projection rejects it.
 
+Connected measurement failures expose only one fixed allowlisted stage ID:
+measurement clock, Cloudflare transport/HTTP/GraphQL/usage, Neon
+transport/HTTP/usage or unexpected measurement failure. The IDs contain no
+provider response, HTTP status, URL, account/project/bucket identity or secret.
+They locate a held read-only preflight without turning the failure into capacity
+evidence or permitting API/provider writes.
+
 Run `DNA Open Lab daily refresh provider preflight` from the exact current
 `main` head before any bounded Preview refresh. The workflow has read-only
 repository permission and receives `AUTHORIZED_CLERK_USER_ID`,
