@@ -18,6 +18,7 @@ function response(value: unknown, status = 200): Response {
 
 function cloudflareData(actionType = "PutObject") {
   return {
+    errors: null,
     data: {
       viewer: {
         accounts: [
@@ -256,6 +257,28 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     await expect(
       rejected.value.measure({ ownerId: "owner-1" }),
     ).rejects.toMatchObject({ failureId: "cloudflare_http_rejected" });
+
+    const graphqlRejected = source({
+      fetch: vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(
+          response({
+            data: null,
+            errors: [{ message: "private provider diagnostic" }],
+          }),
+        )
+        .mockResolvedValueOnce(response(neonData())),
+    });
+    if (graphqlRejected.value.status !== "ready") {
+      throw new Error("expected source");
+    }
+    const graphqlFailure = await graphqlRejected.value
+      .measure({ ownerId: "owner-1" })
+      .catch((error: unknown) => error);
+    expect(graphqlFailure).toMatchObject({
+      failureId: "cloudflare_graphql_rejected",
+    });
+    expect(String(graphqlFailure)).not.toContain("private provider diagnostic");
   });
 
   it("rejects malformed configuration and time before provider access", async () => {

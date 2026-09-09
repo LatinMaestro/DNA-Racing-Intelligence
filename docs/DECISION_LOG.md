@@ -2116,3 +2116,15 @@ After the private Pro League milestone, continue in this order:
 - The analytics token is available only to the read-only capacity workflow. It
   is not a Worker, Queue, R2 object or deployment credential and does not open
   DNA acquisition or provider writes.
+
+## 2026-09-09 — Cloudflare GraphQL accepts the documented null error envelope
+
+- Cloudflare documents a successful Analytics GraphQL response with an
+  `errors` field whose value is `null`; the connected preflight exposed that
+  the adapter had incorrectly rejected any present `errors` field.
+- Accept `errors: null` (or an omitted errors field) only when `data` is also
+  present. Continue to fail closed on a non-null errors value, missing data or
+  an invalid envelope without exposing provider error content.
+- This correction changes only read-only provider measurement. It does not
+  authorize DNA acquisition, R2/Neon writes, paid usage, deployment or game
+  action.
