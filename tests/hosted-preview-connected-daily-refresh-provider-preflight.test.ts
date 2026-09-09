@@ -40,7 +40,9 @@ describeConnected("hosted Preview daily-refresh provider preflight", () => {
         cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment({
           authorizedOwnerId: ownerId,
           cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
-          cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
+          cloudflareAnalyticsApiToken: requiredEnvironment(
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+          ),
           r2BucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
           r2StorageClass: requiredEnvironment("DNA_R2_STORAGE_CLASS"),
           neonApiKey: requiredEnvironment("NEON_API_KEY"),
