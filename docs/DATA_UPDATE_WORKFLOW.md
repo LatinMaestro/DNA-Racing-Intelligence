@@ -128,11 +128,14 @@ as a GraphQL rejection. Provider error contents remain private and are never
 logged or returned.
 
 Connected measurement failures expose only one fixed allowlisted stage ID:
-measurement clock, Cloudflare transport/HTTP/GraphQL/usage, Neon
-transport/HTTP/usage or unexpected measurement failure. The IDs contain no
-provider response, HTTP status, URL, account/project/bucket identity or secret.
-They locate a held read-only preflight without turning the failure into capacity
-evidence or permitting API/provider writes.
+measurement clock; Cloudflare transport, HTTP, GraphQL authorization, query,
+dataset-limit, rate-limit, availability, unclassified GraphQL or usage;
+Neon transport, HTTP or usage; or unexpected measurement failure. Cloudflare
+classification uses only the provider's documented message classes and emits
+only the fixed ID. The IDs contain no provider response, message, HTTP status,
+URL, account/project/bucket identity or secret. They locate a held read-only
+preflight without turning the failure into capacity evidence or permitting
+API/provider writes.
 
 Run `DNA Open Lab daily refresh provider preflight` from the exact current
 `main` head before any bounded Preview refresh. The workflow has read-only

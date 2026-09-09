@@ -258,27 +258,47 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       rejected.value.measure({ ownerId: "owner-1" }),
     ).rejects.toMatchObject({ failureId: "cloudflare_http_rejected" });
 
-    const graphqlRejected = source({
-      fetch: vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(
-          response({
-            data: null,
-            errors: [{ message: "private provider diagnostic" }],
-          }),
-        )
-        .mockResolvedValueOnce(response(neonData())),
-    });
-    if (graphqlRejected.value.status !== "ready") {
-      throw new Error("expected source");
+    const graphqlCases = [
+      [
+        "not authorized for that account",
+        "cloudflare_graphql_authorization_rejected",
+      ],
+      [
+        "unknown field privateProviderField",
+        "cloudflare_graphql_query_rejected",
+      ],
+      [
+        "query time range is too large for private plan",
+        "cloudflare_graphql_dataset_limit_rejected",
+      ],
+      [
+        "rate limiter budget depleted, try again later",
+        "cloudflare_graphql_rate_limited",
+      ],
+      [
+        "unable to execute query, please try again later",
+        "cloudflare_graphql_unavailable",
+      ],
+      ["private provider diagnostic", "cloudflare_graphql_rejected"],
+    ] as const;
+    for (const [privateMessage, failureId] of graphqlCases) {
+      const graphqlRejected = source({
+        fetch: vi
+          .fn<typeof globalThis.fetch>()
+          .mockResolvedValueOnce(
+            response({ data: null, errors: [{ message: privateMessage }] }),
+          )
+          .mockResolvedValueOnce(response(neonData())),
+      });
+      if (graphqlRejected.value.status !== "ready") {
+        throw new Error("expected source");
+      }
+      const graphqlFailure = await graphqlRejected.value
+        .measure({ ownerId: "owner-1" })
+        .catch((error: unknown) => error);
+      expect(graphqlFailure).toMatchObject({ failureId });
+      expect(String(graphqlFailure)).not.toContain(privateMessage);
     }
-    const graphqlFailure = await graphqlRejected.value
-      .measure({ ownerId: "owner-1" })
-      .catch((error: unknown) => error);
-    expect(graphqlFailure).toMatchObject({
-      failureId: "cloudflare_graphql_rejected",
-    });
-    expect(String(graphqlFailure)).not.toContain("private provider diagnostic");
   });
 
   it("rejects malformed configuration and time before provider access", async () => {

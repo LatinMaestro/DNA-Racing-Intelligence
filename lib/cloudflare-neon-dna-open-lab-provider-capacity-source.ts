@@ -102,6 +102,34 @@ export type CloudflareNeonDnaOpenLabProviderCapacityEnvironment = Readonly<{
 
 type ProviderRecord = Record<string, unknown>;
 
+const CLOUDFLARE_GRAPHQL_ERROR_CLASSES = Object.freeze([
+  Object.freeze({
+    failureId: "cloudflare_graphql_authorization_rejected" as const,
+    pattern:
+      /(?:unauthori[sz]ed|not authori[sz]ed|does not have access|doesn't have access)/u,
+  }),
+  Object.freeze({
+    failureId: "cloudflare_graphql_query_rejected" as const,
+    pattern:
+      /(?:error parsing args|scalar fields must have no selections|object field must have selections|unknown field|cannot query field|query contains error)/u,
+  }),
+  Object.freeze({
+    failureId: "cloudflare_graphql_dataset_limit_rejected" as const,
+    pattern:
+      /(?:cannot request data older than|number of fields can't be more than|limit must be positive|query time range is too large)/u,
+  }),
+  Object.freeze({
+    failureId: "cloudflare_graphql_rate_limited" as const,
+    pattern:
+      /(?:rate limiter budget depleted|queries too many nodes|query consumed excessive resources)/u,
+  }),
+  Object.freeze({
+    failureId: "cloudflare_graphql_unavailable" as const,
+    pattern:
+      /(?:unable to execute query|too many queries in progress|internal server error)/u,
+  }),
+]);
+
 function boundedText(value: string, field: string, maximum: number): string {
   const normalized = value.trim();
   if (
@@ -127,6 +155,25 @@ function providerRecord(value: unknown): ProviderRecord {
     throw new Error("Provider capacity response is invalid.");
   }
   return value as ProviderRecord;
+}
+
+function cloudflareGraphqlFailure(errors: unknown) {
+  if (!Array.isArray(errors) || errors.length < 1) {
+    return measurementFailure("cloudflare_graphql_rejected");
+  }
+  const messages = errors.map((error) => {
+    if (error === null || typeof error !== "object" || Array.isArray(error)) {
+      return "";
+    }
+    const message = (error as ProviderRecord).message;
+    return typeof message === "string" ? message.toLowerCase() : "";
+  });
+  for (const errorClass of CLOUDFLARE_GRAPHQL_ERROR_CLASSES) {
+    if (messages.some((message) => errorClass.pattern.test(message))) {
+      return measurementFailure(errorClass.failureId);
+    }
+  }
+  return measurementFailure("cloudflare_graphql_rejected");
 }
 
 function providerArray(value: unknown): unknown[] {
@@ -370,7 +417,7 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
             cloudflareEnvelope.errors !== null) ||
           cloudflareEnvelope.data === undefined
         ) {
-          throw measurementFailure("cloudflare_graphql_rejected");
+          throw cloudflareGraphqlFailure(cloudflareEnvelope.errors);
         }
         try {
           return parseR2Usage(cloudflareEnvelope.data);
