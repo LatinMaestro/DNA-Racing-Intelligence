@@ -291,4 +291,44 @@ describe("DNA Open Lab private daily refresh command", () => {
       classBOperations: 2_000,
     });
   });
+
+  it("retains a content-free finished-history pause reason", async () => {
+    const order: string[] = [];
+    const source = sources();
+    const repository = budget(order);
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now,
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => measurement()),
+        },
+        budgetRepository: repository.value,
+        sourcesFromMeasurement: () => ({
+          status: "ready",
+          sources: source.value,
+        }),
+        operatorFromSources: () => ({
+          status: "ready",
+          execute: vi.fn(async () => ({
+            kind: "finished_history" as const,
+            step: {
+              kind: "paused" as const,
+              reason: "operator_hold" as const,
+              retryAt: null,
+              stored: {} as never,
+            },
+          })),
+        }),
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "held",
+      stepCount: 1,
+      terminalKind: "finished_history:paused:operator_hold",
+      preserveLastGood: true,
+    });
+  });
 });

@@ -41,6 +41,24 @@ export type DnaOpenLabR2RaceEvidencePorts = Readonly<{
   identityConflictQuarantine: DnaFinishedRaceIdentityConflictQuarantine;
 }>;
 
+export class DnaOpenLabR2RaceEvidenceProviderError extends Error {
+  readonly kind:
+    | "privacy_unavailable"
+    | "privacy_drift"
+    | "write_unavailable"
+    | "inspection_unavailable";
+
+  constructor(kind: DnaOpenLabR2RaceEvidenceProviderError["kind"]) {
+    super(
+      kind === "privacy_drift"
+        ? "DNA Open Lab R2 race evidence: evidence bucket is not private."
+        : `DNA Open Lab R2 race evidence provider ${kind.replaceAll("_", " ")}.`,
+    );
+    this.name = "DnaOpenLabR2RaceEvidenceProviderError";
+    this.kind = kind;
+  }
+}
+
 function evidenceError(message: string): never {
   throw new Error(`DNA Open Lab R2 race evidence: ${message}`);
 }
@@ -164,7 +182,7 @@ function assertPrivateBucket(input: {
     input.r2DevDisabled !== true ||
     input.customDomainCount !== 0
   ) {
-    evidenceError("evidence bucket is not private");
+    throw new DnaOpenLabR2RaceEvidenceProviderError("privacy_drift");
   }
 }
 
@@ -187,10 +205,15 @@ async function verifyStoredObject(input: {
   bodySha256: string;
   expectedMetadata: Readonly<Record<string, string>>;
 }): Promise<void> {
-  const head = await input.storage.headObject({
-    bucketName: input.bucketName,
-    key: input.key,
-  });
+  let head;
+  try {
+    head = await input.storage.headObject({
+      bucketName: input.bucketName,
+      key: input.key,
+    });
+  } catch {
+    throw new DnaOpenLabR2RaceEvidenceProviderError("inspection_unavailable");
+  }
   if (head.status !== "ready") {
     evidenceError("evidence object is missing after publication");
   }
@@ -218,15 +241,19 @@ async function putVerifiedObject(input: {
   bodySha256: string;
   metadata: Readonly<Record<string, string>>;
 }): Promise<void> {
-  await input.storage.putObjectIfAbsent({
-    bucketName: input.bucketName,
-    key: input.key,
-    body: oneChunk(input.body),
-    contentType: JSON_CONTENT_TYPE,
-    byteLength: input.body.byteLength,
-    checksumSha256: input.bodySha256,
-    metadata: input.metadata,
-  });
+  try {
+    await input.storage.putObjectIfAbsent({
+      bucketName: input.bucketName,
+      key: input.key,
+      body: oneChunk(input.body),
+      contentType: JSON_CONTENT_TYPE,
+      byteLength: input.body.byteLength,
+      checksumSha256: input.bodySha256,
+      metadata: input.metadata,
+    });
+  } catch {
+    throw new DnaOpenLabR2RaceEvidenceProviderError("write_unavailable");
+  }
   await verifyStoredObject({
     storage: input.storage,
     bucketName: input.bucketName,
@@ -243,9 +270,17 @@ function createBucketPrivacyGuard(input: {
 }): () => Promise<void> {
   let verified: Promise<void> | null = null;
   return () => {
-    verified ??= input.storage
-      .readBucketPrivacy({ bucketName: input.bucketName })
-      .then((privacy) => assertPrivateBucket(privacy));
+    verified ??= (async () => {
+      let privacy;
+      try {
+        privacy = await input.storage.readBucketPrivacy({
+          bucketName: input.bucketName,
+        });
+      } catch {
+        throw new DnaOpenLabR2RaceEvidenceProviderError("privacy_unavailable");
+      }
+      assertPrivateBucket(privacy);
+    })();
     return verified;
   };
 }
@@ -538,10 +573,17 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
         sourceRaceId,
         rawEvidenceSha256: evidence.rawEvidenceSha256,
       });
-      const head = await configuration.storage.headObject({
-        bucketName,
-        key: objectKey,
-      });
+      let head;
+      try {
+        head = await configuration.storage.headObject({
+          bucketName,
+          key: objectKey,
+        });
+      } catch {
+        throw new DnaOpenLabR2RaceEvidenceProviderError(
+          "inspection_unavailable",
+        );
+      }
       if (head.status !== "ready") {
         evidenceError(`full Race document ${sourceRaceId} is not archived`);
       }
@@ -585,10 +627,17 @@ export function createDnaOpenLabR2FinishedRaceWindowPublisher(
       ) {
         evidenceError("finished-race quarantine receipt is invalid");
       }
-      const head = await configuration.storage.headObject({
-        bucketName,
-        key: receipt.objectKey,
-      });
+      let head;
+      try {
+        head = await configuration.storage.headObject({
+          bucketName,
+          key: receipt.objectKey,
+        });
+      } catch {
+        throw new DnaOpenLabR2RaceEvidenceProviderError(
+          "inspection_unavailable",
+        );
+      }
       if (
         head.status !== "ready" ||
         head.contentType !== JSON_CONTENT_TYPE ||

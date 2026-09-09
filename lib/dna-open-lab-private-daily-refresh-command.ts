@@ -155,10 +155,12 @@ function resultKind(value: unknown): string {
     );
   }
   if (kind === "finished_history") {
-    const step = (value as { step?: { kind?: unknown } }).step;
-    return typeof step?.kind === "string"
-      ? `finished_history:${step.kind}`
-      : kind;
+    const step = (value as { step?: { kind?: unknown; reason?: unknown } })
+      .step;
+    if (typeof step?.kind !== "string") return kind;
+    return step.kind === "paused" && typeof step.reason === "string"
+      ? `finished_history:paused:${step.reason}`
+      : `finished_history:${step.kind}`;
   }
   if (kind === "current_state") {
     const step = (value as { step?: { kind?: unknown } }).step;
@@ -178,7 +180,7 @@ function heldResult(kind: string): boolean {
     kind === "provider_capacity_held" ||
     kind === "budget_unavailable" ||
     kind === "budget_blocked" ||
-    kind === "finished_history:paused" ||
+    kind.startsWith("finished_history:paused") ||
     kind === "current_state:budget_blocked" ||
     kind === "current_state:paused"
   );
