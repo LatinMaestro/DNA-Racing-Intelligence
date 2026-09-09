@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createDnaOpenLabProviderCapacityPreflight,
+  DnaOpenLabProviderCapacityMeasurementError,
   type DnaOpenLabProviderCapacityMeasurement,
   type DnaOpenLabProviderCapacityMeasurementSource,
   type DnaOpenLabProviderCapacityPreflightInvocation,
@@ -192,6 +193,21 @@ describe("DNA Open Lab provider capacity preflight", () => {
     await expect(failed.value.inspect(invocation)).resolves.toMatchObject({
       status: "held",
       reason: "measurement_failed",
+      measurementFailureId: "unexpected_measurement_failure",
+    });
+
+    const classified = preflight({
+      measure: vi
+        .fn()
+        .mockRejectedValue(
+          new DnaOpenLabProviderCapacityMeasurementError("neon_http_rejected"),
+        ),
+    });
+    await expect(classified.value.inspect(invocation)).resolves.toMatchObject({
+      status: "held",
+      reason: "measurement_failed",
+      measurementFailureId: "neon_http_rejected",
+      blockerIds: [],
     });
 
     const stale = preflight({

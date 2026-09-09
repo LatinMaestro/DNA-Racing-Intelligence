@@ -83,9 +83,9 @@ describeConnected("hosted Preview daily-refresh provider preflight", () => {
       });
       if (receipt.status !== "ready") {
         throw new ProviderCapacityHeldError(
-          `provider capacity held: ${receipt.reason}:${receipt.blockerIds.join(
-            ",",
-          )}`,
+          `provider capacity held: ${receipt.reason}:${
+            receipt.measurementFailureId ?? "none"
+          }:${receipt.blockerIds.join(",")}`,
         );
       }
       const report = Object.freeze({
