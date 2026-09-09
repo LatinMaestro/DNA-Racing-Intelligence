@@ -106,27 +106,27 @@ const CLOUDFLARE_GRAPHQL_ERROR_CLASSES = Object.freeze([
   Object.freeze({
     failureId: "cloudflare_graphql_authorization_rejected" as const,
     pattern:
-      /(?:unauthori[sz]ed|not authori[sz]ed|does not have access|doesn't have access)/u,
-  }),
-  Object.freeze({
-    failureId: "cloudflare_graphql_query_rejected" as const,
-    pattern:
-      /(?:error parsing args|scalar fields must have no selections|object field must have selections|unknown field|cannot query field|query contains error)/u,
+      /(?:unauthori[sz]ed|not authori[sz]ed|does not have access|doesn't have access|auth(?:entication|ori[sz]ation)?|access (?:denied|forbidden)|forbidden|permission|credential|token)/u,
   }),
   Object.freeze({
     failureId: "cloudflare_graphql_dataset_limit_rejected" as const,
     pattern:
-      /(?:cannot request data older than|number of fields can't be more than|limit must be positive|query time range is too large)/u,
+      /(?:cannot request data older than|number of fields can't be more than|limit must be positive|query time range is too large|retention|time (?:range|window)|dataset limit)/u,
+  }),
+  Object.freeze({
+    failureId: "cloudflare_graphql_query_rejected" as const,
+    pattern:
+      /(?:error parsing args|scalar fields must have no selections|object field must have selections|unknown field|cannot query field|query contains error|syntax|validation|invalid (?:argument|field|type|variable)|argument|variable|selection)/u,
   }),
   Object.freeze({
     failureId: "cloudflare_graphql_rate_limited" as const,
     pattern:
-      /(?:rate limiter budget depleted|queries too many nodes|query consumed excessive resources)/u,
+      /(?:rate limiter budget depleted|queries too many nodes|query consumed excessive resources|too many (?:nodes|requests|queries)|throttl)/u,
   }),
   Object.freeze({
     failureId: "cloudflare_graphql_unavailable" as const,
     pattern:
-      /(?:unable to execute query|too many queries in progress|internal server error)/u,
+      /(?:unable to execute query|too many queries in progress|internal server error|unavailable|temporar|timeout|try again)/u,
   }),
 ]);
 
