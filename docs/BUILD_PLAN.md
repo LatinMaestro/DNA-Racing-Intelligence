@@ -601,8 +601,13 @@ readiness. Its provisional per-refresh envelope is 1,000,000 R2 bytes, 100
 Class A operations, 200 Class B operations, 250,000 Neon bytes and 500
 milli-CU-hours. A held result performs no write; a ready result is valid only
 for its five-minute receipt and does not authorize the persistent refresh. The
-remaining A3/A4 boundary is executing this read-only Preview preflight,
-followed by the bounded incremental commissioning run and recovery proof.
+bounded exact-main Preview command now composes that preflight, the durable
+billing window and at most 100 one-request operator steps behind a second
+explicit write arm. Its fixed historical upper bound makes later invocations
+resume the same cycle. Because those invocations can span short-lived runners,
+the command reconciles the full approved R2 reservation at completion instead
+of under-counting earlier-process operations. The remaining A4 boundary is the
+connected incremental commissioning run and recovery proof.
 
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an

@@ -221,10 +221,13 @@ one shared aggregate 30-rpm pool, including finished-history pagination and
 race-document hydration. The same private R2 adapter supplies history and
 current-state immutable evidence while a process-local meter counts every
 attempted Class A/Class B operation conservatively and counts retained bytes
-only for newly created objects. Provider capacity remains a separate fresh
-read-only preflight. Neither composition root is imported by a route, page,
-Worker or schedule. The remaining boundary is an exact-main, bounded Preview
-operator command with durable invocation authority and recovery evidence.
+only for newly created objects. The bounded Preview command may resume the same
+cycle on a later short-lived runner, so final budget reconciliation deliberately
+accounts the complete preflight-approved R2 reservation instead of the partial
+process-local reading. This restart-safe upper bound cannot manufacture budget
+headroom. Provider capacity remains a separate fresh read-only preflight. No
+route, page, Worker or schedule imports the command; only an explicitly armed,
+exact-main manual Preview workflow can advance it.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
