@@ -9,6 +9,7 @@ import {
 } from "@/lib/dna-open-lab-finished-race-incremental-cycle";
 import {
   classifyDnaFinishedRaceIncrementalFailure,
+  DnaFinishedRaceIncrementalBoundaryError,
   runDnaFinishedRaceIncrementalStep,
 } from "@/lib/dna-open-lab-finished-race-incremental-runner";
 import type {
@@ -196,6 +197,66 @@ describe("DNA finished-race incremental runner", () => {
       reason: "api_unavailable",
       retryAfterSeconds: null,
       unavailableDiagnostic: "unclassified_unavailable",
+    });
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaFinishedRaceIncrementalBoundaryError(
+          "finished_index_boundary_unavailable",
+        ),
+      ),
+    ).toEqual({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: "finished_index_boundary_unavailable",
+    });
+  });
+
+  it("labels unexpected failures at the finished-index boundary without leaking detail", async () => {
+    const test = fixture(async () => {
+      throw new Error("private finished-index detail");
+    });
+
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "api_unavailable",
+      unavailableDiagnostic: "finished_index_boundary_unavailable",
+    });
+  });
+
+  it("fails closed when the finished-index result is not an array", async () => {
+    const test = fixture(async () => response({ unexpected: true } as never));
+
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "invalid_response",
+    });
+  });
+
+  it("labels unexpected failures at the evidence-publication boundary", async () => {
+    const test = fixture(async () => response([]));
+
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        publisher: async () => {
+          throw new Error("private publisher detail");
+        },
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "api_unavailable",
+      unavailableDiagnostic: "evidence_publication_boundary_unavailable",
     });
   });
 

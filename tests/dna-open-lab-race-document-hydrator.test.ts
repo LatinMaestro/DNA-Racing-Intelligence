@@ -74,6 +74,35 @@ async function hydrate(input: {
 }
 
 describe("DNA Open Lab race document hydrator", () => {
+  it("fails closed when DNA returns a non-array document result", async () => {
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    await expect(
+      hydrateDnaRaceDocuments({
+        raceIds: [1],
+        client: {
+          raceDocs: async () =>
+            Object.freeze({
+              result: { unexpected: true } as never,
+              httpStatus: 200,
+              rateLimit: Object.freeze({
+                limit: 30,
+                remaining: 29,
+                resetSeconds: 40,
+                rateClass: "api_key",
+                retryAfterSeconds: null,
+              }),
+            }),
+        },
+        requestBudget,
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaRaceDocumentHydrationError",
+      kind: "invalid_response",
+    });
+  });
+
   it("hydrates 45 races in bounded 20, 20, 5 batches and restores requested order", async () => {
     const raceIds = Array.from({ length: 45 }, (_, index) => index + 1);
     const { result, calls, requestCount } = await hydrate({
