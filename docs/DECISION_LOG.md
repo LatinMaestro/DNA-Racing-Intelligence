@@ -2180,9 +2180,9 @@ After the private Pro League milestone, continue in this order:
   operation- or storage-specific fallbacks when Cloudflare's message is not in
   a documented family. No response body, provider identifier, credential,
   status value or raw usage enters logs or artifacts.
-- The four read-only provider requests are token verification, operations,
-  storage and Neon project consumption. They authorize no DNA API acquisition,
-  Neon/R2 write, paid use, deployment or game action.
+- The five read-only provider requests are token verification, R2 operations,
+  R2 storage, Neon project detail and Neon active branches. They authorize no
+  DNA API acquisition, Neon/R2 write, paid use, deployment or game action.
 - After exact-main run `34347464324` proved the token active and both GraphQL
   datasets accepted, classify normalization failure separately as operations
   or storage shape drift. Keep both IDs content-free and held before API or
@@ -2196,3 +2196,12 @@ After the private Pro League milestone, continue in this order:
   a billing class or broaden the token. Conservatively add its request count to
   both Class A and Class B guards so neither monthly allowance is understated;
   keep the action name private.
+- Exact-main run `34350906460` advanced through the complete Cloudflare
+  measurement and isolated the next boundary as Neon usage normalization. The
+  narrow Account Analytics Read token is sufficient; do not broaden its
+  permissions.
+- Follow Neon's current Free-plan usage authority: read compute seconds and the
+  billing window from project detail, then sum logical size across one complete
+  active-branch page for storage. Reject missing sizes, pagination, duplicate
+  branch identities or cross-project evidence privately rather than using the
+  paid consumption-history API or guessing usage.

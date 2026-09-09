@@ -108,16 +108,20 @@ changing any bound or identity produces a different digest. An unavailable,
 failed, malformed, future or stale measurement, or any projected capacity
 blocker, returns a held receipt before API, R2 or Neon refresh writes begin.
 
-The concrete server-only measurement source performs exactly four read-only
+The concrete server-only measurement source performs exactly five read-only
 provider requests: Cloudflare first verifies that the account-owned analytics
 token is active, then independently queries the documented per-bucket R2
 operations and latest storage datasets for the current UTC month, while Neon
-`GET /projects/{project_id}` supplies project-wide synthetic storage,
-CU-weighted compute usage and the provider's exact consumption-period bounds.
+`GET /projects/{project_id}` supplies CU-weighted compute usage and the
+provider's exact consumption-period bounds. On the Neon Free plan, one complete
+active-branch page supplies each branch's logical size; the adapter sums those
+values for project storage rather than requiring the paid consumption-history
+API.
 The adapter accepts only its configured owner, requires exactly one matching
 Cloudflare account and Neon project, rejects unknown or duplicate R2 operation
-classes, rounds compute seconds up to milli-CU-hours and returns only normalized
-totals and timestamps. Missing provider fields, project drift, invalid windows,
+classes and incomplete, duplicate or cross-project Neon branch evidence, rounds
+compute seconds up to milli-CU-hours and returns only normalized totals and
+timestamps. Missing provider fields, project drift, invalid windows,
 non-success responses or transport failures are sanitized and fail closed. The
 configured writer storage class remains an explicit input because Cloudflare's
 R2 analytics datasets do not report object storage class; a value other than
