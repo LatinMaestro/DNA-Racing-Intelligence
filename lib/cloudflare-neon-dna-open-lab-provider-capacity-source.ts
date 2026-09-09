@@ -366,7 +366,8 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
           throw measurementFailure("cloudflare_graphql_rejected");
         }
         if (
-          cloudflareEnvelope.errors !== undefined ||
+          (cloudflareEnvelope.errors !== undefined &&
+            cloudflareEnvelope.errors !== null) ||
           cloudflareEnvelope.data === undefined
         ) {
           throw measurementFailure("cloudflare_graphql_rejected");
