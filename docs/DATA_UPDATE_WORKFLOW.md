@@ -148,6 +148,13 @@ action-identity, unclassified-action and request-count shape IDs. These disclose
 only which documented pricing-taxonomy invariant failed, never the action name,
 counter, account, bucket or provider response.
 
+When the operations dataset contains a valid action name that Cloudflare's
+current pricing table does not classify, its request count is conservatively
+added to both the Class A and Class B usage guards. This deliberately
+double-counts that usage so neither monthly paid-operation allowance can be
+understated. It does not claim an undocumented billing class and does not expose
+the action name.
+
 Run `DNA Open Lab daily refresh provider preflight` from the exact current
 `main` head before any bounded Preview refresh. The workflow has read-only
 repository permission and receives `AUTHORIZED_CLERK_USER_ID`,

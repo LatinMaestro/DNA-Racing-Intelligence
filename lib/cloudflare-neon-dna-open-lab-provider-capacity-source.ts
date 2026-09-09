@@ -9,6 +9,7 @@ const CLOUDFLARE_GRAPHQL_URL = "https://api.cloudflare.com/client/v4/graphql";
 const NEON_API_ORIGIN = "https://console.neon.tech/api/v2";
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/u;
 const SAFE_PROVIDER_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._:-]{0,127}$/u;
+const R2_ACTION_TYPE_PATTERN = /^[A-Za-z][A-Za-z0-9]{0,127}$/u;
 
 const CLASS_A_ACTIONS = new Set([
   "ListBuckets",
@@ -288,7 +289,11 @@ function parseR2Operations(value: unknown): Readonly<{
     } catch {
       throw measurementFailure("cloudflare_operations_action_invalid");
     }
-    if (typeof actionType !== "string" || observedActions.has(actionType)) {
+    if (
+      typeof actionType !== "string" ||
+      !R2_ACTION_TYPE_PATTERN.test(actionType) ||
+      observedActions.has(actionType)
+    ) {
       throw measurementFailure("cloudflare_operations_action_invalid");
     }
     observedActions.add(actionType);
@@ -311,7 +316,16 @@ function parseR2Operations(value: unknown): Readonly<{
         throw measurementFailure("cloudflare_operations_requests_invalid");
       }
     } else if (!FREE_ACTIONS.has(actionType)) {
-      throw measurementFailure("cloudflare_operations_action_unclassified");
+      try {
+        // Cloudflare documents the analytics action name independently from
+        // its pricing table. Until an unlisted action is classified there,
+        // charge it against both paid-operation guards so neither allowance
+        // can be understated.
+        classAOperations = addSafeInteger(classAOperations, requests);
+        classBOperations = addSafeInteger(classBOperations, requests);
+      } catch {
+        throw measurementFailure("cloudflare_operations_requests_invalid");
+      }
     }
   }
 

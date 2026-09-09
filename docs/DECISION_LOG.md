@@ -2191,3 +2191,8 @@ After the private Pro League milestone, continue in this order:
   private invariant into account cardinality, groups, action identity,
   unclassified pricing action and request-count shape. Never publish the
   action name or count.
+- Exact-main run `34349802458` proved the remaining valid operations data
+  contains an action outside Cloudflare's current pricing table. Do not invent
+  a billing class or broaden the token. Conservatively add its request count to
+  both Class A and Class B guards so neither monthly allowance is understated;
+  keep the action name private.
