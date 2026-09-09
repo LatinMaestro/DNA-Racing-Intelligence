@@ -264,24 +264,54 @@ function parseR2Operations(value: unknown): Readonly<{
   classAOperations: number;
   classBOperations: number;
 }> {
-  const account = cloudflareAccount(value);
+  let account: ProviderRecord;
+  try {
+    account = cloudflareAccount(value);
+  } catch {
+    throw measurementFailure("cloudflare_operations_account_invalid");
+  }
+  let groups: unknown[];
+  try {
+    groups = providerArray(account.r2OperationsAdaptiveGroups);
+  } catch {
+    throw measurementFailure("cloudflare_operations_groups_invalid");
+  }
   let classAOperations = 0;
   let classBOperations = 0;
   const observedActions = new Set<string>();
-  for (const groupValue of providerArray(account.r2OperationsAdaptiveGroups)) {
-    const group = providerRecord(groupValue);
-    const actionType = providerRecord(group.dimensions).actionType;
+  for (const groupValue of groups) {
+    let group: ProviderRecord;
+    let actionType: unknown;
+    try {
+      group = providerRecord(groupValue);
+      actionType = providerRecord(group.dimensions).actionType;
+    } catch {
+      throw measurementFailure("cloudflare_operations_action_invalid");
+    }
     if (typeof actionType !== "string" || observedActions.has(actionType)) {
-      throw new Error("Provider capacity response is invalid.");
+      throw measurementFailure("cloudflare_operations_action_invalid");
     }
     observedActions.add(actionType);
-    const requests = safeInteger(providerRecord(group.sum).requests);
+    let requests: number;
+    try {
+      requests = safeInteger(providerRecord(group.sum).requests);
+    } catch {
+      throw measurementFailure("cloudflare_operations_requests_invalid");
+    }
     if (CLASS_A_ACTIONS.has(actionType)) {
-      classAOperations = addSafeInteger(classAOperations, requests);
+      try {
+        classAOperations = addSafeInteger(classAOperations, requests);
+      } catch {
+        throw measurementFailure("cloudflare_operations_requests_invalid");
+      }
     } else if (CLASS_B_ACTIONS.has(actionType)) {
-      classBOperations = addSafeInteger(classBOperations, requests);
+      try {
+        classBOperations = addSafeInteger(classBOperations, requests);
+      } catch {
+        throw measurementFailure("cloudflare_operations_requests_invalid");
+      }
     } else if (!FREE_ACTIONS.has(actionType)) {
-      throw new Error("Provider capacity response is invalid.");
+      throw measurementFailure("cloudflare_operations_action_unclassified");
     }
   }
 
@@ -516,7 +546,10 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
           }>;
           try {
             operations = parseR2Operations(operationsData);
-          } catch {
+          } catch (error) {
+            if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
+              throw error;
+            }
             throw measurementFailure("cloudflare_operations_usage_invalid");
           }
           return Object.freeze({

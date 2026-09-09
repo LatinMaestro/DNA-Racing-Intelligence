@@ -143,6 +143,11 @@ account/project/bucket identity or secret. They locate a held read-only
 preflight without turning the failure into capacity evidence or permitting
 API/provider writes.
 
+Accepted R2 operations data is further classified by fixed account, group,
+action-identity, unclassified-action and request-count shape IDs. These disclose
+only which documented pricing-taxonomy invariant failed, never the action name,
+counter, account, bucket or provider response.
+
 Run `DNA Open Lab daily refresh provider preflight` from the exact current
 `main` head before any bounded Preview refresh. The workflow has read-only
 repository permission and receives `AUTHORIZED_CLERK_USER_ID`,
