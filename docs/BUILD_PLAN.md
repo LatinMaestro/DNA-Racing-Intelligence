@@ -590,8 +590,10 @@ sync health. The recurring capacity projection evaluates independent R2 and
 Neon billing windows and fails closed on stale measurements, unsafe storage
 class, monthly budget exhaustion or an unsafe single-refresh envelope. Its
 concrete server-only provider source reads Cloudflare's per-bucket R2 GraphQL
-metrics and Neon's project consumption fields, exposes no provider identifiers
-or credentials, and rejects malformed, ambiguous or drifting responses. The
+metrics, Neon's Free-plan project compute/window fields and one complete active
+branch page whose logical sizes are summed for storage. It exposes no provider
+identifiers or credentials and rejects malformed, incomplete, duplicate,
+cross-project or drifting responses. The
 dispatch-only `DNA Open Lab daily refresh provider preflight` workflow is its
 first connected use. It is restricted to the exact current `main` head, has no
 database URL, R2 writer credential or DNA API key, and emits only bounded

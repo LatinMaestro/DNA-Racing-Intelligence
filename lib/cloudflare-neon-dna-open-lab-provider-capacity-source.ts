@@ -365,7 +365,8 @@ function parseActiveCloudflareToken(value: unknown): void {
 }
 
 function parseNeonUsage(
-  value: unknown,
+  projectValue: unknown,
+  branchesValue: unknown,
   expectedProjectId: string,
 ): Readonly<{
   billingWindowStartAt: string;
@@ -373,7 +374,7 @@ function parseNeonUsage(
   storageBytes: number;
   computeMilliCuHours: number;
 }> {
-  const envelope = providerRecord(value);
+  const envelope = providerRecord(projectValue);
   const project = providerRecord(envelope.project);
   if (project.id !== expectedProjectId) {
     throw new Error("Provider capacity response is invalid.");
@@ -385,11 +386,39 @@ function parseNeonUsage(
   if (Date.parse(billingWindowStartAt) >= Date.parse(billingWindowEndAt)) {
     throw new Error("Provider capacity response is invalid.");
   }
-  const storageBytes = safeInteger(project.synthetic_storage_size);
   const computeSeconds = safeInteger(project.compute_time_seconds);
   const computeMilliCuHours = Math.ceil((computeSeconds * 1_000) / 3_600);
   if (!Number.isSafeInteger(computeMilliCuHours)) {
     throw new Error("Provider capacity response is invalid.");
+  }
+  const branchesEnvelope = providerRecord(branchesValue);
+  const branches = providerArray(branchesEnvelope.branches);
+  if (branches.length < 1) {
+    throw new Error("Provider capacity response is invalid.");
+  }
+  if (branchesEnvelope.pagination !== undefined) {
+    const cursor = providerRecord(branchesEnvelope.pagination).cursor;
+    if (cursor !== undefined && cursor !== null && cursor !== "") {
+      throw new Error("Provider capacity response is invalid.");
+    }
+  }
+  let storageBytes = 0;
+  const observedBranchIds = new Set<string>();
+  for (const branchValue of branches) {
+    const branch = providerRecord(branchValue);
+    if (
+      typeof branch.id !== "string" ||
+      providerIdentifier(branch.id, "neonBranchId") !== branch.id ||
+      branch.project_id !== expectedProjectId ||
+      observedBranchIds.has(branch.id)
+    ) {
+      throw new Error("Provider capacity response is invalid.");
+    }
+    observedBranchIds.add(branch.id);
+    storageBytes = addSafeInteger(
+      storageBytes,
+      safeInteger(branch.logical_size),
+    );
   }
   return Object.freeze({
     billingWindowStartAt,
@@ -579,28 +608,42 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
       };
 
       const neonMeasurement = async () => {
-        let neonResponse: Response;
-        try {
-          neonResponse = await fetcher(
-            `${NEON_API_ORIGIN}/projects/${encodeURIComponent(neonProjectId)}`,
-            {
+        const queryNeon = async (path: string): Promise<unknown> => {
+          let neonResponse: Response;
+          try {
+            neonResponse = await fetcher(`${NEON_API_ORIGIN}${path}`, {
               method: "GET",
               headers: {
                 Accept: "application/json",
                 Authorization: `Bearer ${neonApiKey}`,
               },
               cache: "no-store",
-            },
-          );
-        } catch {
-          throw measurementFailure("neon_transport_failed");
-        }
-        if (!neonResponse.ok) {
-          throw measurementFailure("neon_http_rejected");
-        }
+            });
+          } catch {
+            throw measurementFailure("neon_transport_failed");
+          }
+          if (!neonResponse.ok) {
+            throw measurementFailure("neon_http_rejected");
+          }
+          try {
+            return await neonResponse.json();
+          } catch {
+            throw measurementFailure("neon_usage_invalid");
+          }
+        };
         try {
-          return parseNeonUsage(await neonResponse.json(), neonProjectId);
-        } catch {
+          const encodedProjectId = encodeURIComponent(neonProjectId);
+          const [project, branches] = await Promise.all([
+            queryNeon(`/projects/${encodedProjectId}`),
+            queryNeon(
+              `/projects/${encodedProjectId}/branches?limit=10000&include_deleted=false`,
+            ),
+          ]);
+          return parseNeonUsage(project, branches, neonProjectId);
+        } catch (error) {
+          if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
+            throw error;
+          }
           throw measurementFailure("neon_usage_invalid");
         }
       };

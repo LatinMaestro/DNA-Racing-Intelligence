@@ -63,6 +63,8 @@ function providerFetch(
     storageStatus?: number;
     neon?: unknown;
     neonStatus?: number;
+    neonBranches?: unknown;
+    neonBranchesStatus?: number;
   } = {},
 ) {
   return vi.fn<typeof globalThis.fetch>(async (request, init) => {
@@ -86,6 +88,15 @@ function providerFetch(
       }
       throw new Error("unexpected Cloudflare query");
     }
+    if (
+      url ===
+      "https://console.neon.tech/api/v2/projects/project-1/branches?limit=10000&include_deleted=false"
+    ) {
+      return response(
+        input.neonBranches ?? neonBranchesData(),
+        input.neonBranchesStatus ?? 200,
+      );
+    }
     if (url === "https://console.neon.tech/api/v2/projects/project-1") {
       return response(input.neon ?? neonData(), input.neonStatus ?? 200);
     }
@@ -99,11 +110,29 @@ function neonData(overrides: Record<string, unknown> = {}) {
       id: "project-1",
       consumption_period_start: "2026-09-05T00:00:00.000Z",
       consumption_period_end: "2026-10-05T00:00:00.000Z",
-      synthetic_storage_size: 28_082_176,
       compute_time_seconds: 18_001,
       owner_id: "private-provider-identifier",
       ...overrides,
     },
+  };
+}
+
+function neonBranchesData(overrides: Record<string, unknown> = {}) {
+  return {
+    branches: [
+      {
+        id: "branch-1",
+        project_id: "project-1",
+        logical_size: 20_000_000,
+      },
+      {
+        id: "branch-2",
+        project_id: "project-1",
+        logical_size: 8_082_176,
+      },
+    ],
+    pagination: { cursor: null },
+    ...overrides,
   };
 }
 
@@ -156,7 +185,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         computeMilliCuHours: 5_001,
       },
     });
-    expect(fixture.fetcher).toHaveBeenCalledTimes(4);
+    expect(fixture.fetcher).toHaveBeenCalledTimes(5);
     const calls = vi.mocked(fixture.fetcher).mock.calls;
     const tokenCall = calls.find(([url]) =>
       String(url).endsWith(`/accounts/${accountId}/tokens/verify`),
@@ -183,6 +212,13 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       calls.some(
         ([url]) =>
           String(url) === "https://console.neon.tech/api/v2/projects/project-1",
+      ),
+    ).toBe(true);
+    expect(
+      calls.some(
+        ([url]) =>
+          String(url) ===
+          "https://console.neon.tech/api/v2/projects/project-1/branches?limit=10000&include_deleted=false",
       ),
     ).toBe(true);
     expect(JSON.stringify(result)).not.toMatch(
@@ -337,9 +373,9 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       "neon_usage_invalid",
     ],
     [
-      "missing project storage",
+      "missing project compute",
       cloudflareData(),
-      neonData({ synthetic_storage_size: undefined }),
+      neonData({ compute_time_seconds: undefined }),
       "neon_usage_invalid",
     ],
     [
@@ -364,6 +400,48 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     ).rejects.toMatchObject({
       message: "Provider capacity measurement failed.",
       failureId,
+    });
+  });
+
+  it.each([
+    ["missing branch storage", neonBranchesData({ branches: [{}] })],
+    [
+      "cross-project branch",
+      neonBranchesData({
+        branches: [
+          { id: "branch-1", project_id: "project-2", logical_size: 1 },
+        ],
+      }),
+    ],
+    [
+      "incomplete branch page",
+      neonBranchesData({ pagination: { cursor: "private-next-page" } }),
+    ],
+    [
+      "duplicate branch",
+      neonBranchesData({
+        branches: [
+          { id: "branch-1", project_id: "project-1", logical_size: 1 },
+          { id: "branch-1", project_id: "project-1", logical_size: 2 },
+        ],
+      }),
+    ],
+    [
+      "invalid branch identity",
+      neonBranchesData({
+        branches: [
+          { id: "Private Branch", project_id: "project-1", logical_size: 1 },
+        ],
+      }),
+    ],
+  ])("fails closed on %s", async (_label, neonBranches) => {
+    const fixture = source({ fetch: providerFetch({ neonBranches }) });
+    if (fixture.value.status !== "ready") throw new Error("expected source");
+    await expect(
+      fixture.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({
+      message: "Provider capacity measurement failed.",
+      failureId: "neon_usage_invalid",
     });
   });
 
@@ -599,6 +677,6 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       evidenceSource: "provider_api",
       r2StorageClass: "Standard",
     });
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(5);
   });
 });
