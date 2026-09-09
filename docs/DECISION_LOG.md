@@ -2128,3 +2128,15 @@ After the private Pro League milestone, continue in this order:
 - This correction changes only read-only provider measurement. It does not
   authorize DNA acquisition, R2/Neon writes, paid usage, deployment or game
   action.
+
+## 2026-09-09 — Cloudflare GraphQL failures have privacy-safe classes
+
+- A non-null Cloudflare GraphQL error remains held, but one generic failure ID
+  cannot distinguish an owner token-scope problem from a repository query or a
+  transient provider condition.
+- Map only Cloudflare's documented error-message classes to fixed
+  authorization, query, dataset-limit, rate-limit and availability IDs. Keep a
+  generic GraphQL rejection for unknown or malformed errors.
+- Never emit, log or retain the provider message, response, HTTP status,
+  account/bucket identity or credential. Classification remains read-only and
+  does not permit API acquisition or provider writes.
