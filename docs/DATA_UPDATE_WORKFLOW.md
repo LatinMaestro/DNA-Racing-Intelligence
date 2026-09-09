@@ -216,9 +216,15 @@ repositories behind one explicitly write-armed owner-scoped invocation. It
 publishes a complete finished-history receipt set before current-state work,
 maps history interruption state into the shared last-good health boundary and
 refuses elevated or independent API buckets above the conservative 30-rpm
-policy. It is not imported by a route, page, Worker or schedule. The remaining
-boundary is switching website reads only through the complete combined serving
-pointer, followed by bounded Preview commissioning.
+policy. Its hosted source composition keeps all three distinct API keys behind
+one shared aggregate 30-rpm pool, including finished-history pagination and
+race-document hydration. The same private R2 adapter supplies history and
+current-state immutable evidence while a process-local meter counts every
+attempted Class A/Class B operation conservatively and counts retained bytes
+only for newly created objects. Provider capacity remains a separate fresh
+read-only preflight. Neither composition root is imported by a route, page,
+Worker or schedule. The remaining boundary is an exact-main, bounded Preview
+operator command with durable invocation authority and recovery evidence.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

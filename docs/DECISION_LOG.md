@@ -2217,3 +2217,8 @@ After the private Pro League milestone, continue in this order:
   generic freshness guard. Evaluate freshness against a post-measurement clock
   sample, while rejecting clock rollback, so a newly captured measurement is
   not treated as future relative to the preflight's earlier start instant.
+- Exact-main run `34356562779` proved the corrected provider-capacity boundary
+  ready with 22 safe R2 and Neon refreshes remaining and no writes or paid-use
+  authority. Compose all recurring API requests behind one aggregate 30-rpm
+  pool and meter the shared immutable R2 evidence adapter before adding the
+  bounded Preview operator command.
