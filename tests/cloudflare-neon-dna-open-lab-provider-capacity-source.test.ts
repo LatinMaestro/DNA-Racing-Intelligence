@@ -366,17 +366,18 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       neonData(),
       "cloudflare_storage_usage_invalid",
     ],
+    ["project envelope", cloudflareData(), {}, "neon_project_shape_invalid"],
     [
       "project drift",
       cloudflareData(),
       neonData({ id: "project-2" }),
-      "neon_usage_invalid",
+      "neon_project_identity_invalid",
     ],
     [
       "missing project compute",
       cloudflareData(),
       neonData({ compute_time_seconds: undefined }),
-      "neon_usage_invalid",
+      "neon_project_compute_invalid",
     ],
     [
       "invalid Neon window",
@@ -384,7 +385,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       neonData({
         consumption_period_end: "2026-09-05T00:00:00.000Z",
       }),
-      "neon_usage_invalid",
+      "neon_project_window_invalid",
     ],
   ])("fails closed on %s", async (_label, cloudflare, neon, failureId) => {
     const fixture = source({
@@ -404,7 +405,19 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
   });
 
   it.each([
-    ["missing branch storage", neonBranchesData({ branches: [{}] })],
+    ["branch envelope", {}, "neon_branches_shape_invalid"],
+    [
+      "empty branch set",
+      neonBranchesData({ branches: [] }),
+      "neon_branches_empty",
+    ],
+    [
+      "missing branch storage",
+      neonBranchesData({
+        branches: [{ id: "branch-1", project_id: "project-1" }],
+      }),
+      "neon_branch_storage_invalid",
+    ],
     [
       "cross-project branch",
       neonBranchesData({
@@ -412,10 +425,12 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
           { id: "branch-1", project_id: "project-2", logical_size: 1 },
         ],
       }),
+      "neon_branch_project_invalid",
     ],
     [
       "incomplete branch page",
       neonBranchesData({ pagination: { cursor: "private-next-page" } }),
+      "neon_branches_page_incomplete",
     ],
     [
       "duplicate branch",
@@ -425,6 +440,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
           { id: "branch-1", project_id: "project-1", logical_size: 2 },
         ],
       }),
+      "neon_branch_identity_invalid",
     ],
     [
       "invalid branch identity",
@@ -433,15 +449,16 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
           { id: "Private Branch", project_id: "project-1", logical_size: 1 },
         ],
       }),
+      "neon_branch_identity_invalid",
     ],
-  ])("fails closed on %s", async (_label, neonBranches) => {
+  ])("fails closed on %s", async (_label, neonBranches, failureId) => {
     const fixture = source({ fetch: providerFetch({ neonBranches }) });
     if (fixture.value.status !== "ready") throw new Error("expected source");
     await expect(
       fixture.value.measure({ ownerId: "owner-1" }),
     ).rejects.toMatchObject({
       message: "Provider capacity measurement failed.",
-      failureId: "neon_usage_invalid",
+      failureId,
     });
   });
 

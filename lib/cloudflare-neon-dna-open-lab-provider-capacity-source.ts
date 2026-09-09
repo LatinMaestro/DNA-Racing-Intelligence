@@ -374,51 +374,96 @@ function parseNeonUsage(
   storageBytes: number;
   computeMilliCuHours: number;
 }> {
-  const envelope = providerRecord(projectValue);
-  const project = providerRecord(envelope.project);
+  let project: ProviderRecord;
+  try {
+    const envelope = providerRecord(projectValue);
+    project = providerRecord(envelope.project);
+  } catch {
+    throw measurementFailure("neon_project_shape_invalid");
+  }
   if (project.id !== expectedProjectId) {
-    throw new Error("Provider capacity response is invalid.");
+    throw measurementFailure("neon_project_identity_invalid");
   }
-  const billingWindowStartAt = canonicalInstant(
-    project.consumption_period_start,
-  );
-  const billingWindowEndAt = canonicalInstant(project.consumption_period_end);
+  let billingWindowStartAt: string;
+  let billingWindowEndAt: string;
+  try {
+    billingWindowStartAt = canonicalInstant(project.consumption_period_start);
+    billingWindowEndAt = canonicalInstant(project.consumption_period_end);
+  } catch {
+    throw measurementFailure("neon_project_window_invalid");
+  }
   if (Date.parse(billingWindowStartAt) >= Date.parse(billingWindowEndAt)) {
-    throw new Error("Provider capacity response is invalid.");
+    throw measurementFailure("neon_project_window_invalid");
   }
-  const computeSeconds = safeInteger(project.compute_time_seconds);
+  let computeSeconds: number;
+  try {
+    computeSeconds = safeInteger(project.compute_time_seconds);
+  } catch {
+    throw measurementFailure("neon_project_compute_invalid");
+  }
   const computeMilliCuHours = Math.ceil((computeSeconds * 1_000) / 3_600);
   if (!Number.isSafeInteger(computeMilliCuHours)) {
-    throw new Error("Provider capacity response is invalid.");
+    throw measurementFailure("neon_project_compute_invalid");
   }
-  const branchesEnvelope = providerRecord(branchesValue);
-  const branches = providerArray(branchesEnvelope.branches);
+  let branchesEnvelope: ProviderRecord;
+  let branches: unknown[];
+  try {
+    branchesEnvelope = providerRecord(branchesValue);
+    branches = providerArray(branchesEnvelope.branches);
+  } catch {
+    throw measurementFailure("neon_branches_shape_invalid");
+  }
   if (branches.length < 1) {
-    throw new Error("Provider capacity response is invalid.");
+    throw measurementFailure("neon_branches_empty");
   }
   if (branchesEnvelope.pagination !== undefined) {
-    const cursor = providerRecord(branchesEnvelope.pagination).cursor;
+    let cursor: unknown;
+    try {
+      cursor = providerRecord(branchesEnvelope.pagination).cursor;
+    } catch {
+      throw measurementFailure("neon_branches_shape_invalid");
+    }
     if (cursor !== undefined && cursor !== null && cursor !== "") {
-      throw new Error("Provider capacity response is invalid.");
+      throw measurementFailure("neon_branches_page_incomplete");
     }
   }
   let storageBytes = 0;
   const observedBranchIds = new Set<string>();
   for (const branchValue of branches) {
-    const branch = providerRecord(branchValue);
-    if (
-      typeof branch.id !== "string" ||
-      providerIdentifier(branch.id, "neonBranchId") !== branch.id ||
-      branch.project_id !== expectedProjectId ||
-      observedBranchIds.has(branch.id)
-    ) {
-      throw new Error("Provider capacity response is invalid.");
+    let branch: ProviderRecord;
+    try {
+      branch = providerRecord(branchValue);
+    } catch {
+      throw measurementFailure("neon_branches_shape_invalid");
+    }
+    if (typeof branch.id !== "string") {
+      throw measurementFailure("neon_branch_identity_invalid");
+    }
+    try {
+      if (providerIdentifier(branch.id, "neonBranchId") !== branch.id) {
+        throw measurementFailure("neon_branch_identity_invalid");
+      }
+    } catch (error) {
+      if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
+        throw error;
+      }
+      throw measurementFailure("neon_branch_identity_invalid");
+    }
+    if (observedBranchIds.has(branch.id)) {
+      throw measurementFailure("neon_branch_identity_invalid");
+    }
+    if (branch.project_id !== expectedProjectId) {
+      throw measurementFailure("neon_branch_project_invalid");
     }
     observedBranchIds.add(branch.id);
-    storageBytes = addSafeInteger(
-      storageBytes,
-      safeInteger(branch.logical_size),
-    );
+    try {
+      storageBytes = addSafeInteger(
+        storageBytes,
+        safeInteger(branch.logical_size),
+      );
+    } catch {
+      throw measurementFailure("neon_branch_storage_invalid");
+    }
   }
   return Object.freeze({
     billingWindowStartAt,

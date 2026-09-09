@@ -2205,3 +2205,7 @@ After the private Pro League milestone, continue in this order:
   active-branch page for storage. Reject missing sizes, pagination, duplicate
   branch identities or cross-project evidence privately rather than using the
   paid consumption-history API or guessing usage.
+- Exact-main run `34353232696` reached both Neon reads but retained the generic
+  private normalization hold. Split project shape, identity, billing window and
+  compute from branch-list shape, pagination, identity, project and logical-size
+  invariants using fixed IDs only. Never log response content or identifiers.

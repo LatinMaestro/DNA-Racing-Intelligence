@@ -39,6 +39,16 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
   "neon_transport_failed",
   "neon_http_rejected",
   "neon_usage_invalid",
+  "neon_project_shape_invalid",
+  "neon_project_identity_invalid",
+  "neon_project_window_invalid",
+  "neon_project_compute_invalid",
+  "neon_branches_shape_invalid",
+  "neon_branches_empty",
+  "neon_branches_page_incomplete",
+  "neon_branch_identity_invalid",
+  "neon_branch_project_invalid",
+  "neon_branch_storage_invalid",
   "unexpected_measurement_failure",
 ] as const;
 
