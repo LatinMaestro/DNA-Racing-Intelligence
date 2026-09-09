@@ -39,7 +39,9 @@ export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "request_budget_boundary_unavailable"
   | "identity_quarantine_boundary_unavailable"
   | "evidence_publication_boundary_unavailable"
+  | "backfill_orchestration_boundary_unavailable"
   | "checkpoint_progress_boundary_unavailable"
+  | "cycle_completion_boundary_unavailable"
   | "unclassified_unavailable";
 
 export class DnaFinishedRaceIncrementalBoundaryError extends Error {
@@ -407,36 +409,44 @@ export async function runDnaFinishedRaceIncrementalStep(input: {
           input.requestBudget.execute(request),
         ),
     });
-    const step = await runNextDnaFinishedRaceBackfillStep({
-      startTime: stored.cycle.lowerBoundAt,
-      endTime: stored.cycle.upperBoundAt,
-      client,
-      requestBudget,
-      checkpointRepository: adapter.repository,
-      publisher: (publication) =>
-        executeBoundary("evidence_publication_boundary_unavailable", () =>
-          input.publisher(publication),
-        ),
-      identityConflictQuarantine: (conflict) =>
-        executeBoundary("identity_quarantine_boundary_unavailable", () =>
-          input.identityConflictQuarantine(conflict),
-        ),
-      observedAt: attemptedAt,
-      minimumWindowMilliseconds,
-      identityOmissionAuthority: null,
-    });
+    const step = await executeBoundary(
+      "backfill_orchestration_boundary_unavailable",
+      () =>
+        runNextDnaFinishedRaceBackfillStep({
+          startTime: stored.cycle.lowerBoundAt,
+          endTime: stored.cycle.upperBoundAt,
+          client,
+          requestBudget,
+          checkpointRepository: adapter.repository,
+          publisher: (publication) =>
+            executeBoundary("evidence_publication_boundary_unavailable", () =>
+              input.publisher(publication),
+            ),
+          identityConflictQuarantine: (conflict) =>
+            executeBoundary("identity_quarantine_boundary_unavailable", () =>
+              input.identityConflictQuarantine(conflict),
+            ),
+          observedAt: attemptedAt,
+          minimumWindowMilliseconds,
+          identityOmissionAuthority: null,
+        }),
+    );
     stored = adapter.current();
     if (step.kind !== "complete") {
       return Object.freeze({ kind: "collecting", step, stored });
     }
-    stored = await input.repository.save({
-      expectedRevision: stored.revision,
-      cycle: completeDnaFinishedRaceIncrementalCycle({
-        cycle: stored.cycle,
-        checkpoint: step.stored.checkpoint,
-        completedAt: attemptedAt,
-      }),
-    });
+    stored = await executeBoundary(
+      "cycle_completion_boundary_unavailable",
+      () =>
+        input.repository.save({
+          expectedRevision: stored.revision,
+          cycle: completeDnaFinishedRaceIncrementalCycle({
+            cycle: stored.cycle,
+            checkpoint: step.stored.checkpoint,
+            completedAt: attemptedAt,
+          }),
+        }),
+    );
     return Object.freeze({ kind: "collection_complete", stored });
   } catch (error) {
     const directive = (

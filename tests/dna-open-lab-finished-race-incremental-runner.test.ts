@@ -260,6 +260,56 @@ describe("DNA finished-race incremental runner", () => {
     });
   });
 
+  it("labels an unexpected failure inside backfill orchestration", async () => {
+    const races = new Proxy([] as DnaRaceDocument[], {
+      get(target, property, receiver) {
+        if (property === "length") {
+          throw new Error("private orchestration detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const test = fixture(async () => response(races));
+
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "api_unavailable",
+      unavailableDiagnostic: "backfill_orchestration_boundary_unavailable",
+    });
+  });
+
+  it("labels an unexpected cycle-completion persistence failure", async () => {
+    const test = fixture(async () => response([]));
+    const save = test.repository.save.bind(test.repository);
+    test.repository.save = vi.fn(async (input) => {
+      if (input.cycle.status === "complete") {
+        throw new Error("private cycle-completion detail");
+      }
+      return save(input);
+    });
+
+    await runDnaFinishedRaceIncrementalStep({
+      ...test.input,
+      repository: test.repository,
+    });
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        attemptedAt: "2026-09-03T00:13:00.000Z",
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "api_unavailable",
+      unavailableDiagnostic: "cycle_completion_boundary_unavailable",
+    });
+  });
+
   it("collects one immutable window, then completes without publishing a generation", async () => {
     const test = fixture(async () => response([{ rid: 17 }]));
 
