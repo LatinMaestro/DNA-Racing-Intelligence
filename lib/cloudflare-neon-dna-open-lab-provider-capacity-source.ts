@@ -10,6 +10,8 @@ const NEON_API_ORIGIN = "https://console.neon.tech/api/v2";
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/u;
 const SAFE_PROVIDER_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._:-]{0,127}$/u;
 const R2_ACTION_TYPE_PATTERN = /^[A-Za-z][A-Za-z0-9]{0,127}$/u;
+const RFC3339_INSTANT_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/u;
 
 const CLASS_A_ACTIONS = new Set([
   "ListBuckets",
@@ -216,19 +218,15 @@ function addSafeInteger(left: number, right: number): number {
   return value;
 }
 
-function canonicalInstant(value: unknown): string {
-  if (typeof value !== "string") {
+function normalizedRfc3339Instant(value: unknown): string {
+  if (typeof value !== "string" || !RFC3339_INSTANT_PATTERN.test(value)) {
     throw new Error("Provider capacity response is invalid.");
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error("Provider capacity response is invalid.");
   }
-  const canonical = parsed.toISOString();
-  if (canonical !== value) {
-    throw new Error("Provider capacity response is invalid.");
-  }
-  return canonical;
+  return parsed.toISOString();
 }
 
 function startOfUtcMonth(date: Date): string {
@@ -387,8 +385,12 @@ function parseNeonUsage(
   let billingWindowStartAt: string;
   let billingWindowEndAt: string;
   try {
-    billingWindowStartAt = canonicalInstant(project.consumption_period_start);
-    billingWindowEndAt = canonicalInstant(project.consumption_period_end);
+    billingWindowStartAt = normalizedRfc3339Instant(
+      project.consumption_period_start,
+    );
+    billingWindowEndAt = normalizedRfc3339Instant(
+      project.consumption_period_end,
+    );
   } catch {
     throw measurementFailure("neon_project_window_invalid");
   }

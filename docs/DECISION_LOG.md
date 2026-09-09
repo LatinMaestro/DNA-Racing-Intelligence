@@ -2209,3 +2209,7 @@ After the private Pro League milestone, continue in this order:
   private normalization hold. Split project shape, identity, billing window and
   compute from branch-list shape, pagination, identity, project and logical-size
   invariants using fixed IDs only. Never log response content or identifiers.
+- Exact-main run `34354252665` isolated the remaining mismatch to the Neon
+  project billing-window representation. Accept strict RFC 3339 date-time
+  variants from that documented API field, normalize to canonical UTC, and
+  retain ordering, measurement-age and billing-window fail-closed checks.
