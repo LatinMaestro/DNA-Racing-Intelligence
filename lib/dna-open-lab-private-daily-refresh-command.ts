@@ -155,12 +155,22 @@ function resultKind(value: unknown): string {
     );
   }
   if (kind === "finished_history") {
-    const step = (value as { step?: { kind?: unknown; reason?: unknown } })
-      .step;
+    const step = (
+      value as {
+        step?: {
+          kind?: unknown;
+          reason?: unknown;
+          unavailableDiagnostic?: unknown;
+        };
+      }
+    ).step;
     if (typeof step?.kind !== "string") return kind;
-    return step.kind === "paused" && typeof step.reason === "string"
-      ? `finished_history:paused:${step.reason}`
-      : `finished_history:${step.kind}`;
+    if (step.kind !== "paused" || typeof step.reason !== "string") {
+      return `finished_history:${step.kind}`;
+    }
+    return typeof step.unavailableDiagnostic === "string"
+      ? `finished_history:paused:${step.reason}:${step.unavailableDiagnostic}`
+      : `finished_history:paused:${step.reason}`;
   }
   if (kind === "current_state") {
     const step = (value as { step?: { kind?: unknown } }).step;

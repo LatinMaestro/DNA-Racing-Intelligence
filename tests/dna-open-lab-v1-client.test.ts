@@ -177,6 +177,21 @@ describe("DNA Open Lab v1 client", () => {
     });
   });
 
+  it("replaces private transport failures with a content-free category", async () => {
+    const transport = vi.fn(async () => {
+      throw new Error("private network detail");
+    }) as unknown as DnaOpenLabTransport;
+    const client = createDnaOpenLabV1Client({ apiKey: API_KEY, transport });
+
+    await expect(client.racesActive()).rejects.toMatchObject({
+      name: "DnaOpenLabApiError",
+      kind: "transport_error",
+      httpStatus: null,
+      rateLimit: null,
+      message: "DNA Open Lab transport is unavailable",
+    });
+  });
+
   it("validates key shape before any transport call", () => {
     const transport = vi.fn(async () =>
       jsonResponse({ status: "success", result: {} }),

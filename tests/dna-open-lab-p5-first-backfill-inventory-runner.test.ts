@@ -279,6 +279,9 @@ describe("DNA Open Lab P5 first-backfill inventory runner", () => {
     expect(DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES).toContain(
       "finished_race_invalid_record",
     );
+    expect(DNA_OPEN_LAB_P5_FIRST_BACKFILL_FAILURE_CODES).toContain(
+      "api_transport_error",
+    );
   });
 
   it("routes all six families through one conservative pool and emits aggregate-only evidence", async () => {
