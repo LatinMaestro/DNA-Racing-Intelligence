@@ -108,8 +108,9 @@ changing any bound or identity produces a different digest. An unavailable,
 failed, malformed, future or stale measurement, or any projected capacity
 blocker, returns a held receipt before API, R2 or Neon refresh writes begin.
 
-The concrete server-only measurement source performs exactly two read-only
-provider requests: Cloudflare GraphQL queries the documented per-bucket R2
+The concrete server-only measurement source performs exactly four read-only
+provider requests: Cloudflare first verifies that the account-owned analytics
+token is active, then independently queries the documented per-bucket R2
 operations and latest storage datasets for the current UTC month, while Neon
 `GET /projects/{project_id}` supplies project-wide synthetic storage,
 CU-weighted compute usage and the provider's exact consumption-period bounds.
@@ -130,8 +131,9 @@ GraphQL rejection. Provider error contents remain private and are never logged
 or returned.
 
 Connected measurement failures expose only one fixed allowlisted stage ID:
-measurement clock; Cloudflare transport, HTTP, GraphQL authorization, query,
-dataset-limit, rate-limit, availability, unclassified GraphQL or usage;
+measurement clock; Cloudflare transport, account-token verification, HTTP,
+GraphQL authorization, query, dataset-limit, rate-limit, availability,
+operations/storage-specific unclassified GraphQL or usage;
 Neon transport, HTTP or usage; or unexpected measurement failure. Cloudflare
 classification first recognizes the provider's documented messages, then uses
 only broad semantic terms from those same documented authorization, query,

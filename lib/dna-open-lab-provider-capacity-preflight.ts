@@ -17,6 +17,8 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS =
 export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
   "measurement_clock_invalid",
   "cloudflare_transport_failed",
+  "cloudflare_token_http_rejected",
+  "cloudflare_token_invalid",
   "cloudflare_http_rejected",
   "cloudflare_graphql_authorization_rejected",
   "cloudflare_graphql_query_rejected",
@@ -24,6 +26,8 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
   "cloudflare_graphql_rate_limited",
   "cloudflare_graphql_unavailable",
   "cloudflare_graphql_rejected",
+  "cloudflare_graphql_operations_rejected",
+  "cloudflare_graphql_storage_rejected",
   "cloudflare_usage_invalid",
   "neon_transport_failed",
   "neon_http_rejected",

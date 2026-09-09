@@ -1,5 +1,6 @@
 import type {
   DnaOpenLabProviderCapacityMeasurement,
+  DnaOpenLabProviderCapacityMeasurementFailureId,
   DnaOpenLabProviderCapacityMeasurementSource,
 } from "./dna-open-lab-provider-capacity-preflight";
 import { DnaOpenLabProviderCapacityMeasurementError } from "./dna-open-lab-provider-capacity-preflight";
@@ -44,11 +45,11 @@ const FREE_ACTIONS = new Set([
   "AbortMultipartUpload",
 ]);
 
-const R2_CAPACITY_QUERY = `query DnaOpenLabDailyRefreshCapacity(
+const R2_OPERATIONS_QUERY = `query DnaOpenLabDailyRefreshOperations(
   $accountTag: string!
-  $startDate: Time!
-  $endDate: Time!
-  $bucketName: string!
+  $startDate: Time
+  $endDate: Time
+  $bucketName: string
 ) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
@@ -63,6 +64,18 @@ const R2_CAPACITY_QUERY = `query DnaOpenLabDailyRefreshCapacity(
         sum { requests }
         dimensions { actionType }
       }
+    }
+  }
+}`;
+
+const R2_STORAGE_QUERY = `query DnaOpenLabDailyRefreshStorage(
+  $accountTag: string!
+  $startDate: Time
+  $endDate: Time
+  $bucketName: string
+) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
       r2StorageAdaptiveGroups(
         limit: 1
         filter: {
@@ -73,6 +86,7 @@ const R2_CAPACITY_QUERY = `query DnaOpenLabDailyRefreshCapacity(
         orderBy: [datetime_DESC]
       ) {
         max { payloadSize metadataSize }
+        dimensions { datetime }
       }
     }
   }
@@ -157,9 +171,12 @@ function providerRecord(value: unknown): ProviderRecord {
   return value as ProviderRecord;
 }
 
-function cloudflareGraphqlFailure(errors: unknown) {
+function cloudflareGraphqlFailure(
+  errors: unknown,
+  fallbackFailureId: DnaOpenLabProviderCapacityMeasurementFailureId = "cloudflare_graphql_rejected",
+) {
   if (!Array.isArray(errors) || errors.length < 1) {
-    return measurementFailure("cloudflare_graphql_rejected");
+    return measurementFailure(fallbackFailureId);
   }
   const messages = errors.map((error) => {
     if (error === null || typeof error !== "object" || Array.isArray(error)) {
@@ -173,7 +190,7 @@ function cloudflareGraphqlFailure(errors: unknown) {
       return measurementFailure(errorClass.failureId);
     }
   }
-  return measurementFailure("cloudflare_graphql_rejected");
+  return measurementFailure(fallbackFailureId);
 }
 
 function providerArray(value: unknown): unknown[] {
@@ -233,31 +250,21 @@ function measurementFailure(
   return new DnaOpenLabProviderCapacityMeasurementError(failureId);
 }
 
-function parseR2Usage(value: unknown): Readonly<{
-  storageBytes: number;
-  classAOperations: number;
-  classBOperations: number;
-}> {
+function cloudflareAccount(value: unknown): ProviderRecord {
   const data = providerRecord(value);
   const viewer = providerRecord(data.viewer);
   const accounts = providerArray(viewer.accounts);
   if (accounts.length !== 1) {
     throw new Error("Provider capacity response is invalid.");
   }
-  const account = providerRecord(accounts[0]);
-  const storageGroups = providerArray(account.r2StorageAdaptiveGroups);
-  if (storageGroups.length > 1) {
-    throw new Error("Provider capacity response is invalid.");
-  }
-  const storage =
-    storageGroups.length === 0
-      ? { payloadSize: 0, metadataSize: 0 }
-      : providerRecord(providerRecord(storageGroups[0]).max);
-  const storageBytes = addSafeInteger(
-    safeInteger(storage.payloadSize),
-    safeInteger(storage.metadataSize),
-  );
+  return providerRecord(accounts[0]);
+}
 
+function parseR2Operations(value: unknown): Readonly<{
+  classAOperations: number;
+  classBOperations: number;
+}> {
+  const account = cloudflareAccount(value);
   let classAOperations = 0;
   let classBOperations = 0;
   const observedActions = new Set<string>();
@@ -279,10 +286,38 @@ function parseR2Usage(value: unknown): Readonly<{
   }
 
   return Object.freeze({
-    storageBytes,
     classAOperations,
     classBOperations,
   });
+}
+
+function parseR2Storage(value: unknown): number {
+  const account = cloudflareAccount(value);
+  const storageGroups = providerArray(account.r2StorageAdaptiveGroups);
+  if (storageGroups.length > 1) {
+    throw new Error("Provider capacity response is invalid.");
+  }
+  const storage =
+    storageGroups.length === 0
+      ? { payloadSize: 0, metadataSize: 0 }
+      : providerRecord(providerRecord(storageGroups[0]).max);
+  return addSafeInteger(
+    safeInteger(storage.payloadSize),
+    safeInteger(storage.metadataSize),
+  );
+}
+
+function parseActiveCloudflareToken(value: unknown): void {
+  const envelope = providerRecord(value);
+  const errors = providerArray(envelope.errors);
+  const result = providerRecord(envelope.result);
+  if (
+    envelope.success !== true ||
+    errors.length !== 0 ||
+    result.status !== "active"
+  ) {
+    throw new Error("Provider capacity response is invalid.");
+  }
 }
 
 function parseNeonUsage(
@@ -380,50 +415,103 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
       const r2BillingWindowEndAt = startOfNextUtcMonth(measured);
 
       const cloudflareMeasurement = async () => {
-        let cloudflareResponse: Response;
+        let tokenResponse: Response;
         try {
-          cloudflareResponse = await fetcher(CLOUDFLARE_GRAPHQL_URL, {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${cloudflareAnalyticsApiToken}`,
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-            body: JSON.stringify({
-              query: R2_CAPACITY_QUERY,
-              variables: {
-                accountTag: cloudflareAccountId,
-                startDate: r2BillingWindowStartAt,
-                endDate: measuredAt,
-                bucketName: r2BucketName,
+          tokenResponse = await fetcher(
+            `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/tokens/verify`,
+            {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${cloudflareAnalyticsApiToken}`,
               },
-            }),
-          });
+              cache: "no-store",
+            },
+          );
         } catch {
           throw measurementFailure("cloudflare_transport_failed");
         }
-        if (!cloudflareResponse.ok) {
-          throw measurementFailure("cloudflare_http_rejected");
-        }
-        let cloudflareEnvelope: ProviderRecord;
-        try {
-          cloudflareEnvelope = providerRecord(await cloudflareResponse.json());
-        } catch {
-          throw measurementFailure("cloudflare_graphql_rejected");
-        }
-        if (
-          (cloudflareEnvelope.errors !== undefined &&
-            cloudflareEnvelope.errors !== null &&
-            (!Array.isArray(cloudflareEnvelope.errors) ||
-              cloudflareEnvelope.errors.length > 0)) ||
-          cloudflareEnvelope.data === undefined
-        ) {
-          throw cloudflareGraphqlFailure(cloudflareEnvelope.errors);
+        if (!tokenResponse.ok) {
+          throw measurementFailure("cloudflare_token_http_rejected");
         }
         try {
-          return parseR2Usage(cloudflareEnvelope.data);
+          parseActiveCloudflareToken(await tokenResponse.json());
         } catch {
+          throw measurementFailure("cloudflare_token_invalid");
+        }
+
+        const queryDataset = async (
+          query: string,
+          fallbackFailureId: DnaOpenLabProviderCapacityMeasurementFailureId,
+        ): Promise<ProviderRecord> => {
+          let cloudflareResponse: Response;
+          try {
+            cloudflareResponse = await fetcher(CLOUDFLARE_GRAPHQL_URL, {
+              method: "POST",
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${cloudflareAnalyticsApiToken}`,
+                "Content-Type": "application/json",
+              },
+              cache: "no-store",
+              body: JSON.stringify({
+                query,
+                variables: {
+                  accountTag: cloudflareAccountId,
+                  startDate: r2BillingWindowStartAt,
+                  endDate: measuredAt,
+                  bucketName: r2BucketName,
+                },
+              }),
+            });
+          } catch {
+            throw measurementFailure("cloudflare_transport_failed");
+          }
+          if (!cloudflareResponse.ok) {
+            throw measurementFailure("cloudflare_http_rejected");
+          }
+          let cloudflareEnvelope: ProviderRecord;
+          try {
+            cloudflareEnvelope = providerRecord(
+              await cloudflareResponse.json(),
+            );
+          } catch {
+            throw measurementFailure(fallbackFailureId);
+          }
+          if (
+            (cloudflareEnvelope.errors !== undefined &&
+              cloudflareEnvelope.errors !== null &&
+              (!Array.isArray(cloudflareEnvelope.errors) ||
+                cloudflareEnvelope.errors.length > 0)) ||
+            cloudflareEnvelope.data === undefined
+          ) {
+            throw cloudflareGraphqlFailure(
+              cloudflareEnvelope.errors,
+              fallbackFailureId,
+            );
+          }
+          return providerRecord(cloudflareEnvelope.data);
+        };
+
+        try {
+          const [operationsData, storageData] = await Promise.all([
+            queryDataset(
+              R2_OPERATIONS_QUERY,
+              "cloudflare_graphql_operations_rejected",
+            ),
+            queryDataset(
+              R2_STORAGE_QUERY,
+              "cloudflare_graphql_storage_rejected",
+            ),
+          ]);
+          return Object.freeze({
+            storageBytes: parseR2Storage(storageData),
+            ...parseR2Operations(operationsData),
+          });
+        } catch (error) {
+          if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
+            throw error;
+          }
           throw measurementFailure("cloudflare_usage_invalid");
         }
       };

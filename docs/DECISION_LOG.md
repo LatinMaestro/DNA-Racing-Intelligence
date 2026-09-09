@@ -2164,3 +2164,22 @@ After the private Pro League milestone, continue in this order:
 - Emit only the fixed family ID. Never retain or expose the provider message,
   response, account/bucket identity, credential or HTTP detail, and keep every
   such result held before DNA API work or provider writes.
+
+## 2026-09-09 — Cloudflare preflight separates token and R2 datasets
+
+- The repository secret was replaced and an exact-main retry still produced a
+  generic GraphQL rejection, so repeating the owner credential setup is not a
+  sufficient diagnostic.
+- Verify the account-owned token through Cloudflare's documented read-only
+  account-token endpoint before querying analytics. Accept only a successful,
+  active token envelope; discard the token identifier and provider messages.
+- Query `r2OperationsAdaptiveGroups` and `r2StorageAdaptiveGroups` independently
+  using Cloudflare's documented shapes. One dataset cannot hide the status of
+  the other inside a combined GraphQL failure.
+- Preserve the existing semantic GraphQL classes, with fixed content-free
+  operation- or storage-specific fallbacks when Cloudflare's message is not in
+  a documented family. No response body, provider identifier, credential,
+  status value or raw usage enters logs or artifacts.
+- The four read-only provider requests are token verification, operations,
+  storage and Neon project consumption. They authorize no DNA API acquisition,
+  Neon/R2 write, paid use, deployment or game action.
