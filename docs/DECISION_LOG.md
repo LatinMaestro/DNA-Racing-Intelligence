@@ -2213,3 +2213,7 @@ After the private Pro League milestone, continue in this order:
   project billing-window representation. Accept strict RFC 3339 date-time
   variants from that documented API field, normalize to canonical UTC, and
   retain ordering, measurement-age and billing-window fail-closed checks.
+- Exact-main run `34355259501` completed all five provider reads and reached the
+  generic freshness guard. Evaluate freshness against a post-measurement clock
+  sample, while rejecting clock rollback, so a newly captured measurement is
+  not treated as future relative to the preflight's earlier start instant.

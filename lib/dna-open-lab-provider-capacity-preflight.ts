@@ -319,11 +319,10 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
       );
       const refreshCycleId = sha256(invocation.refreshCycleId, "refresh cycle");
       const budgetWindowId = sha256(invocation.budgetWindowId, "budget window");
-      const checked = now();
-      if (Number.isNaN(checked.getTime())) {
+      const started = now();
+      if (Number.isNaN(started.getTime())) {
         return held("measurement_invalid");
       }
-      const checkedAt = checked.toISOString();
       if (input.measurementSource.status !== "ready") {
         return held("measurement_not_configured");
       }
@@ -343,6 +342,14 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
       ) {
         return held("measurement_invalid");
       }
+      const checked = now();
+      if (
+        Number.isNaN(checked.getTime()) ||
+        checked.getTime() < started.getTime()
+      ) {
+        return held("measurement_invalid");
+      }
+      const checkedAt = checked.toISOString();
       if (
         !validMeasurementTime(
           measurement.measuredAt,

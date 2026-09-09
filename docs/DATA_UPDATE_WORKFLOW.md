@@ -118,6 +118,9 @@ active-branch page supplies each branch's logical size; the adapter sums those
 values for project storage rather than requiring the paid consumption-history
 API. Neon billing-window values accept strict RFC 3339 instants and are
 normalized to canonical UTC before window and freshness validation.
+Freshness is checked after the read-only provider measurement completes so a
+newly sampled timestamp is not incorrectly compared with the earlier preflight
+start instant.
 The adapter accepts only its configured owner, requires exactly one matching
 Cloudflare account and Neon project, rejects unknown or duplicate R2 operation
 classes and incomplete, duplicate or cross-project Neon branch evidence, rounds
