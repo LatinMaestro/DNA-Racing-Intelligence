@@ -22,6 +22,8 @@ import {
   DNA_FINISHED_RACE_INCREMENTAL_MAX_ATTEMPTS,
 } from "./dna-open-lab-finished-race-incremental-cycle";
 import { classifyDnaCurrentStateAcquisitionFailure } from "./dna-open-lab-current-state-acquisition-cadence";
+import { DnaRaceDocumentHydrationError } from "./dna-open-lab-race-document-hydrator";
+import { DnaOpenLabR2RaceEvidenceProviderError } from "./dna-open-lab-r2-race-evidence";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 
@@ -69,9 +71,18 @@ function timestamp(value: string, field: string): string {
 export function classifyDnaFinishedRaceIncrementalFailure(
   error: unknown,
 ): DnaFinishedRaceIncrementalFailureDirective {
-  if (error instanceof DnaFinishedRaceBackfillError) {
+  if (
+    error instanceof DnaFinishedRaceBackfillError ||
+    error instanceof DnaRaceDocumentHydrationError
+  ) {
     return Object.freeze({
       reason: "invalid_response",
+      retryAfterSeconds: null,
+    });
+  }
+  if (error instanceof DnaOpenLabR2RaceEvidenceProviderError) {
+    return Object.freeze({
+      reason: "operator_hold",
       retryAfterSeconds: null,
     });
   }

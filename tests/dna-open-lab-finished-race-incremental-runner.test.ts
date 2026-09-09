@@ -7,12 +7,17 @@ import {
   type DnaFinishedRaceIncrementalCycleRepository,
   type StoredDnaFinishedRaceIncrementalCycle,
 } from "@/lib/dna-open-lab-finished-race-incremental-cycle";
-import { runDnaFinishedRaceIncrementalStep } from "@/lib/dna-open-lab-finished-race-incremental-runner";
+import {
+  classifyDnaFinishedRaceIncrementalFailure,
+  runDnaFinishedRaceIncrementalStep,
+} from "@/lib/dna-open-lab-finished-race-incremental-runner";
 import type {
   DnaFinishedRaceWindowPublication,
   DnaFinishedRaceWindowPublicationReceipt,
 } from "@/lib/dna-open-lab-finished-race-backfill";
 import { createDnaOpenLabRequestBudget } from "@/lib/dna-open-lab-request-budget";
+import { DnaRaceDocumentHydrationError } from "@/lib/dna-open-lab-race-document-hydrator";
+import { DnaOpenLabR2RaceEvidenceProviderError } from "@/lib/dna-open-lab-r2-race-evidence";
 import {
   DnaOpenLabApiError,
   type DnaOpenLabResponse,
@@ -143,6 +148,22 @@ function fixture(
 }
 
 describe("DNA finished-race incremental runner", () => {
+  it("distinguishes invalid DNA documents from unavailable R2 evidence", () => {
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaRaceDocumentHydrationError({
+          kind: "missing_document",
+          message: "private detail",
+        }),
+      ),
+    ).toEqual({ reason: "invalid_response", retryAfterSeconds: null });
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaOpenLabR2RaceEvidenceProviderError("privacy_unavailable"),
+      ),
+    ).toEqual({ reason: "operator_hold", retryAfterSeconds: null });
+  });
+
   it("collects one immutable window, then completes without publishing a generation", async () => {
     const test = fixture(async () => response([{ rid: 17 }]));
 
