@@ -248,7 +248,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       "unknown R2 action",
       cloudflareData("UnknownAction"),
       neonData(),
-      "cloudflare_usage_invalid",
+      "cloudflare_operations_usage_invalid",
     ],
     [
       "duplicate R2 action",
@@ -274,7 +274,29 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         },
       },
       neonData(),
-      "cloudflare_usage_invalid",
+      "cloudflare_operations_usage_invalid",
+    ],
+    [
+      "invalid R2 storage",
+      {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                r2OperationsAdaptiveGroups: [],
+                r2StorageAdaptiveGroups: [
+                  {
+                    max: { payloadSize: -1, metadataSize: 0 },
+                    dimensions: { datetime: "2026-09-09T00:00:00.000Z" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      neonData(),
+      "cloudflare_storage_usage_invalid",
     ],
     [
       "project drift",

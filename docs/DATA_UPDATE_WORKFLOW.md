@@ -133,7 +133,7 @@ or returned.
 Connected measurement failures expose only one fixed allowlisted stage ID:
 measurement clock; Cloudflare transport, account-token verification, HTTP,
 GraphQL authorization, query, dataset-limit, rate-limit, availability,
-operations/storage-specific unclassified GraphQL or usage;
+operations/storage-specific unclassified GraphQL or normalized-usage shape;
 Neon transport, HTTP or usage; or unexpected measurement failure. Cloudflare
 classification first recognizes the provider's documented messages, then uses
 only broad semantic terms from those same documented authorization, query,

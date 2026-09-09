@@ -2183,3 +2183,7 @@ After the private Pro League milestone, continue in this order:
 - The four read-only provider requests are token verification, operations,
   storage and Neon project consumption. They authorize no DNA API acquisition,
   Neon/R2 write, paid use, deployment or game action.
+- After exact-main run `34347464324` proved the token active and both GraphQL
+  datasets accepted, classify normalization failure separately as operations
+  or storage shape drift. Keep both IDs content-free and held before API or
+  provider writes.

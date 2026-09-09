@@ -504,9 +504,24 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
               "cloudflare_graphql_storage_rejected",
             ),
           ]);
+          let storageBytes: number;
+          try {
+            storageBytes = parseR2Storage(storageData);
+          } catch {
+            throw measurementFailure("cloudflare_storage_usage_invalid");
+          }
+          let operations: Readonly<{
+            classAOperations: number;
+            classBOperations: number;
+          }>;
+          try {
+            operations = parseR2Operations(operationsData);
+          } catch {
+            throw measurementFailure("cloudflare_operations_usage_invalid");
+          }
           return Object.freeze({
-            storageBytes: parseR2Storage(storageData),
-            ...parseR2Operations(operationsData),
+            storageBytes,
+            ...operations,
           });
         } catch (error) {
           if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {

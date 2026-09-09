@@ -28,6 +28,8 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
   "cloudflare_graphql_rejected",
   "cloudflare_graphql_operations_rejected",
   "cloudflare_graphql_storage_rejected",
+  "cloudflare_operations_usage_invalid",
+  "cloudflare_storage_usage_invalid",
   "cloudflare_usage_invalid",
   "neon_transport_failed",
   "neon_http_rejected",
