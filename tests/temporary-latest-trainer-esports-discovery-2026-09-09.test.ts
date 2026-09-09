@@ -105,7 +105,7 @@ function classify(race: AnyRecord): string[] {
 }
 
 describeConnected("temporary latest Trainer and Esports discovery evidence", () => {
-  it("pulls the fresh owner race window plus current full-vault telemetry without persistence", async () => {
+  it("pulls the complete fresh owner race window plus current full-vault telemetry without persistence", async () => {
     const fetchedAt = new Date().toISOString();
     const end = fetchedAt;
     const apiKey = required("DNA_OPEN_LAB_API_KEY_1");
@@ -178,25 +178,18 @@ describeConnected("temporary latest Trainer and Esports discovery evidence", () 
 
     const startMs = Date.parse(START);
     const endMs = Date.parse(end);
-    const candidateRids = new Map<string, DnaRaceIdentifier>();
-    for (const race of byRid.values()) {
-      if (raceOwnedHids(race as AnyRecord, ownedHids).length > 0) candidateRids.set(raceKey(race.rid), race.rid);
-    }
+    const sourceRids = new Map<string, DnaRaceIdentifier>();
+    for (const race of byRid.values()) sourceRids.set(raceKey(race.rid), race.rid);
     for (const race of recent) {
-      if (withinWindow(race as AnyRecord, startMs, endMs)) candidateRids.set(raceKey(race.rid), race.rid);
+      if (withinWindow(race as AnyRecord, startMs, endMs)) sourceRids.set(raceKey(race.rid), race.rid);
     }
 
+    // racesFinished is intentionally lightweight and may omit entrant HIDs.
+    // Hydrate every finished race in this bounded two-day window, then filter locally to the owner's HIDs.
     const hydrated: DnaRaceDocument[] = [];
-    const fills: AnyRecord[] = [];
-    for (const batch of chunks([...candidateRids.values()], 20)) {
+    for (const batch of chunks([...sourceRids.values()], 20)) {
       const docs = await paced(() => client.raceDocs(batch));
       hydrated.push(...docs.result);
-      try {
-        const fillResponse = await paced(() => client.raceFills(batch));
-        fills.push(...(fillResponse.result as AnyRecord[]));
-      } catch {
-        // Race documents are sufficient; some historical fills may be unavailable.
-      }
     }
 
     const ownedHydrated = hydrated.filter((race) => raceOwnedHids(race as AnyRecord, ownedHids).length > 0);
@@ -205,6 +198,16 @@ describeConnected("temporary latest Trainer and Esports discovery evidence", () 
       owned_hids: raceOwnedHids(race as AnyRecord, ownedHids),
       discovery_tags: classify(race as AnyRecord),
     }));
+
+    const fills: AnyRecord[] = [];
+    for (const batch of chunks(ownedHydrated.map((race) => race.rid), 20)) {
+      try {
+        const fillResponse = await paced(() => client.raceFills(batch));
+        fills.push(...(fillResponse.result as AnyRecord[]));
+      } catch {
+        // Race documents remain authoritative for the discovery fields used here.
+      }
+    }
 
     const telemetry: unknown[] = [];
     const racingStats: AnyRecord[] = [];
@@ -229,7 +232,7 @@ describeConnected("temporary latest Trainer and Esports discovery evidence", () 
         globalFinishedUnique: byRid.size,
         acceptedFinishedWindows: acceptedWindows.length,
         splitCount,
-        candidateRids: candidateRids.size,
+        hydratedSourceRids: sourceRids.size,
         ownedHydrated: ownedHydrated.length,
         trainerTagged: discoveryRaceDocs.filter((race) => race.discovery_tags.includes("trainer")).length,
         trialTagged: discoveryRaceDocs.filter((race) => race.discovery_tags.includes("trial")).length,
@@ -252,6 +255,7 @@ describeConnected("temporary latest Trainer and Esports discovery evidence", () 
     );
 
     expect(result.counts.ownedCores).toBeGreaterThan(0);
+    expect(result.counts.ownedHydrated).toBeGreaterThan(0);
     expect(result.telemetry.length).toBeGreaterThan(0);
     expect(result.racingStats.length).toBeGreaterThan(0);
   }, 12 * 60 * 1_000);
