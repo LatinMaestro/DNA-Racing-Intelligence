@@ -122,10 +122,12 @@ configured writer storage class remains an explicit input because Cloudflare's
 R2 analytics datasets do not report object storage class; a value other than
 `Standard` is preserved so the projection rejects it.
 
-Cloudflare's GraphQL success envelope may include `errors: null`. Treat only a
-non-null `errors` value, a missing `data` value or an invalid JSON/object shape
-as a GraphQL rejection. Provider error contents remain private and are never
-logged or returned.
+Cloudflare's GraphQL success envelope may include `errors: null`; the connected
+API may also return an empty errors array. Accept either form only when `data`
+is present and passes the complete strict usage parser. Treat a non-empty or
+malformed `errors` value, missing `data` or invalid JSON/object shape as a
+GraphQL rejection. Provider error contents remain private and are never logged
+or returned.
 
 Connected measurement failures expose only one fixed allowlisted stage ID:
 measurement clock; Cloudflare transport, HTTP, GraphQL authorization, query,

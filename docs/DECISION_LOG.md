@@ -2140,3 +2140,15 @@ After the private Pro League milestone, continue in this order:
 - Never emit, log or retain the provider message, response, HTTP status,
   account/bucket identity or credential. Classification remains read-only and
   does not permit API acquisition or provider writes.
+
+## 2026-09-09 — Empty Cloudflare GraphQL errors require valid data
+
+- The classified exact-main preflight retained the generic GraphQL rejection,
+  consistent with an empty/nonstandard error container or an undocumented
+  provider message rather than a documented authorization, query, limit,
+  rate-limit or availability message.
+- Accept an empty `errors` array as equivalent to no reported GraphQL error only
+  when `data` is present and the strict account, operation and storage parser
+  accepts the complete payload. Missing or invalid data still fails closed.
+- This compatibility boundary exposes no provider content and authorizes no DNA
+  call, provider write, paid use, deployment or game action.
