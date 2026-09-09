@@ -248,7 +248,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       "unknown R2 action",
       cloudflareData("UnknownAction"),
       neonData(),
-      "cloudflare_operations_usage_invalid",
+      "cloudflare_operations_action_unclassified",
     ],
     [
       "duplicate R2 action",
@@ -274,7 +274,29 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         },
       },
       neonData(),
-      "cloudflare_operations_usage_invalid",
+      "cloudflare_operations_action_invalid",
+    ],
+    [
+      "invalid R2 request count",
+      {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                r2OperationsAdaptiveGroups: [
+                  {
+                    sum: { requests: -1 },
+                    dimensions: { actionType: "PutObject" },
+                  },
+                ],
+                r2StorageAdaptiveGroups: [],
+              },
+            ],
+          },
+        },
+      },
+      neonData(),
+      "cloudflare_operations_requests_invalid",
     ],
     [
       "invalid R2 storage",
@@ -325,6 +347,47 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         storage: cloudflare,
         neon,
       }),
+    });
+    if (fixture.value.status !== "ready") throw new Error("expected source");
+    await expect(
+      fixture.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({
+      message: "Provider capacity measurement failed.",
+      failureId,
+    });
+  });
+
+  it.each([
+    [
+      "operations account cardinality",
+      { data: { viewer: { accounts: [] } } },
+      "cloudflare_operations_account_invalid",
+    ],
+    [
+      "operations groups",
+      { data: { viewer: { accounts: [{}] } } },
+      "cloudflare_operations_groups_invalid",
+    ],
+    [
+      "operations action identity",
+      {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                r2OperationsAdaptiveGroups: [
+                  { sum: { requests: 1 }, dimensions: {} },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      "cloudflare_operations_action_invalid",
+    ],
+  ] as const)("classifies %s drift", async (_label, operations, failureId) => {
+    const fixture = source({
+      fetch: providerFetch({ operations, storage: cloudflareData() }),
     });
     if (fixture.value.status !== "ready") throw new Error("expected source");
     await expect(

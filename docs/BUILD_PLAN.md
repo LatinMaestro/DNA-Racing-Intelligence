@@ -610,6 +610,9 @@ evidence about the other. The boundary remains read-only and exact-main.
 Accepted dataset responses are normalized independently as well, so a private,
 fixed failure ID identifies operations versus storage shape drift without
 exposing a provider field or value.
+Operations shape drift is further divided into account cardinality, groups,
+action identity, action outside Cloudflare's documented pricing taxonomy and
+request-count shape. No provider value crosses the diagnostic boundary.
 
 After owner-approved persistent API sync:
 

@@ -2187,3 +2187,7 @@ After the private Pro League milestone, continue in this order:
   datasets accepted, classify normalization failure separately as operations
   or storage shape drift. Keep both IDs content-free and held before API or
   provider writes.
+- Exact-main run `34348280457` isolated operations normalization. Split that
+  private invariant into account cardinality, groups, action identity,
+  unclassified pricing action and request-count shape. Never publish the
+  action name or count.
