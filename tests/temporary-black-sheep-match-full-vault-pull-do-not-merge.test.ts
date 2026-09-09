@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
 import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-telemetry-client";
 
-/** TEMPORARY / DO NOT MERGE / DO NOT CHERRY-PICK. Read-only matchup research only. */
+/** TEMPORARY / DO NOT MERGE / DO NOT CHERRY-PICK. Read-only matchup research only. Fresh rerun requested 2026-09-09. */
 const enabled=process.env.TEMP_BLACK_SHEEP_MATCH_PULL==='1';
 const d=enabled?describe:describe.skip;
 const LATIN='0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d';
