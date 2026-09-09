@@ -243,13 +243,23 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     });
   });
 
+  it("charges an undocumented R2 action against both paid-operation guards", async () => {
+    const fixture = source({
+      fetch: providerFetch({ operations: cloudflareData("UnknownAction") }),
+    });
+    if (fixture.value.status !== "ready") throw new Error("expected source");
+
+    await expect(
+      fixture.value.measure({ ownerId: "owner-1" }),
+    ).resolves.toMatchObject({
+      currentR2Usage: {
+        classAOperations: 35_000,
+        classBOperations: 140_000,
+      },
+    });
+  });
+
   it.each([
-    [
-      "unknown R2 action",
-      cloudflareData("UnknownAction"),
-      neonData(),
-      "cloudflare_operations_action_unclassified",
-    ],
     [
       "duplicate R2 action",
       {
@@ -377,6 +387,23 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
               {
                 r2OperationsAdaptiveGroups: [
                   { sum: { requests: 1 }, dimensions: {} },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      "cloudflare_operations_action_invalid",
+    ],
+    [
+      "empty operations action identity",
+      {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                r2OperationsAdaptiveGroups: [
+                  { sum: { requests: 1 }, dimensions: { actionType: "" } },
                 ],
               },
             ],

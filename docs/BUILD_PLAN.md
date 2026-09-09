@@ -613,6 +613,9 @@ exposing a provider field or value.
 Operations shape drift is further divided into account cardinality, groups,
 action identity, action outside Cloudflare's documented pricing taxonomy and
 request-count shape. No provider value crosses the diagnostic boundary.
+Valid but pricing-unclassified actions are counted against both paid-operation
+guards until Cloudflare documents their class. This conservative double count
+cannot increase refresh authority and never publishes the action name.
 
 After owner-approved persistent API sync:
 
