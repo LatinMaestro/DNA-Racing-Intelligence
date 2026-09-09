@@ -132,8 +132,10 @@ evidence or permitting API/provider writes.
 Run `DNA Open Lab daily refresh provider preflight` from the exact current
 `main` head before any bounded Preview refresh. The workflow has read-only
 repository permission and receives `AUTHORIZED_CLERK_USER_ID`,
-`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `NEON_API_KEY` and
-`NEON_PROJECT_ID` only from GitHub secrets. It does not receive a database URL,
+`CLOUDFLARE_ACCOUNT_ID`, a dedicated
+`CLOUDFLARE_ANALYTICS_API_TOKEN` with only Account Analytics Read authority,
+`NEON_API_KEY` and `NEON_PROJECT_ID` only from GitHub secrets. It does not
+receive a database URL,
 R2 S3 writer credentials or DNA API keys. It verifies that `main` remains
 unchanged around the measurement and prints only readiness, blocker IDs, safe
 remaining cadence and no-write/no-paid-use flags. The receipt is bound to its

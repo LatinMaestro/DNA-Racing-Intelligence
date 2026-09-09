@@ -80,7 +80,7 @@ function source(
     value: createCloudflareNeonDnaOpenLabProviderCapacitySource({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
-      cloudflareApiToken: "cloudflare-read-token",
+      cloudflareAnalyticsApiToken: "cloudflare-analytics-read-token",
       r2BucketName: "dna-private-evidence",
       r2StorageClass: input.storageClass ?? "Standard",
       neonApiKey: "neon-read-token",
@@ -136,7 +136,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       "https://console.neon.tech/api/v2/projects/project-1",
     );
     expect(JSON.stringify(result)).not.toMatch(
-      /cloudflare-read-token|neon-read-token|private-provider-identifier/u,
+      /cloudflare-analytics-read-token|neon-read-token|private-provider-identifier/u,
     );
   });
 
@@ -264,7 +264,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       createCloudflareNeonDnaOpenLabProviderCapacitySource({
         authorizedOwnerId: "owner-1",
         cloudflareAccountId: "invalid",
-        cloudflareApiToken: "token",
+        cloudflareAnalyticsApiToken: "token",
         r2BucketName: "bucket",
         r2StorageClass: "Standard",
         neonApiKey: "token",
@@ -291,7 +291,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         {
           authorizedOwnerId: "owner-1",
           cloudflareAccountId: accountId,
-          cloudflareApiToken: "cloudflare-read-token",
+          cloudflareAnalyticsApiToken: "cloudflare-analytics-read-token",
           r2BucketName: "dna-private-evidence",
           r2StorageClass: "Standard",
           neonApiKey: "neon-read-token",
@@ -311,7 +311,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       {
         authorizedOwnerId: "owner-1",
         cloudflareAccountId: accountId,
-        cloudflareApiToken: "cloudflare-read-token",
+        cloudflareAnalyticsApiToken: "cloudflare-analytics-read-token",
         r2BucketName: "dna-private-evidence",
         r2StorageClass: "Standard",
         neonApiKey: "neon-read-token",

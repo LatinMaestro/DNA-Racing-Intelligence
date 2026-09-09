@@ -81,7 +81,7 @@ const R2_CAPACITY_QUERY = `query DnaOpenLabDailyRefreshCapacity(
 export type CloudflareNeonDnaOpenLabProviderCapacityConfiguration = Readonly<{
   authorizedOwnerId: string;
   cloudflareAccountId: string;
-  cloudflareApiToken: string;
+  cloudflareAnalyticsApiToken: string;
   r2BucketName: string;
   r2StorageClass: string;
   neonApiKey: string;
@@ -93,7 +93,7 @@ export type CloudflareNeonDnaOpenLabProviderCapacityConfiguration = Readonly<{
 export type CloudflareNeonDnaOpenLabProviderCapacityEnvironment = Readonly<{
   authorizedOwnerId?: string;
   cloudflareAccountId?: string;
-  cloudflareApiToken?: string;
+  cloudflareAnalyticsApiToken?: string;
   r2BucketName?: string;
   r2StorageClass?: string;
   neonApiKey?: string;
@@ -293,9 +293,9 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
   if (!ACCOUNT_ID_PATTERN.test(cloudflareAccountId)) {
     throw new Error("cloudflareAccountId is invalid");
   }
-  const cloudflareApiToken = boundedText(
-    configuration.cloudflareApiToken,
-    "cloudflareApiToken",
+  const cloudflareAnalyticsApiToken = boundedText(
+    configuration.cloudflareAnalyticsApiToken,
+    "cloudflareAnalyticsApiToken",
     4096,
   );
   const r2BucketName = providerIdentifier(
@@ -339,7 +339,7 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
             method: "POST",
             headers: {
               Accept: "application/json",
-              Authorization: `Bearer ${cloudflareApiToken}`,
+              Authorization: `Bearer ${cloudflareAnalyticsApiToken}`,
               "Content-Type": "application/json",
             },
             cache: "no-store",
@@ -464,7 +464,9 @@ export function cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
 ): DnaOpenLabProviderCapacityMeasurementSource {
   const authorizedOwnerId = configured(environment.authorizedOwnerId);
   const cloudflareAccountId = configured(environment.cloudflareAccountId);
-  const cloudflareApiToken = configured(environment.cloudflareApiToken);
+  const cloudflareAnalyticsApiToken = configured(
+    environment.cloudflareAnalyticsApiToken,
+  );
   const r2BucketName = configured(environment.r2BucketName);
   const r2StorageClass = configured(environment.r2StorageClass);
   const neonApiKey = configured(environment.neonApiKey);
@@ -472,7 +474,7 @@ export function cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
   if (
     authorizedOwnerId === null ||
     cloudflareAccountId === null ||
-    cloudflareApiToken === null ||
+    cloudflareAnalyticsApiToken === null ||
     r2BucketName === null ||
     r2StorageClass === null ||
     neonApiKey === null ||
@@ -483,7 +485,7 @@ export function cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
   return createCloudflareNeonDnaOpenLabProviderCapacitySource({
     authorizedOwnerId,
     cloudflareAccountId,
-    cloudflareApiToken,
+    cloudflareAnalyticsApiToken,
     r2BucketName,
     r2StorageClass,
     neonApiKey,

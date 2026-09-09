@@ -2103,3 +2103,16 @@ After the private Pro League milestone, continue in this order:
 - Require a zero-vulnerability production dependency audit plus the full
   build, test, TypeScript, lint, formatting, secret, Worker and migration suite
   before merging or resuming the read-only provider preflight.
+
+## 2026-09-09 — R2 capacity measurement uses a dedicated analytics token
+
+- The exact-main provider preflight reached Cloudflare successfully but its
+  GraphQL envelope rejected the documented R2 analytics query. Cloudflare's
+  current authority requires Account Analytics Read for this API.
+- Do not broaden or replace the general Cloudflare provider token used by
+  existing Preview controls. Require a separate
+  `CLOUDFLARE_ANALYTICS_API_TOKEN` secret scoped to Account Analytics Read for
+  the commissioned account only.
+- The analytics token is available only to the read-only capacity workflow. It
+  is not a Worker, Queue, R2 object or deployment credential and does not open
+  DNA acquisition or provider writes.
