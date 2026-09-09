@@ -22,6 +22,7 @@ export type DnaRaceDocumentHydrationResult = Readonly<{
 export class DnaRaceDocumentHydrationError extends Error {
   readonly kind:
     | "invalid_request"
+    | "invalid_response"
     | "missing_document"
     | "unexpected_document"
     | "duplicate_document"
@@ -108,6 +109,12 @@ export async function hydrateDnaRaceDocuments(input: {
     const response = await input.requestBudget.execute(() =>
       input.client.raceDocs(batch),
     );
+    if (!Array.isArray(response.result)) {
+      hydrationError(
+        "invalid_response",
+        "DNA race-doc hydration result must be an array",
+      );
+    }
 
     const returnedKeys = new Set<string>();
     for (const document of response.result) {

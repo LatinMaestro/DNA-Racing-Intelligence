@@ -28,12 +28,31 @@ import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import {
   DnaOpenLabApiError,
   type DnaOpenLabClient,
+  type DnaOpenLabResponse,
 } from "./dna-open-lab-v1-client";
 
 export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "dna_transport_unavailable"
   | "dna_upstream_unavailable"
+  | "finished_index_boundary_unavailable"
+  | "race_document_boundary_unavailable"
+  | "request_budget_boundary_unavailable"
+  | "identity_quarantine_boundary_unavailable"
+  | "evidence_publication_boundary_unavailable"
+  | "checkpoint_progress_boundary_unavailable"
   | "unclassified_unavailable";
+
+export class DnaFinishedRaceIncrementalBoundaryError extends Error {
+  readonly unavailableDiagnostic: DnaFinishedRaceIncrementalUnavailableDiagnostic;
+
+  constructor(
+    unavailableDiagnostic: DnaFinishedRaceIncrementalUnavailableDiagnostic,
+  ) {
+    super("DNA finished-race incremental boundary is unavailable");
+    this.name = "DnaFinishedRaceIncrementalBoundaryError";
+    this.unavailableDiagnostic = unavailableDiagnostic;
+  }
+}
 
 export type DnaFinishedRaceIncrementalStepResult =
   | Readonly<{
@@ -62,6 +81,28 @@ export type DnaFinishedRaceIncrementalFailureDirective = Readonly<{
   retryAfterSeconds: number | null;
   unavailableDiagnostic?: DnaFinishedRaceIncrementalUnavailableDiagnostic;
 }>;
+
+function hasAuthoritativeFailureCategory(error: unknown): boolean {
+  return (
+    error instanceof DnaFinishedRaceBackfillError ||
+    error instanceof DnaRaceDocumentHydrationError ||
+    error instanceof DnaOpenLabR2RaceEvidenceProviderError ||
+    error instanceof DnaOpenLabApiError ||
+    error instanceof DnaFinishedRaceIncrementalBoundaryError
+  );
+}
+
+async function executeBoundary<T>(
+  unavailableDiagnostic: DnaFinishedRaceIncrementalUnavailableDiagnostic,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (hasAuthoritativeFailureCategory(error)) throw error;
+    throw new DnaFinishedRaceIncrementalBoundaryError(unavailableDiagnostic);
+  }
+}
 
 function timestamp(value: string, field: string): string {
   if (typeof value !== "string" || value.trim() === "") {
@@ -94,6 +135,13 @@ export function classifyDnaFinishedRaceIncrementalFailure(
     return Object.freeze({
       reason: "operator_hold",
       retryAfterSeconds: null,
+    });
+  }
+  if (error instanceof DnaFinishedRaceIncrementalBoundaryError) {
+    return Object.freeze({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: error.unavailableDiagnostic,
     });
   }
   if (error instanceof DnaOpenLabApiError) {
@@ -238,13 +286,17 @@ function checkpointAdapter(input: {
           ...current.cycle,
           checkpoint: request.checkpoint,
         });
-        current = await input.repository.saveProgress({
-          expectedRevision: current.revision,
-          cycle,
-          ...(request.publication === undefined
-            ? {}
-            : { publication: request.publication }),
-        });
+        current = await executeBoundary(
+          "checkpoint_progress_boundary_unavailable",
+          () =>
+            input.repository.saveProgress({
+              expectedRevision: current.revision,
+              cycle,
+              ...(request.publication === undefined
+                ? {}
+                : { publication: request.publication }),
+            }),
+        );
         return Object.freeze({
           revision: current.revision,
           checkpoint: current.cycle.checkpoint,
@@ -336,14 +388,39 @@ export async function runDnaFinishedRaceIncrementalStep(input: {
     initial: stored,
   });
   try {
+    const client = Object.freeze({
+      racesFinished: (
+        request: Parameters<typeof input.client.racesFinished>[0],
+      ) =>
+        executeBoundary("finished_index_boundary_unavailable", () =>
+          input.client.racesFinished(request),
+        ),
+      raceDocs: (request: Parameters<typeof input.client.raceDocs>[0]) =>
+        executeBoundary("race_document_boundary_unavailable", () =>
+          input.client.raceDocs(request),
+        ),
+    });
+    const requestBudget = Object.freeze({
+      ...input.requestBudget,
+      execute: <T>(request: () => Promise<DnaOpenLabResponse<T>>) =>
+        executeBoundary("request_budget_boundary_unavailable", () =>
+          input.requestBudget.execute(request),
+        ),
+    });
     const step = await runNextDnaFinishedRaceBackfillStep({
       startTime: stored.cycle.lowerBoundAt,
       endTime: stored.cycle.upperBoundAt,
-      client: input.client,
-      requestBudget: input.requestBudget,
+      client,
+      requestBudget,
       checkpointRepository: adapter.repository,
-      publisher: input.publisher,
-      identityConflictQuarantine: input.identityConflictQuarantine,
+      publisher: (publication) =>
+        executeBoundary("evidence_publication_boundary_unavailable", () =>
+          input.publisher(publication),
+        ),
+      identityConflictQuarantine: (conflict) =>
+        executeBoundary("identity_quarantine_boundary_unavailable", () =>
+          input.identityConflictQuarantine(conflict),
+        ),
       observedAt: attemptedAt,
       minimumWindowMilliseconds,
       identityOmissionAuthority: null,

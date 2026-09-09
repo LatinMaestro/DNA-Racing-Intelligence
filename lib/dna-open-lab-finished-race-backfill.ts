@@ -157,6 +157,7 @@ export class DnaFinishedRaceBackfillError extends Error {
   readonly kind:
     | "invalid_configuration"
     | "invalid_checkpoint"
+    | "invalid_response"
     | "source_limit_breach"
     | "unprovable_saturation"
     | "duplicate_race"
@@ -629,6 +630,12 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
     }),
   );
   const races = finishedResponse.result;
+  if (!Array.isArray(races)) {
+    backfillError(
+      "invalid_response",
+      "finished-race response result must be an array",
+    );
+  }
   if (races.length > DNA_FINISHED_RACE_WINDOW_LIMIT) {
     backfillError(
       "source_limit_breach",
