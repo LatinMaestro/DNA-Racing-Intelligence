@@ -158,6 +158,34 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     ).resolves.toMatchObject({ r2StorageClass: "InfrequentAccess" });
   });
 
+  it("accepts an empty GraphQL errors array only with valid provider data", async () => {
+    const cloudflare = { ...cloudflareData(), errors: [] };
+    const valid = source({
+      fetch: vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(response(cloudflare))
+        .mockResolvedValueOnce(response(neonData())),
+    });
+    if (valid.value.status !== "ready") throw new Error("expected source");
+    await expect(
+      valid.value.measure({ ownerId: "owner-1" }),
+    ).resolves.toMatchObject({
+      currentR2Usage: { storageBytes: 874_370_990 },
+    });
+
+    const missingData = source({
+      fetch: vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(response({ errors: [] }))
+        .mockResolvedValueOnce(response(neonData())),
+    });
+    if (missingData.value.status !== "ready")
+      throw new Error("expected source");
+    await expect(
+      missingData.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({ failureId: "cloudflare_graphql_rejected" });
+  });
+
   it.each([
     [
       "unknown R2 action",

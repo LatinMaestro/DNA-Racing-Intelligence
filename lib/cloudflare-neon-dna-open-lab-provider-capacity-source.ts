@@ -414,7 +414,9 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
         }
         if (
           (cloudflareEnvelope.errors !== undefined &&
-            cloudflareEnvelope.errors !== null) ||
+            cloudflareEnvelope.errors !== null &&
+            (!Array.isArray(cloudflareEnvelope.errors) ||
+              cloudflareEnvelope.errors.length > 0)) ||
           cloudflareEnvelope.data === undefined
         ) {
           throw cloudflareGraphqlFailure(cloudflareEnvelope.errors);
