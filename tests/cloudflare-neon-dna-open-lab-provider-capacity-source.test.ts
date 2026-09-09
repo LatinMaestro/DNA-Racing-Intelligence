@@ -49,6 +49,50 @@ function cloudflareData(actionType = "PutObject") {
   };
 }
 
+function tokenData(status = "active") {
+  return { success: true, errors: [], result: { status } };
+}
+
+function providerFetch(
+  input: {
+    token?: unknown;
+    tokenStatus?: number;
+    operations?: unknown;
+    operationsStatus?: number;
+    storage?: unknown;
+    storageStatus?: number;
+    neon?: unknown;
+    neonStatus?: number;
+  } = {},
+) {
+  return vi.fn<typeof globalThis.fetch>(async (request, init) => {
+    const url = String(request);
+    if (url.endsWith(`/accounts/${accountId}/tokens/verify`)) {
+      return response(input.token ?? tokenData(), input.tokenStatus ?? 200);
+    }
+    if (url === "https://api.cloudflare.com/client/v4/graphql") {
+      const query = String(JSON.parse(String(init?.body)).query as unknown);
+      if (query.includes("DnaOpenLabDailyRefreshOperations")) {
+        return response(
+          input.operations ?? cloudflareData(),
+          input.operationsStatus ?? 200,
+        );
+      }
+      if (query.includes("DnaOpenLabDailyRefreshStorage")) {
+        return response(
+          input.storage ?? cloudflareData(),
+          input.storageStatus ?? 200,
+        );
+      }
+      throw new Error("unexpected Cloudflare query");
+    }
+    if (url === "https://console.neon.tech/api/v2/projects/project-1") {
+      return response(input.neon ?? neonData(), input.neonStatus ?? 200);
+    }
+    throw new Error("unexpected provider request");
+  });
+}
+
 function neonData(overrides: Record<string, unknown> = {}) {
   return {
     project: {
@@ -70,12 +114,7 @@ function source(
     storageClass?: string;
   } = {},
 ) {
-  const fetcher =
-    input.fetch ??
-    vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(response(cloudflareData()))
-      .mockResolvedValueOnce(response(neonData()));
+  const fetcher = input.fetch ?? providerFetch();
   return {
     fetcher,
     value: createCloudflareNeonDnaOpenLabProviderCapacitySource({
@@ -117,25 +156,35 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         computeMilliCuHours: 5_001,
       },
     });
-    expect(fixture.fetcher).toHaveBeenCalledTimes(2);
-    const cloudflareCall = vi.mocked(fixture.fetcher).mock.calls[0]!;
-    expect(cloudflareCall[0]).toBe(
-      "https://api.cloudflare.com/client/v4/graphql",
+    expect(fixture.fetcher).toHaveBeenCalledTimes(4);
+    const calls = vi.mocked(fixture.fetcher).mock.calls;
+    const tokenCall = calls.find(([url]) =>
+      String(url).endsWith(`/accounts/${accountId}/tokens/verify`),
     );
-    const cloudflareRequest = cloudflareCall[1]!;
-    expect(cloudflareRequest).toMatchObject({
-      method: "POST",
-      cache: "no-store",
-    });
-    expect(JSON.parse(String(cloudflareRequest.body)).variables).toEqual({
-      accountTag: accountId,
-      startDate: "2026-09-01T00:00:00.000Z",
-      endDate: measuredAt.toISOString(),
-      bucketName: "dna-private-evidence",
-    });
-    expect(vi.mocked(fixture.fetcher).mock.calls[1]?.[0]).toBe(
-      "https://console.neon.tech/api/v2/projects/project-1",
+    expect(tokenCall?.[1]).toMatchObject({ method: "GET", cache: "no-store" });
+    const cloudflareCalls = calls.filter(
+      ([url]) => String(url) === "https://api.cloudflare.com/client/v4/graphql",
     );
+    expect(cloudflareCalls).toHaveLength(2);
+    for (const cloudflareCall of cloudflareCalls) {
+      const cloudflareRequest = cloudflareCall[1]!;
+      expect(cloudflareRequest).toMatchObject({
+        method: "POST",
+        cache: "no-store",
+      });
+      expect(JSON.parse(String(cloudflareRequest.body)).variables).toEqual({
+        accountTag: accountId,
+        startDate: "2026-09-01T00:00:00.000Z",
+        endDate: measuredAt.toISOString(),
+        bucketName: "dna-private-evidence",
+      });
+    }
+    expect(
+      calls.some(
+        ([url]) =>
+          String(url) === "https://console.neon.tech/api/v2/projects/project-1",
+      ),
+    ).toBe(true);
     expect(JSON.stringify(result)).not.toMatch(
       /cloudflare-analytics-read-token|neon-read-token|private-provider-identifier/u,
     );
@@ -161,10 +210,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
   it("accepts an empty GraphQL errors array only with valid provider data", async () => {
     const cloudflare = { ...cloudflareData(), errors: [] };
     const valid = source({
-      fetch: vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(response(cloudflare))
-        .mockResolvedValueOnce(response(neonData())),
+      fetch: providerFetch({ operations: cloudflare, storage: cloudflare }),
     });
     if (valid.value.status !== "ready") throw new Error("expected source");
     await expect(
@@ -174,16 +220,27 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     });
 
     const missingData = source({
-      fetch: vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(response({ errors: [] }))
-        .mockResolvedValueOnce(response(neonData())),
+      fetch: providerFetch({ operations: { errors: [] } }),
     });
     if (missingData.value.status !== "ready")
       throw new Error("expected source");
     await expect(
       missingData.value.measure({ ownerId: "owner-1" }),
-    ).rejects.toMatchObject({ failureId: "cloudflare_graphql_rejected" });
+    ).rejects.toMatchObject({
+      failureId: "cloudflare_graphql_operations_rejected",
+    });
+
+    const missingStorageData = source({
+      fetch: providerFetch({ storage: { errors: [] } }),
+    });
+    if (missingStorageData.value.status !== "ready") {
+      throw new Error("expected source");
+    }
+    await expect(
+      missingStorageData.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({
+      failureId: "cloudflare_graphql_storage_rejected",
+    });
   });
 
   it.each([
@@ -241,10 +298,11 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     ],
   ])("fails closed on %s", async (_label, cloudflare, neon, failureId) => {
     const fixture = source({
-      fetch: vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(response(cloudflare))
-        .mockResolvedValueOnce(response(neon)),
+      fetch: providerFetch({
+        operations: cloudflare,
+        storage: cloudflare,
+        neon,
+      }),
     });
     if (fixture.value.status !== "ready") throw new Error("expected source");
     await expect(
@@ -275,11 +333,31 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       /secret provider URL|token detail/u,
     );
 
+    const tokenRejected = source({
+      fetch: providerFetch({ token: { error: "private" }, tokenStatus: 403 }),
+    });
+    if (tokenRejected.value.status !== "ready") {
+      throw new Error("expected source");
+    }
+    await expect(
+      tokenRejected.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({ failureId: "cloudflare_token_http_rejected" });
+
+    const tokenInactive = source({
+      fetch: providerFetch({ token: tokenData("disabled") }),
+    });
+    if (tokenInactive.value.status !== "ready") {
+      throw new Error("expected source");
+    }
+    await expect(
+      tokenInactive.value.measure({ ownerId: "owner-1" }),
+    ).rejects.toMatchObject({ failureId: "cloudflare_token_invalid" });
+
     const rejected = source({
-      fetch: vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(response({ error: "private" }, 403))
-        .mockResolvedValueOnce(response(neonData())),
+      fetch: providerFetch({
+        operations: { error: "private" },
+        operationsStatus: 403,
+      }),
     });
     if (rejected.value.status !== "ready") throw new Error("expected source");
     await expect(
@@ -324,16 +402,16 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         "private provider temporarily unavailable",
         "cloudflare_graphql_unavailable",
       ],
-      ["private provider diagnostic", "cloudflare_graphql_rejected"],
+      ["private provider diagnostic", "cloudflare_graphql_operations_rejected"],
     ] as const;
     for (const [privateMessage, failureId] of graphqlCases) {
       const graphqlRejected = source({
-        fetch: vi
-          .fn<typeof globalThis.fetch>()
-          .mockResolvedValueOnce(
-            response({ data: null, errors: [{ message: privateMessage }] }),
-          )
-          .mockResolvedValueOnce(response(neonData())),
+        fetch: providerFetch({
+          operations: {
+            data: null,
+            errors: [{ message: privateMessage }],
+          },
+        }),
       });
       if (graphqlRejected.value.status !== "ready") {
         throw new Error("expected source");
@@ -391,10 +469,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
   });
 
   it("composes the strict source from a complete server environment", async () => {
-    const fetcher = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(response(cloudflareData()))
-      .mockResolvedValueOnce(response(neonData()));
+    const fetcher = providerFetch();
     const value = cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment(
       {
         authorizedOwnerId: "owner-1",
@@ -412,6 +487,6 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
       evidenceSource: "provider_api",
       r2StorageClass: "Standard",
     });
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(4);
   });
 });

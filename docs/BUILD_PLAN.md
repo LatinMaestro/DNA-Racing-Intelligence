@@ -602,6 +602,12 @@ for its five-minute receipt and does not authorize the persistent refresh. The
 remaining A3/A4 boundary is executing this read-only Preview preflight,
 followed by the bounded incremental commissioning run and recovery proof.
 
+The connected Cloudflare measurement verifies the account-owned token and
+queries the two documented R2 datasets independently. This distinguishes an
+inactive token from an operations- or storage-dataset rejection without
+logging provider content, and avoids treating failure of one dataset as
+evidence about the other. The boundary remains read-only and exact-main.
+
 After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;
