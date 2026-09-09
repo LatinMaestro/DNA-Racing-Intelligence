@@ -108,6 +108,34 @@ describe("DNA Open Lab provider capacity preflight", () => {
     expect(gate.measure).toHaveBeenNthCalledWith(1, { ownerId });
   });
 
+  it("checks freshness after the provider measurement completes", async () => {
+    const started = new Date("2026-09-09T00:04:00.000Z");
+    const measuredAfterStart = new Date("2026-09-09T00:04:00.500Z");
+    const checkedAfterMeasurement = new Date("2026-09-09T00:04:01.000Z");
+    const clock = vi
+      .fn<() => Date>()
+      .mockReturnValueOnce(started)
+      .mockReturnValueOnce(checkedAfterMeasurement);
+    const gate = createDnaOpenLabProviderCapacityPreflight({
+      configuredOwnerId: ownerId,
+      measurementSource: {
+        status: "ready",
+        measure: vi.fn().mockResolvedValue({
+          ...measurement,
+          measuredAt: measuredAfterStart.toISOString(),
+          neonMeasuredAt: measuredAfterStart.toISOString(),
+        }),
+      },
+      now: clock,
+    });
+
+    await expect(gate.inspect(invocation)).resolves.toMatchObject({
+      status: "ready",
+      checkedAt: checkedAfterMeasurement.toISOString(),
+    });
+    expect(clock).toHaveBeenCalledTimes(2);
+  });
+
   it("changes replay identity when code, cycle, window or a bound changes", async () => {
     const gate = preflight();
     const original = await gate.value.inspect(invocation);

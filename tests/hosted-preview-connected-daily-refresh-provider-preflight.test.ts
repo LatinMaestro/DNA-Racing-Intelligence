@@ -58,7 +58,6 @@ describeConnected("hosted Preview daily-refresh provider preflight", () => {
       const preflight = createDnaOpenLabProviderCapacityPreflight({
         configuredOwnerId: ownerId,
         measurementSource: source,
-        now: () => checkedAt,
       });
       const receipt = await preflight.inspect({
         preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
