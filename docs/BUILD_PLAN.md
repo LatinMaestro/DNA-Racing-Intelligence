@@ -607,6 +607,9 @@ queries the two documented R2 datasets independently. This distinguishes an
 inactive token from an operations- or storage-dataset rejection without
 logging provider content, and avoids treating failure of one dataset as
 evidence about the other. The boundary remains read-only and exact-main.
+Accepted dataset responses are normalized independently as well, so a private,
+fixed failure ID identifies operations versus storage shape drift without
+exposing a provider field or value.
 
 After owner-approved persistent API sync:
 
