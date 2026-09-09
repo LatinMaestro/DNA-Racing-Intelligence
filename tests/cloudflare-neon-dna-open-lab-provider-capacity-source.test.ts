@@ -226,6 +226,24 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
     );
   });
 
+  it("normalizes Neon RFC 3339 billing-window timestamps", async () => {
+    const fixture = source({
+      fetch: providerFetch({
+        neon: neonData({
+          consumption_period_start: "2026-09-05T00:00:00Z",
+          consumption_period_end: "2026-10-05T10:00:00+10:00",
+        }),
+      }),
+    });
+    if (fixture.value.status !== "ready") throw new Error("expected source");
+    await expect(
+      fixture.value.measure({ ownerId: "owner-1" }),
+    ).resolves.toMatchObject({
+      neonBillingWindowStartAt: "2026-09-05T00:00:00.000Z",
+      neonBillingWindowEndAt: "2026-10-05T00:00:00.000Z",
+    });
+  });
+
   it("denies another owner before either provider is contacted", async () => {
     const fixture = source();
     if (fixture.value.status !== "ready") throw new Error("expected source");
