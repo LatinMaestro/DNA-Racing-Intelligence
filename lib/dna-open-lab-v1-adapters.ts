@@ -38,6 +38,40 @@ export class DnaOpenLabAdapterError extends Error {
   }
 }
 
+export type DnaRaceDocumentAdaptationDiagnostic =
+  | "race_document_adaptation_identity_unavailable"
+  | "race_document_adaptation_descriptor_unavailable"
+  | "race_document_adaptation_participation_unavailable"
+  | "race_document_adaptation_economics_unavailable"
+  | "race_document_adaptation_schedule_unavailable"
+  | "race_document_adaptation_results_unavailable"
+  | "race_document_adaptation_evidence_unavailable";
+
+export class DnaRaceDocumentAdaptationProcessingError extends Error {
+  readonly diagnostic: DnaRaceDocumentAdaptationDiagnostic;
+
+  constructor(diagnostic: DnaRaceDocumentAdaptationDiagnostic) {
+    super("DNA Race document canonical adaptation is unavailable");
+    this.name = "DnaRaceDocumentAdaptationProcessingError";
+    this.diagnostic = diagnostic;
+  }
+}
+
+function raceDocumentAdaptationBoundary<T>(
+  diagnostic: DnaRaceDocumentAdaptationDiagnostic,
+  operation: () => T,
+): T {
+  try {
+    return operation();
+  } catch (error) {
+    if (error instanceof DnaRaceDocumentAdaptationProcessingError) throw error;
+    if (error instanceof DnaOpenLabAdapterError) {
+      throw new DnaRaceDocumentAdaptationProcessingError(diagnostic);
+    }
+    throw error;
+  }
+}
+
 export type DnaOpenLabEvidence<T> = Readonly<{
   source: typeof DNA_OPEN_LAB_SOURCE;
   sourceVersion: typeof DNA_OPEN_LAB_SOURCE_VERSION;
@@ -715,128 +749,168 @@ export function adaptDnaRaceDocument(input: {
   observedAt: string;
   endpoint: DnaRaceDocumentEndpoint;
 }): DnaOpenLabEvidence<CanonicalRaceDocumentMetadata> {
-  const sourceRaceId = raceIdentifier(input.raw.rid);
+  const sourceRaceId = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_identity_unavailable",
+    () => raceIdentifier(input.raw.rid),
+  );
+  const descriptor = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_descriptor_unavailable",
+    () => ({
+      ...(input.raw.status === undefined
+        ? {}
+        : { status: requiredText(input.raw.status, "race.status") }),
+      ...(input.raw.race_name === undefined
+        ? {}
+        : { displayName: requiredText(input.raw.race_name, "race.name") }),
+      ...(input.raw.rvmode === undefined
+        ? {}
+        : { mode: raceMode(input.raw.rvmode) }),
+      ...(input.raw.format === undefined
+        ? {}
+        : { format: optionalText(input.raw.format, "race.format") }),
+      ...(input.raw.class === undefined
+        ? {}
+        : {
+            raceClassSourceValue: raceClassSourceValue(
+              input.raw.class,
+              "race.class",
+            ),
+          }),
+    }),
+  );
+  const participation = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_participation_unavailable",
+    () => ({
+      ...(input.raw.rgate === undefined
+        ? {}
+        : { gateCount: positiveInteger(input.raw.rgate, "race.gateCount") }),
+      ...(input.raw.hs_in === undefined
+        ? {}
+        : {
+            filledGateCount: nonNegativeInteger(
+              input.raw.hs_in,
+              "race.filledGateCount",
+            ),
+          }),
+      ...(input.raw.hids === undefined
+        ? {}
+        : {
+            entrantCoreIds: sourceCoreIds(input.raw.hids, "race.entrantCoreId"),
+          }),
+    }),
+  );
+  const economics = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_economics_unavailable",
+    () => ({
+      ...(input.raw.fee_fixed === undefined
+        ? {}
+        : {
+            fixedFeesByAsset: fixedFeesByAsset(
+              input.raw.fee_fixed,
+              "race.fixedFee",
+            ),
+          }),
+      ...(input.raw.feeusd === undefined
+        ? {}
+        : {
+            entryFeeUsd: nonNegativeFinite(
+              input.raw.feeusd,
+              "race.entryFeeUsd",
+            ),
+          }),
+      ...(input.raw.paytoken === undefined
+        ? {}
+        : {
+            paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
+          }),
+      ...(input.raw.payout === undefined
+        ? {}
+        : {
+            payoutSourceValue: requiredText(input.raw.payout, "race.payout"),
+          }),
+      ...(input.raw.prize === undefined
+        ? {}
+        : {
+            prizeSourceValue: nonNegativeFinite(input.raw.prize, "race.prize"),
+          }),
+      ...(input.raw.prizeusd === undefined
+        ? {}
+        : {
+            prizeUsdSourceValue: nonNegativeFinite(
+              input.raw.prizeusd,
+              "race.prizeUsd",
+            ),
+          }),
+    }),
+  );
+  const schedule = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_schedule_unavailable",
+    () => ({
+      ...(input.raw.start_time === undefined
+        ? {}
+        : {
+            startAt: optionalTimestamp(input.raw.start_time, "race.startAt"),
+          }),
+      ...(input.raw.end_time === undefined
+        ? {}
+        : { endAt: optionalTimestamp(input.raw.end_time, "race.endAt") }),
+      ...(input.raw.eventtags === undefined
+        ? {}
+        : {
+            eventTagsSourceValues: sourceTextValues(
+              input.raw.eventtags,
+              "race.eventTag",
+            ),
+          }),
+    }),
+  );
+  const results = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_results_unavailable",
+    () => ({
+      ...(input.raw.track === undefined
+        ? {}
+        : {
+            trackSourceValue: requiredText(input.raw.track, "race.track"),
+          }),
+      ...(input.raw.yellowstars === undefined
+        ? {}
+        : {
+            yellowStarSourceCoreIds: sourceCoreIds(
+              input.raw.yellowstars,
+              "race.yellowStarCoreId",
+            ),
+          }),
+      ...(input.raw.bluestars === undefined
+        ? {}
+        : {
+            blueStarSourceCoreIds: sourceCoreIds(
+              input.raw.bluestars,
+              "race.blueStarCoreId",
+            ),
+          }),
+    }),
+  );
   const canonical: CanonicalRaceDocumentMetadata = Object.freeze({
     sourceType: "race_document",
     sourceRaceId,
-    ...(input.raw.status === undefined
-      ? {}
-      : { status: requiredText(input.raw.status, "race.status") }),
-    ...(input.raw.race_name === undefined
-      ? {}
-      : { displayName: requiredText(input.raw.race_name, "race.name") }),
-    ...(input.raw.rvmode === undefined
-      ? {}
-      : { mode: raceMode(input.raw.rvmode) }),
-    ...(input.raw.format === undefined
-      ? {}
-      : { format: optionalText(input.raw.format, "race.format") }),
-    ...(input.raw.class === undefined
-      ? {}
-      : {
-          raceClassSourceValue: raceClassSourceValue(
-            input.raw.class,
-            "race.class",
-          ),
-        }),
-    ...(input.raw.rgate === undefined
-      ? {}
-      : { gateCount: positiveInteger(input.raw.rgate, "race.gateCount") }),
-    ...(input.raw.hs_in === undefined
-      ? {}
-      : {
-          filledGateCount: nonNegativeInteger(
-            input.raw.hs_in,
-            "race.filledGateCount",
-          ),
-        }),
-    ...(input.raw.hids === undefined
-      ? {}
-      : {
-          entrantCoreIds: sourceCoreIds(input.raw.hids, "race.entrantCoreId"),
-        }),
-    ...(input.raw.fee_fixed === undefined
-      ? {}
-      : {
-          fixedFeesByAsset: fixedFeesByAsset(
-            input.raw.fee_fixed,
-            "race.fixedFee",
-          ),
-        }),
-    ...(input.raw.feeusd === undefined
-      ? {}
-      : {
-          entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
-        }),
-    ...(input.raw.paytoken === undefined
-      ? {}
-      : {
-          paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
-        }),
-    ...(input.raw.start_time === undefined
-      ? {}
-      : {
-          startAt: optionalTimestamp(input.raw.start_time, "race.startAt"),
-        }),
-    ...(input.raw.end_time === undefined
-      ? {}
-      : { endAt: optionalTimestamp(input.raw.end_time, "race.endAt") }),
-    ...(input.raw.eventtags === undefined
-      ? {}
-      : {
-          eventTagsSourceValues: sourceTextValues(
-            input.raw.eventtags,
-            "race.eventTag",
-          ),
-        }),
-    ...(input.raw.payout === undefined
-      ? {}
-      : {
-          payoutSourceValue: requiredText(input.raw.payout, "race.payout"),
-        }),
-    ...(input.raw.prize === undefined
-      ? {}
-      : {
-          prizeSourceValue: nonNegativeFinite(input.raw.prize, "race.prize"),
-        }),
-    ...(input.raw.prizeusd === undefined
-      ? {}
-      : {
-          prizeUsdSourceValue: nonNegativeFinite(
-            input.raw.prizeusd,
-            "race.prizeUsd",
-          ),
-        }),
-    ...(input.raw.track === undefined
-      ? {}
-      : {
-          trackSourceValue: requiredText(input.raw.track, "race.track"),
-        }),
-    ...(input.raw.yellowstars === undefined
-      ? {}
-      : {
-          yellowStarSourceCoreIds: sourceCoreIds(
-            input.raw.yellowstars,
-            "race.yellowStarCoreId",
-          ),
-        }),
-    ...(input.raw.bluestars === undefined
-      ? {}
-      : {
-          blueStarSourceCoreIds: sourceCoreIds(
-            input.raw.bluestars,
-            "race.blueStarCoreId",
-          ),
-        }),
+    ...descriptor,
+    ...participation,
+    ...economics,
+    ...schedule,
+    ...results,
   });
-  return evidence({
-    scope: raceDocumentScope(input.endpoint),
-    endpoint: input.endpoint,
-    entityKey: `race:${sourceRaceId}`,
-    observedAt: input.observedAt,
-    raw: input.raw,
-    canonical,
-  });
+  return raceDocumentAdaptationBoundary(
+    "race_document_adaptation_evidence_unavailable",
+    () =>
+      evidence({
+        scope: raceDocumentScope(input.endpoint),
+        endpoint: input.endpoint,
+        entityKey: `race:${sourceRaceId}`,
+        observedAt: input.observedAt,
+        raw: input.raw,
+        canonical,
+      }),
+  );
 }
 
 export function adaptDnaRaceFill(input: {

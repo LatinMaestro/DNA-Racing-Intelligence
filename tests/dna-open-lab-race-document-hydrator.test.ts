@@ -184,8 +184,7 @@ describe("DNA Open Lab race document hydrator", () => {
 
     expect(error).toMatchObject({
       name: "DnaRaceDocumentHydrationProcessingError",
-      diagnostic:
-        "race_document_hydration_response_adaptation_processing_unavailable",
+      diagnostic: "race_document_adaptation_descriptor_unavailable",
     });
     expect(String(error)).not.toContain("race.mode is unsupported");
   });
