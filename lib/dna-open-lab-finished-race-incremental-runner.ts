@@ -1,6 +1,7 @@
 import {
   createDnaFinishedRaceBackfillCheckpoint,
   DnaFinishedRaceBackfillError,
+  DnaFinishedRaceBackfillProcessingError,
   runNextDnaFinishedRaceBackfillStep,
   type DnaFinishedRaceBackfillCheckpointRepository,
   type DnaFinishedRaceBackfillStepResult,
@@ -42,6 +43,10 @@ export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "backfill_orchestration_boundary_unavailable"
   | "checkpoint_progress_boundary_unavailable"
   | "cycle_completion_boundary_unavailable"
+  | "finished_response_processing_unavailable"
+  | "finished_window_partition_processing_unavailable"
+  | "finished_identity_processing_unavailable"
+  | "finished_publication_processing_unavailable"
   | "unclassified_unavailable";
 
 export class DnaFinishedRaceIncrementalBoundaryError extends Error {
@@ -87,6 +92,7 @@ export type DnaFinishedRaceIncrementalFailureDirective = Readonly<{
 function hasAuthoritativeFailureCategory(error: unknown): boolean {
   return (
     error instanceof DnaFinishedRaceBackfillError ||
+    error instanceof DnaFinishedRaceBackfillProcessingError ||
     error instanceof DnaRaceDocumentHydrationError ||
     error instanceof DnaOpenLabR2RaceEvidenceProviderError ||
     error instanceof DnaOpenLabApiError ||
@@ -131,6 +137,13 @@ export function classifyDnaFinishedRaceIncrementalFailure(
     return Object.freeze({
       reason: "invalid_response",
       retryAfterSeconds: null,
+    });
+  }
+  if (error instanceof DnaFinishedRaceBackfillProcessingError) {
+    return Object.freeze({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: error.diagnostic,
     });
   }
   if (error instanceof DnaOpenLabR2RaceEvidenceProviderError) {

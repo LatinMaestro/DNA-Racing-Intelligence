@@ -242,6 +242,29 @@ describe("DNA finished-race incremental runner", () => {
     });
   });
 
+  it("labels unexpected finished-response processing without leaking detail", async () => {
+    const races = new Proxy([] as DnaRaceDocument[], {
+      get(target, property, receiver) {
+        if (property === "length") {
+          throw new Error("private response-processing detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const test = fixture(async () => response(races));
+
+    await expect(
+      runDnaFinishedRaceIncrementalStep({
+        ...test.input,
+        repository: test.repository,
+      }),
+    ).resolves.toMatchObject({
+      kind: "paused",
+      reason: "api_unavailable",
+      unavailableDiagnostic: "finished_response_processing_unavailable",
+    });
+  });
+
   it("labels unexpected failures at the evidence-publication boundary", async () => {
     const test = fixture(async () => response([]));
 
@@ -261,15 +284,19 @@ describe("DNA finished-race incremental runner", () => {
   });
 
   it("labels an unexpected failure inside backfill orchestration", async () => {
-    const races = new Proxy([] as DnaRaceDocument[], {
-      get(target, property, receiver) {
-        if (property === "length") {
-          throw new Error("private orchestration detail");
-        }
-        return Reflect.get(target, property, receiver);
+    const documents = new Proxy(
+      [] as Array<{ rid: string | number; rvmode: "bike" }>,
+      {
+        get(target, property, receiver) {
+          if (property === "length") {
+            throw new Error("private orchestration detail");
+          }
+          return Reflect.get(target, property, receiver);
+        },
       },
-    });
-    const test = fixture(async () => response(races));
+    );
+    const test = fixture(async () => response([{ rid: 17 }]));
+    test.raceDocs.mockResolvedValue(response(documents));
 
     await expect(
       runDnaFinishedRaceIncrementalStep({
