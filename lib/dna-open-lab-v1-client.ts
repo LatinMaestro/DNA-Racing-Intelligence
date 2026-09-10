@@ -83,7 +83,7 @@ export type DnaActiveRace = DnaOpenLabRecord<{
   fee_fixed: Readonly<Record<string, number>>;
   feeusd: number;
   paytoken: string;
-  start_time: string | null;
+  start_time?: string | null;
   end_time?: string | null;
   version: number | string;
   rvmode: DnaRaceMode;
