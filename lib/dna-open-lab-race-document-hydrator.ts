@@ -1,6 +1,7 @@
 import {
   adaptDnaRaceDocument,
   dnaOpenLabRawEvidenceSha256,
+  DnaRaceDocumentAdaptationProcessingError,
   type CanonicalRaceDocumentMetadata,
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
@@ -44,6 +45,13 @@ export type DnaRaceDocumentHydrationProcessingDiagnostic =
   | "race_document_hydration_response_identity_processing_unavailable"
   | "race_document_hydration_response_hash_processing_unavailable"
   | "race_document_hydration_response_adaptation_processing_unavailable"
+  | "race_document_adaptation_identity_unavailable"
+  | "race_document_adaptation_descriptor_unavailable"
+  | "race_document_adaptation_participation_unavailable"
+  | "race_document_adaptation_economics_unavailable"
+  | "race_document_adaptation_schedule_unavailable"
+  | "race_document_adaptation_results_unavailable"
+  | "race_document_adaptation_evidence_unavailable"
   | "race_document_hydration_response_coverage_processing_unavailable"
   | "race_document_hydration_result_processing_unavailable";
 
@@ -64,6 +72,9 @@ function processHydrationBoundary<T>(
   try {
     return operation();
   } catch (error) {
+    if (error instanceof DnaRaceDocumentAdaptationProcessingError) {
+      throw new DnaRaceDocumentHydrationProcessingError(error.diagnostic);
+    }
     if (
       error instanceof DnaRaceDocumentHydrationError ||
       error instanceof DnaRaceDocumentHydrationProcessingError
