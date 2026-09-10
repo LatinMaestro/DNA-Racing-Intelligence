@@ -50,6 +50,9 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_format_unavailable"
   | "race_document_adaptation_class_unavailable"
   | "race_document_adaptation_participation_unavailable"
+  | "race_document_adaptation_gate_count_unavailable"
+  | "race_document_adaptation_filled_gate_count_unavailable"
+  | "race_document_adaptation_entrant_core_ids_unavailable"
   | "race_document_adaptation_economics_unavailable"
   | "race_document_adaptation_fixed_fees_unavailable"
   | "race_document_adaptation_entry_fee_usd_unavailable"
@@ -842,24 +845,36 @@ export function adaptDnaRaceDocument(input: {
           }),
     }),
   );
+  const rawGateCount = input.raw.rgate;
+  const rawFilledGateCount = input.raw.hs_in;
+  const rawEntrantCoreIds = input.raw.hids;
   const participation = raceDocumentAdaptationBoundary(
     "race_document_adaptation_participation_unavailable",
     () => ({
-      ...(input.raw.rgate === undefined
-        ? {}
-        : { gateCount: positiveInteger(input.raw.rgate, "race.gateCount") }),
-      ...(input.raw.hs_in === undefined
+      ...(rawGateCount === undefined
         ? {}
         : {
-            filledGateCount: nonNegativeInteger(
-              input.raw.hs_in,
-              "race.filledGateCount",
+            gateCount: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_gate_count_unavailable",
+              () => positiveInteger(rawGateCount, "race.gateCount"),
             ),
           }),
-      ...(input.raw.hids === undefined
+      ...(rawFilledGateCount === undefined
         ? {}
         : {
-            entrantCoreIds: sourceCoreIds(input.raw.hids, "race.entrantCoreId"),
+            filledGateCount: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_filled_gate_count_unavailable",
+              () =>
+                nonNegativeInteger(rawFilledGateCount, "race.filledGateCount"),
+            ),
+          }),
+      ...(rawEntrantCoreIds === undefined
+        ? {}
+        : {
+            entrantCoreIds: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_entrant_core_ids_unavailable",
+              () => sourceCoreIds(rawEntrantCoreIds, "race.entrantCoreId"),
+            ),
           }),
     }),
   );
