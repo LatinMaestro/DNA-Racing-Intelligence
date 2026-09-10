@@ -174,6 +174,39 @@ export class DnaFinishedRaceBackfillError extends Error {
   }
 }
 
+export type DnaFinishedRaceBackfillProcessingDiagnostic =
+  | "finished_response_processing_unavailable"
+  | "finished_window_partition_processing_unavailable"
+  | "finished_identity_processing_unavailable"
+  | "finished_publication_processing_unavailable";
+
+export class DnaFinishedRaceBackfillProcessingError extends Error {
+  readonly diagnostic: DnaFinishedRaceBackfillProcessingDiagnostic;
+
+  constructor(diagnostic: DnaFinishedRaceBackfillProcessingDiagnostic) {
+    super("DNA finished-race backfill processing is unavailable");
+    this.name = "DnaFinishedRaceBackfillProcessingError";
+    this.diagnostic = diagnostic;
+  }
+}
+
+function processBackfillBoundary<T>(
+  diagnostic: DnaFinishedRaceBackfillProcessingDiagnostic,
+  operation: () => T,
+): T {
+  try {
+    return operation();
+  } catch (error) {
+    if (
+      error instanceof DnaFinishedRaceBackfillError ||
+      error instanceof DnaFinishedRaceBackfillProcessingError
+    ) {
+      throw error;
+    }
+    throw new DnaFinishedRaceBackfillProcessingError(diagnostic);
+  }
+}
+
 function backfillError(
   kind: DnaFinishedRaceBackfillError["kind"],
   message: string,
@@ -629,32 +662,46 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
       limit: DNA_FINISHED_RACE_WINDOW_LIMIT,
     }),
   );
-  const races = finishedResponse.result;
-  if (!Array.isArray(races)) {
-    backfillError(
-      "invalid_response",
-      "finished-race response result must be an array",
-    );
-  }
-  if (races.length > DNA_FINISHED_RACE_WINDOW_LIMIT) {
-    backfillError(
-      "source_limit_breach",
-      `DNA finished-race window returned ${races.length} rows above the documented ${DNA_FINISHED_RACE_WINDOW_LIMIT}-row limit`,
-    );
-  }
+  const races = processBackfillBoundary(
+    "finished_response_processing_unavailable",
+    () => {
+      const result = finishedResponse.result;
+      if (!Array.isArray(result)) {
+        backfillError(
+          "invalid_response",
+          "finished-race response result must be an array",
+        );
+      }
+      if (result.length > DNA_FINISHED_RACE_WINDOW_LIMIT) {
+        backfillError(
+          "source_limit_breach",
+          `DNA finished-race window returned ${result.length} rows above the documented ${DNA_FINISHED_RACE_WINDOW_LIMIT}-row limit`,
+        );
+      }
+      return result;
+    },
+  );
 
   if (races.length === DNA_FINISHED_RACE_WINDOW_LIMIT) {
-    const childWindows = splitWindow(currentWindow, minimumWindowMilliseconds);
-    const nextCheckpoint = checkpointWith(checkpoint, {
-      pendingWindows: Object.freeze([
-        childWindows[0],
-        childWindows[1],
-        ...checkpoint.pendingWindows.slice(1),
-      ]),
-      splitCount: checkpoint.splitCount + 1,
-      successfulFinishedRaceRequestCount:
-        checkpoint.successfulFinishedRaceRequestCount + 1,
-    });
+    const { childWindows, nextCheckpoint } = processBackfillBoundary(
+      "finished_window_partition_processing_unavailable",
+      () => {
+        const children = splitWindow(currentWindow, minimumWindowMilliseconds);
+        return Object.freeze({
+          childWindows: children,
+          nextCheckpoint: checkpointWith(checkpoint, {
+            pendingWindows: Object.freeze([
+              children[0],
+              children[1],
+              ...checkpoint.pendingWindows.slice(1),
+            ]),
+            splitCount: checkpoint.splitCount + 1,
+            successfulFinishedRaceRequestCount:
+              checkpoint.successfulFinishedRaceRequestCount + 1,
+          }),
+        });
+      },
+    );
     const nextStored = await input.checkpointRepository.save({
       expectedRevision: stored.revision,
       checkpoint: nextCheckpoint,
@@ -667,17 +714,28 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
     });
   }
 
-  const identityConflicts = races
-    .map((observation, index) =>
-      hasAuthoritativeRaceIdentity(observation)
-        ? null
-        : Object.freeze({
-            observation,
-            sourceObservationOrdinal: index + 1,
-            rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
-          }),
-    )
-    .filter((conflict) => conflict !== null);
+  const { identityConflicts, acceptedRaces, raceIds } = processBackfillBoundary(
+    "finished_identity_processing_unavailable",
+    () => {
+      const conflicts = races
+        .map((observation, index) =>
+          hasAuthoritativeRaceIdentity(observation)
+            ? null
+            : Object.freeze({
+                observation,
+                sourceObservationOrdinal: index + 1,
+                rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(observation),
+              }),
+        )
+        .filter((conflict) => conflict !== null);
+      const accepted = races.filter(hasAuthoritativeRaceIdentity);
+      return Object.freeze({
+        identityConflicts: conflicts,
+        acceptedRaces: accepted,
+        raceIds: uniqueRaceIds(accepted),
+      });
+    },
+  );
   const identityConflictQuarantineReceipts =
     [] as Array<DnaFinishedRaceIdentityConflictQuarantineReceipt>;
   if (identityConflicts.length > 0) {
@@ -708,8 +766,6 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
     }
   }
 
-  const acceptedRaces = races.filter(hasAuthoritativeRaceIdentity);
-  const raceIds = uniqueRaceIds(acceptedRaces);
   const hydration =
     raceIds.length === 0
       ? null
@@ -720,24 +776,31 @@ export async function runNextDnaFinishedRaceBackfillStep(input: {
           observedAt: input.observedAt,
         });
   const hydratedDocuments = hydration?.documents ?? Object.freeze([]);
-  const hashes = publicationHashes({
-    window: currentWindow,
-    discoveredRaces: acceptedRaces,
-    hydration,
-    identityConflictQuarantineReceipts,
-  });
-  const publicationReceipt = validateDnaFinishedRaceWindowPublicationReceipt(
-    await input.publisher(
-      Object.freeze({
-        ...hashes,
+  const hashes = processBackfillBoundary(
+    "finished_publication_processing_unavailable",
+    () =>
+      publicationHashes({
         window: currentWindow,
         discoveredRaces: acceptedRaces,
-        hydratedDocuments,
-        identityConflictQuarantineReceipts: Object.freeze(
-          identityConflictQuarantineReceipts,
-        ),
+        hydration,
+        identityConflictQuarantineReceipts,
       }),
-    ),
+  );
+  const rawPublicationReceipt = await input.publisher(
+    Object.freeze({
+      ...hashes,
+      window: currentWindow,
+      discoveredRaces: acceptedRaces,
+      hydratedDocuments,
+      identityConflictQuarantineReceipts: Object.freeze(
+        identityConflictQuarantineReceipts,
+      ),
+    }),
+  );
+  const publicationReceipt = processBackfillBoundary(
+    "finished_publication_processing_unavailable",
+    () =>
+      validateDnaFinishedRaceWindowPublicationReceipt(rawPublicationReceipt),
   );
   if (
     publicationReceipt.windowKey !== hashes.windowKey ||
