@@ -330,11 +330,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_payout_unavailable",
     },
     {
-      name: "null prize",
-      raw: { rid: 1, prize: null },
-      diagnostic: "race_document_adaptation_prize_null_unavailable",
-    },
-    {
       name: "non-numeric prize",
       raw: { rid: 1, prize: "unknown" },
       diagnostic: "race_document_adaptation_prize_non_numeric_unavailable",
@@ -402,6 +397,22 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       modeEvidenceStatus: "unsupported_source_value",
     });
     expect(evidence.canonical).not.toHaveProperty("mode");
+  });
+
+  it("preserves an explicit null Race prize as absent evidence without inferring zero", () => {
+    const raw = { rid: 1, prize: null as never };
+    const evidence = adaptDnaRaceDocument({
+      raw,
+      observedAt: OBSERVED_AT,
+      endpoint: "races.docs",
+    });
+
+    expect(evidence.canonical).toMatchObject({
+      sourceRaceId: "1",
+      prizeEvidenceStatus: "explicitly_absent",
+    });
+    expect(evidence.canonical).not.toHaveProperty("prizeSourceValue");
+    expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
   });
 
   it("maps race fills into API-neutral gate and entrant state with deterministic confirmation-key ordering", () => {
