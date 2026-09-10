@@ -355,11 +355,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_schedule_unavailable",
     },
     {
-      name: "results",
-      raw: { rid: 1, track: "" },
-      diagnostic: "race_document_adaptation_results_unavailable",
-    },
-    {
       name: "evidence",
       raw: { rid: 1 },
       observedAt: "invalid",
@@ -409,6 +404,31 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         entrantCoreIdsEvidenceStatus: "unsupported_source_value",
       });
       expect(evidence.canonical).not.toHaveProperty("entrantCoreIds");
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+    },
+  );
+
+  it.each([
+    { name: "track value", results: { track: "" } },
+    { name: "yellow-star collection", results: { yellowstars: null } },
+    { name: "blue-star Core ID", results: { bluestars: [0] } },
+  ])(
+    "quarantines unsupported Race $name without blocking the Race",
+    ({ results }) => {
+      const raw = { rid: 1, ...results } as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        resultsEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("trackSourceValue");
+      expect(evidence.canonical).not.toHaveProperty("yellowStarSourceCoreIds");
+      expect(evidence.canonical).not.toHaveProperty("blueStarSourceCoreIds");
       expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );

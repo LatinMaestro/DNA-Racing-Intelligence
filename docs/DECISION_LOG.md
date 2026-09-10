@@ -2258,3 +2258,9 @@ After the private Pro League milestone, continue in this order:
   fail-closed.
 - No raw value, owner identity, API response or credential may enter logs,
   artifacts or frontend output.
+- The first resumed batch then exposed an unsupported Race results group. The
+  owner confirmed that these affected races may miss data rather than block the
+  refresh. Preserve the Race, quarantine the complete results field group with
+  `resultsEvidenceStatus=unsupported_source_value`, and publish none of its
+  track or star fields. This follow-up authority does not permit partial result
+  inference or weaken the remaining fail-closed boundaries.
