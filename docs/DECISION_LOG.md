@@ -2264,3 +2264,7 @@ After the private Pro League milestone, continue in this order:
   `resultsEvidenceStatus=unsupported_source_value`, and publish none of its
   track or star fields. This follow-up authority does not permit partial result
   inference or weaken the remaining fail-closed boundaries.
+- Treat a present but non-text, blank or unknown Race mode as quarantined mode
+  evidence under the same authority. Retain the Race with
+  `modeEvidenceStatus=unsupported_source_value`, publish no canonical mode and
+  never use it as Bike, Car or Horse evidence.
