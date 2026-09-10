@@ -2314,3 +2314,14 @@ After the private Pro League milestone, continue in this order:
   time.
 - The root is read through the existing owner-isolated checkpoint repository;
   missing, malformed or cross-owner state remains fail-closed.
+
+## 2026-09-10 — Active-race discovery depends only on usable identity
+
+- Connected current-state bootstrap evidence showed that an active-race row may
+  omit a descriptor that the later full Race hydration boundary owns.
+- Discovery now reads only the race identity needed to build that hydration
+  request. Missing optional descriptors no longer discard an otherwise usable
+  race; a row without a usable identity is omitted and counted under the
+  owner's standing isolated-record quarantine authority.
+- Raw current-state evidence remains immutable and private. No absent value is
+  invented, and later Race hydration still validates every available field.
