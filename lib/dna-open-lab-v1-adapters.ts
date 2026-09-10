@@ -151,6 +151,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   trackSourceValue?: string;
   yellowStarSourceCoreIds?: readonly string[];
   blueStarSourceCoreIds?: readonly string[];
+  resultsEvidenceStatus?: "unsupported_source_value";
 }>;
 
 export type CanonicalRaceFillSnapshot = Readonly<{
@@ -392,6 +393,55 @@ function raceDocumentEntrantCoreIds(value: unknown): Readonly<{
   }
   return Object.freeze({
     entrantCoreIds: Object.freeze(value.map((entry) => String(entry))),
+  });
+}
+
+function raceDocumentResults(input: {
+  track: unknown;
+  yellowStars: unknown;
+  blueStars: unknown;
+}): Readonly<{
+  trackSourceValue?: string;
+  yellowStarSourceCoreIds?: readonly string[];
+  blueStarSourceCoreIds?: readonly string[];
+  resultsEvidenceStatus?: "unsupported_source_value";
+}> {
+  const validCoreIds = (value: unknown): value is readonly number[] =>
+    Array.isArray(value) &&
+    value.every(
+      (entry) =>
+        typeof entry === "number" && Number.isSafeInteger(entry) && entry > 0,
+    );
+  if (
+    (input.track !== undefined &&
+      (typeof input.track !== "string" || input.track.trim() === "")) ||
+    (input.yellowStars !== undefined && !validCoreIds(input.yellowStars)) ||
+    (input.blueStars !== undefined && !validCoreIds(input.blueStars))
+  ) {
+    return Object.freeze({
+      resultsEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({
+    ...(input.track === undefined
+      ? {}
+      : { trackSourceValue: requiredText(input.track, "race.track") }),
+    ...(input.yellowStars === undefined
+      ? {}
+      : {
+          yellowStarSourceCoreIds: sourceCoreIds(
+            input.yellowStars,
+            "race.yellowStarCoreId",
+          ),
+        }),
+    ...(input.blueStars === undefined
+      ? {}
+      : {
+          blueStarSourceCoreIds: sourceCoreIds(
+            input.blueStars,
+            "race.blueStarCoreId",
+          ),
+        }),
   });
 }
 
@@ -1000,29 +1050,12 @@ export function adaptDnaRaceDocument(input: {
   );
   const results = raceDocumentAdaptationBoundary(
     "race_document_adaptation_results_unavailable",
-    () => ({
-      ...(input.raw.track === undefined
-        ? {}
-        : {
-            trackSourceValue: requiredText(input.raw.track, "race.track"),
-          }),
-      ...(input.raw.yellowstars === undefined
-        ? {}
-        : {
-            yellowStarSourceCoreIds: sourceCoreIds(
-              input.raw.yellowstars,
-              "race.yellowStarCoreId",
-            ),
-          }),
-      ...(input.raw.bluestars === undefined
-        ? {}
-        : {
-            blueStarSourceCoreIds: sourceCoreIds(
-              input.raw.bluestars,
-              "race.blueStarCoreId",
-            ),
-          }),
-    }),
+    () =>
+      raceDocumentResults({
+        track: input.raw.track,
+        yellowStars: input.raw.yellowstars,
+        blueStars: input.raw.bluestars,
+      }),
   );
   const canonical: CanonicalRaceDocumentMetadata = Object.freeze({
     sourceType: "race_document",
