@@ -265,6 +265,7 @@ describe("DNA Open Lab dynamic current-state discovery runner", () => {
       evidenceReceiptCount: 4,
       ownedCoreIds: [2, 9],
       activeRaceIds: ["race-a", "race-b"],
+      omittedActiveRaceIdentityCount: 0,
     });
     if (result?.kind !== "final_plan_ready") {
       throw new Error("synthetic discovery did not complete");

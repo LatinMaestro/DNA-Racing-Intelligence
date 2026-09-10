@@ -1,7 +1,8 @@
 import {
-  adaptDnaActiveRace,
   adaptDnaSpliceArenaPage,
   adaptDnaVaultCore,
+  dnaActiveRaceSourceId,
+  DnaOpenLabAdapterError,
   type CanonicalSpliceArenaPageSnapshot,
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
@@ -33,6 +34,7 @@ export type DnaCurrentStatePlanAssembly = Readonly<{
   status: "needs_continuation" | "ready";
   ownedCoreIds: readonly number[];
   activeRaceIds: readonly string[];
+  omittedActiveRaceIdentityCount: number;
   arenaPageNumbersByMode: DnaSpliceArenaPagesByMode;
   continuationRequests: readonly DnaCurrentStateRequest[];
   plan: DnaCurrentStateSyncPlan | null;
@@ -183,13 +185,19 @@ export function assembleDnaCurrentStateSyncPlan(input: {
   ) {
     assemblyError("races.active request authority is invalid");
   }
-  const activeRaceIds = arrayResult<DnaActiveRace>(active, "races.active")
-    .map(
-      (raw) =>
-        adaptDnaActiveRace({ raw, observedAt: active.observedAt }).canonical
-          .sourceRaceId,
-    )
+  const activeRows = arrayResult<DnaActiveRace>(active, "races.active");
+  const activeRaceIds = activeRows
+    .flatMap((raw) => {
+      try {
+        return [dnaActiveRaceSourceId(raw)];
+      } catch (error) {
+        if (error instanceof DnaOpenLabAdapterError) return [];
+        throw error;
+      }
+    })
     .sort((left, right) => left.localeCompare(right));
+  const omittedActiveRaceIdentityCount =
+    activeRows.length - activeRaceIds.length;
   if (new Set(activeRaceIds).size !== activeRaceIds.length) {
     assemblyError("races.active repeats a race identity");
   }
@@ -308,6 +316,7 @@ export function assembleDnaCurrentStateSyncPlan(input: {
       status: "needs_continuation",
       ownedCoreIds: Object.freeze(ownedCoreIds),
       activeRaceIds: Object.freeze(activeRaceIds),
+      omittedActiveRaceIdentityCount,
       arenaPageNumbersByMode: completePages,
       continuationRequests: continuations,
       plan: null,
@@ -317,6 +326,7 @@ export function assembleDnaCurrentStateSyncPlan(input: {
     status: "ready",
     ownedCoreIds: Object.freeze(ownedCoreIds),
     activeRaceIds: Object.freeze(activeRaceIds),
+    omittedActiveRaceIdentityCount,
     arenaPageNumbersByMode: completePages,
     continuationRequests: continuations,
     plan: createDnaCurrentStateSyncPlan({
