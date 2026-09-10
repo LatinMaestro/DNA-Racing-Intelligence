@@ -285,11 +285,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_name_unavailable",
     },
     {
-      name: "mode vocabulary",
-      raw: { rid: 1, rvmode: "unsupported" },
-      diagnostic: "race_document_adaptation_mode_vocabulary_unavailable",
-    },
-    {
       name: "mode type",
       raw: { rid: 1, rvmode: null },
       diagnostic: "race_document_adaptation_mode_type_unavailable",
@@ -359,6 +354,20 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       expect(String(error)).not.toContain("race.");
     },
   );
+
+  it("preserves unsupported Race mode evidence without inventing canonical meaning", () => {
+    const evidence = adaptDnaRaceDocument({
+      raw: { rid: 1, rvmode: "unsupported" as never },
+      observedAt: OBSERVED_AT,
+      endpoint: "races.docs",
+    });
+
+    expect(evidence.canonical).toMatchObject({
+      sourceRaceId: "1",
+      modeEvidenceStatus: "unsupported_source_value",
+    });
+    expect(evidence.canonical).not.toHaveProperty("mode");
+  });
 
   it("maps race fills into API-neutral gate and entrant state with deterministic confirmation-key ordering", () => {
     const adapted = adaptDnaRaceFill({

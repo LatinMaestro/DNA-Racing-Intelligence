@@ -171,8 +171,8 @@ describe("DNA Open Lab race document hydrator", () => {
     });
   });
 
-  it("distinguishes canonical adaptation without exposing adapter detail", async () => {
-    const error = await hydrateDnaRaceDocuments({
+  it("hydrates unsupported Race mode evidence without asserting a canonical mode", async () => {
+    const hydrated = await hydrateDnaRaceDocuments({
       raceIds: [1],
       client: {
         raceDocs: async () =>
@@ -180,13 +180,13 @@ describe("DNA Open Lab race document hydrator", () => {
       },
       requestBudget: createDnaOpenLabRequestBudget(),
       observedAt: "2026-08-27T08:00:00Z",
-    }).catch((caught: unknown) => caught);
-
-    expect(error).toMatchObject({
-      name: "DnaRaceDocumentHydrationProcessingError",
-      diagnostic: "race_document_adaptation_mode_vocabulary_unavailable",
     });
-    expect(String(error)).not.toContain("race.mode is unsupported");
+
+    expect(hydrated.documents[0]?.canonical).toMatchObject({
+      sourceRaceId: "1",
+      modeEvidenceStatus: "unsupported_source_value",
+    });
+    expect(hydrated.documents[0]?.canonical).not.toHaveProperty("mode");
   });
 
   it("classifies unexpected result materialization after complete coverage", async () => {
