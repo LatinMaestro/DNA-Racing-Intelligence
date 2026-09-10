@@ -51,6 +51,12 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_class_unavailable"
   | "race_document_adaptation_participation_unavailable"
   | "race_document_adaptation_economics_unavailable"
+  | "race_document_adaptation_fixed_fees_unavailable"
+  | "race_document_adaptation_entry_fee_usd_unavailable"
+  | "race_document_adaptation_payment_asset_unavailable"
+  | "race_document_adaptation_payout_unavailable"
+  | "race_document_adaptation_prize_unavailable"
+  | "race_document_adaptation_prize_usd_unavailable"
   | "race_document_adaptation_schedule_unavailable"
   | "race_document_adaptation_results_unavailable"
   | "race_document_adaptation_evidence_unavailable";
@@ -852,46 +858,61 @@ export function adaptDnaRaceDocument(input: {
           }),
     }),
   );
+  const rawFixedFees = input.raw.fee_fixed;
+  const rawEntryFeeUsd = input.raw.feeusd;
+  const rawPaymentAsset = input.raw.paytoken;
+  const rawPayout = input.raw.payout;
+  const rawPrize = input.raw.prize;
+  const rawPrizeUsd = input.raw.prizeusd;
   const economics = raceDocumentAdaptationBoundary(
     "race_document_adaptation_economics_unavailable",
     () => ({
-      ...(input.raw.fee_fixed === undefined
+      ...(rawFixedFees === undefined
         ? {}
         : {
-            fixedFeesByAsset: fixedFeesByAsset(
-              input.raw.fee_fixed,
-              "race.fixedFee",
+            fixedFeesByAsset: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_fixed_fees_unavailable",
+              () => fixedFeesByAsset(rawFixedFees, "race.fixedFee"),
             ),
           }),
-      ...(input.raw.feeusd === undefined
+      ...(rawEntryFeeUsd === undefined
         ? {}
         : {
-            entryFeeUsd: nonNegativeFinite(
-              input.raw.feeusd,
-              "race.entryFeeUsd",
+            entryFeeUsd: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_entry_fee_usd_unavailable",
+              () => nonNegativeFinite(rawEntryFeeUsd, "race.entryFeeUsd"),
             ),
           }),
-      ...(input.raw.paytoken === undefined
+      ...(rawPaymentAsset === undefined
         ? {}
         : {
-            paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
+            paymentAsset: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_payment_asset_unavailable",
+              () => requiredText(rawPaymentAsset, "race.paymentAsset"),
+            ),
           }),
-      ...(input.raw.payout === undefined
+      ...(rawPayout === undefined
         ? {}
         : {
-            payoutSourceValue: requiredText(input.raw.payout, "race.payout"),
+            payoutSourceValue: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_payout_unavailable",
+              () => requiredText(rawPayout, "race.payout"),
+            ),
           }),
-      ...(input.raw.prize === undefined
+      ...(rawPrize === undefined
         ? {}
         : {
-            prizeSourceValue: nonNegativeFinite(input.raw.prize, "race.prize"),
+            prizeSourceValue: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_prize_unavailable",
+              () => nonNegativeFinite(rawPrize, "race.prize"),
+            ),
           }),
-      ...(input.raw.prizeusd === undefined
+      ...(rawPrizeUsd === undefined
         ? {}
         : {
-            prizeUsdSourceValue: nonNegativeFinite(
-              input.raw.prizeusd,
-              "race.prizeUsd",
+            prizeUsdSourceValue: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_prize_usd_unavailable",
+              () => nonNegativeFinite(rawPrizeUsd, "race.prizeUsd"),
             ),
           }),
     }),
