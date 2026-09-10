@@ -136,6 +136,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   gateCount?: number;
   filledGateCount?: number;
   entrantCoreIds?: readonly string[];
+  entrantCoreIdsEvidenceStatus?: "unsupported_source_value";
   fixedFeesByAsset?: Readonly<Record<string, number>>;
   entryFeeUsd?: number;
   paymentAsset?: string;
@@ -370,27 +371,28 @@ function sourceCoreIds(
   );
 }
 
-function raceDocumentEntrantCoreIds(value: unknown): readonly string[] {
+function raceDocumentEntrantCoreIds(value: unknown): Readonly<{
+  entrantCoreIds?: readonly string[];
+  entrantCoreIdsEvidenceStatus?: "unsupported_source_value";
+}> {
   if (!Array.isArray(value)) {
-    throw new DnaRaceDocumentAdaptationProcessingError(
-      "race_document_adaptation_entrant_core_ids_type_unavailable",
-    );
+    return Object.freeze({
+      entrantCoreIdsEvidenceStatus: "unsupported_source_value",
+    });
   }
-  return Object.freeze(
-    value.map((entry) => {
-      if (typeof entry !== "number") {
-        throw new DnaRaceDocumentAdaptationProcessingError(
-          "race_document_adaptation_entrant_core_id_type_unavailable",
-        );
-      }
-      return String(
-        raceDocumentAdaptationBoundary(
-          "race_document_adaptation_entrant_core_id_value_unavailable",
-          () => positiveInteger(entry, "race.entrantCoreId"),
-        ),
-      );
-    }),
-  );
+  if (
+    value.some(
+      (entry) =>
+        typeof entry !== "number" || !Number.isSafeInteger(entry) || entry < 1,
+    )
+  ) {
+    return Object.freeze({
+      entrantCoreIdsEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({
+    entrantCoreIds: Object.freeze(value.map((entry) => String(entry))),
+  });
 }
 
 function sourceTextValues(
@@ -896,12 +898,10 @@ export function adaptDnaRaceDocument(input: {
           }),
       ...(rawEntrantCoreIds === undefined
         ? {}
-        : {
-            entrantCoreIds: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_entrant_core_ids_unavailable",
-              () => raceDocumentEntrantCoreIds(rawEntrantCoreIds),
-            ),
-          }),
+        : raceDocumentAdaptationBoundary(
+            "race_document_adaptation_entrant_core_ids_unavailable",
+            () => raceDocumentEntrantCoreIds(rawEntrantCoreIds),
+          )),
     }),
   );
   const rawFixedFees = input.raw.fee_fixed;
