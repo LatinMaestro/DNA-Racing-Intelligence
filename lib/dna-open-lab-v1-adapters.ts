@@ -41,6 +41,11 @@ export class DnaOpenLabAdapterError extends Error {
 export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_identity_unavailable"
   | "race_document_adaptation_descriptor_unavailable"
+  | "race_document_adaptation_status_unavailable"
+  | "race_document_adaptation_name_unavailable"
+  | "race_document_adaptation_mode_unavailable"
+  | "race_document_adaptation_format_unavailable"
+  | "race_document_adaptation_class_unavailable"
   | "race_document_adaptation_participation_unavailable"
   | "race_document_adaptation_economics_unavailable"
   | "race_document_adaptation_schedule_unavailable"
@@ -758,22 +763,47 @@ export function adaptDnaRaceDocument(input: {
     () => ({
       ...(input.raw.status === undefined
         ? {}
-        : { status: requiredText(input.raw.status, "race.status") }),
+        : {
+            status: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_status_unavailable",
+              () => requiredText(input.raw.status as string, "race.status"),
+            ),
+          }),
       ...(input.raw.race_name === undefined
         ? {}
-        : { displayName: requiredText(input.raw.race_name, "race.name") }),
+        : {
+            displayName: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_name_unavailable",
+              () => requiredText(input.raw.race_name as string, "race.name"),
+            ),
+          }),
       ...(input.raw.rvmode === undefined
         ? {}
-        : { mode: raceMode(input.raw.rvmode) }),
+        : {
+            mode: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_mode_unavailable",
+              () => raceMode(input.raw.rvmode as string),
+            ),
+          }),
       ...(input.raw.format === undefined
         ? {}
-        : { format: optionalText(input.raw.format, "race.format") }),
+        : {
+            format: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_format_unavailable",
+              () =>
+                optionalText(input.raw.format as string | null, "race.format"),
+            ),
+          }),
       ...(input.raw.class === undefined
         ? {}
         : {
-            raceClassSourceValue: raceClassSourceValue(
-              input.raw.class,
-              "race.class",
+            raceClassSourceValue: raceDocumentAdaptationBoundary(
+              "race_document_adaptation_class_unavailable",
+              () =>
+                raceClassSourceValue(
+                  input.raw.class as string | number | null,
+                  "race.class",
+                ),
             ),
           }),
     }),
