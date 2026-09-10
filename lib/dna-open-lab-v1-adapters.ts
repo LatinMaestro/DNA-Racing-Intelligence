@@ -116,8 +116,10 @@ export type CanonicalActiveRaceSnapshot = Readonly<{
   raceClassSourceValue: string | number | null;
   fixedFeesByAsset?: Readonly<Record<string, number>>;
   fixedFeesEvidenceStatus?: "unsupported_source_value";
-  entryFeeUsd: number;
-  paymentAsset: string;
+  entryFeeUsd?: number;
+  entryFeeEvidenceStatus?: "unsupported_source_value";
+  paymentAsset?: string;
+  paymentAssetEvidenceStatus?: "unsupported_source_value";
   startAt: string | null;
   endAt: string | null;
 }>;
@@ -493,6 +495,32 @@ function raceDocumentFixedFees(value: unknown): Readonly<{
       value as Readonly<Record<string, number>>,
       "race.fixedFee",
     ),
+  });
+}
+
+function activeRaceEntryFee(value: unknown): Readonly<{
+  entryFeeUsd?: number;
+  entryFeeEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return Object.freeze({
+      entryFeeEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({ entryFeeUsd: value });
+}
+
+function activeRacePaymentAsset(value: unknown): Readonly<{
+  paymentAsset?: string;
+  paymentAssetEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (typeof value !== "string" || value.trim() === "") {
+    return Object.freeze({
+      paymentAssetEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({
+    paymentAsset: requiredText(value, "race.paymentAsset"),
   });
 }
 
@@ -882,8 +910,8 @@ export function adaptDnaActiveRace(input: {
         : requiredText(input.raw.format, "race.format"),
     raceClassSourceValue: raceClassSourceValue(input.raw.class, "race.class"),
     ...raceDocumentFixedFees(input.raw.fee_fixed),
-    entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
-    paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
+    ...activeRaceEntryFee(input.raw.feeusd),
+    ...activeRacePaymentAsset(input.raw.paytoken),
     startAt: optionalTimestamp(input.raw.start_time ?? null, "race.startAt"),
     endAt: optionalTimestamp(input.raw.end_time ?? null, "race.endAt"),
   });

@@ -157,6 +157,34 @@ describe("Pro League race opportunity service", () => {
     });
   });
 
+  it.each(["entryFeeUsd", "paymentAsset"] as const)(
+    "withholds a fee-dependent opportunity when %s evidence is unavailable",
+    async (field) => {
+      const value = race({
+        id: `unknown-${field}`,
+        gateCount: 4,
+        filledGateCount: 2,
+      });
+      const canonical = { ...value.active.canonical };
+      delete canonical[field];
+
+      const result = await loadProLeagueRaceOpportunities({
+        ownerId,
+        priorityGapCount: 1,
+        repository: repository([
+          { ...value, active: { ...value.active, canonical } },
+        ]),
+        now: new Date("2026-09-08T00:00:00.000Z"),
+      });
+
+      expect(result).toMatchObject({
+        scannedRaceCount: 1,
+        qualifyingRaceCount: 0,
+        opportunities: [],
+      });
+    },
+  );
+
   it("reports absent configuration and absent last-good generation explicitly", async () => {
     await expect(
       loadProLeagueRaceOpportunities({

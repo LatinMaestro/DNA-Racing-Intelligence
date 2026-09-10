@@ -2343,3 +2343,12 @@ After the private Pro League milestone, continue in this order:
   evidence unsupported and omit it from fee-dependent Pro League opportunities.
 - Never infer an empty or zero fee. This is the owner's standing isolated-field
   quarantine authority and does not weaken validation of supplied fee values.
+
+## 2026-09-10 — Incomplete active-race economics remain non-actionable
+
+- Connected publication evidence next showed an active race without a usable
+  USD entry fee. Treat absent or unsupported entry-fee and payment-asset values
+  as unavailable evidence, using the same fixed-fee quarantine boundary.
+- Retain the race and immutable raw evidence, but withhold it from fee-dependent
+  Pro League opportunities unless every required fee field is authoritative.
+- Never infer a zero fee or payment asset. Valid supplied values remain strict.
