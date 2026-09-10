@@ -2325,3 +2325,12 @@ After the private Pro League milestone, continue in this order:
   owner's standing isolated-record quarantine authority.
 - Raw current-state evidence remains immutable and private. No absent value is
   invented, and later Race hydration still validates every available field.
+
+## 2026-09-10 — Missing active-race start time is retained as unknown
+
+- Connected current-state publication evidence showed that `races.active` may
+  omit `start_time` for an otherwise usable race.
+- The active race is retained and its canonical start time remains `null`; the
+  raw evidence hash is preserved and no timestamp is inferred.
+- A malformed timestamp still fails closed. This is the narrow field-level
+  quarantine authorised by the owner and does not weaken other race fields.
