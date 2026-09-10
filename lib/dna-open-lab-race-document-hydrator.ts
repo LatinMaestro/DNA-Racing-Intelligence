@@ -41,6 +41,10 @@ export class DnaRaceDocumentHydrationError extends Error {
 export type DnaRaceDocumentHydrationProcessingDiagnostic =
   | "race_document_hydration_input_processing_unavailable"
   | "race_document_hydration_response_processing_unavailable"
+  | "race_document_hydration_response_identity_processing_unavailable"
+  | "race_document_hydration_response_hash_processing_unavailable"
+  | "race_document_hydration_response_adaptation_processing_unavailable"
+  | "race_document_hydration_response_coverage_processing_unavailable"
   | "race_document_hydration_result_processing_unavailable";
 
 export class DnaRaceDocumentHydrationProcessingError extends Error {
@@ -163,7 +167,10 @@ export async function hydrateDnaRaceDocuments(input: {
 
         const returnedKeys = new Set<string>();
         for (const document of response.result) {
-          const key = raceKey(document.rid);
+          const key = processHydrationBoundary(
+            "race_document_hydration_response_identity_processing_unavailable",
+            () => raceKey(document.rid),
+          );
           if (!batchKeys.has(key)) {
             hydrationError(
               "unexpected_document",
@@ -171,7 +178,10 @@ export async function hydrateDnaRaceDocuments(input: {
             );
           }
 
-          const hash = dnaOpenLabRawEvidenceSha256(document);
+          const hash = processHydrationBoundary(
+            "race_document_hydration_response_hash_processing_unavailable",
+            () => dnaOpenLabRawEvidenceSha256(document),
+          );
           const existing = evidenceByKey.get(key);
           if (returnedKeys.has(key) || existing !== undefined) {
             if (existing !== undefined && existing.hash !== hash) {
@@ -187,27 +197,31 @@ export async function hydrateDnaRaceDocuments(input: {
           }
 
           returnedKeys.add(key);
-          evidenceByKey.set(
-            key,
-            Object.freeze({
-              hash,
-              evidence: adaptDnaRaceDocument({
+          const evidence = processHydrationBoundary(
+            "race_document_hydration_response_adaptation_processing_unavailable",
+            () =>
+              adaptDnaRaceDocument({
                 raw: document as DnaRaceDocument,
                 observedAt: input.observedAt,
                 endpoint: "races.docs",
               }),
-            }),
           );
+          evidenceByKey.set(key, Object.freeze({ hash, evidence }));
         }
 
-        for (const key of batchKeys) {
-          if (!returnedKeys.has(key)) {
-            hydrationError(
-              "missing_document",
-              `DNA race-doc hydration did not return requested race ${key}`,
-            );
-          }
-        }
+        processHydrationBoundary(
+          "race_document_hydration_response_coverage_processing_unavailable",
+          () => {
+            for (const key of batchKeys) {
+              if (!returnedKeys.has(key)) {
+                hydrationError(
+                  "missing_document",
+                  `DNA race-doc hydration did not return requested race ${key}`,
+                );
+              }
+            }
+          },
+        );
       },
     );
   }
