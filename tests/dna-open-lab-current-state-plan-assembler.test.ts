@@ -223,6 +223,30 @@ describe("DNA Open Lab dynamic current-state plan assembly", () => {
     ).toThrow("repeats a race identity");
   });
 
+  it("uses only active-race identity during discovery and counts unusable identities", () => {
+    const descriptorMissing = {
+      ...activeRace("race-valid"),
+      status: undefined,
+      race_name: undefined,
+    } as unknown as DnaActiveRace;
+    const identityMissing = {
+      ...activeRace("race-omitted"),
+      rid: undefined,
+    } as unknown as DnaActiveRace;
+
+    const assembled = assembleDnaCurrentStateSyncPlan({
+      vault: "owner-vault",
+      spliceModes: [],
+      observations: [
+        ownership([]),
+        active([descriptorMissing, identityMissing]),
+      ],
+    });
+
+    expect(assembled.activeRaceIds).toEqual(["race-valid"]);
+    expect(assembled.omittedActiveRaceIdentityCount).toBe(1);
+  });
+
   it("rejects gaps, response-page drift and pages after a terminal page", () => {
     expect(() =>
       assembleDnaCurrentStateSyncPlan({
