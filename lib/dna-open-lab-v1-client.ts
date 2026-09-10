@@ -80,7 +80,7 @@ export type DnaActiveRace = DnaOpenLabRecord<{
   cb: number | null;
   rgate: number;
   hs_in: number;
-  fee_fixed: Readonly<Record<string, number>>;
+  fee_fixed?: Readonly<Record<string, number>>;
   feeusd: number;
   paytoken: string;
   start_time?: string | null;
