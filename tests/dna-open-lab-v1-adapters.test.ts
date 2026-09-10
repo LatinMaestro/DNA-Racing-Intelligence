@@ -315,21 +315,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_filled_gate_count_unavailable",
     },
     {
-      name: "entrant Core ID collection type",
-      raw: { rid: 1, hids: null },
-      diagnostic: "race_document_adaptation_entrant_core_ids_type_unavailable",
-    },
-    {
-      name: "entrant Core ID type",
-      raw: { rid: 1, hids: ["1"] },
-      diagnostic: "race_document_adaptation_entrant_core_id_type_unavailable",
-    },
-    {
-      name: "entrant Core ID value",
-      raw: { rid: 1, hids: [0] },
-      diagnostic: "race_document_adaptation_entrant_core_id_value_unavailable",
-    },
-    {
       name: "fixed fees",
       raw: { rid: 1, fee_fixed: { DEZ: -1 } },
       diagnostic: "race_document_adaptation_fixed_fees_unavailable",
@@ -402,6 +387,29 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         message: "DNA Race document canonical adaptation is unavailable",
       });
       expect(String(error)).not.toContain("race.");
+    },
+  );
+
+  it.each([
+    { name: "collection shape", hids: null },
+    { name: "entry runtime type", hids: ["1"] },
+    { name: "entry numeric value", hids: [0] },
+  ])(
+    "quarantines unsupported entrant Core ID $name without blocking the Race",
+    ({ hids }) => {
+      const raw = { rid: 1, hids } as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        entrantCoreIdsEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("entrantCoreIds");
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );
 

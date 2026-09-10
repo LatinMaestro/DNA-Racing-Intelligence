@@ -2239,3 +2239,22 @@ After the private Pro League milestone, continue in this order:
   increase free-tier authority.
 - Emit only identifiers, step state and safety booleans. Do not log API bodies,
   provider measurements, credentials or owner payloads.
+
+## 2026-09-10 — Unsupported recurring Race entrant IDs are quarantined
+
+- Exact-main Preview commissioning isolated a Race document whose entrant-ID
+  collection contains a runtime type outside the supported numeric contract.
+- The owner explicitly authorizes affected races to be skipped or quarantined
+  because missing this de minimis evidence is preferable to blocking the daily
+  refresh.
+- Preserve the Race and its private raw-evidence hash, omit the unsupported
+  entrant IDs from canonical analytics and mark
+  `entrantCoreIdsEvidenceStatus=unsupported_source_value`. Never coerce an
+  unknown identifier representation, infer participation or treat absent
+  participant evidence as favourable.
+- Keep the limitation countable and visible in generation coverage. This
+  authority applies only to unsupported entrant-ID evidence; identity,
+  chronology, economics, publication consistency and owner isolation remain
+  fail-closed.
+- No raw value, owner identity, API response or credential may enter logs,
+  artifacts or frontend output.
