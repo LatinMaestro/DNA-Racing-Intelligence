@@ -63,6 +63,8 @@ export type DnaRaceDocumentHydrationProcessingDiagnostic =
   | "race_document_adaptation_payout_unavailable"
   | "race_document_adaptation_prize_unavailable"
   | "race_document_adaptation_prize_type_unavailable"
+  | "race_document_adaptation_prize_null_unavailable"
+  | "race_document_adaptation_prize_non_numeric_unavailable"
   | "race_document_adaptation_prize_value_unavailable"
   | "race_document_adaptation_prize_usd_unavailable"
   | "race_document_adaptation_schedule_unavailable"

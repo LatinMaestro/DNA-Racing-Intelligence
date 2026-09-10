@@ -330,9 +330,14 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_payout_unavailable",
     },
     {
-      name: "prize type",
+      name: "null prize",
       raw: { rid: 1, prize: null },
-      diagnostic: "race_document_adaptation_prize_type_unavailable",
+      diagnostic: "race_document_adaptation_prize_null_unavailable",
+    },
+    {
+      name: "non-numeric prize",
+      raw: { rid: 1, prize: "unknown" },
+      diagnostic: "race_document_adaptation_prize_non_numeric_unavailable",
     },
     {
       name: "prize value",
