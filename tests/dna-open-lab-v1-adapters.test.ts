@@ -305,9 +305,19 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_class_unavailable",
     },
     {
-      name: "participation",
+      name: "gate count",
       raw: { rid: 1, rgate: 0 },
-      diagnostic: "race_document_adaptation_participation_unavailable",
+      diagnostic: "race_document_adaptation_gate_count_unavailable",
+    },
+    {
+      name: "filled gate count",
+      raw: { rid: 1, hs_in: -1 },
+      diagnostic: "race_document_adaptation_filled_gate_count_unavailable",
+    },
+    {
+      name: "entrant Core IDs",
+      raw: { rid: 1, hids: [0] },
+      diagnostic: "race_document_adaptation_entrant_core_ids_unavailable",
     },
     {
       name: "fixed fees",
