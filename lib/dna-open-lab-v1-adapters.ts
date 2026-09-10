@@ -56,6 +56,8 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_payment_asset_unavailable"
   | "race_document_adaptation_payout_unavailable"
   | "race_document_adaptation_prize_unavailable"
+  | "race_document_adaptation_prize_type_unavailable"
+  | "race_document_adaptation_prize_value_unavailable"
   | "race_document_adaptation_prize_usd_unavailable"
   | "race_document_adaptation_schedule_unavailable"
   | "race_document_adaptation_results_unavailable"
@@ -903,8 +905,16 @@ export function adaptDnaRaceDocument(input: {
         ? {}
         : {
             prizeSourceValue: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_prize_unavailable",
-              () => nonNegativeFinite(rawPrize, "race.prize"),
+              "race_document_adaptation_prize_type_unavailable",
+              () => {
+                if (typeof rawPrize !== "number") {
+                  adapterError("race.prize must be numeric");
+                }
+                return raceDocumentAdaptationBoundary(
+                  "race_document_adaptation_prize_value_unavailable",
+                  () => nonNegativeFinite(rawPrize, "race.prize"),
+                );
+              },
             ),
           }),
       ...(rawPrizeUsd === undefined
