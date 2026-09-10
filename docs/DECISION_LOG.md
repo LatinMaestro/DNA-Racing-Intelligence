@@ -2352,3 +2352,13 @@ After the private Pro League milestone, continue in this order:
 - Retain the race and immutable raw evidence, but withhold it from fee-dependent
   Pro League opportunities unless every required fee field is authoritative.
 - Never infer a zero fee or payment asset. Valid supplied values remain strict.
+
+## 2026-09-10 — Unpaired current races are quarantined as whole records
+
+- Connected publication evidence showed that active-race and race-fill results
+  can have isolated identity gaps even when both requests complete successfully.
+- Publish only the identity intersection: an active race without its matching
+  fill, or a fill without its matching active race, is excluded from the current
+  opportunity read model under the owner's approved race quarantine authority.
+- Both immutable source responses remain in the private evidence index. No fill
+  state is inferred, and the published pair counts remain internally consistent.

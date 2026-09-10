@@ -386,7 +386,7 @@ describe("DNA Open Lab current-state publication runner", () => {
     ).rejects.toThrow("stored evidence does not match its schedule receipt");
   });
 
-  it("rejects incomplete race-fill coverage", async () => {
+  it("quarantines active races without matching fill evidence", async () => {
     const { schedule, checkpoint, readEvidence } = fixture();
     const originalRead = readEvidence.getMockImplementation()!;
     readEvidence.mockImplementation(async (input) => {
@@ -398,15 +398,20 @@ describe("DNA Open Lab current-state publication runner", () => {
       };
     });
 
-    await expect(
-      assembleDnaCurrentStatePublication({
-        cycleId,
-        schedule,
-        checkpoint,
-        validatedAt: observedAt,
-        readEvidence,
-      }),
-    ).rejects.toThrow("race-fill coverage does not match active races");
+    const assembled = await assembleDnaCurrentStatePublication({
+      cycleId,
+      schedule,
+      checkpoint,
+      validatedAt: observedAt,
+      readEvidence,
+    });
+
+    expect(assembled.activeRaces).toEqual([]);
+    expect(assembled.raceFills).toEqual([]);
+    expect(assembled.candidate.families).toMatchObject({
+      active_races: { status: "complete", itemCount: 0 },
+      race_fills: { status: "complete", itemCount: 0 },
+    });
   });
 
   it("rejects a checkpoint that has not reached ready-to-publish", async () => {

@@ -220,19 +220,31 @@ function assertCoreInfoCoverage(input: {
   }
 }
 
-function assertRaceFillCoverage(input: {
+function retainPairedRaceCoverage(input: {
   activeRaces: readonly DnaOpenLabEvidence<CanonicalActiveRaceSnapshot>[];
   raceFills: readonly DnaOpenLabEvidence<CanonicalRaceFillSnapshot>[];
-}): void {
-  const activeIds = input.activeRaces
-    .map((value) => value.canonical.sourceRaceId)
-    .sort((left, right) => left.localeCompare(right));
-  const fillIds = input.raceFills
-    .map((value) => value.canonical.sourceRaceId)
-    .sort((left, right) => left.localeCompare(right));
-  if (JSON.stringify(fillIds) !== JSON.stringify(activeIds)) {
-    publicationError("race-fill coverage does not match active races");
-  }
+}): Readonly<{
+  activeRaces: readonly DnaOpenLabEvidence<CanonicalActiveRaceSnapshot>[];
+  raceFills: readonly DnaOpenLabEvidence<CanonicalRaceFillSnapshot>[];
+}> {
+  const activeIds = new Set(
+    input.activeRaces.map((value) => value.canonical.sourceRaceId),
+  );
+  const fillIds = new Set(
+    input.raceFills.map((value) => value.canonical.sourceRaceId),
+  );
+  return Object.freeze({
+    activeRaces: Object.freeze(
+      input.activeRaces.filter((value) =>
+        fillIds.has(value.canonical.sourceRaceId),
+      ),
+    ),
+    raceFills: Object.freeze(
+      input.raceFills.filter((value) =>
+        activeIds.has(value.canonical.sourceRaceId),
+      ),
+    ),
+  });
 }
 
 /**
@@ -304,17 +316,20 @@ export async function assembleDnaCurrentStatePublication(input: {
     ),
   );
   const activeObservation = oneEvidence(evidence, "races.active");
-  const activeRaces = Object.freeze(
+  const adaptedActiveRaces = Object.freeze(
     resultArray<DnaActiveRace>(activeObservation).map((raw) =>
       adaptDnaActiveRace({ raw, observedAt: activeObservation.observedAt }),
     ),
   );
-  const raceFills = adaptArray<DnaRaceFill, CanonicalRaceFillSnapshot>({
+  const adaptedRaceFills = adaptArray<DnaRaceFill, CanonicalRaceFillSnapshot>({
     evidence,
     endpoint: "races.fills",
     adapt: (raw, observedAt) => adaptDnaRaceFill({ raw, observedAt }),
   });
-  assertRaceFillCoverage({ activeRaces, raceFills });
+  const { activeRaces, raceFills } = retainPairedRaceCoverage({
+    activeRaces: adaptedActiveRaces,
+    raceFills: adaptedRaceFills,
+  });
   const coreInfo = adaptArray<DnaCoreInfo, AdaptedCoreDetailsRow>({
     evidence,
     endpoint: "cores.info_bulk",
