@@ -38,6 +38,38 @@ export class DnaRaceDocumentHydrationError extends Error {
   }
 }
 
+export type DnaRaceDocumentHydrationProcessingDiagnostic =
+  | "race_document_hydration_input_processing_unavailable"
+  | "race_document_hydration_response_processing_unavailable"
+  | "race_document_hydration_result_processing_unavailable";
+
+export class DnaRaceDocumentHydrationProcessingError extends Error {
+  readonly diagnostic: DnaRaceDocumentHydrationProcessingDiagnostic;
+
+  constructor(diagnostic: DnaRaceDocumentHydrationProcessingDiagnostic) {
+    super("DNA race-document hydration processing is unavailable");
+    this.name = "DnaRaceDocumentHydrationProcessingError";
+    this.diagnostic = diagnostic;
+  }
+}
+
+function processHydrationBoundary<T>(
+  diagnostic: DnaRaceDocumentHydrationProcessingDiagnostic,
+  operation: () => T,
+): T {
+  try {
+    return operation();
+  } catch (error) {
+    if (
+      error instanceof DnaRaceDocumentHydrationError ||
+      error instanceof DnaRaceDocumentHydrationProcessingError
+    ) {
+      throw error;
+    }
+    throw new DnaRaceDocumentHydrationProcessingError(diagnostic);
+  }
+}
+
 function hydrationError(
   kind: DnaRaceDocumentHydrationError["kind"],
   message: string,
@@ -85,15 +117,24 @@ export async function hydrateDnaRaceDocuments(input: {
   requestBudget: DnaOpenLabRequestBudget;
   observedAt: string;
 }): Promise<DnaRaceDocumentHydrationResult> {
-  if (input.raceIds.length < 1) {
-    hydrationError("invalid_request", "at least one race id is required");
-  }
+  const { requestedKeys, requestBatches } = processHydrationBoundary(
+    "race_document_hydration_input_processing_unavailable",
+    () => {
+      if (input.raceIds.length < 1) {
+        hydrationError("invalid_request", "at least one race id is required");
+      }
 
-  const requestedKeys = input.raceIds.map((rid) => raceKey(rid));
-  const uniqueRequestedKeys = new Set(requestedKeys);
-  if (uniqueRequestedKeys.size !== requestedKeys.length) {
-    hydrationError("invalid_request", "requested race ids must be unique");
-  }
+      const keys = input.raceIds.map((rid) => raceKey(rid));
+      const uniqueRequestedKeys = new Set(keys);
+      if (uniqueRequestedKeys.size !== keys.length) {
+        hydrationError("invalid_request", "requested race ids must be unique");
+      }
+      return Object.freeze({
+        requestedKeys: keys,
+        requestBatches: batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT),
+      });
+    },
+  );
 
   const evidenceByKey = new Map<
     string,
@@ -102,85 +143,96 @@ export async function hydrateDnaRaceDocuments(input: {
       evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
     }>
   >();
-  const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
-
   for (const batch of requestBatches) {
-    const batchKeys = new Set(batch.map((rid) => raceKey(rid)));
+    const batchKeys = processHydrationBoundary(
+      "race_document_hydration_input_processing_unavailable",
+      () => new Set(batch.map((rid) => raceKey(rid))),
+    );
     const response = await input.requestBudget.execute(() =>
       input.client.raceDocs(batch),
     );
-    if (!Array.isArray(response.result)) {
-      hydrationError(
-        "invalid_response",
-        "DNA race-doc hydration result must be an array",
-      );
-    }
-
-    const returnedKeys = new Set<string>();
-    for (const document of response.result) {
-      const key = raceKey(document.rid);
-      if (!batchKeys.has(key)) {
-        hydrationError(
-          "unexpected_document",
-          `DNA race-doc hydration returned unexpected race ${key}`,
-        );
-      }
-
-      const hash = dnaOpenLabRawEvidenceSha256(document);
-      const existing = evidenceByKey.get(key);
-      if (returnedKeys.has(key) || existing !== undefined) {
-        if (existing !== undefined && existing.hash !== hash) {
+    processHydrationBoundary(
+      "race_document_hydration_response_processing_unavailable",
+      () => {
+        if (!Array.isArray(response.result)) {
           hydrationError(
-            "conflicting_document",
-            `DNA race-doc hydration returned conflicting documents for race ${key}`,
+            "invalid_response",
+            "DNA race-doc hydration result must be an array",
           );
         }
-        hydrationError(
-          "duplicate_document",
-          `DNA race-doc hydration returned duplicate race ${key}`,
-        );
-      }
 
-      returnedKeys.add(key);
-      evidenceByKey.set(
-        key,
-        Object.freeze({
-          hash,
-          evidence: adaptDnaRaceDocument({
-            raw: document as DnaRaceDocument,
-            observedAt: input.observedAt,
-            endpoint: "races.docs",
-          }),
-        }),
-      );
-    }
+        const returnedKeys = new Set<string>();
+        for (const document of response.result) {
+          const key = raceKey(document.rid);
+          if (!batchKeys.has(key)) {
+            hydrationError(
+              "unexpected_document",
+              `DNA race-doc hydration returned unexpected race ${key}`,
+            );
+          }
 
-    for (const key of batchKeys) {
-      if (!returnedKeys.has(key)) {
-        hydrationError(
-          "missing_document",
-          `DNA race-doc hydration did not return requested race ${key}`,
-        );
-      }
-    }
+          const hash = dnaOpenLabRawEvidenceSha256(document);
+          const existing = evidenceByKey.get(key);
+          if (returnedKeys.has(key) || existing !== undefined) {
+            if (existing !== undefined && existing.hash !== hash) {
+              hydrationError(
+                "conflicting_document",
+                `DNA race-doc hydration returned conflicting documents for race ${key}`,
+              );
+            }
+            hydrationError(
+              "duplicate_document",
+              `DNA race-doc hydration returned duplicate race ${key}`,
+            );
+          }
+
+          returnedKeys.add(key);
+          evidenceByKey.set(
+            key,
+            Object.freeze({
+              hash,
+              evidence: adaptDnaRaceDocument({
+                raw: document as DnaRaceDocument,
+                observedAt: input.observedAt,
+                endpoint: "races.docs",
+              }),
+            }),
+          );
+        }
+
+        for (const key of batchKeys) {
+          if (!returnedKeys.has(key)) {
+            hydrationError(
+              "missing_document",
+              `DNA race-doc hydration did not return requested race ${key}`,
+            );
+          }
+        }
+      },
+    );
   }
 
-  const documents = Object.freeze(
-    requestedKeys.map((key) => {
-      const entry = evidenceByKey.get(key);
-      if (entry === undefined) {
-        return hydrationError(
-          "missing_document",
-          `DNA race-doc hydration did not materialize requested race ${key}`,
-        );
-      }
-      return entry.evidence;
-    }),
-  );
+  return processHydrationBoundary(
+    "race_document_hydration_result_processing_unavailable",
+    () => {
+      const documents = Object.freeze(
+        requestedKeys.map((key) => {
+          const entry = evidenceByKey.get(key);
+          if (entry === undefined) {
+            return hydrationError(
+              "missing_document",
+              `DNA race-doc hydration did not materialize requested race ${key}`,
+            );
+          }
+          return entry.evidence;
+        }),
+      );
 
-  return Object.freeze({
-    documents,
-    requestedRaceCount: requestedKeys.length,
-    batchCount: requestBatches.length,
-  });
+      return Object.freeze({
+        documents,
+        requestedRaceCount: requestedKeys.length,
+        batchCount: requestBatches.length,
+      });
+    },
+  );
 }
