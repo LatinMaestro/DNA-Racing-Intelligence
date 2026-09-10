@@ -883,7 +883,7 @@ export function adaptDnaActiveRace(input: {
     fixedFeesByAsset: fixedFeesByAsset(input.raw.fee_fixed, "race.fixedFee"),
     entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
     paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
-    startAt: optionalTimestamp(input.raw.start_time, "race.startAt"),
+    startAt: optionalTimestamp(input.raw.start_time ?? null, "race.startAt"),
     endAt: optionalTimestamp(input.raw.end_time ?? null, "race.endAt"),
   });
   return evidence({
