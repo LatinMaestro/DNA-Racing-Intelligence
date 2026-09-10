@@ -8,6 +8,7 @@ import {
   adaptDnaVaultCore,
   dnaOpenLabRawEvidenceSha256,
   DnaOpenLabAdapterError,
+  DnaRaceDocumentAdaptationProcessingError,
 } from "@/lib/dna-open-lab-v1-adapters";
 import type {
   DnaActiveRace,
@@ -266,6 +267,68 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(finished.canonical).not.toHaveProperty("future_nested_result");
     expect(finished.rawEvidenceSha256).toBe(hydrated.rawEvidenceSha256);
   });
+
+  it.each([
+    {
+      name: "identity",
+      raw: { rid: 0 },
+      diagnostic: "race_document_adaptation_identity_unavailable",
+    },
+    {
+      name: "descriptor",
+      raw: { rid: 1, status: "" },
+      diagnostic: "race_document_adaptation_descriptor_unavailable",
+    },
+    {
+      name: "participation",
+      raw: { rid: 1, rgate: 0 },
+      diagnostic: "race_document_adaptation_participation_unavailable",
+    },
+    {
+      name: "economics",
+      raw: { rid: 1, feeusd: -1 },
+      diagnostic: "race_document_adaptation_economics_unavailable",
+    },
+    {
+      name: "schedule",
+      raw: { rid: 1, start_time: "invalid" },
+      diagnostic: "race_document_adaptation_schedule_unavailable",
+    },
+    {
+      name: "results",
+      raw: { rid: 1, track: "" },
+      diagnostic: "race_document_adaptation_results_unavailable",
+    },
+    {
+      name: "evidence",
+      raw: { rid: 1 },
+      observedAt: "invalid",
+      diagnostic: "race_document_adaptation_evidence_unavailable",
+    },
+  ] as const)(
+    "classifies $name Race document adaptation without exposing field detail",
+    ({ raw, observedAt, diagnostic }) => {
+      const error = (() => {
+        try {
+          adaptDnaRaceDocument({
+            raw: raw as DnaRaceDocument,
+            observedAt: observedAt ?? OBSERVED_AT,
+            endpoint: "races.docs",
+          });
+        } catch (caught) {
+          return caught;
+        }
+        return null;
+      })();
+
+      expect(error).toBeInstanceOf(DnaRaceDocumentAdaptationProcessingError);
+      expect(error).toMatchObject({
+        diagnostic,
+        message: "DNA Race document canonical adaptation is unavailable",
+      });
+      expect(String(error)).not.toContain("race.");
+    },
+  );
 
   it("maps race fills into API-neutral gate and entrant state with deterministic confirmation-key ordering", () => {
     const adapted = adaptDnaRaceFill({
