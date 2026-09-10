@@ -179,6 +179,7 @@ describe("DNA Open Lab supplemental Core current-state adapters", () => {
         car: null,
         horse: { skin: "synthetic" },
       },
+      unavailableSkinModes: [],
       trailsSourceValue: { bike: [1, 2] },
     });
     expect(
