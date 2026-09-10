@@ -2288,3 +2288,17 @@ After the private Pro League milestone, continue in this order:
 - Keep refresh and budget identities as their existing SHA-256 authorities.
   This compatibility fix authorizes no Production, paid-service, public-route
   or game action.
+
+## 2026-09-10 — Completed history publication replays its completion time
+
+- The first connected transition beyond completed finished-history collection
+  exposed a safe replay conflict: a later short-lived runner supplied its new
+  wall-clock time while re-confirming an already-published history cycle.
+- Bind both validation and publication time to the cycle's immutable completion
+  time. The original publication already used that same instant, because cycle
+  completion and publication occurred inside one command step.
+- A restarted runner can therefore replay the exact publication read-only and
+  continue into current-state discovery. A completed cycle without its signed
+  completion authority fails closed.
+- This replay correction changes no receipt, baseline, owner, cutoff, budget,
+  Production service, public route or game action.
