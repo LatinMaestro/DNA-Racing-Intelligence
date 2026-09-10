@@ -138,6 +138,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   entrantCoreIds?: readonly string[];
   entrantCoreIdsEvidenceStatus?: "unsupported_source_value";
   fixedFeesByAsset?: Readonly<Record<string, number>>;
+  fixedFeesEvidenceStatus?: "unsupported_source_value";
   entryFeeUsd?: number;
   paymentAsset?: string;
   startAt?: string | null;
@@ -464,6 +465,34 @@ function fixedFeesByAsset(
       ]),
     ),
   );
+}
+
+function raceDocumentFixedFees(value: unknown): Readonly<{
+  fixedFeesByAsset?: Readonly<Record<string, number>>;
+  fixedFeesEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    Object.entries(value).some(
+      ([asset, amount]) =>
+        asset.trim() === "" ||
+        typeof amount !== "number" ||
+        !Number.isFinite(amount) ||
+        amount < 0,
+    )
+  ) {
+    return Object.freeze({
+      fixedFeesEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({
+    fixedFeesByAsset: fixedFeesByAsset(
+      value as Readonly<Record<string, number>>,
+      "race.fixedFee",
+    ),
+  });
 }
 
 function coreClass(value: string): CoreClass {
@@ -959,12 +988,10 @@ export function adaptDnaRaceDocument(input: {
     () => ({
       ...(rawFixedFees === undefined
         ? {}
-        : {
-            fixedFeesByAsset: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_fixed_fees_unavailable",
-              () => fixedFeesByAsset(rawFixedFees, "race.fixedFee"),
-            ),
-          }),
+        : raceDocumentAdaptationBoundary(
+            "race_document_adaptation_fixed_fees_unavailable",
+            () => raceDocumentFixedFees(rawFixedFees),
+          )),
       ...(rawEntryFeeUsd === undefined
         ? {}
         : {

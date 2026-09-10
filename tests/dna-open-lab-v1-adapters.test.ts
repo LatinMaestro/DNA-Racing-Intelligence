@@ -305,11 +305,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_filled_gate_count_unavailable",
     },
     {
-      name: "fixed fees",
-      raw: { rid: 1, fee_fixed: { DEZ: -1 } },
-      diagnostic: "race_document_adaptation_fixed_fees_unavailable",
-    },
-    {
       name: "entry fee USD",
       raw: { rid: 1, feeusd: -1 },
       diagnostic: "race_document_adaptation_entry_fee_usd_unavailable",
@@ -437,6 +432,25 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         modeEvidenceStatus: "unsupported_source_value",
       });
       expect(evidence.canonical).not.toHaveProperty("mode");
+    },
+  );
+
+  it.each([null, { DEZ: -1 }, { DEZ: "1" }, { " ": 1 }])(
+    "quarantines unsupported fixed-fee evidence without blocking the Race",
+    (feeFixed) => {
+      const raw = { rid: 1, fee_fixed: feeFixed } as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        fixedFeesEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("fixedFeesByAsset");
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );
 
