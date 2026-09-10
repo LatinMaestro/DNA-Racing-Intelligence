@@ -46,6 +46,7 @@ const ownerId = "private-owner";
 const cycleId = "2".repeat(64);
 const historyCycleId = "3".repeat(64);
 const windowId = "1".repeat(64);
+const historyCompletedAt = "2026-09-09T00:00:30.000Z";
 
 const invocation: DnaOpenLabPrivateDailyRefreshInvocation = Object.freeze({
   operatorVersion: "dna-open-lab-private-daily-refresh/v1",
@@ -125,7 +126,12 @@ describe("DNA Open Lab private daily refresh operator", () => {
     vi.clearAllMocks();
     mocks.runFinishedHistory.mockResolvedValue({
       kind: "collection_complete",
-      stored: { cycle: { cycleId: historyCycleId } },
+      stored: {
+        cycle: {
+          cycleId: historyCycleId,
+          completion: { completedAt: historyCompletedAt },
+        },
+      },
     });
     mocks.publishFinishedHistory.mockResolvedValue({ cycleId: historyCycleId });
     mocks.runCurrentState.mockResolvedValue({ kind: "discovering" });
@@ -280,8 +286,10 @@ describe("DNA Open Lab private daily refresh operator", () => {
     );
     expect(mocks.publishFinishedHistory).toHaveBeenCalledWith(
       expect.objectContaining({
-        cycle: { cycleId: historyCycleId },
+        cycle: expect.objectContaining({ cycleId: historyCycleId }),
         repository: persistence.value.finishedHistoryPublication,
+        validatedAt: historyCompletedAt,
+        publishedAt: historyCompletedAt,
       }),
     );
     expect(mocks.runCurrentState).toHaveBeenCalledWith(
@@ -295,6 +303,28 @@ describe("DNA Open Lab private daily refresh operator", () => {
     expect(
       mocks.publishFinishedHistory.mock.invocationCallOrder[0],
     ).toBeLessThan(mocks.runCurrentState.mock.invocationCallOrder[0]!);
+  });
+
+  it("refuses a completed history cycle without immutable completion authority", async () => {
+    mocks.runFinishedHistory.mockResolvedValueOnce({
+      kind: "collection_complete",
+      stored: { cycle: { cycleId: historyCycleId, completion: null } },
+    });
+    mocks.runDailyRefresh.mockImplementationOnce(async (input) => {
+      await input.advanceFinishedHistory();
+      throw new Error("unreachable");
+    });
+    const operator = createDnaOpenLabPrivateDailyRefreshOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: repositories().value,
+    });
+
+    await expect(operator.execute(invocation)).rejects.toThrow(
+      "completed history has no completion authority",
+    );
+    expect(mocks.publishFinishedHistory).not.toHaveBeenCalled();
+    expect(mocks.runCurrentState).not.toHaveBeenCalled();
   });
 
   it("maps a history eligibility pause into the shared last-good state", async () => {
