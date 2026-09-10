@@ -131,6 +131,19 @@ function authorityId(domain: string, value: unknown): string {
   return dnaOpenLabRawEvidenceSha256({ domain, value });
 }
 
+function authorityUuid(domain: string, value: unknown): string {
+  const hex = authorityId(domain, value).slice(0, 32).split("");
+  hex[12] = "5";
+  hex[16] = ((Number.parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16);
+  return [
+    hex.slice(0, 8).join(""),
+    hex.slice(8, 12).join(""),
+    hex.slice(12, 16).join(""),
+    hex.slice(16, 20).join(""),
+    hex.slice(20).join(""),
+  ].join("-");
+}
+
 function fixedMeasurementSource(
   measurement: DnaOpenLabProviderCapacityMeasurement,
 ): DnaOpenLabProviderCapacityMeasurementSource {
@@ -286,7 +299,7 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
         "dna-open-lab-private-daily-refresh-cycle/v1",
         { ownerId, finishedHistoryUpperBoundAt },
       );
-      const currentStateCycleId = authorityId(
+      const currentStateCycleId = authorityUuid(
         "dna-open-lab-private-current-state-cycle/v1",
         { ownerId, finishedHistoryUpperBoundAt },
       );

@@ -2272,3 +2272,19 @@ After the private Pro League milestone, continue in this order:
   Retain the Race with `fixedFeesEvidenceStatus=unsupported_source_value`,
   publish no fee amounts and exclude the missing field from all financial
   analysis. Never infer zero or another amount.
+
+## 2026-09-10 — Recurring current-state identity remains stable and UUID-safe
+
+- Connected Preview commissioning completed finished-history collection and
+  exposed the first transition into recurring current-state discovery.
+- The command had derived that current-state root identity as a SHA-256 value,
+  while the existing discovery, checkpoint and private R2 evidence boundaries
+  require a UUID. The mismatch stopped before any current-state API request or
+  evidence write.
+- Derive one deterministic version-5 UUID from the same owner, fixed cutoff and
+  domain-separated authority hash. Repeated short-lived runners therefore
+  resume one current-state cycle without weakening the downstream UUID,
+  owner-isolation or immutable-evidence contracts.
+- Keep refresh and budget identities as their existing SHA-256 authorities.
+  This compatibility fix authorizes no Production, paid-service, public-route
+  or game action.

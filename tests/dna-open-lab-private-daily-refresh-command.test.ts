@@ -6,7 +6,10 @@ import {
   dnaOpenLabPrivateDailyRefreshCommandFromEnvironment,
   type DnaOpenLabPrivateDailyRefreshCommandInvocation,
 } from "@/lib/dna-open-lab-private-daily-refresh-command";
-import type { DnaOpenLabPrivateDailyRefreshSources } from "@/lib/dna-open-lab-private-daily-refresh-operator";
+import type {
+  DnaOpenLabPrivateDailyRefreshInvocation,
+  DnaOpenLabPrivateDailyRefreshSources,
+} from "@/lib/dna-open-lab-private-daily-refresh-operator";
 import type { DnaOpenLabProviderCapacityMeasurement } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import type { DnaOpenLabR2BudgetRepository } from "@/lib/dna-open-lab-r2-budget-repository";
 
@@ -233,10 +236,17 @@ describe("DNA Open Lab private daily refresh command", () => {
     const order: string[] = [];
     const source = sources({ order });
     const repository = budget(order);
-    const execute = vi.fn(async () => {
-      order.push("operator");
-      return { kind: "finished_history", step: { kind: "advanced" } } as never;
-    });
+    const currentStateCycleIds: string[] = [];
+    const execute = vi.fn(
+      async (request: DnaOpenLabPrivateDailyRefreshInvocation) => {
+        order.push("operator");
+        currentStateCycleIds.push(request.currentStateCycleId);
+        return {
+          kind: "finished_history",
+          step: { kind: "advanced" },
+        } as never;
+      },
+    );
     let operatorSources: DnaOpenLabPrivateDailyRefreshSources | undefined;
     const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
       environment(),
@@ -285,6 +295,13 @@ describe("DNA Open Lab private daily refresh command", () => {
       "operator",
     ]);
     expect(execute).toHaveBeenCalledTimes(2);
+    expect(currentStateCycleIds).toEqual([
+      currentStateCycleIds[0],
+      currentStateCycleIds[0],
+    ]);
+    expect(currentStateCycleIds[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
     await expect(operatorSources?.measureActualR2Usage()).resolves.toEqual({
       storageBytes: 100_000_000,
       classAOperations: 1_000,
