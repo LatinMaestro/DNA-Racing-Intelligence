@@ -230,11 +230,17 @@ async function advanceFinishedHistory(input: {
     },
   });
   if (step.kind === "collection_complete") {
+    const completedAt = step.stored.cycle.completion?.completedAt;
+    if (completedAt === undefined) {
+      throw new Error(
+        "DNA Open Lab private daily refresh completed history has no completion authority.",
+      );
+    }
     const publication = await publishDnaFinishedRaceIncrementalCycle({
       cycle: step.stored.cycle,
       repository: input.repositories.finishedHistoryPublication,
-      validatedAt: input.invocation.recordedAt,
-      publishedAt: input.invocation.acceptedAt,
+      validatedAt: completedAt,
+      publishedAt: completedAt,
     });
     if (publication.cycleId !== step.stored.cycle.cycleId) {
       throw new Error(
