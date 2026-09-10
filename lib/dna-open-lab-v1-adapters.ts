@@ -210,8 +210,12 @@ export type CanonicalCoreListingSnapshot = Readonly<{
 export type CanonicalCoreAttachedAssetsSnapshot = Readonly<{
   sourceType: "core_attached_assets_snapshot";
   sourceCoreId: string;
-  skinSourceValueByMode: Readonly<Record<DnaRaceMode, JsonSourceValue>>;
-  trailsSourceValue: JsonSourceValue;
+  skinSourceValueByMode: Readonly<
+    Partial<Record<DnaRaceMode, JsonSourceValue>>
+  >;
+  unavailableSkinModes: readonly DnaRaceMode[];
+  trailsSourceValue?: JsonSourceValue;
+  trailsEvidenceStatus?: "unsupported_source_value";
 }>;
 
 export type CanonicalCoreOwnerSnapshot = Readonly<{
@@ -1313,18 +1317,32 @@ export function adaptDnaCoreAttachedAssets(input: {
   observedAt: string;
 }): DnaOpenLabEvidence<CanonicalCoreAttachedAssetsSnapshot> {
   const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const modes = ["bike", "car", "horse"] as const;
+  const availableModes = modes.filter(
+    (mode) => input.raw.skino[mode] !== undefined,
+  );
   const canonical: CanonicalCoreAttachedAssetsSnapshot = Object.freeze({
     sourceType: "core_attached_assets_snapshot",
     sourceCoreId,
-    skinSourceValueByMode: Object.freeze({
-      bike: jsonSourceValue(input.raw.skino.bike, "core.assets.skin.bike"),
-      car: jsonSourceValue(input.raw.skino.car, "core.assets.skin.car"),
-      horse: jsonSourceValue(input.raw.skino.horse, "core.assets.skin.horse"),
-    }),
-    trailsSourceValue: jsonSourceValue(
-      input.raw.trailsmap,
-      "core.assets.trails",
+    skinSourceValueByMode: Object.freeze(
+      Object.fromEntries(
+        availableModes.map((mode) => [
+          mode,
+          jsonSourceValue(input.raw.skino[mode], `core.assets.skin.${mode}`),
+        ]),
+      ),
     ),
+    unavailableSkinModes: Object.freeze(
+      modes.filter((mode) => input.raw.skino[mode] === undefined),
+    ),
+    ...(input.raw.trailsmap === undefined
+      ? { trailsEvidenceStatus: "unsupported_source_value" as const }
+      : {
+          trailsSourceValue: jsonSourceValue(
+            input.raw.trailsmap,
+            "core.assets.trails",
+          ),
+        }),
   });
   return evidence({
     scope: "cores",
