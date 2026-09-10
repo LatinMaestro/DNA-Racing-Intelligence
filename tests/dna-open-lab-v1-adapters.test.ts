@@ -207,6 +207,18 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     });
   });
 
+  it("retains an active race when the API omits its optional start time", () => {
+    const { start_time, ...withoutStartTime } = activeRace;
+    expect(start_time).toBe("2026-08-27T02:00:00Z");
+
+    const adapted = adaptDnaActiveRace({
+      raw: withoutStartTime,
+      observedAt: OBSERVED_AT,
+    });
+
+    expect(adapted.canonical.startAt).toBeNull();
+  });
+
   it("maps only connected race-document metadata without inventing results, distance, or star semantics", () => {
     const finished = adaptDnaRaceDocument({
       raw: raceDocument,
