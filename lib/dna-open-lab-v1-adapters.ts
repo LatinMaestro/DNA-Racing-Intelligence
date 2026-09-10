@@ -53,6 +53,9 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_gate_count_unavailable"
   | "race_document_adaptation_filled_gate_count_unavailable"
   | "race_document_adaptation_entrant_core_ids_unavailable"
+  | "race_document_adaptation_entrant_core_ids_type_unavailable"
+  | "race_document_adaptation_entrant_core_id_type_unavailable"
+  | "race_document_adaptation_entrant_core_id_value_unavailable"
   | "race_document_adaptation_economics_unavailable"
   | "race_document_adaptation_fixed_fees_unavailable"
   | "race_document_adaptation_entry_fee_usd_unavailable"
@@ -364,6 +367,29 @@ function sourceCoreIds(
 ): readonly string[] {
   return Object.freeze(
     values.map((value) => String(positiveInteger(value, field))),
+  );
+}
+
+function raceDocumentEntrantCoreIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new DnaRaceDocumentAdaptationProcessingError(
+      "race_document_adaptation_entrant_core_ids_type_unavailable",
+    );
+  }
+  return Object.freeze(
+    value.map((entry) => {
+      if (typeof entry !== "number") {
+        throw new DnaRaceDocumentAdaptationProcessingError(
+          "race_document_adaptation_entrant_core_id_type_unavailable",
+        );
+      }
+      return String(
+        raceDocumentAdaptationBoundary(
+          "race_document_adaptation_entrant_core_id_value_unavailable",
+          () => positiveInteger(entry, "race.entrantCoreId"),
+        ),
+      );
+    }),
   );
 }
 
@@ -873,7 +899,7 @@ export function adaptDnaRaceDocument(input: {
         : {
             entrantCoreIds: raceDocumentAdaptationBoundary(
               "race_document_adaptation_entrant_core_ids_unavailable",
-              () => sourceCoreIds(rawEntrantCoreIds, "race.entrantCoreId"),
+              () => raceDocumentEntrantCoreIds(rawEntrantCoreIds),
             ),
           }),
     }),
