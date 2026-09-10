@@ -275,9 +275,29 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_identity_unavailable",
     },
     {
-      name: "descriptor",
+      name: "status",
       raw: { rid: 1, status: "" },
-      diagnostic: "race_document_adaptation_descriptor_unavailable",
+      diagnostic: "race_document_adaptation_status_unavailable",
+    },
+    {
+      name: "name",
+      raw: { rid: 1, race_name: "" },
+      diagnostic: "race_document_adaptation_name_unavailable",
+    },
+    {
+      name: "mode",
+      raw: { rid: 1, rvmode: "unsupported" },
+      diagnostic: "race_document_adaptation_mode_unavailable",
+    },
+    {
+      name: "format",
+      raw: { rid: 1, format: "" },
+      diagnostic: "race_document_adaptation_format_unavailable",
+    },
+    {
+      name: "class",
+      raw: { rid: 1, class: "" },
+      diagnostic: "race_document_adaptation_class_unavailable",
     },
     {
       name: "participation",
