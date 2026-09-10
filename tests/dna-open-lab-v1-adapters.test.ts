@@ -285,16 +285,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_name_unavailable",
     },
     {
-      name: "mode type",
-      raw: { rid: 1, rvmode: null },
-      diagnostic: "race_document_adaptation_mode_type_unavailable",
-    },
-    {
-      name: "mode blank",
-      raw: { rid: 1, rvmode: "  " },
-      diagnostic: "race_document_adaptation_mode_blank_unavailable",
-    },
-    {
       name: "format",
       raw: { rid: 1, format: "" },
       diagnostic: "race_document_adaptation_format_unavailable",
@@ -433,19 +423,22 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     },
   );
 
-  it("preserves unsupported Race mode evidence without inventing canonical meaning", () => {
-    const evidence = adaptDnaRaceDocument({
-      raw: { rid: 1, rvmode: "unsupported" as never },
-      observedAt: OBSERVED_AT,
-      endpoint: "races.docs",
-    });
+  it.each([null, "  ", "unsupported"])(
+    "preserves unsupported Race mode evidence without inventing canonical meaning",
+    (rvmode) => {
+      const evidence = adaptDnaRaceDocument({
+        raw: { rid: 1, rvmode: rvmode as never },
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
 
-    expect(evidence.canonical).toMatchObject({
-      sourceRaceId: "1",
-      modeEvidenceStatus: "unsupported_source_value",
-    });
-    expect(evidence.canonical).not.toHaveProperty("mode");
-  });
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        modeEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("mode");
+    },
+  );
 
   it("preserves an explicit null Race prize as absent evidence without inferring zero", () => {
     const raw = { rid: 1, prize: null as never };
