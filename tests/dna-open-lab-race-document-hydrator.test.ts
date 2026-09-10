@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DnaRaceDocumentHydrationProcessingError,
   hydrateDnaRaceDocuments,
   type DnaRaceDocumentHydrationResult,
 } from "../lib/dna-open-lab-race-document-hydrator";
@@ -74,6 +75,89 @@ async function hydrate(input: {
 }
 
 describe("DNA Open Lab race document hydrator", () => {
+  it("classifies unexpected input processing before transport", async () => {
+    const raceIds = new Proxy([1] as DnaRaceIdentifier[], {
+      get(target, property, receiver) {
+        if (property === "length") {
+          throw new Error("private input-processing detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const source = clientWith(async () => []);
+
+    await expect(
+      hydrateDnaRaceDocuments({
+        raceIds,
+        client: source.client,
+        requestBudget: createDnaOpenLabRequestBudget(),
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic: "race_document_hydration_input_processing_unavailable",
+      message: "DNA race-document hydration processing is unavailable",
+    });
+    expect(source.calls).toHaveLength(0);
+  });
+
+  it("replaces unexpected response-processing detail with a stable diagnostic", async () => {
+    const documents = new Proxy([] as DnaRaceDocument[], {
+      get(target, property, receiver) {
+        if (property === "length") {
+          throw new Error("private response-processing detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const error = await hydrateDnaRaceDocuments({
+      raceIds: [1],
+      client: { raceDocs: async () => response(documents) },
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(DnaRaceDocumentHydrationProcessingError);
+    expect(error).toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic: "race_document_hydration_response_processing_unavailable",
+      message: "DNA race-document hydration processing is unavailable",
+    });
+    expect(String(error)).not.toContain("private response-processing detail");
+  });
+
+  it("classifies unexpected result materialization after complete coverage", async () => {
+    const requestedKeys = new Proxy(["1"], {
+      get(target, property, receiver) {
+        if (property === "map") {
+          throw new Error("private result-processing detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const raceIds = new Proxy([1] as DnaRaceIdentifier[], {
+      get(target, property, receiver) {
+        if (property === "map") return () => requestedKeys;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+
+    await expect(
+      hydrateDnaRaceDocuments({
+        raceIds,
+        client: clientWith(async () => [{ rid: 1 }]).client,
+        requestBudget: createDnaOpenLabRequestBudget(),
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic: "race_document_hydration_result_processing_unavailable",
+      message: "DNA race-document hydration processing is unavailable",
+    });
+  });
+
   it("fails closed when DNA returns a non-array document result", async () => {
     const requestBudget = createDnaOpenLabRequestBudget();
 
