@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { DnaOpenLabCurrentRaceReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import type { CanonicalActiveRaceSnapshot } from "@/lib/dna-open-lab-v1-adapters";
 import { loadProLeagueRaceOpportunities } from "@/lib/pro-league-race-opportunity-service";
 
 const ownerId = "private_owner";
@@ -14,25 +15,26 @@ function race(input: {
   filledGateCount: number;
 }) {
   const observedAt = "2026-09-07T20:00:00.000Z";
+  const canonical: CanonicalActiveRaceSnapshot = {
+    sourceType: "active_race_snapshot",
+    sourceRaceId: input.id,
+    status: input.status ?? "filling",
+    displayName: `Race ${input.id}`,
+    mode: input.mode ?? "bike",
+    format: "normal",
+    raceClassSourceValue: 3,
+    fixedFeesByAsset: { DEZ: 0.25 },
+    entryFeeUsd: 2.5,
+    paymentAsset: "DEZ",
+    startAt: null,
+    endAt: null,
+  };
   return {
     active: {
       sourceRaceId: input.id,
       observedAt,
       rawEvidenceSha256: "a".repeat(64),
-      canonical: {
-        sourceType: "active_race_snapshot" as const,
-        sourceRaceId: input.id,
-        status: input.status ?? "filling",
-        displayName: `Race ${input.id}`,
-        mode: input.mode ?? "bike",
-        format: "normal",
-        raceClassSourceValue: 3,
-        fixedFeesByAsset: { DEZ: 0.25 },
-        entryFeeUsd: 2.5,
-        paymentAsset: "DEZ",
-        startAt: null,
-        endAt: null,
-      },
+      canonical,
     },
     fill: {
       sourceRaceId: input.id,
@@ -123,6 +125,36 @@ describe("Pro League race opportunity service", () => {
         now: new Date("2026-09-08T00:00:00.000Z"),
       }),
     ).resolves.toMatchObject({ freshness: "stale" });
+  });
+
+  it("withholds a fee-dependent opportunity when fixed-fee evidence is unavailable", async () => {
+    const value = race({ id: "fee-unknown", gateCount: 4, filledGateCount: 2 });
+    const { fixedFeesByAsset, ...withoutFixedFees } = value.active.canonical;
+    expect(fixedFeesByAsset).toEqual({ DEZ: 0.25 });
+
+    const result = await loadProLeagueRaceOpportunities({
+      ownerId,
+      priorityGapCount: 1,
+      repository: repository([
+        {
+          ...value,
+          active: {
+            ...value.active,
+            canonical: {
+              ...withoutFixedFees,
+              fixedFeesEvidenceStatus: "unsupported_source_value" as const,
+            },
+          },
+        },
+      ]),
+      now: new Date("2026-09-08T00:00:00.000Z"),
+    });
+
+    expect(result).toMatchObject({
+      scannedRaceCount: 1,
+      qualifyingRaceCount: 0,
+      opportunities: [],
+    });
   });
 
   it("reports absent configuration and absent last-good generation explicitly", async () => {

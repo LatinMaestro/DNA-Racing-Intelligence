@@ -219,6 +219,21 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(adapted.canonical.startAt).toBeNull();
   });
 
+  it("retains an active race while quarantining an omitted fixed-fee breakdown", () => {
+    const { fee_fixed, ...withoutFixedFees } = activeRace;
+    expect(fee_fixed).toEqual({ DEZ: 0.25, ETH: 0.0001 });
+
+    const adapted = adaptDnaActiveRace({
+      raw: withoutFixedFees,
+      observedAt: OBSERVED_AT,
+    });
+
+    expect(adapted.canonical).toMatchObject({
+      fixedFeesEvidenceStatus: "unsupported_source_value",
+    });
+    expect(adapted.canonical).not.toHaveProperty("fixedFeesByAsset");
+  });
+
   it("maps only connected race-document metadata without inventing results, distance, or star semantics", () => {
     const finished = adaptDnaRaceDocument({
       raw: raceDocument,

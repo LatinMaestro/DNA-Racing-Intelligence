@@ -114,7 +114,8 @@ export type CanonicalActiveRaceSnapshot = Readonly<{
   mode: RaceMode;
   format: string | null;
   raceClassSourceValue: string | number | null;
-  fixedFeesByAsset: Readonly<Record<string, number>>;
+  fixedFeesByAsset?: Readonly<Record<string, number>>;
+  fixedFeesEvidenceStatus?: "unsupported_source_value";
   entryFeeUsd: number;
   paymentAsset: string;
   startAt: string | null;
@@ -880,7 +881,7 @@ export function adaptDnaActiveRace(input: {
         ? null
         : requiredText(input.raw.format, "race.format"),
     raceClassSourceValue: raceClassSourceValue(input.raw.class, "race.class"),
-    fixedFeesByAsset: fixedFeesByAsset(input.raw.fee_fixed, "race.fixedFee"),
+    ...raceDocumentFixedFees(input.raw.fee_fixed),
     entryFeeUsd: nonNegativeFinite(input.raw.feeusd, "race.entryFeeUsd"),
     paymentAsset: requiredText(input.raw.paytoken, "race.paymentAsset"),
     startAt: optionalTimestamp(input.raw.start_time ?? null, "race.startAt"),
