@@ -12,6 +12,7 @@ const runners = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/dna-open-lab-current-state-discovery-runner", () => ({
+  dnaCurrentStateDiscoveryCycleId: () => "22222222-2222-4222-8222-222222222222",
   runDnaCurrentStateDiscoveryStep: runners.discovery,
 }));
 
@@ -19,8 +20,10 @@ vi.mock("@/lib/dna-open-lab-current-state-cycle-coordinator", () => ({
   runDnaCurrentStateScheduledCycleStep: runners.scheduled,
 }));
 
-const checkpointRepository =
-  {} as DnaCurrentStateAcquisitionCycleCheckpointRepository;
+const loadCheckpoint = vi.fn();
+const checkpointRepository = {
+  load: loadCheckpoint,
+} as unknown as DnaCurrentStateAcquisitionCycleCheckpointRepository;
 const pool = {} as DnaOpenLabClientPool;
 const pause = vi.fn();
 const publicationRepository = {
@@ -56,6 +59,7 @@ const baseInput = {
 describe("DNA Open Lab current-state operator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadCheckpoint.mockResolvedValue(null);
   });
 
   it("fails closed before discovery when the zero-cost budget is exhausted", async () => {
@@ -169,6 +173,29 @@ describe("DNA Open Lab current-state operator", () => {
         persistEvidence,
         readEvidence,
       }),
+    );
+  });
+
+  it("reuses the first durable discovery evaluation across restarted runners", async () => {
+    const durableEvaluatedAt = "2026-08-28T11:59:00.000Z";
+    const plan = Object.freeze({
+      marker: "plan",
+    }) as unknown as DnaCurrentStateSyncPlan;
+    loadCheckpoint.mockResolvedValue({
+      checkpoint: { evaluatedAt: durableEvaluatedAt },
+    });
+    runners.discovery.mockResolvedValue(
+      Object.freeze({ kind: "final_plan_ready", plan }),
+    );
+    runners.scheduled.mockResolvedValue(Object.freeze({ kind: "idle" }));
+
+    await runDnaCurrentStateOperatorStep(baseInput);
+
+    expect(runners.discovery).toHaveBeenCalledWith(
+      expect.objectContaining({ evaluatedAt: durableEvaluatedAt }),
+    );
+    expect(runners.scheduled).toHaveBeenCalledWith(
+      expect.objectContaining({ evaluatedAt: durableEvaluatedAt }),
     );
   });
 

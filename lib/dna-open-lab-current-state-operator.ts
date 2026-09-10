@@ -9,6 +9,7 @@ import {
   type DnaCurrentStateScheduledCycleStepResult,
 } from "./dna-open-lab-current-state-cycle-coordinator";
 import {
+  dnaCurrentStateDiscoveryCycleId,
   runDnaCurrentStateDiscoveryStep,
   type DnaCurrentStateDiscoveryStepResult,
 } from "./dna-open-lab-current-state-discovery-runner";
@@ -84,9 +85,14 @@ export async function runDnaCurrentStateOperatorStep(input: {
   if (!budget.allowed) {
     return Object.freeze({ kind: "budget_blocked", budget });
   }
+  const rootDiscovery = await input.checkpointRepository.load(
+    dnaCurrentStateDiscoveryCycleId(input.cycleId, 0),
+  );
+  const evaluatedAt =
+    rootDiscovery?.checkpoint.evaluatedAt ?? input.evaluatedAt;
   const discovery = await runDnaCurrentStateDiscoveryStep({
     cycleId: input.cycleId,
-    evaluatedAt: input.evaluatedAt,
+    evaluatedAt,
     attemptedAt: input.attemptedAt,
     vault: input.vault,
     ...(input.spliceModes === undefined
@@ -110,7 +116,7 @@ export async function runDnaCurrentStateOperatorStep(input: {
   const scheduled = await runDnaCurrentStateScheduledCycleStep({
     ownerId: input.ownerId,
     cycleId: input.cycleId,
-    evaluatedAt: input.evaluatedAt,
+    evaluatedAt,
     attemptedAt: input.attemptedAt,
     recordedAt: input.recordedAt,
     acceptedAt: input.acceptedAt,

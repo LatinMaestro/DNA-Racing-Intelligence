@@ -59,7 +59,10 @@ function parentCycleId(value: string): string {
   return normalized;
 }
 
-function discoveryCycleId(cycleId: string, round: number): string {
+export function dnaCurrentStateDiscoveryCycleId(
+  cycleId: string,
+  round: number,
+): string {
   const hex = createHash("sha256")
     .update(`dna-current-state-discovery\u0000${cycleId}\u0000${round}`, "utf8")
     .digest("hex")
@@ -212,7 +215,7 @@ export async function runDnaCurrentStateDiscoveryStep(input: {
     round < DNA_CURRENT_STATE_MAXIMUM_SCHEDULED_REQUESTS;
     round += 1
   ) {
-    const childCycleId = discoveryCycleId(rootCycleId, round);
+    const childCycleId = dnaCurrentStateDiscoveryCycleId(rootCycleId, round);
     const schedule = discoverySchedule({
       evaluatedAt: input.evaluatedAt,
       requests,
