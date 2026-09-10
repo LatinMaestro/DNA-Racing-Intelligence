@@ -52,6 +52,10 @@ export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "finished_publication_processing_unavailable"
   | "race_document_hydration_input_processing_unavailable"
   | "race_document_hydration_response_processing_unavailable"
+  | "race_document_hydration_response_identity_processing_unavailable"
+  | "race_document_hydration_response_hash_processing_unavailable"
+  | "race_document_hydration_response_adaptation_processing_unavailable"
+  | "race_document_hydration_response_coverage_processing_unavailable"
   | "race_document_hydration_result_processing_unavailable"
   | "unclassified_unavailable";
 
