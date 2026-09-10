@@ -121,7 +121,9 @@ function opportunity(
     active.canonical.mode !== "bike" ||
     active.canonical.status.trim().toLowerCase() !== "filling" ||
     fill.canonical.status.trim().toLowerCase() !== "filling" ||
-    active.canonical.fixedFeesByAsset === undefined
+    active.canonical.fixedFeesByAsset === undefined ||
+    active.canonical.entryFeeUsd === undefined ||
+    active.canonical.paymentAsset === undefined
   ) {
     return null;
   }
