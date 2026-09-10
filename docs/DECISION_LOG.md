@@ -2302,3 +2302,15 @@ After the private Pro League milestone, continue in this order:
   completion authority fails closed.
 - This replay correction changes no receipt, baseline, owner, cutoff, budget,
   Production service, public route or game action.
+
+## 2026-09-10 — Current-state retries keep the first evaluation instant
+
+- Connected Preview reached current-state discovery and durably accepted its
+  first request before a second short-lived step supplied a newer evaluation
+  instant. The existing checkpoint correctly rejected that changed schedule.
+- Treat the first discovery checkpoint's evaluation instant as the authority
+  for the whole current-state cycle. Restarted discovery and scheduled
+  acquisition reuse it while each API observation retains its real request
+  time.
+- The root is read through the existing owner-isolated checkpoint repository;
+  missing, malformed or cross-owner state remains fail-closed.
