@@ -550,10 +550,17 @@ function raceDocumentMode(value: unknown): Readonly<{
   return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
 }
 
-function raceIdentifier(value: string | number): string {
+function raceIdentifier(value: unknown): string {
   if (typeof value === "number")
     return String(positiveInteger(value, "race.id"));
-  return requiredText(value, "race.id");
+  if (typeof value === "string") return requiredText(value, "race.id");
+  return adapterError("race.id is unsupported");
+}
+
+/** Identity-only boundary for discovery, where active-race descriptors are not
+ * required until the later Race hydration request. */
+export function dnaActiveRaceSourceId(raw: DnaActiveRace): string {
+  return raceIdentifier(raw.rid);
 }
 
 function raceDocumentScope(endpoint: DnaRaceDocumentEndpoint): DnaOpenLabScope {
