@@ -510,17 +510,11 @@ function raceDocumentMode(value: unknown): Readonly<{
   mode?: RaceMode;
   modeEvidenceStatus?: "unsupported_source_value";
 }> {
-  if (typeof value !== "string") {
-    throw new DnaRaceDocumentAdaptationProcessingError(
-      "race_document_adaptation_mode_type_unavailable",
-    );
-  }
+  if (typeof value !== "string")
+    return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
   const normalized = value.trim().toLowerCase();
-  if (normalized.length === 0) {
-    throw new DnaRaceDocumentAdaptationProcessingError(
-      "race_document_adaptation_mode_blank_unavailable",
-    );
-  }
+  if (normalized.length === 0)
+    return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
   if (normalized === "bike" || normalized === "car" || normalized === "horse") {
     return Object.freeze({ mode: normalized });
   }
