@@ -44,6 +44,9 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_status_unavailable"
   | "race_document_adaptation_name_unavailable"
   | "race_document_adaptation_mode_unavailable"
+  | "race_document_adaptation_mode_type_unavailable"
+  | "race_document_adaptation_mode_blank_unavailable"
+  | "race_document_adaptation_mode_vocabulary_unavailable"
   | "race_document_adaptation_format_unavailable"
   | "race_document_adaptation_class_unavailable"
   | "race_document_adaptation_participation_unavailable"
@@ -408,6 +411,26 @@ function raceMode(value: string): RaceMode {
     return normalized;
   }
   return adapterError("race.mode is unsupported");
+}
+
+function raceDocumentMode(value: unknown): RaceMode {
+  if (typeof value !== "string") {
+    throw new DnaRaceDocumentAdaptationProcessingError(
+      "race_document_adaptation_mode_type_unavailable",
+    );
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) {
+    throw new DnaRaceDocumentAdaptationProcessingError(
+      "race_document_adaptation_mode_blank_unavailable",
+    );
+  }
+  if (normalized === "bike" || normalized === "car" || normalized === "horse") {
+    return normalized;
+  }
+  throw new DnaRaceDocumentAdaptationProcessingError(
+    "race_document_adaptation_mode_vocabulary_unavailable",
+  );
 }
 
 function raceIdentifier(value: string | number): string {
@@ -782,7 +805,7 @@ export function adaptDnaRaceDocument(input: {
         : {
             mode: raceDocumentAdaptationBoundary(
               "race_document_adaptation_mode_unavailable",
-              () => raceMode(input.raw.rvmode as string),
+              () => raceDocumentMode(input.raw.rvmode),
             ),
           }),
       ...(input.raw.format === undefined
