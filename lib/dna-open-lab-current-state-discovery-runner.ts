@@ -46,6 +46,7 @@ export type DnaCurrentStateDiscoveryStepResult =
       evidenceReceiptCount: number;
       ownedCoreIds: readonly number[];
       activeRaceIds: readonly string[];
+      omittedActiveRaceIdentityCount: number;
       plan: DnaCurrentStateSyncPlan;
     }>;
 
@@ -271,6 +272,8 @@ export async function runDnaCurrentStateDiscoveryStep(input: {
         evidenceReceiptCount,
         ownedCoreIds: assembled.ownedCoreIds,
         activeRaceIds: assembled.activeRaceIds,
+        omittedActiveRaceIdentityCount:
+          assembled.omittedActiveRaceIdentityCount,
         plan: assembled.plan,
       });
     }
