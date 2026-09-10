@@ -57,7 +57,6 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_payout_unavailable"
   | "race_document_adaptation_prize_unavailable"
   | "race_document_adaptation_prize_type_unavailable"
-  | "race_document_adaptation_prize_null_unavailable"
   | "race_document_adaptation_prize_non_numeric_unavailable"
   | "race_document_adaptation_prize_value_unavailable"
   | "race_document_adaptation_prize_usd_unavailable"
@@ -139,6 +138,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   eventTagsSourceValues?: readonly string[];
   payoutSourceValue?: string;
   prizeSourceValue?: number;
+  prizeEvidenceStatus?: "explicitly_absent";
   prizeUsdSourceValue?: number;
   trackSourceValue?: string;
   yellowStarSourceCoreIds?: readonly string[];
@@ -903,29 +903,26 @@ export function adaptDnaRaceDocument(input: {
               () => requiredText(rawPayout, "race.payout"),
             ),
           }),
-      ...(rawPrize === undefined
-        ? {}
-        : {
-            prizeSourceValue: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_prize_type_unavailable",
-              () => {
-                if (rawPrize === null) {
-                  throw new DnaRaceDocumentAdaptationProcessingError(
-                    "race_document_adaptation_prize_null_unavailable",
+      ...(rawPrize === null
+        ? { prizeEvidenceStatus: "explicitly_absent" as const }
+        : rawPrize === undefined
+          ? {}
+          : {
+              prizeSourceValue: raceDocumentAdaptationBoundary(
+                "race_document_adaptation_prize_type_unavailable",
+                () => {
+                  if (typeof rawPrize !== "number") {
+                    throw new DnaRaceDocumentAdaptationProcessingError(
+                      "race_document_adaptation_prize_non_numeric_unavailable",
+                    );
+                  }
+                  return raceDocumentAdaptationBoundary(
+                    "race_document_adaptation_prize_value_unavailable",
+                    () => nonNegativeFinite(rawPrize, "race.prize"),
                   );
-                }
-                if (typeof rawPrize !== "number") {
-                  throw new DnaRaceDocumentAdaptationProcessingError(
-                    "race_document_adaptation_prize_non_numeric_unavailable",
-                  );
-                }
-                return raceDocumentAdaptationBoundary(
-                  "race_document_adaptation_prize_value_unavailable",
-                  () => nonNegativeFinite(rawPrize, "race.prize"),
-                );
-              },
-            ),
-          }),
+                },
+              ),
+            }),
       ...(rawPrizeUsd === undefined
         ? {}
         : {
