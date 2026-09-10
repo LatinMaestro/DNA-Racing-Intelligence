@@ -17,7 +17,10 @@ import type {
   DnaFinishedRaceWindowPublicationReceipt,
 } from "@/lib/dna-open-lab-finished-race-backfill";
 import { createDnaOpenLabRequestBudget } from "@/lib/dna-open-lab-request-budget";
-import { DnaRaceDocumentHydrationError } from "@/lib/dna-open-lab-race-document-hydrator";
+import {
+  DnaRaceDocumentHydrationError,
+  DnaRaceDocumentHydrationProcessingError,
+} from "@/lib/dna-open-lab-race-document-hydrator";
 import { DnaOpenLabR2RaceEvidenceProviderError } from "@/lib/dna-open-lab-r2-race-evidence";
 import {
   DnaOpenLabApiError,
@@ -165,6 +168,21 @@ describe("DNA finished-race incremental runner", () => {
     ).toEqual({ reason: "operator_hold", retryAfterSeconds: null });
   });
 
+  it("preserves content-free hydration processing diagnostics", () => {
+    expect(
+      classifyDnaFinishedRaceIncrementalFailure(
+        new DnaRaceDocumentHydrationProcessingError(
+          "race_document_hydration_response_processing_unavailable",
+        ),
+      ),
+    ).toEqual({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic:
+        "race_document_hydration_response_processing_unavailable",
+    });
+  });
+
   it("distinguishes content-free DNA transport and upstream availability", () => {
     expect(
       classifyDnaFinishedRaceIncrementalFailure(
@@ -283,7 +301,7 @@ describe("DNA finished-race incremental runner", () => {
     });
   });
 
-  it("labels an unexpected failure inside backfill orchestration", async () => {
+  it("labels unexpected race-document response processing without leaking detail", async () => {
     const documents = new Proxy(
       [] as Array<{ rid: string | number; rvmode: "bike" }>,
       {
@@ -306,7 +324,8 @@ describe("DNA finished-race incremental runner", () => {
     ).resolves.toMatchObject({
       kind: "paused",
       reason: "api_unavailable",
-      unavailableDiagnostic: "backfill_orchestration_boundary_unavailable",
+      unavailableDiagnostic:
+        "race_document_hydration_response_processing_unavailable",
     });
   });
 
