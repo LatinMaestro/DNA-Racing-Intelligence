@@ -69,7 +69,8 @@ export function invalidProLeagueCurrentCoreState(): ProLeagueCurrentCoreState {
   return unavailable("invalid_generation");
 }
 
-function scalarPresent(value: JsonSourceValue): boolean {
+function scalarPresent(value: JsonSourceValue | undefined): boolean {
+  if (value === undefined) return false;
   if (value === null) return false;
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "object") return Object.keys(value).length > 0;
