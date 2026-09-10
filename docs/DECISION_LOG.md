@@ -2268,3 +2268,7 @@ After the private Pro League milestone, continue in this order:
   evidence under the same authority. Retain the Race with
   `modeEvidenceStatus=unsupported_source_value`, publish no canonical mode and
   never use it as Bike, Car or Horse evidence.
+- Quarantine malformed fixed-fee evidence under the same omission authority.
+  Retain the Race with `fixedFeesEvidenceStatus=unsupported_source_value`,
+  publish no fee amounts and exclude the missing field from all financial
+  analysis. Never infer zero or another amount.
