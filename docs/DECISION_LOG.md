@@ -2334,3 +2334,12 @@ After the private Pro League milestone, continue in this order:
   raw evidence hash is preserved and no timestamp is inferred.
 - A malformed timestamp still fails closed. This is the narrow field-level
   quarantine authorised by the owner and does not weaken other race fields.
+
+## 2026-09-10 — Missing active-race fixed fees are quarantined
+
+- Connected current-state publication evidence showed that an otherwise usable
+  active race may omit its fixed-fee breakdown.
+- Retain the active race and its immutable raw evidence, but mark fixed-fee
+  evidence unsupported and omit it from fee-dependent Pro League opportunities.
+- Never infer an empty or zero fee. This is the owner's standing isolated-field
+  quarantine authority and does not weaken validation of supplied fee values.
