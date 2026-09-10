@@ -23,7 +23,10 @@ import {
   DNA_FINISHED_RACE_INCREMENTAL_MAX_ATTEMPTS,
 } from "./dna-open-lab-finished-race-incremental-cycle";
 import { classifyDnaCurrentStateAcquisitionFailure } from "./dna-open-lab-current-state-acquisition-cadence";
-import { DnaRaceDocumentHydrationError } from "./dna-open-lab-race-document-hydrator";
+import {
+  DnaRaceDocumentHydrationError,
+  DnaRaceDocumentHydrationProcessingError,
+} from "./dna-open-lab-race-document-hydrator";
 import { DnaOpenLabR2RaceEvidenceProviderError } from "./dna-open-lab-r2-race-evidence";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import {
@@ -47,6 +50,9 @@ export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "finished_window_partition_processing_unavailable"
   | "finished_identity_processing_unavailable"
   | "finished_publication_processing_unavailable"
+  | "race_document_hydration_input_processing_unavailable"
+  | "race_document_hydration_response_processing_unavailable"
+  | "race_document_hydration_result_processing_unavailable"
   | "unclassified_unavailable";
 
 export class DnaFinishedRaceIncrementalBoundaryError extends Error {
@@ -94,6 +100,7 @@ function hasAuthoritativeFailureCategory(error: unknown): boolean {
     error instanceof DnaFinishedRaceBackfillError ||
     error instanceof DnaFinishedRaceBackfillProcessingError ||
     error instanceof DnaRaceDocumentHydrationError ||
+    error instanceof DnaRaceDocumentHydrationProcessingError ||
     error instanceof DnaOpenLabR2RaceEvidenceProviderError ||
     error instanceof DnaOpenLabApiError ||
     error instanceof DnaFinishedRaceIncrementalBoundaryError
@@ -140,6 +147,13 @@ export function classifyDnaFinishedRaceIncrementalFailure(
     });
   }
   if (error instanceof DnaFinishedRaceBackfillProcessingError) {
+    return Object.freeze({
+      reason: "api_unavailable",
+      retryAfterSeconds: null,
+      unavailableDiagnostic: error.diagnostic,
+    });
+  }
+  if (error instanceof DnaRaceDocumentHydrationProcessingError) {
     return Object.freeze({
       reason: "api_unavailable",
       retryAfterSeconds: null,
