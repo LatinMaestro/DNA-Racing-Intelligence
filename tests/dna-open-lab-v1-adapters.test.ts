@@ -415,6 +415,22 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
   });
 
+  it("preserves an explicit null Race USD prize as absent evidence without inferring zero", () => {
+    const raw = { rid: 1, prizeusd: null as never };
+    const evidence = adaptDnaRaceDocument({
+      raw,
+      observedAt: OBSERVED_AT,
+      endpoint: "races.docs",
+    });
+
+    expect(evidence.canonical).toMatchObject({
+      sourceRaceId: "1",
+      prizeUsdEvidenceStatus: "explicitly_absent",
+    });
+    expect(evidence.canonical).not.toHaveProperty("prizeUsdSourceValue");
+    expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+  });
+
   it("maps race fills into API-neutral gate and entrant state with deterministic confirmation-key ordering", () => {
     const adapted = adaptDnaRaceFill({
       raw: raceFill,
