@@ -120,7 +120,8 @@ function opportunity(
   if (
     active.canonical.mode !== "bike" ||
     active.canonical.status.trim().toLowerCase() !== "filling" ||
-    fill.canonical.status.trim().toLowerCase() !== "filling"
+    fill.canonical.status.trim().toLowerCase() !== "filling" ||
+    active.canonical.fixedFeesByAsset === undefined
   ) {
     return null;
   }
