@@ -115,6 +115,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   status?: string;
   displayName?: string;
   mode?: RaceMode;
+  modeEvidenceStatus?: "unsupported_source_value";
   format?: string | null;
   raceClassSourceValue?: string | number | null;
   gateCount?: number;
@@ -413,7 +414,10 @@ function raceMode(value: string): RaceMode {
   return adapterError("race.mode is unsupported");
 }
 
-function raceDocumentMode(value: unknown): RaceMode {
+function raceDocumentMode(value: unknown): Readonly<{
+  mode?: RaceMode;
+  modeEvidenceStatus?: "unsupported_source_value";
+}> {
   if (typeof value !== "string") {
     throw new DnaRaceDocumentAdaptationProcessingError(
       "race_document_adaptation_mode_type_unavailable",
@@ -426,11 +430,9 @@ function raceDocumentMode(value: unknown): RaceMode {
     );
   }
   if (normalized === "bike" || normalized === "car" || normalized === "horse") {
-    return normalized;
+    return Object.freeze({ mode: normalized });
   }
-  throw new DnaRaceDocumentAdaptationProcessingError(
-    "race_document_adaptation_mode_vocabulary_unavailable",
-  );
+  return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
 }
 
 function raceIdentifier(value: string | number): string {
@@ -802,12 +804,10 @@ export function adaptDnaRaceDocument(input: {
           }),
       ...(input.raw.rvmode === undefined
         ? {}
-        : {
-            mode: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_mode_unavailable",
-              () => raceDocumentMode(input.raw.rvmode),
-            ),
-          }),
+        : raceDocumentAdaptationBoundary(
+            "race_document_adaptation_mode_unavailable",
+            () => raceDocumentMode(input.raw.rvmode),
+          )),
       ...(input.raw.format === undefined
         ? {}
         : {
