@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   adaptDnaActiveRace,
+  adaptDnaCoreAttachedAssets,
   adaptDnaCoreInfo,
   adaptDnaRaceDocument,
   adaptDnaRaceFill,
@@ -576,6 +577,23 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         observedAt: OBSERVED_AT,
       }),
     ).toThrowError("raceFill.filledGateCount cannot exceed raceFill.gateCount");
+  });
+
+  it("retains Core assets while marking omitted optional modes unavailable", () => {
+    const adapted = adaptDnaCoreAttachedAssets({
+      raw: {
+        hid: coreInfo.hid,
+        skino: { car: null, horse: null },
+      },
+      observedAt: OBSERVED_AT,
+    });
+
+    expect(adapted.canonical).toMatchObject({
+      skinSourceValueByMode: { car: null, horse: null },
+      unavailableSkinModes: ["bike"],
+      trailsEvidenceStatus: "unsupported_source_value",
+    });
+    expect(adapted.canonical.skinSourceValueByMode).not.toHaveProperty("bike");
   });
 
   it("hashes JSON evidence deterministically regardless of object key order", () => {

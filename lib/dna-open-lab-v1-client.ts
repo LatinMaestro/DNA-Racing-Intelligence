@@ -172,8 +172,8 @@ export type DnaCoreListingPrice = DnaOpenLabRecord<{
 
 export type DnaCoreAttachedAssets = DnaOpenLabRecord<{
   hid: number;
-  skino: Readonly<Record<DnaRaceMode, unknown>>;
-  trailsmap: unknown;
+  skino: Readonly<Partial<Record<DnaRaceMode, unknown>>>;
+  trailsmap?: unknown;
 }>;
 
 export type DnaCoreOwner = DnaOpenLabRecord<{

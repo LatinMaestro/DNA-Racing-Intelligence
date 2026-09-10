@@ -68,6 +68,7 @@ function rows(): readonly DnaOpenLabServingSupplementalCore[] {
       sourceType: "core_attached_assets_snapshot",
       sourceCoreId: "101",
       skinSourceValueByMode: { bike: { id: 1 }, car: null, horse: null },
+      unavailableSkinModes: [],
       trailsSourceValue: null,
     }),
     row("owner", {

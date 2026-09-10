@@ -2362,3 +2362,12 @@ After the private Pro League milestone, continue in this order:
   opportunity read model under the owner's approved race quarantine authority.
 - Both immutable source responses remain in the private evidence index. No fill
   state is inferred, and the published pair counts remain internally consistent.
+
+## 2026-09-10 — Missing optional Core appearance fields do not block publication
+
+- Connected publication evidence showed an attached-assets record with no Bike
+  skin value. Skin values are current cosmetic observations, not racing evidence.
+- Retain the Core record, mark each omitted mode unavailable and treat an omitted
+  trails value the same way. Never invent an attachment or replace missing data.
+- Pro League readiness may continue with `bikeSkinAttached: false`; immutable raw
+  evidence remains private and all supplied JSON values remain strictly checked.
