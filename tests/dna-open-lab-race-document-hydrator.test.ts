@@ -128,6 +128,68 @@ describe("DNA Open Lab race document hydrator", () => {
     expect(String(error)).not.toContain("private response-processing detail");
   });
 
+  it("distinguishes response identity processing without exposing detail", async () => {
+    const document = new Proxy({ rid: 1 } as DnaRaceDocument, {
+      get(target, property, receiver) {
+        if (property === "rid") {
+          throw new Error("private identity-processing detail");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+
+    const error = await hydrateDnaRaceDocuments({
+      raceIds: [1],
+      client: { raceDocs: async () => response([document]) },
+      requestBudget: createDnaOpenLabRequestBudget(),
+      observedAt: "2026-08-27T08:00:00Z",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic:
+        "race_document_hydration_response_identity_processing_unavailable",
+    });
+    expect(String(error)).not.toContain("private identity-processing detail");
+  });
+
+  it("distinguishes response evidence hashing from later adaptation", async () => {
+    await expect(
+      hydrateDnaRaceDocuments({
+        raceIds: [1],
+        client: {
+          raceDocs: async () =>
+            response([{ rid: 1, non_json_value: undefined }]),
+        },
+        requestBudget: createDnaOpenLabRequestBudget(),
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic:
+        "race_document_hydration_response_hash_processing_unavailable",
+    });
+  });
+
+  it("distinguishes canonical adaptation without exposing adapter detail", async () => {
+    const error = await hydrateDnaRaceDocuments({
+      raceIds: [1],
+      client: {
+        raceDocs: async () =>
+          response([{ rid: 1, rvmode: "unsupported" as never }]),
+      },
+      requestBudget: createDnaOpenLabRequestBudget(),
+      observedAt: "2026-08-27T08:00:00Z",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      name: "DnaRaceDocumentHydrationProcessingError",
+      diagnostic:
+        "race_document_hydration_response_adaptation_processing_unavailable",
+    });
+    expect(String(error)).not.toContain("race.mode is unsupported");
+  });
+
   it("classifies unexpected result materialization after complete coverage", async () => {
     const requestedKeys = new Proxy(["1"], {
       get(target, property, receiver) {
