@@ -1,0 +1,30 @@
+name: TEMPORARY chat arena offspring
+on:
+  push:
+    branches: [temporary/chat-breeding-program-2026-09-11]
+    paths:
+      - tests/temporary-chat-arena-offspring.test.ts
+      - .github/workflows/temporary-chat-arena-offspring.yml
+permissions:
+  contents: read
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TEMP_CHAT_ARENA_OFFSPRING: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/temporary-chat-arena-offspring.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-arena-offspring
+          path: artifacts/temporary-chat-arena-offspring.json
+          retention-days: 3
+          if-no-files-found: error
