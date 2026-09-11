@@ -1,0 +1,36 @@
+name: TEMPORARY latest esports match history 2026-09-11
+on:
+  push:
+    branches: [temporary/r2-evidence-analysis-do-not-merge-2026-09-05]
+    paths:
+      - tests/temporary-latest-esports-match-history-2026-09-11.test.ts
+      - .github/workflows/temporary-latest-esports-match-history-2026-09-11.yml
+permissions:
+  contents: read
+jobs:
+  pull:
+    name: TEMPORARY ONLY - latest esports match history - DO NOT MERGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TEMP_LATEST_ESPORTS_20260911: '1'
+    steps:
+      - name: Guard temporary branch
+        run: '[[ "$GITHUB_REF" == "refs/heads/temporary/r2-evidence-analysis-do-not-merge-2026-09-05" ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: temporary/r2-evidence-analysis-do-not-merge-2026-09-05
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/temporary-latest-esports-match-history-2026-09-11.test.ts --reporter=verbose
+      - run: git diff --exit-code && git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEMPORARY-latest-esports-match-history-${{ github.run_id }}
+          path: artifacts/temporary-latest-esports-match-history-2026-09-11.json
+          if-no-files-found: error
+          retention-days: 2
