@@ -1,0 +1,30 @@
+name: TEMPORARY chat pair shortlist
+on:
+  push:
+    branches: [temporary/chat-breeding-program-2026-09-11]
+    paths:
+      - tests/temporary-chat-pair-shortlist.test.ts
+      - .github/workflows/temporary-chat-pair-shortlist.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TEMP_CHAT_PAIR_SHORTLIST: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/temporary-chat-pair-shortlist.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-pair-shortlist
+          path: artifacts/temporary-chat-pair-shortlist.json
+          retention-days: 3
+          if-no-files-found: error
