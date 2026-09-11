@@ -1,0 +1,34 @@
+name: TEMPORARY chat full recent race window
+
+on:
+  push:
+    branches:
+      - temporary/chat-latest-race-roster-2026-09-11
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DNA_OPEN_LAB_CONNECTED_DISCOVERY: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Crawl complete recent race window
+        run: npx vitest run --no-file-parallelism tests/temporary-chat-full-race-window.test.ts
+      - name: Upload recent race artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-full-race-window
+          path: temporary-chat-full-race-window.json
+          if-no-files-found: error
