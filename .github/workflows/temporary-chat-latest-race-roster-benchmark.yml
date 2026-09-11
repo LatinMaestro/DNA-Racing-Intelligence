@@ -1,0 +1,34 @@
+name: TEMPORARY chat latest race roster benchmark
+
+on:
+  push:
+    branches:
+      - temporary/chat-latest-race-roster-2026-09-11
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DNA_OPEN_LAB_CONNECTED_DISCOVERY: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Pull latest read-only evidence plus benchmarks
+        run: npx vitest run --no-file-parallelism tests/temporary-chat-latest-race-roster-benchmark.test.ts
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-latest-race-roster-benchmark
+          path: temporary-chat-latest-race-roster-benchmark.json
+          if-no-files-found: error
