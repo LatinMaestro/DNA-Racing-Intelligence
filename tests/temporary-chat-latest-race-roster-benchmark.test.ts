@@ -3,6 +3,7 @@ import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
 import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-telemetry-client";
 import { writeFile } from "node:fs/promises";
 
+// Temporary read-only rerun for 2026-09-12 Trainer table review after breeding.
 const connected = process.env.DNA_OPEN_LAB_CONNECTED_DISCOVERY === "1";
 const describeConnected = connected ? describe : describe.skip;
 function env(name: string): string { const v = process.env[name]; if (!v) throw new Error(`${name} missing`); return v; }
