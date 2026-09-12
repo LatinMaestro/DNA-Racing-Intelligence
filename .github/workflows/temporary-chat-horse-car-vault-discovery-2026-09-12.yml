@@ -1,0 +1,36 @@
+name: TEMPORARY Horse Car vault discovery
+
+on:
+  push:
+    branches:
+      - temporary/chat-horse-car-vault-discovery-2026-09-12-do-not-merge
+    paths:
+      - tests/temporary-chat-horse-car-vault-discovery-2026-09-12.test.ts
+      - .github/workflows/temporary-chat-horse-car-vault-discovery-2026-09-12.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEMP_HORSE_CAR_DISCOVERY: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Pull current full-vault Horse and Car evidence
+        run: npx vitest run --no-file-parallelism tests/temporary-chat-horse-car-vault-discovery-2026-09-12.test.ts --reporter=verbose
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-horse-car-vault-discovery
+          path: artifacts/temporary-chat-horse-car-vault-discovery-2026-09-12.json
+          retention-days: 3
+          if-no-files-found: error
