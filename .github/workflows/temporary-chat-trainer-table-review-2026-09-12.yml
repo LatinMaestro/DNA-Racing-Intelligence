@@ -1,0 +1,31 @@
+name: TEMPORARY chat Trainer table review
+on:
+  push:
+    branches: [temporary/chat-trainer-table-review-2026-09-12-do-not-merge]
+    paths:
+      - tests/temporary-chat-trainer-table-review-2026-09-12.test.ts
+      - .github/workflows/temporary-chat-trainer-table-review-2026-09-12.yml
+permissions:
+  contents: read
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEMP_CHAT_TRAINER_TABLE_REVIEW: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run --no-file-parallelism tests/temporary-chat-trainer-table-review-2026-09-12.test.ts --reporter=verbose
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-trainer-table-review
+          path: artifacts/temporary-chat-trainer-table-review-2026-09-12.json
+          retention-days: 3
+          if-no-files-found: error
