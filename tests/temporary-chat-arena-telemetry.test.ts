@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
 import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-telemetry-client";
 
+// Temporary read-only rerun for 2026-09-12 breeding review.
 const enabled=process.env.TEMP_CHAT_ARENA_TELEMETRY==='1'; const d=enabled?describe:describe.skip;
 function env(n:string){const v=process.env[n]?.trim()??'';if(!v)throw new Error(`${n} missing`);return v;}
 function chunks<T>(xs:readonly T[],n:number){const o:T[][]=[];for(let i=0;i<xs.length;i+=n)o.push(xs.slice(i,i+n) as T[]);return o;}
