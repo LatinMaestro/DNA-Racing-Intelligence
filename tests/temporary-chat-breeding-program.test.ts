@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { writeFile, mkdir } from "node:fs/promises";
 import { createDnaOpenLabV1Client } from "../lib/dna-open-lab-v1-client";
 
+// refreshed from chat 2026-09-12 for current-cycle breeding decisions
 const enabled = process.env.TEMP_CHAT_BREEDING_PROGRAM === "1";
 const d = enabled ? describe : describe.skip;
 const VAULT = "0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d";
