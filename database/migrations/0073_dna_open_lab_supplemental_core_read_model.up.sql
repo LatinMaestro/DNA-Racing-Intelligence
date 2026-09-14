@@ -142,19 +142,54 @@ BEGIN
       PERFORM (p_canonical ->> 'expiresAt')::timestamptz;
     END IF;
   ELSIF p_family = 'attachedAssets' THEN
-    IF v_key_count <> 4
+    IF v_key_count <> 5
        OR p_canonical ->> 'sourceType' <> 'core_attached_assets_snapshot'
        OR NOT (p_canonical ?& ARRAY[
          'sourceType', 'sourceCoreId', 'skinSourceValueByMode',
-         'trailsSourceValue'
+         'unavailableSkinModes'
        ])
+       OR EXISTS (
+         SELECT 1 FROM jsonb_object_keys(p_canonical) AS key(name)
+         WHERE key.name NOT IN (
+           'sourceType', 'sourceCoreId', 'skinSourceValueByMode',
+           'unavailableSkinModes', 'trailsSourceValue',
+           'trailsEvidenceStatus'
+         )
+       )
        OR jsonb_typeof(p_canonical -> 'skinSourceValueByMode') <> 'object'
-       OR (SELECT count(*) FROM jsonb_object_keys(
-         p_canonical -> 'skinSourceValueByMode'
-       )) <> 3
-       OR NOT ((p_canonical -> 'skinSourceValueByMode') ?& ARRAY[
-         'bike', 'car', 'horse'
-       ]) THEN
+       OR jsonb_typeof(p_canonical -> 'unavailableSkinModes') <> 'array'
+       OR EXISTS (
+         SELECT 1
+         FROM jsonb_object_keys(p_canonical -> 'skinSourceValueByMode') AS key(name)
+         WHERE key.name NOT IN ('bike', 'car', 'horse')
+       )
+       OR EXISTS (
+         SELECT 1
+         FROM jsonb_array_elements(p_canonical -> 'unavailableSkinModes') value
+         WHERE jsonb_typeof(value) <> 'string'
+            OR value #>> '{}' NOT IN ('bike', 'car', 'horse')
+       )
+       OR (SELECT count(*) FROM jsonb_array_elements(
+         p_canonical -> 'unavailableSkinModes'
+       )) <> (SELECT count(DISTINCT value #>> '{}') FROM jsonb_array_elements(
+         p_canonical -> 'unavailableSkinModes'
+       ) value)
+       OR EXISTS (
+         SELECT 1 FROM unnest(ARRAY['bike', 'car', 'horse']) mode(name)
+         WHERE ((p_canonical -> 'skinSourceValueByMode') ? mode.name)::integer
+             + (EXISTS (
+                 SELECT 1 FROM jsonb_array_elements_text(
+                   p_canonical -> 'unavailableSkinModes'
+                 ) unavailable(name)
+                 WHERE unavailable.name = mode.name
+               ))::integer <> 1
+       )
+       OR ((p_canonical ? 'trailsSourceValue')::integer
+         + (p_canonical ? 'trailsEvidenceStatus')::integer) <> 1
+       OR (p_canonical ? 'trailsEvidenceStatus' AND (
+         jsonb_typeof(p_canonical -> 'trailsEvidenceStatus') <> 'string'
+         OR p_canonical ->> 'trailsEvidenceStatus' <> 'unsupported_source_value'
+       )) THEN
       RAISE EXCEPTION 'DNA Open Lab attached-assets canonical payload is invalid';
     END IF;
   ELSIF p_family = 'owners' THEN
