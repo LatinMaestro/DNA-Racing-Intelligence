@@ -6,6 +6,12 @@ SELECT dna.validate_dna_open_lab_supplemental_core_canonical(
   '{"sourceType":"core_stamina_snapshot","sourceCoreId":"101","current":8,"maximum":10,"nextRefillAt":null,"lastEventAt":null,"lastEventEvidenceStatus":"unsupported_source_value","special":null}'::jsonb
 );
 
+SELECT dna.validate_dna_open_lab_supplemental_core_canonical(
+  'attachedAssets',
+  '101',
+  '{"sourceType":"core_attached_assets_snapshot","sourceCoreId":"101","skinSourceValueByMode":{"car":null,"horse":null},"unavailableSkinModes":["bike"],"trailsEvidenceStatus":"unsupported_source_value"}'::jsonb
+);
+
 DO $guards$
 BEGIN
   BEGIN
