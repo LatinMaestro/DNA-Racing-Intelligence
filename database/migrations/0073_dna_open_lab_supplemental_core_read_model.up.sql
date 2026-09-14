@@ -169,7 +169,7 @@ BEGIN
       RAISE EXCEPTION 'DNA Open Lab owner canonical payload is invalid';
     END IF;
   ELSIF p_family = 'stamina' THEN
-    IF v_key_count <> 7
+    IF v_key_count NOT BETWEEN 7 AND 8
        OR p_canonical ->> 'sourceType' <> 'core_stamina_snapshot'
        OR NOT (p_canonical ?& ARRAY[
          'sourceType', 'sourceCoreId', 'current', 'maximum',
@@ -181,6 +181,18 @@ BEGIN
        OR (p_canonical ->> 'maximum')::numeric < 0
        OR jsonb_typeof(p_canonical -> 'nextRefillAt') NOT IN ('null', 'string')
        OR jsonb_typeof(p_canonical -> 'lastEventAt') NOT IN ('null', 'string')
+       OR EXISTS (
+         SELECT 1 FROM jsonb_object_keys(p_canonical) AS key(name)
+         WHERE key.name NOT IN (
+           'sourceType', 'sourceCoreId', 'current', 'maximum',
+           'nextRefillAt', 'lastEventAt', 'lastEventEvidenceStatus', 'special'
+         )
+       )
+       OR (p_canonical ? 'lastEventEvidenceStatus' AND (
+         jsonb_typeof(p_canonical -> 'lastEventEvidenceStatus') <> 'string'
+         OR p_canonical ->> 'lastEventEvidenceStatus' <> 'unsupported_source_value'
+         OR jsonb_typeof(p_canonical -> 'lastEventAt') <> 'null'
+       ))
        OR jsonb_typeof(p_canonical -> 'special') NOT IN ('null', 'object') THEN
       RAISE EXCEPTION 'DNA Open Lab stamina canonical payload is invalid';
     END IF;
