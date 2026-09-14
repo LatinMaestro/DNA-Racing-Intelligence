@@ -231,6 +231,7 @@ export type CanonicalCoreStaminaSnapshot = Readonly<{
   maximum: number;
   nextRefillAt: string | null;
   lastEventAt: string | null;
+  lastEventEvidenceStatus?: "unsupported_source_value";
   special: Readonly<{
     sourceGiveId: string;
     current: number;
@@ -1379,6 +1380,24 @@ export function adaptDnaCoreStamina(input: {
   observedAt: string;
 }): DnaOpenLabEvidence<CanonicalCoreStaminaSnapshot> {
   const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  let lastEventAt: string | null = null;
+  let lastEventEvidenceStatus: "unsupported_source_value" | undefined;
+  if (
+    input.raw.stamina.last_event !== null &&
+    typeof input.raw.stamina.last_event === "string"
+  ) {
+    try {
+      lastEventAt = timestamp(
+        input.raw.stamina.last_event,
+        "core.stamina.lastEventAt",
+      );
+    } catch (error) {
+      if (!(error instanceof DnaOpenLabAdapterError)) throw error;
+      lastEventEvidenceStatus = "unsupported_source_value";
+    }
+  } else if (input.raw.stamina.last_event !== null) {
+    lastEventEvidenceStatus = "unsupported_source_value";
+  }
   const special =
     input.raw.spstamina === null
       ? null
@@ -1423,10 +1442,10 @@ export function adaptDnaCoreStamina(input: {
       input.raw.stamina.next_refill,
       "core.stamina.nextRefillAt",
     ),
-    lastEventAt: optionalTimestamp(
-      input.raw.stamina.last_event,
-      "core.stamina.lastEventAt",
-    ),
+    lastEventAt,
+    ...(lastEventEvidenceStatus === undefined
+      ? {}
+      : { lastEventEvidenceStatus }),
     special,
   });
   return evidence({

@@ -2371,3 +2371,14 @@ After the private Pro League milestone, continue in this order:
   trails value the same way. Never invent an attachment or replace missing data.
 - Pro League readiness may continue with `bikeSkinAttached: false`; immutable raw
   evidence remains private and all supplied JSON values remain strictly checked.
+
+## 2026-09-14 — Unsupported optional stamina event time is quarantined
+
+- Connected Preview publication showed a Core stamina record whose optional
+  last-event value was not a usable timezone-qualified timestamp.
+- Retain the stamina observation, publish `lastEventAt` as unavailable and mark
+  `lastEventEvidenceStatus=unsupported_source_value`; never invent or repair a
+  time from an ambiguous provider value.
+- Current and maximum stamina plus next-refill time remain strictly validated.
+  The private raw evidence hash remains available for audit, while this optional
+  operational timestamp does not block a complete generation.

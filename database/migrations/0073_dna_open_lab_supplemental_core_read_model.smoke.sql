@@ -42,7 +42,7 @@ DECLARE
     "attachedAssets":[{
       "sourceCoreId":"101","observedAt":"2026-08-28T06:58:03Z",
       "rawEvidenceSha256":"4444444444444444444444444444444444444444444444444444444444444444",
-      "canonical":{"sourceType":"core_attached_assets_snapshot","sourceCoreId":"101","skinSourceValueByMode":{"bike":null,"car":null,"horse":null},"trailsSourceValue":[]}
+      "canonical":{"sourceType":"core_attached_assets_snapshot","sourceCoreId":"101","skinSourceValueByMode":{"bike":null,"car":null,"horse":null},"unavailableSkinModes":[],"trailsSourceValue":[]}
     }],
     "owners":[{
       "sourceCoreId":"101","observedAt":"2026-08-28T06:58:04Z",
@@ -135,9 +135,9 @@ DECLARE
     "racingStats":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:00Z","rawEvidenceSha256":"1111111111111111111111111111111111111111111111111111111111111111","canonical":{"sourceType":"core_racing_stats_snapshot","sourceCoreId":"101","statsByMode":{"bike":{},"car":null,"horse":null},"ageingSourceValue":null,"isMaiden":false,"tournamentProfitsSourceValue":0}}],
     "power":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:01Z","rawEvidenceSha256":"2222222222222222222222222222222222222222222222222222222222222222","canonical":{"sourceType":"core_power_snapshot","sourceCoreId":"101","byMode":{"bike":{"powerSourceValue":80,"adjustedOddsSourceValue":null,"varianceSourceValue":4,"raceCount":7},"car":{"powerSourceValue":null,"adjustedOddsSourceValue":null,"varianceSourceValue":null,"raceCount":0},"horse":{"powerSourceValue":null,"adjustedOddsSourceValue":null,"varianceSourceValue":null,"raceCount":0}},"aggregateStatsSourceValue":{}}}],
     "listings":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:02Z","rawEvidenceSha256":"3333333333333333333333333333333333333333333333333333333333333333","canonical":{"sourceType":"core_listing_snapshot","sourceCoreId":"101"}}],
-    "attachedAssets":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:03Z","rawEvidenceSha256":"4444444444444444444444444444444444444444444444444444444444444444","canonical":{"sourceType":"core_attached_assets_snapshot","sourceCoreId":"101","skinSourceValueByMode":{"bike":null,"car":null,"horse":null},"trailsSourceValue":[]}}],
+    "attachedAssets":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:03Z","rawEvidenceSha256":"4444444444444444444444444444444444444444444444444444444444444444","canonical":{"sourceType":"core_attached_assets_snapshot","sourceCoreId":"101","skinSourceValueByMode":{"car":null,"horse":null},"unavailableSkinModes":["bike"],"trailsEvidenceStatus":"unsupported_source_value"}}],
     "owners":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:04Z","rawEvidenceSha256":"5555555555555555555555555555555555555555555555555555555555555555","canonical":{"sourceType":"core_owner_snapshot","sourceCoreId":"101","vaultSourceValue":"0xsynthetic-public-vault"}}],
-    "stamina":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:05Z","rawEvidenceSha256":"6666666666666666666666666666666666666666666666666666666666666666","canonical":{"sourceType":"core_stamina_snapshot","sourceCoreId":"101","current":8,"maximum":10,"nextRefillAt":null,"lastEventAt":null,"special":null}}],
+    "stamina":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:05Z","rawEvidenceSha256":"6666666666666666666666666666666666666666666666666666666666666666","canonical":{"sourceType":"core_stamina_snapshot","sourceCoreId":"101","current":8,"maximum":10,"nextRefillAt":null,"lastEventAt":null,"lastEventEvidenceStatus":"unsupported_source_value","special":null}}],
     "splicing":[{"sourceCoreId":"101","observedAt":"2026-08-28T06:58:06Z","rawEvidenceSha256":"7777777777777777777777777777777777777777777777777777777777777777","canonical":{"sourceType":"core_splicing_snapshot","sourceCoreId":"101","parentsSourceValue":null,"grandparentsSourceValue":null,"challengeCreditSourceValue":0,"spliceCoreSourceValue":null}}]
   }'::jsonb;
 BEGIN
@@ -187,6 +187,14 @@ BEGIN
   IF v_first.source_core_id <> 101
      OR v_first.canonical -> 'byMode' -> 'bike' ->> 'raceCount' <> '7' THEN
     RAISE EXCEPTION 'serving supplemental Core fields are wrong';
+  END IF;
+  SELECT snapshot.* INTO v_first
+  FROM dna.read_dna_open_lab_serving_supplemental_cores(
+    '73000000-0000-4000-8000-000000000001'
+  ) snapshot WHERE snapshot.family = 'stamina';
+  IF v_first.canonical ->> 'lastEventEvidenceStatus' <>
+     'unsupported_source_value' THEN
+    RAISE EXCEPTION 'stamina last-event quarantine was not preserved';
   END IF;
 
   v_status := dna.stage_dna_open_lab_supplemental_core_candidate(

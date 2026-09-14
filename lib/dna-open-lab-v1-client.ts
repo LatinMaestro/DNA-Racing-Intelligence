@@ -187,7 +187,7 @@ export type DnaCoreStamina = DnaOpenLabRecord<{
     stamina: number;
     max_stamina: number;
     next_refill: string | null;
-    last_event: string | null;
+    last_event?: unknown;
   }>;
   spstamina: DnaOpenLabRecord<{
     giveid: string | number;

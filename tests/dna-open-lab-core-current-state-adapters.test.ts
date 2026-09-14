@@ -242,6 +242,45 @@ describe("DNA Open Lab supplemental Core current-state adapters", () => {
     });
   });
 
+  it("quarantines an unsupported optional stamina last-event timestamp", () => {
+    const stamina: DnaCoreStamina = {
+      hid: 42,
+      stamina: {
+        stamina: 4,
+        max_stamina: 10,
+        next_refill: null,
+        last_event: "not-a-provider-timestamp",
+      },
+      spstamina: null,
+    };
+
+    expect(
+      adaptDnaCoreStamina({ raw: stamina, observedAt: OBSERVED_AT }).canonical,
+    ).toEqual({
+      sourceType: "core_stamina_snapshot",
+      sourceCoreId: "42",
+      current: 4,
+      maximum: 10,
+      nextRefillAt: null,
+      lastEventAt: null,
+      lastEventEvidenceStatus: "unsupported_source_value",
+      special: null,
+    });
+
+    expect(
+      adaptDnaCoreStamina({
+        raw: {
+          ...stamina,
+          stamina: { ...stamina.stamina, last_event: 0 },
+        },
+        observedAt: OBSERVED_AT,
+      }).canonical,
+    ).toMatchObject({
+      lastEventAt: null,
+      lastEventEvidenceStatus: "unsupported_source_value",
+    });
+  });
+
   it("fails closed on malformed identity, timestamps and non-JSON provider values", () => {
     expect(() =>
       adaptDnaCoreOwner({
