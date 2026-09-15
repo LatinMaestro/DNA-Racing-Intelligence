@@ -299,7 +299,12 @@ Suggested initial thresholds:
 
 Freshness affects confidence and user warnings, not the historical facts already accepted.
 
-Analytics that require elapsed time, finishing position, explicit distance or dated historical valuation remain unavailable on the API-only path until an authoritative API contract exposes those facts. Current API dimensions may be shown separately, but they cannot be relabelled as missing historical evidence or leaked backward into backtests.
+The per-Core API history family exposes linked elapsed time, finishing position
+and provider distance codes. Analytics that require those outcomes remain held
+until that family is durably checkpointed, validated and published with its
+joined race/Core identities. Dated historical valuation remains unavailable on
+the API-only path. Current API dimensions may be shown separately, but they
+cannot be leaked backward into backtests.
 
 ## Vault economic analytics
 
