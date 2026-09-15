@@ -6,12 +6,44 @@ INSERT INTO dna.app_owner (id, clerk_user_id) VALUES
 
 INSERT INTO dna.dna_open_lab_sync_generation (
   owner_id, id, observed_at, recorded_at, status, published_at
-) VALUES (
-  'a0000000-0000-4000-8000-000000000001',
-  'a0000000-0000-4000-8000-000000000011',
-  '2026-09-15 05:59:00+00', '2026-09-15 05:59:30+00',
-  'published', '2026-09-15 05:59:45+00'
-);
+) VALUES
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000011',
+    '2026-09-15 05:59:00+00', '2026-09-15 05:59:30+00',
+    'published', '2026-09-15 05:59:45+00'
+  ),
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000012',
+    '2026-09-15 06:09:00+00', '2026-09-15 06:09:30+00',
+    'published', '2026-09-15 06:09:45+00'
+  );
+
+INSERT INTO dna.dna_open_lab_owned_core_snapshot (
+  owner_id, generation_id, source_core_id, display_name, core_class,
+  element, f_number, sex, observed_at, raw_evidence_sha256
+) VALUES
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000011', 42, 'Synthetic Core 42',
+    'Morphed', 'Metal', 16, 'female', '2026-09-15 05:59:00+00', repeat('1', 64)
+  ),
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000011', 43, 'Synthetic Core 43',
+    'Morphed', 'Fire', 17, 'male', '2026-09-15 05:59:00+00', repeat('2', 64)
+  ),
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000012', 42, 'Synthetic Core 42',
+    'Morphed', 'Metal', 16, 'female', '2026-09-15 06:09:00+00', repeat('3', 64)
+  ),
+  (
+    'a0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000012', 43, 'Synthetic Core 43',
+    'Morphed', 'Fire', 17, 'male', '2026-09-15 06:09:00+00', repeat('4', 64)
+  );
 
 DO $privileges$
 BEGIN
@@ -50,12 +82,31 @@ DECLARE
   v_owner constant uuid := 'a0000000-0000-4000-8000-000000000001';
   v_cycle_id constant text := repeat('a', 64);
   v_cycle jsonb;
+  v_second_cycle jsonb;
   v_checkpoint jsonb;
   v_receipt jsonb;
   v_revision bigint;
   v_core bigint;
   v_count integer;
 BEGIN
+  v_cycle := jsonb_build_object(
+    'version', 1, 'cycleId', repeat('0', 64), 'attemptId', repeat('1', 64),
+    'previousCompletedCycleId', null, 'sourceFamily', 'core_race_history',
+    'currentStateGenerationId', 'a0000000-0000-4000-8000-000000000011',
+    'evaluatedAt', '2026-09-15T06:00:00.000Z',
+    'coreSetSha256', repeat('2', 64), 'coreIds', jsonb_build_array(42),
+    'attemptNumber', 1, 'status', 'running', 'pause', null,
+    'completion', null, 'supersededByAttemptNumber', null
+  );
+  BEGIN
+    PERFORM * FROM dna.save_dna_core_race_history_acquisition_attempt(
+      v_owner, NULL, v_cycle
+    );
+    RAISE EXCEPTION 'incomplete owned Core authority was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'incomplete owned Core authority was accepted' THEN RAISE; END IF;
+  END;
+
   v_cycle := jsonb_build_object(
     'version', 1, 'cycleId', v_cycle_id, 'attemptId', repeat('b', 64),
     'previousCompletedCycleId', null, 'sourceFamily', 'core_race_history',
@@ -140,6 +191,73 @@ BEGIN
   FROM dna.read_latest_complete_dna_core_race_history_acquisition(v_owner);
   IF v_count <> 1 THEN
     RAISE EXCEPTION 'Core history latest completion is unavailable';
+  END IF;
+
+  v_second_cycle := jsonb_build_object(
+    'version', 1, 'cycleId', repeat('2', 64), 'attemptId', repeat('3', 64),
+    'previousCompletedCycleId', v_cycle_id,
+    'sourceFamily', 'core_race_history',
+    'currentStateGenerationId', 'a0000000-0000-4000-8000-000000000012',
+    'evaluatedAt', '2026-09-15T06:10:00.000Z',
+    'coreSetSha256', repeat('4', 64), 'coreIds', jsonb_build_array(42, 43),
+    'attemptNumber', 1, 'status', 'running', 'pause', null,
+    'completion', null, 'supersededByAttemptNumber', null
+  );
+  SELECT saved.revision INTO v_revision
+  FROM dna.save_dna_core_race_history_acquisition_attempt(
+    v_owner, NULL, v_second_cycle
+  ) saved;
+  IF v_revision <> 1 THEN
+    RAISE EXCEPTION 'next Core history cycle did not begin';
+  END IF;
+
+  v_second_cycle := jsonb_set(v_second_cycle, '{status}', '"paused"'::jsonb);
+  v_second_cycle := jsonb_set(v_second_cycle, '{pause}', jsonb_build_object(
+    'reason', 'rate_limited', 'pausedAt', '2026-09-15T06:11:00.000Z',
+    'retryAt', '2026-09-15T06:12:00.000Z'
+  ));
+  SELECT saved.revision INTO v_revision
+  FROM dna.save_dna_core_race_history_acquisition_attempt(
+    v_owner, 1, v_second_cycle
+  ) saved;
+  IF v_revision <> 2 THEN
+    RAISE EXCEPTION 'Core history pause did not preserve the attempt';
+  END IF;
+
+  v_second_cycle := jsonb_set(v_second_cycle, '{status}', '"superseded"'::jsonb);
+  v_second_cycle := jsonb_set(v_second_cycle, '{pause}', 'null'::jsonb);
+  v_second_cycle := jsonb_set(
+    v_second_cycle, '{supersededByAttemptNumber}', '2'::jsonb
+  );
+  SELECT saved.revision INTO v_revision
+  FROM dna.save_dna_core_race_history_acquisition_attempt(
+    v_owner, 2, v_second_cycle
+  ) saved;
+  IF v_revision <> 3 THEN
+    RAISE EXCEPTION 'Core history supersession did not become terminal';
+  END IF;
+
+  v_second_cycle := jsonb_set(v_second_cycle, '{attemptNumber}', '2'::jsonb);
+  v_second_cycle := jsonb_set(
+    v_second_cycle, '{attemptId}', to_jsonb(repeat('5', 64))
+  );
+  v_second_cycle := jsonb_set(v_second_cycle, '{status}', '"running"'::jsonb);
+  v_second_cycle := jsonb_set(
+    v_second_cycle, '{supersededByAttemptNumber}', 'null'::jsonb
+  );
+  SELECT saved.revision INTO v_revision
+  FROM dna.save_dna_core_race_history_acquisition_attempt(
+    v_owner, NULL, v_second_cycle
+  ) saved;
+  IF v_revision <> 1 THEN
+    RAISE EXCEPTION 'Core history replacement attempt did not begin cleanly';
+  END IF;
+  SELECT (checkpoint ->> 'nextPage')::integer INTO v_count
+  FROM dna.read_next_dna_core_race_history_checkpoint(
+    v_owner, repeat('2', 64), 2
+  );
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'Core history replacement retained superseded progress';
   END IF;
 
   BEGIN

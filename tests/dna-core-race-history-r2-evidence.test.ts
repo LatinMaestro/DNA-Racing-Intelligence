@@ -314,4 +314,36 @@ describe("DNA Core race history private R2 evidence", () => {
     );
     expect(storage.putCount).toBe(0);
   });
+
+  it("rejects oversized provider pages and out-of-range cursors before writing", async () => {
+    const storage = new MemoryR2Storage();
+    const evidence = store(storage);
+    await expect(
+      evidence.write(writeInput(Array.from({ length: 51 }, () => row()))),
+    ).rejects.toThrow("stored response is invalid");
+    await expect(
+      evidence.write({
+        ...writeInput([row()]),
+        pageNumber: 10_001,
+      }),
+    ).rejects.toThrow("pageNumber exceeds its safe bound");
+    expect(storage.putCount).toBe(0);
+  });
+
+  it("rejects malformed stored rate-limit evidence before writing", async () => {
+    const storage = new MemoryR2Storage();
+    await expect(
+      store(storage).write({
+        ...writeInput([row()]),
+        response: {
+          ...response([row()]),
+          rateLimit: {
+            ...response([row()]).rateLimit,
+            remaining: -1,
+          },
+        },
+      }),
+    ).rejects.toThrow("stored rate remaining is invalid");
+    expect(storage.putCount).toBe(0);
+  });
 });

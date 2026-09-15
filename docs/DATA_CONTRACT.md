@@ -112,10 +112,12 @@ rows to v1 race documents by race ID and entrant Core ID; every comparable
 `cb` value matched. Treat `cb` as the provider distance code, normalize the
 observed sub-100 codes to metres using the established provider convention,
 preserve `time` as elapsed seconds and `pos` as finishing position. `track`
-remains a separate source value and must not be treated as distance. This
-result family still requires its own durable checkpoint, immutable evidence,
-deduplication and daily-generation publication boundary before it can replace
-the current held Pro League performance read.
+remains a separate source value and must not be treated as distance. Its
+versioned acquisition-cycle, per-Core page checkpoint and private immutable
+page/quarantine receipt boundaries are now defined. Connected collection,
+cross-page/cross-cycle deduplication and complete daily-generation publication
+remain required before it can replace the current held Pro League performance
+read.
 
 ### Cores
 

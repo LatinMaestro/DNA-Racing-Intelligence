@@ -2490,3 +2490,35 @@ After the private Pro League milestone, continue in this order:
   Pro League recommendation hold, call the live API, deploy a site or perform a
   game action. Durable pagination checkpoints, private R2 receipts and combined
   generation publication remain the next dependency.
+
+## 2026-09-15 — Close Core history only on an explicit empty page
+
+- A bounded, read-only, redacted provider run found the observed result-history
+  page cap at 50 rows and found a non-empty short page while scanning 186 of
+  the 214 then-current owned Cores.
+- Replaying the full page and the first empty page produced stable content; the
+  following page also remained empty. Treat an explicit empty page as terminal.
+  A short non-empty page must advance to and retain its next page rather than
+  being guessed complete.
+- The probe used the standing 30-request-per-minute aggregate policy, retained
+  no provider payload or owner identity and made no persistent write.
+
+## 2026-09-15 — Version owner-scoped Core result acquisition attempts
+
+- Bind every result-history cycle to one published current-state generation,
+  its exact sorted owned-Core set and the immediately prior completed result
+  cycle. Give each Core its own monotonic page cursor and receipt chain.
+- Store the first page observation under a private create-if-absent R2 key
+  derived from opaque owner/Core hashes. Store invalid-row diagnostics in a
+  separate immutable quarantine object; a changed duplicate result identity
+  holds progress rather than choosing a value.
+- Advance the immutable page receipt and compact Core checkpoint atomically in
+  Neon under forced owner RLS and function-only runtime access. Exact replay is
+  idempotent, pauses retain progress, terminal attempts cannot change and a
+  deliberate replacement starts fresh checkpoints without deleting the
+  superseded attempt or its private evidence.
+- Completing acquisition requires every Core's explicit empty terminal receipt
+  and exact aggregate totals. It does not publish analytical rows, lift the Pro
+  League hold, authorize a connected persistent run or change Preview or
+  Production. Cross-page/cross-cycle deduplication, result/race joining and
+  combined-generation publication remain next.

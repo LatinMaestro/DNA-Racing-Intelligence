@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import {
   createDnaCoreRaceHistoryPageReceipt,
+  DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
+  DNA_CORE_RACE_HISTORY_PROVIDER_PAGE_SIZE,
   validateDnaCoreRaceHistoryAcquisitionCycle,
   type DnaCoreRaceHistoryAcquisitionCycle,
   type DnaCoreRaceHistoryPageReceipt,
@@ -128,6 +130,39 @@ function safeText(value: string, field: string, maximum: number): string {
 function positiveInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 1) {
     evidenceError(`${field} must be a positive safe integer`);
+  }
+  return value;
+}
+
+function boundedPositiveInteger(
+  value: number,
+  field: string,
+  maximum: number,
+): number {
+  const normalized = positiveInteger(value, field);
+  if (normalized > maximum) evidenceError(`${field} exceeds its safe bound`);
+  return normalized;
+}
+
+function nullableNonNegativeInteger(
+  value: unknown,
+  field: string,
+): number | null {
+  if (value === null) return null;
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    evidenceError(`${field} is invalid`);
+  }
+  return value as number;
+}
+
+function nullableRateClass(value: unknown): string | null {
+  if (value === null) return null;
+  if (
+    typeof value !== "string" ||
+    value.length > 256 ||
+    CONTROL_PATTERN.test(value)
+  ) {
+    evidenceError("stored rate-limit class is invalid");
   }
   return value;
 }
@@ -271,6 +306,7 @@ function normalizedResponse(
   exactKeys(response, ["result", "httpStatus", "rateLimit"], "stored response");
   if (
     !Array.isArray(response.result) ||
+    response.result.length > DNA_CORE_RACE_HISTORY_PROVIDER_PAGE_SIZE ||
     response.result.some(
       (row) => row === null || typeof row !== "object" || Array.isArray(row),
     ) ||
@@ -280,7 +316,12 @@ function normalizedResponse(
   ) {
     evidenceError("stored response is invalid");
   }
-  record(response.rateLimit, "stored rate-limit evidence");
+  const rateLimit = record(response.rateLimit, "stored rate-limit evidence");
+  exactKeys(
+    rateLimit,
+    ["limit", "remaining", "resetSeconds", "rateClass", "retryAfterSeconds"],
+    "stored rate-limit evidence",
+  );
   return Object.freeze({
     result: Object.freeze(
       response.result.map((row) =>
@@ -289,7 +330,20 @@ function normalizedResponse(
     ),
     httpStatus: response.httpStatus as number,
     rateLimit: Object.freeze({
-      ...(response.rateLimit as DnaOpenLabResponse<unknown>["rateLimit"]),
+      limit: nullableNonNegativeInteger(rateLimit.limit, "stored rate limit"),
+      remaining: nullableNonNegativeInteger(
+        rateLimit.remaining,
+        "stored rate remaining",
+      ),
+      resetSeconds: nullableNonNegativeInteger(
+        rateLimit.resetSeconds,
+        "stored rate reset",
+      ),
+      rateClass: nullableRateClass(rateLimit.rateClass),
+      retryAfterSeconds: nullableNonNegativeInteger(
+        rateLimit.retryAfterSeconds,
+        "stored retry-after",
+      ),
     }),
   });
 }
@@ -357,7 +411,11 @@ function validateIdentity(input: {
 }) {
   const cycle = validateDnaCoreRaceHistoryAcquisitionCycle(input.cycle);
   const coreId = positiveInteger(input.coreId, "coreId");
-  const pageNumber = positiveInteger(input.pageNumber, "pageNumber");
+  const pageNumber = boundedPositiveInteger(
+    input.pageNumber,
+    "pageNumber",
+    DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
+  );
   if (!cycle.coreIds.includes(coreId)) {
     evidenceError("Core is outside the cycle authority");
   }
@@ -372,9 +430,10 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
 }): DnaCoreRaceHistoryR2EvidenceStore {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
-  const maximumObjectBytes = positiveInteger(
+  const maximumObjectBytes = boundedPositiveInteger(
     input.maximumObjectBytes ?? DEFAULT_MAXIMUM_OBJECT_BYTES,
     "maximumObjectBytes",
+    DEFAULT_MAXIMUM_OBJECT_BYTES,
   );
   const prefix = ownerPrefix(ownerId);
   let privacy: Promise<void> | null = null;
