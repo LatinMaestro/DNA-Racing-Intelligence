@@ -258,6 +258,7 @@ describe("DNA Core race history private R2 evidence", () => {
     const storage = new MemoryR2Storage();
     const evidence = store(storage);
     const created = await evidence.write(writeInput([row()]));
+    if (created.status !== "ready") throw new Error("expected ready evidence");
     await expect(
       evidence.read({ cycle: authority, coreId: 42, pageNumber: 1 }),
     ).resolves.toEqual(created);
@@ -268,22 +269,25 @@ describe("DNA Core race history private R2 evidence", () => {
         pageNumber: 1,
       }),
     ).resolves.toMatchObject({
-      ownerId: "owner@example.test",
-      cycleId: authority.cycleId,
-      coreId: 42,
-      pageNumber: 1,
-      sourceRowCount: 1,
-      terminal: false,
-      results: [
-        {
-          canonical: {
-            sourceCoreId: "42",
-            sourceRaceId: "private-race-1",
-            distance: 1200,
-            finishPosition: 2,
+      receipt: created.receipt,
+      page: {
+        ownerId: "owner@example.test",
+        cycleId: authority.cycleId,
+        coreId: 42,
+        pageNumber: 1,
+        sourceRowCount: 1,
+        terminal: false,
+        results: [
+          {
+            canonical: {
+              sourceCoreId: "42",
+              sourceRaceId: "private-race-1",
+              distance: 1200,
+              finishPosition: 2,
+            },
           },
-        },
-      ],
+        ],
+      },
     });
     await expect(
       store(storage, "other-owner@example.test").read({
@@ -293,7 +297,6 @@ describe("DNA Core race history private R2 evidence", () => {
       }),
     ).resolves.toBeNull();
 
-    if (created.status !== "ready") throw new Error("expected ready evidence");
     const stored = storage.objects.get(created.receipt.pageObjectKey);
     if (stored === undefined) throw new Error("synthetic page is unavailable");
     storage.objects.set(

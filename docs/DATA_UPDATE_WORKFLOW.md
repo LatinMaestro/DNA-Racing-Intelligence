@@ -292,9 +292,21 @@ stage successfully, with the exact expected count and payload digest. An
 interruption, changed row or drifted repository response leaves the prior
 last-good generation serving; replay resumes the same staged candidate or
 loads the exact generation if it already published. The provider-neutral
-contract does not itself perform R2 replay, race-document hydration or a Neon
-write. The owner-isolated Neon schema and adapter remain the next persistence
-gate.
+publisher is backed by the owner-isolated function-only Neon adapter.
+
+The retained-evidence composer performs the missing pre-publication proof. Its
+reader returns each canonical accepted page with the exact receipt reconstructed
+from the private immutable object. The composer replays the ordered receipts
+into fresh per-Core checkpoints, compares their full identities with durable
+checkpoints, and recomputes the completed cycle identity before any race
+document hydration. It pre-authorizes the four-Class-B-operation page-read
+ceiling, deduplicates race IDs and hydrates them in batches of at most 25 before
+invoking the publisher. A later cycle with a prior-cycle link returns
+`historical_lineage_required` before R2 or publication until the complete chain
+can be loaded; this preserves earlier evidence for Cores that disappear from a
+later current-state owner set. The bounded private operator/runtime connection,
+first root-cycle collection and first complete private publication remain the
+next commissioning gates.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

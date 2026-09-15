@@ -19,7 +19,7 @@ import type {
   DnaCoreRaceHistoryGenerationStageRow,
   DnaCoreRaceHistoryPublishedGeneration,
 } from "@/lib/dna-core-race-history-generation";
-import type { DnaCoreRaceHistoryMaterializationPage } from "@/lib/dna-core-race-history-materialization";
+import type { DnaCoreRaceHistoryRetainedMaterializationPage } from "@/lib/dna-core-race-history-r2-evidence";
 import { adaptDnaRaceDocument } from "@/lib/dna-open-lab-v1-adapters";
 import type { DnaCoreRaceHistoryRow } from "@/lib/dna-core-race-history-client";
 import type { DnaRaceDocument } from "@/lib/dna-open-lab-v1-client";
@@ -36,6 +36,29 @@ function sourceRow(raceId: string): DnaCoreRaceHistoryRow {
     time: 65.125,
     pos: 2,
     start_time: "2026-09-15T06:00:00.000Z",
+  });
+}
+
+function replaceReceiptObject(
+  receipt: ReturnType<typeof createDnaCoreRaceHistoryPageReceipt>,
+  input: Readonly<{ pageObjectKey: string; pageBodySha256?: string }>,
+) {
+  return createDnaCoreRaceHistoryPageReceipt({
+    cycleId: receipt.cycleId,
+    attemptNumber: receipt.attemptNumber,
+    coreId: receipt.coreId,
+    pageNumber: receipt.pageNumber,
+    observedAt: receipt.observedAt,
+    sourceRowCount: receipt.sourceRowCount,
+    acceptedResultCount: receipt.acceptedResultCount,
+    quarantineCount: receipt.quarantineCount,
+    replayDuplicateCount: receipt.replayDuplicateCount,
+    pageObjectKey: input.pageObjectKey,
+    pageBodySha256: input.pageBodySha256 ?? receipt.pageBodySha256,
+    pageByteLength: receipt.pageByteLength,
+    quarantineObjectKey: receipt.quarantineObjectKey,
+    quarantineBodySha256: receipt.quarantineBodySha256,
+    quarantineByteLength: receipt.quarantineByteLength,
   });
 }
 
@@ -56,9 +79,12 @@ function raceDocument(raceId: string) {
   });
 }
 
-function completedAuthority(raceIds: readonly string[]) {
+function completedAuthority(
+  raceIds: readonly string[],
+  input: Readonly<{ previousCompletedCycleId?: string | null }> = {},
+) {
   const running = createDnaCoreRaceHistoryAcquisitionCycle({
-    previousCompletedCycleId: null,
+    previousCompletedCycleId: input.previousCompletedCycleId ?? null,
     currentStateGenerationId: "10000000-0000-4000-8000-000000000001",
     evaluatedAt: "2026-09-15T06:00:00.000Z",
     coreIds: [42],
@@ -118,31 +144,37 @@ function completedAuthority(raceIds: readonly string[]) {
     checkpoints: [checkpoint],
     completedAt: "2026-09-15T06:12:00.000Z",
   });
-  const pages = new Map<number, DnaCoreRaceHistoryMaterializationPage>([
+  const pages = new Map<number, DnaCoreRaceHistoryRetainedMaterializationPage>([
     [
       1,
       Object.freeze({
-        ownerId: OWNER,
-        cycleId: complete.cycleId,
-        attemptNumber: 1,
-        coreId: 42,
-        pageNumber: 1,
-        sourceRowCount: raceIds.length,
-        terminal: false,
-        results: accepted,
+        receipt: firstReceipt,
+        page: Object.freeze({
+          ownerId: OWNER,
+          cycleId: complete.cycleId,
+          attemptNumber: 1,
+          coreId: 42,
+          pageNumber: 1,
+          sourceRowCount: raceIds.length,
+          terminal: false,
+          results: accepted,
+        }),
       }),
     ],
     [
       2,
       Object.freeze({
-        ownerId: OWNER,
-        cycleId: complete.cycleId,
-        attemptNumber: 1,
-        coreId: 42,
-        pageNumber: 2,
-        sourceRowCount: 0,
-        terminal: true,
-        results: Object.freeze([]),
+        receipt: terminalReceipt,
+        page: Object.freeze({
+          ownerId: OWNER,
+          cycleId: complete.cycleId,
+          attemptNumber: 1,
+          coreId: 42,
+          pageNumber: 2,
+          sourceRowCount: 0,
+          terminal: true,
+          results: Object.freeze([]),
+        }),
       }),
     ],
   ]);
@@ -150,7 +182,7 @@ function completedAuthority(raceIds: readonly string[]) {
     loadLatestComplete: vi.fn(async () => ({ revision: "1", cycle: complete })),
     loadCores: vi.fn(async () => [{ revision: "2", checkpoint }]),
   } as unknown as DnaCoreRaceHistoryAcquisitionRepository;
-  return { complete, pages, repository };
+  return { running, complete, checkpoint, pages, repository };
 }
 
 function generationRepository() {
@@ -194,8 +226,11 @@ function generationRepository() {
   return { repository, rows };
 }
 
-function request(raceIds: readonly string[]) {
-  const authority = completedAuthority(raceIds);
+function request(
+  raceIds: readonly string[],
+  input: Readonly<{ previousCompletedCycleId?: string | null }> = {},
+) {
+  const authority = completedAuthority(raceIds, input);
   const generation = generationRepository();
   const readMaterializationPage = vi.fn(
     async ({ pageNumber }) => authority.pages.get(pageNumber) ?? null,
@@ -281,11 +316,106 @@ describe("DNA Core result retained-evidence generation materializer", () => {
     const test = request(["race-1"]);
     const first = test.authority.pages.get(1);
     if (first === undefined) throw new Error("missing synthetic page");
-    test.authority.pages.set(1, Object.freeze({ ...first, ownerId: "other" }));
+    test.authority.pages.set(
+      1,
+      Object.freeze({
+        ...first,
+        page: Object.freeze({ ...first.page, ownerId: "other" }),
+      }),
+    );
 
     await expect(
       materializeAndPublishLatestDnaCoreRaceHistory(test.input),
-    ).rejects.toThrow("retained page identity or terminal state drifted");
+    ).rejects.toThrow("retained page receipt or content drifted");
+    expect(test.loadRaceDocuments).not.toHaveBeenCalled();
+    expect(test.generation.repository.begin).not.toHaveBeenCalled();
+  });
+
+  it("rejects a replaced retained receipt even when its row counts still agree", async () => {
+    const test = request(["race-1"]);
+    const first = test.authority.pages.get(1);
+    if (first === undefined) throw new Error("missing synthetic page");
+    test.authority.pages.set(
+      1,
+      Object.freeze({
+        ...first,
+        receipt: replaceReceiptObject(first.receipt, {
+          pageObjectKey: "private/pages/replaced-1.json",
+          pageBodySha256: "b".repeat(64),
+        }),
+      }),
+    );
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).rejects.toThrow("retained receipt chain disagrees with checkpoint");
+    expect(test.loadRaceDocuments).not.toHaveBeenCalled();
+    expect(test.generation.repository.begin).not.toHaveBeenCalled();
+  });
+
+  it("rejects retained result evidence that no longer matches its receipt observation", async () => {
+    const test = request(["race-1"]);
+    const first = test.authority.pages.get(1);
+    const firstResult = first?.page.results[0];
+    if (first === undefined || firstResult === undefined) {
+      throw new Error("missing synthetic result");
+    }
+    test.authority.pages.set(
+      1,
+      Object.freeze({
+        ...first,
+        page: Object.freeze({
+          ...first.page,
+          results: Object.freeze([
+            Object.freeze({
+              ...firstResult,
+              observedAt: "2026-09-15T06:10:01.000Z",
+            }),
+          ]),
+        }),
+      }),
+    );
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).rejects.toThrow("retained page receipt or content drifted");
+    expect(test.loadRaceDocuments).not.toHaveBeenCalled();
+    expect(test.generation.repository.begin).not.toHaveBeenCalled();
+  });
+
+  it("rejects an aggregate-compatible checkpoint set that no longer completes the stored cycle", async () => {
+    const test = request(["race-1"]);
+    const first = test.authority.pages.get(1);
+    const terminal = test.authority.pages.get(2);
+    if (first === undefined || terminal === undefined) {
+      throw new Error("missing synthetic pages");
+    }
+    const replacement = replaceReceiptObject(first.receipt, {
+      pageObjectKey: "private/pages/replaced-1.json",
+      pageBodySha256: "b".repeat(64),
+    });
+    test.authority.pages.set(
+      1,
+      Object.freeze({ ...first, receipt: replacement }),
+    );
+    let replacementCheckpoint = applyDnaCoreRaceHistoryPageReceipt({
+      checkpoint: createDnaCoreRaceHistoryCoreCheckpoint({
+        cycle: test.authority.running,
+        coreId: 42,
+      }),
+      receipt: replacement,
+    });
+    replacementCheckpoint = applyDnaCoreRaceHistoryPageReceipt({
+      checkpoint: replacementCheckpoint,
+      receipt: terminal.receipt,
+    });
+    vi.mocked(test.authority.repository.loadCores).mockResolvedValueOnce([
+      { revision: "replacement", checkpoint: replacementCheckpoint },
+    ]);
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).rejects.toThrow("replayed completion disagrees with cycle");
     expect(test.loadRaceDocuments).not.toHaveBeenCalled();
     expect(test.generation.repository.begin).not.toHaveBeenCalled();
   });
@@ -320,6 +450,23 @@ describe("DNA Core result retained-evidence generation materializer", () => {
       reason: "no_complete_cycle",
     });
     expect(test.authority.repository.loadCores).not.toHaveBeenCalled();
+    expect(test.generation.repository.begin).not.toHaveBeenCalled();
+  });
+
+  it("preserves last-good instead of publishing a successor without complete lineage", async () => {
+    const test = request(["race-1"], {
+      previousCompletedCycleId: "b".repeat(64),
+    });
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).resolves.toEqual({
+      kind: "authority_unavailable",
+      reason: "historical_lineage_required",
+    });
+    expect(test.authority.repository.loadCores).not.toHaveBeenCalled();
+    expect(test.readMaterializationPage).not.toHaveBeenCalled();
+    expect(test.loadRaceDocuments).not.toHaveBeenCalled();
     expect(test.generation.repository.begin).not.toHaveBeenCalled();
   });
 });

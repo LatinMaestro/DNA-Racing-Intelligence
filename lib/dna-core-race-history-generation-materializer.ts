@@ -1,7 +1,12 @@
 import {
+  applyDnaCoreRaceHistoryPageReceipt,
+  completeDnaCoreRaceHistoryAcquisitionCycle,
+  createDnaCoreRaceHistoryAcquisitionCycle,
+  createDnaCoreRaceHistoryCoreCheckpoint,
   validateDnaCoreRaceHistoryAcquisitionCycle,
   validateDnaCoreRaceHistoryCoreCheckpoint,
   type DnaCoreRaceHistoryAcquisitionRepository,
+  type DnaCoreRaceHistoryCoreCheckpoint,
 } from "./dna-core-race-history-acquisition-cycle";
 import {
   publishDnaCoreRaceHistoryGeneration,
@@ -13,9 +18,10 @@ import {
   type DnaCoreRaceHistoryMaterializationPage,
 } from "./dna-core-race-history-materialization";
 import type { DnaCoreRaceHistoryMaterializationEvidenceStore } from "./dna-core-race-history-r2-evidence";
-import type {
-  CanonicalRaceDocumentMetadata,
-  DnaOpenLabEvidence,
+import {
+  dnaOpenLabRawEvidenceSha256,
+  type CanonicalRaceDocumentMetadata,
+  type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 
 export const DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE = 25;
@@ -27,7 +33,7 @@ export const DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_RACE_DOCUMENTS = 500_000
 export type DnaCoreRaceHistoryGenerationMaterializerResult =
   | Readonly<{
       kind: "authority_unavailable";
-      reason: "no_complete_cycle";
+      reason: "no_complete_cycle" | "historical_lineage_required";
     }>
   | Readonly<{
       kind: "published";
@@ -72,11 +78,19 @@ function safeOwner(value: string): string {
   return value;
 }
 
+function sameCanonicalAuthority(left: unknown, right: unknown): boolean {
+  return (
+    dnaOpenLabRawEvidenceSha256(left) === dnaOpenLabRawEvidenceSha256(right)
+  );
+}
+
 /**
- * Replays only the latest completed owner-scoped full-history cycle from
- * immutable R2 evidence, hydrates its exact race identities in bounded
- * batches, and publishes one complete joined generation. Missing, partial or
- * conflicting evidence fails before the last-good pointer can move.
+ * Replays a root completed owner-scoped full-history cycle from immutable R2
+ * evidence, hydrates its exact race identities in bounded batches, and
+ * publishes one complete joined generation. Successor cycles hold until their
+ * complete historical lineage can be composed without dropping prior Cores.
+ * Missing, partial or conflicting evidence fails before the last-good pointer
+ * can move.
  */
 export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
   ownerId: string;
@@ -142,6 +156,26 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
   }
   if (Date.parse(cycle.completion.completedAt) > Date.parse(materializedAt)) {
     return unavailable("materialization predates cycle completion");
+  }
+  if (cycle.previousCompletedCycleId !== null) {
+    return Object.freeze({
+      kind: "authority_unavailable" as const,
+      reason: "historical_lineage_required" as const,
+    });
+  }
+
+  const replayCycle = createDnaCoreRaceHistoryAcquisitionCycle({
+    previousCompletedCycleId: cycle.previousCompletedCycleId,
+    currentStateGenerationId: cycle.currentStateGenerationId,
+    evaluatedAt: cycle.evaluatedAt,
+    coreIds: cycle.coreIds,
+    attemptNumber: cycle.attemptNumber,
+  });
+  if (
+    replayCycle.cycleId !== cycle.cycleId ||
+    replayCycle.attemptId !== cycle.attemptId
+  ) {
+    return unavailable("completed cycle authority drifted");
   }
 
   const storedCheckpoints = await input.acquisitionRepository.loadCores({
@@ -210,30 +244,48 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
   }
 
   const pages: DnaCoreRaceHistoryMaterializationPage[] = [];
+  const replayedCheckpoints: DnaCoreRaceHistoryCoreCheckpoint[] = [];
   let resultCount = 0;
   let sourceRowCount = 0;
   for (const checkpoint of checkpoints) {
+    let replayedCheckpoint = createDnaCoreRaceHistoryCoreCheckpoint({
+      cycle: replayCycle,
+      coreId: checkpoint.coreId,
+    });
     for (
       let pageNumber = 1;
       pageNumber <= checkpoint.terminalPageNumber!;
       pageNumber += 1
     ) {
-      const page = await input.evidenceStore.readMaterializationPage({
+      const retained = await input.evidenceStore.readMaterializationPage({
         cycle,
         coreId: checkpoint.coreId,
         pageNumber,
       });
-      if (page === null) return unavailable("retained page is unavailable");
+      if (retained === null) return unavailable("retained page is unavailable");
+      const { page, receipt } = retained;
       if (
         page.ownerId !== ownerId ||
         page.cycleId !== cycle.cycleId ||
         page.attemptNumber !== cycle.attemptNumber ||
         page.coreId !== checkpoint.coreId ||
         page.pageNumber !== pageNumber ||
-        page.terminal !== (pageNumber === checkpoint.terminalPageNumber)
+        page.terminal !== (pageNumber === checkpoint.terminalPageNumber) ||
+        receipt.cycleId !== page.cycleId ||
+        receipt.attemptNumber !== page.attemptNumber ||
+        receipt.coreId !== page.coreId ||
+        receipt.pageNumber !== page.pageNumber ||
+        receipt.terminal !== page.terminal ||
+        receipt.sourceRowCount !== page.sourceRowCount ||
+        receipt.acceptedResultCount !== page.results.length ||
+        page.results.some((result) => result.observedAt !== receipt.observedAt)
       ) {
-        return unavailable("retained page identity or terminal state drifted");
+        return unavailable("retained page receipt or content drifted");
       }
+      replayedCheckpoint = applyDnaCoreRaceHistoryPageReceipt({
+        checkpoint: replayedCheckpoint,
+        receipt,
+      });
       pages.push(page);
       resultCount += page.results.length;
       sourceRowCount += page.sourceRowCount;
@@ -241,6 +293,10 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
         return unavailable("result coverage exceeds its safe bound");
       }
     }
+    if (!sameCanonicalAuthority(replayedCheckpoint, checkpoint)) {
+      return unavailable("retained receipt chain disagrees with checkpoint");
+    }
+    replayedCheckpoints.push(replayedCheckpoint);
   }
   if (
     pages.length !== checkpointTotals.pageReceiptCount ||
@@ -248,6 +304,14 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
     resultCount !== checkpointTotals.acceptedResultCount
   ) {
     return unavailable("retained page coverage disagrees with completion");
+  }
+  const replayedCycle = completeDnaCoreRaceHistoryAcquisitionCycle({
+    cycle: replayCycle,
+    checkpoints: replayedCheckpoints,
+    completedAt: cycle.completion.completedAt,
+  });
+  if (!sameCanonicalAuthority(replayedCycle, cycle)) {
+    return unavailable("replayed completion disagrees with cycle");
   }
 
   const sourceRaceIds = [

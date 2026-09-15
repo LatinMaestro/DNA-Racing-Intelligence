@@ -127,9 +127,16 @@ all counts exactly and stages no more than 250 rows per call. Migration `0101`
 stores those rows behind forced owner isolation and function-only runtime access,
 then independently recomputes the ordered row digest before atomically moving
 the owner-local active pointer. Failed, conflicting, cross-owner, older or
-incomplete staging cannot replace last-good. Connected collection and the first
-complete private result generation remain required before this evidence can
-replace the current held Pro League performance read.
+incomplete staging cannot replace last-good. The retained-evidence reader now
+returns the canonical accepted page together with the exact reconstructed page
+receipt. Before hydration, the composer replays every ordered receipt into a
+fresh Core checkpoint, compares the full receipt-chain checkpoint with durable
+authority, and recomputes the completed cycle identity. Aggregate-compatible
+replacement evidence therefore cannot pass. A successor cycle is held with
+`historical_lineage_required` until complete lineage composition can preserve
+history for Cores absent from the later current-owner set. Connected collection
+and the first complete private result generation remain required before this
+evidence can replace the current held Pro League performance read.
 
 ### Cores
 
