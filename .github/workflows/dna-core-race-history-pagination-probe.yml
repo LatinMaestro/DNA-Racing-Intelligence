@@ -1,0 +1,39 @@
+name: DNA Core race history pagination probe
+
+on:
+  push:
+    branches:
+      - codex/p10-core-history-checkpoints
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-core-race-history-pagination-probe
+  cancel-in-progress: false
+
+jobs:
+  pagination:
+    name: Read-only redacted pagination evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_CORE_RACE_HISTORY_PAGINATION_PROBE: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Run bounded read-only pagination probe
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-dna-core-race-history-pagination.test.ts
