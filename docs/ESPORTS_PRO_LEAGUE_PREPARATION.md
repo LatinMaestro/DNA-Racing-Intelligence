@@ -72,13 +72,15 @@ the current validation rule: 4 females for a 12-Core roster and 8 for a full
 
 ## Initial roster and substitution allowance
 
-Whether the first/initial roster selection consumes any part of the annual maximum-10 substitution allowance is unresolved.
+The first/initial roster selection consumes zero substitutions. Only roster
+changes after initial registration count toward the annual maximum-10
+substitution allowance.
 
 Implementation must therefore:
 
 - represent the initial-roster counting rule explicitly;
-- default it to an unresolved/configurable authority state until DNA clarifies;
-- never silently consume or preserve substitutions based on an assumption; and
+- keep later roster changes in the annual substitution ledger;
+- never infer current usage or remaining allowance while the ledger is unavailable; and
 - show the owner which interpretation is currently active when substitution budget is displayed.
 
 ## Team registration and map setup

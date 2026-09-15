@@ -280,8 +280,9 @@ competition. Normal tournaments and general Discovery remain separate.
 ### Substitutions
 
 - Maximum **10 substitutions per year**.
-- Whether initial roster selection consumes this allowance is unresolved until DNA clarifies.
-- The website must keep the initial-roster counting interpretation explicit/configurable and must not silently assume one answer.
+- Initial roster selection consumes zero substitutions.
+- Only roster changes made after initial registration count toward this allowance.
+- The website must not infer current usage or remaining allowance while the annual ledger is unavailable.
 
 ### Element limits
 

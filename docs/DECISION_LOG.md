@@ -204,7 +204,8 @@ The following current rules supersede conflicting assumptions from the 20 August
 - A legal Pro League roster contains **12–25 Cores**.
 - Roster construction is quality-first: build the strongest nucleus and add only Cores with meaningful incremental value; never force 25.
 - Maximum **10 substitutions per year**.
-- Whether the initial roster consumes any part of that allowance remains unresolved/configurable until DNA clarifies.
+- At this point the initial-roster interpretation remained unresolved; the
+  2026-09-15 owner authority below supersedes this historical state.
 - Maximum **7 Metal**.
 - Maximum **8 Fire**.
 - Maximum **10 Earth**.
@@ -2403,3 +2404,15 @@ After the private Pro League milestone, continue in this order:
   zero, an empty asset or another invented replacement.
 - Exact canonical keys, non-negative available values, known evidence statuses,
   owner isolation and atomic publication remain fail-closed.
+
+## 2026-09-15 — Initial Pro League roster uses zero substitutions
+
+- Owner authority confirms that initial roster registration consumes zero
+  substitutions. Only roster changes made after initial registration count
+  toward the maximum 10 substitutions per year.
+- Keep the interpretation explicit in every roster version. Historical versions
+  may retain their earlier authority state without changing the current rule.
+- Current later-change usage and remaining allowance stay unavailable until the
+  annual substitution ledger is connected; never infer either value.
+- This is advisory configuration only. No roster submission, substitution or
+  other game action occurred.

@@ -79,9 +79,7 @@ describe("Pro League commissioning panel", () => {
           },
         ],
         search: { status: "constructed" },
-        operationalWarnings: [
-          "Initial-roster substitution counting remains unresolved.",
-        ],
+        operationalWarnings: ["Initial registration uses zero substitutions."],
       },
       lineup: {
         totals: {
@@ -235,7 +233,7 @@ describe("Pro League commissioning panel", () => {
           maximumPerYear: 10,
           usedCount: null,
           remainingCount: null,
-          initialRosterCountingPolicy: "unresolved",
+          initialRosterCountingPolicy: "does_not_count",
           guidance: "Preserve the annual budget.",
         },
         automaticRaceEntryAllowed: false,

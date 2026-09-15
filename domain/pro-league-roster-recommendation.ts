@@ -730,7 +730,7 @@ export function buildProLeagueDraftRosterRecommendation(
     operationalWarnings: Object.freeze([
       "This is a draft only. It does not submit a roster or consume a substitution.",
       "Current ageing totals and protected Tournament-Core status are not present in the exact-format evidence generation; review them before lock.",
-      "Initial-roster counting against the annual 10-substitution budget remains unresolved.",
+      "Initial registration uses zero substitutions; only later roster changes count toward the annual 10-substitution budget.",
       "Population-weak or unproven structural selections are provisional and should be tested before lock.",
     ]),
   });

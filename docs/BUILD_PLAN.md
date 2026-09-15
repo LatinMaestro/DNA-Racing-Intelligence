@@ -380,7 +380,7 @@ Exit: technically safe API data path ready for owner-approved real Preview persi
 The first persistence slice now defines immutable, owner-isolated roster
 versions and an append-only annual substitution ledger. It freezes member roles,
 reasons and point-in-time evidence identities, keeps alternates outside the
-rostered count, carries the unresolved initial-roster counting policy explicitly,
+rostered count, carries the versioned initial-roster counting policy explicitly,
 and independently revalidates the current roster caps at the database boundary.
 Migration `0081` and its server-only repository provide this boundary. See
 `docs/PHASE_6_PRO_LEAGUE_ROSTER_PERSISTENCE.md`. The second persistence slice
@@ -398,7 +398,7 @@ Implement the current roster authority:
 - legal roster size is **12–25**;
 - quality-first nucleus; never force 25;
 - maximum 10 substitutions per year;
-- initial-roster substitution counting remains explicit/configurable until DNA clarifies;
+- initial registration consumes zero substitutions; only later roster changes count;
 - maximum 7 Metal, 8 Fire and 10 Earth;
 - maximum 2 Genesis per element;
 - maximum 5 Cores at F5 or below;
@@ -514,7 +514,7 @@ time evidence receives at most one confirmation before four starts and is then
 stopped; raw wins cannot rescue an intrinsically weak path. Known strong-field
 evidence creates a manual conflict review instead of a favourable assumption.
 Lineage and annual substitution-ledger usage remain explicitly unavailable in
-this read model, so all ten substitutions stay reserved and the queue cannot
+this read model, so remaining allowance is not inferred and the queue cannot
 enter a race or change the roster.
 
 Exit: daily owner Discovery queue for Pro League.

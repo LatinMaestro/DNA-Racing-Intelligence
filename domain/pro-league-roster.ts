@@ -23,7 +23,7 @@ export const proLeagueCurrentRules = Object.freeze({
   minimumRosterSize: 12,
   maximumRosterSize: 25,
   maximumSubstitutionsPerYear: 10,
-  initialRosterCountsAsSubstitutions: "unresolved" as const,
+  initialRosterCountsAsSubstitutions: "does_not_count" as const,
   maximumPerElement: Object.freeze({
     Metal: 7,
     Fire: 8,

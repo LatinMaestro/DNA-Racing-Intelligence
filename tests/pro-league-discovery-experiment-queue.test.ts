@@ -181,7 +181,7 @@ describe("Pro League Discovery experiment queue", () => {
     expect(result.substitutionBudget).toMatchObject({
       maximumPerYear: 10,
       usedCount: null,
-      initialRosterCountingPolicy: "unresolved",
+      initialRosterCountingPolicy: "does_not_count",
     });
   });
 

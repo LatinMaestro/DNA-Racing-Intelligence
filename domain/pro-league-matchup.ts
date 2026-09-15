@@ -176,7 +176,7 @@ export type ProLeagueMatchupAnalysis = Readonly<{
   coverageGaps: readonly ProLeagueCoverageGap[];
   substitutionStrategy: Readonly<{
     annualMaximum: 10;
-    initialRosterCounting: "unresolved";
+    initialRosterCounting: "does_not_count";
     principle: "quality_first_preserve_replacements";
   }>;
 }>;

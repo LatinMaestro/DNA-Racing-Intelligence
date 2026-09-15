@@ -624,8 +624,9 @@ export function ProLeagueWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           Source: {proLeagueCurrentRules.sourceLabel}, received{" "}
           {proLeagueCurrentRules.receivedAt}. Current roster limits and the
-          public four-map catalogue are configured; additional maps and
-          initial-roster substitution counting remain unresolved. At least{" "}
+          public four-map catalogue are configured; additional maps remain
+          unresolved. Initial registration uses zero substitutions; only later
+          roster changes count toward the annual limit. At least{" "}
           {proLeagueCurrentRules.femaleMinimum.percentage}% of the selected
           roster must be female, rounded up: four females for a 12-Core roster
           and eight for a 25-Core roster. Pro League uses the same underlying
