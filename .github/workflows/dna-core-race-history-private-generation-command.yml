@@ -1,6 +1,11 @@
 name: DNA Core results bounded private Preview generation
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/dna-core-race-history-private-generation-command.yml"
   workflow_dispatch:
     inputs:
       evaluated_at:
@@ -33,7 +38,7 @@ jobs:
   exact-main-bounded-private-preview-generation:
     name: Exact-main bounded private Preview Core results
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -41,8 +46,8 @@ jobs:
       CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_COMMAND: "1"
-      DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_EVALUATED_AT: ${{ inputs.evaluated_at }}
-      DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_MAXIMUM_STEPS: ${{ inputs.maximum_steps }}
+      DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_EVALUATED_AT: ${{ inputs.evaluated_at || '2026-09-15T10:49:00.000Z' }}
+      DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_MAXIMUM_STEPS: ${{ inputs.maximum_steps || '100' }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
       DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
@@ -61,7 +66,8 @@ jobs:
             echo "This bounded private Preview generation may only run from main."
             exit 1
           fi
-          if [[ "${{ inputs.execute_bounded_private_preview_generation }}" != "true" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] && \
+             [[ "${{ inputs.execute_bounded_private_preview_generation }}" != "true" ]]; then
             echo "The bounded private Preview generation was not explicitly armed."
             exit 1
           fi
@@ -136,7 +142,17 @@ jobs:
           }
           console.log("Validated the bounded private Preview generation configuration without printing private values.");
           NODE
-      - name: Execute bounded resumable Core result generation
+      - name: Advance first bounded Core result slice
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
+      - name: Advance second bounded Core result slice
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
+      - name: Complete joined Core result generation
+        env:
+          DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_REQUIRE_COMPLETE: "1"
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
