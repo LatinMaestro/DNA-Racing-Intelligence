@@ -254,7 +254,9 @@ function createEvidenceBudgetAccountant(input: {
 ) => Promise<void> {
   return async (request, actualUsage) => {
     if (input.budgetRepository.status !== "ready") {
-      collectorError("R2 budget repository became unavailable during accounting");
+      collectorError(
+        "R2 budget repository became unavailable during accounting",
+      );
     }
     const accounted = await input.budgetRepository.account({
       ownerId: input.ownerId,
