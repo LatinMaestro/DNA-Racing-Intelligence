@@ -627,16 +627,23 @@ reconstructed page receipt into a fresh checkpoint and recomputes the complete
 cycle identity before hydration. Matching aggregate counts are insufficient if
 an object identity, checksum, receipt chain, Core completion or cycle completion
 has drifted.
-Collection still remains dormant until the bounded connected operator is wired;
-no private result generation has yet been stored or activated.
+The owner-scoped operator now advances one bounded collector step and crosses
+into generation work only after that acquisition reports complete. It requires
+the current durable free-budget window, charges the full approved retained-read
+ceiling before the first read, verifies the exact accounting receipt and routes
+race-document hydration through the same aggregate request gate. The accepted
+materializer's 25-ID handoff is sub-batched to the connected client's 20-ID
+limit with exact response coverage. Collection remains dormant until the
+environment/runtime command is wired; no private result generation has yet
+been stored or activated.
 
 Only a root complete result cycle can currently publish. A successor cycle
 returns a content-free `historical_lineage_required` hold before checkpoint,
 R2, race-document or generation work, preventing a later current-owner set from
 silently removing earlier historical Core evidence. Complete multi-cycle
 lineage composition remains required before recurring successor publication.
-Connected collection and the first complete private result generation remain
-the next P10 dependencies.
+The exact-main, Preview-only environment/runtime command and the first complete
+private result generation remain the next P10 dependencies.
 
 The next acquisition slice now has a pure page-at-a-time runner behind the
 existing conservative aggregate request gate and an explicit pre-reserved R2
@@ -653,10 +660,12 @@ request or persistent write by itself. Exact overlap deduplicates, changed
 identities hold, and race ID, entrant Core, mode, normalized distance, gate
 count, event time and finishing-position bounds must agree. The retained-page
 composer enforces the free Class B read ceiling, verifies exact receipt chains,
-hydrates race documents in batches of at most 25 and invokes the complete
-generation publisher backed by the forced-owner Neon adapter. The next
-dependency is the bounded private operator/runtime composition for a first root
-cycle and complete joined generation; successor publication remains held until
+hands off race-document groups of at most 25 and invokes the complete generation
+publisher backed by the forced-owner Neon adapter. The private operator now
+reserves and verifies the retained-read accounting before that handoff, then
+uses the strict hydrator to respect the client's 20-ID endpoint limit. The next
+dependency is the guarded environment/runtime command for a first root cycle
+and complete joined generation; successor publication remains held until
 historical lineage can be composed without loss.
 
 The connected Cloudflare measurement verifies the account-owned token and

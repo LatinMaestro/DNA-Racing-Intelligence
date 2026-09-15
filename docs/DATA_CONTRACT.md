@@ -134,9 +134,14 @@ fresh Core checkpoint, compares the full receipt-chain checkpoint with durable
 authority, and recomputes the completed cycle identity. Aggregate-compatible
 replacement evidence therefore cannot pass. A successor cycle is held with
 `historical_lineage_required` until complete lineage composition can preserve
-history for Cores absent from the later current-owner set. Connected collection
-and the first complete private result generation remain required before this
-evidence can replace the current held Pro League performance read.
+history for Cores absent from the later current-owner set. The private operator
+advances only one collector step per call, verifies the no-paid-use reservation
+and exact accounting receipt before retained reads, and routes race-document
+hydration through the shared aggregate gate. Materializer groups of at most 25
+race IDs are sub-batched to the connected v1 client's 20-ID limit and require
+exact response coverage. The environment/runtime command and first complete
+private result generation remain required before this evidence can replace the
+current held Pro League performance read.
 
 ### Cores
 
