@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - codex/p10-core-history-checkpoints
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
