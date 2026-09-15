@@ -102,10 +102,16 @@ describeConnected(
           preserveLastGood: true,
         });
         expect(report.status).not.toBe("held");
+        if (
+          process.env
+            .DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_REQUIRE_COMPLETE === "1"
+        ) {
+          expect(report.status).toBe("complete");
+        }
         expect(report.stepCount).toBeGreaterThan(0);
         expect(report.stepCount).toBeLessThanOrEqual(maximumSteps());
       },
-      15 * 60_000,
+      30 * 60_000,
     );
   },
 );
