@@ -120,9 +120,14 @@ page/quarantine receipt boundaries are now defined. Its bounded runner requires
 the exact page budget identity, zero paid-use authority and last-good
 preservation before evidence or provider access. The pure materialization
 boundary now deduplicates exact cross-page/cross-cycle replays and requires
-race ID, entrant Core, mode and distance agreement. Connected collection and
-complete daily-generation publication remain required before it can replace
-the current held Pro League performance read.
+race ID, entrant Core, mode and distance agreement. It also exposes separate
+hashes for the exact completed-cycle set and ordered joined-observation set.
+The subsequent generation boundary recomputes the observation hash, reconciles
+all counts exactly, stages no more than 250 rows per call and publishes only
+after exact count and payload-digest verification. Failed or conflicting
+staging cannot replace last-good. Connected collection and the owner-isolated
+Neon implementation of this publication contract remain required before it can
+replace the current held Pro League performance read.
 
 ### Cores
 

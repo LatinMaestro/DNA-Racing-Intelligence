@@ -637,8 +637,12 @@ request or persistent write by itself. Cross-page/cross-cycle canonical
 deduplication and race-document joining now have a pure fail-closed
 materialization boundary. Exact overlap deduplicates, changed identities hold,
 and race ID, entrant Core, mode, normalized distance, gate count, event time
-and finishing-position bounds must agree. Durable replay, persistence and
-atomic publication remain next.
+and finishing-position bounds must agree. A provider-neutral complete-generation
+publisher now binds the exact cycle set, observation set, row checksums, counts
+and payload digest; stages at most 250 rows per transaction; resumes exact
+staged work after interruption; and asks to replace last-good only after full
+verification. The forced-owner Neon schema and repository adapter remain next,
+followed by the connected bounded Preview generation.
 
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an
