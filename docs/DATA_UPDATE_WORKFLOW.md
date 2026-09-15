@@ -304,9 +304,22 @@ ceiling, deduplicates race IDs and hydrates them in batches of at most 25 before
 invoking the publisher. A later cycle with a prior-cycle link returns
 `historical_lineage_required` before R2 or publication until the complete chain
 can be loaded; this preserves earlier evidence for Cores that disappear from a
-later current-state owner set. The bounded private operator/runtime connection,
+later current-state owner set. The bounded private environment/runtime command,
 first root-cycle collection and first complete private publication remain the
 next commissioning gates.
+
+The owner-scoped private generation operator now composes one collector step
+with that publication boundary. Partial or paused collection returns without
+materialization. Once acquisition is complete, the operator requires the exact
+durable budget window, accepts only a reservation that explicitly forbids paid
+use and preserves last-good, and charges the full retained-read ceiling before
+the first immutable read. The accounting receipt must echo the exact window,
+reservation, request identity, planned ceiling and charged usage. A changed or
+incomplete response stops before materialization. Race-document hydration uses
+the same aggregate request budget and the strict hydrator, which splits a
+materializer handoff of up to 25 IDs into endpoint-valid groups of at most 20
+and requires exact response coverage. Environment construction, exact-main
+Preview command gating and connected execution remain separate.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
