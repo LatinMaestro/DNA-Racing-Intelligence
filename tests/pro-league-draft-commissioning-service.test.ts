@@ -255,6 +255,74 @@ describe("Pro League draft commissioning service", () => {
     expect(result.evidence).toBeNull();
   });
 
+  it("exposes only the complete structural Core pool when exact-format evidence is absent", async () => {
+    const readServingOwnedCores = vi.fn(async () =>
+      [
+        ["101", "Metal", "Genesis", "female", 4],
+        ["102", "Fire", "Morphed", "male", 16],
+        ["103", "Earth", "Morphed", "female", 20],
+        ["104", "Water", "Freak", "male", 11],
+      ].map(([sourceCoreId, element, coreClass, sex, fNumber], index) => ({
+        generationId: "84000000-0000-4000-8000-000000000501",
+        observedAt: `2026-09-07T00:0${index}:00.000Z`,
+        rawEvidenceSha256: String(index + 1).repeat(64),
+        canonical: {
+          sourceType: "core_details" as const,
+          sourceCoreId: String(sourceCoreId),
+          displayName: `Current Core ${sourceCoreId}`,
+          coreClass: coreClass as "Genesis" | "Morphed" | "Freak",
+          element: element as "Metal" | "Fire" | "Earth" | "Water",
+          fNumber: Number(fNumber),
+          sex: sex as "female" | "male",
+          colorSourceValue: null,
+          fatherSourceCoreId: null,
+          fatherNameSourceValue: null,
+          motherSourceCoreId: null,
+          motherNameSourceValue: null,
+        },
+      })),
+    );
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        evidenceRepository: repository({
+          readActiveGeneration: vi.fn(async () => null),
+        }),
+        ownedCoreRepository: { readServingOwnedCores },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      connectionStatus: "structural_pool_connected",
+      evidence: null,
+      roster: null,
+      lineup: null,
+      structuralPool: {
+        authority: "complete_daily_generation_owned_core_metadata_only",
+        generationId: "84000000-0000-4000-8000-000000000501",
+        dataCurrentThrough: "2026-09-07T00:00:00.000Z",
+        latestObservedAt: "2026-09-07T00:03:00.000Z",
+        coreCount: 4,
+        namedCoreCount: 4,
+        femaleCount: 2,
+        aboveF15Count: 2,
+        f5OrBelowCount: 1,
+        f10OrBelowCount: 1,
+        performanceSelectionStatus:
+          "held_without_exact_format_elapsed_time_evidence",
+        rosterPublished: false,
+        mapAssignmentsPublished: false,
+        automaticActionAllowed: false,
+      },
+    });
+    expect(result.structuralPool?.elements).toEqual([
+      { element: "Metal", coreCount: 1, genesisCount: 1 },
+      { element: "Fire", coreCount: 1, genesisCount: 0 },
+      { element: "Earth", coreCount: 1, genesisCount: 0 },
+      { element: "Water", coreCount: 1, genesisCount: 0 },
+    ]);
+    expect(readServingOwnedCores).toHaveBeenCalledWith({ ownerId });
+  });
+
   it("returns one active generation with a compliant roster and all 168 lines", async () => {
     const result = await loadProLeagueDraftCommissioningState(input());
 

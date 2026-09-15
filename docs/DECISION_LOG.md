@@ -2427,3 +2427,15 @@ After the private Pro League milestone, continue in this order:
   than combining newer Core metadata with an older accepted history package.
 - This read path remains private and read-only. It does not rank Cores, publish
   a roster or map, deploy a website, or perform a game action.
+
+## 2026-09-15 — Expose structural roster inputs without selecting Cores
+
+- When the complete daily generation exists before the exact-format Pro League
+  evidence generation, show only owner-scoped Core names and roster-rule totals
+  from that accepted daily generation.
+- Do not rank, select or map a Core from metadata or broad distance statistics.
+  Keep the roster and all 168 map assignments held until exact Bike race type,
+  exact distance and elapsed-time evidence is connected and verified.
+- Hide the older broad-performance preparation list in this structural-only
+  state so it cannot be mistaken for a current recommendation. The page remains
+  private, read-only and unable to perform a game action.

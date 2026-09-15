@@ -31,6 +31,10 @@ import {
 } from "@/lib/pro-league-current-core-state-service";
 import type { DnaOpenLabSupplementalCoreReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 import type { DnaOpenLabCurrentRaceReadRepository } from "@/lib/neon-dna-open-lab-sync-publication";
+import type {
+  DnaOpenLabServingOwnedCore,
+  NeonDnaOpenLabSyncPublicationRepository,
+} from "@/lib/neon-dna-open-lab-sync-publication";
 import {
   invalidProLeagueRaceOpportunityState,
   loadProLeagueRaceOpportunities,
@@ -73,13 +77,38 @@ export type ProLeagueDraftCommissioningEvidenceSummary = Readonly<{
   ownedCoreWithoutEvidenceCount: number;
 }>;
 
+export type ProLeagueStructuralOwnerPool = Readonly<{
+  authority: "complete_daily_generation_owned_core_metadata_only";
+  generationId: string;
+  dataCurrentThrough: string;
+  latestObservedAt: string;
+  freshness: FreshnessState;
+  coreCount: number;
+  namedCoreCount: number;
+  femaleCount: number;
+  aboveF15Count: number;
+  f5OrBelowCount: number;
+  f10OrBelowCount: number;
+  elements: readonly Readonly<{
+    element: "Metal" | "Fire" | "Earth" | "Water";
+    coreCount: number;
+    genesisCount: number;
+  }>[];
+  performanceSelectionStatus: "held_without_exact_format_elapsed_time_evidence";
+  rosterPublished: false;
+  mapAssignmentsPublished: false;
+  automaticActionAllowed: false;
+}>;
+
 export type ProLeagueDraftCommissioningState = Readonly<{
   connectionStatus:
     | "identity_not_connected"
     | "persistence_not_configured"
     | "active_generation_unavailable"
+    | "structural_pool_connected"
     | "draft_unavailable"
     | "read_model_connected";
+  structuralPool?: ProLeagueStructuralOwnerPool;
   evidence: ProLeagueDraftCommissioningEvidenceSummary | null;
   roster: ProLeagueDraftRosterRecommendation | null;
   lineup: ProLeagueDraftLineupRecommendation | null;
@@ -117,6 +146,77 @@ function empty(
   });
 }
 
+function structuralTimestamp(value: string): number {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
+    throw new Error("Pro League structural Core observation time is invalid.");
+  }
+  return parsed.getTime();
+}
+
+function structuralOwnerPool(
+  cores: readonly DnaOpenLabServingOwnedCore[],
+  now: Date,
+): ProLeagueStructuralOwnerPool | null {
+  if (cores.length === 0) return null;
+  if (cores.length > 500) {
+    throw new Error("Pro League structural Core pool exceeds its safe bound.");
+  }
+  const generationId = cores[0]!.generationId;
+  const ids = new Set<string>();
+  const observed = cores.map((core) => {
+    if (core.generationId !== generationId) {
+      throw new Error("Pro League structural Core generations do not align.");
+    }
+    if (ids.has(core.canonical.sourceCoreId)) {
+      throw new Error("Pro League structural Core pool repeats an identity.");
+    }
+    ids.add(core.canonical.sourceCoreId);
+    return structuralTimestamp(core.observedAt);
+  });
+  const dataCurrentThrough = new Date(Math.min(...observed)).toISOString();
+  const latestObservedAt = new Date(Math.max(...observed)).toISOString();
+  const elements = (["Metal", "Fire", "Earth", "Water"] as const).map(
+    (element) => {
+      const matching = cores.filter(
+        ({ canonical }) => canonical.element === element,
+      );
+      return Object.freeze({
+        element,
+        coreCount: matching.length,
+        genesisCount: matching.filter(
+          ({ canonical }) => canonical.coreClass === "Genesis",
+        ).length,
+      });
+    },
+  );
+  return Object.freeze({
+    authority: "complete_daily_generation_owned_core_metadata_only",
+    generationId,
+    dataCurrentThrough,
+    latestObservedAt,
+    freshness: deriveFreshness(new Date(dataCurrentThrough), now),
+    coreCount: cores.length,
+    namedCoreCount: cores.filter(
+      ({ canonical }) => canonical.displayName.trim() !== "",
+    ).length,
+    femaleCount: cores.filter(({ canonical }) => canonical.sex === "female")
+      .length,
+    aboveF15Count: cores.filter(({ canonical }) => canonical.fNumber > 15)
+      .length,
+    f5OrBelowCount: cores.filter(({ canonical }) => canonical.fNumber <= 5)
+      .length,
+    f10OrBelowCount: cores.filter(({ canonical }) => canonical.fNumber <= 10)
+      .length,
+    elements: Object.freeze(elements),
+    performanceSelectionStatus:
+      "held_without_exact_format_elapsed_time_evidence",
+    rosterPublished: false,
+    mapAssignmentsPublished: false,
+    automaticActionAllowed: false,
+  });
+}
+
 export async function loadProLeagueDraftCommissioningState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
@@ -126,6 +226,10 @@ export async function loadProLeagueDraftCommissioningState(
     rosteredCoreIds: readonly string[];
     vaultRepository: OwnerVaultCatalogueRepository;
     evidenceRepository: ProLeagueEvidenceReadRepository | null;
+    ownedCoreRepository?: Pick<
+      NeonDnaOpenLabSyncPublicationRepository,
+      "readServingOwnedCores"
+    > | null;
     currentStateRepository?: DnaOpenLabSupplementalCoreReadRepository | null;
     currentRaceRepository?: DnaOpenLabCurrentRaceReadRepository | null;
     breedingRepository?: BreedingRankingRepository;
@@ -145,26 +249,41 @@ export async function loadProLeagueDraftCommissioningState(
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Pro League commissioning access denied.");
   }
-  if (
-    input.vaultRepository.status !== "ready" ||
-    input.evidenceRepository === null
-  ) {
-    return empty("persistence_not_configured");
-  }
   const now = input.now ?? new Date();
   if (Number.isNaN(now.getTime())) {
     throw new Error("Pro League commissioning freshness time is invalid.");
   }
 
-  const active = await loadActiveProLeagueVaultEvidence({
-    ownerId: authenticatedOwnerId,
-    vaultId: input.vaultId,
-    vaultDisplayName: input.vaultDisplayName,
-    rosteredCoreIds: input.rosteredCoreIds,
-    vaultRepository: input.vaultRepository,
-    evidenceRepository: input.evidenceRepository,
-    ...(input.pageSize === undefined ? {} : { pageSize: input.pageSize }),
-  });
+  const exactEvidenceConfigured =
+    input.vaultRepository.status === "ready" &&
+    input.evidenceRepository !== null;
+  const active = exactEvidenceConfigured
+    ? await loadActiveProLeagueVaultEvidence({
+        ownerId: authenticatedOwnerId,
+        vaultId: input.vaultId,
+        vaultDisplayName: input.vaultDisplayName,
+        rosteredCoreIds: input.rosteredCoreIds,
+        vaultRepository: input.vaultRepository,
+        evidenceRepository: input.evidenceRepository!,
+        ...(input.pageSize === undefined ? {} : { pageSize: input.pageSize }),
+      })
+    : null;
+  if (active === null && input.ownedCoreRepository != null) {
+    const structuralPool = await input.ownedCoreRepository
+      .readServingOwnedCores({ ownerId: authenticatedOwnerId })
+      .then((cores) => structuralOwnerPool(cores, now))
+      .catch(() => null);
+    if (structuralPool !== null) {
+      return Object.freeze({
+        connectionStatus: "structural_pool_connected",
+        structuralPool,
+        evidence: null,
+        roster: null,
+        lineup: null,
+      });
+    }
+  }
+  if (!exactEvidenceConfigured) return empty("persistence_not_configured");
   if (active === null) return empty("active_generation_unavailable");
 
   const evidence = Object.freeze({

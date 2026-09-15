@@ -22,6 +22,51 @@ describe("Pro League commissioning panel", () => {
     );
   });
 
+  it("shows structural Core totals without ranking or mapping them", () => {
+    const markup = renderToStaticMarkup(
+      <ProLeagueCommissioningPanel
+        state={{
+          connectionStatus: "structural_pool_connected",
+          structuralPool: {
+            authority: "complete_daily_generation_owned_core_metadata_only",
+            generationId: "84000000-0000-4000-8000-000000000501",
+            dataCurrentThrough: "2026-09-07T00:00:00.000Z",
+            latestObservedAt: "2026-09-07T00:03:00.000Z",
+            freshness: "current",
+            coreCount: 203,
+            namedCoreCount: 203,
+            femaleCount: 88,
+            aboveF15Count: 40,
+            f5OrBelowCount: 12,
+            f10OrBelowCount: 53,
+            elements: [
+              { element: "Metal", coreCount: 50, genesisCount: 2 },
+              { element: "Fire", coreCount: 51, genesisCount: 2 },
+              { element: "Earth", coreCount: 52, genesisCount: 2 },
+              { element: "Water", coreCount: 50, genesisCount: 2 },
+            ],
+            performanceSelectionStatus:
+              "held_without_exact_format_elapsed_time_evidence",
+            rosterPublished: false,
+            mapAssignmentsPublished: false,
+            automaticActionAllowed: false,
+          },
+          evidence: null,
+          roster: null,
+          lineup: null,
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Complete private Core list connected");
+    expect(markup).toContain("203");
+    expect(markup).toContain("Performance selection");
+    expect(markup).toContain("No Core has been ranked or selected");
+    expect(markup).not.toContain("Recommended roster");
+    expect(markup).not.toContain("Four-map assignment");
+    expect(markup).not.toContain("84000000-0000-4000-8000-000000000501");
+  });
+
   it("renders names and exact-format assignments without exposing Core IDs", () => {
     const privateCoreId = "private-core-123";
     const state = {
