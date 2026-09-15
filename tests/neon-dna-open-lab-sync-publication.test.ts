@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { DnaCurrentStateCandidate } from "@/lib/dna-open-lab-last-good-publication";
@@ -387,6 +389,25 @@ function isolation(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function historyIsolation(overrides: Record<string, unknown> = {}) {
+  return {
+    daily_generation_rls: true,
+    daily_generation_force_rls: true,
+    daily_active_rls: true,
+    daily_active_force_rls: true,
+    history_publication_rls: true,
+    history_publication_force_rls: true,
+    history_receipt_rls: true,
+    history_receipt_force_rls: true,
+    runtime_can_access_daily_generation: false,
+    runtime_can_access_daily_active: false,
+    runtime_can_access_history_publication: false,
+    runtime_can_access_history_receipt: false,
+    runtime_can_read_combined_history: true,
+    ...overrides,
+  };
+}
+
 function currentState(overrides: Record<string, unknown> = {}) {
   return {
     accepted_generation_id: generationId,
@@ -402,6 +423,58 @@ function currentState(overrides: Record<string, unknown> = {}) {
     last_catch_up_completed_at: null,
     ...overrides,
   };
+}
+
+function combinedFinishedHistoryRow(overrides: Record<string, unknown> = {}) {
+  const windowKey = "3".repeat(64);
+  const objectKey = `private/races/finished-windows/${windowKey}.json`;
+  const start = "2026-09-02T00:00:00.000Z";
+  const end = "2026-09-03T00:00:00.000Z";
+  const row: Record<string, unknown> = {
+    refresh_cycle_id: "6".repeat(64),
+    current_state_generation_id: generationId,
+    selected_cycle_id: "2".repeat(64),
+    lineage_depth: 0,
+    cycle_id: "2".repeat(64),
+    previous_published_cycle_id: null,
+    attempt_number: 1,
+    lower_bound_at: start,
+    upper_bound_at: end,
+    receipt_count: 1,
+    document_count: "2",
+    publication_manifest_byte_length: "256",
+    receipt_set_sha256: null,
+    validated_at: "2026-09-03T00:01:00.000Z",
+    published_at: "2026-09-03T00:02:00.000Z",
+    first_attempt_number: 1,
+    window_start_at: start,
+    window_end_at: end,
+    window_key: windowKey,
+    content_sha256: "4".repeat(64),
+    window_document_count: 2,
+    manifest_object_key: objectKey,
+    manifest_body_sha256: "5".repeat(64),
+    manifest_byte_length: "256",
+    ...overrides,
+  };
+  if (!("receipt_set_sha256" in overrides)) {
+    row.receipt_set_sha256 = createHash("sha256")
+      .update(
+        [
+          String(Date.parse(String(row.window_start_at))),
+          String(Date.parse(String(row.window_end_at))),
+          String(row.window_key),
+          String(row.content_sha256),
+          String(row.window_document_count),
+          `${Buffer.byteLength(String(row.manifest_object_key), "utf8")}:${String(row.manifest_object_key)}`,
+          String(row.manifest_body_sha256),
+          String(row.manifest_byte_length),
+        ].join("|"),
+        "utf8",
+      )
+      .digest("hex");
+  }
+  return row;
 }
 
 function harness(rows: readonly (readonly unknown[])[]) {
@@ -949,6 +1022,74 @@ describe("Neon DNA Open Lab sync publication", () => {
     expect(test.events.join("\n")).toContain(
       "read_dna_open_lab_combined_serving_current_state_evidence_index",
     );
+  });
+
+  it("reads and revalidates the finished-history lineage pinned by daily serving", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [historyIsolation()],
+      [
+        combinedFinishedHistoryRow({
+          lineage_depth: 1,
+          cycle_id: "1".repeat(64),
+        }),
+        combinedFinishedHistoryRow({
+          lineage_depth: 0,
+          cycle_id: "2".repeat(64),
+          previous_published_cycle_id: "1".repeat(64),
+          lower_bound_at: "2026-09-03T00:00:00.000Z",
+          upper_bound_at: "2026-09-04T00:00:00.000Z",
+          document_count: "3",
+          publication_manifest_byte_length: "300",
+          validated_at: "2026-09-04T00:01:00.000Z",
+          published_at: "2026-09-04T00:02:00.000Z",
+          window_start_at: "2026-09-03T00:00:00.000Z",
+          window_end_at: "2026-09-04T00:00:00.000Z",
+          window_key: "7".repeat(64),
+          content_sha256: "8".repeat(64),
+          window_document_count: 3,
+          manifest_object_key: `private/races/finished-windows/${"7".repeat(64)}.json`,
+          manifest_body_sha256: "9".repeat(64),
+          manifest_byte_length: "300",
+        }),
+      ],
+    ]);
+
+    const history = await test.repository.readServingFinishedHistory({
+      ownerId,
+    });
+    expect(history).toMatchObject({
+      refreshCycleId: "6".repeat(64),
+      currentStateGenerationId: generationId,
+      selectedCycleId: "2".repeat(64),
+      receiptCount: 2,
+      documentCount: 5,
+      manifestByteLength: 556,
+    });
+    expect(history.cycles.map((cycle) => cycle.publication.cycleId)).toEqual([
+      "1".repeat(64),
+      "2".repeat(64),
+    ]);
+    expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+    expect(test.events.join("\n")).toContain(
+      "read_dna_open_lab_combined_serving_finished_history",
+    );
+    expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("rejects a combined finished-history receipt-set checksum drift", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [historyIsolation()],
+      [combinedFinishedHistoryRow({ receipt_set_sha256: "0".repeat(64) })],
+    ]);
+
+    await expect(
+      test.repository.readServingFinishedHistory({ ownerId }),
+    ).rejects.toThrow("receipt authority drifted");
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
   it("rolls back when forced-RLS or least-privilege evidence is unsafe", async () => {

@@ -247,6 +247,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.up.sql
       - name: Run combined owned Core read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.smoke.sql
+      - name: Apply combined finished-history read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0099_dna_open_lab_combined_finished_history_read.up.sql
+      - name: Run combined finished-history read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0099_dna_open_lab_combined_finished_history_read.smoke.sql
+      - name: Reverse combined finished-history read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0099_dna_open_lab_combined_finished_history_read.down.sql
+      - name: Verify combined finished-history read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0099_dna_open_lab_combined_finished_history_read.removal.sql
       - name: Reverse combined owned Core read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.down.sql
       - name: Verify combined owned Core read removal
