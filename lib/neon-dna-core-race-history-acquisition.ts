@@ -56,6 +56,8 @@ const VERIFY_ISOLATION_SQL = [
   "  session_user::text AS session_user_name, current_user::text AS current_user_name,",
   "  role.rolsuper AS runtime_is_superuser, role.rolbypassrls AS runtime_bypasses_rls,",
   "  role.rolcreaterole AS runtime_can_create_roles, role.rolcreatedb AS runtime_can_create_databases,",
+  "  has_database_privilege(session_user, current_database(), 'CREATE') AS runtime_can_create_in_database,",
+  "  has_schema_privilege(session_user, 'dna', 'CREATE') AS runtime_can_create_in_schema,",
   "  COALESCE(pg_has_role(session_user, (SELECT oid FROM pg_catalog.pg_roles",
   "    WHERE rolname = 'neon_superuser'), 'MEMBER'), false) AS runtime_is_neon_superuser_member",
   "FROM dna.app_owner owner",
@@ -236,6 +238,11 @@ function verifyIsolation(
     bool(row.runtime_bypasses_rls, "runtime_bypasses_rls") ||
     bool(row.runtime_can_create_roles, "runtime_can_create_roles") ||
     bool(row.runtime_can_create_databases, "runtime_can_create_databases") ||
+    bool(
+      row.runtime_can_create_in_database,
+      "runtime_can_create_in_database",
+    ) ||
+    bool(row.runtime_can_create_in_schema, "runtime_can_create_in_schema") ||
     bool(
       row.runtime_is_neon_superuser_member,
       "runtime_is_neon_superuser_member",

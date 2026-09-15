@@ -49,6 +49,8 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_bypasses_rls: false,
     runtime_can_create_roles: false,
     runtime_can_create_databases: false,
+    runtime_can_create_in_database: false,
+    runtime_can_create_in_schema: false,
     runtime_is_neon_superuser_member: false,
     ...overrides,
   };
@@ -177,6 +179,19 @@ describe("Neon DNA Core race history acquisition", () => {
 
     await expect(test.repository.loadLatestComplete()).rejects.toThrow(
       "requires forced owner RLS",
+    );
+    expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
+    expect(test.query).toHaveBeenCalledTimes(4);
+  });
+
+  it("rejects a runtime role that can create objects in the DNA schema", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation({ runtime_can_create_in_schema: true })],
+    ]);
+
+    await expect(test.repository.loadLatestComplete()).rejects.toThrow(
+      "runtime role is unsafe",
     );
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
     expect(test.query).toHaveBeenCalledTimes(4);
