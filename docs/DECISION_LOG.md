@@ -2594,3 +2594,21 @@ After the private Pro League milestone, continue in this order:
 - Migration `0101` is reversible and smoke-tests function-only privileges,
   replay, incomplete-publication rejection and owner isolation. It does not run
   collection, store private data, deploy a site or authorize a game action.
+
+## 2026-09-15 — Bind retained Core-result pages to exact receipt authority
+
+- Return each canonical retained materialization page together with the exact
+  receipt reconstructed from its private immutable page and quarantine objects.
+- Before race-document hydration, replay every ordered receipt from a fresh
+  per-Core checkpoint. Require the resulting full checkpoint, including receipt
+  chain and completion identities, to equal durable authority, then recompute
+  and compare the complete cycle identity. Equal aggregate counts alone are not
+  publication authority.
+- Hold every successor cycle with `historical_lineage_required` before
+  checkpoint, R2, hydration or publication work until the full completed-cycle
+  chain can be composed. This prevents a changed current-owner Core set from
+  silently deleting earlier historical evidence or replacing last-good with a
+  truncated generation.
+- The root-cycle path remains available for the first bounded private
+  commissioning generation. This change performs no live collection, private
+  evidence write, deployment, provider change, cost or game action.

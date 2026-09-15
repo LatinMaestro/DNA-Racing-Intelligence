@@ -57,6 +57,11 @@ export type DnaCoreRaceHistoryStoredPageEvidence =
     }>
   | DnaCoreRaceHistoryHeldPageEvidence;
 
+export type DnaCoreRaceHistoryRetainedMaterializationPage = Readonly<{
+  receipt: DnaCoreRaceHistoryPageReceipt;
+  page: DnaCoreRaceHistoryMaterializationPage;
+}>;
+
 export type DnaCoreRaceHistoryR2EvidenceStore = Readonly<{
   read: (input: {
     cycle: DnaCoreRaceHistoryAcquisitionCycle;
@@ -82,7 +87,7 @@ export type DnaCoreRaceHistoryMaterializationEvidenceStore = Readonly<{
     cycle: DnaCoreRaceHistoryAcquisitionCycle;
     coreId: number;
     pageNumber: number;
-  }) => Promise<DnaCoreRaceHistoryMaterializationPage | null>;
+  }) => Promise<DnaCoreRaceHistoryRetainedMaterializationPage | null>;
 }>;
 
 type StoredPageDocument = Readonly<{
@@ -772,14 +777,17 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
         evidenceError("conflicted page cannot be materialized");
       }
       return Object.freeze({
-        ownerId,
-        cycleId: page.cycleId,
-        attemptNumber: page.attemptNumber,
-        coreId: page.coreId,
-        pageNumber: page.pageNumber,
-        sourceRowCount: page.response.result.length,
-        terminal: verified.receipt.terminal,
-        results: adaptation.accepted,
+        receipt: verified.receipt,
+        page: Object.freeze({
+          ownerId,
+          cycleId: page.cycleId,
+          attemptNumber: page.attemptNumber,
+          coreId: page.coreId,
+          pageNumber: page.pageNumber,
+          sourceRowCount: page.response.result.length,
+          terminal: verified.receipt.terminal,
+          results: adaptation.accepted,
+        }),
       });
     },
     async write(request) {

@@ -622,12 +622,21 @@ synthetically exercised. The joined-result generation is now also durable:
 migration `0101` uses forced owner isolation and function-only runtime access,
 accepts bounded replay-safe row batches, recomputes exact count and ordered
 digest from stored rows, and moves the active pointer only for a complete
-monotonic generation.
+monotonic generation. The retained-evidence composer now also replays each
+reconstructed page receipt into a fresh checkpoint and recomputes the complete
+cycle identity before hydration. Matching aggregate counts are insufficient if
+an object identity, checksum, receipt chain, Core completion or cycle completion
+has drifted.
 Collection still remains dormant until the bounded connected operator is wired;
 no private result generation has yet been stored or activated.
 
-This does not yet call the result API persistently; connected collection and
-the first complete private result generation remain the next P10 dependencies.
+Only a root complete result cycle can currently publish. A successor cycle
+returns a content-free `historical_lineage_required` hold before checkpoint,
+R2, race-document or generation work, preventing a later current-owner set from
+silently removing earlier historical Core evidence. Complete multi-cycle
+lineage composition remains required before recurring successor publication.
+Connected collection and the first complete private result generation remain
+the next P10 dependencies.
 
 The next acquisition slice now has a pure page-at-a-time runner behind the
 existing conservative aggregate request gate and an explicit pre-reserved R2
@@ -640,16 +649,15 @@ use and preserve the last-good generation. Its storage ceiling is derived from
 two independently capped 8-MiB evidence objects, and a provider page above the
 verified 50-row limit is malformed.
 This runner remains unconnected to the hosted command, so it makes no live
-request or persistent write by itself. Cross-page/cross-cycle canonical
-deduplication and race-document joining now have a pure fail-closed
-materialization boundary. Exact overlap deduplicates, changed identities hold,
-and race ID, entrant Core, mode, normalized distance, gate count, event time
-and finishing-position bounds must agree. A provider-neutral complete-generation
-publisher now binds the exact cycle set, observation set, row checksums, counts
-and payload digest; stages at most 250 rows per transaction; resumes exact
-staged work after interruption; and asks to replace last-good only after full
-verification. The forced-owner Neon schema and repository adapter remain next,
-followed by the connected bounded Preview generation.
+request or persistent write by itself. Exact overlap deduplicates, changed
+identities hold, and race ID, entrant Core, mode, normalized distance, gate
+count, event time and finishing-position bounds must agree. The retained-page
+composer enforces the free Class B read ceiling, verifies exact receipt chains,
+hydrates race documents in batches of at most 25 and invokes the complete
+generation publisher backed by the forced-owner Neon adapter. The next
+dependency is the bounded private operator/runtime composition for a first root
+cycle and complete joined generation; successor publication remains held until
+historical lineage can be composed without loss.
 
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an
