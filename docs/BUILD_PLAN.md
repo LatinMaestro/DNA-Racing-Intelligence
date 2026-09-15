@@ -622,6 +622,16 @@ synthetically exercised. This does not yet call the result API persistently or
 publish result rows into a daily generation; those remain the next P10
 dependencies.
 
+The next acquisition slice now has a pure page-at-a-time runner behind the
+existing conservative aggregate request gate and an explicit pre-reserved R2
+authority. A blocked allowance, provider interruption, malformed response,
+rate limit or immutable-evidence conflict pauses without advancing the Core
+cursor. A retained page is recovered before another provider request, and the
+cycle completes only after every Core has its explicit empty terminal page.
+This runner remains unconnected to the hosted command, so it makes no live
+request or persistent write by itself. Cross-page/cross-cycle canonical
+deduplication, race-document joining and atomic publication remain next.
+
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an
 inactive token from an operations- or storage-dataset rejection without
