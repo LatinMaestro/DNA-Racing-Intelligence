@@ -59,6 +59,32 @@ BEGIN
      OR has_table_privilege(
        'dna_app_runtime', 'dna.dna_core_race_history_page_receipt', 'SELECT'
      )
+     OR has_table_privilege(
+       'dna_app_runtime', 'dna.dna_core_race_history_acquisition_cycle',
+       'INSERT,UPDATE,DELETE'
+     )
+     OR has_table_privilege(
+       'dna_app_runtime', 'dna.dna_core_race_history_acquisition_attempt',
+       'INSERT,UPDATE,DELETE'
+     )
+     OR has_table_privilege(
+       'dna_app_runtime', 'dna.dna_core_race_history_core_checkpoint',
+       'INSERT,UPDATE,DELETE'
+     )
+     OR has_table_privilege(
+       'dna_app_runtime', 'dna.dna_core_race_history_page_receipt',
+       'INSERT,UPDATE,DELETE'
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_class relation
+       WHERE relation.oid IN (
+         'dna.dna_core_race_history_acquisition_cycle'::regclass,
+         'dna.dna_core_race_history_acquisition_attempt'::regclass,
+         'dna.dna_core_race_history_core_checkpoint'::regclass,
+         'dna.dna_core_race_history_page_receipt'::regclass
+       ) AND (NOT relation.relrowsecurity OR NOT relation.relforcerowsecurity)
+     )
      OR NOT has_function_privilege(
        'dna_app_runtime',
        'dna.save_dna_core_race_history_acquisition_attempt(uuid,bigint,jsonb)',
@@ -67,6 +93,26 @@ BEGIN
      OR NOT has_function_privilege(
        'dna_app_runtime',
        'dna.save_dna_core_race_history_page_progress(uuid,bigint,jsonb,jsonb)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'dna_app_runtime',
+       'dna.read_dna_core_race_history_acquisition_attempt(uuid,text,integer)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'dna_app_runtime',
+       'dna.read_latest_complete_dna_core_race_history_acquisition(uuid)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'dna_app_runtime',
+       'dna.read_next_dna_core_race_history_checkpoint(uuid,text,integer)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'dna_app_runtime',
+       'dna.read_dna_core_race_history_checkpoints(uuid,text,integer)',
        'EXECUTE'
      ) THEN
     RAISE EXCEPTION 'Core history acquisition privileges are unsafe';
