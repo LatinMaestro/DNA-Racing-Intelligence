@@ -135,6 +135,16 @@ describe("DNA Core race history client", () => {
     await expect(
       badRow.client.page({ coreId: 1, page: 1 }),
     ).rejects.toMatchObject({ kind: "malformed_response" });
+
+    const oversizedPage = clientWith(
+      jsonResponse({
+        status: "success",
+        result: Array.from({ length: 51 }, () => ({})),
+      }),
+    );
+    await expect(
+      oversizedPage.client.page({ coreId: 1, page: 1 }),
+    ).rejects.toMatchObject({ kind: "malformed_response" });
   });
 
   it("validates HTTPS and positive request identities before transport", async () => {

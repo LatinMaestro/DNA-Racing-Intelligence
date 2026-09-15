@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createDnaCoreRaceHistoryAcquisitionCycle } from "../lib/dna-core-race-history-acquisition-cycle";
 import {
   createDnaCoreRaceHistoryR2EvidenceStore,
+  DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES,
   type DnaCoreRaceHistoryR2EvidenceStoragePort,
 } from "../lib/dna-core-race-history-r2-evidence";
 import type { DnaCoreRaceHistoryRow } from "../lib/dna-core-race-history-client";
@@ -21,6 +22,8 @@ class MemoryR2Storage implements DnaCoreRaceHistoryR2EvidenceStoragePort {
   readonly objects = new Map<string, StoredObject>();
   privacyReadCount = 0;
   putCount = 0;
+  headCount = 0;
+  getCount = 0;
   privacy = {
     publicAccessDisabled: true,
     r2DevDisabled: true,
@@ -69,6 +72,7 @@ class MemoryR2Storage implements DnaCoreRaceHistoryR2EvidenceStoragePort {
   }
 
   async headObject(input: { bucketName: string; key: string }) {
+    this.headCount += 1;
     const stored = this.objects.get(input.key);
     if (stored === undefined) {
       return Object.freeze({ status: "missing" as const });
@@ -83,6 +87,7 @@ class MemoryR2Storage implements DnaCoreRaceHistoryR2EvidenceStoragePort {
   }
 
   async getObject(input: { bucketName: string; key: string }) {
+    this.getCount += 1;
     const stored = this.objects.get(input.key);
     if (stored === undefined) {
       return Object.freeze({ status: "missing" as const });
@@ -153,9 +158,13 @@ function writeInput(rows: readonly DnaCoreRaceHistoryRow[]) {
 }
 
 describe("DNA Core race history private R2 evidence", () => {
-  it("writes a private immutable page plus a separate quarantine receipt", async () => {
+  it("recovers then writes a private page and quarantine within the reserved operation bound", async () => {
     const storage = new MemoryR2Storage();
-    const result = await store(storage).write(
+    const evidence = store(storage);
+    await expect(
+      evidence.recover({ cycle: authority, coreId: 42, pageNumber: 1 }),
+    ).resolves.toBeNull();
+    const result = await evidence.write(
       writeInput([row(), row({ rid: "private-race-2", pos: null })]),
     );
 
@@ -179,6 +188,8 @@ describe("DNA Core race history private R2 evidence", () => {
     );
     expect(storage.objects.size).toBe(2);
     expect(storage.privacyReadCount).toBe(1);
+    expect(storage.putCount).toBe(2);
+    expect(storage.headCount + storage.getCount).toBe(7);
   });
 
   it("returns the first immutable observation when a crashed request replays", async () => {
@@ -327,6 +338,21 @@ describe("DNA Core race history private R2 evidence", () => {
         pageNumber: 10_001,
       }),
     ).rejects.toThrow("pageNumber exceeds its safe bound");
+    expect(storage.putCount).toBe(0);
+  });
+
+  it("cannot raise the per-object evidence bound above eight MiB", () => {
+    const storage = new MemoryR2Storage();
+
+    expect(() =>
+      createDnaCoreRaceHistoryR2EvidenceStore({
+        ownerId: "owner@example.test",
+        bucketName: "dna-racing-private-evidence",
+        storage,
+        maximumObjectBytes:
+          DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES + 1,
+      }),
+    ).toThrow("maximumObjectBytes exceeds its safe bound");
     expect(storage.putCount).toBe(0);
   });
 

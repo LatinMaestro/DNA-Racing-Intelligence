@@ -2532,6 +2532,10 @@ After the private Pro League milestone, continue in this order:
   call. One step allows at most 16 MiB retained storage, two R2 Class A
   operations and seven Class B operations, covering the maximum page and
   quarantine create-if-absent verification path.
+- Require the returned authority to echo the exact page request checksum,
+  forbid paid use and preserve last-good publication. Derive the 16-MiB ceiling
+  from two separately enforced 8-MiB object bounds, and reject a provider
+  success page above the verified 50-row limit as malformed.
 - Recover and verify immutable page evidence before repeating a provider call.
   Persist the compact Core cursor only after the receipt is valid; completing
   the final Core also closes the cycle with all checkpoint totals.

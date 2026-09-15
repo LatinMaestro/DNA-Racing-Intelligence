@@ -9,9 +9,10 @@ import {
   type StoredDnaCoreRaceHistoryCoreCheckpoint,
 } from "./dna-core-race-history-acquisition-cycle";
 import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
-import type {
-  DnaCoreRaceHistoryR2EvidenceStore,
-  DnaCoreRaceHistoryStoredPageEvidence,
+import {
+  DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES,
+  type DnaCoreRaceHistoryR2EvidenceStore,
+  type DnaCoreRaceHistoryStoredPageEvidence,
 } from "./dna-core-race-history-r2-evidence";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
@@ -23,13 +24,26 @@ import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy"
 
 export const DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE: DnaOpenLabR2Usage =
   Object.freeze({
-    storageBytes: 16 * 1024 * 1024,
+    storageBytes: 2 * DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES,
     classAOperations: 2,
+    // One pre-provider recovery miss plus the evidence store's six-operation
+    // worst case for a new page with quarantine.
     classBOperations: 7,
   });
 
 export type DnaCoreRaceHistoryEvidenceBudgetAuthority =
-  Readonly<{ status: "ready" }> | Readonly<{ status: "blocked" }>;
+  | Readonly<{
+      status: "ready";
+      requestSha256: string;
+      paidUsageAllowed: false;
+      preserveLastGood: true;
+    }>
+  | Readonly<{
+      status: "blocked";
+      requestSha256: string;
+      paidUsageAllowed: false;
+      preserveLastGood: true;
+    }>;
 
 export type DnaCoreRaceHistoryEvidenceBudgetRequest = Readonly<{
   requestSha256: string;
@@ -130,6 +144,25 @@ function assertConservativeRequestBudget(
   ) {
     runnerError("request budget exceeds the conservative aggregate rate");
   }
+}
+
+function validateEvidenceBudgetAuthority(
+  value: unknown,
+  expectedRequestSha256: string,
+): "ready" | "blocked" {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    runnerError("evidence budget authority is invalid");
+  }
+  const authority = value as Record<string, unknown>;
+  if (
+    (authority.status !== "ready" && authority.status !== "blocked") ||
+    authority.requestSha256 !== expectedRequestSha256 ||
+    authority.paidUsageAllowed !== false ||
+    authority.preserveLastGood !== true
+  ) {
+    runnerError("evidence budget authority is invalid");
+  }
+  return authority.status as "ready" | "blocked";
 }
 
 function apiPause(error: DnaOpenLabApiError): {
@@ -324,15 +357,17 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     pageNumber: checkpoint.checkpoint.nextPage,
   };
 
-  const authority = await input.authorizeEvidenceBudget(
-    evidenceBudgetRequest({
-      cycleId: identity.cycle.cycleId,
-      attemptNumber: identity.cycle.attemptNumber,
-      coreId: identity.coreId,
-      pageNumber: identity.pageNumber,
-    }),
-  );
-  if (authority.status !== "ready") {
+  const budgetRequest = evidenceBudgetRequest({
+    cycleId: identity.cycle.cycleId,
+    attemptNumber: identity.cycle.attemptNumber,
+    coreId: identity.coreId,
+    pageNumber: identity.pageNumber,
+  });
+  const authority = await input.authorizeEvidenceBudget(budgetRequest);
+  if (
+    validateEvidenceBudgetAuthority(authority, budgetRequest.requestSha256) !==
+    "ready"
+  ) {
     return pause({
       stored,
       repository: input.repository,

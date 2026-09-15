@@ -1,3 +1,4 @@
+import { DNA_CORE_RACE_HISTORY_PROVIDER_PAGE_SIZE } from "@/lib/dna-core-race-history-acquisition-cycle";
 import {
   DnaOpenLabApiError,
   readDnaOpenLabRateLimit,
@@ -92,7 +93,11 @@ async function readHistoryEnvelope(
     });
   }
 
-  if (payload.status !== "success" || !Array.isArray(payload.result)) {
+  if (
+    payload.status !== "success" ||
+    !Array.isArray(payload.result) ||
+    payload.result.length > DNA_CORE_RACE_HISTORY_PROVIDER_PAGE_SIZE
+  ) {
     throw new DnaOpenLabApiError({
       kind: "malformed_response",
       message: "DNA Core race history success envelope is invalid",

@@ -114,7 +114,9 @@ observed sub-100 codes to metres using the established provider convention,
 preserve `time` as elapsed seconds and `pos` as finishing position. `track`
 remains a separate source value and must not be treated as distance. Its
 versioned acquisition-cycle, per-Core page checkpoint and private immutable
-page/quarantine receipt boundaries are now defined. Connected collection,
+page/quarantine receipt boundaries are now defined. Its bounded runner requires
+the exact page budget identity, zero paid-use authority and last-good
+preservation before evidence or provider access. Connected collection,
 cross-page/cross-cycle deduplication and complete daily-generation publication
 remain required before it can replace the current held Pro League performance
 read.
