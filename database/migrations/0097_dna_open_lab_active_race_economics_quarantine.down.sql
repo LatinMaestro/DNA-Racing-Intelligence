@@ -45,6 +45,11 @@ $old$;
     END IF;
 $new$;
 BEGIN
+  IF to_regprocedure(
+       'dna.stage_dna_open_lab_current_race_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb,jsonb,jsonb)'
+     ) IS NULL THEN
+    RETURN;
+  END IF;
   SELECT pg_get_functiondef(
     'dna.stage_dna_open_lab_current_race_candidate(uuid,uuid,timestamp with time zone,timestamp with time zone,jsonb,jsonb,jsonb,jsonb)'::regprocedure
   ) INTO v_definition;
