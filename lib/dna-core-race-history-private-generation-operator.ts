@@ -1,6 +1,8 @@
 import type { DnaCoreRaceHistoryAcquisitionRepository } from "./dna-core-race-history-acquisition-cycle";
 import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
 import {
+  DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES,
+  DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING,
   materializeAndPublishLatestDnaCoreRaceHistory,
   type DnaCoreRaceHistoryGenerationMaterializerResult,
 } from "./dna-core-race-history-generation-materializer";
@@ -31,6 +33,9 @@ export const DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_OPERATOR_VERSION =
   "dna-core-race-history-private-generation/v1" as const;
 export const DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_INTENT =
   "advance_private_core_result_generation" as const;
+export const DNA_CORE_RACE_HISTORY_COMMISSIONING_MATERIALIZATION_CLASS_B_OPERATION_CEILING =
+  DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES *
+  DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING;
 
 export type DnaCoreRaceHistoryPrivateGenerationInvocation = Readonly<{
   operatorVersion: typeof DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_OPERATOR_VERSION;
@@ -103,7 +108,7 @@ function operationCeiling(value: number): number {
     !Number.isSafeInteger(value) ||
     value < 1 ||
     value >
-      DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classBOperations
+      DNA_CORE_RACE_HISTORY_COMMISSIONING_MATERIALIZATION_CLASS_B_OPERATION_CEILING
   ) {
     operatorError("retained-evidence Class B ceiling is invalid");
   }
@@ -131,18 +136,24 @@ function materializationBudgetAuthority(input: {
   ownerId: string;
   cycleId: string;
   attemptNumber: number;
-  maximumClassBOperations: number;
+  requiredClassBOperations: number;
+  chunkIndex: number;
+  chunkCount: number;
+  chunkClassBOperations: number;
 }): Readonly<{ reservationId: string; requestSha256: string }> {
   const value = Object.freeze({
-    version: DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_OPERATOR_VERSION,
+    version: "dna-core-race-history-materialization-budget/v2" as const,
     ownerId: input.ownerId,
     cycleId: input.cycleId,
     attemptNumber: input.attemptNumber,
     purpose: "materialize_complete_generation" as const,
+    requiredClassBOperations: input.requiredClassBOperations,
+    chunkIndex: input.chunkIndex,
+    chunkCount: input.chunkCount,
     plannedUsage: Object.freeze({
       storageBytes: 0,
       classAOperations: 0,
-      classBOperations: input.maximumClassBOperations,
+      classBOperations: input.chunkClassBOperations,
     }),
   });
   return Object.freeze({
@@ -155,6 +166,26 @@ function materializationBudgetAuthority(input: {
       value,
     }),
   });
+}
+
+function requiredRetainedEvidenceClassBOperations(
+  pageReceiptCount: number,
+  maximumClassBOperations: number,
+): number {
+  if (!Number.isSafeInteger(pageReceiptCount) || pageReceiptCount < 1) {
+    operatorError("complete page receipt count is invalid");
+  }
+  const required =
+    pageReceiptCount *
+    DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING;
+  if (
+    !Number.isSafeInteger(required) ||
+    required < 1 ||
+    required > maximumClassBOperations
+  ) {
+    operatorError("retained-evidence Class B requirement exceeds its ceiling");
+  }
+  return required;
 }
 
 function sameUsage(
@@ -295,50 +326,74 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
         });
       }
 
-      const authority = materializationBudgetAuthority({
-        ownerId,
-        cycleId: step.stored.cycle.cycleId,
-        attemptNumber: step.stored.cycle.attemptNumber,
-        maximumClassBOperations,
-      });
-      const plannedUsage = Object.freeze({
-        storageBytes: 0,
-        classAOperations: 0,
-        classBOperations: maximumClassBOperations,
-      });
-      const decision = await input.repositories.budget.reserve({
-        ownerId,
-        windowId: budgetWindowId,
-        refreshCycleId: authority.reservationId,
-        requestSha256: authority.requestSha256,
-        plannedUsage,
-      });
-      if (materializationBudgetDecision(decision) === "blocked") {
-        return Object.freeze({
-          kind: "materialization_budget_blocked" as const,
-          blockerIds: Object.freeze([...decision.blockerIds]),
-        });
+      const completion = step.stored.cycle.completion;
+      if (completion === null) {
+        operatorError("complete collection has no completion authority");
       }
+      const requiredClassBOperations = requiredRetainedEvidenceClassBOperations(
+        completion.pageReceiptCount,
+        maximumClassBOperations,
+      );
+      const chunkMaximum =
+        DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classBOperations;
+      const chunkCount = Math.ceil(requiredClassBOperations / chunkMaximum);
 
-      // Charge the entire approved ceiling before any retained read. This is
-      // intentionally conservative: a crash can never restore free headroom
-      // for operations whose outcome is unknown.
-      const accounting = await input.repositories.budget.account({
-        ownerId,
-        windowId: budgetWindowId,
-        refreshCycleId: authority.reservationId,
-        requestSha256: authority.requestSha256,
-        actualUsage: plannedUsage,
-      });
-      if (
-        accounting.windowId !== budgetWindowId ||
-        accounting.refreshCycleId !== authority.reservationId ||
-        accounting.requestSha256 !== authority.requestSha256 ||
-        accounting.status !== "accounted" ||
-        !sameUsage(accounting.plannedUsage, plannedUsage) ||
-        !sameUsage(accounting.actualUsage, plannedUsage)
-      ) {
-        operatorError("materialization budget accounting drifted");
+      // The durable budget API deliberately caps every reservation at the
+      // recurring daily-refresh ceiling. Reserve and conservatively account
+      // the exact completed-package requirement in deterministic chunks before
+      // the first retained read. Replays reuse the same chunk identities.
+      for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+        const chunkClassBOperations = Math.min(
+          chunkMaximum,
+          requiredClassBOperations - chunkIndex * chunkMaximum,
+        );
+        const authority = materializationBudgetAuthority({
+          ownerId,
+          cycleId: step.stored.cycle.cycleId,
+          attemptNumber: step.stored.cycle.attemptNumber,
+          requiredClassBOperations,
+          chunkIndex,
+          chunkCount,
+          chunkClassBOperations,
+        });
+        const plannedUsage = Object.freeze({
+          storageBytes: 0,
+          classAOperations: 0,
+          classBOperations: chunkClassBOperations,
+        });
+        const decision = await input.repositories.budget.reserve({
+          ownerId,
+          windowId: budgetWindowId,
+          refreshCycleId: authority.reservationId,
+          requestSha256: authority.requestSha256,
+          plannedUsage,
+        });
+        if (materializationBudgetDecision(decision) === "blocked") {
+          return Object.freeze({
+            kind: "materialization_budget_blocked" as const,
+            blockerIds: Object.freeze([...decision.blockerIds]),
+          });
+        }
+
+        // Charge the whole approved chunk before any retained read. A crash
+        // can therefore never restore free headroom for an uncertain outcome.
+        const accounting = await input.repositories.budget.account({
+          ownerId,
+          windowId: budgetWindowId,
+          refreshCycleId: authority.reservationId,
+          requestSha256: authority.requestSha256,
+          actualUsage: plannedUsage,
+        });
+        if (
+          accounting.windowId !== budgetWindowId ||
+          accounting.refreshCycleId !== authority.reservationId ||
+          accounting.requestSha256 !== authority.requestSha256 ||
+          accounting.status !== "accounted" ||
+          !sameUsage(accounting.plannedUsage, plannedUsage) ||
+          !sameUsage(accounting.actualUsage, plannedUsage)
+        ) {
+          operatorError("materialization budget accounting drifted");
+        }
       }
       const result = await materializeAndPublishLatestDnaCoreRaceHistory({
         ownerId,
@@ -358,7 +413,7 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
         },
         generationRepository: input.repositories.generation,
         retainedEvidenceReadBudget: {
-          maximumClassBOperations,
+          maximumClassBOperations: requiredClassBOperations,
           paidUsageAllowed: false,
         },
       });
