@@ -48,19 +48,19 @@ BEGIN
     WHERE active.owner_id = p_owner_id
   ), lineage AS (
     SELECT publication.*, 0::integer AS depth,
-      ARRAY[publication.cycle_id]::character(64)[] AS visited
+      ARRAY[publication.cycle_id::text]::text[] AS visited
     FROM selected
     JOIN dna.dna_open_lab_finished_race_incremental_publication publication
       ON publication.owner_id = p_owner_id
      AND publication.cycle_id = selected.finished_history_cycle_id
     UNION ALL
     SELECT predecessor.*, lineage.depth + 1,
-      lineage.visited || predecessor.cycle_id
+      lineage.visited || predecessor.cycle_id::text
     FROM lineage
     JOIN dna.dna_open_lab_finished_race_incremental_publication predecessor
       ON predecessor.owner_id = lineage.owner_id
      AND predecessor.cycle_id = lineage.previous_published_cycle_id
-    WHERE NOT predecessor.cycle_id = ANY(lineage.visited)
+    WHERE NOT predecessor.cycle_id::text = ANY(lineage.visited)
   )
   SELECT selected.refresh_cycle_id::text,
     selected.current_state_generation_id,
