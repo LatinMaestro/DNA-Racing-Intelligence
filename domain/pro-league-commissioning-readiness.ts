@@ -300,8 +300,8 @@ export function assessProLeagueCommissioningReadiness(
       input.substitutionLedgerResolved ? "pass" : "review",
       false,
       input.substitutionLedgerResolved
-        ? "The annual substitution ledger and initial-roster counting rule are available."
-        : "The initial-roster counting rule is unresolved, so all ten annual substitutions remain reserved.",
+        ? "The annual substitution ledger is available; initial registration uses zero substitutions."
+        : "Initial registration uses zero substitutions, but later substitution usage is unavailable until the annual ledger is connected.",
     ),
     check(
       "OPPONENT_EVIDENCE",

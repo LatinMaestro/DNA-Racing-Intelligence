@@ -65,7 +65,7 @@ export type ProLeagueDiscoveryExperimentQueue = Readonly<{
     maximumPerYear: 10;
     usedCount: null;
     remainingCount: null;
-    initialRosterCountingPolicy: "unresolved";
+    initialRosterCountingPolicy: "does_not_count";
     guidance: string;
   }>;
   automaticRaceEntryAllowed: false;
@@ -291,9 +291,9 @@ export function buildProLeagueDiscoveryExperimentQueue(
       maximumPerYear: proLeagueCurrentRules.maximumSubstitutionsPerYear,
       usedCount: null,
       remainingCount: null,
-      initialRosterCountingPolicy: "unresolved",
+      initialRosterCountingPolicy: "does_not_count",
       guidance:
-        "Substitution usage is not connected to this read model. Preserve all ten annual substitutions until the ledger and initial-roster counting rule are confirmed.",
+        "Initial registration uses zero substitutions. Later roster changes count toward the annual limit, but usage is unavailable until the substitution ledger is connected.",
     }),
     automaticRaceEntryAllowed: false,
     automaticRosterMutationAllowed: false,

@@ -647,9 +647,10 @@ export function ProLeagueCommissioningPanel({
             minimum. Race entry and roster changes remain manual.
           </p>
           <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
-            Annual substitution usage is not yet connected. Preserve all{" "}
-            {discoveryQueue.substitutionBudget.maximumPerYear} substitutions
-            until the ledger and initial-roster counting rule are confirmed.{" "}
+            Initial registration uses zero substitutions. Later roster changes
+            count toward the annual limit of{" "}
+            {discoveryQueue.substitutionBudget.maximumPerYear}, but current
+            usage is unavailable until the ledger is connected.{" "}
             {discoveryQueue.diagnostics.stoppedWeakPathCount} weak path(s) were
             stopped early; {discoveryQueue.diagnostics.conflictingEvidenceCount}{" "}
             conflicting path(s) require review. Showing{" "}

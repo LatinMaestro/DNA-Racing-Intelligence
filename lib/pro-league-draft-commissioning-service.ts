@@ -308,9 +308,7 @@ export async function loadProLeagueDraftCommissioningState(
       raceOpportunities.exactGapMatchingAvailable,
     breedingResearchConnected: breedingObjectives.status === "connected",
     breedingObjectiveCount: breedingObjectives.objectives.length,
-    substitutionLedgerResolved:
-      discoveryQueue.substitutionBudget.initialRosterCountingPolicy !==
-      "unresolved",
+    substitutionLedgerResolved: false,
     opponentExactFormatEvidenceAvailable: false,
     everyAutomaticOrGameActionDisabled:
       !mapPreparation.matchActionAllowed &&

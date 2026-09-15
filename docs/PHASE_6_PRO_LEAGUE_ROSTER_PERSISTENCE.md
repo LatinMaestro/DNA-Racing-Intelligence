@@ -42,9 +42,10 @@ match exactly one outgoing and one incoming rostered Core. Each entry retains a
 reason and point-in-time evidence identity. Exact retries are idempotent;
 conflicting reuse fails closed.
 
-Initial roster creation is not written as a substitution while the governing
-counting rule remains unresolved. The chosen interpretation stays visible on
-every roster version.
+Initial roster creation is not written as a substitution because initial
+registration consumes zero substitutions. Only later roster changes enter the
+annual ledger. The chosen interpretation stays visible on every roster version,
+including historical versions created before the rule was confirmed.
 
 ## Isolation and recovery
 
