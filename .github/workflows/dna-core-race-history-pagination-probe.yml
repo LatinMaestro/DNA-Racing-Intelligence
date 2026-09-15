@@ -1,12 +1,7 @@
 name: DNA Core race history pagination probe
 
 on:
-  push:
-    branches:
-      - codex/p10-core-history-checkpoints
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch: {}
 
 permissions:
   contents: read
