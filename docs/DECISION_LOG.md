@@ -2612,3 +2612,22 @@ After the private Pro League milestone, continue in this order:
 - The root-cycle path remains available for the first bounded private
   commissioning generation. This change performs no live collection, private
   evidence write, deployment, provider change, cost or game action.
+
+## 2026-09-15 — Compose bounded Core-result collection and publication
+
+- Advance at most one owner-scoped Core-history page per operator call. Return
+  partial, paused or held collection without reading retained generation
+  evidence or staging analytical rows.
+- After complete acquisition, require the current durable free-budget window.
+  Accept only an exact reserved or already-accounted decision that explicitly
+  forbids paid use and preserves last-good, then account the full approved
+  Class B ceiling before the first retained read. Verify the accounting receipt
+  echoes the exact window, reservation, request identity and usage.
+- Route all race-document hydration through the same conservative aggregate
+  request budget. Sub-batch the materializer's at-most-25-ID handoff through the
+  connected v1 client's at-most-20-ID boundary and require exact response
+  coverage before joined publication.
+- This operator has no environment-derived credentials or deployment surface
+  and performs no work until explicitly invoked. Exact-main Preview command
+  gating, connected execution and the first complete private generation remain
+  later commissioning steps.

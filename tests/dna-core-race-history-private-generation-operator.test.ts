@@ -250,6 +250,30 @@ describe("DNA Core race history private generation operator", () => {
     expect(mocks.materialize).not.toHaveBeenCalled();
   });
 
+  it("accepts an exact already-accounted reservation replay", async () => {
+    mocks.collect.mockResolvedValue(completeStep());
+    const persistence = repositories();
+    persistence.budget.reserve.mockResolvedValueOnce({
+      allowed: true,
+      blockerIds: [],
+      reservationStatus: "accounted",
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    });
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(operator.execute(invocation)).resolves.toMatchObject({
+      kind: "generation",
+      result: { kind: "published" },
+    });
+    expect(persistence.budget.account).toHaveBeenCalledTimes(1);
+    expect(mocks.materialize).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects unsafe reservation authority before accounting or reads", async () => {
     mocks.collect.mockResolvedValue(completeStep());
     const persistence = repositories({ unsafeDecision: true });
@@ -259,7 +283,53 @@ describe("DNA Core race history private generation operator", () => {
       repositories: persistence,
     });
     await expect(operator.execute(invocation)).rejects.toThrow(
-      "materialization budget authority is unsafe",
+      "materialization budget safety authority drifted",
+    );
+    expect(persistence.budget.account).not.toHaveBeenCalled();
+    expect(mocks.materialize).not.toHaveBeenCalled();
+  });
+
+  it("rejects contradictory reservation decisions before accounting or reads", async () => {
+    mocks.collect.mockResolvedValue(completeStep());
+    const persistence = repositories();
+    persistence.budget.reserve.mockResolvedValueOnce({
+      allowed: true,
+      blockerIds: ["class_b_budget_exhausted"],
+      reservationStatus: "reserved",
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    });
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(operator.execute(invocation)).rejects.toThrow(
+      "materialization budget decision drifted",
+    );
+    expect(persistence.budget.account).not.toHaveBeenCalled();
+    expect(mocks.materialize).not.toHaveBeenCalled();
+  });
+
+  it("requires a durable blocker reason for a denied reservation", async () => {
+    mocks.collect.mockResolvedValue(completeStep());
+    const persistence = repositories();
+    persistence.budget.reserve.mockResolvedValueOnce({
+      allowed: false,
+      blockerIds: [],
+      reservationStatus: null,
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    });
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(operator.execute(invocation)).rejects.toThrow(
+      "materialization budget decision drifted",
     );
     expect(persistence.budget.account).not.toHaveBeenCalled();
     expect(mocks.materialize).not.toHaveBeenCalled();

@@ -18,7 +18,10 @@ import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "./dna-open-lab-request-budget";
-import type { DnaOpenLabR2BudgetRepository } from "./dna-open-lab-r2-budget-repository";
+import type {
+  DnaOpenLabR2BudgetRepository,
+  DnaOpenLabR2BudgetReservationDecision,
+} from "./dna-open-lab-r2-budget-repository";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 import { hydrateDnaRaceDocuments } from "./dna-open-lab-race-document-hydrator";
@@ -174,6 +177,31 @@ function sameUsage(
   );
 }
 
+function materializationBudgetDecision(
+  decision: DnaOpenLabR2BudgetReservationDecision,
+): "ready" | "blocked" {
+  if (
+    decision.paidUsageAllowed !== false ||
+    decision.preserveLastGood !== true
+  ) {
+    return operatorError("materialization budget safety authority drifted");
+  }
+  if (decision.allowed) {
+    if (
+      (decision.reservationStatus !== "reserved" &&
+        decision.reservationStatus !== "accounted") ||
+      decision.blockerIds.length !== 0
+    ) {
+      return operatorError("materialization budget decision drifted");
+    }
+    return "ready";
+  }
+  if (decision.reservationStatus !== null || decision.blockerIds.length < 1) {
+    return operatorError("materialization budget decision drifted");
+  }
+  return "blocked";
+}
+
 /**
  * Advances one owner-scoped Core-result page and, once the exact acquisition
  * is complete, crosses directly into all-or-nothing joined publication.
@@ -285,13 +313,7 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
         requestSha256: authority.requestSha256,
         plannedUsage,
       });
-      if (
-        decision.paidUsageAllowed !== false ||
-        decision.preserveLastGood !== true
-      ) {
-        operatorError("materialization budget authority is unsafe");
-      }
-      if (!decision.allowed || decision.reservationStatus === null) {
+      if (materializationBudgetDecision(decision) === "blocked") {
         return Object.freeze({
           kind: "materialization_budget_blocked" as const,
           blockerIds: Object.freeze([...decision.blockerIds]),
