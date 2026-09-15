@@ -159,7 +159,7 @@ function arenaRows(input: {
   evidence: readonly DnaOpenLabEvidence<CanonicalSpliceArenaPageSnapshot>[];
   expectedModes: readonly DnaRaceMode[];
   generationObservedAt: string;
-  receiptCount: number;
+  expectedListingCount: number;
 }): Readonly<{
   pages: readonly DnaSpliceArenaPageMaterializationRow[];
   listings: readonly DnaSpliceArenaListingMaterializationRow[];
@@ -263,7 +263,7 @@ function arenaRows(input: {
     }
   }
 
-  if (listings.length !== input.receiptCount) {
+  if (listings.length !== input.expectedListingCount) {
     materializationError(
       "Arena listing count must match the complete Splice Arena family receipt",
     );
@@ -315,7 +315,7 @@ export function createDnaTokenSpliceMaterialization(input: {
     evidence: input.arenaPages,
     expectedModes: arenaModes,
     generationObservedAt,
-    receiptCount: input.candidate.families.splice_arena.itemCount,
+    expectedListingCount: input.candidate.families.splice_arena.itemCount,
   });
 
   return Object.freeze({
