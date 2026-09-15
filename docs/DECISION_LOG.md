@@ -2382,3 +2382,13 @@ After the private Pro League milestone, continue in this order:
 - Current and maximum stamina plus next-refill time remain strictly validated.
   The private raw evidence hash remains available for audit, while this optional
   operational timestamp does not block a complete generation.
+
+## 2026-09-14 — Splice Arena family totals count listings, not pages
+
+- Connected Preview publication reached its complete Splice Arena materializer
+  and exposed that the candidate family total had been derived from page count.
+- Bind the family `itemCount` to the sum of canonical listings across every
+  complete, contiguous terminal page. Page count remains independently checked
+  by the page materialization and cannot substitute for listing completeness.
+- This is a counting correction only: no Arena listing is skipped, invented or
+  deduplicated, and the atomic publication boundary remains fail-closed.
