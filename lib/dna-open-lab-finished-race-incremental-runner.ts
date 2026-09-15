@@ -65,6 +65,7 @@ export type DnaFinishedRaceIncrementalUnavailableDiagnostic =
   | "race_document_adaptation_mode_vocabulary_unavailable"
   | "race_document_adaptation_format_unavailable"
   | "race_document_adaptation_class_unavailable"
+  | "race_document_adaptation_distance_unavailable"
   | "race_document_adaptation_participation_unavailable"
   | "race_document_adaptation_gate_count_unavailable"
   | "race_document_adaptation_filled_gate_count_unavailable"

@@ -306,6 +306,13 @@ joined race/Core identities. Dated historical valuation remains unavailable on
 the API-only path. Current API dimensions may be shown separately, but they
 cannot be leaked backward into backtests.
 
+The API result materializer requires exact identity, entrant, mode and distance
+agreement between a per-Core result and its canonical race document. It converts
+the provider elapsed-seconds value to exact integer milliseconds, rejects
+conflicting overlap across pages or refresh cycles, and derives a published Pro
+League cell only from supported payout/gate/distance authority. Unsupported
+formats remain visible coverage gaps and never become inferred race types.
+
 ## Vault economic analytics
 
 ### Source hierarchy

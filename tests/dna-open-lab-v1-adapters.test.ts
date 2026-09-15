@@ -69,6 +69,7 @@ const raceDocument: DnaRaceDocument = {
   rvmode: "bike",
   format: "normal",
   class: 2,
+  cb: 12,
   rgate: 4,
   hs_in: 3,
   hids: [42, 43, 44],
@@ -281,6 +282,7 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         mode: "bike",
         format: "normal",
         raceClassSourceValue: 2,
+        distanceMetres: 1200,
         gateCount: 4,
         filledGateCount: 3,
         entrantCoreIds: ["42", "43", "44"],
@@ -305,7 +307,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       scope: "vault",
       endpoint: "vault.recent_races",
     });
-    expect(finished.canonical).not.toHaveProperty("distance");
     expect(finished.canonical).not.toHaveProperty("finishPosition");
     expect(finished.canonical).not.toHaveProperty("elapsedTime");
     expect(finished.canonical).not.toHaveProperty("goldStarCoreIds");
