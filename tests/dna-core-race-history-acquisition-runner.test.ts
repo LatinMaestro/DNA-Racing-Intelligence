@@ -618,7 +618,7 @@ describe("DNA Core race history acquisition runner", () => {
     expect(state.client.page).not.toHaveBeenCalled();
   });
 
-  it("retains the durable cursor and unreconciled reservation when immutable evidence storage is interrupted", async () => {
+  it("accounts the full bound and retains the cursor when immutable evidence storage is interrupted", async () => {
     const state = setup();
     vi.mocked(state.evidenceStore.write).mockRejectedValueOnce(
       new Error("synthetic evidence interruption"),
@@ -627,12 +627,34 @@ describe("DNA Core race history acquisition runner", () => {
     await expect(state.run()).rejects.toThrow(
       "synthetic evidence interruption",
     );
-    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(
+      state.authorizeEvidenceBudget.mock.calls[0]![0],
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    );
     expect(state.repository.savePage).not.toHaveBeenCalled();
     expect(state.core().checkpoint).toMatchObject({
       nextPage: 1,
       completedPageCount: 0,
     });
+  });
+
+  it("accounts the full bound and performs no provider work when immutable evidence recovery is interrupted", async () => {
+    const state = setup();
+    vi.mocked(state.evidenceStore.recover).mockRejectedValueOnce(
+      new Error("synthetic recovery interruption"),
+    );
+
+    await expect(state.run()).rejects.toThrow(
+      "synthetic recovery interruption",
+    );
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(
+      state.authorizeEvidenceBudget.mock.calls[0]![0],
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    );
+    expect(state.client.page).not.toHaveBeenCalled();
+    expect(state.evidenceStore.write).not.toHaveBeenCalled();
+    expect(state.repository.savePage).not.toHaveBeenCalled();
+    expect(state.core().checkpoint.nextPage).toBe(1);
   });
 
   it("does not advance the cursor when budget accounting is interrupted", async () => {
@@ -641,7 +663,9 @@ describe("DNA Core race history acquisition runner", () => {
       new Error("synthetic accounting interruption"),
     );
 
-    await expect(state.run()).rejects.toThrow("synthetic accounting interruption");
+    await expect(state.run()).rejects.toThrow(
+      "synthetic accounting interruption",
+    );
     expect(state.evidenceStore.write).toHaveBeenCalledTimes(1);
     expect(state.repository.savePage).not.toHaveBeenCalled();
     expect(state.core().checkpoint.nextPage).toBe(1);

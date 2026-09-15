@@ -252,6 +252,14 @@ function createEvidenceBudgetAccountant(input: {
   request: DnaCoreRaceHistoryEvidenceBudgetRequest,
   actualUsage: DnaOpenLabR2Usage,
 ) => Promise<void> {
+  const usageMatches = (
+    left: DnaOpenLabR2Usage,
+    right: DnaOpenLabR2Usage,
+  ): boolean =>
+    left.storageBytes === right.storageBytes &&
+    left.classAOperations === right.classAOperations &&
+    left.classBOperations === right.classBOperations;
+
   return async (request, actualUsage) => {
     if (input.budgetRepository.status !== "ready") {
       collectorError(
@@ -269,9 +277,12 @@ function createEvidenceBudgetAccountant(input: {
       accounted.status !== "accounted" ||
       accounted.windowId !== input.budgetWindowId ||
       accounted.refreshCycleId !== request.reservationId ||
-      accounted.requestSha256 !== request.requestSha256
+      accounted.requestSha256 !== request.requestSha256 ||
+      !usageMatches(accounted.plannedUsage, request.plannedUsage) ||
+      accounted.actualUsage === null ||
+      !usageMatches(accounted.actualUsage, actualUsage)
     ) {
-      collectorError("R2 budget accounting identity is invalid");
+      collectorError("R2 budget accounting identity or usage is invalid");
     }
   };
 }
@@ -286,7 +297,7 @@ function createEvidenceBudgetAccountant(input: {
  * conflicts and explicit operator holds remain stopped until separately
  * resolved. Every R2/provider step must first obtain its exact durable
  * fail-closed reservation, then reconcile that reservation before checkpoint
- * progress whenever the R2 outcome is known.
+ * progress. Uncertain evidence outcomes consume the full reserved ceiling.
  */
 export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
   ownerId: string;

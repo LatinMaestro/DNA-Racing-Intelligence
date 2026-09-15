@@ -226,9 +226,7 @@ function evidenceByteLength(input: {
   return pageBytes + quarantineBytes;
 }
 
-function conservativeAccountedUsage(
-  storageBytes: number,
-): DnaOpenLabR2Usage {
+function conservativeAccountedUsage(storageBytes: number): DnaOpenLabR2Usage {
   if (
     !Number.isSafeInteger(storageBytes) ||
     storageBytes < 0 ||
@@ -345,7 +343,9 @@ async function applyEvidence(input: {
  * conservative R2 upper-bound authority for the whole step. Each invocation
  * has a replay-stable reservation identity bound to attemptedAt so a later
  * retry cannot silently reuse an earlier reservation while creating new R2
- * operations. Successful/known outcomes are accounted before Neon progress.
+ * operations. Known outcomes use observed retained bytes; uncertain evidence
+ * outcomes consume the whole reserved ceiling before the runner stops. Every
+ * outcome is therefore accounted before Neon progress.
  *
  * The runner checks immutable evidence before requesting the provider, so a
  * crash after the R2 write resumes without another API call. It advances the
@@ -444,7 +444,19 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
       reason: "budget_closed",
     });
   }
-  const recovered = await input.evidenceStore.recover(identity);
+  let recovered;
+  try {
+    recovered = await input.evidenceStore.recover(identity);
+  } catch (error) {
+    // The outcome of an interrupted R2 recovery is unknown. Consume the full
+    // reservation so rollover cannot be stranded and no possible usage is
+    // understated.
+    await input.accountEvidenceBudget(
+      budgetRequest,
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    );
+    throw error;
+  }
   if (recovered !== null) {
     await input.accountEvidenceBudget(
       budgetRequest,
@@ -493,11 +505,22 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
       }),
     });
   }
-  const evidence = await input.evidenceStore.write({
-    ...identity,
-    observedAt: attemptedAt,
-    response,
-  });
+  let evidence;
+  try {
+    evidence = await input.evidenceStore.write({
+      ...identity,
+      observedAt: attemptedAt,
+      response,
+    });
+  } catch (error) {
+    // A failed write may have committed any subset of the bounded immutable
+    // objects. Account the full upper bound before surfacing the interruption.
+    await input.accountEvidenceBudget(
+      budgetRequest,
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    );
+    throw error;
+  }
   await input.accountEvidenceBudget(
     budgetRequest,
     conservativeAccountedUsage(

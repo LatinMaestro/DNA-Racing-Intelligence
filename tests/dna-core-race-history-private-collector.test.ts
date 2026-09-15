@@ -239,7 +239,8 @@ function readyBudget(windowId: string = budgetWindowId) {
     if (
       existing !== undefined &&
       (existing.requestSha256 !== request.requestSha256 ||
-        existing.plannedUsage.storageBytes !== request.plannedUsage.storageBytes ||
+        existing.plannedUsage.storageBytes !==
+          request.plannedUsage.storageBytes ||
         existing.plannedUsage.classAOperations !==
           request.plannedUsage.classAOperations ||
         existing.plannedUsage.classBOperations !==
@@ -473,7 +474,69 @@ describe("DNA Core race history private collector", () => {
     const second = budget.reserve.mock.calls[1]![0];
     expect(second.requestSha256).toBe(first.requestSha256);
     expect(second.refreshCycleId).not.toBe(first.refreshCycleId);
-    expect(budget.account).toHaveBeenCalledTimes(1);
+    expect(budget.account).toHaveBeenCalledTimes(2);
+    expect(budget.account.mock.calls[0]![0].actualUsage).toEqual(
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    );
+  });
+
+  it("rejects drifted planned usage returned by budget accounting before cursor progress", async () => {
+    const acquisition = acquisitionRepository();
+    const budget = readyBudget();
+    const source = sources();
+    budget.account.mockImplementationOnce(async (accountRequest) => ({
+      windowId: accountRequest.windowId,
+      refreshCycleId: accountRequest.refreshCycleId,
+      requestSha256: accountRequest.requestSha256,
+      status: "accounted" as const,
+      plannedUsage: {
+        ...DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+        storageBytes:
+          DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.storageBytes - 1,
+      },
+      actualUsage: accountRequest.actualUsage,
+      reservedAt: attemptedAt,
+      accountedAt: attemptedAt,
+    }));
+
+    await expect(
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+      }),
+    ).rejects.toThrow("R2 budget accounting identity or usage is invalid");
+    expect(acquisition.repository.savePage).not.toHaveBeenCalled();
+    expect(acquisition.cores.get(42)?.checkpoint.nextPage).toBe(1);
+  });
+
+  it("rejects drifted actual usage returned by budget accounting before cursor progress", async () => {
+    const acquisition = acquisitionRepository();
+    const budget = readyBudget();
+    const source = sources();
+    budget.account.mockImplementationOnce(async (accountRequest) => ({
+      windowId: accountRequest.windowId,
+      refreshCycleId: accountRequest.refreshCycleId,
+      requestSha256: accountRequest.requestSha256,
+      status: "accounted" as const,
+      plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+      actualUsage: {
+        ...accountRequest.actualUsage,
+        classBOperations: accountRequest.actualUsage.classBOperations - 1,
+      },
+      reservedAt: attemptedAt,
+      accountedAt: attemptedAt,
+    }));
+
+    await expect(
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+      }),
+    ).rejects.toThrow("R2 budget accounting identity or usage is invalid");
+    expect(acquisition.repository.savePage).not.toHaveBeenCalled();
+    expect(acquisition.cores.get(42)?.checkpoint.nextPage).toBe(1);
   });
 
   it("fails closed before R2 or provider work when the durable free-budget window does not match", async () => {
