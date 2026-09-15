@@ -105,7 +105,17 @@ The typed server client and sync plan must cover documented read operations requ
 - race-document hydration; and
 - recent/history evidence required for analytics and automatic post-race ingestion.
 
-Connected evidence currently supports race metadata, entrants, fees, tags and scheduling fields. It does not yet expose direct elapsed-time, finishing-position or explicit distance fields. `track` remains a source value and must not be treated as canonical distance without authority. Race Merge therefore remains the fallback authority for historical outcomes/performance.
+Open Lab v1 supports race metadata, entrants, fees, tags and scheduling fields.
+The separately observed per-Core history family supplies result rows with `cb`,
+`time` and `pos`. The 15 September 2026 owner-wide redacted scan joined those
+rows to v1 race documents by race ID and entrant Core ID; every comparable
+`cb` value matched. Treat `cb` as the provider distance code, normalize the
+observed sub-100 codes to metres using the established provider convention,
+preserve `time` as elapsed seconds and `pos` as finishing position. `track`
+remains a separate source value and must not be treated as distance. This
+result family still requires its own durable checkpoint, immutable evidence,
+deduplication and daily-generation publication boundary before it can replace
+the current held Pro League performance read.
 
 ### Cores
 
