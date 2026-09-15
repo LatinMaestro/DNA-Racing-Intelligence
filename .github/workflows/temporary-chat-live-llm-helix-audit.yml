@@ -1,0 +1,31 @@
+name: temporary-chat-live-llm-helix-audit
+on:
+  push:
+    branches:
+      - temporary/chat-live-llm-helix-audit-2026-09-15
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch live DNA Open Lab docs
+        shell: bash
+        run: |
+          set -u
+          mkdir -p out
+          URL='https://api.dnaracing.run/fbike/pub/v1/llm.txt'
+          curl -L --retry 3 --connect-timeout 15 --max-time 60 -D out/llm.headers.txt -o out/llm.txt "$URL"
+          printf '\n===== HELIX / ENTRY / AUTO MATCHES =====\n' > out/matches.txt
+          grep -Ein -C 5 'helix|hlx|entry|enter|auto.?entry|race.?fill|bot|mutation|write|post|delete|cancel' out/llm.txt >> out/matches.txt || true
+          for path in openapi.json swagger.json docs; do
+            code=$(curl -L -sS --connect-timeout 15 --max-time 60 -o "out/${path//\//_}.body" -w '%{http_code}' "https://api.dnaracing.run/fbike/pub/v1/$path" || true)
+            printf '%s %s\n' "$path" "$code" >> out/probes.txt
+          done
+          wc -c out/llm.txt >> out/probes.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-live-llm-helix-audit
+          path: out
+          retention-days: 1
