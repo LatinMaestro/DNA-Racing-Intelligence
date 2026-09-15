@@ -125,6 +125,11 @@ time, valid derived speed, consistency, sample size, freshness and independently
 established field quality remain primary. Missing Esports time or finish fields
 are unavailable, not favourable and not zero.
 
+Only a published complete Core-result generation may feed these distributions.
+Staged candidates and partial or conflicting joins remain analytically invisible;
+the prior last-good generation stays authoritative until exact observation count
+and payload-digest verification completes.
+
 ### Predictive use and diagnostics
 
 Stars may be used as historical pre-race features. Outcome-based star conversion is diagnostic only.

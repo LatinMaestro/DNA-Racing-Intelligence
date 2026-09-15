@@ -3,9 +3,10 @@ import type {
   CanonicalCoreRaceHistoryResult,
   DnaCoreRaceHistoryEvidence,
 } from "@/lib/dna-core-race-history-adapter";
-import type {
-  CanonicalRaceDocumentMetadata,
-  DnaOpenLabEvidence,
+import {
+  dnaOpenLabRawEvidenceSha256,
+  type CanonicalRaceDocumentMetadata,
+  type DnaOpenLabEvidence,
 } from "@/lib/dna-open-lab-v1-adapters";
 import { publishedProLeagueRaceTypeFromArchive } from "@/lib/race-archive-pro-league-exact-format";
 
@@ -99,6 +100,8 @@ export type DnaCoreRaceHistoryJoinedObservation = Readonly<{
 export type DnaCoreRaceHistoryMaterialization = Readonly<{
   ownerId: string;
   materializedAt: string;
+  cycleSetSha256: string;
+  observationSetSha256: string;
   inputCycleCount: number;
   inputPageCount: number;
   inputResultCount: number;
@@ -558,9 +561,24 @@ export function materializeDnaCoreRaceHistory(input: {
   observations.sort((left, right) =>
     left.naturalKey.localeCompare(right.naturalKey),
   );
+  const cycleSetSha256 = dnaOpenLabRawEvidenceSha256(
+    [...cycles.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([identity, cycle]) => ({
+        identity,
+        evaluatedAt: cycle.evaluatedAt,
+        completedAt: cycle.completedAt,
+        coreIds: [...cycle.coreIds].sort((left, right) =>
+          left.localeCompare(right),
+        ),
+      })),
+  );
+  const observationSetSha256 = dnaOpenLabRawEvidenceSha256(observations);
   return Object.freeze({
     ownerId,
     materializedAt,
+    cycleSetSha256,
+    observationSetSha256,
     inputCycleCount: input.cycles.length,
     inputPageCount: input.pages.length,
     inputResultCount,

@@ -2562,3 +2562,18 @@ After the private Pro League milestone, continue in this order:
   authority. Retain missing, unsupported and unpublished formats as explicit
   non-published counts. No durable result publication or recommendation is
   authorized by this pure boundary.
+
+## 2026-09-15 — Stage joined Core results before atomic publication
+
+- Bind each joined-result candidate to the exact completed-cycle set, ordered
+  observation set, reconciled coverage counts and a content-derived payload
+  digest. Recompute the observation identity before any repository access.
+- Stage deterministic rows in batches of at most 250 and require the repository
+  to echo every ordinal and row checksum. Exact replay resumes staged work;
+  changed content or a drifted response fails closed.
+- Ask to publish only the complete expected row count and payload digest. An
+  interrupted or rejected stage/publication cannot replace the prior last-good
+  generation, and an already-published replay must load the exact metadata.
+- This provider-neutral contract performs no API request, R2 read, database
+  change, deployment or game action. Forced-owner Neon persistence and its
+  reversible migration remain the next dependency.

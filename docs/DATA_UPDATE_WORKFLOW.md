@@ -272,9 +272,21 @@ identity across pages and cycles, and joins by race ID to canonical race
 documents. Entrant membership, mode, normalized distance, gate count, event
 time and finishing-position bounds must agree. Changed evidence under one
 identity blocks the entire candidate. Unsupported payout formats and cells are
-retained as explicit non-published coverage instead of being guessed. R2 replay,
-race-document hydration, durable compact persistence and all-or-nothing daily
-publication remain separate later steps.
+retained as explicit non-published coverage instead of being guessed. The
+materialization binds its exact completed-cycle set and ordered observation set
+to separate SHA-256 identities.
+
+Joined results then pass through an all-or-nothing generation publisher. The
+candidate has a deterministic identity and payload digest, and its rows are
+staged in replay-safe batches of at most 250. Every stage call must echo the
+exact ordinal and row checksum. Publication is requested only after all rows
+stage successfully, with the exact expected count and payload digest. An
+interruption, changed row or drifted repository response leaves the prior
+last-good generation serving; replay resumes the same staged candidate or
+loads the exact generation if it already published. The provider-neutral
+contract does not itself perform R2 replay, race-document hydration or a Neon
+write. The owner-isolated Neon schema and adapter remain the next persistence
+gate.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
