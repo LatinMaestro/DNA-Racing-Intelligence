@@ -238,7 +238,7 @@ function createEvidenceBudgetAuthorizer(input: {
     });
     return authority(
       decision.allowed &&
-        decision.reservationStatus !== null &&
+        decision.reservationStatus === "reserved" &&
         decision.paidUsageAllowed === false &&
         decision.preserveLastGood === true
         ? "ready"
