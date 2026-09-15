@@ -144,6 +144,7 @@ function setup(input: { requestBudget?: DnaOpenLabRequestBudget } = {}) {
       request: DnaCoreRaceHistoryEvidenceBudgetRequest,
     ) => Promise<DnaCoreRaceHistoryEvidenceBudgetAuthority>
   >(async (request) => evidenceBudgetAuthority("ready", request));
+  const accountEvidenceBudget = vi.fn(async () => undefined);
   const requestBudget = input.requestBudget ?? createDnaOpenLabRequestBudget();
   const run = (runAttemptedAt: string = attemptedAt) =>
     runDnaCoreRaceHistoryAcquisitionStep({
@@ -155,6 +156,7 @@ function setup(input: { requestBudget?: DnaOpenLabRequestBudget } = {}) {
       requestBudget,
       evidenceStore,
       authorizeEvidenceBudget,
+      accountEvidenceBudget,
     });
   return {
     run,
@@ -164,6 +166,7 @@ function setup(input: { requestBudget?: DnaOpenLabRequestBudget } = {}) {
     client,
     evidenceStore,
     authorizeEvidenceBudget,
+    accountEvidenceBudget,
     attempt: () => attempt,
     core: () => core,
     replaceCore: (next: StoredDnaCoreRaceHistoryCoreCheckpoint) => {
@@ -179,6 +182,7 @@ describe("DNA Core race history acquisition runner", () => {
 
     await expect(state.run()).resolves.toEqual({ kind: "attempt_unavailable" });
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
@@ -194,11 +198,12 @@ describe("DNA Core race history acquisition runner", () => {
       "superseded attempt cannot advance",
     );
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
 
-  it("reserves a conservative evidence bound and advances at most one provider page", async () => {
+  it("reserves, reconciles, then advances at most one provider page", async () => {
     const state = setup();
 
     expect(DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE).toEqual({
@@ -215,11 +220,19 @@ describe("DNA Core race history acquisition runner", () => {
 
     expect(state.authorizeEvidenceBudget).toHaveBeenCalledWith({
       requestSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      reservationId: expect.stringMatching(/^[a-f0-9]{64}$/u),
       cycleId: state.cycle.cycleId,
       attemptNumber: 1,
       coreId: 42,
       pageNumber: 1,
       plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+    });
+    const budgetRequest = state.authorizeEvidenceBudget.mock.calls[0]![0];
+    expect(budgetRequest.reservationId).not.toBe(budgetRequest.requestSha256);
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(budgetRequest, {
+      storageBytes: 512,
+      classAOperations: 2,
+      classBOperations: 7,
     });
     expect(state.client.page).toHaveBeenCalledWith({ coreId: 42, page: 1 });
     expect(state.evidenceStore.write).toHaveBeenCalledTimes(1);
@@ -228,6 +241,11 @@ describe("DNA Core race history acquisition runner", () => {
       state.authorizeEvidenceBudget.mock.invocationCallOrder[0],
     ).toBeLessThan(
       vi.mocked(state.evidenceStore.recover).mock.invocationCallOrder[0]!,
+    );
+    expect(
+      state.accountEvidenceBudget.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(state.repository.savePage).mock.invocationCallOrder[0]!,
     );
   });
 
@@ -251,6 +269,23 @@ describe("DNA Core race history acquisition runner", () => {
     expect(state.client.page).toHaveBeenCalledTimes(1);
   });
 
+  it("uses a new reservation but the same page request identity for a later retry", async () => {
+    const state = setup();
+    state.authorizeEvidenceBudget.mockRejectedValueOnce(
+      new Error("synthetic budget interruption"),
+    );
+
+    await expect(state.run()).rejects.toThrow("synthetic budget interruption");
+    await expect(state.run("2026-09-15T07:00:01.000Z")).resolves.toMatchObject({
+      kind: "page_advanced",
+    });
+
+    const first = state.authorizeEvidenceBudget.mock.calls[0]![0];
+    const second = state.authorizeEvidenceBudget.mock.calls[1]![0];
+    expect(second.requestSha256).toBe(first.requestSha256);
+    expect(second.reservationId).not.toBe(first.reservationId);
+  });
+
   it("recovers an immutable page after a crash without repeating the provider call", async () => {
     const state = setup();
     vi.mocked(state.evidenceStore.recover).mockResolvedValueOnce({
@@ -265,6 +300,14 @@ describe("DNA Core race history acquisition runner", () => {
 
     expect(state.client.page).not.toHaveBeenCalled();
     expect(state.evidenceStore.write).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(
+      state.authorizeEvidenceBudget.mock.calls[0]![0],
+      {
+        storageBytes: 0,
+        classAOperations: 2,
+        classBOperations: 7,
+      },
+    );
     expect(state.repository.savePage).toHaveBeenCalledTimes(1);
     expect(state.repository.saveAttempt).toHaveBeenCalledTimes(1);
 
@@ -290,6 +333,7 @@ describe("DNA Core race history acquisition runner", () => {
 
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.repository.savePage).not.toHaveBeenCalled();
 
     await expect(state.run()).resolves.toMatchObject({
@@ -335,6 +379,7 @@ describe("DNA Core race history acquisition runner", () => {
     );
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.repository.savePage).not.toHaveBeenCalled();
   });
 
@@ -365,6 +410,14 @@ describe("DNA Core race history acquisition runner", () => {
         },
       },
     });
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(
+      state.authorizeEvidenceBudget.mock.calls[0]![0],
+      {
+        storageBytes: 0,
+        classAOperations: 2,
+        classBOperations: 7,
+      },
+    );
     expect(state.core().checkpoint).toMatchObject({
       nextPage: 1,
       completedPageCount: 0,
@@ -400,6 +453,7 @@ describe("DNA Core race history acquisition runner", () => {
     });
     expect(state.repository.savePage).not.toHaveBeenCalled();
     expect(state.evidenceStore.write).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -420,6 +474,7 @@ describe("DNA Core race history acquisition runner", () => {
       });
       expect(state.repository.savePage).not.toHaveBeenCalled();
       expect(state.evidenceStore.write).not.toHaveBeenCalled();
+      expect(state.accountEvidenceBudget).toHaveBeenCalledTimes(1);
       expect(state.core().checkpoint.nextPage).toBe(1);
     },
   );
@@ -433,6 +488,7 @@ describe("DNA Core race history acquisition runner", () => {
       );
 
       await expect(state.run()).rejects.toMatchObject({ kind });
+      expect(state.accountEvidenceBudget).toHaveBeenCalledTimes(1);
       expect(state.repository.saveAttempt).not.toHaveBeenCalled();
       expect(state.repository.savePage).not.toHaveBeenCalled();
       expect(state.evidenceStore.write).not.toHaveBeenCalled();
@@ -462,9 +518,10 @@ describe("DNA Core race history acquisition runner", () => {
       reason: "rate_limited",
       stored: { cycle: { pause: { retryAt: null } } },
     });
+    expect(state.accountEvidenceBudget).toHaveBeenCalledTimes(1);
   });
 
-  it("holds a conflicting immutable observation without advancing Neon", async () => {
+  it("accounts a recovered quarantine conservatively before holding a conflict", async () => {
     const state = setup();
     vi.mocked(state.evidenceStore.recover).mockResolvedValueOnce({
       status: "held_conflict",
@@ -486,6 +543,14 @@ describe("DNA Core race history acquisition runner", () => {
       kind: "paused",
       reason: "evidence_conflict",
     });
+    expect(state.accountEvidenceBudget).toHaveBeenCalledWith(
+      state.authorizeEvidenceBudget.mock.calls[0]![0],
+      {
+        storageBytes: 128,
+        classAOperations: 2,
+        classBOperations: 7,
+      },
+    );
     expect(state.repository.savePage).not.toHaveBeenCalled();
     expect(state.core().checkpoint.nextPage).toBe(1);
   });
@@ -507,6 +572,7 @@ describe("DNA Core race history acquisition runner", () => {
       reason: "operator_hold",
     });
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
@@ -523,6 +589,7 @@ describe("DNA Core race history acquisition runner", () => {
       "request budget exceeds the conservative aggregate rate",
     );
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
@@ -534,6 +601,7 @@ describe("DNA Core race history acquisition runner", () => {
       "attemptedAt predates the cycle evaluation",
     );
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.evidenceStore.recover).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
@@ -546,10 +614,11 @@ describe("DNA Core race history acquisition runner", () => {
     );
     expect(state.repository.loadAttempt).not.toHaveBeenCalled();
     expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.client.page).not.toHaveBeenCalled();
   });
 
-  it("retains the durable cursor when immutable evidence storage is interrupted", async () => {
+  it("retains the durable cursor and unreconciled reservation when immutable evidence storage is interrupted", async () => {
     const state = setup();
     vi.mocked(state.evidenceStore.write).mockRejectedValueOnce(
       new Error("synthetic evidence interruption"),
@@ -558,10 +627,23 @@ describe("DNA Core race history acquisition runner", () => {
     await expect(state.run()).rejects.toThrow(
       "synthetic evidence interruption",
     );
+    expect(state.accountEvidenceBudget).not.toHaveBeenCalled();
     expect(state.repository.savePage).not.toHaveBeenCalled();
     expect(state.core().checkpoint).toMatchObject({
       nextPage: 1,
       completedPageCount: 0,
     });
+  });
+
+  it("does not advance the cursor when budget accounting is interrupted", async () => {
+    const state = setup();
+    state.accountEvidenceBudget.mockRejectedValueOnce(
+      new Error("synthetic accounting interruption"),
+    );
+
+    await expect(state.run()).rejects.toThrow("synthetic accounting interruption");
+    expect(state.evidenceStore.write).toHaveBeenCalledTimes(1);
+    expect(state.repository.savePage).not.toHaveBeenCalled();
+    expect(state.core().checkpoint.nextPage).toBe(1);
   });
 });
