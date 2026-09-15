@@ -2,6 +2,9 @@ name: DNA Open Lab connected discovery
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - agent/performance-field-scan
 
 permissions:
   contents: read
@@ -63,3 +66,9 @@ jobs:
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-dna-open-lab-connected-discovery.test.ts
+      - name: Run read-only redacted performance-field scan
+        env:
+          DNA_API_PERFORMANCE_FIELD_SCAN: "1"
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-dna-api-performance-field-scan.test.ts
