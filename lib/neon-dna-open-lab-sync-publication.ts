@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   createInitialDnaLastGoodSyncState,
   inspectDnaCurrentStateCandidate,
@@ -28,6 +30,11 @@ import {
   validateDnaCurrentStateEvidenceIndexDocument,
   type DnaCurrentStateEvidenceIndex,
 } from "./dna-open-lab-current-state-evidence-index";
+import { validateDnaFinishedRaceWindowPublicationReceipt } from "./dna-open-lab-finished-race-backfill";
+import type {
+  DnaFinishedRaceIncrementalPublication,
+  DnaFinishedRaceIncrementalWindowReceipt,
+} from "./dna-open-lab-finished-race-incremental-publication";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -88,6 +95,9 @@ export type NeonDnaOpenLabSyncPublicationRepository = Readonly<{
     ownerId: string;
     validatedAt: string;
   }) => Promise<DnaOpenLabCombinedServingBundle>;
+  readServingFinishedHistory: (input: {
+    ownerId: string;
+  }) => Promise<DnaOpenLabCombinedFinishedHistory>;
 }>;
 
 export type DnaOpenLabServingSyncHealth = Readonly<{
@@ -100,6 +110,22 @@ export type DnaOpenLabCombinedServingBundle = Readonly<{
   currentRaces: DnaOpenLabServingCurrentRaces;
   supplementalCores: DnaOpenLabServingSupplementalCores;
   syncHealth: DnaOpenLabServingSyncHealth;
+}>;
+
+export type DnaOpenLabCombinedFinishedHistoryCycle = Readonly<{
+  lineageDepth: number;
+  publication: DnaFinishedRaceIncrementalPublication;
+  receipts: readonly DnaFinishedRaceIncrementalWindowReceipt[];
+}>;
+
+export type DnaOpenLabCombinedFinishedHistory = Readonly<{
+  refreshCycleId: string;
+  currentStateGenerationId: string;
+  selectedCycleId: string;
+  cycles: readonly DnaOpenLabCombinedFinishedHistoryCycle[];
+  receiptCount: number;
+  documentCount: number;
+  manifestByteLength: number;
 }>;
 
 export type DnaOpenLabServingOwnedCore = Readonly<{
@@ -316,6 +342,49 @@ const VERIFY_ISOLATION_SQL = [
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
 
+const VERIFY_COMBINED_FINISHED_HISTORY_ISOLATION_SQL = [
+  "SELECT",
+  "  daily_generation.relrowsecurity AS daily_generation_rls,",
+  "  daily_generation.relforcerowsecurity AS daily_generation_force_rls,",
+  "  daily_active.relrowsecurity AS daily_active_rls,",
+  "  daily_active.relforcerowsecurity AS daily_active_force_rls,",
+  "  history_publication.relrowsecurity AS history_publication_rls,",
+  "  history_publication.relforcerowsecurity AS history_publication_force_rls,",
+  "  history_receipt.relrowsecurity AS history_receipt_rls,",
+  "  history_receipt.relforcerowsecurity AS history_receipt_force_rls,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_generation', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_generation', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_generation', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_generation', 'DELETE'))",
+  "    AS runtime_can_access_daily_generation,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_active', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_active', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_active', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_daily_refresh_active', 'DELETE'))",
+  "    AS runtime_can_access_daily_active,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_publication', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_publication', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_publication', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_publication', 'DELETE'))",
+  "    AS runtime_can_access_history_publication,",
+  "  (has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'INSERT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'UPDATE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_open_lab_finished_race_incremental_window_receipt', 'DELETE'))",
+  "    AS runtime_can_access_history_receipt,",
+  "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_combined_serving_finished_history(uuid)', 'EXECUTE')",
+  "    AS runtime_can_read_combined_history",
+  "FROM pg_catalog.pg_class daily_generation",
+  "JOIN pg_catalog.pg_class daily_active ON true",
+  "JOIN pg_catalog.pg_class history_publication ON true",
+  "JOIN pg_catalog.pg_class history_receipt ON true",
+  "WHERE daily_generation.oid = 'dna.dna_open_lab_daily_refresh_generation'::regclass",
+  "  AND daily_active.oid = 'dna.dna_open_lab_daily_refresh_active'::regclass",
+  "  AND history_publication.oid = 'dna.dna_open_lab_finished_race_incremental_publication'::regclass",
+  "  AND history_receipt.oid = 'dna.dna_open_lab_finished_race_incremental_window_receipt'::regclass",
+].join("\n");
+
 const READ_STATE_SQL = [
   "SELECT accepted_generation_id::text, accepted_observed_at, accepted_at,",
   "  serving_generation_id::text, sync_status, catch_up_required, last_attempt_at,",
@@ -361,6 +430,19 @@ const READ_COMBINED_SERVING_STATE_SQL = [
   "  last_interruption_reason, last_interruption_at, retry_after_seconds,",
   "  last_catch_up_completed_at",
   "FROM dna.read_dna_open_lab_combined_serving_sync_state($1::uuid)",
+].join("\n");
+
+const READ_COMBINED_SERVING_FINISHED_HISTORY_SQL = [
+  "SELECT refresh_cycle_id, current_state_generation_id::text, selected_cycle_id,",
+  "  lineage_depth, cycle_id,",
+  "  previous_published_cycle_id, attempt_number, lower_bound_at, upper_bound_at,",
+  "  receipt_count, document_count, publication_manifest_byte_length,",
+  "  receipt_set_sha256, validated_at, published_at, first_attempt_number,",
+  "  window_start_at, window_end_at, window_key, content_sha256,",
+  "  window_document_count, manifest_object_key, manifest_body_sha256,",
+  "  manifest_byte_length",
+  "FROM dna.read_dna_open_lab_combined_serving_finished_history($1::uuid)",
+  "ORDER BY lineage_depth DESC, window_start_at, window_end_at, window_key",
 ].join("\n");
 
 const READ_COMBINED_SERVING_OWNED_CORES_SQL = [
@@ -469,6 +551,20 @@ function nonNegativeInteger(value: unknown, field: string): number {
     throw new Error(`${field} is invalid`);
   }
   return parsed;
+}
+
+function positiveInteger(value: unknown, field: string): number {
+  const parsed = nonNegativeInteger(value, field);
+  if (parsed < 1) throw new Error(`${field} must be positive`);
+  return parsed;
+}
+
+function sha256(value: unknown, field: string): string {
+  const normalized = text(value, field).toLowerCase();
+  if (!/^[a-f0-9]{64}$/u.test(normalized)) {
+    throw new Error(`${field} must be a SHA-256 value`);
+  }
+  return normalized;
 }
 
 function optionalNullableText(value: unknown, field: string): string | null {
@@ -580,6 +676,251 @@ function servingEvidenceIndex(
     );
   }
   return stored;
+}
+
+function combinedFinishedHistory(
+  result: QueryResult,
+): DnaOpenLabCombinedFinishedHistory {
+  if (result.rows.length < 1) {
+    throw new Error("DNA Open Lab combined finished history is unavailable");
+  }
+  type MutableCycle = {
+    lineageDepth: number;
+    publication: DnaFinishedRaceIncrementalPublication;
+    receipts: DnaFinishedRaceIncrementalWindowReceipt[];
+  };
+  const cyclesById = new Map<string, MutableCycle>();
+  let refreshCycleId: string | null = null;
+  let currentStateGenerationId: string | null = null;
+  let selectedCycleId: string | null = null;
+
+  for (const rowValue of result.rows) {
+    const row = record(rowValue, "DNA Open Lab combined finished history");
+    const rowRefreshCycleId = sha256(row.refresh_cycle_id, "refresh_cycle_id");
+    const rowSelectedCycleId = sha256(
+      row.selected_cycle_id,
+      "selected_cycle_id",
+    );
+    const rowCurrentStateGenerationId = uuid(
+      text(row.current_state_generation_id, "current_state_generation_id"),
+      "current_state_generation_id",
+    );
+    refreshCycleId ??= rowRefreshCycleId;
+    currentStateGenerationId ??= rowCurrentStateGenerationId;
+    selectedCycleId ??= rowSelectedCycleId;
+    if (
+      refreshCycleId !== rowRefreshCycleId ||
+      currentStateGenerationId !== rowCurrentStateGenerationId ||
+      selectedCycleId !== rowSelectedCycleId
+    ) {
+      throw new Error("DNA Open Lab combined finished-history pointer drifted");
+    }
+
+    const cycleId = sha256(row.cycle_id, "cycle_id");
+    const previousPublishedCycleId = optionalText(
+      row.previous_published_cycle_id,
+      "previous_published_cycle_id",
+    );
+    const attemptNumber = positiveInteger(row.attempt_number, "attempt_number");
+    const lowerBoundAt = timestamp(row.lower_bound_at, "lower_bound_at");
+    const upperBoundAt = timestamp(row.upper_bound_at, "upper_bound_at");
+    const validatedAt = timestamp(row.validated_at, "validated_at");
+    const publishedAt = timestamp(row.published_at, "published_at");
+    const publication: DnaFinishedRaceIncrementalPublication = Object.freeze({
+      version: 1,
+      cycleId,
+      previousPublishedCycleId:
+        previousPublishedCycleId === null
+          ? null
+          : sha256(previousPublishedCycleId, "previous_published_cycle_id"),
+      attemptNumber,
+      lowerBoundAt,
+      upperBoundAt,
+      receiptCount: positiveInteger(row.receipt_count, "receipt_count"),
+      documentCount: nonNegativeInteger(row.document_count, "document_count"),
+      manifestByteLength: positiveInteger(
+        row.publication_manifest_byte_length,
+        "publication_manifest_byte_length",
+      ),
+      receiptSetSha256: sha256(row.receipt_set_sha256, "receipt_set_sha256"),
+      validatedAt,
+      publishedAt,
+    });
+    if (
+      attemptNumber > 32 ||
+      Date.parse(lowerBoundAt) >= Date.parse(upperBoundAt) ||
+      Date.parse(validatedAt) < Date.parse(upperBoundAt) ||
+      Date.parse(publishedAt) < Date.parse(validatedAt)
+    ) {
+      throw new Error("DNA Open Lab finished-history publication is invalid");
+    }
+    const lineageDepth = nonNegativeInteger(row.lineage_depth, "lineage_depth");
+    const existing = cyclesById.get(cycleId);
+    if (
+      existing !== undefined &&
+      (existing.lineageDepth !== lineageDepth ||
+        JSON.stringify(existing.publication) !== JSON.stringify(publication))
+    ) {
+      throw new Error("DNA Open Lab finished-history cycle metadata drifted");
+    }
+    const cycle =
+      existing ??
+      ({ lineageDepth, publication, receipts: [] } satisfies MutableCycle);
+    cyclesById.set(cycleId, cycle);
+
+    const firstAttemptNumber = positiveInteger(
+      row.first_attempt_number,
+      "first_attempt_number",
+    );
+    if (firstAttemptNumber > attemptNumber) {
+      throw new Error(
+        "DNA Open Lab finished-history receipt attempt is invalid",
+      );
+    }
+    const receipt = validateDnaFinishedRaceWindowPublicationReceipt({
+      windowKey: sha256(row.window_key, "window_key"),
+      contentSha256: sha256(row.content_sha256, "content_sha256"),
+      documentCount: nonNegativeInteger(
+        row.window_document_count,
+        "window_document_count",
+      ),
+      manifestObjectKey: text(row.manifest_object_key, "manifest_object_key"),
+      manifestBodySha256: sha256(
+        row.manifest_body_sha256,
+        "manifest_body_sha256",
+      ),
+      manifestByteLength: positiveInteger(
+        row.manifest_byte_length,
+        "manifest_byte_length",
+      ),
+    });
+    cycle.receipts.push(
+      Object.freeze({
+        cycleId,
+        firstAttemptNumber,
+        windowStartAt: timestamp(row.window_start_at, "window_start_at"),
+        windowEndAt: timestamp(row.window_end_at, "window_end_at"),
+        ...receipt,
+      }),
+    );
+  }
+
+  const cycles = [...cyclesById.values()].sort(
+    (left, right) => right.lineageDepth - left.lineageDepth,
+  );
+  let expectedPrevious: string | null = null;
+  let expectedLowerBound: string | null = null;
+  let totalReceiptCount = 0;
+  let totalDocumentCount = 0;
+  let totalManifestByteLength = 0;
+  const frozenCycles = cycles.map((cycle, index) => {
+    if (
+      cycle.lineageDepth !== cycles.length - index - 1 ||
+      cycle.publication.previousPublishedCycleId !== expectedPrevious ||
+      (expectedLowerBound !== null &&
+        cycle.publication.lowerBoundAt !== expectedLowerBound)
+    ) {
+      throw new Error(
+        "DNA Open Lab finished-history lineage is not contiguous",
+      );
+    }
+    const receipts = cycle.receipts.sort(
+      (left, right) =>
+        Date.parse(left.windowStartAt) - Date.parse(right.windowStartAt) ||
+        Date.parse(left.windowEndAt) - Date.parse(right.windowEndAt) ||
+        left.windowKey.localeCompare(right.windowKey),
+    );
+    if (
+      receipts.length !== cycle.publication.receiptCount ||
+      new Set(receipts.map((receipt) => receipt.windowKey)).size !==
+        receipts.length ||
+      new Set(receipts.map((receipt) => receipt.manifestObjectKey)).size !==
+        receipts.length
+    ) {
+      throw new Error(
+        "DNA Open Lab finished-history receipt set is incomplete",
+      );
+    }
+    let boundary = cycle.publication.lowerBoundAt;
+    for (const receipt of receipts) {
+      if (
+        receipt.windowStartAt !== boundary ||
+        Date.parse(receipt.windowStartAt) >= Date.parse(receipt.windowEndAt)
+      ) {
+        throw new Error(
+          "DNA Open Lab finished-history windows are not contiguous",
+        );
+      }
+      boundary = receipt.windowEndAt;
+    }
+    const documentCount = receipts.reduce(
+      (sum, receipt) => sum + receipt.documentCount,
+      0,
+    );
+    const manifestByteLength = receipts.reduce(
+      (sum, receipt) => sum + receipt.manifestByteLength,
+      0,
+    );
+    const receiptSetSha256 = createHash("sha256")
+      .update(
+        receipts
+          .map((receipt) =>
+            [
+              String(Date.parse(receipt.windowStartAt)),
+              String(Date.parse(receipt.windowEndAt)),
+              receipt.windowKey,
+              receipt.contentSha256,
+              String(receipt.documentCount),
+              `${Buffer.byteLength(receipt.manifestObjectKey, "utf8")}:${receipt.manifestObjectKey}`,
+              receipt.manifestBodySha256,
+              String(receipt.manifestByteLength),
+            ].join("|"),
+          )
+          .join("\n"),
+        "utf8",
+      )
+      .digest("hex");
+    if (
+      boundary !== cycle.publication.upperBoundAt ||
+      documentCount !== cycle.publication.documentCount ||
+      manifestByteLength !== cycle.publication.manifestByteLength ||
+      receiptSetSha256 !== cycle.publication.receiptSetSha256
+    ) {
+      throw new Error(
+        "DNA Open Lab finished-history receipt authority drifted",
+      );
+    }
+    totalReceiptCount += receipts.length;
+    totalDocumentCount += documentCount;
+    totalManifestByteLength += manifestByteLength;
+    if (
+      !Number.isSafeInteger(totalDocumentCount) ||
+      !Number.isSafeInteger(totalManifestByteLength)
+    ) {
+      throw new Error(
+        "DNA Open Lab finished-history totals exceed safe bounds",
+      );
+    }
+    expectedPrevious = cycle.publication.cycleId;
+    expectedLowerBound = cycle.publication.upperBoundAt;
+    return Object.freeze({
+      lineageDepth: cycle.lineageDepth,
+      publication: cycle.publication,
+      receipts: Object.freeze(receipts),
+    });
+  });
+  if (expectedPrevious !== selectedCycleId) {
+    throw new Error("DNA Open Lab selected finished-history cycle is missing");
+  }
+  return Object.freeze({
+    refreshCycleId: refreshCycleId!,
+    currentStateGenerationId: currentStateGenerationId!,
+    selectedCycleId: selectedCycleId!,
+    cycles: Object.freeze(frozenCycles),
+    receiptCount: totalReceiptCount,
+    documentCount: totalDocumentCount,
+    manifestByteLength: totalManifestByteLength,
+  });
 }
 
 function jsonRecord(value: unknown, field: string): DbRow {
@@ -922,6 +1263,42 @@ function verifyIsolation(
     )
   ) {
     throw new Error("DNA Open Lab sync runtime role is not least privileged.");
+  }
+}
+
+function verifyCombinedFinishedHistoryIsolation(result: QueryResult): void {
+  const row = oneRow(
+    result,
+    "DNA Open Lab combined finished-history isolation",
+  );
+  for (const field of [
+    "daily_generation_rls",
+    "daily_generation_force_rls",
+    "daily_active_rls",
+    "daily_active_force_rls",
+    "history_publication_rls",
+    "history_publication_force_rls",
+    "history_receipt_rls",
+    "history_receipt_force_rls",
+    "runtime_can_read_combined_history",
+  ]) {
+    if (!bool(row[field], field)) {
+      throw new Error(
+        "DNA Open Lab combined finished-history isolation is incomplete",
+      );
+    }
+  }
+  for (const field of [
+    "runtime_can_access_daily_generation",
+    "runtime_can_access_daily_active",
+    "runtime_can_access_history_publication",
+    "runtime_can_access_history_receipt",
+  ]) {
+    if (bool(row[field], field)) {
+      throw new Error(
+        "DNA Open Lab combined finished-history table access is not bounded",
+      );
+    }
   }
 }
 
@@ -1289,6 +1666,23 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
             );
           }
           return Object.freeze({ state: syncState, evidenceIndex });
+        },
+      });
+    },
+
+    async readServingFinishedHistory(request) {
+      return transaction({
+        ownerId: request.ownerId,
+        readOnly: true,
+        async run(client) {
+          verifyCombinedFinishedHistoryIsolation(
+            await client.query(VERIFY_COMBINED_FINISHED_HISTORY_ISOLATION_SQL),
+          );
+          return combinedFinishedHistory(
+            await client.query(READ_COMBINED_SERVING_FINISHED_HISTORY_SQL, [
+              databaseOwnerId,
+            ]),
+          );
         },
       });
     },

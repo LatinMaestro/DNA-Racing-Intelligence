@@ -2439,3 +2439,14 @@ After the private Pro League milestone, continue in this order:
 - Hide the older broad-performance preparation list in this structural-only
   state so it cannot be mistaken for a current recommendation. The page remains
   private, read-only and unable to perform a game action.
+
+## 2026-09-15 — Pin the complete incremental history lineage to daily serving
+
+- Exact-format Pro League evidence must use the finished-history cycle selected
+  by the same complete daily generation as owner Cores and current state.
+- Read that selected cycle and every immutable predecessor receipt in one
+  owner-scoped transaction. Do not follow an independently newer history pointer
+  or mix a partial refresh into the serving package.
+- Recalculate every cycle's receipt count, document count, byte total, checksum
+  and contiguous bounds before exposing its private R2 locators to server-side
+  analysis. Raw evidence and identifiers remain off the frontend.
