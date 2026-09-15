@@ -2545,3 +2545,20 @@ After the private Pro League milestone, continue in this order:
 - This is a pure composition boundary. It does not yet wire the connected
   Preview command, collect a real result page, publish analytical results,
   deploy a site or perform a game action.
+
+## 2026-09-15 — Join Core result history through exact race authority
+
+- Preserve normalized race-document `cb` distance as a second source and
+  require it to match the per-Core result distance before analytics can use the
+  row.
+- Deduplicate exact result replays across pages and cycles by stable Core/mode/
+  race identity. A changed result or race document under one identity blocks
+  the entire materialization candidate.
+- Require owner Core membership plus a race-document join by race ID, entrant
+  Core ID, mode, distance, gate count and event time. Reject impossible finish
+  positions and elapsed seconds that cannot be represented exactly as integer
+  milliseconds.
+- Derive a map race type only from supported payout, gate and published-distance
+  authority. Retain missing, unsupported and unpublished formats as explicit
+  non-published counts. No durable result publication or recommendation is
+  authorized by this pure boundary.

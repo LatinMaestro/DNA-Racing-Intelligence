@@ -266,6 +266,16 @@ performs at most one provider request per invocation. It is not yet wired to
 the connected Preview command; that composition and complete-cycle publication
 remain later gates.
 
+Completed Core-history evidence has a separate pure materialization gate. It
+binds every result to the exact owner Core set, deduplicates stable result
+identity across pages and cycles, and joins by race ID to canonical race
+documents. Entrant membership, mode, normalized distance, gate count, event
+time and finishing-position bounds must agree. Changed evidence under one
+identity blocks the entire candidate. Unsupported payout formats and cells are
+retained as explicit non-published coverage instead of being guessed. R2 replay,
+race-document hydration, durable compact persistence and all-or-nothing daily
+publication remain separate later steps.
+
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
 [`DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md`](DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md).

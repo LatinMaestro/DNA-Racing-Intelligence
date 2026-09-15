@@ -49,6 +49,7 @@ export type DnaRaceDocumentAdaptationDiagnostic =
   | "race_document_adaptation_mode_vocabulary_unavailable"
   | "race_document_adaptation_format_unavailable"
   | "race_document_adaptation_class_unavailable"
+  | "race_document_adaptation_distance_unavailable"
   | "race_document_adaptation_participation_unavailable"
   | "race_document_adaptation_gate_count_unavailable"
   | "race_document_adaptation_filled_gate_count_unavailable"
@@ -136,6 +137,8 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   modeEvidenceStatus?: "unsupported_source_value";
   format?: string | null;
   raceClassSourceValue?: string | number | null;
+  distanceMetres?: number;
+  distanceEvidenceStatus?: "unsupported_source_value";
   gateCount?: number;
   filledGateCount?: number;
   entrantCoreIds?: readonly string[];
@@ -584,6 +587,24 @@ function raceDocumentMode(value: unknown): Readonly<{
   return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
 }
 
+function raceDocumentDistance(value: unknown): Readonly<{
+  distanceMetres?: number;
+  distanceEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
+    return Object.freeze({
+      distanceEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  const distanceMetres = value < 100 ? value * 100 : value;
+  if (distanceMetres < 100 || distanceMetres > 100_000) {
+    return Object.freeze({
+      distanceEvidenceStatus: "unsupported_source_value",
+    });
+  }
+  return Object.freeze({ distanceMetres });
+}
+
 function raceIdentifier(value: unknown): string {
   if (typeof value === "number")
     return String(positiveInteger(value, "race.id"));
@@ -990,6 +1011,7 @@ export function adaptDnaRaceDocument(input: {
   const rawGateCount = input.raw.rgate;
   const rawFilledGateCount = input.raw.hs_in;
   const rawEntrantCoreIds = input.raw.hids;
+  const rawDistance = input.raw.cb;
   const participation = raceDocumentAdaptationBoundary(
     "race_document_adaptation_participation_unavailable",
     () => ({
@@ -1015,6 +1037,12 @@ export function adaptDnaRaceDocument(input: {
         : raceDocumentAdaptationBoundary(
             "race_document_adaptation_entrant_core_ids_unavailable",
             () => raceDocumentEntrantCoreIds(rawEntrantCoreIds),
+          )),
+      ...(rawDistance === undefined
+        ? {}
+        : raceDocumentAdaptationBoundary(
+            "race_document_adaptation_distance_unavailable",
+            () => raceDocumentDistance(rawDistance),
           )),
     }),
   );

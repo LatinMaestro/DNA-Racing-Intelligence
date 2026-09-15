@@ -634,7 +634,11 @@ two independently capped 8-MiB evidence objects, and a provider page above the
 verified 50-row limit is malformed.
 This runner remains unconnected to the hosted command, so it makes no live
 request or persistent write by itself. Cross-page/cross-cycle canonical
-deduplication, race-document joining and atomic publication remain next.
+deduplication and race-document joining now have a pure fail-closed
+materialization boundary. Exact overlap deduplicates, changed identities hold,
+and race ID, entrant Core, mode, normalized distance, gate count, event time
+and finishing-position bounds must agree. Durable replay, persistence and
+atomic publication remain next.
 
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an
