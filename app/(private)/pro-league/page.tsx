@@ -73,6 +73,7 @@ export default async function ProLeaguePage() {
       rosteredCoreIds: [],
       vaultRepository,
       evidenceRepository,
+      ownedCoreRepository: combinedServingRepository,
       currentStateRepository: combinedServingRepository,
       currentRaceRepository: combinedServingRepository,
       breedingRepository:
@@ -98,14 +99,18 @@ export default async function ProLeaguePage() {
       now,
     }),
   ]);
+  const structuralOnly =
+    commissioning.connectionStatus === "structural_pool_connected";
 
   return (
     <ProLeagueWorkspace
       audit={auditProLeagueRoster([])}
-      connectionStatus={state.connectionStatus}
+      connectionStatus={
+        structuralOnly ? "persistence_not_configured" : state.connectionStatus
+      }
       commissioning={<ProLeagueCommissioningPanel state={commissioning} />}
       lastImportedAt={state.lastImportedAt}
-      preparation={state.preparation}
+      preparation={structuralOnly ? null : state.preparation}
     />
   );
 }

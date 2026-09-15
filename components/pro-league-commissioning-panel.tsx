@@ -99,6 +99,65 @@ export function ProLeagueCommissioningPanel({
     );
   }
 
+  if (state.connectionStatus === "structural_pool_connected") {
+    const pool = state.structuralPool;
+    if (pool === undefined) {
+      throw new Error("Connected Pro League structural pool is incomplete.");
+    }
+    return (
+      <section
+        aria-labelledby="pro-league-structural-pool"
+        className="space-y-5 rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-6"
+      >
+        <div>
+          <p className="text-sm font-semibold text-[var(--accent)]">
+            Complete private Core list connected
+          </p>
+          <h2
+            className="mt-2 text-2xl font-semibold"
+            id="pro-league-structural-pool"
+          >
+            Pro League roster inputs are available
+          </h2>
+          <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+            The latest complete data package contains {pool.coreCount} owned
+            Cores, current through {timestamp(pool.dataCurrentThrough)}.
+            Freshness: {label(pool.freshness)}. This confirms names and
+            roster-rule details only. Performance selection, the final roster
+            and all four map assignments remain held until exact Bike race type,
+            distance and elapsed-time evidence is verified.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Owned Cores" value={pool.coreCount} />
+          <SummaryCard label="Named Cores" value={pool.namedCoreCount} />
+          <SummaryCard label="Female Cores" value={pool.femaleCount} />
+          <SummaryCard label="Above F15" value={pool.aboveF15Count} />
+          <SummaryCard label="F5 or below" value={pool.f5OrBelowCount} />
+          <SummaryCard label="F10 or below" value={pool.f10OrBelowCount} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {pool.elements.map((item) => (
+            <div
+              className="rounded-xl border border-[var(--border)] p-4"
+              key={item.element}
+            >
+              <p className="font-semibold">{item.element}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                {item.coreCount} owned · {item.genesisCount} Genesis
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="text-sm leading-6 text-[var(--warning)]">
+          No Core has been ranked or selected from metadata alone. No roster or
+          map was published, and viewing this page cannot submit anything or
+          perform a game action.
+        </p>
+      </section>
+    );
+  }
+
   const { evidence, roster } = state;
   if (evidence === null || roster === null) {
     throw new Error("Connected Pro League recommendation is incomplete.");
