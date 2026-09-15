@@ -15,7 +15,10 @@ import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
 const JSON_CONTENT_TYPE = "application/json";
-const DEFAULT_MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
+export const DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES =
+  8 * 1024 * 1024;
+const DEFAULT_MAXIMUM_OBJECT_BYTES =
+  DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 

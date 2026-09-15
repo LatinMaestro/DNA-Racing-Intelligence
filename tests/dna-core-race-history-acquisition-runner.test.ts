@@ -5,6 +5,7 @@ import {
   createDnaCoreRaceHistoryCoreCheckpoint,
   createDnaCoreRaceHistoryPageReceipt,
   DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
+  supersedeDnaCoreRaceHistoryAcquisitionCycle,
   type DnaCoreRaceHistoryAcquisitionRepository,
   type StoredDnaCoreRaceHistoryAcquisitionCycle,
   type StoredDnaCoreRaceHistoryCoreCheckpoint,
@@ -44,6 +45,18 @@ function response(
       rateClass: "public",
       retryAfterSeconds: null,
     }),
+  });
+}
+
+function evidenceBudgetAuthority(
+  status: DnaCoreRaceHistoryEvidenceBudgetAuthority["status"],
+  request: DnaCoreRaceHistoryEvidenceBudgetRequest,
+): DnaCoreRaceHistoryEvidenceBudgetAuthority {
+  return Object.freeze({
+    status,
+    requestSha256: request.requestSha256,
+    paidUsageAllowed: false,
+    preserveLastGood: true,
   });
 }
 
@@ -130,7 +143,7 @@ function setup(input: { requestBudget?: DnaOpenLabRequestBudget } = {}) {
     (
       request: DnaCoreRaceHistoryEvidenceBudgetRequest,
     ) => Promise<DnaCoreRaceHistoryEvidenceBudgetAuthority>
-  >(async () => ({ status: "ready" }));
+  >(async (request) => evidenceBudgetAuthority("ready", request));
   const requestBudget = input.requestBudget ?? createDnaOpenLabRequestBudget();
   const run = (runAttemptedAt: string = attemptedAt) =>
     runDnaCoreRaceHistoryAcquisitionStep({
@@ -160,8 +173,39 @@ function setup(input: { requestBudget?: DnaOpenLabRequestBudget } = {}) {
 }
 
 describe("DNA Core race history acquisition runner", () => {
+  it("returns an unavailable attempt without consuming budget or external work", async () => {
+    const state = setup();
+    vi.mocked(state.repository.loadAttempt).mockResolvedValueOnce(null);
+
+    await expect(state.run()).resolves.toEqual({ kind: "attempt_unavailable" });
+    expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.evidenceStore.recover).not.toHaveBeenCalled();
+    expect(state.client.page).not.toHaveBeenCalled();
+  });
+
+  it("refuses to advance a superseded attempt", async () => {
+    const state = setup();
+    vi.mocked(state.repository.loadAttempt).mockResolvedValueOnce({
+      revision: "2",
+      cycle: supersedeDnaCoreRaceHistoryAcquisitionCycle(state.cycle),
+    });
+
+    await expect(state.run()).rejects.toThrow(
+      "superseded attempt cannot advance",
+    );
+    expect(state.authorizeEvidenceBudget).not.toHaveBeenCalled();
+    expect(state.evidenceStore.recover).not.toHaveBeenCalled();
+    expect(state.client.page).not.toHaveBeenCalled();
+  });
+
   it("reserves a conservative evidence bound and advances at most one provider page", async () => {
     const state = setup();
+
+    expect(DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE).toEqual({
+      storageBytes: 16 * 1024 * 1024,
+      classAOperations: 2,
+      classBOperations: 7,
+    });
 
     await expect(state.run()).resolves.toMatchObject({
       kind: "page_advanced",
@@ -234,7 +278,9 @@ describe("DNA Core race history acquisition runner", () => {
 
   it("closes before any R2 read or provider request when the budget authority is blocked", async () => {
     const state = setup();
-    state.authorizeEvidenceBudget.mockResolvedValueOnce({ status: "blocked" });
+    state.authorizeEvidenceBudget.mockImplementationOnce(async (request) =>
+      evidenceBudgetAuthority("blocked", request),
+    );
 
     await expect(state.run()).resolves.toMatchObject({
       kind: "paused",
@@ -251,6 +297,45 @@ describe("DNA Core race history acquisition runner", () => {
       reason: "budget_closed",
     });
     expect(state.authorizeEvidenceBudget).toHaveBeenCalledTimes(1);
+  });
+
+  it.each<
+    [string, (request: DnaCoreRaceHistoryEvidenceBudgetRequest) => unknown]
+  >([
+    [
+      "a stale request checksum",
+      (request) => ({
+        ...evidenceBudgetAuthority("ready", request),
+        requestSha256: "f".repeat(64),
+      }),
+    ],
+    [
+      "paid usage",
+      (request) => ({
+        ...evidenceBudgetAuthority("ready", request),
+        paidUsageAllowed: true,
+      }),
+    ],
+    [
+      "last-good replacement",
+      (request) => ({
+        ...evidenceBudgetAuthority("ready", request),
+        preserveLastGood: false,
+      }),
+    ],
+  ])("rejects %s authority before evidence access", async (_label, invalid) => {
+    const state = setup();
+    state.authorizeEvidenceBudget.mockImplementationOnce(
+      async (request) =>
+        invalid(request) as DnaCoreRaceHistoryEvidenceBudgetAuthority,
+    );
+
+    await expect(state.run()).rejects.toThrow(
+      "evidence budget authority is invalid",
+    );
+    expect(state.evidenceStore.recover).not.toHaveBeenCalled();
+    expect(state.client.page).not.toHaveBeenCalled();
+    expect(state.repository.savePage).not.toHaveBeenCalled();
   });
 
   it("retains the Core cursor and Retry-After authority when the provider rate-limits", async () => {
@@ -333,6 +418,22 @@ describe("DNA Core race history acquisition runner", () => {
         kind: "paused",
         reason,
       });
+      expect(state.repository.savePage).not.toHaveBeenCalled();
+      expect(state.evidenceStore.write).not.toHaveBeenCalled();
+      expect(state.core().checkpoint.nextPage).toBe(1);
+    },
+  );
+
+  it.each(["invalid_configuration", "invalid_request"] as const)(
+    "surfaces non-retryable %s failures without advancing",
+    async (kind) => {
+      const state = setup();
+      vi.mocked(state.client.page).mockRejectedValueOnce(
+        new DnaOpenLabApiError({ kind, message: "content-free" }),
+      );
+
+      await expect(state.run()).rejects.toMatchObject({ kind });
+      expect(state.repository.saveAttempt).not.toHaveBeenCalled();
       expect(state.repository.savePage).not.toHaveBeenCalled();
       expect(state.evidenceStore.write).not.toHaveBeenCalled();
       expect(state.core().checkpoint.nextPage).toBe(1);

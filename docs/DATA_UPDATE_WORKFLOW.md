@@ -256,12 +256,15 @@ request budget. Before any R2 read or provider request, the caller must prove a
 pre-reserved per-step upper bound of 16 MiB retained storage, two Class A
 operations and seven Class B operations. The bound covers the largest allowed
 page plus quarantine object and the complete create-if-absent verification
-path. A blocked budget pauses the cycle without touching R2 or the provider.
-The runner recovers an immutable page before calling the API, advances Neon
-only after evidence verification, honors `Retry-After` or the provider reset
-window, and performs at most one provider request per invocation. It is not yet
-wired to the connected Preview command; that composition and complete-cycle
-publication remain later gates.
+path. The returned decision must echo the exact request checksum, forbid paid
+use and preserve the last-good generation. Each object remains capped at 8 MiB,
+and a success envelope above the verified 50-row page limit is malformed. A
+blocked budget pauses the cycle without touching R2 or the provider. The runner
+recovers an immutable page before calling the API, advances Neon only after
+evidence verification, honors `Retry-After` or the provider reset window, and
+performs at most one provider request per invocation. It is not yet wired to
+the connected Preview command; that composition and complete-cycle publication
+remain later gates.
 
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in

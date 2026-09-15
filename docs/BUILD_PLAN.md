@@ -628,6 +628,10 @@ authority. A blocked allowance, provider interruption, malformed response,
 rate limit or immutable-evidence conflict pauses without advancing the Core
 cursor. A retained page is recovered before another provider request, and the
 cycle completes only after every Core has its explicit empty terminal page.
+The returned allowance must echo the exact page request identity, forbid paid
+use and preserve the last-good generation. Its storage ceiling is derived from
+two independently capped 8-MiB evidence objects, and a provider page above the
+verified 50-row limit is malformed.
 This runner remains unconnected to the hosted command, so it makes no live
 request or persistent write by itself. Cross-page/cross-cycle canonical
 deduplication, race-document joining and atomic publication remain next.

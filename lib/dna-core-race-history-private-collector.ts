@@ -202,12 +202,28 @@ function createEvidenceBudgetAuthorizer(input: {
   request: DnaCoreRaceHistoryEvidenceBudgetRequest,
 ) => Promise<DnaCoreRaceHistoryEvidenceBudgetAuthority> {
   return async (request) => {
+    const authority = (
+      status: "ready" | "blocked",
+    ): DnaCoreRaceHistoryEvidenceBudgetAuthority =>
+      status === "ready"
+        ? Object.freeze({
+            status: "ready" as const,
+            requestSha256: request.requestSha256,
+            paidUsageAllowed: false as const,
+            preserveLastGood: true as const,
+          })
+        : Object.freeze({
+            status: "blocked" as const,
+            requestSha256: request.requestSha256,
+            paidUsageAllowed: false as const,
+            preserveLastGood: true as const,
+          });
     if (input.budgetRepository.status !== "ready") {
-      return Object.freeze({ status: "blocked" as const });
+      return authority("blocked");
     }
     const window = await input.budgetRepository.readWindow(input.ownerId);
     if (window === null || window.windowId !== input.budgetWindowId) {
-      return Object.freeze({ status: "blocked" as const });
+      return authority("blocked");
     }
     // The durable budget table keys one reservation by refreshCycleId. Use the
     // page request identity so consecutive pages cannot collide while exact
@@ -220,12 +236,14 @@ function createEvidenceBudgetAuthorizer(input: {
       requestSha256: request.requestSha256,
       plannedUsage: request.plannedUsage,
     });
-    return Object.freeze({
-      status:
-        decision.allowed && decision.reservationStatus !== null
-          ? ("ready" as const)
-          : ("blocked" as const),
-    });
+    return authority(
+      decision.allowed &&
+        decision.reservationStatus === "reserved" &&
+        decision.paidUsageAllowed === false &&
+        decision.preserveLastGood === true
+        ? "ready"
+        : "blocked",
+    );
   };
 }
 

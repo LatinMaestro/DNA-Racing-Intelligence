@@ -400,6 +400,50 @@ describe("DNA Core race history private collector", () => {
     expect(source.client.page).not.toHaveBeenCalled();
   });
 
+  it.each([
+    {
+      reservationStatus: "reserved",
+      paidUsageAllowed: true,
+      preserveLastGood: true,
+    },
+    {
+      reservationStatus: "reserved",
+      paidUsageAllowed: false,
+      preserveLastGood: false,
+    },
+    {
+      reservationStatus: "accounted",
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    },
+  ])(
+    "rejects budget authority outside the zero-cost last-good boundary",
+    async ({ reservationStatus, paidUsageAllowed, preserveLastGood }) => {
+      const acquisition = acquisitionRepository();
+      const budget = readyBudget();
+      budget.reserve.mockResolvedValueOnce({
+        allowed: true,
+        blockerIds: Object.freeze([]),
+        projectedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+        reservationStatus,
+        paidUsageAllowed,
+        preserveLastGood,
+      } as never);
+      const source = sources();
+
+      await expect(
+        request({
+          repository: acquisition.repository,
+          budgetRepository: budget.repository,
+          ...source,
+        }),
+      ).resolves.toMatchObject({ kind: "paused", reason: "budget_closed" });
+
+      expect(source.evidenceStore.recover).not.toHaveBeenCalled();
+      expect(source.client.page).not.toHaveBeenCalled();
+    },
+  );
+
   it("resumes a retryable durable pause on the next invocation and keeps the same cursor", async () => {
     const acquisition = acquisitionRepository();
     const budget = readyBudget();
