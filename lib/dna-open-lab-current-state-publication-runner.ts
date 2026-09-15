@@ -410,6 +410,10 @@ export async function assembleDnaCurrentStatePublication(input: {
     .map((value) => value.observedAt)
     .sort((left, right) => Date.parse(left) - Date.parse(right))
     .at(-1)!;
+  const arenaListingCount = arenaPages.reduce(
+    (total, page) => total + page.canonical.listings.length,
+    0,
+  );
   const candidate: DnaCurrentStateCandidate = Object.freeze({
     generationId: checkpoint.cycleId,
     observedAt,
@@ -430,7 +434,7 @@ export async function assembleDnaCurrentStatePublication(input: {
       tokens: Object.freeze({ status: "complete", itemCount: 1 }),
       splice_arena: Object.freeze({
         status: "complete",
-        itemCount: arenaPages.length,
+        itemCount: arenaListingCount,
       }),
     }),
   });
