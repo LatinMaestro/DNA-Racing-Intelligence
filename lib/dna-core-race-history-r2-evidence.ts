@@ -13,6 +13,7 @@ import type { DnaCoreRaceHistoryRow } from "./dna-core-race-history-client";
 import type { DnaOpenLabResponse } from "./dna-open-lab-v1-client";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
+import type { DnaCoreRaceHistoryMaterializationPage } from "./dna-core-race-history-materialization";
 
 const JSON_CONTENT_TYPE = "application/json";
 export const DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES =
@@ -74,6 +75,14 @@ export type DnaCoreRaceHistoryR2EvidenceStore = Readonly<{
     observedAt: string;
     response: DnaOpenLabResponse<readonly DnaCoreRaceHistoryRow[]>;
   }) => Promise<DnaCoreRaceHistoryStoredPageEvidence>;
+}>;
+
+export type DnaCoreRaceHistoryMaterializationEvidenceStore = Readonly<{
+  readMaterializationPage: (input: {
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    coreId: number;
+    pageNumber: number;
+  }) => Promise<DnaCoreRaceHistoryMaterializationPage | null>;
 }>;
 
 type StoredPageDocument = Readonly<{
@@ -430,7 +439,8 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
   bucketName: string;
   storage: DnaCoreRaceHistoryR2EvidenceStoragePort;
   maximumObjectBytes?: number;
-}): DnaCoreRaceHistoryR2EvidenceStore {
+}): DnaCoreRaceHistoryR2EvidenceStore &
+  DnaCoreRaceHistoryMaterializationEvidenceStore {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
   const maximumObjectBytes = boundedPositiveInteger(
@@ -727,6 +737,51 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
     read: (request) => readStored({ ...request, allowQuarantineWrite: false }),
     recover: (request) =>
       readStored({ ...request, allowQuarantineWrite: true }),
+    async readMaterializationPage(request) {
+      await privateStorage();
+      const identity = validateIdentity(request);
+      const key = pageObjectKey({
+        ownerPrefix: prefix,
+        cycleId: identity.cycle.cycleId,
+        attemptNumber: identity.cycle.attemptNumber,
+        coreId: identity.coreId,
+        pageNumber: identity.pageNumber,
+      });
+      const stored = await readObject(key);
+      if (stored === null) return null;
+      const page = pageDocument({
+        document: stored.document,
+        expected: identity,
+      });
+      const verified = await assembleStoredPage({
+        identity,
+        key,
+        pageHead: stored.head,
+        page,
+        allowQuarantineWrite: false,
+      });
+      if (verified.status !== "ready") {
+        evidenceError("conflicted page cannot be materialized");
+      }
+      const adaptation = adaptDnaCoreRaceHistoryPage({
+        requestedCoreId: page.coreId,
+        rows: page.response.result,
+        observedAt: page.observedAt,
+      });
+      if (adaptation.conflictCount !== 0) {
+        evidenceError("conflicted page cannot be materialized");
+      }
+      return Object.freeze({
+        ownerId,
+        cycleId: page.cycleId,
+        attemptNumber: page.attemptNumber,
+        coreId: page.coreId,
+        pageNumber: page.pageNumber,
+        sourceRowCount: page.response.result.length,
+        terminal: verified.receipt.terminal,
+        results: adaptation.accepted,
+      });
+    },
     async write(request) {
       const identity = validateIdentity(request);
       if (identity.cycle.status !== "running") {

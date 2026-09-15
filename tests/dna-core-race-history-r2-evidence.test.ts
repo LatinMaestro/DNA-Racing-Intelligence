@@ -262,6 +262,30 @@ describe("DNA Core race history private R2 evidence", () => {
       evidence.read({ cycle: authority, coreId: 42, pageNumber: 1 }),
     ).resolves.toEqual(created);
     await expect(
+      evidence.readMaterializationPage({
+        cycle: authority,
+        coreId: 42,
+        pageNumber: 1,
+      }),
+    ).resolves.toMatchObject({
+      ownerId: "owner@example.test",
+      cycleId: authority.cycleId,
+      coreId: 42,
+      pageNumber: 1,
+      sourceRowCount: 1,
+      terminal: false,
+      results: [
+        {
+          canonical: {
+            sourceCoreId: "42",
+            sourceRaceId: "private-race-1",
+            distance: 1200,
+            finishPosition: 2,
+          },
+        },
+      ],
+    });
+    await expect(
       store(storage, "other-owner@example.test").read({
         cycle: authority,
         coreId: 42,
