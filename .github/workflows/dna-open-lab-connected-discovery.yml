@@ -2,9 +2,6 @@ name: DNA Open Lab connected discovery
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - agent/performance-field-scan
 
 permissions:
   contents: read
