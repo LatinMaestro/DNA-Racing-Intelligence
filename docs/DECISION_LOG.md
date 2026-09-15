@@ -2522,3 +2522,22 @@ After the private Pro League milestone, continue in this order:
   League hold, authorize a connected persistent run or change Preview or
   Production. Cross-page/cross-cycle deduplication, result/race joining and
   combined-generation publication remain next.
+
+## 2026-09-15 — Gate each Core-result page before provider or R2 work
+
+- Advance at most one Core-history provider page per runner invocation through
+  the shared request budget, whose effective ceiling must remain at or below 30
+  aggregate requests per minute.
+- Require an explicit pre-reserved upper bound before any evidence read or API
+  call. One step allows at most 16 MiB retained storage, two R2 Class A
+  operations and seven Class B operations, covering the maximum page and
+  quarantine create-if-absent verification path.
+- Recover and verify immutable page evidence before repeating a provider call.
+  Persist the compact Core cursor only after the receipt is valid; completing
+  the final Core also closes the cycle with all checkpoint totals.
+- Pause without cursor movement when the budget closes, the provider is
+  unavailable, rate-limited or malformed, or immutable evidence conflicts.
+  Honor `Retry-After`, falling back to the provider reset window when needed.
+- This is a pure composition boundary. It does not yet wire the connected
+  Preview command, collect a real result page, publish analytical results,
+  deploy a site or perform a game action.
