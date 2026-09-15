@@ -261,6 +261,17 @@ function result(endpoint: string): unknown {
             fno: 8,
             price_usd: 12,
           },
+          {
+            hid: 303,
+            name: "Second Arena Core",
+            type: "Genesis",
+            gender: "female",
+            element: "Earth",
+            color: "Brown",
+            hex_code: "#654321",
+            fno: 12,
+            price_usd: 18,
+          },
         ],
       };
     default:
@@ -303,7 +314,7 @@ describe("DNA Open Lab current-state publication runner", () => {
         active_races: { status: "complete", itemCount: 1 },
         race_fills: { status: "complete", itemCount: 1 },
         tokens: { status: "complete", itemCount: 1 },
-        splice_arena: { status: "complete", itemCount: 1 },
+        splice_arena: { status: "complete", itemCount: 2 },
       },
     });
     expect(assembled.supplementalCore.power[0]?.canonical.sourceCoreId).toBe(
@@ -314,6 +325,9 @@ describe("DNA Open Lab current-state publication runner", () => {
       page: 1,
       hasMore: false,
     });
+    expect(
+      assembled.tokenSplice.arenaPages[0]?.canonical.listings,
+    ).toHaveLength(2);
   });
 
   it("calls the atomic repository once only after reconstruction", async () => {
