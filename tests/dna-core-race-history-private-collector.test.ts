@@ -11,7 +11,10 @@ import {
   type StoredDnaCoreRaceHistoryCoreCheckpoint,
 } from "@/lib/dna-core-race-history-acquisition-cycle";
 import { DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE } from "@/lib/dna-core-race-history-acquisition-runner";
-import type { DnaCoreRaceHistoryClient } from "@/lib/dna-core-race-history-client";
+import type {
+  DnaCoreRaceHistoryClient,
+  DnaCoreRaceHistoryRow,
+} from "@/lib/dna-core-race-history-client";
 import {
   runDnaCoreRaceHistoryPrivateCollectorStep,
   type DnaCoreRaceHistoryServingAuthorityRow,
@@ -29,6 +32,11 @@ const evaluatedAt = "2026-09-15T07:00:00.000Z";
 const attemptedAt = "2026-09-15T07:01:00.000Z";
 const budgetWindowId = "free-window-2026-09";
 
+type ReadyBudgetRepository = Extract<
+  DnaOpenLabR2BudgetRepository,
+  { status: "ready" }
+>;
+
 function ownedCores(
   coreIds: readonly number[] = [42, 84],
 ): readonly DnaCoreRaceHistoryServingAuthorityRow[] {
@@ -43,7 +51,7 @@ function ownedCores(
 function response(
   coreId: number,
   rows: number = 1,
-): DnaOpenLabResponse<readonly Record<string, unknown>[]> {
+): DnaOpenLabResponse<readonly DnaCoreRaceHistoryRow[]> {
   return Object.freeze({
     result: Object.freeze(
       Array.from({ length: rows }, (_, index) =>
@@ -68,7 +76,9 @@ function response(
   });
 }
 
-function completeCycle(coreId: number = 42): StoredDnaCoreRaceHistoryAcquisitionCycle {
+function completeCycle(
+  coreId: number = 42,
+): StoredDnaCoreRaceHistoryAcquisitionCycle {
   const cycle = createDnaCoreRaceHistoryAcquisitionCycle({
     previousCompletedCycleId: null,
     currentStateGenerationId: generationId,
@@ -107,15 +117,19 @@ function completeCycle(coreId: number = 42): StoredDnaCoreRaceHistoryAcquisition
   });
 }
 
-function acquisitionRepository(input: {
-  latestComplete?: StoredDnaCoreRaceHistoryAcquisitionCycle | null;
-} = {}) {
+function acquisitionRepository(
+  input: {
+    latestComplete?: StoredDnaCoreRaceHistoryAcquisitionCycle | null;
+  } = {},
+) {
   const attempts = new Map<number, StoredDnaCoreRaceHistoryAcquisitionCycle>();
   const cores = new Map<number, StoredDnaCoreRaceHistoryCoreCheckpoint>();
   let latestComplete = input.latestComplete ?? null;
 
   const repository: DnaCoreRaceHistoryAcquisitionRepository = {
-    loadAttempt: vi.fn(async ({ attemptNumber }) => attempts.get(attemptNumber) ?? null),
+    loadAttempt: vi.fn(
+      async ({ attemptNumber }) => attempts.get(attemptNumber) ?? null,
+    ),
     loadNextCore: vi.fn(async () =>
       [...cores.values()]
         .filter((entry) => entry.checkpoint.status === "running")
@@ -136,7 +150,9 @@ function acquisitionRepository(input: {
     saveAttempt: vi.fn(async ({ expectedRevision, cycle }) => {
       const previous = attempts.get(cycle.attemptNumber) ?? null;
       if (previous === null) {
-        if (expectedRevision !== null) throw new Error("synthetic revision conflict");
+        if (expectedRevision !== null) {
+          throw new Error("synthetic revision conflict");
+        }
         const stored = Object.freeze({ revision: "1", cycle });
         attempts.set(cycle.attemptNumber, stored);
         for (const coreId of cycle.coreIds) {
@@ -144,7 +160,10 @@ function acquisitionRepository(input: {
             coreId,
             Object.freeze({
               revision: "1",
-              checkpoint: createDnaCoreRaceHistoryCoreCheckpoint({ cycle, coreId }),
+              checkpoint: createDnaCoreRaceHistoryCoreCheckpoint({
+                cycle,
+                coreId,
+              }),
             }),
           );
         }
@@ -177,7 +196,9 @@ function acquisitionRepository(input: {
   return { repository, attempts, cores };
 }
 
-function budgetWindow(windowId: string = budgetWindowId): DnaOpenLabR2BudgetWindow {
+function budgetWindow(
+  windowId: string = budgetWindowId,
+): DnaOpenLabR2BudgetWindow {
   return Object.freeze({
     windowId,
     windowStartAt: "2026-09-01T00:00:00.000Z",
@@ -206,14 +227,16 @@ function budgetWindow(windowId: string = budgetWindowId): DnaOpenLabR2BudgetWind
 }
 
 function readyBudget(windowId: string = budgetWindowId) {
-  const reserve = vi.fn(async (request) => ({
-    allowed: true,
-    blockerIds: Object.freeze([]),
-    projectedUsage: request.plannedUsage,
-    reservationStatus: "reserved" as const,
-    paidUsageAllowed: false as const,
-    preserveLastGood: true as const,
-  }));
+  const reserve = vi.fn(
+    async (request: Parameters<ReadyBudgetRepository["reserve"]>[0]) => ({
+      allowed: true,
+      blockerIds: Object.freeze([]),
+      projectedUsage: request.plannedUsage,
+      reservationStatus: "reserved" as const,
+      paidUsageAllowed: false as const,
+      preserveLastGood: true as const,
+    }),
+  );
   const repository: DnaOpenLabR2BudgetRepository = {
     status: "ready",
     readWindow: vi.fn(async () => budgetWindow(windowId)),
@@ -235,26 +258,28 @@ function sources() {
   const evidenceStore: DnaCoreRaceHistoryR2EvidenceStore = {
     read: vi.fn(async () => null),
     recover: vi.fn(async () => null),
-    write: vi.fn(async ({ cycle, coreId, pageNumber, observedAt, response: page }) => ({
-      status: "ready" as const,
-      receipt: createDnaCoreRaceHistoryPageReceipt({
-        cycleId: cycle.cycleId,
-        attemptNumber: cycle.attemptNumber,
-        coreId,
-        pageNumber,
-        observedAt,
-        sourceRowCount: page.result.length,
-        acceptedResultCount: page.result.length,
-        quarantineCount: 0,
-        replayDuplicateCount: 0,
-        pageObjectKey: `dna-open-lab/v1/private/core-${coreId}/page-${pageNumber}.json`,
-        pageBodySha256: "b".repeat(64),
-        pageByteLength: 512,
-        quarantineObjectKey: null,
-        quarantineBodySha256: null,
-        quarantineByteLength: null,
+    write: vi.fn(
+      async ({ cycle, coreId, pageNumber, observedAt, response: page }) => ({
+        status: "ready" as const,
+        receipt: createDnaCoreRaceHistoryPageReceipt({
+          cycleId: cycle.cycleId,
+          attemptNumber: cycle.attemptNumber,
+          coreId,
+          pageNumber,
+          observedAt,
+          sourceRowCount: page.result.length,
+          acceptedResultCount: page.result.length,
+          quarantineCount: 0,
+          replayDuplicateCount: 0,
+          pageObjectKey: `dna-open-lab/v1/private/core-${coreId}/page-${pageNumber}.json`,
+          pageBodySha256: "b".repeat(64),
+          pageByteLength: 512,
+          quarantineObjectKey: null,
+          quarantineBodySha256: null,
+          quarantineByteLength: null,
+        }),
       }),
-    })),
+    ),
   };
   return {
     client,
@@ -333,7 +358,7 @@ describe("DNA Core race history private collector", () => {
     });
 
     expect(acquisition.repository.saveAttempt).toHaveBeenCalledTimes(1);
-    expect(acquisition.attempts).toHaveLength(1);
+    expect(acquisition.attempts.size).toBe(1);
     expect(source.client.page).toHaveBeenCalledTimes(2);
     expect(budget.reserve).toHaveBeenCalledTimes(2);
     expect(budget.reserve.mock.calls[1]?.[0].refreshCycleId).toBe(
