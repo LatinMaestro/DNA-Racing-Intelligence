@@ -36,6 +36,8 @@ type ReadyBudgetRepository = Extract<
   DnaOpenLabR2BudgetRepository,
   { status: "ready" }
 >;
+type ReserveRequest = Parameters<ReadyBudgetRepository["reserve"]>[0];
+type AccountRequest = Parameters<ReadyBudgetRepository["account"]>[0];
 
 function ownedCores(
   coreIds: readonly number[] = [42, 84],
@@ -231,34 +233,57 @@ function budgetWindow(
 }
 
 function readyBudget(windowId: string = budgetWindowId) {
-  const reservations = new Map<string, string>();
-  const reserve = vi.fn(
-    async (request: Parameters<ReadyBudgetRepository["reserve"]>[0]) => {
-      const existing = reservations.get(request.refreshCycleId);
-      if (existing !== undefined && existing !== request.requestSha256) {
-        throw new Error("synthetic budget reservation replay conflict");
-      }
-      reservations.set(request.refreshCycleId, request.requestSha256);
-      return {
-        allowed: true,
-        blockerIds: Object.freeze([]),
-        projectedUsage: request.plannedUsage,
-        reservationStatus: "reserved" as const,
-        paidUsageAllowed: false as const,
-        preserveLastGood: true as const,
-      };
-    },
-  );
+  const reservations = new Map<string, ReserveRequest>();
+  const reserve = vi.fn(async (request: ReserveRequest) => {
+    const existing = reservations.get(request.refreshCycleId);
+    if (
+      existing !== undefined &&
+      (existing.requestSha256 !== request.requestSha256 ||
+        existing.plannedUsage.storageBytes !== request.plannedUsage.storageBytes ||
+        existing.plannedUsage.classAOperations !==
+          request.plannedUsage.classAOperations ||
+        existing.plannedUsage.classBOperations !==
+          request.plannedUsage.classBOperations)
+    ) {
+      throw new Error("synthetic budget reservation replay conflict");
+    }
+    reservations.set(request.refreshCycleId, request);
+    return {
+      allowed: true,
+      blockerIds: Object.freeze([]),
+      projectedUsage: request.plannedUsage,
+      reservationStatus: "reserved" as const,
+      paidUsageAllowed: false as const,
+      preserveLastGood: true as const,
+    };
+  });
+  const account = vi.fn(async (request: AccountRequest) => {
+    const reservation = reservations.get(request.refreshCycleId);
+    if (
+      reservation === undefined ||
+      reservation.requestSha256 !== request.requestSha256
+    ) {
+      throw new Error("synthetic budget accounting identity mismatch");
+    }
+    return Object.freeze({
+      windowId: request.windowId,
+      refreshCycleId: request.refreshCycleId,
+      requestSha256: request.requestSha256,
+      status: "accounted" as const,
+      plannedUsage: reservation.plannedUsage,
+      actualUsage: request.actualUsage,
+      reservedAt: attemptedAt,
+      accountedAt: attemptedAt,
+    });
+  });
   const repository: DnaOpenLabR2BudgetRepository = {
     status: "ready",
     readWindow: vi.fn(async () => budgetWindow(windowId)),
     openWindow: vi.fn(async () => budgetWindow(windowId)),
     reserve,
-    account: vi.fn(async () => {
-      throw new Error("account must not run in page collection");
-    }),
+    account,
   };
-  return { repository, reserve };
+  return { repository, reserve, account };
 }
 
 function sources() {
@@ -324,7 +349,7 @@ function request(input: {
 }
 
 describe("DNA Core race history private collector", () => {
-  it("creates one stable owner acquisition cycle and reserves the exact page bound before advancing", async () => {
+  it("creates one stable owner acquisition cycle, reserves, accounts, then advances", async () => {
     const acquisition = acquisitionRepository();
     const budget = readyBudget();
     const source = sources();
@@ -349,12 +374,26 @@ describe("DNA Core race history private collector", () => {
       requestSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
       plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
     });
-    expect(source.client.page).toHaveBeenCalledTimes(1);
     const reservation = budget.reserve.mock.calls[0]![0];
-    expect(reservation.refreshCycleId).toBe(reservation.requestSha256);
+    expect(reservation.refreshCycleId).not.toBe(reservation.requestSha256);
+    expect(budget.account).toHaveBeenCalledWith({
+      ownerId: "private_owner",
+      windowId: budgetWindowId,
+      refreshCycleId: reservation.refreshCycleId,
+      requestSha256: reservation.requestSha256,
+      actualUsage: {
+        storageBytes: 512,
+        classAOperations: 2,
+        classBOperations: 7,
+      },
+    });
+    expect(budget.account.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(acquisition.repository.savePage).mock.invocationCallOrder[0]!,
+    );
+    expect(source.client.page).toHaveBeenCalledTimes(1);
   });
 
-  it("replays one evaluated cycle with a distinct durable reservation per page", async () => {
+  it("replays one evaluated cycle with a distinct durable reservation per invocation", async () => {
     const acquisition = acquisitionRepository();
     const budget = readyBudget();
     const source = sources();
@@ -375,11 +414,66 @@ describe("DNA Core race history private collector", () => {
     expect(acquisition.attempts.size).toBe(1);
     expect(source.client.page).toHaveBeenCalledTimes(2);
     expect(budget.reserve).toHaveBeenCalledTimes(2);
+    expect(budget.account).toHaveBeenCalledTimes(2);
     const first = budget.reserve.mock.calls[0]![0];
     const second = budget.reserve.mock.calls[1]![0];
-    expect(first.refreshCycleId).toBe(first.requestSha256);
-    expect(second.refreshCycleId).toBe(second.requestSha256);
     expect(second.refreshCycleId).not.toBe(first.refreshCycleId);
+    expect(second.requestSha256).not.toBe(first.requestSha256);
+  });
+
+  it("uses a fresh reservation for a later retry of the same page", async () => {
+    const acquisition = acquisitionRepository();
+    const budget = readyBudget();
+    const source = sources();
+    vi.mocked(source.evidenceStore.write)
+      .mockRejectedValueOnce(new Error("synthetic storage interruption"))
+      .mockResolvedValueOnce({
+        status: "ready",
+        receipt: createDnaCoreRaceHistoryPageReceipt({
+          cycleId: createDnaCoreRaceHistoryAcquisitionCycle({
+            previousCompletedCycleId: null,
+            currentStateGenerationId: generationId,
+            evaluatedAt,
+            coreIds: [42, 84],
+          }).cycleId,
+          attemptNumber: 1,
+          coreId: 42,
+          pageNumber: 1,
+          observedAt: "2026-09-15T07:02:00.000Z",
+          sourceRowCount: 1,
+          acceptedResultCount: 1,
+          quarantineCount: 0,
+          replayDuplicateCount: 0,
+          pageObjectKey: "dna-open-lab/v1/private/core-42/page-1.json",
+          pageBodySha256: "b".repeat(64),
+          pageByteLength: 512,
+          quarantineObjectKey: null,
+          quarantineBodySha256: null,
+          quarantineByteLength: null,
+        }),
+      });
+
+    await expect(
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+      }),
+    ).rejects.toThrow("synthetic storage interruption");
+    await expect(
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+        runAttemptedAt: "2026-09-15T07:02:00.000Z",
+      }),
+    ).resolves.toMatchObject({ kind: "page_advanced" });
+
+    const first = budget.reserve.mock.calls[0]![0];
+    const second = budget.reserve.mock.calls[1]![0];
+    expect(second.requestSha256).toBe(first.requestSha256);
+    expect(second.refreshCycleId).not.toBe(first.refreshCycleId);
+    expect(budget.account).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed before R2 or provider work when the durable free-budget window does not match", async () => {
@@ -396,6 +490,7 @@ describe("DNA Core race history private collector", () => {
     ).resolves.toMatchObject({ kind: "paused", reason: "budget_closed" });
 
     expect(budget.reserve).not.toHaveBeenCalled();
+    expect(budget.account).not.toHaveBeenCalled();
     expect(source.evidenceStore.recover).not.toHaveBeenCalled();
     expect(source.client.page).not.toHaveBeenCalled();
   });
@@ -439,6 +534,7 @@ describe("DNA Core race history private collector", () => {
         }),
       ).resolves.toMatchObject({ kind: "paused", reason: "budget_closed" });
 
+      expect(budget.account).not.toHaveBeenCalled();
       expect(source.evidenceStore.recover).not.toHaveBeenCalled();
       expect(source.client.page).not.toHaveBeenCalled();
     },
@@ -516,6 +612,11 @@ describe("DNA Core race history private collector", () => {
 
     expect(source.client.page).not.toHaveBeenCalled();
     expect(source.evidenceStore.recover).toHaveBeenCalledTimes(1);
+    expect(budget.account).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refreshCycleId: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      }),
+    );
   });
 
   it("returns an already completed matching cycle without reserving budget or repeating provider work", async () => {
@@ -538,6 +639,7 @@ describe("DNA Core race history private collector", () => {
 
     expect(acquisition.repository.saveAttempt).not.toHaveBeenCalled();
     expect(budget.reserve).not.toHaveBeenCalled();
+    expect(budget.account).not.toHaveBeenCalled();
     expect(source.client.page).not.toHaveBeenCalled();
   });
 
@@ -560,6 +662,7 @@ describe("DNA Core race history private collector", () => {
 
     expect(acquisition.repository.loadLatestComplete).not.toHaveBeenCalled();
     expect(budget.reserve).not.toHaveBeenCalled();
+    expect(budget.account).not.toHaveBeenCalled();
     expect(source.client.page).not.toHaveBeenCalled();
   });
 });
