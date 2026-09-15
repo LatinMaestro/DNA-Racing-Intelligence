@@ -1,4 +1,5 @@
-// One-shot connected scan dispatch marker; do not merge.\nimport { describe, expect, it } from "vitest";
+// One-shot connected scan dispatch marker; do not merge.
+import { describe, expect, it } from "vitest";
 
 import { summarizeDnaOpenLabShape } from "../lib/dna-open-lab-discovery-evidence";
 import {
