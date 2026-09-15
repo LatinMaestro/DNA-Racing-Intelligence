@@ -2450,3 +2450,22 @@ After the private Pro League milestone, continue in this order:
 - Recalculate every cycle's receipt count, document count, byte total, checksum
   and contiguous bounds before exposing its private R2 locators to server-side
   analysis. Raw evidence and identifiers remain off the frontend.
+
+## 2026-09-15 — Per-Core API history restores exact performance fields
+
+- The earlier v1 race-document conclusion was too narrow: it assessed race
+  metadata but omitted the separate per-Core result-history family.
+- A fresh read-only scan covered all 214 Cores then reported by the owner Vault.
+  Their first result pages returned 10,383 rows; 10,374 rows contained positive
+  `cb`, `time` and `pos` values. No Core request failed or returned empty.
+- For 200 sampled race identities, v1 returned all 200 race documents. Across
+  225 owner-Core result rows in those races, race identity and entrant Core
+  identity both joined, and all 225 comparable `cb` values matched exactly.
+- `cb` is therefore the provider distance code already normalized by the
+  historical result adapter (`9` to `23` in this scan means 900m to 2300m),
+  `time` is elapsed seconds and `pos` is finishing position. Core racing-stats
+  remains aggregate current state and contains no sampled race identity.
+- Keep recommendations held until this result family has durable incremental
+  checkpoints, immutable raw evidence, owner isolation, replay-safe
+  deduplication and complete-generation publication. The scan itself retained
+  no payload or identifier and performed no provider or Production write.
