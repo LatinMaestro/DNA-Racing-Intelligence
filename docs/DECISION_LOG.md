@@ -2577,3 +2577,20 @@ After the private Pro League milestone, continue in this order:
 - This provider-neutral contract performs no API request, R2 read, database
   change, deployment or game action. Forced-owner Neon persistence and its
   reversible migration remain the next dependency.
+
+## 2026-09-15 — Persist joined Core results behind one last-good pointer
+
+- Store generation metadata, deterministic joined rows and the active pointer
+  in separate owner-scoped relations with forced row-level security. The
+  runtime has no direct table privileges and may use only the reviewed begin,
+  stage, publish and read functions.
+- Stage at most 250 consecutive rows per call. Exact replay is idempotent;
+  changed content, ownership drift, worker drift or publication of an incomplete
+  row set fails closed.
+- Recompute the complete ordered row digest and contiguous ordinal coverage from
+  stored rows before publication. Move the owner-local active pointer in that
+  same transaction only when count, digest and monotonic materialization agree.
+  Interrupted or rejected work cannot replace the prior last-good generation.
+- Migration `0101` is reversible and smoke-tests function-only privileges,
+  replay, incomplete-publication rejection and owner isolation. It does not run
+  collection, store private data, deploy a site or authorize a game action.

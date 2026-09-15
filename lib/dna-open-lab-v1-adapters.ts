@@ -687,7 +687,13 @@ function sourceCoreIdentifier(value: number): string {
 }
 
 export function dnaOpenLabRawEvidenceSha256(raw: unknown): string {
-  return createHash("sha256").update(canonicalJson(raw), "utf8").digest("hex");
+  return createHash("sha256")
+    .update(dnaOpenLabRawEvidenceCanonicalJson(raw), "utf8")
+    .digest("hex");
+}
+
+export function dnaOpenLabRawEvidenceCanonicalJson(raw: unknown): string {
+  return canonicalJson(raw);
 }
 
 export function adaptDnaTokenPrices(input: {
