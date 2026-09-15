@@ -47,6 +47,7 @@ export type DnaCoreRaceHistoryEvidenceBudgetAuthority =
 
 export type DnaCoreRaceHistoryEvidenceBudgetRequest = Readonly<{
   requestSha256: string;
+  reservationId: string;
   cycleId: string;
   attemptNumber: number;
   coreId: number;
@@ -114,6 +115,7 @@ function evidenceBudgetRequest(input: {
   attemptNumber: number;
   coreId: number;
   pageNumber: number;
+  attemptedAt: string;
 }): DnaCoreRaceHistoryEvidenceBudgetRequest {
   const authority = Object.freeze({
     cycleId: input.cycleId,
@@ -122,12 +124,20 @@ function evidenceBudgetRequest(input: {
     pageNumber: input.pageNumber,
     plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
   });
+  const requestSha256 = dnaOpenLabRawEvidenceSha256({
+    version: 1,
+    sourceFamily: "core_race_history",
+    operation: "page_evidence",
+    ...authority,
+  });
   return Object.freeze({
-    requestSha256: dnaOpenLabRawEvidenceSha256({
+    requestSha256,
+    reservationId: dnaOpenLabRawEvidenceSha256({
       version: 1,
       sourceFamily: "core_race_history",
-      operation: "page_evidence",
-      ...authority,
+      operation: "page_evidence_budget_reservation",
+      requestSha256,
+      attemptedAt: input.attemptedAt,
     }),
     ...authority,
   });
@@ -187,6 +197,56 @@ function apiPause(error: DnaOpenLabApiError): {
     case "invalid_request":
       return null;
   }
+}
+
+function quarantineByteLength(
+  evidence: DnaCoreRaceHistoryStoredPageEvidence,
+): number {
+  if (evidence.status === "held_conflict") {
+    return evidence.quarantineByteLength;
+  }
+  return evidence.receipt.quarantineByteLength ?? 0;
+}
+
+function evidenceByteLength(input: {
+  evidence: DnaCoreRaceHistoryStoredPageEvidence;
+  source: "recovered" | "provider";
+}): number {
+  const quarantineBytes = quarantineByteLength(input.evidence);
+  if (input.source === "recovered") {
+    // Recovery may repair a missing quarantine object. Conservatively count its
+    // bytes even when it already existed so free-tier accounting never
+    // understates a possible recovery write.
+    return quarantineBytes;
+  }
+  const pageBytes =
+    input.evidence.status === "held_conflict"
+      ? input.evidence.pageByteLength
+      : input.evidence.receipt.pageByteLength;
+  return pageBytes + quarantineBytes;
+}
+
+function conservativeAccountedUsage(
+  storageBytes: number,
+): DnaOpenLabR2Usage {
+  if (
+    !Number.isSafeInteger(storageBytes) ||
+    storageBytes < 0 ||
+    storageBytes > DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.storageBytes
+  ) {
+    runnerError("accounted evidence bytes exceed the reserved bound");
+  }
+  // Exact R2 operation telemetry is not exposed at this layer. Retain the full
+  // per-step Class A/B upper bounds while replacing the dominant storage
+  // reservation with observed immutable-object bytes. This remains
+  // deliberately fail-closed and cannot understate billable object calls.
+  return Object.freeze({
+    storageBytes,
+    classAOperations:
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.classAOperations,
+    classBOperations:
+      DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.classBOperations,
+  });
 }
 
 async function pause(input: {
@@ -282,10 +342,14 @@ async function applyEvidence(input: {
 
 /**
  * Advances no more than one provider page. A caller must first grant a
- * conservative R2 upper-bound authority for the whole step. The runner checks
- * immutable evidence before requesting the provider, so a crash after the R2
- * write resumes without another API call. It advances the compact Neon cursor
- * only after the page/quarantine evidence is verified.
+ * conservative R2 upper-bound authority for the whole step. Each invocation
+ * has a replay-stable reservation identity bound to attemptedAt so a later
+ * retry cannot silently reuse an earlier reservation while creating new R2
+ * operations. Successful/known outcomes are accounted before Neon progress.
+ *
+ * The runner checks immutable evidence before requesting the provider, so a
+ * crash after the R2 write resumes without another API call. It advances the
+ * compact Neon cursor only after evidence and budget accounting are verified.
  */
 export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
   cycleId: string;
@@ -298,6 +362,10 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
   authorizeEvidenceBudget: (
     request: DnaCoreRaceHistoryEvidenceBudgetRequest,
   ) => Promise<DnaCoreRaceHistoryEvidenceBudgetAuthority>;
+  accountEvidenceBudget: (
+    request: DnaCoreRaceHistoryEvidenceBudgetRequest,
+    actualUsage: DnaOpenLabR2Usage,
+  ) => Promise<void>;
 }): Promise<DnaCoreRaceHistoryAcquisitionStepResult> {
   const attemptedAt = timestamp(input.attemptedAt, "attemptedAt");
   const stored = await input.repository.loadAttempt({
@@ -362,6 +430,7 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     attemptNumber: identity.cycle.attemptNumber,
     coreId: identity.coreId,
     pageNumber: identity.pageNumber,
+    attemptedAt,
   });
   const authority = await input.authorizeEvidenceBudget(budgetRequest);
   if (
@@ -377,6 +446,12 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
   }
   const recovered = await input.evidenceStore.recover(identity);
   if (recovered !== null) {
+    await input.accountEvidenceBudget(
+      budgetRequest,
+      conservativeAccountedUsage(
+        evidenceByteLength({ evidence: recovered, source: "recovered" }),
+      ),
+    );
     return applyEvidence({
       evidence: recovered,
       source: "recovered",
@@ -396,6 +471,14 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
       }),
     );
   } catch (error) {
+    // The immutable-evidence miss has already consumed R2 inspection work.
+    // Reconcile the reservation before either persisting a provider pause or
+    // surfacing a non-retryable failure. Class A/B remain at their conservative
+    // reserved ceiling because exact provider telemetry is unavailable here.
+    await input.accountEvidenceBudget(
+      budgetRequest,
+      conservativeAccountedUsage(0),
+    );
     if (!(error instanceof DnaOpenLabApiError)) throw error;
     const held = apiPause(error);
     if (held === null) throw error;
@@ -415,6 +498,12 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     observedAt: attemptedAt,
     response,
   });
+  await input.accountEvidenceBudget(
+    budgetRequest,
+    conservativeAccountedUsage(
+      evidenceByteLength({ evidence, source: "provider" }),
+    ),
+  );
   return applyEvidence({
     evidence,
     source: "provider",
