@@ -6,6 +6,7 @@ import { createCloudflareR2DatasetEvidencePort } from "./cloudflare-r2-dataset-e
 import { createDnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
 import {
   createDnaCoreRaceHistoryPrivateGenerationOperator,
+  DNA_CORE_RACE_HISTORY_COMMISSIONING_MATERIALIZATION_CLASS_B_OPERATION_CEILING,
   DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_INTENT,
   DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_OPERATOR_VERSION,
   type DnaCoreRaceHistoryPrivateGenerationResult,
@@ -431,7 +432,7 @@ export function dnaCoreRaceHistoryPrivateGenerationCommandFromEnvironment(
           materializedAt: at,
           publishedAt: at,
           maximumRetainedEvidenceClassBOperations:
-            DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE.classBOperations,
+            DNA_CORE_RACE_HISTORY_COMMISSIONING_MATERIALIZATION_CLASS_B_OPERATION_CEILING,
           maximumAggregateRequestsPerMinute:
             DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
         });
