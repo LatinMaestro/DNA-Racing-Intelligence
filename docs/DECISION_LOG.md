@@ -2469,3 +2469,24 @@ After the private Pro League milestone, continue in this order:
   checkpoints, immutable raw evidence, owner isolation, replay-safe
   deduplication and complete-generation publication. The scan itself retained
   no payload or identifier and performed no provider or Production write.
+
+## 2026-09-15 — Bound per-Core result transport and canonical evidence
+
+- Keep the separately observed per-Core history endpoint outside the Open Lab
+  v1 bearer client. It sends no credential, makes one explicit Core/page POST,
+  retains future source fields and exposes rate-limit/Retry-After metadata to
+  the shared conservative request pool.
+- Treat response-body error status and HTTP 429 as authoritative, replace
+  provider/transport detail with content-free errors and reject malformed
+  envelopes or non-record result rows before adaptation.
+- Accept analytical evidence only when requested and returned Core identities
+  match and race ID, mode, positive distance code, elapsed seconds and finish
+  position validate. Normalize the established sub-100 `cb` code to metres;
+  preserve already-normalized metre values and the raw-evidence checksum.
+- Quarantine incomplete or cross-Core rows by fixed diagnostic plus checksum.
+  Exact duplicate identities are replay-safe; a changed payload under the same
+  Core/mode/race identity holds the page as a conflict.
+- This boundary does not yet persist or publish the history family, lift the
+  Pro League recommendation hold, call the live API, deploy a site or perform a
+  game action. Durable pagination checkpoints, private R2 receipts and combined
+  generation publication remain the next dependency.
