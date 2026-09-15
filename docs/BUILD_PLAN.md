@@ -618,9 +618,16 @@ Private create-if-absent R2 page and quarantine documents retain the first
 observation, and the server-only Neon repository advances receipt metadata and
 the Core checkpoint atomically under forced owner isolation. Pause, replay,
 conflict hold, superseded-attempt replacement and complete-cycle coverage are
-synthetically exercised. This does not yet call the result API persistently or
-publish result rows into a daily generation; those remain the next P10
-dependencies.
+synthetically exercised. The joined-result generation is now also durable:
+migration `0101` uses forced owner isolation and function-only runtime access,
+accepts bounded replay-safe row batches, recomputes exact count and ordered
+digest from stored rows, and moves the active pointer only for a complete
+monotonic generation.
+Collection still remains dormant until the bounded connected operator is wired;
+no private result generation has yet been stored or activated.
+
+This does not yet call the result API persistently; connected collection and
+the first complete private result generation remain the next P10 dependencies.
 
 The next acquisition slice now has a pure page-at-a-time runner behind the
 existing conservative aggregate request gate and an explicit pre-reserved R2

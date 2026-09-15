@@ -27,6 +27,14 @@ A normal background cycle is:
 
 A partial cycle cannot replace the previous last-good dataset.
 
+Migration `0101` provides the durable Core-result publication boundary. It
+stores deterministic joined rows behind forced owner isolation, permits the
+runtime role to use only four security-definer functions, stages replay-safe
+batches of at most 250 rows and independently recomputes the complete ordered
+row digest before atomically moving the owner-local active pointer. A partial,
+conflicting, cross-owner, older or interrupted generation remains invisible and
+the previous last-good generation continues to serve.
+
 ## Source-family plans
 
 | Family             | Normal API behavior                                                  | Publication behavior                                                                                                                    |

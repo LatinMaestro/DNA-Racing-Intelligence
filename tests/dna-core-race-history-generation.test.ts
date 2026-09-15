@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -129,13 +131,17 @@ function repository() {
       const ordered = [...rows.values()].sort(
         (left, right) => left.ordinal - right.ordinal,
       );
-      const payloadSha256 = dnaOpenLabRawEvidenceSha256(
-        ordered.map(({ ordinal, naturalKey, rowSha256 }) => ({
-          ordinal,
-          naturalKey,
-          rowSha256,
-        })),
-      );
+      const payloadSha256 = createHash("sha256")
+        .update(
+          ordered
+            .map(
+              ({ ordinal, naturalKey, rowSha256 }) =>
+                `${ordinal}:${naturalKey}:${rowSha256}\n`,
+            )
+            .join(""),
+          "utf8",
+        )
+        .digest("hex");
       if (payloadSha256 !== input.payloadSha256) {
         throw new Error("synthetic payload conflict");
       }

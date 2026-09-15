@@ -255,6 +255,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0100_dna_core_race_history_acquisition.up.sql
       - name: Run Core race history acquisition smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0100_dna_core_race_history_acquisition.smoke.sql
+      - name: Apply Core race history generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.up.sql
+      - name: Run Core race history generation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.smoke.sql
+      - name: Reverse Core race history generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.down.sql
+      - name: Verify Core race history generation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.removal.sql
       - name: Reverse Core race history acquisition migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0100_dna_core_race_history_acquisition.down.sql
       - name: Verify Core race history acquisition removal

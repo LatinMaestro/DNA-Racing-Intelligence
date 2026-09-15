@@ -288,13 +288,13 @@ Historical and chronological performance remains the preferred analytical eviden
 - Discovery outcomes; and
 - lineage evidence.
 
-The observed API does not currently expose direct elapsed time, finishing position or explicit distance in finished/document race shapes. Until that changes, the first API-only Pro League commissioning must:
-
-- prioritize structural roster compliance and owner strategy state;
-- present current API observations as separate timestamped dimensions;
-- label historical time/distance, star and outcome-dependent advice unavailable where the API cannot support it;
-- avoid claiming the strongest historical-performance roster from incomplete evidence; and
-- never reactivate CSV implicitly.
+The finished-race document family alone does not expose each Core's direct
+elapsed time and finishing position. The separately observed per-Core result
+history supplies `cb` distance code, `time` elapsed seconds, `pos` finishing
+position, race ID and Core ID. Join it to the canonical race document by both
+race ID and entrant Core ID, then require mode, distance, gate count and event
+time agreement before using it. Missing, conflicting or unsupported joins stay
+explicitly held; they never reactivate CSV implicitly.
 
 Current API state must not leak backward into historical backtests if historical observations become available later.
 

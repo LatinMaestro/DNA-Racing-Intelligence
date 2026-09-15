@@ -1,8 +1,13 @@
+import { createHash } from "node:crypto";
+
 import type {
   DnaCoreRaceHistoryJoinedObservation,
   DnaCoreRaceHistoryMaterialization,
 } from "@/lib/dna-core-race-history-materialization";
-import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
+import {
+  dnaOpenLabRawEvidenceCanonicalJson,
+  dnaOpenLabRawEvidenceSha256,
+} from "@/lib/dna-open-lab-v1-adapters";
 
 export const DNA_CORE_RACE_HISTORY_GENERATION_VERSION = 1 as const;
 export const DNA_CORE_RACE_HISTORY_GENERATION_STAGE_BATCH_SIZE = 250;
@@ -42,6 +47,7 @@ export type DnaCoreRaceHistoryGenerationStageRow = Readonly<{
   ordinal: number;
   naturalKey: string;
   rowSha256: string;
+  canonicalPayload: string;
   payload: DnaCoreRaceHistoryJoinedObservation;
 }>;
 
@@ -165,16 +171,21 @@ function generationMetadata(
       ordinal,
       naturalKey: observation.naturalKey,
       rowSha256: dnaOpenLabRawEvidenceSha256(observation),
+      canonicalPayload: dnaOpenLabRawEvidenceCanonicalJson(observation),
       payload: observation,
     });
   });
-  const payloadSha256 = dnaOpenLabRawEvidenceSha256(
-    rows.map(({ ordinal, naturalKey, rowSha256 }) => ({
-      ordinal,
-      naturalKey,
-      rowSha256,
-    })),
-  );
+  const payloadSha256 = createHash("sha256")
+    .update(
+      rows
+        .map(
+          ({ ordinal, naturalKey, rowSha256 }) =>
+            `${ordinal}:${naturalKey}:${rowSha256}\n`,
+        )
+        .join(""),
+      "utf8",
+    )
+    .digest("hex");
   const counts = Object.freeze({
     inputCycleCount: count(materialization.inputCycleCount, "inputCycleCount"),
     inputPageCount: count(materialization.inputPageCount, "inputPageCount"),
