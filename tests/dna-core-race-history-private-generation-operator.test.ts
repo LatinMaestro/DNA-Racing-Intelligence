@@ -108,7 +108,12 @@ function completeStep(previousCompletedCycleId: string | null = null) {
   return {
     kind: "collection_complete",
     stored: {
-      cycle: { cycleId, attemptNumber: 1, previousCompletedCycleId },
+      cycle: {
+        cycleId,
+        attemptNumber: 1,
+        previousCompletedCycleId,
+        completion: { pageReceiptCount: 500 },
+      },
     },
   };
 }
@@ -232,6 +237,86 @@ describe("DNA Core race history private generation operator", () => {
         },
       }),
     );
+  });
+
+  it("chunks a larger exact retained-read requirement before publication", async () => {
+    mocks.collect.mockResolvedValue({
+      ...completeStep(),
+      stored: {
+        cycle: {
+          ...completeStep().stored.cycle,
+          completion: { pageReceiptCount: 501 },
+        },
+      },
+    });
+    const persistence = repositories();
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(
+      operator.execute({
+        ...invocation,
+        maximumRetainedEvidenceClassBOperations: 4_000,
+      }),
+    ).resolves.toMatchObject({
+      kind: "generation",
+      result: { kind: "published" },
+    });
+    expect(persistence.budget.reserve).toHaveBeenCalledTimes(2);
+    expect(persistence.budget.reserve).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        plannedUsage: {
+          storageBytes: 0,
+          classAOperations: 0,
+          classBOperations: 2_000,
+        },
+      }),
+    );
+    expect(persistence.budget.reserve).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        plannedUsage: {
+          storageBytes: 0,
+          classAOperations: 0,
+          classBOperations: 4,
+        },
+      }),
+    );
+    expect(persistence.budget.account).toHaveBeenCalledTimes(2);
+    expect(mocks.materialize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        retainedEvidenceReadBudget: {
+          maximumClassBOperations: 2_004,
+          paidUsageAllowed: false,
+        },
+      }),
+    );
+  });
+
+  it("holds before reservation when exact retained reads exceed the commissioning ceiling", async () => {
+    mocks.collect.mockResolvedValue(completeStep());
+    const persistence = repositories();
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(
+      operator.execute({
+        ...invocation,
+        maximumRetainedEvidenceClassBOperations: 1_999,
+      }),
+    ).rejects.toThrow(
+      "retained-evidence Class B requirement exceeds its ceiling",
+    );
+    expect(persistence.budget.reserve).not.toHaveBeenCalled();
+    expect(persistence.budget.account).not.toHaveBeenCalled();
+    expect(mocks.materialize).not.toHaveBeenCalled();
   });
 
   it("does not read or publish when the materialization reservation is blocked", async () => {
