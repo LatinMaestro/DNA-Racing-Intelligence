@@ -38,7 +38,7 @@ jobs:
   exact-main-bounded-private-preview-generation:
     name: Exact-main bounded private Preview Core results
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -147,6 +147,14 @@ jobs:
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
       - name: Advance second bounded Core result slice
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
+      - name: Advance third bounded Core result slice
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
+      - name: Advance fourth bounded Core result slice
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts

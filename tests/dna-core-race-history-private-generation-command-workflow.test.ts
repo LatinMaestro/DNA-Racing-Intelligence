@@ -32,7 +32,7 @@ describe("DNA Core race-history private generation command workflow", () => {
     );
     expect(
       workflow.match(/hosted-preview-connected-core-race-history/g),
-    ).toHaveLength(3);
+    ).toHaveLength(5);
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
