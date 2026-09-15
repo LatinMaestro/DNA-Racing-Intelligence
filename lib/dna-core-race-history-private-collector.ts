@@ -15,6 +15,7 @@ import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
 import type { DnaCoreRaceHistoryR2EvidenceStore } from "./dna-core-race-history-r2-evidence";
 import type { DnaOpenLabR2BudgetRepository } from "./dna-open-lab-r2-budget-repository";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
+import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy";
 
 const SOURCE_CORE_ID_PATTERN = /^[1-9][0-9]*$/u;
 
@@ -225,14 +226,10 @@ function createEvidenceBudgetAuthorizer(input: {
     if (window === null || window.windowId !== input.budgetWindowId) {
       return authority("blocked");
     }
-    // The durable budget table keys one reservation by refreshCycleId. Use the
-    // page request identity so consecutive pages cannot collide while exact
-    // replay of the same page remains idempotent.
-    const pageReservationId = request.requestSha256;
     const decision = await input.budgetRepository.reserve({
       ownerId: input.ownerId,
       windowId: input.budgetWindowId,
-      refreshCycleId: pageReservationId,
+      refreshCycleId: request.reservationId,
       requestSha256: request.requestSha256,
       plannedUsage: request.plannedUsage,
     });
@@ -247,6 +244,36 @@ function createEvidenceBudgetAuthorizer(input: {
   };
 }
 
+function createEvidenceBudgetAccountant(input: {
+  ownerId: string;
+  budgetWindowId: string;
+  budgetRepository: DnaOpenLabR2BudgetRepository;
+}): (
+  request: DnaCoreRaceHistoryEvidenceBudgetRequest,
+  actualUsage: DnaOpenLabR2Usage,
+) => Promise<void> {
+  return async (request, actualUsage) => {
+    if (input.budgetRepository.status !== "ready") {
+      collectorError("R2 budget repository became unavailable during accounting");
+    }
+    const accounted = await input.budgetRepository.account({
+      ownerId: input.ownerId,
+      windowId: input.budgetWindowId,
+      refreshCycleId: request.reservationId,
+      requestSha256: request.requestSha256,
+      actualUsage,
+    });
+    if (
+      accounted.status !== "accounted" ||
+      accounted.windowId !== input.budgetWindowId ||
+      accounted.refreshCycleId !== request.reservationId ||
+      accounted.requestSha256 !== request.requestSha256
+    ) {
+      collectorError("R2 budget accounting identity is invalid");
+    }
+  };
+}
+
 /**
  * Composes one durable private Core-result acquisition step from the currently
  * serving owned-Core generation. A stable evaluatedAt value identifies one
@@ -256,7 +283,8 @@ function createEvidenceBudgetAuthorizer(input: {
  * Retryable pauses resume only when their retry boundary has elapsed. Evidence
  * conflicts and explicit operator holds remain stopped until separately
  * resolved. Every R2/provider step must first obtain its exact durable
- * fail-closed reservation from the shared free-budget repository.
+ * fail-closed reservation, then reconcile that reservation before checkpoint
+ * progress whenever the R2 outcome is known.
  */
 export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
   ownerId: string;
@@ -336,6 +364,11 @@ export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
     requestBudget: input.requestBudget,
     evidenceStore: input.evidenceStore,
     authorizeEvidenceBudget: createEvidenceBudgetAuthorizer({
+      ownerId: input.ownerId,
+      budgetWindowId: input.budgetWindowId,
+      budgetRepository: input.budgetRepository,
+    }),
+    accountEvidenceBudget: createEvidenceBudgetAccountant({
       ownerId: input.ownerId,
       budgetWindowId: input.budgetWindowId,
       budgetRepository: input.budgetRepository,
