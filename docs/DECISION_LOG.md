@@ -2392,3 +2392,14 @@ After the private Pro League milestone, continue in this order:
   by the page materialization and cannot substitute for listing completeness.
 - This is a counting correction only: no Arena listing is skipped, invented or
   deduplicated, and the atomic publication boundary remains fail-closed.
+
+## 2026-09-15 — Persist quarantined active-race economics without invention
+
+- Connected Preview publication proved that the canonical adapter correctly
+  quarantines unavailable fixed-fee, entry-fee or payment-asset values, while
+  the original database contract still required all three values to exist.
+- Align the database validator with the adapter's exclusive value-or-explicit-
+  quarantine contract. Unsupported values remain absent and are never stored as
+  zero, an empty asset or another invented replacement.
+- Exact canonical keys, non-negative available values, known evidence statuses,
+  owner isolation and atomic publication remain fail-closed.

@@ -235,6 +235,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0096_dna_open_lab_stamina_last_event_quarantine.up.sql
       - name: Run stamina last-event quarantine smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0096_dna_open_lab_stamina_last_event_quarantine.smoke.sql
+      - name: Apply active-race economics quarantine migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.up.sql
+      - name: Run active-race economics quarantine smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.smoke.sql
+      - name: Reverse active-race economics quarantine migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.down.sql
+      - name: Verify active-race economics quarantine removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.removal.sql
       - name: Reverse stamina last-event quarantine migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0096_dna_open_lab_stamina_last_event_quarantine.down.sql
       - name: Verify stamina last-event quarantine removal
