@@ -205,6 +205,10 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0069_dna_open_lab_sync_publication.up.sql
       - name: Run DNA Open Lab sync publication smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0069_dna_open_lab_sync_publication.smoke.sql
+      - name: Apply DNA Open Lab owned Core read-model migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0071_dna_open_lab_owned_core_read_model.up.sql
+      - name: Run DNA Open Lab owned Core read-model smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0071_dna_open_lab_owned_core_read_model.smoke.sql
       - name: Apply finished-race incremental cycle migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.up.sql
       - name: Run finished-race incremental cycle smoke test
@@ -239,6 +243,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.up.sql
       - name: Run active-race economics quarantine smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.smoke.sql
+      - name: Apply combined owned Core read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.up.sql
+      - name: Run combined owned Core read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.smoke.sql
+      - name: Reverse combined owned Core read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.down.sql
+      - name: Verify combined owned Core read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.removal.sql
       - name: Reverse active-race economics quarantine migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.down.sql
       - name: Verify active-race economics quarantine removal
@@ -275,6 +287,10 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.down.sql
       - name: Verify finished-race incremental cycle removal
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0089_dna_open_lab_finished_race_incremental_cycle.removal.sql
+      - name: Reverse DNA Open Lab owned Core read-model migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0071_dna_open_lab_owned_core_read_model.down.sql
+      - name: Verify DNA Open Lab owned Core read-model removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0071_dna_open_lab_owned_core_read_model.removal.sql
       - name: Reverse DNA Open Lab sync publication migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0069_dna_open_lab_sync_publication.down.sql
       - name: Verify DNA Open Lab sync publication removal
