@@ -609,6 +609,19 @@ the command reconciles the full approved R2 reservation at completion instead
 of under-counting earlier-process operations. The remaining A4 boundary is the
 connected incremental commissioning run and recovery proof.
 
+The separate per-Core result-history family now has its prerequisite durable
+cycle model and migration. One cycle binds a published ownership generation,
+the exact owner Core set and the prior completed result cycle; normalized
+per-Core checkpoints retain page position and aggregate receipt-chain identity.
+Only an explicit empty page completes a Core, while short pages remain open.
+Private create-if-absent R2 page and quarantine documents retain the first
+observation, and the server-only Neon repository advances receipt metadata and
+the Core checkpoint atomically under forced owner isolation. Pause, replay,
+conflict hold, superseded-attempt replacement and complete-cycle coverage are
+synthetically exercised. This does not yet call the result API persistently or
+publish result rows into a daily generation; those remain the next P10
+dependencies.
+
 The connected Cloudflare measurement verifies the account-owned token and
 queries the two documented R2 datasets independently. This distinguishes an
 inactive token from an operations- or storage-dataset rejection without

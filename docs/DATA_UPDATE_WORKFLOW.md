@@ -230,6 +230,27 @@ headroom. Provider capacity remains a separate fresh read-only preflight. No
 route, page, Worker or schedule imports the command; only an explicitly armed,
 exact-main manual Preview workflow can advance it.
 
+Per-Core result history has a separate versioned acquisition boundary because
+the provider paginates by owned Core rather than by time window. Each cycle is
+bound to one published current-state ownership generation, its exact sorted
+Core set and the immediately preceding completed result-history cycle. Every
+attempt has one owner-scoped checkpoint per Core. Checkpoints advance one page
+at a time and close only after retaining an explicit empty page; a short
+non-empty page remains resumable work. The observed provider cap is 50 rows per
+page.
+
+Private raw page observations use create-if-absent R2 keys derived from hashed
+owner and Core identities plus cycle, attempt and page. Invalid rows receive a
+separate immutable quarantine receipt, while conflicting duplicate result
+identities hold progress. The compact Neon receipt and Core cursor advance in
+one serializable compare-and-swap call after the object is verified. Paused
+attempts retain the exact cursor; a deliberately superseded replacement starts
+new Core checkpoints at page one without deleting the earlier evidence. A
+completed cycle requires every Core checkpoint and binds their receipt-chain
+totals. This collection completion is not publication: cross-page and
+cross-cycle result deduplication, race-document joining and combined
+daily-generation activation remain separate fail-closed work.
+
 The fail-closed decision packet and its mandatory measurement, stop and cleanup
 conditions are defined in
 [`DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md`](DNA_OPEN_LAB_P5_FIRST_BACKFILL_APPROVAL.md).
