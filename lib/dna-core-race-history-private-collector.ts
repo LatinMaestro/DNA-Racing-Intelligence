@@ -72,7 +72,8 @@ function servingAuthority(
   if (
     currentStateGenerationId === "" ||
     rows.some(
-      (row) => row.generationId.trim().toLowerCase() !== currentStateGenerationId,
+      (row) =>
+        row.generationId.trim().toLowerCase() !== currentStateGenerationId,
     )
   ) {
     collectorError("serving owned Cores span multiple generations");
@@ -107,7 +108,8 @@ function isSameCompletedCycle(input: {
   const cycle = input.stored.cycle;
   return (
     cycle.status === "complete" &&
-    cycle.currentStateGenerationId === input.authority.currentStateGenerationId &&
+    cycle.currentStateGenerationId ===
+      input.authority.currentStateGenerationId &&
     cycle.evaluatedAt === input.evaluatedAt &&
     sameCoreSet(cycle.coreIds, input.authority.coreIds)
   );
@@ -207,10 +209,14 @@ function createEvidenceBudgetAuthorizer(input: {
     if (window === null || window.windowId !== input.budgetWindowId) {
       return Object.freeze({ status: "blocked" as const });
     }
+    // The durable budget table keys one reservation by refreshCycleId. Use the
+    // page request identity so consecutive pages cannot collide while exact
+    // replay of the same page remains idempotent.
+    const pageReservationId = request.requestSha256;
     const decision = await input.budgetRepository.reserve({
       ownerId: input.ownerId,
       windowId: input.budgetWindowId,
-      refreshCycleId: request.cycleId,
+      refreshCycleId: pageReservationId,
       requestSha256: request.requestSha256,
       plannedUsage: request.plannedUsage,
     });

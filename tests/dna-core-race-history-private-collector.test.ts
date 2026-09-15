@@ -130,13 +130,14 @@ function acquisitionRepository(
     loadAttempt: vi.fn(
       async ({ attemptNumber }) => attempts.get(attemptNumber) ?? null,
     ),
-    loadNextCore: vi.fn(async () =>
-      [...cores.values()]
-        .filter((entry) => entry.checkpoint.status === "running")
-        .sort(
-          (left, right) =>
-            left.checkpoint.coreOrdinal - right.checkpoint.coreOrdinal,
-        )[0] ?? null,
+    loadNextCore: vi.fn(
+      async () =>
+        [...cores.values()]
+          .filter((entry) => entry.checkpoint.status === "running")
+          .sort(
+            (left, right) =>
+              left.checkpoint.coreOrdinal - right.checkpoint.coreOrdinal,
+          )[0] ?? null,
     ),
     loadCores: vi.fn(async () =>
       Object.freeze(
@@ -182,7 +183,10 @@ function acquisitionRepository(
     }),
     savePage: vi.fn(async ({ expectedCoreRevision, checkpoint }) => {
       const previous = cores.get(checkpoint.coreId);
-      if (previous === undefined || previous.revision !== expectedCoreRevision) {
+      if (
+        previous === undefined ||
+        previous.revision !== expectedCoreRevision
+      ) {
         throw new Error("synthetic Core revision conflict");
       }
       const stored = Object.freeze({
@@ -227,15 +231,23 @@ function budgetWindow(
 }
 
 function readyBudget(windowId: string = budgetWindowId) {
+  const reservations = new Map<string, string>();
   const reserve = vi.fn(
-    async (request: Parameters<ReadyBudgetRepository["reserve"]>[0]) => ({
-      allowed: true,
-      blockerIds: Object.freeze([]),
-      projectedUsage: request.plannedUsage,
-      reservationStatus: "reserved" as const,
-      paidUsageAllowed: false as const,
-      preserveLastGood: true as const,
-    }),
+    async (request: Parameters<ReadyBudgetRepository["reserve"]>[0]) => {
+      const existing = reservations.get(request.refreshCycleId);
+      if (existing !== undefined && existing !== request.requestSha256) {
+        throw new Error("synthetic budget reservation replay conflict");
+      }
+      reservations.set(request.refreshCycleId, request.requestSha256);
+      return {
+        allowed: true,
+        blockerIds: Object.freeze([]),
+        projectedUsage: request.plannedUsage,
+        reservationStatus: "reserved" as const,
+        paidUsageAllowed: false as const,
+        preserveLastGood: true as const,
+      };
+    },
   );
   const repository: DnaOpenLabR2BudgetRepository = {
     status: "ready",
@@ -338,9 +350,11 @@ describe("DNA Core race history private collector", () => {
       plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
     });
     expect(source.client.page).toHaveBeenCalledTimes(1);
+    const reservation = budget.reserve.mock.calls[0]![0];
+    expect(reservation.refreshCycleId).toBe(reservation.requestSha256);
   });
 
-  it("replays the same evaluated cycle instead of creating a second attempt", async () => {
+  it("replays one evaluated cycle with a distinct durable reservation per page", async () => {
     const acquisition = acquisitionRepository();
     const budget = readyBudget();
     const source = sources();
@@ -361,9 +375,11 @@ describe("DNA Core race history private collector", () => {
     expect(acquisition.attempts.size).toBe(1);
     expect(source.client.page).toHaveBeenCalledTimes(2);
     expect(budget.reserve).toHaveBeenCalledTimes(2);
-    expect(budget.reserve.mock.calls[1]?.[0].refreshCycleId).toBe(
-      budget.reserve.mock.calls[0]?.[0].refreshCycleId,
-    );
+    const first = budget.reserve.mock.calls[0]![0];
+    const second = budget.reserve.mock.calls[1]![0];
+    expect(first.refreshCycleId).toBe(first.requestSha256);
+    expect(second.refreshCycleId).toBe(second.requestSha256);
+    expect(second.refreshCycleId).not.toBe(first.refreshCycleId);
   });
 
   it("fails closed before R2 or provider work when the durable free-budget window does not match", async () => {
