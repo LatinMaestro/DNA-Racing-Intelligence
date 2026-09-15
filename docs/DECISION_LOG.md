@@ -2416,3 +2416,14 @@ After the private Pro League milestone, continue in this order:
   annual substitution ledger is connected; never infer either value.
 - This is advisory configuration only. No roster submission, substitution or
   other game action occurred.
+
+## 2026-09-15 — Pin owned Cores to the complete daily generation
+
+- Pro League roster commissioning must read owned Core metadata from the same
+  complete daily generation as current races, supplemental Core state and sync
+  health. The independently advancing current-state pointer is not sufficient.
+- Add an owner-isolated combined owned-Core read and include it in the shared
+  one-transaction serving bundle. Reject mixed generation identities rather
+  than combining newer Core metadata with an older accepted history package.
+- This read path remains private and read-only. It does not rank Cores, publish
+  a roster or map, deploy a website, or perform a game action.

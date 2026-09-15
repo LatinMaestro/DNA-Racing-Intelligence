@@ -96,6 +96,7 @@ export type DnaOpenLabServingSyncHealth = Readonly<{
 }>;
 
 export type DnaOpenLabCombinedServingBundle = Readonly<{
+  ownedCores: readonly DnaOpenLabServingOwnedCore[];
   currentRaces: DnaOpenLabServingCurrentRaces;
   supplementalCores: DnaOpenLabServingSupplementalCores;
   syncHealth: DnaOpenLabServingSyncHealth;
@@ -268,6 +269,8 @@ const VERIFY_ISOLATION_SQL = [
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_serving_owned_cores(uuid)', 'EXECUTE') AS runtime_can_read_cores,",
   "  has_function_privilege(session_user,",
+  "    'dna.read_dna_open_lab_combined_serving_owned_cores(uuid)', 'EXECUTE') AS runtime_can_read_combined_cores,",
+  "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_serving_active_races(uuid)', 'EXECUTE') AS runtime_can_read_active,",
   "  has_function_privilege(session_user,",
   "    'dna.read_dna_open_lab_serving_race_fills(uuid)', 'EXECUTE') AS runtime_can_read_fills,",
@@ -358,6 +361,13 @@ const READ_COMBINED_SERVING_STATE_SQL = [
   "  last_interruption_reason, last_interruption_at, retry_after_seconds,",
   "  last_catch_up_completed_at",
   "FROM dna.read_dna_open_lab_combined_serving_sync_state($1::uuid)",
+].join("\n");
+
+const READ_COMBINED_SERVING_OWNED_CORES_SQL = [
+  "SELECT generation_id::text, source_core_id::text, display_name, core_class,",
+  "  element, f_number, sex, color_source_value, observed_at, raw_evidence_sha256",
+  "FROM dna.read_dna_open_lab_combined_serving_owned_cores($1::uuid)",
+  "ORDER BY source_core_id",
 ].join("\n");
 
 const READ_COMBINED_SERVING_ACTIVE_RACES_SQL = [
@@ -867,6 +877,7 @@ function verifyIsolation(
     "runtime_can_pause",
     "runtime_can_read",
     "runtime_can_read_cores",
+    "runtime_can_read_combined_cores",
     "runtime_can_read_active",
     "runtime_can_read_fills",
     "runtime_can_read_supplemental",
@@ -1293,6 +1304,10 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
               databaseOwnerId,
             ]),
           );
+          const ownedCoreResult = await client.query(
+            READ_COMBINED_SERVING_OWNED_CORES_SQL,
+            [databaseOwnerId],
+          );
           const activeResult = await client.query(
             READ_COMBINED_SERVING_ACTIVE_RACES_SQL,
             [databaseOwnerId],
@@ -1326,7 +1341,9 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
           const supplementalRows = supplementalResult.rows.map(
             servingSupplementalCore,
           );
+          const ownedCores = ownedCoreResult.rows.map(servingOwnedCore);
           const generationRows = [
+            ...ownedCores,
             ...parsedActiveRaces,
             ...parsedRaceFills,
             ...supplementalRows,
@@ -1376,6 +1393,7 @@ export function createNeonDnaOpenLabSyncPublicationRepository(input: {
             rows: Object.freeze(supplementalRows),
           });
           return Object.freeze({
+            ownedCores: Object.freeze(ownedCores),
             currentRaces,
             supplementalCores,
             syncHealth: Object.freeze({ state: syncState, evidenceIndex }),
@@ -1401,10 +1419,13 @@ export type DnaOpenLabCurrentRaceReadRepository = Pick<
   "readServingCurrentRaces"
 >;
 
-export type DnaOpenLabCombinedServingReadRepository =
+export type DnaOpenLabCombinedServingReadRepository = Pick<
+  NeonDnaOpenLabSyncPublicationRepository,
+  "readServingOwnedCores"
+> &
   DnaOpenLabCurrentRaceReadRepository &
-    DnaOpenLabSupplementalCoreReadRepository &
-    DnaOpenLabSyncHealthReadRepository;
+  DnaOpenLabSupplementalCoreReadRepository &
+  DnaOpenLabSyncHealthReadRepository;
 
 export function createDnaOpenLabCombinedServingReadRepository(input: {
   repository: Pick<
@@ -1431,6 +1452,9 @@ export function createDnaOpenLabCombinedServingReadRepository(input: {
     return bundlePromise;
   }
   return Object.freeze({
+    async readServingOwnedCores(request) {
+      return (await load(request.ownerId)).ownedCores;
+    },
     async readServingCurrentRaces(request) {
       return (await load(request.ownerId)).currentRaces;
     },

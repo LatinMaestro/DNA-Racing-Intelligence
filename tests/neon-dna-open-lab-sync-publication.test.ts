@@ -369,6 +369,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_pause: true,
     runtime_can_read: true,
     runtime_can_read_cores: true,
+    runtime_can_read_combined_cores: true,
     runtime_can_read_active: true,
     runtime_can_read_fills: true,
     runtime_can_read_supplemental: true,
@@ -868,6 +869,20 @@ describe("Neon DNA Open Lab sync publication", () => {
       [
         {
           generation_id: generationId,
+          source_core_id: "101",
+          display_name: "Synthetic Alpha",
+          core_class: "Genesis",
+          element: "Metal",
+          f_number: 1,
+          sex: "female",
+          color_source_value: null,
+          observed_at: new Date("2026-08-27T11:59:00.000Z"),
+          raw_evidence_sha256: "a".repeat(64),
+        },
+      ],
+      [
+        {
+          generation_id: generationId,
           source_race_id: active.canonical.sourceRaceId,
           observed_at: new Date(active.observedAt),
           raw_evidence_sha256: active.rawEvidenceSha256,
@@ -909,12 +924,16 @@ describe("Neon DNA Open Lab sync publication", () => {
       validatedAt,
     });
 
-    const [currentRaces, supplementalCores, syncHealth] = await Promise.all([
-      shared.readServingCurrentRaces({ ownerId }),
-      shared.readServingSupplementalCores({ ownerId }),
-      shared.readServingSyncHealth({ ownerId, validatedAt }),
-    ]);
+    const [ownedCores, currentRaces, supplementalCores, syncHealth] =
+      await Promise.all([
+        shared.readServingOwnedCores({ ownerId }),
+        shared.readServingCurrentRaces({ ownerId }),
+        shared.readServingSupplementalCores({ ownerId }),
+        shared.readServingSyncHealth({ ownerId, validatedAt }),
+      ]);
 
+    expect(ownedCores).toHaveLength(1);
+    expect(ownedCores[0]?.generationId).toBe(generationId);
     expect(currentRaces.generationId).toBe(generationId);
     expect(supplementalCores.generationId).toBe(generationId);
     expect(syncHealth.state.servingGenerationId).toBe(generationId);
@@ -923,6 +942,9 @@ describe("Neon DNA Open Lab sync publication", () => {
     expect(test.events.filter((event) => event === "COMMIT")).toHaveLength(1);
     expect(test.events.join("\n")).toContain(
       "read_dna_open_lab_combined_serving_sync_state",
+    );
+    expect(test.events.join("\n")).toContain(
+      "read_dna_open_lab_combined_serving_owned_cores",
     );
     expect(test.events.join("\n")).toContain(
       "read_dna_open_lab_combined_serving_current_state_evidence_index",

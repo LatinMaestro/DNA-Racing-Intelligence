@@ -77,6 +77,7 @@ export function createP5SyntheticCycleFixture(input: {
             runtime_can_pause: true,
             runtime_can_read: true,
             runtime_can_read_cores: true,
+            runtime_can_read_combined_cores: true,
             runtime_can_read_active: true,
             runtime_can_read_fills: true,
             runtime_can_read_supplemental: true,

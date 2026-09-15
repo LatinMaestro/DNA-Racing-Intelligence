@@ -239,6 +239,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.up.sql
       - name: Run active-race economics quarantine smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.smoke.sql
+      - name: Apply combined owned Core read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.up.sql
+      - name: Run combined owned Core read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.smoke.sql
+      - name: Reverse combined owned Core read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.down.sql
+      - name: Verify combined owned Core read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0098_dna_open_lab_combined_owned_core_read.removal.sql
       - name: Reverse active-race economics quarantine migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0097_dna_open_lab_active_race_economics_quarantine.down.sql
       - name: Verify active-race economics quarantine removal
