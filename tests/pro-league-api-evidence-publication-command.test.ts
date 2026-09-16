@@ -21,6 +21,7 @@ function sourceRow(
     coreId: string;
     finishPosition: number;
     elapsedMilliseconds: number;
+    mode?: "bike" | "car" | "horse";
   },
 ): ActiveDnaCoreRaceHistoryGenerationRow {
   const payload = Object.freeze({
@@ -30,7 +31,7 @@ function sourceRow(
     raceDocumentEvidenceSha256: "c".repeat(64),
     sourceCoreId: input.coreId,
     sourceRaceId: "race-1",
-    mode: "bike" as const,
+    mode: input.mode ?? "bike",
     distanceMetres: 1_000,
     distanceAuthority: "result_and_race_document" as const,
     elapsedMilliseconds: input.elapsedMilliseconds,
@@ -199,6 +200,59 @@ describe("Pro League API evidence publication command", () => {
     );
     expect(target.stageRows).toHaveBeenCalledTimes(2);
     expect(target.publishCoreHistory).toHaveBeenCalledOnce();
+  });
+
+  it("accounts for mixed-mode source coverage while publishing Bike evidence only", async () => {
+    const rows = [
+      sourceRow(0, {
+        coreId: "101",
+        finishPosition: 1,
+        elapsedMilliseconds: 40_000,
+      }),
+      sourceRow(1, {
+        coreId: "102",
+        finishPosition: 2,
+        elapsedMilliseconds: 42_000,
+      }),
+      sourceRow(2, {
+        coreId: "103",
+        finishPosition: 1,
+        elapsedMilliseconds: 39_000,
+        mode: "horse",
+      }),
+    ];
+    const target = evidenceRepository();
+    const command = proLeagueApiEvidencePublicationCommandFromEnvironment(
+      {
+        databaseUrl: "postgres://runtime@example.invalid/private",
+        databaseOwnerId: "a1050000-0000-4000-8000-000000000001",
+        ownerId: "private_owner",
+      },
+      {
+        sourceRepository: sourceRepository(rows),
+        evidenceRepository: target.repository,
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "published",
+      inputObservationCount: 3,
+      acceptedEntryCount: 2,
+      benchmarkCount: 1,
+      profileCount: 2,
+    });
+    expect(target.beginCoreHistory).toHaveBeenCalledWith(
+      "private_owner",
+      expect.objectContaining({
+        inputObservationCount: 3,
+        acceptedEntryCount: 2,
+        nonBikeEntryCount: 1,
+        missingFormatEntryCount: 0,
+        unsupportedFormatEntryCount: 0,
+        unpublishedCellEntryCount: 0,
+      }),
+    );
   });
 
   it("fails closed before reading when the write arm or source is unavailable", async () => {
