@@ -27,12 +27,13 @@ describe("DNA Core race-history private generation command workflow", () => {
       "tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts",
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
-    expect(workflow).toContain(
-      'DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_REQUIRE_COMPLETE: "1"',
+    expect(workflow).not.toContain(
+      "DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_REQUIRE_COMPLETE",
     );
+    expect(workflow).toContain("Advance one bounded Core result slice");
     expect(
       workflow.match(/hosted-preview-connected-core-race-history/g),
-    ).toHaveLength(5);
+    ).toHaveLength(1);
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
