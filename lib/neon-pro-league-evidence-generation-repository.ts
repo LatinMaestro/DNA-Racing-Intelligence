@@ -20,11 +20,17 @@ const VERIFY_ISOLATION_SQL = `
       'dna.begin_pro_league_evidence_generation(uuid,uuid,uuid,text,character,timestamp with time zone,bigint,bigint,bigint,bigint,bigint,bigint)',
       'EXECUTE') AS runtime_can_begin,
     has_function_privilege(session_user,
+      'dna.begin_pro_league_evidence_generation_from_core_history(uuid,uuid,character,text,character,timestamp with time zone,bigint,bigint,bigint,bigint,bigint,bigint)',
+      'EXECUTE') AS runtime_can_begin_core_history,
+    has_function_privilege(session_user,
       'dna.stage_pro_league_evidence_rows(uuid,uuid,text,text,integer,jsonb)',
       'EXECUTE') AS runtime_can_stage,
     has_function_privilege(session_user,
       'dna.publish_pro_league_evidence_generation(uuid,uuid,text,integer,integer,bigint,character,timestamp with time zone)',
       'EXECUTE') AS runtime_can_publish,
+    has_function_privilege(session_user,
+      'dna.publish_pro_league_evidence_generation_from_core_history(uuid,uuid,text,integer,integer,bigint,character,timestamp with time zone)',
+      'EXECUTE') AS runtime_can_publish_core_history,
     has_function_privilege(session_user,
       'dna.read_active_pro_league_evidence_generation(uuid)',
       'EXECUTE') AS runtime_can_read_generation,
@@ -61,10 +67,18 @@ const BEGIN_SQL = `SELECT dna.begin_pro_league_evidence_generation(
   $1::uuid,$2::uuid,$3::uuid,$4::text,$5::character(64),$6::timestamptz,
   $7::bigint,$8::bigint,$9::bigint,$10::bigint,$11::bigint,$12::bigint
 ) AS disposition`;
+const BEGIN_CORE_HISTORY_SQL = `SELECT dna.begin_pro_league_evidence_generation_from_core_history(
+  $1::uuid,$2::uuid,$3::character(64),$4::text,$5::character(64),$6::timestamptz,
+  $7::bigint,$8::bigint,$9::bigint,$10::bigint,$11::bigint,$12::bigint
+) AS disposition`;
 const STAGE_SQL = `SELECT dna.stage_pro_league_evidence_rows(
   $1::uuid,$2::uuid,$3::text,$4::text,$5::integer,$6::jsonb
 ) AS hashes`;
 const PUBLISH_SQL = `SELECT * FROM dna.publish_pro_league_evidence_generation(
+  $1::uuid,$2::uuid,$3::text,$4::integer,$5::integer,$6::bigint,
+  $7::character(64),$8::timestamptz
+)`;
+const PUBLISH_CORE_HISTORY_SQL = `SELECT * FROM dna.publish_pro_league_evidence_generation_from_core_history(
   $1::uuid,$2::uuid,$3::text,$4::integer,$5::integer,$6::bigint,
   $7::character(64),$8::timestamptz
 )`;
@@ -92,15 +106,33 @@ export type ProLeagueEvidenceGenerationMetadata = Readonly<{
   unpublishedCellEntryCount: number;
 }>;
 
-export type ActiveProLeagueEvidenceGeneration =
-  ProLeagueEvidenceGenerationMetadata &
-    Readonly<{
-      unbenchmarkedEntryCount: number;
-      benchmarkCount: number;
-      profileCount: number;
-      payloadSha256: string;
-      publishedAt: string;
-    }>;
+export type CoreHistoryProLeagueEvidenceGenerationMetadata = Readonly<{
+  generationId: string;
+  coreHistoryGenerationId: string;
+  sourceVersionSetSha256: string;
+  evidenceCutoffAt: string;
+  inputObservationCount: number;
+  acceptedEntryCount: number;
+  nonBikeEntryCount: number;
+  missingFormatEntryCount: number;
+  unsupportedFormatEntryCount: number;
+  unpublishedCellEntryCount: number;
+}>;
+
+export type ActiveProLeagueEvidenceGeneration = Omit<
+  ProLeagueEvidenceGenerationMetadata,
+  "raceDatasetVersionId"
+> &
+  Readonly<{
+    sourceKind: "race_dataset_version" | "core_history_generation";
+    raceDatasetVersionId: string | null;
+    coreHistoryGenerationId: string | null;
+    unbenchmarkedEntryCount: number;
+    benchmarkCount: number;
+    profileCount: number;
+    payloadSha256: string;
+    publishedAt: string;
+  }>;
 
 export type ActiveProLeagueEvidenceRow = Readonly<{
   generationId: string;
@@ -111,10 +143,31 @@ export type ActiveProLeagueEvidenceRow = Readonly<{
   payload: Readonly<Record<string, unknown>>;
 }>;
 
+type ProLeagueEvidencePublicationInput = Readonly<{
+  generationId: string;
+  workerId: string;
+  expectedBenchmarkCount: number;
+  expectedProfileCount: number;
+  unbenchmarkedEntryCount: number;
+  payloadSha256: string;
+  publishedAt: string;
+}>;
+
+type ProLeagueEvidencePublicationResult = Readonly<{
+  disposition: "published" | "existing";
+  benchmarkCount: number;
+  profileCount: number;
+}>;
+
 export type NeonProLeagueEvidenceGenerationRepository = Readonly<{
   begin: (
     ownerId: string,
     input: ProLeagueEvidenceGenerationMetadata & Readonly<{ workerId: string }>,
+  ) => Promise<"staging" | "published">;
+  beginCoreHistory: (
+    ownerId: string,
+    input: CoreHistoryProLeagueEvidenceGenerationMetadata &
+      Readonly<{ workerId: string }>,
   ) => Promise<"staging" | "published">;
   stageRows: (
     ownerId: string,
@@ -131,22 +184,12 @@ export type NeonProLeagueEvidenceGenerationRepository = Readonly<{
   ) => Promise<readonly Readonly<{ ordinal: number; sha256: string }>[]>;
   publish: (
     ownerId: string,
-    input: Readonly<{
-      generationId: string;
-      workerId: string;
-      expectedBenchmarkCount: number;
-      expectedProfileCount: number;
-      unbenchmarkedEntryCount: number;
-      payloadSha256: string;
-      publishedAt: string;
-    }>,
-  ) => Promise<
-    Readonly<{
-      disposition: "published" | "existing";
-      benchmarkCount: number;
-      profileCount: number;
-    }>
-  >;
+    input: ProLeagueEvidencePublicationInput,
+  ) => Promise<ProLeagueEvidencePublicationResult>;
+  publishCoreHistory: (
+    ownerId: string,
+    input: ProLeagueEvidencePublicationInput,
+  ) => Promise<ProLeagueEvidencePublicationResult>;
   readActiveGeneration: (
     ownerId: string,
   ) => Promise<ActiveProLeagueEvidenceGeneration | null>;
@@ -256,8 +299,16 @@ function verifyIsolation(
     !bool(value.all_force_rls_enabled, "forced RLS") ||
     bool(value.runtime_can_access_tables, "direct table privilege") ||
     !bool(value.runtime_can_begin, "begin privilege") ||
+    !bool(
+      value.runtime_can_begin_core_history,
+      "Core history begin privilege",
+    ) ||
     !bool(value.runtime_can_stage, "stage privilege") ||
     !bool(value.runtime_can_publish, "publish privilege") ||
+    !bool(
+      value.runtime_can_publish_core_history,
+      "Core history publish privilege",
+    ) ||
     !bool(value.runtime_can_read_generation, "generation read privilege") ||
     !bool(value.runtime_can_read_rows, "row read privilege") ||
     text(value.session_user_name, "session user") !== runtimeRole ||
@@ -285,12 +336,34 @@ function parseGeneration(value: unknown): ActiveProLeagueEvidenceGeneration {
   if (text(stored.state, "generation state") !== "published") {
     throw new Error("Pro League evidence active generation is not published.");
   }
+  const sourceKind = text(stored.source_kind, "source kind");
+  if (
+    sourceKind !== "race_dataset_version" &&
+    sourceKind !== "core_history_generation"
+  ) {
+    throw new Error("Pro League evidence source kind is invalid.");
+  }
+  const raceDatasetVersionId =
+    stored.race_dataset_version_id === null
+      ? null
+      : uuid(stored.race_dataset_version_id, "Race dataset version ID");
+  const coreHistoryGenerationId =
+    stored.core_history_generation_id === null
+      ? null
+      : sha(stored.core_history_generation_id, "Core history generation ID");
+  if (
+    (sourceKind === "race_dataset_version" &&
+      (raceDatasetVersionId === null || coreHistoryGenerationId !== null)) ||
+    (sourceKind === "core_history_generation" &&
+      (raceDatasetVersionId !== null || coreHistoryGenerationId === null))
+  ) {
+    throw new Error("Pro League evidence source identity is inconsistent.");
+  }
   return {
     generationId: uuid(stored.generation_id, "generation ID"),
-    raceDatasetVersionId: uuid(
-      stored.race_dataset_version_id,
-      "Race dataset version ID",
-    ),
+    sourceKind,
+    raceDatasetVersionId,
+    coreHistoryGenerationId,
     sourceVersionSetSha256: sha(
       stored.source_version_set_sha256,
       "source SHA-256",
@@ -451,6 +524,58 @@ export function createNeonProLeagueEvidenceGenerationRepository(
       });
     },
 
+    async beginCoreHistory(ownerId, value) {
+      const metadata = value;
+      return transaction({
+        ownerId,
+        readOnly: false,
+        async execute(query) {
+          const stored = one(
+            await query(BEGIN_CORE_HISTORY_SQL, [
+              databaseOwnerId,
+              uuid(metadata.generationId, "generation ID"),
+              sha(
+                metadata.coreHistoryGenerationId,
+                "Core history generation ID",
+              ),
+              worker(metadata.workerId),
+              sha(metadata.sourceVersionSetSha256, "source SHA-256"),
+              timestamp(metadata.evidenceCutoffAt, "evidence cutoff"),
+              integer(metadata.inputObservationCount, "input count", 5_000_000),
+              integer(metadata.acceptedEntryCount, "accepted count", 5_000_000),
+              integer(metadata.nonBikeEntryCount, "non-Bike count", 5_000_000),
+              integer(
+                metadata.missingFormatEntryCount,
+                "missing-format count",
+                5_000_000,
+              ),
+              integer(
+                metadata.unsupportedFormatEntryCount,
+                "unsupported-format count",
+                5_000_000,
+              ),
+              integer(
+                metadata.unpublishedCellEntryCount,
+                "unpublished-cell count",
+                5_000_000,
+              ),
+            ]),
+            "Core history begin",
+          );
+          const disposition = text(
+            stored.disposition,
+            "Core history begin disposition",
+          );
+          if (disposition !== "staging" && disposition !== "published") {
+            throw new Error(
+              "Pro League evidence Core history begin disposition is invalid.",
+            );
+          }
+          return disposition;
+        },
+      });
+    },
+
     async stageRows(ownerId, value) {
       if (value.rows.length < 1 || value.rows.length > 500) {
         throw new Error(
@@ -539,6 +664,54 @@ export function createNeonProLeagueEvidenceGenerationRepository(
           if (disposition !== "published" && disposition !== "existing") {
             throw new Error(
               "Pro League evidence publication disposition is invalid.",
+            );
+          }
+          return {
+            disposition,
+            benchmarkCount: integer(
+              stored.benchmark_count,
+              "published benchmark count",
+              100_000,
+            ),
+            profileCount: integer(
+              stored.profile_count,
+              "published profile count",
+              500_000,
+            ),
+          };
+        },
+      });
+    },
+
+    async publishCoreHistory(ownerId, value) {
+      return transaction({
+        ownerId,
+        readOnly: false,
+        async execute(query) {
+          const stored = one(
+            await query(PUBLISH_CORE_HISTORY_SQL, [
+              databaseOwnerId,
+              uuid(value.generationId, "generation ID"),
+              worker(value.workerId),
+              integer(value.expectedBenchmarkCount, "benchmark count", 100_000),
+              integer(value.expectedProfileCount, "profile count", 500_000),
+              integer(
+                value.unbenchmarkedEntryCount,
+                "unbenchmarked count",
+                5_000_000,
+              ),
+              sha(value.payloadSha256, "payload SHA-256"),
+              timestamp(value.publishedAt, "published timestamp"),
+            ]),
+            "Core history publication",
+          );
+          const disposition = text(
+            stored.disposition,
+            "Core history publication disposition",
+          );
+          if (disposition !== "published" && disposition !== "existing") {
+            throw new Error(
+              "Pro League evidence Core history publication disposition is invalid.",
             );
           }
           return {
