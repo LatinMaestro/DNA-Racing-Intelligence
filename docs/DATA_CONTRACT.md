@@ -124,12 +124,14 @@ race ID, entrant Core, mode and distance agreement. It also exposes separate
 hashes for the exact completed-cycle set and ordered joined-observation set.
 When a race document explicitly quarantines malformed entrant-ID evidence, its
 otherwise accepted per-Core result remains in immutable source coverage but is
-omitted from canonical analytics. The generation records that omission
-separately; a merely absent entrant collection or a contradictory entrant list
+omitted from canonical analytics. A result Core absent from an otherwise valid
+entrant list is likewise retained as contradictory source evidence but omitted
+from canonical analytics. The generation records unavailable-authority and
+contradictory-entrant omissions separately; a merely absent entrant collection
 still fails closed.
 The subsequent generation boundary recomputes the observation hash, reconciles
 all counts exactly and stages no more than 250 rows per call. Migrations `0101`
-and `0102` store those rows behind forced owner isolation and function-only
+through `0103` store those rows behind forced owner isolation and function-only
 runtime access, then independently recompute the ordered row digest before
 atomically moving the owner-local active pointer. Failed, conflicting,
 cross-owner, older or incomplete staging cannot replace last-good. The

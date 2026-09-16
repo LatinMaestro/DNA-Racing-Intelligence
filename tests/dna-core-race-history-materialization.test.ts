@@ -176,6 +176,7 @@ describe("DNA Core race history materialization", () => {
       replayDuplicateCount: 2,
       raceDocumentCount: 1,
       entrantAuthorityOmissionCount: 0,
+      entrantMismatchOmissionCount: 0,
       exactDistanceConfirmedCount: 1,
       acceptedPublishedCellCount: 1,
       missingFormatCount: 0,
@@ -244,10 +245,13 @@ describe("DNA Core race history materialization", () => {
       () => materialize({ documents: [] }),
       "race_document_missing",
     );
-    expectDiagnostic(
-      () => materialize({ documents: [document({ hids: [84] })] }),
-      "race_document_entrant_mismatch",
-    );
+    expect(
+      materialize({ documents: [document({ hids: [84] })] }),
+    ).toMatchObject({
+      inputResultCount: 1,
+      entrantMismatchOmissionCount: 1,
+      observations: [],
+    });
   });
 
   it("omits only results whose race document explicitly quarantines entrant authority", () => {
@@ -257,6 +261,7 @@ describe("DNA Core race history materialization", () => {
       inputResultCount: 1,
       replayDuplicateCount: 0,
       entrantAuthorityOmissionCount: 1,
+      entrantMismatchOmissionCount: 0,
       exactDistanceConfirmedCount: 0,
       acceptedPublishedCellCount: 0,
       missingFormatCount: 0,

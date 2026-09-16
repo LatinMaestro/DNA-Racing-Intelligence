@@ -31,7 +31,7 @@ SELECT owner.id::text AS database_owner_id,
   bool_or(has_table_privilege(session_user, relation.oid,
     'SELECT,INSERT,UPDATE,DELETE')) AS runtime_can_access_tables,
   has_function_privilege(session_user,
-    'dna.begin_dna_core_race_history_generation_v2(uuid,text,jsonb)',
+    'dna.begin_dna_core_race_history_generation_v3(uuid,text,jsonb)',
     'EXECUTE') AS runtime_can_begin,
   has_function_privilege(session_user,
     'dna.stage_dna_core_race_history_generation_rows(uuid,text,text,integer,jsonb)',
@@ -180,6 +180,10 @@ function parsePublished(row: DbRow): DnaCoreRaceHistoryPublishedGeneration {
       row.entrant_authority_omission_count,
       "entrantAuthorityOmissionCount",
     ),
+    entrantMismatchOmissionCount: count(
+      row.entrant_mismatch_omission_count,
+      "entrantMismatchOmissionCount",
+    ),
     exactDistanceConfirmedCount: count(
       row.exact_distance_confirmed_count,
       "exactDistanceConfirmedCount",
@@ -310,7 +314,7 @@ export function createNeonDnaCoreRaceHistoryGenerationRepository(input: {
         async run(client) {
           const result = oneRow(
             await client.query(
-              "SELECT dna.begin_dna_core_race_history_generation_v2($1::uuid,$2::text,$3::jsonb) AS disposition",
+              "SELECT dna.begin_dna_core_race_history_generation_v3($1::uuid,$2::text,$3::jsonb) AS disposition",
               [
                 databaseOwnerId,
                 workerId(request.workerId),

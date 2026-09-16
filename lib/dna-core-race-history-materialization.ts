@@ -108,6 +108,7 @@ export type DnaCoreRaceHistoryMaterialization = Readonly<{
   replayDuplicateCount: number;
   raceDocumentCount: number;
   entrantAuthorityOmissionCount: number;
+  entrantMismatchOmissionCount: number;
   exactDistanceConfirmedCount: number;
   acceptedPublishedCellCount: number;
   missingFormatCount: number;
@@ -466,6 +467,7 @@ export function materializeDnaCoreRaceHistory(input: {
   }
 
   let entrantAuthorityOmissionCount = 0;
+  let entrantMismatchOmissionCount = 0;
   let acceptedPublishedCellCount = 0;
   let missingFormatCount = 0;
   let unsupportedFormatCount = 0;
@@ -485,8 +487,10 @@ export function materializeDnaCoreRaceHistory(input: {
       entrantAuthorityOmissionCount += 1;
       return [];
     }
-    if (!document.entrantCoreIds.includes(value.sourceCoreId))
-      return unavailable("race_document_entrant_mismatch");
+    if (!document.entrantCoreIds.includes(value.sourceCoreId)) {
+      entrantMismatchOmissionCount += 1;
+      return [];
+    }
     if (document.mode === undefined)
       return unavailable("race_document_mode_unavailable");
     if (document.mode !== value.mode)
@@ -596,6 +600,7 @@ export function materializeDnaCoreRaceHistory(input: {
     replayDuplicateCount,
     raceDocumentCount: documentByRaceId.size,
     entrantAuthorityOmissionCount,
+    entrantMismatchOmissionCount,
     exactDistanceConfirmedCount: observations.length,
     acceptedPublishedCellCount,
     missingFormatCount,
