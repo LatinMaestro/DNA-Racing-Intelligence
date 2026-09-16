@@ -8,7 +8,7 @@ ALTER TABLE dna.dna_core_race_history_generation
   DROP CONSTRAINT dna_core_race_history_generation_result_coverage_check;
 
 ALTER TABLE dna.dna_core_race_history_generation
-  ADD CONSTRAINT dna_core_race_history_generation_check CHECK (
+  ADD CONSTRAINT dna_core_race_history_generation_result_coverage_v1_check CHECK (
     input_result_count = observation_count + replay_duplicate_count
   );
 

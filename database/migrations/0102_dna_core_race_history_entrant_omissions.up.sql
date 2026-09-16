@@ -4,8 +4,32 @@ ALTER TABLE dna.dna_core_race_history_generation
   ADD COLUMN entrant_authority_omission_count integer NOT NULL DEFAULT 0
     CHECK (entrant_authority_omission_count BETWEEN 0 AND 500000);
 
-ALTER TABLE dna.dna_core_race_history_generation
-  DROP CONSTRAINT dna_core_race_history_generation_check;
+DO $coverage_constraint$
+DECLARE
+  v_constraint_name text;
+BEGIN
+  SELECT constraint_record.conname INTO v_constraint_name
+  FROM pg_catalog.pg_constraint constraint_record
+  WHERE constraint_record.conrelid =
+      'dna.dna_core_race_history_generation'::regclass
+    AND constraint_record.contype = 'c'
+    AND pg_catalog.pg_get_constraintdef(constraint_record.oid) LIKE
+      '%input_result_count%'
+    AND pg_catalog.pg_get_constraintdef(constraint_record.oid) LIKE
+      '%observation_count%'
+    AND pg_catalog.pg_get_constraintdef(constraint_record.oid) LIKE
+      '%replay_duplicate_count%'
+    AND pg_catalog.pg_get_constraintdef(constraint_record.oid) NOT LIKE
+      '%entrant_authority_omission_count%';
+  IF v_constraint_name IS NULL THEN
+    RAISE EXCEPTION 'Core history result coverage constraint is unavailable';
+  END IF;
+  EXECUTE format(
+    'ALTER TABLE dna.dna_core_race_history_generation DROP CONSTRAINT %I',
+    v_constraint_name
+  );
+END
+$coverage_constraint$;
 
 ALTER TABLE dna.dna_core_race_history_generation
   ADD CONSTRAINT dna_core_race_history_generation_result_coverage_check CHECK (
