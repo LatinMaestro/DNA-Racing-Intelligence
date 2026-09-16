@@ -154,6 +154,28 @@ function repository(
   };
 }
 
+function servingOwnedCores() {
+  return Array.from({ length: 12 }, (_, index) => ({
+    generationId: "84000000-0000-4000-8000-000000000501",
+    observedAt: "2026-09-07T00:00:00.000Z",
+    rawEvidenceSha256: String((index % 9) + 1).repeat(64),
+    canonical: {
+      sourceType: "core_details" as const,
+      sourceCoreId: `core-${String(index).padStart(2, "0")}`,
+      displayName: `Current Core ${index}`,
+      coreClass: "Morphed" as const,
+      element: "Water" as const,
+      fNumber: 16,
+      sex: "female" as const,
+      colorSourceValue: null,
+      fatherSourceCoreId: null,
+      fatherNameSourceValue: null,
+      motherSourceCoreId: null,
+      motherNameSourceValue: null,
+    },
+  }));
+}
+
 function input(
   overrides: Partial<
     Parameters<typeof loadProLeagueDraftCommissioningState>[0]
@@ -409,6 +431,29 @@ describe("Pro League draft commissioning service", () => {
     expect(result.lineup?.maps.every(({ lines }) => lines.length === 42)).toBe(
       true,
     );
+  });
+
+  it("joins active evidence to the complete API-owned Core generation when the legacy Vault is empty", async () => {
+    const readServingOwnedCores = vi.fn(async () => servingOwnedCores());
+    const result = await loadProLeagueDraftCommissioningState(
+      input({
+        vaultRepository: { status: "not_configured" },
+        ownedCoreRepository: { readServingOwnedCores },
+      }),
+    );
+
+    expect(result.connectionStatus).toBe("read_model_connected");
+    expect(result.evidence).toMatchObject({
+      populationProfileCount: 12,
+      ownedProfileCount: 12,
+      ownedCoreWithoutEvidenceCount: 0,
+    });
+    expect(result.roster?.draftRoster?.audit.readiness).toBe("compliant");
+    expect(result.roster?.draftRoster?.audit.selectedCoreCount).toBe(12);
+    expect(result.lineup?.maps).toHaveLength(4);
+    expect(result.lineup?.totals.lineCount).toBe(168);
+    expect(readServingOwnedCores).toHaveBeenCalledTimes(1);
+    expect(readServingOwnedCores).toHaveBeenCalledWith({ ownerId });
   });
 
   it("retains the historical draft when current API dimensions are invalid", async () => {

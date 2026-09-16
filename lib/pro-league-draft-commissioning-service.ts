@@ -254,9 +254,20 @@ export async function loadProLeagueDraftCommissioningState(
     throw new Error("Pro League commissioning freshness time is invalid.");
   }
 
+  const servingOwnedCores =
+    input.ownedCoreRepository == null
+      ? null
+      : await input.ownedCoreRepository
+          .readServingOwnedCores({ ownerId: authenticatedOwnerId })
+          .catch(() => null);
+  const structuralPool =
+    servingOwnedCores === null
+      ? null
+      : structuralOwnerPool(servingOwnedCores, now);
   const exactEvidenceConfigured =
-    input.vaultRepository.status === "ready" &&
-    input.evidenceRepository !== null;
+    input.evidenceRepository !== null &&
+    ((servingOwnedCores?.length ?? 0) > 0 ||
+      input.vaultRepository.status === "ready");
   const active = exactEvidenceConfigured
     ? await loadActiveProLeagueVaultEvidence({
         ownerId: authenticatedOwnerId,
@@ -264,24 +275,31 @@ export async function loadProLeagueDraftCommissioningState(
         vaultDisplayName: input.vaultDisplayName,
         rosteredCoreIds: input.rosteredCoreIds,
         vaultRepository: input.vaultRepository,
+        ...(servingOwnedCores === null || servingOwnedCores.length === 0
+          ? {}
+          : {
+              ownedCores: servingOwnedCores.map(({ canonical }) => ({
+                sourceCoreId: canonical.sourceCoreId,
+                displayName: canonical.displayName,
+                coreClass: canonical.coreClass,
+                element: canonical.element,
+                fNumber: canonical.fNumber,
+                sex: canonical.sex,
+                inMyVault: true,
+              })),
+            }),
         evidenceRepository: input.evidenceRepository!,
         ...(input.pageSize === undefined ? {} : { pageSize: input.pageSize }),
       })
     : null;
-  if (active === null && input.ownedCoreRepository != null) {
-    const structuralPool = await input.ownedCoreRepository
-      .readServingOwnedCores({ ownerId: authenticatedOwnerId })
-      .then((cores) => structuralOwnerPool(cores, now))
-      .catch(() => null);
-    if (structuralPool !== null) {
-      return Object.freeze({
-        connectionStatus: "structural_pool_connected",
-        structuralPool,
-        evidence: null,
-        roster: null,
-        lineup: null,
-      });
-    }
+  if (active === null && structuralPool !== null) {
+    return Object.freeze({
+      connectionStatus: "structural_pool_connected",
+      structuralPool,
+      evidence: null,
+      roster: null,
+      lineup: null,
+    });
   }
   if (!exactEvidenceConfigured) return empty("persistence_not_configured");
   if (active === null) return empty("active_generation_unavailable");

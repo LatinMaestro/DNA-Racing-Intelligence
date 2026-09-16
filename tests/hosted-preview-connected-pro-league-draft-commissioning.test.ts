@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
@@ -56,6 +57,11 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           ...databaseEnvironment,
           ownerId,
         }),
+        ownedCoreRepository:
+          neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment({
+            ...databaseEnvironment,
+            validatedAt: verifiedAt,
+          }),
         now,
       });
 
