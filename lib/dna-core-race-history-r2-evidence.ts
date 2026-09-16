@@ -14,10 +14,16 @@ import type { DnaOpenLabResponse } from "./dna-open-lab-v1-client";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 import type { DnaCoreRaceHistoryMaterializationPage } from "./dna-core-race-history-materialization";
+import type {
+  CanonicalRaceDocumentMetadata,
+  DnaOpenLabEvidence,
+} from "./dna-open-lab-v1-adapters";
 
 const JSON_CONTENT_TYPE = "application/json";
 export const DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES =
   8 * 1024 * 1024;
+export const DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_CACHE_MAXIMUM_OBJECT_BYTES =
+  128 * 1024;
 const DEFAULT_MAXIMUM_OBJECT_BYTES =
   DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -88,6 +94,28 @@ export type DnaCoreRaceHistoryMaterializationEvidenceStore = Readonly<{
     coreId: number;
     pageNumber: number;
   }) => Promise<DnaCoreRaceHistoryRetainedMaterializationPage | null>;
+  readMaterializationRaceDocumentBatch?: (input: {
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    sourceRaceIds: readonly string[];
+  }) => Promise<
+    readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[] | null
+  >;
+  writeMaterializationRaceDocumentBatch?: (input: {
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    sourceRaceIds: readonly string[];
+    documents: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
+  }) => Promise<readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[]>;
+}>;
+
+type StoredRaceDocumentBatch = Readonly<{
+  version: 1;
+  source: "dna_open_lab";
+  sourceVersion: "core-history-v1";
+  cycleId: string;
+  attemptNumber: number;
+  batchSha256: string;
+  sourceRaceIds: readonly string[];
+  documents: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
 }>;
 
 type StoredPageDocument = Readonly<{
@@ -266,6 +294,62 @@ function pageObjectKey(input: {
 
 function quarantineObjectKey(pageKey: string): string {
   return pageKey.replace(/\.json$/u, ".quarantine.json");
+}
+
+function raceDocumentBatchIdentity(input: {
+  cycle: DnaCoreRaceHistoryAcquisitionCycle;
+  sourceRaceIds: readonly string[];
+}): Readonly<{ sourceRaceIds: readonly string[]; batchSha256: string }> {
+  if (
+    input.sourceRaceIds.length < 1 ||
+    input.sourceRaceIds.length > 20 ||
+    input.sourceRaceIds.some(
+      (value) =>
+        typeof value !== "string" ||
+        value.trim() !== value ||
+        value.length < 1 ||
+        value.length > 512 ||
+        CONTROL_PATTERN.test(value),
+    ) ||
+    new Set(input.sourceRaceIds).size !== input.sourceRaceIds.length ||
+    input.sourceRaceIds.some(
+      (value, index) =>
+        index > 0 && input.sourceRaceIds[index - 1]!.localeCompare(value) >= 0,
+    )
+  ) {
+    evidenceError("race-document batch identity is invalid");
+  }
+  const sourceRaceIds = Object.freeze([...input.sourceRaceIds]);
+  return Object.freeze({
+    sourceRaceIds,
+    batchSha256: sha256(
+      canonicalJson({
+        cycleId: input.cycle.cycleId,
+        attemptNumber: input.cycle.attemptNumber,
+        sourceRaceIds,
+      }),
+    ),
+  });
+}
+
+function raceDocumentBatchObjectKey(input: {
+  ownerPrefix: string;
+  cycleId: string;
+  attemptNumber: number;
+  batchSha256: string;
+}): string {
+  return [
+    "dna-open-lab",
+    "v1",
+    input.ownerPrefix,
+    "core-race-history",
+    "cycles",
+    input.cycleId,
+    "attempts",
+    String(input.attemptNumber),
+    "race-document-batches",
+    `${input.batchSha256}.json`,
+  ].join("/");
 }
 
 function oneChunk(body: Uint8Array): AsyncIterable<Uint8Array> {
@@ -571,6 +655,180 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
     });
   }
 
+  function raceDocumentEvidence(
+    value: unknown,
+    expectedSourceRaceId: string,
+  ): DnaOpenLabEvidence<CanonicalRaceDocumentMetadata> {
+    const evidence = record(value, "stored race-document evidence");
+    exactKeys(
+      evidence,
+      [
+        "source",
+        "sourceVersion",
+        "scope",
+        "endpoint",
+        "entityKey",
+        "observedAt",
+        "rawEvidenceSha256",
+        "canonical",
+      ],
+      "stored race-document evidence",
+    );
+    const canonical = record(
+      evidence.canonical,
+      "stored race-document canonical evidence",
+    ) as CanonicalRaceDocumentMetadata;
+    const observedAt = canonicalTimestamp(
+      String(evidence.observedAt),
+      "stored race-document observedAt",
+    );
+    const normalized = Object.freeze({
+      source: evidence.source,
+      sourceVersion: evidence.sourceVersion,
+      scope: evidence.scope,
+      endpoint: evidence.endpoint,
+      entityKey: evidence.entityKey,
+      observedAt,
+      rawEvidenceSha256: evidence.rawEvidenceSha256,
+      canonical,
+    }) as DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
+    if (
+      normalized.source !== "dna_open_lab" ||
+      normalized.sourceVersion !== "v1" ||
+      normalized.scope !== "races" ||
+      normalized.endpoint !== "races.docs" ||
+      typeof normalized.entityKey !== "string" ||
+      normalized.entityKey.trim() !== normalized.entityKey ||
+      normalized.entityKey.length < 1 ||
+      normalized.entityKey.length > 1024 ||
+      CONTROL_PATTERN.test(normalized.entityKey) ||
+      typeof normalized.rawEvidenceSha256 !== "string" ||
+      !SHA_256_PATTERN.test(normalized.rawEvidenceSha256) ||
+      canonical.sourceType !== "race_document" ||
+      canonical.sourceRaceId !== expectedSourceRaceId
+    ) {
+      evidenceError("stored race-document evidence identity is invalid");
+    }
+    return normalized;
+  }
+
+  function raceDocumentBatchDocument(input: {
+    document: Record<string, unknown>;
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    sourceRaceIds: readonly string[];
+    batchSha256: string;
+  }): StoredRaceDocumentBatch {
+    exactKeys(
+      input.document,
+      [
+        "version",
+        "source",
+        "sourceVersion",
+        "cycleId",
+        "attemptNumber",
+        "batchSha256",
+        "sourceRaceIds",
+        "documents",
+      ],
+      "stored race-document batch",
+    );
+    if (
+      input.document.version !== 1 ||
+      input.document.source !== "dna_open_lab" ||
+      input.document.sourceVersion !== "core-history-v1" ||
+      input.document.cycleId !== input.cycle.cycleId ||
+      input.document.attemptNumber !== input.cycle.attemptNumber ||
+      input.document.batchSha256 !== input.batchSha256 ||
+      !Array.isArray(input.document.sourceRaceIds) ||
+      !Array.isArray(input.document.documents) ||
+      input.document.sourceRaceIds.length !== input.sourceRaceIds.length ||
+      input.document.documents.length !== input.sourceRaceIds.length ||
+      input.document.sourceRaceIds.some(
+        (value, index) => value !== input.sourceRaceIds[index],
+      )
+    ) {
+      evidenceError("stored race-document batch identity is invalid");
+    }
+    const documents = Object.freeze(
+      input.document.documents.map((value, index) =>
+        raceDocumentEvidence(value, input.sourceRaceIds[index]!),
+      ),
+    );
+    return Object.freeze({
+      version: 1,
+      source: "dna_open_lab",
+      sourceVersion: "core-history-v1",
+      cycleId: input.cycle.cycleId,
+      attemptNumber: input.cycle.attemptNumber,
+      batchSha256: input.batchSha256,
+      sourceRaceIds: Object.freeze([...input.sourceRaceIds]),
+      documents,
+    });
+  }
+
+  function raceDocumentBatchMetadata(input: {
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    batchSha256: string;
+    sourceRaceIds: readonly string[];
+  }): Readonly<Record<string, string>> {
+    return Object.freeze({
+      "dna-source": "dna_open_lab",
+      "dna-version": "core-history-v1",
+      "dna-kind": "core_history_race_document_batch",
+      "dna-cycle-id": input.cycle.cycleId,
+      "dna-attempt": String(input.cycle.attemptNumber),
+      "dna-batch-sha256": input.batchSha256,
+      "dna-document-count": String(input.sourceRaceIds.length),
+    });
+  }
+
+  async function readRaceDocumentBatch(input: {
+    cycle: DnaCoreRaceHistoryAcquisitionCycle;
+    sourceRaceIds: readonly string[];
+  }): Promise<
+    readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[] | null
+  > {
+    await privateStorage();
+    const cycle = validateDnaCoreRaceHistoryAcquisitionCycle(input.cycle);
+    const identity = raceDocumentBatchIdentity({
+      cycle,
+      sourceRaceIds: input.sourceRaceIds,
+    });
+    const key = raceDocumentBatchObjectKey({
+      ownerPrefix: prefix,
+      cycleId: cycle.cycleId,
+      attemptNumber: cycle.attemptNumber,
+      batchSha256: identity.batchSha256,
+    });
+    const stored = await readObject(key);
+    if (stored === null) return null;
+    if (
+      stored.head.byteLength >
+      DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_CACHE_MAXIMUM_OBJECT_BYTES
+    ) {
+      evidenceError("stored race-document batch exceeds its bounded capacity");
+    }
+    const expectedMetadata = raceDocumentBatchMetadata({
+      cycle,
+      batchSha256: identity.batchSha256,
+      sourceRaceIds: identity.sourceRaceIds,
+    });
+    if (
+      Object.entries(expectedMetadata).some(
+        ([metadataKey, metadataEntry]) =>
+          metadataValue(stored.head.metadata, metadataKey) !== metadataEntry,
+      )
+    ) {
+      evidenceError("stored race-document batch metadata is invalid");
+    }
+    return raceDocumentBatchDocument({
+      document: stored.document,
+      cycle,
+      sourceRaceIds: identity.sourceRaceIds,
+      batchSha256: identity.batchSha256,
+    }).documents;
+  }
+
   async function persistQuarantine(input: {
     page: StoredPageDocument;
     pageKey: string;
@@ -789,6 +1047,55 @@ export function createDnaCoreRaceHistoryR2EvidenceStore(input: {
           results: adaptation.accepted,
         }),
       });
+    },
+    readMaterializationRaceDocumentBatch: readRaceDocumentBatch,
+    async writeMaterializationRaceDocumentBatch(request) {
+      await privateStorage();
+      const cycle = validateDnaCoreRaceHistoryAcquisitionCycle(request.cycle);
+      const identity = raceDocumentBatchIdentity({
+        cycle,
+        sourceRaceIds: request.sourceRaceIds,
+      });
+      if (request.documents.length !== identity.sourceRaceIds.length) {
+        evidenceError("race-document batch coverage is incomplete");
+      }
+      const documents = Object.freeze(
+        request.documents.map((value, index) =>
+          raceDocumentEvidence(value, identity.sourceRaceIds[index]!),
+        ),
+      );
+      const key = raceDocumentBatchObjectKey({
+        ownerPrefix: prefix,
+        cycleId: cycle.cycleId,
+        attemptNumber: cycle.attemptNumber,
+        batchSha256: identity.batchSha256,
+      });
+      const metadata = raceDocumentBatchMetadata({
+        cycle,
+        batchSha256: identity.batchSha256,
+        sourceRaceIds: identity.sourceRaceIds,
+      });
+      const document: StoredRaceDocumentBatch = Object.freeze({
+        version: 1,
+        source: "dna_open_lab",
+        sourceVersion: "core-history-v1",
+        cycleId: cycle.cycleId,
+        attemptNumber: cycle.attemptNumber,
+        batchSha256: identity.batchSha256,
+        sourceRaceIds: identity.sourceRaceIds,
+        documents,
+      });
+      const object = encodeObject({
+        key,
+        document,
+        metadata,
+        maximumObjectBytes: Math.min(
+          maximumObjectBytes,
+          DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_CACHE_MAXIMUM_OBJECT_BYTES,
+        ),
+      });
+      await putObject(object);
+      return documents;
     },
     async write(request) {
       const identity = validateIdentity(request);

@@ -24,7 +24,7 @@ import {
   type DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 
-export const DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE = 25;
+export const DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE = 20;
 export const DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING = 4;
 export const DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY = 8;
 export const DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES = 50_000;
@@ -359,11 +359,29 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
       offset,
       offset + DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
     );
-    const loaded = await input.loadRaceDocuments(requested);
+    const readCached = input.evidenceStore.readMaterializationRaceDocumentBatch;
+    const writeCached =
+      input.evidenceStore.writeMaterializationRaceDocumentBatch;
+    const cached =
+      readCached === undefined
+        ? null
+        : await readCached({ cycle, sourceRaceIds: requested });
+    const loaded = cached ?? (await input.loadRaceDocuments(requested));
     if (loaded.length > requested.length) {
       return unavailable("race-document loader returned excess evidence");
     }
-    raceDocuments.push(...loaded);
+    const retained =
+      cached !== null || writeCached === undefined
+        ? loaded
+        : await writeCached({
+            cycle,
+            sourceRaceIds: requested,
+            documents: loaded,
+          });
+    if (retained.length !== requested.length) {
+      return unavailable("race-document cache coverage is incomplete");
+    }
+    raceDocuments.push(...retained);
   }
 
   const materialization = materializeDnaCoreRaceHistory({
