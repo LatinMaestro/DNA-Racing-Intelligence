@@ -142,25 +142,7 @@ jobs:
           }
           console.log("Validated the bounded private Preview generation configuration without printing private values.");
           NODE
-      - name: Advance first bounded Core result slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
-      - name: Advance second bounded Core result slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
-      - name: Advance third bounded Core result slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
-      - name: Advance fourth bounded Core result slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
-      - name: Complete joined Core result generation
-        env:
-          DNA_CORE_RACE_HISTORY_PRIVATE_GENERATION_REQUIRE_COMPLETE: "1"
+      - name: Advance one bounded Core result slice
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-core-race-history-private-generation-command.test.ts
