@@ -2674,3 +2674,17 @@ After the private Pro League milestone, continue in this order:
 - Keep direct table access denied. This boundary exposes canonical analytical
   observations, not raw API responses, and is the required source for the next
   Pro League evidence generation.
+
+## 2026-09-16 — Verify active API history before exact-format analysis
+
+- Read active generation metadata and bounded rows only through the owner-scoped
+  function boundary, inside repeatable-read, read-only transactions. Reject a
+  privileged runtime role or direct table access.
+- Verify each canonical row hash, generation identity, contiguous ordinal and
+  strictly increasing natural key. Recompute the complete ordered generation
+  digest and re-read the active pointer after the final page so incomplete,
+  changed or mixed generations cannot feed Pro League evidence.
+- Give exact-format analytics a source-neutral race-fact contract. The API
+  adapter projects only authoritative Core, race time, mode, exact distance,
+  gates, finish, event time and payout-format facts; it does not manufacture
+  legacy CSV dataset, import-batch, partition or row identities.
