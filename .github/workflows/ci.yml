@@ -271,6 +271,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.up.sql
       - name: Run Core race history active-read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.smoke.sql
+      - name: Apply Pro League Core history source migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.up.sql
+      - name: Run Pro League Core history source smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.smoke.sql
+      - name: Reverse Pro League Core history source migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.down.sql
+      - name: Verify Pro League Core history source removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.removal.sql
       - name: Reverse Core race history active-read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.down.sql
       - name: Verify Core race history active-read removal

@@ -88,6 +88,9 @@ function source(overrides: Partial<SpillableProLeagueExactFormatSource> = {}) {
 
 function repository() {
   const begin = vi.fn(async (): Promise<"staging" | "published"> => "staging");
+  const beginCoreHistory = vi.fn(
+    async (): Promise<"staging" | "published"> => "staging",
+  );
   const stageRows = vi.fn(async (_ownerId, input) =>
     input.rows.map((_: unknown, index: number) => ({
       ordinal: input.startOrdinal + index,
@@ -99,14 +102,28 @@ function repository() {
     benchmarkCount: input.expectedBenchmarkCount,
     profileCount: input.expectedProfileCount,
   }));
+  const publishCoreHistory = vi.fn(async (_ownerId, input) => ({
+    disposition: "published" as const,
+    benchmarkCount: input.expectedBenchmarkCount,
+    profileCount: input.expectedProfileCount,
+  }));
   const value = {
     begin,
+    beginCoreHistory,
     stageRows,
     publish,
+    publishCoreHistory,
     readActiveGeneration: vi.fn(),
     listActiveRows: vi.fn(),
   } as unknown as NeonProLeagueEvidenceGenerationRepository;
-  return { begin, publish, stageRows, value };
+  return {
+    begin,
+    beginCoreHistory,
+    publish,
+    publishCoreHistory,
+    stageRows,
+    value,
+  };
 }
 
 describe("Pro League evidence publication service", () => {
@@ -171,13 +188,38 @@ describe("Pro League evidence publication service", () => {
     expect(inputSource.cleanup).toHaveBeenCalledOnce();
   });
 
+  it("binds API-derived evidence to its immutable Core history generation", async () => {
+    const inputSource = source();
+    const target = repository();
+    await publishSpillableProLeagueEvidence({
+      ownerId: "private_owner",
+      generationId,
+      coreHistoryGenerationId: "f".repeat(64),
+      workerId: "evidence-worker",
+      sourceVersionSetSha256: "c".repeat(64),
+      evidenceCutoffAt: "2026-09-16T10:00:00Z",
+      publishedAt: "2026-09-16T10:01:00Z",
+      source: inputSource.value,
+      repository: target.value,
+    });
+    expect(target.beginCoreHistory).toHaveBeenCalledWith(
+      "private_owner",
+      expect.objectContaining({ coreHistoryGenerationId: "f".repeat(64) }),
+    );
+    expect(target.begin).not.toHaveBeenCalled();
+    expect(target.publishCoreHistory).toHaveBeenCalledOnce();
+    expect(target.publish).not.toHaveBeenCalled();
+  });
+
   it("cleans an unread source when an identical generation is already published", async () => {
     const inputSource = source();
     const target = repository();
     target.begin.mockResolvedValueOnce("published");
     vi.mocked(target.value.readActiveGeneration).mockResolvedValueOnce({
       generationId,
+      sourceKind: "race_dataset_version",
       raceDatasetVersionId: "84000000-0000-4000-8000-000000000201",
+      coreHistoryGenerationId: null,
       sourceVersionSetSha256: "c".repeat(64),
       evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
       inputObservationCount: 4,

@@ -144,6 +144,14 @@ ordinal and ordered natural key, recomputes the complete generation digest and
 rechecks the active pointer after the final page. It projects only the race
 facts used by exact-format analytics; API generations never receive fabricated
 CSV dataset, import-batch, partition or source-row identities.
+Migration `0105` lets each derived Pro League evidence generation name exactly
+one source kind: the retained legacy Race Merge dataset version or the complete
+active Core-history API generation. API-derived evidence stores the immutable
+Core-history generation digest, requires its observation-set digest and all
+published-cell classification counts to agree, and rechecks that the same
+complete source is active immediately before atomic publication. The legacy
+path remains readable and independently guarded; the two identities cannot be
+mixed within one evidence generation.
 retained-evidence reader now
 returns the canonical accepted page together with the exact reconstructed page
 receipt. Before hydration, the composer replays every ordered receipt into a

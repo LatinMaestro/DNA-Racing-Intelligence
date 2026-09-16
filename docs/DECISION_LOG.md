@@ -2688,3 +2688,18 @@ After the private Pro League milestone, continue in this order:
   adapter projects only authoritative Core, race time, mode, exact distance,
   gates, finish, event time and payout-format facts; it does not manufacture
   legacy CSV dataset, import-batch, partition or row identities.
+
+## 2026-09-16 — Bind Pro League evidence to one immutable API generation
+
+- Preserve existing Race Merge evidence generations while adding an explicit,
+  mutually exclusive Core-history API source identity for new generations.
+- Begin API-derived evidence only when the named complete Core-history
+  generation is still active and its observation digest, materialization time
+  and classification counts agree exactly with the reducer input.
+- Recheck the same source immediately before publication. A changed active
+  pointer, altered count, wrong source kind, cross-owner call, incomplete row
+  family or digest mismatch keeps the prior last-good evidence active.
+- Reversal removes only re-derivable API evidence and restores the newest
+  remaining published legacy generation per owner. Raw Core-history evidence is
+  never modified. This migration does not deploy the website or touch
+  Production.
