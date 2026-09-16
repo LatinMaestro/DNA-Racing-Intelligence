@@ -11,6 +11,7 @@ import {
 import { adaptDnaCoreRaceHistoryPage } from "@/lib/dna-core-race-history-adapter";
 import {
   materializeAndPublishLatestDnaCoreRaceHistory,
+  DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY,
   DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
 } from "@/lib/dna-core-race-history-generation-materializer";
 import type {
@@ -280,6 +281,51 @@ describe("DNA Core result retained-evidence generation materializer", () => {
     expect(test.readMaterializationPage).toHaveBeenCalledTimes(2);
     expect(test.loadRaceDocuments).toHaveBeenCalledWith(["race-1", "race-2"]);
     expect(test.generation.rows).toHaveLength(2);
+  });
+
+  it("reads a bounded retained-page window concurrently and replays it in order", async () => {
+    const test = request(["race-1"]);
+    let activeReads = 0;
+    let maximumActiveReads = 0;
+    let startedReads = 0;
+    let releaseReads!: () => void;
+    const released = new Promise<void>((resolve) => {
+      releaseReads = resolve;
+    });
+    let confirmWindowStarted!: () => void;
+    const windowStarted = new Promise<void>((resolve) => {
+      confirmWindowStarted = resolve;
+    });
+    test.readMaterializationPage.mockImplementation(async ({ pageNumber }) => {
+      startedReads += 1;
+      activeReads += 1;
+      maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+      if (startedReads === 2) confirmWindowStarted();
+      await released;
+      activeReads -= 1;
+      return test.authority.pages.get(pageNumber) ?? null;
+    });
+
+    const materialization = materializeAndPublishLatestDnaCoreRaceHistory(
+      test.input,
+    );
+    await windowStarted;
+    expect(startedReads).toBe(2);
+    expect(maximumActiveReads).toBe(2);
+    expect(maximumActiveReads).toBeLessThanOrEqual(
+      DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY,
+    );
+    releaseReads();
+
+    await expect(materialization).resolves.toMatchObject({
+      kind: "published",
+      generation: { inputPageCount: 2 },
+    });
+    expect(
+      test.readMaterializationPage.mock.calls.map(
+        ([value]) => value.pageNumber,
+      ),
+    ).toEqual([1, 2]);
   });
 
   it("hydrates race authority in endpoint-safe batches", async () => {
