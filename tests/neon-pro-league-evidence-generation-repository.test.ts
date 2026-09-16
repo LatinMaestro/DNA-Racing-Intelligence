@@ -43,23 +43,30 @@ function isolation(overrides: Record<string, unknown> = {}) {
 function harness(rows: readonly (readonly unknown[])[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(
-    async (statement: string, values?: readonly unknown[]) => {
-      const normalized = statement.replace(/\s+/gu, " ").trim();
-      events.push(
-        values ? `${normalized}|${JSON.stringify(values)}` : normalized,
-      );
-      if (
-        normalized.startsWith("BEGIN ISOLATION LEVEL") ||
-        normalized === "COMMIT" ||
-        normalized === "ROLLBACK"
-      ) {
-        return { rows: [] };
-      }
-      return { rows: rows[index++] ?? [] };
-    },
-  );
+  const clientRef: { value?: NeonImportPersistenceClient } = {};
+  const query = vi.fn(async function (
+    this: NeonImportPersistenceClient,
+    statement: string,
+    values?: readonly unknown[],
+  ) {
+    if (this !== clientRef.value) {
+      throw new Error("query client binding was lost");
+    }
+    const normalized = statement.replace(/\s+/gu, " ").trim();
+    events.push(
+      values ? `${normalized}|${JSON.stringify(values)}` : normalized,
+    );
+    if (
+      normalized.startsWith("BEGIN ISOLATION LEVEL") ||
+      normalized === "COMMIT" ||
+      normalized === "ROLLBACK"
+    ) {
+      return { rows: [] };
+    }
+    return { rows: rows[index++] ?? [] };
+  });
   const client: NeonImportPersistenceClient = { query };
+  clientRef.value = client;
   const close = vi.fn(async () => {
     events.push("close");
   });
