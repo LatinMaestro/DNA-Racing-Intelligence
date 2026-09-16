@@ -2649,3 +2649,17 @@ After the private Pro League milestone, continue in this order:
   Migration `0102` adds the owner-isolated count and a versioned begin function;
   it does not alter existing published rows, deploy the website or touch
   Production.
+
+## 2026-09-16 — Quarantine contradictory entrant joins
+
+- Exact-main Preview publication then encountered a retained per-Core result
+  whose otherwise valid Race entrant collection did not list that Core.
+- Neither source is sufficient to override the other. Preserve both immutable
+  source records, do not infer participation, and omit only the contradictory
+  result from canonical analytics.
+- Count these omissions separately from malformed entrant-authority omissions,
+  and reconcile every input result as a published observation, exact replay
+  duplicate, unavailable-authority omission or contradictory-entrant omission.
+- Missing entrant evidence still blocks publication. This fail-closed
+  quarantine does not alter raw evidence, deploy a site, touch Production or
+  authorize any game action.

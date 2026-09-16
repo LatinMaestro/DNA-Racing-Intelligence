@@ -29,6 +29,7 @@ export type DnaCoreRaceHistoryGenerationMetadata = Readonly<{
   replayDuplicateCount: number;
   raceDocumentCount: number;
   entrantAuthorityOmissionCount: number;
+  entrantMismatchOmissionCount: number;
   exactDistanceConfirmedCount: number;
   acceptedPublishedCellCount: number;
   missingFormatCount: number;
@@ -206,6 +207,10 @@ function generationMetadata(
       materialization.entrantAuthorityOmissionCount,
       "entrantAuthorityOmissionCount",
     ),
+    entrantMismatchOmissionCount: count(
+      materialization.entrantMismatchOmissionCount,
+      "entrantMismatchOmissionCount",
+    ),
     exactDistanceConfirmedCount: count(
       materialization.exactDistanceConfirmedCount,
       "exactDistanceConfirmedCount",
@@ -238,7 +243,8 @@ function generationMetadata(
     counts.inputResultCount !==
       observations.length +
         counts.replayDuplicateCount +
-        counts.entrantAuthorityOmissionCount
+        counts.entrantAuthorityOmissionCount +
+        counts.entrantMismatchOmissionCount
   ) {
     return generationError("materialization counts disagree");
   }
