@@ -27,9 +27,14 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).not.toMatch(/--prod(?:uction)?\b/u);
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
-    expect(workflow).toContain("401|403|307|308");
+    expect(workflow).toContain("401|403)");
+    expect(workflow).toContain("302|303|307|308)");
     expect(workflow).toContain(
-      "The Preview did not fail closed to an unauthenticated request.",
+      "https://vercel.com/login*|https://vercel.com/sso-api*",
+    );
+    expect(workflow).toContain('--dump-header "${headers}"');
+    expect(workflow).toContain(
+      "The Preview did not fail closed to an unauthenticated request",
     );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");

@@ -143,12 +143,33 @@ jobs:
         run: |
           vercel inspect "${PREVIEW_URL}" \
             --wait --timeout=10m --token="${VERCEL_TOKEN}"
+          headers="$(mktemp)"
+          trap 'rm -f "${headers}"' EXIT
           status="$(curl --silent --show-error --output /dev/null \
+            --dump-header "${headers}" \
             --write-out '%{http_code}' "${PREVIEW_URL}/")"
           case "${status}" in
-            401|403|307|308) ;;
+            401|403) ;;
+            302|303|307|308)
+              location="$(awk '
+                BEGIN { IGNORECASE = 1 }
+                /^location:/ {
+                  sub(/^[^:]*:[[:space:]]*/, "")
+                  sub(/\r$/, "")
+                  print
+                  exit
+                }
+              ' "${headers}")"
+              case "${location}" in
+                https://vercel.com/login*|https://vercel.com/sso-api*) ;;
+                *)
+                  echo "The Preview redirected without a verified Vercel authentication challenge."
+                  exit 1
+                  ;;
+              esac
+              ;;
             *)
-              echo "The Preview did not fail closed to an unauthenticated request."
+              echo "The Preview did not fail closed to an unauthenticated request (HTTP ${status})."
               exit 1
               ;;
           esac
