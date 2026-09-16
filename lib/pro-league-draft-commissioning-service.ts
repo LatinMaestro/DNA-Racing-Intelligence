@@ -266,7 +266,8 @@ export async function loadProLeagueDraftCommissioningState(
       : structuralOwnerPool(servingOwnedCores, now);
   const exactEvidenceConfigured =
     input.evidenceRepository !== null &&
-    (servingOwnedCores !== null || input.vaultRepository.status === "ready");
+    ((servingOwnedCores?.length ?? 0) > 0 ||
+      input.vaultRepository.status === "ready");
   const active = exactEvidenceConfigured
     ? await loadActiveProLeagueVaultEvidence({
         ownerId: authenticatedOwnerId,
@@ -274,7 +275,7 @@ export async function loadProLeagueDraftCommissioningState(
         vaultDisplayName: input.vaultDisplayName,
         rosteredCoreIds: input.rosteredCoreIds,
         vaultRepository: input.vaultRepository,
-        ...(servingOwnedCores === null
+        ...(servingOwnedCores === null || servingOwnedCores.length === 0
           ? {}
           : {
               ownedCores: servingOwnedCores.map(({ canonical }) => ({
