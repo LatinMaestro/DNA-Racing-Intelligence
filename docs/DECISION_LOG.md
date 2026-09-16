@@ -2631,3 +2631,21 @@ After the private Pro League milestone, continue in this order:
   and performs no work until explicitly invoked. Exact-main Preview command
   gating, connected execution and the first complete private generation remain
   later commissioning steps.
+
+## 2026-09-16 — Count and omit results lacking quarantined entrant authority
+
+- Exact-main Preview publication reached a retained Race document whose entrant
+  collection was already classified as `unsupported_source_value` under the
+  owner-approved 10 September quarantine boundary.
+- Do not infer that a per-Core result proves participation when the corresponding
+  Race entrant authority is malformed. Omit that result from canonical
+  analytics while preserving its accepted immutable source evidence and Race
+  document hash.
+- Record each affected result as an explicit entrant-authority omission in the
+  generation metadata. Reconcile input results exactly as published
+  observations plus exact replay duplicates plus these omissions.
+- A Race document that merely lacks entrant evidence, identifies a different
+  entrant, or conflicts under one stable identity still blocks publication.
+  Migration `0102` adds the owner-isolated count and a versioned begin function;
+  it does not alter existing published rows, deploy the website or touch
+  Production.

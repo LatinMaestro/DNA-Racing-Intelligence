@@ -107,6 +107,7 @@ export type DnaCoreRaceHistoryMaterialization = Readonly<{
   inputResultCount: number;
   replayDuplicateCount: number;
   raceDocumentCount: number;
+  entrantAuthorityOmissionCount: number;
   exactDistanceConfirmedCount: number;
   acceptedPublishedCellCount: number;
   missingFormatCount: number;
@@ -464,18 +465,26 @@ export function materializeDnaCoreRaceHistory(input: {
     }
   }
 
+  let entrantAuthorityOmissionCount = 0;
   let acceptedPublishedCellCount = 0;
   let missingFormatCount = 0;
   let unsupportedFormatCount = 0;
   let unpublishedCellCount = 0;
-  const observations = [...resultByKey.values()].map((result) => {
+  const observations = [...resultByKey.values()].flatMap((result) => {
     const value = result.canonical;
     const documentEvidence = documentByRaceId.get(value.sourceRaceId);
     if (documentEvidence === undefined)
       return unavailable("race_document_missing");
     const document = documentEvidence.canonical;
-    if (document.entrantCoreIds === undefined)
-      return unavailable("race_document_entrant_authority_unavailable");
+    if (document.entrantCoreIds === undefined) {
+      if (
+        document.entrantCoreIdsEvidenceStatus !== "unsupported_source_value"
+      ) {
+        return unavailable("race_document_entrant_authority_unavailable");
+      }
+      entrantAuthorityOmissionCount += 1;
+      return [];
+    }
     if (!document.entrantCoreIds.includes(value.sourceCoreId))
       return unavailable("race_document_entrant_mismatch");
     if (document.mode === undefined)
@@ -520,42 +529,44 @@ export function materializeDnaCoreRaceHistory(input: {
       document.blueStarSourceCoreIds === undefined
         ? ("missing" as const)
         : ("available" as const);
-    return Object.freeze({
-      sourceType: "joined_core_race_history_result" as const,
-      naturalKey: result.entityKey,
-      resultEvidenceSha256: result.rawEvidenceSha256,
-      raceDocumentEvidenceSha256: documentEvidence.rawEvidenceSha256,
-      sourceCoreId: value.sourceCoreId,
-      sourceRaceId: value.sourceRaceId,
-      mode: value.mode,
-      distanceMetres: value.distance,
-      distanceAuthority: "result_and_race_document" as const,
-      elapsedMilliseconds: elapsedMilliseconds(value.elapsedTimeSourceValue),
-      finishPosition,
-      eventAt,
-      gateCount,
-      payoutMechanismSourceValue: document.payoutSourceValue ?? null,
-      sourceFormat: document.format ?? value.sourceFormat,
-      sourceRaceClass: document.raceClassSourceValue ?? null,
-      goldStar:
-        starEvidenceStatus === "missing"
-          ? null
-          : (document.yellowStarSourceCoreIds?.includes(value.sourceCoreId) ??
-            false),
-      blueStar:
-        starEvidenceStatus === "missing"
-          ? null
-          : (document.blueStarSourceCoreIds?.includes(value.sourceCoreId) ??
-            false),
-      starEvidenceStatus,
-      publishedCellStatus: published.status,
-      raceType:
-        published.status === "accepted" ? published.cell.raceType : null,
-      mapIds:
-        published.status === "accepted"
-          ? published.cell.mapIds
-          : Object.freeze([]),
-    });
+    return [
+      Object.freeze({
+        sourceType: "joined_core_race_history_result" as const,
+        naturalKey: result.entityKey,
+        resultEvidenceSha256: result.rawEvidenceSha256,
+        raceDocumentEvidenceSha256: documentEvidence.rawEvidenceSha256,
+        sourceCoreId: value.sourceCoreId,
+        sourceRaceId: value.sourceRaceId,
+        mode: value.mode,
+        distanceMetres: value.distance,
+        distanceAuthority: "result_and_race_document" as const,
+        elapsedMilliseconds: elapsedMilliseconds(value.elapsedTimeSourceValue),
+        finishPosition,
+        eventAt,
+        gateCount,
+        payoutMechanismSourceValue: document.payoutSourceValue ?? null,
+        sourceFormat: document.format ?? value.sourceFormat,
+        sourceRaceClass: document.raceClassSourceValue ?? null,
+        goldStar:
+          starEvidenceStatus === "missing"
+            ? null
+            : (document.yellowStarSourceCoreIds?.includes(value.sourceCoreId) ??
+              false),
+        blueStar:
+          starEvidenceStatus === "missing"
+            ? null
+            : (document.blueStarSourceCoreIds?.includes(value.sourceCoreId) ??
+              false),
+        starEvidenceStatus,
+        publishedCellStatus: published.status,
+        raceType:
+          published.status === "accepted" ? published.cell.raceType : null,
+        mapIds:
+          published.status === "accepted"
+            ? published.cell.mapIds
+            : Object.freeze([]),
+      }),
+    ];
   });
 
   observations.sort((left, right) =>
@@ -584,6 +595,7 @@ export function materializeDnaCoreRaceHistory(input: {
     inputResultCount,
     replayDuplicateCount,
     raceDocumentCount: documentByRaceId.size,
+    entrantAuthorityOmissionCount,
     exactDistanceConfirmedCount: observations.length,
     acceptedPublishedCellCount,
     missingFormatCount,
