@@ -309,7 +309,8 @@ function adapterError(message: string): never {
   throw new DnaOpenLabAdapterError(message);
 }
 
-function requiredText(value: string, field: string): string {
+function requiredText(value: unknown, field: string): string {
+  if (typeof value !== "string") adapterError(`${field} must be text`);
   const normalized = value.trim();
   if (normalized.length < 1) adapterError(`${field} is required`);
   return normalized;
@@ -341,7 +342,7 @@ function booleanValue(value: boolean, field: string): boolean {
   return value;
 }
 
-function timestamp(value: string, field: string): string {
+function timestamp(value: unknown, field: string): string {
   const normalized = requiredText(value, field);
   if (
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(
@@ -357,11 +358,11 @@ function timestamp(value: string, field: string): string {
   return parsed.toISOString();
 }
 
-function optionalTimestamp(value: string | null, field: string): string | null {
+function optionalTimestamp(value: unknown, field: string): string | null {
   return value === null ? null : timestamp(value, field);
 }
 
-function optionalText(value: string | null, field: string): string | null {
+function optionalText(value: unknown, field: string): string | null {
   return value === null ? null : requiredText(value, field);
 }
 
@@ -457,10 +458,8 @@ function raceDocumentResults(input: {
   });
 }
 
-function sourceTextValues(
-  values: readonly string[],
-  field: string,
-): readonly string[] {
+function sourceTextValues(values: unknown, field: string): readonly string[] {
+  if (!Array.isArray(values)) adapterError(`${field} must be a collection`);
   return Object.freeze(values.map((value) => requiredText(value, field)));
 }
 
@@ -969,7 +968,7 @@ export function adaptDnaRaceDocument(input: {
   const descriptor = raceDocumentAdaptationBoundary(
     "race_document_adaptation_descriptor_unavailable",
     () => ({
-      ...(input.raw.status === undefined
+      ...(input.raw.status == null
         ? {}
         : {
             status: raceDocumentAdaptationBoundary(
@@ -977,7 +976,7 @@ export function adaptDnaRaceDocument(input: {
               () => requiredText(input.raw.status as string, "race.status"),
             ),
           }),
-      ...(input.raw.race_name === undefined
+      ...(input.raw.race_name == null
         ? {}
         : {
             displayName: raceDocumentAdaptationBoundary(
@@ -1067,7 +1066,7 @@ export function adaptDnaRaceDocument(input: {
             "race_document_adaptation_fixed_fees_unavailable",
             () => raceDocumentFixedFees(rawFixedFees),
           )),
-      ...(rawEntryFeeUsd === undefined
+      ...(rawEntryFeeUsd == null
         ? {}
         : {
             entryFeeUsd: raceDocumentAdaptationBoundary(
@@ -1075,7 +1074,7 @@ export function adaptDnaRaceDocument(input: {
               () => nonNegativeFinite(rawEntryFeeUsd, "race.entryFeeUsd"),
             ),
           }),
-      ...(rawPaymentAsset === undefined
+      ...(rawPaymentAsset == null
         ? {}
         : {
             paymentAsset: raceDocumentAdaptationBoundary(
@@ -1083,7 +1082,7 @@ export function adaptDnaRaceDocument(input: {
               () => requiredText(rawPaymentAsset, "race.paymentAsset"),
             ),
           }),
-      ...(rawPayout === undefined
+      ...(rawPayout == null
         ? {}
         : {
             payoutSourceValue: raceDocumentAdaptationBoundary(
@@ -1134,7 +1133,7 @@ export function adaptDnaRaceDocument(input: {
       ...(input.raw.end_time === undefined
         ? {}
         : { endAt: optionalTimestamp(input.raw.end_time, "race.endAt") }),
-      ...(input.raw.eventtags === undefined
+      ...(input.raw.eventtags == null
         ? {}
         : {
             eventTagsSourceValues: sourceTextValues(
