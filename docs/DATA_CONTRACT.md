@@ -122,12 +122,18 @@ preservation before evidence or provider access. The pure materialization
 boundary now deduplicates exact cross-page/cross-cycle replays and requires
 race ID, entrant Core, mode and distance agreement. It also exposes separate
 hashes for the exact completed-cycle set and ordered joined-observation set.
+When a race document explicitly quarantines malformed entrant-ID evidence, its
+otherwise accepted per-Core result remains in immutable source coverage but is
+omitted from canonical analytics. The generation records that omission
+separately; a merely absent entrant collection or a contradictory entrant list
+still fails closed.
 The subsequent generation boundary recomputes the observation hash, reconciles
-all counts exactly and stages no more than 250 rows per call. Migration `0101`
-stores those rows behind forced owner isolation and function-only runtime access,
-then independently recomputes the ordered row digest before atomically moving
-the owner-local active pointer. Failed, conflicting, cross-owner, older or
-incomplete staging cannot replace last-good. The retained-evidence reader now
+all counts exactly and stages no more than 250 rows per call. Migrations `0101`
+and `0102` store those rows behind forced owner isolation and function-only
+runtime access, then independently recompute the ordered row digest before
+atomically moving the owner-local active pointer. Failed, conflicting,
+cross-owner, older or incomplete staging cannot replace last-good. The
+retained-evidence reader now
 returns the canonical accepted page together with the exact reconstructed page
 receipt. Before hydration, the composer replays every ordered receipt into a
 fresh Core checkpoint, compares the full receipt-chain checkpoint with durable

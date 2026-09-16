@@ -50,7 +50,10 @@ function observation(index: number): DnaCoreRaceHistoryJoinedObservation {
   });
 }
 
-function materialization(count = 3): DnaCoreRaceHistoryMaterialization {
+function materialization(
+  count = 3,
+  entrantAuthorityOmissionCount = 0,
+): DnaCoreRaceHistoryMaterialization {
   const observations = Object.freeze(
     Array.from({ length: count }, (_, index) => observation(index)).sort(
       (left, right) => left.naturalKey.localeCompare(right.naturalKey),
@@ -63,9 +66,10 @@ function materialization(count = 3): DnaCoreRaceHistoryMaterialization {
     observationSetSha256: dnaOpenLabRawEvidenceSha256(observations),
     inputCycleCount: 1,
     inputPageCount: 2,
-    inputResultCount: count,
+    inputResultCount: count + entrantAuthorityOmissionCount,
     replayDuplicateCount: 0,
     raceDocumentCount: count,
+    entrantAuthorityOmissionCount,
     exactDistanceConfirmedCount: count,
     acceptedPublishedCellCount: count,
     missingFormatCount: 0,
@@ -192,6 +196,25 @@ describe("DNA Core race history generation", () => {
       repo.stageRows.mock.calls.map((call) => call[1].rows.length),
     ).toEqual([250, 1]);
     expect(repo.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains quarantined entrant-authority omissions outside analytical rows", async () => {
+    const repo = repository();
+
+    await expect(
+      publishDnaCoreRaceHistoryGeneration({
+        ownerId,
+        workerId,
+        materialization: materialization(2, 1),
+        publishedAt,
+        repository: repo.value,
+      }),
+    ).resolves.toMatchObject({
+      inputResultCount: 3,
+      entrantAuthorityOmissionCount: 1,
+      observationCount: 2,
+    });
+    expect(repo.rows.size).toBe(2);
   });
 
   it("resumes exact staged rows after an interrupted response", async () => {

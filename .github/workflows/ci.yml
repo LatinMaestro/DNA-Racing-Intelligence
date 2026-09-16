@@ -259,6 +259,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.up.sql
       - name: Run Core race history generation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.smoke.sql
+      - name: Apply Core race history entrant-omission migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0102_dna_core_race_history_entrant_omissions.up.sql
+      - name: Run Core race history entrant-omission smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0102_dna_core_race_history_entrant_omissions.smoke.sql
+      - name: Reverse Core race history entrant-omission migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0102_dna_core_race_history_entrant_omissions.down.sql
+      - name: Verify Core race history entrant-omission removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0102_dna_core_race_history_entrant_omissions.removal.sql
       - name: Reverse Core race history generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0101_dna_core_race_history_generation.down.sql
       - name: Verify Core race history generation removal
