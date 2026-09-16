@@ -1,0 +1,112 @@
+name: Pro League draft private Preview verification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pro-league-draft-private-preview-verification.yml"
+  workflow_dispatch:
+    inputs:
+      verified_at:
+        description: Canonical past UTC verification timestamp
+        required: true
+        type: string
+      execute_private_preview_verification:
+        description: Confirm read-only private Preview commissioning verification
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pro-league-draft-private-preview-verification
+  cancel-in-progress: false
+
+jobs:
+  exact-main-private-preview-verification:
+    name: Exact-main private Preview Pro League draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT: ${{ inputs.verified_at || '2026-09-16T15:15:00.000Z' }}
+      PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION: "1"
+    steps:
+      - name: Require exact main and explicit manual Preview verification arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This private Preview verification may only run from main."
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] && \
+             [[ "${{ inputs.execute_private_preview_verification }}" != "true" ]]; then
+            echo "The private Preview verification was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove verification head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The private Preview verification head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid private Preview settings: " + invalid.join(", "));
+          }
+          const verifiedAt = new Date(
+            process.env.PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT,
+          );
+          if (
+            Number.isNaN(verifiedAt.getTime()) ||
+            verifiedAt.toISOString() !==
+              process.env.PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT ||
+            verifiedAt.getTime() > Date.now()
+          ) {
+            throw new Error("Verification time must be a canonical past UTC timestamp.");
+          }
+          console.log("Validated private Preview settings without printing private values.");
+          NODE
+      - name: Build and verify the private Pro League draft
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-pro-league-draft-commissioning.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the private Preview verification."
+            exit 1
+          fi
