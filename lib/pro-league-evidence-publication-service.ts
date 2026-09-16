@@ -47,7 +47,6 @@ export async function publishSpillableProLeagueEvidence(
   input: Readonly<{
     ownerId: string;
     generationId: string;
-    raceDatasetVersionId: string;
     workerId: string;
     sourceVersionSetSha256: string;
     evidenceCutoffAt: string;
@@ -55,7 +54,17 @@ export async function publishSpillableProLeagueEvidence(
     source: SpillableProLeagueExactFormatSource;
     repository: NeonProLeagueEvidenceGenerationRepository;
     maximumRowsPerBatch?: number;
-  }>,
+  }> &
+    (
+      | Readonly<{
+          raceDatasetVersionId: string;
+          coreHistoryGenerationId?: never;
+        }>
+      | Readonly<{
+          raceDatasetVersionId?: never;
+          coreHistoryGenerationId: string;
+        }>
+    ),
 ): Promise<
   Readonly<{
     disposition: "published" | "existing";
@@ -84,6 +93,7 @@ export async function publishSpillableProLeagueEvidence(
     profile: [],
   };
   let sourceReadStarted = false;
+  const fromCoreHistory = input.coreHistoryGenerationId !== undefined;
 
   async function flush(family: ProLeagueEvidenceFamily): Promise<void> {
     const rows = pending[family];
@@ -108,9 +118,8 @@ export async function publishSpillableProLeagueEvidence(
   }
 
   try {
-    const begun = await input.repository.begin(input.ownerId, {
+    const metadata = {
       generationId: input.generationId,
-      raceDatasetVersionId: input.raceDatasetVersionId,
       workerId: input.workerId,
       sourceVersionSetSha256: input.sourceVersionSetSha256,
       evidenceCutoffAt: input.evidenceCutoffAt,
@@ -120,7 +129,16 @@ export async function publishSpillableProLeagueEvidence(
       missingFormatEntryCount: input.source.missingFormatEntryCount,
       unsupportedFormatEntryCount: input.source.unsupportedFormatEntryCount,
       unpublishedCellEntryCount: input.source.unpublishedCellEntryCount,
-    });
+    };
+    const begun = !fromCoreHistory
+      ? await input.repository.begin(input.ownerId, {
+          ...metadata,
+          raceDatasetVersionId: input.raceDatasetVersionId,
+        })
+      : await input.repository.beginCoreHistory(input.ownerId, {
+          ...metadata,
+          coreHistoryGenerationId: input.coreHistoryGenerationId,
+        });
     if (begun === "published") {
       const active = await input.repository.readActiveGeneration(input.ownerId);
       if (active === null || active.generationId !== input.generationId) {
@@ -161,7 +179,10 @@ export async function publishSpillableProLeagueEvidence(
       .digest("hex");
     const unbenchmarkedEntryCount =
       input.source.unbenchmarkedPublishedCellEntryCount();
-    const publication = await input.repository.publish(input.ownerId, {
+    const publish = fromCoreHistory
+      ? input.repository.publishCoreHistory
+      : input.repository.publish;
+    const publication = await publish(input.ownerId, {
       generationId: input.generationId,
       workerId: input.workerId,
       expectedBenchmarkCount: counts.benchmark,
