@@ -11,7 +11,9 @@ import type { ActiveProLeagueEvidenceGeneration } from "@/lib/neon-pro-league-ev
 
 const generation: ActiveProLeagueEvidenceGeneration = {
   generationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  sourceKind: "race_dataset_version",
   raceDatasetVersionId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  coreHistoryGenerationId: null,
   sourceVersionSetSha256: "1".repeat(64),
   evidenceCutoffAt: "2026-08-31T00:00:00.000Z",
   inputObservationCount: 1_000,
