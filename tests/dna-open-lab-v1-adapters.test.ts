@@ -417,6 +417,82 @@ describe("DNA Open Lab v1 canonical adapters", () => {
   );
 
   it.each([
+    { name: "status", field: { status: null }, canonicalKey: "status" },
+    {
+      name: "display name",
+      field: { race_name: null },
+      canonicalKey: "displayName",
+    },
+    {
+      name: "entry fee USD",
+      field: { feeusd: null },
+      canonicalKey: "entryFeeUsd",
+    },
+    {
+      name: "payment asset",
+      field: { paytoken: null },
+      canonicalKey: "paymentAsset",
+    },
+    {
+      name: "payout",
+      field: { payout: null },
+      canonicalKey: "payoutSourceValue",
+    },
+    {
+      name: "event tags",
+      field: { eventtags: null },
+      canonicalKey: "eventTagsSourceValues",
+    },
+  ])(
+    "preserves an explicit null optional Race $name as absent without inventing a value",
+    ({ field, canonicalKey }) => {
+      const raw = { rid: 1, ...field } as unknown as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).not.toHaveProperty(canonicalKey);
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+    },
+  );
+
+  it.each([
+    {
+      name: "status runtime type",
+      raw: { rid: 1, status: 1 },
+      diagnostic: "race_document_adaptation_status_unavailable",
+    },
+    {
+      name: "event-tag collection runtime type",
+      raw: { rid: 1, eventtags: "tag" },
+      diagnostic: "race_document_adaptation_schedule_unavailable",
+    },
+    {
+      name: "start timestamp runtime type",
+      raw: { rid: 1, start_time: 1 },
+      diagnostic: "race_document_adaptation_schedule_unavailable",
+    },
+  ] as const)(
+    "classifies unsupported $name without an unclassified processing error",
+    ({ raw, diagnostic }) => {
+      expect(() =>
+        adaptDnaRaceDocument({
+          raw: raw as unknown as DnaRaceDocument,
+          observedAt: OBSERVED_AT,
+          endpoint: "races.docs",
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          name: "DnaRaceDocumentAdaptationProcessingError",
+          diagnostic,
+        }),
+      );
+    },
+  );
+
+  it.each([
     { name: "collection shape", hids: null },
     { name: "entry runtime type", hids: ["1"] },
     { name: "entry numeric value", hids: [0] },
