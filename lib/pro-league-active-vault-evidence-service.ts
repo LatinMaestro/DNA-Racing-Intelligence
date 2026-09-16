@@ -9,7 +9,10 @@ import type {
   ActiveProLeagueEvidenceGeneration,
   NeonProLeagueEvidenceGenerationRepository,
 } from "@/lib/neon-pro-league-evidence-generation-repository";
-import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-service";
+import type {
+  OwnerVaultCatalogueCore,
+  OwnerVaultCatalogueRepository,
+} from "@/lib/owner-vault-catalogue-service";
 
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,255}$/u;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -29,6 +32,17 @@ export type ActiveProLeagueVaultEvidence = Readonly<{
 export type ProLeagueEvidenceReadRepository = Pick<
   NeonProLeagueEvidenceGenerationRepository,
   "readActiveGeneration" | "listActiveRows"
+>;
+
+export type ProLeagueOwnedCoreMetadata = Pick<
+  OwnerVaultCatalogueCore,
+  | "sourceCoreId"
+  | "displayName"
+  | "coreClass"
+  | "element"
+  | "fNumber"
+  | "sex"
+  | "inMyVault"
 >;
 
 function identity(value: unknown, label: string): string {
@@ -93,6 +107,7 @@ export async function loadActiveProLeagueVaultEvidence(
     vaultDisplayName: string;
     rosteredCoreIds: readonly string[];
     vaultRepository: OwnerVaultCatalogueRepository;
+    ownedCores?: readonly ProLeagueOwnedCoreMetadata[];
     evidenceRepository: ProLeagueEvidenceReadRepository;
     pageSize?: number;
   }>,
@@ -106,9 +121,6 @@ export async function loadActiveProLeagueVaultEvidence(
     CONTROL_CHARACTER_PATTERN.test(vaultDisplayName)
   ) {
     throw new Error("Pro League Vault display name is invalid.");
-  }
-  if (input.vaultRepository.status !== "ready") {
-    throw new Error("Pro League Vault persistence is not configured.");
   }
   const pageSize = boundedInteger(
     input.pageSize ?? 1_000,
@@ -126,14 +138,21 @@ export async function loadActiveProLeagueVaultEvidence(
   const generation =
     await input.evidenceRepository.readActiveGeneration(ownerId);
   if (generation === null) return null;
-  const cores = await input.vaultRepository.listCoresByOwner(ownerId, {
-    scope: "vault",
-    query: null,
-    element: null,
-    coreClass: null,
-    sex: null,
-    fNumber: null,
-  });
+  const cores =
+    input.ownedCores ??
+    (input.vaultRepository.status === "ready"
+      ? await input.vaultRepository.listCoresByOwner(ownerId, {
+          scope: "vault",
+          query: null,
+          element: null,
+          coreClass: null,
+          sex: null,
+          fNumber: null,
+        })
+      : null);
+  if (cores === null) {
+    throw new Error("Pro League Vault persistence is not configured.");
+  }
   const ownedById = new Map<string, (typeof cores)[number]>();
   for (const core of cores) {
     const coreId = identity(core.sourceCoreId, "owned Core ID");
