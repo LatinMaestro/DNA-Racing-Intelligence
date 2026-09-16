@@ -366,11 +366,6 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_payout_unavailable",
     },
     {
-      name: "non-numeric prize",
-      raw: { rid: 1, prize: "unknown" },
-      diagnostic: "race_document_adaptation_prize_non_numeric_unavailable",
-    },
-    {
       name: "prize value",
       raw: { rid: 1, prize: -1 },
       diagnostic: "race_document_adaptation_prize_value_unavailable",
@@ -607,6 +602,37 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     expect(evidence.canonical).not.toHaveProperty("prizeUsdSourceValue");
     expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
   });
+
+  it.each([
+    {
+      name: "prize",
+      raw: { rid: 1, prize: "unknown" },
+      valueKey: "prizeSourceValue",
+      evidenceKey: "prizeEvidenceStatus",
+    },
+    {
+      name: "USD prize",
+      raw: { rid: 1, prizeusd: "unknown" },
+      valueKey: "prizeUsdSourceValue",
+      evidenceKey: "prizeUsdEvidenceStatus",
+    },
+  ])(
+    "quarantines a non-numeric Race $name without inferring an amount",
+    ({ raw, valueKey, evidenceKey }) => {
+      const evidence = adaptDnaRaceDocument({
+        raw: raw as unknown as DnaRaceDocument,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        [evidenceKey]: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty(valueKey);
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+    },
+  );
 
   it("maps race fills into API-neutral gate and entrant state with deterministic confirmation-key ordering", () => {
     const adapted = adaptDnaRaceFill({
