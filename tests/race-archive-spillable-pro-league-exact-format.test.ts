@@ -6,6 +6,7 @@ import { proLeagueExactFormatEvidenceFromRaceArchive } from "../lib/race-archive
 import {
   spillableProLeagueExactFormatEvidenceFromRaceArchive,
   type AcceptedProLeagueExactFormatObservation,
+  type ProLeagueExactFormatAnalyticalObservation,
 } from "../lib/race-archive-spillable-pro-league-exact-format";
 
 function observation(input: {
@@ -205,7 +206,7 @@ describe("spillable Pro League exact-format evidence", () => {
       maximumProfiles: 20,
     });
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     const spillable =
@@ -274,7 +275,7 @@ describe("spillable Pro League exact-format evidence", () => {
       maximumProfiles: 10,
     });
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     const spillable =
@@ -309,7 +310,7 @@ describe("spillable Pro League exact-format evidence", () => {
       row: 1,
     });
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
 
@@ -334,7 +335,7 @@ describe("spillable Pro League exact-format evidence", () => {
 
   it("fails closed on a post-cutoff row and cleans scratch", async () => {
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     await expect(
@@ -368,7 +369,7 @@ describe("spillable Pro League exact-format evidence", () => {
   it("enforces the profile bound while reading and removes every owned run", async () => {
     const values = inputRows().slice(0, 8);
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     const spillable =
@@ -396,7 +397,7 @@ describe("spillable Pro League exact-format evidence", () => {
   it("supports cleanup without reading and rejects replay", async () => {
     const values = inputRows().slice(0, 4);
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     const spillable =
@@ -421,7 +422,7 @@ describe("spillable Pro League exact-format evidence", () => {
 
   it("cleans every scratch run when the output iterator returns early", async () => {
     const observationScratch =
-      memoryStore<RaceArchiveCoreAnalyticalObservation>();
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
     const acceptedScratch =
       memoryStore<AcceptedProLeagueExactFormatObservation>();
     const spillable =

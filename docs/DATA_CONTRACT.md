@@ -139,6 +139,11 @@ active published generation is available to downstream private analytics only
 through bounded, owner-scoped, ordinal pagination; the runtime role retains no
 direct table access. This lets Pro League evidence derive from one immutable
 complete generation without exposing partial rows or raw API responses. The
+server-side Pro League adapter verifies every row's canonical hash, contiguous
+ordinal and ordered natural key, recomputes the complete generation digest and
+rechecks the active pointer after the final page. It projects only the race
+facts used by exact-format analytics; API generations never receive fabricated
+CSV dataset, import-batch, partition or source-row identities.
 retained-evidence reader now
 returns the canonical accepted page together with the exact reconstructed page
 receipt. Before hydration, the composer replays every ordered receipt into a

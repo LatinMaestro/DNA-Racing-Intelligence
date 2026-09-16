@@ -1,6 +1,7 @@
 import { deriveFreshness } from "@/domain/freshness";
 import { coreEsportsResultRule } from "@/domain/core-esports-performance";
 import type { ProLeagueExactFormatPopulationBenchmark } from "@/domain/pro-league-matchup";
+import type { RaceMode } from "@/domain/import-contract";
 import type { RaceArchiveCoreAnalyticalObservation } from "./race-archive-core-analytical-observations";
 import {
   spillExactSortedRaceArchiveRecords,
@@ -20,10 +21,27 @@ import {
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export type AcceptedProLeagueExactFormatObservation = Readonly<{
-  observation: RaceArchiveCoreAnalyticalObservation;
+  observation: ProLeagueExactFormatAnalyticalObservation;
   raceType: string;
   distanceMetres: number;
   mapIds: RaceArchiveProLeagueExactFormatBenchmark["mapIds"];
+}>;
+
+/**
+ * The exact-format calculation needs only authoritative race facts. Keeping
+ * this contract independent from the legacy archive locator prevents API
+ * generations from fabricating CSV dataset, partition or row identities.
+ */
+export type ProLeagueExactFormatAnalyticalObservation = Readonly<{
+  naturalKey: string;
+  sourceCoreId: string;
+  eventAt: string;
+  mode: RaceMode;
+  distanceMetres: number;
+  gateCount: number;
+  finishPosition: number;
+  elapsedMilliseconds: number;
+  payoutMechanismSourceValue: string | null;
 }>;
 
 type AcceptedObservation = AcceptedProLeagueExactFormatObservation;
@@ -85,13 +103,6 @@ function positiveSafeInteger(value: number, field: string): number {
   return value;
 }
 
-function nonNegativeSafeInteger(value: number, field: string): number {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new Error(`${field} must be a non-negative safe integer`);
-  }
-  return value;
-}
-
 function normalizedTimestamp(value: string, field: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -100,13 +111,13 @@ function normalizedTimestamp(value: string, field: string): string {
   return parsed.toISOString();
 }
 
-function naturalKey(value: RaceArchiveCoreAnalyticalObservation): string {
+function naturalKey(value: ProLeagueExactFormatAnalyticalObservation): string {
   return safeText(value.naturalKey, "observation.naturalKey");
 }
 
 function naturalKeyOrder(
-  left: RaceArchiveCoreAnalyticalObservation,
-  right: RaceArchiveCoreAnalyticalObservation,
+  left: ProLeagueExactFormatAnalyticalObservation,
+  right: ProLeagueExactFormatAnalyticalObservation,
 ): number {
   return naturalKey(left).localeCompare(naturalKey(right));
 }
@@ -563,9 +574,9 @@ function rowsFromSorted(input: {
   })();
 }
 
-export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input: {
-  observations: AsyncIterable<RaceArchiveCoreAnalyticalObservation>;
-  observationStore: RaceArchiveExternalSortedRunStore<RaceArchiveCoreAnalyticalObservation>;
+export async function spillableProLeagueExactFormatEvidence(input: {
+  observations: AsyncIterable<ProLeagueExactFormatAnalyticalObservation>;
+  observationStore: RaceArchiveExternalSortedRunStore<ProLeagueExactFormatAnalyticalObservation>;
   acceptedStore: RaceArchiveExternalSortedRunStore<AcceptedObservation>;
   runPrefix: string;
   refreshedAt: string;
@@ -624,15 +635,8 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
         }
         naturalKey(value);
         normalizedTimestamp(value.eventAt, "observation.eventAt");
-        positiveSafeInteger(value.versionNumber, "observation.versionNumber");
-        nonNegativeSafeInteger(
-          value.partitionNumber,
-          "observation.partitionNumber",
-        );
-        positiveSafeInteger(
-          value.sourceRowNumber,
-          "observation.sourceRowNumber",
-        );
+        positiveSafeInteger(value.distanceMetres, "observation.distanceMetres");
+        positiveSafeInteger(value.gateCount, "observation.gateCount");
         yield value;
       }
     })(),
@@ -688,7 +692,7 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
           const authority = publishedProLeagueRaceTypeFromArchive({
             payoutMechanismSourceValue: observation.payoutMechanismSourceValue,
             gateCount: observation.gateCount,
-            distanceMetres: observation.distance,
+            distanceMetres: observation.distanceMetres,
           });
           if (authority.status !== "accepted") {
             if (authority.status === "missing_format") {
@@ -780,4 +784,35 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
       cleaned = true;
     },
   });
+}
+
+export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input: {
+  observations: AsyncIterable<RaceArchiveCoreAnalyticalObservation>;
+  observationStore: RaceArchiveExternalSortedRunStore<ProLeagueExactFormatAnalyticalObservation>;
+  acceptedStore: RaceArchiveExternalSortedRunStore<AcceptedObservation>;
+  runPrefix: string;
+  refreshedAt: string;
+  maximumRecordsInMemory: number;
+  mergeFanIn: number;
+  maximumObservations: number;
+  maximumRunObjects: number;
+  maximumBenchmarks: number;
+  maximumProfiles: number;
+}): Promise<SpillableProLeagueExactFormatSource> {
+  const observations = (async function* () {
+    for await (const observation of input.observations) {
+      yield Object.freeze({
+        naturalKey: observation.naturalKey,
+        sourceCoreId: observation.sourceCoreId,
+        eventAt: observation.eventAt,
+        mode: observation.mode,
+        distanceMetres: observation.distance,
+        gateCount: observation.gateCount,
+        finishPosition: observation.finishPosition,
+        elapsedMilliseconds: observation.elapsedMilliseconds,
+        payoutMechanismSourceValue: observation.payoutMechanismSourceValue,
+      }) satisfies ProLeagueExactFormatAnalyticalObservation;
+    }
+  })();
+  return spillableProLeagueExactFormatEvidence({ ...input, observations });
 }
