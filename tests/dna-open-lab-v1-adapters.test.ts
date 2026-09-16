@@ -326,8 +326,8 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       diagnostic: "race_document_adaptation_status_unavailable",
     },
     {
-      name: "name",
-      raw: { rid: 1, race_name: "" },
+      name: "name runtime type",
+      raw: { rid: 1, race_name: 1 },
       diagnostic: "race_document_adaptation_name_unavailable",
     },
     {
@@ -408,6 +408,25 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         message: "DNA Race document canonical adaptation is unavailable",
       });
       expect(String(error)).not.toContain("race.");
+    },
+  );
+
+  it.each(["", "   "])(
+    "preserves a blank Race display name as unsupported without inventing a value",
+    (raceName) => {
+      const raw = { rid: 1, race_name: raceName } as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        displayNameEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("displayName");
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );
 

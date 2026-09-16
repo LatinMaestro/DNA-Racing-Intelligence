@@ -189,6 +189,26 @@ describe("DNA Open Lab race document hydrator", () => {
     expect(hydrated.documents[0]?.canonical).not.toHaveProperty("mode");
   });
 
+  it("hydrates a blank Race name as unsupported without discarding other evidence", async () => {
+    const hydrated = await hydrateDnaRaceDocuments({
+      raceIds: [1],
+      client: {
+        raceDocs: async () =>
+          response([{ rid: 1, race_name: " ", cb: 1200, rvmode: "bike" }]),
+      },
+      requestBudget: createDnaOpenLabRequestBudget(),
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(hydrated.documents[0]?.canonical).toMatchObject({
+      sourceRaceId: "1",
+      distanceMetres: 1200,
+      mode: "bike",
+      displayNameEvidenceStatus: "unsupported_source_value",
+    });
+    expect(hydrated.documents[0]?.canonical).not.toHaveProperty("displayName");
+  });
+
   it("classifies unexpected result materialization after complete coverage", async () => {
     const requestedKeys = new Proxy(["1"], {
       get(target, property, receiver) {

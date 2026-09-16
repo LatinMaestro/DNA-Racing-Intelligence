@@ -133,6 +133,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   sourceRaceId: string;
   status?: string;
   displayName?: string;
+  displayNameEvidenceStatus?: "unsupported_source_value";
   mode?: RaceMode;
   modeEvidenceStatus?: "unsupported_source_value";
   format?: string | null;
@@ -541,7 +542,22 @@ function coreClass(value: string): CoreClass {
     freak: "Freak",
     xclass: "X-Class",
   };
+
   return classes[normalized] ?? adapterError("core.type is unsupported");
+}
+
+function raceDocumentDisplayName(value: unknown): Readonly<{
+  displayName?: string;
+  displayNameEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (value == null) return Object.freeze({});
+  if (typeof value !== "string") return adapterError("race.name must be text");
+  const normalized = value.trim();
+  return normalized.length < 1
+    ? Object.freeze({
+        displayNameEvidenceStatus: "unsupported_source_value" as const,
+      })
+    : Object.freeze({ displayName: normalized });
 }
 
 function coreElement(value: string): CoreElement {
@@ -976,14 +992,10 @@ export function adaptDnaRaceDocument(input: {
               () => requiredText(input.raw.status as string, "race.status"),
             ),
           }),
-      ...(input.raw.race_name == null
-        ? {}
-        : {
-            displayName: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_name_unavailable",
-              () => requiredText(input.raw.race_name as string, "race.name"),
-            ),
-          }),
+      ...raceDocumentAdaptationBoundary(
+        "race_document_adaptation_name_unavailable",
+        () => raceDocumentDisplayName(input.raw.race_name),
+      ),
       ...(input.raw.rvmode === undefined
         ? {}
         : raceDocumentAdaptationBoundary(
