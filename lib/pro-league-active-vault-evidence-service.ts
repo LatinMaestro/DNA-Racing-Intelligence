@@ -77,7 +77,9 @@ function sameGeneration(
   return (
     right !== null &&
     right.generationId === left.generationId &&
+    right.sourceKind === left.sourceKind &&
     right.raceDatasetVersionId === left.raceDatasetVersionId &&
+    right.coreHistoryGenerationId === left.coreHistoryGenerationId &&
     right.payloadSha256 === left.payloadSha256 &&
     right.profileCount === left.profileCount &&
     right.publishedAt === left.publishedAt
