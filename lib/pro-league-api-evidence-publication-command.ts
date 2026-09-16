@@ -247,14 +247,19 @@ export function proLeagueApiEvidencePublicationCommandFromEnvironment(
         if (
           evidence.inputObservationCount !==
             source.generation.observationCount ||
-          evidence.acceptedPublishedCellEntryCount !==
+          evidence.acceptedPublishedCellEntryCount +
+            evidence.nonBikeEntryCount +
+            evidence.missingFormatEntryCount +
+            evidence.unsupportedFormatEntryCount +
+            evidence.unpublishedCellEntryCount !==
+            source.generation.observationCount ||
+          evidence.acceptedPublishedCellEntryCount >
             source.generation.acceptedPublishedCellCount ||
-          evidence.nonBikeEntryCount !== 0 ||
-          evidence.missingFormatEntryCount !==
+          evidence.missingFormatEntryCount >
             source.generation.missingFormatCount ||
-          evidence.unsupportedFormatEntryCount !==
+          evidence.unsupportedFormatEntryCount >
             source.generation.unsupportedFormatCount ||
-          evidence.unpublishedCellEntryCount !==
+          evidence.unpublishedCellEntryCount >
             source.generation.unpublishedCellCount
         ) {
           await evidence.cleanup();
