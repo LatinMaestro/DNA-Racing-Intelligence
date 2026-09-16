@@ -14,7 +14,9 @@ import type { OwnerVaultCatalogueRepository } from "@/lib/owner-vault-catalogue-
 const ownerId = "private_owner";
 const generation: ActiveProLeagueEvidenceGeneration = {
   generationId: "84000000-0000-4000-8000-000000000401",
+  sourceKind: "race_dataset_version",
   raceDatasetVersionId: "84000000-0000-4000-8000-000000000201",
+  coreHistoryGenerationId: null,
   sourceVersionSetSha256: "a".repeat(64),
   evidenceCutoffAt: "2026-09-07T01:00:00.000Z",
   inputObservationCount: 120,
