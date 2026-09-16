@@ -66,6 +66,10 @@ function megabytes(bytes: number): string {
   })} MB`;
 }
 
+function countLabel(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+}
+
 function SummaryCard({
   label: cardLabel,
   value,
@@ -179,6 +183,8 @@ export function ProLeagueCommissioningPanel({
   const syncRatePolicy = state.syncRatePolicy;
   const syncHealth = state.syncHealth;
   const historyCoverage = state.historyCoverage;
+  const substitutionBudget = discoveryQueue?.substitutionBudget;
+  const readinessBlockCount = readiness?.summary.blockCount ?? null;
 
   return (
     <section
@@ -221,6 +227,134 @@ export function ProLeagueCommissioningPanel({
           label="Recommended roster"
           value={selected?.length ?? "Unavailable"}
         />
+      </div>
+
+      <div
+        aria-labelledby="pro-league-owner-readiness-summary"
+        className="rounded-xl border border-[var(--border)] p-5"
+      >
+        <h3
+          className="text-lg font-semibold"
+          id="pro-league-owner-readiness-summary"
+        >
+          Owner readiness at a glance
+        </h3>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+          This summary separates complete serving data from review items. Open
+          each detailed section below before locking a roster or map.
+        </p>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Data freshness
+            </dt>
+            <dd className="mt-2 font-semibold">
+              Historical evidence: {label(evidence.freshness)}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Daily sync
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {syncHealth?.connectionStatus === "connected"
+                ? label(syncHealth.syncStatus ?? "status_unavailable")
+                : "Status unavailable"}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Last-good data
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {syncHealth?.lastGood === null || syncHealth === undefined
+                ? "No complete current-state version"
+                : `Serving complete version ${syncHealth.lastGood.versionFingerprint}`}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Historical coverage
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {historyCoverage?.connectionStatus === "connected"
+                ? label(historyCoverage.baselineStatus)
+                : "Status unavailable"}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Roster and maps
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {roster.draftRoster?.audit?.readiness === "compliant"
+                ? "Roster compliant"
+                : "Roster blocked"}
+              {state.lineup === null
+                ? " · maps unavailable"
+                : ` · ${state.lineup.maps.length}/4 maps · ${state.lineup.totals.lineCount}/168 lines`}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Provisional gaps
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {state.lineup === null
+                ? "Not assessed"
+                : `${state.lineup.totals.provisionalLineCount} provisional · ${state.lineup.totals.noExactEvidenceLineCount} without exact evidence`}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Discovery actions
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {discoveryQueue === undefined
+                ? "Queue unavailable"
+                : `${countLabel(discoveryQueue.experiments.length, "bounded test")}`}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Breeding hold
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {breedingObjectives?.status === "connected"
+                ? `${countLabel(breedingObjectives.objectives.length, "research objective")} · held`
+                : "Research unavailable · held"}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Substitutions
+            </dt>
+            <dd className="mt-2 font-semibold">
+              Initial roster uses 0
+              {substitutionBudget?.usedCount === null ||
+              substitutionBudget === undefined
+                ? " · later use unavailable"
+                : ` · ${substitutionBudget.usedCount}/${substitutionBudget.maximumPerYear} later changes used`}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] p-4 sm:col-span-2 xl:col-span-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Exact blockers
+            </dt>
+            <dd className="mt-2 font-semibold">
+              {readinessBlockCount === null
+                ? "Readiness assessment unavailable"
+                : readinessBlockCount === 0
+                  ? "No protected Preview blockers; owner review is still required"
+                  : `${readinessBlockCount} protected Preview blocker${readinessBlockCount === 1 ? "" : "s"}`}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+          Read-only advice only. This page cannot connect a wallet, submit a
+          roster or map, enter a race, place a bet, approve a splice, spend a
+          token or perform any game transaction.
+        </p>
       </div>
 
       {readiness === undefined ? null : (

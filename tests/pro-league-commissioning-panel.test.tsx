@@ -95,6 +95,7 @@ describe("Pro League commissioning panel", () => {
           },
         ],
         draftRoster: {
+          audit: { readiness: "compliant" },
           members: [
             {
               disposition: "rostered",
@@ -454,6 +455,19 @@ describe("Pro League commissioning panel", () => {
       <ProLeagueCommissioningPanel state={state} />,
     );
     expect(markup).toContain("Current exact-format recommendation");
+    expect(markup).toContain("Owner readiness at a glance");
+    expect(markup).toContain("Historical evidence: Current");
+    expect(markup).toContain("Serving complete version 1a2b3c4d5e6f");
+    expect(markup).toContain("Roster compliant");
+    expect(markup).toContain("1/4 maps · 168/168 lines");
+    expect(markup).toContain("12 provisional · 2 without exact evidence");
+    expect(markup).toContain("1 bounded test");
+    expect(markup).toContain("1 research objective · held");
+    expect(markup).toContain("Initial roster uses 0 · later use unavailable");
+    expect(markup).toContain(
+      "No protected Preview blockers; owner review is still required",
+    );
+    expect(markup).toContain("This page cannot connect a wallet");
     expect(markup).toContain("Protected Preview readiness");
     expect(markup).toContain("ready for a protected owner review");
     expect(markup).toContain("API refresh safety");

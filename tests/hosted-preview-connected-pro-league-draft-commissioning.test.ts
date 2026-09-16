@@ -1,7 +1,14 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { ProLeagueCommissioningPanel } from "@/components/pro-league-commissioning-panel";
+import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import { neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import { neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-rate-policy-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
+import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
@@ -45,6 +52,11 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         throw new Error("Pro League draft verification time is invalid");
       }
 
+      const combinedServingRepository =
+        neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment({
+          ...databaseEnvironment,
+          validatedAt: verifiedAt,
+        });
       const state = await loadProLeagueDraftCommissioningState({
         authenticatedOwnerId: ownerId,
         configuredOwnerId: ownerId,
@@ -57,11 +69,24 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           ...databaseEnvironment,
           ownerId,
         }),
-        ownedCoreRepository:
-          neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment({
+        ownedCoreRepository: combinedServingRepository,
+        currentStateRepository: combinedServingRepository,
+        currentRaceRepository: combinedServingRepository,
+        breedingRepository:
+          neonProLeagueBreedingRankingReadRepositoryFromEnvironment({
             ...databaseEnvironment,
-            validatedAt: verifiedAt,
+            ownerId,
           }),
+        syncRatePolicyRepository:
+          neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(
+            databaseEnvironment,
+          ),
+        syncHealthRepository: combinedServingRepository,
+        historyCoverageRepository:
+          neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
+            { ...databaseEnvironment, ownerId },
+            DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+          ),
         now,
       });
 
@@ -93,6 +118,35 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(state.mapPreparation?.matchActionAllowed).toBe(false);
       expect(state.discoveryQueue?.automaticRaceEntryAllowed).toBe(false);
       expect(state.discoveryQueue?.automaticRosterMutationAllowed).toBe(false);
+      expect(state.currentState?.status).toBe("connected");
+      expect(state.syncRatePolicy?.policy.effectiveRequestsPerMinute).toBe(30);
+      expect(state.syncHealth?.connectionStatus).toBe("connected");
+      expect(state.syncHealth?.lastGood).not.toBeNull();
+      expect(state.historyCoverage).toMatchObject({
+        connectionStatus: "connected",
+        baselineStatus: "complete",
+        receiptCount: 17_464,
+        finishedRaceReceiptCount: 17_369,
+        retainedR2Bytes: 874_370_990,
+        omittedIdentityObservationCount: 1,
+      });
+      expect(state.readiness?.status).toBe(
+        "ready_for_protected_preview_review",
+      );
+      expect(state.readiness?.summary.blockCount).toBe(0);
+      expect(state.readiness?.protectedPreviewDeploymentAllowed).toBe(false);
+      expect(state.readiness?.productionActivationAllowed).toBe(false);
+      expect(state.readiness?.rosterOrMapSubmissionAllowed).toBe(false);
+
+      const markup = renderToStaticMarkup(
+        createElement(ProLeagueCommissioningPanel, { state }),
+      );
+      expect(markup).toContain("Owner readiness at a glance");
+      expect(markup).toContain("Roster compliant");
+      expect(markup).toContain("4/4 maps · 168/168 lines");
+      expect(markup).toContain("Initial roster uses 0");
+      expect(markup).toContain("No protected Preview blockers");
+      expect(markup).toContain("This page cannot connect a wallet");
 
       const audit = state.roster!.draftRoster!.audit;
       console.log(
@@ -116,6 +170,16 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           noExactEvidenceLineCount:
             state.lineup!.totals.noExactEvidenceLineCount,
           coverageGapCount: state.roster!.coverageGaps.length,
+          readinessStatus: state.readiness!.status,
+          readinessPassCount: state.readiness!.summary.passCount,
+          readinessReviewCount: state.readiness!.summary.reviewCount,
+          readinessBlockCount: state.readiness!.summary.blockCount,
+          currentCoreStateStatus: state.currentState!.status,
+          syncStatus: state.syncHealth!.syncStatus,
+          lastGoodAvailable: state.syncHealth!.lastGood !== null,
+          historyBaselineStatus: state.historyCoverage!.baselineStatus,
+          discoveryExperimentCount: state.discoveryQueue!.experiments.length,
+          breedingObjectiveCount: state.breedingObjectives!.objectives.length,
           initialRosterConsumesSubstitution: false,
           automaticActionAllowed: false,
           previewOnly: true,
