@@ -152,7 +152,12 @@ published-cell classification counts to agree, and rechecks that the same
 complete source is active immediately before atomic publication. The legacy
 path remains readable and independently guarded; the two identities cannot be
 mixed within one evidence generation.
-retained-evidence reader now
+The private commissioning command prepares the complete exact-format benchmark
+and Core-profile stream in checksum-verified ephemeral runner-local files. It
+publishes compact rows only after source coverage and both family digests
+reconcile, removes scratch after every outcome, and makes no DNA API or R2
+request. A deterministic generation identity makes exact replay idempotent.
+The retained-evidence reader now
 returns the canonical accepted page together with the exact reconstructed page
 receipt. Before hydration, the composer replays every ordered receipt into a
 fresh Core checkpoint, compares the full receipt-chain checkpoint with durable
@@ -491,17 +496,17 @@ An API gap is disclosed as a product limitation; it does not automatically react
 
 Connected discovery maintains one row per canonical fact family:
 
-| Canonical fact                 | Critical-path class   | Local state               | Connected status                                                                                   |
-| ------------------------------ | --------------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
-| Current ownership              | API authority         | local strategy separate   | Vault/Core ownership shapes proven                                                                 |
-| Historical race metadata       | API authority         | none                      | shapes and bounded two-to-three-year availability proven                                           |
-| Historical race outcomes       | API authority         | none                      | per-Core history supplies linked distance/time/position; durable daily publication remains pending |
-| Core identity/lineage          | API authority         | none                      | identity and splicing shapes proven                                                                |
-| Current Arena/splice           | API authority         | shortlist/local decisions | Arena and pair-info shapes proven; valid-pair success remains a P9 concern                         |
-| Current Core operational state | API authority         | none                      | timestamped power/stamina/assets/listing/stats observations                                        |
-| Current token price            | API authority         | none                      | current/reference only; never historical valuation                                                 |
-| Historical dated valuation     | API unavailable       | owner evidence separate   | current token endpoint cannot reconstruct historical valuation                                     |
-| Pro League roster/strategy     | local strategic state | authoritative local state | API ownership must not overwrite roster, notes or strategy                                         |
+| Canonical fact                 | Critical-path class   | Local state               | Connected status                                                                                                          |
+| ------------------------------ | --------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Current ownership              | API authority         | local strategy separate   | Vault/Core ownership shapes proven                                                                                        |
+| Historical race metadata       | API authority         | none                      | shapes and bounded two-to-three-year availability proven                                                                  |
+| Historical race outcomes       | API authority         | none                      | complete private API generation supplies linked distance/time/position; recurring daily publication remains commissioning |
+| Core identity/lineage          | API authority         | none                      | identity and splicing shapes proven                                                                                       |
+| Current Arena/splice           | API authority         | shortlist/local decisions | Arena and pair-info shapes proven; valid-pair success remains a P9 concern                                                |
+| Current Core operational state | API authority         | none                      | timestamped power/stamina/assets/listing/stats observations                                                               |
+| Current token price            | API authority         | none                      | current/reference only; never historical valuation                                                                        |
+| Historical dated valuation     | API unavailable       | owner evidence separate   | current token endpoint cannot reconstruct historical valuation                                                            |
+| Pro League roster/strategy     | local strategic state | authoritative local state | API ownership must not overwrite roster, notes or strategy                                                                |
 
 API persistence may proceed from proven connected contracts without representative CSV equivalence. The redacted connected observations and known limitations are recorded in `DNA_OPEN_LAB_CONNECTED_DISCOVERY.md`.
 

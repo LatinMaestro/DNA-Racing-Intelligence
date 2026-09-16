@@ -1,0 +1,112 @@
+name: Pro League API evidence private Preview publication
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pro-league-api-evidence-private-publication.yml"
+  workflow_dispatch:
+    inputs:
+      published_at:
+        description: Canonical UTC publication timestamp
+        required: true
+        type: string
+      execute_private_preview_publication:
+        description: Confirm complete persistent writes to private Preview only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pro-league-api-evidence-private-preview-publication
+  cancel-in-progress: false
+
+jobs:
+  exact-main-private-preview-publication:
+    name: Exact-main private Preview Pro League evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT: ${{ inputs.published_at || '2026-09-16T13:00:00.000Z' }}
+      PRO_LEAGUE_API_EVIDENCE_PUBLICATION_COMMAND: "1"
+    steps:
+      - name: Require exact main and explicit manual Preview write arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This private Preview publication may only run from main."
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] && \
+             [[ "${{ inputs.execute_private_preview_publication }}" != "true" ]]; then
+            echo "The private Preview publication was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove publication head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The private Preview publication head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid private Preview settings: " + invalid.join(", "));
+          }
+          const publishedAt = new Date(
+            process.env.PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT,
+          );
+          if (
+            Number.isNaN(publishedAt.getTime()) ||
+            publishedAt.toISOString() !==
+              process.env.PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT ||
+            publishedAt.getTime() > Date.now()
+          ) {
+            throw new Error("Publication time must be a canonical past UTC timestamp.");
+          }
+          console.log("Validated private Preview settings without printing private values.");
+          NODE
+      - name: Publish complete active-generation Pro League evidence
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-pro-league-api-evidence-publication-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the private Preview publication."
+            exit 1
+          fi

@@ -2703,3 +2703,19 @@ After the private Pro League milestone, continue in this order:
   remaining published legacy generation per owner. Raw Core-history evidence is
   never modified. This migration does not deploy the website or touch
   Production.
+
+# 2026-09-16 — Active API generation is the commissioned Pro League evidence source
+
+- Apply migration `0105` only to the private Preview branch after its complete
+  apply/smoke/reverse/removal proof is exact-green on the merged head.
+- Build exact-format benchmarks and Core profiles only from the active complete
+  Core-history generation through owner-scoped function-only reads.
+- Bind the compact evidence receipt to that immutable source generation,
+  observation-set digest and materialization cutoff; do not fabricate legacy
+  CSV identities or combine the two source kinds.
+- Use checksum-verified ephemeral runner-local spill files for this bounded
+  commissioning run. Remove them after every outcome and make no DNA API or R2
+  request while deriving the compact evidence.
+- Publish only after exact source coverage, row ordinals, family counts and the
+  complete two-family digest reconcile. Keep the previous last-good pointer on
+  any source drift, failure or incomplete run.
