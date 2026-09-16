@@ -104,7 +104,10 @@ function repositories(
   } as unknown as ReturnType<typeof repositories>;
 }
 
-function completeStep(previousCompletedCycleId: string | null = null) {
+function completeStep(
+  previousCompletedCycleId: string | null = null,
+  acceptedResultCount = 0,
+) {
   return {
     kind: "collection_complete",
     stored: {
@@ -112,7 +115,7 @@ function completeStep(previousCompletedCycleId: string | null = null) {
         cycleId,
         attemptNumber: 1,
         previousCompletedCycleId,
-        completion: { pageReceiptCount: 500 },
+        completion: { pageReceiptCount: 500, acceptedResultCount },
       },
     },
   };
@@ -234,6 +237,43 @@ describe("DNA Core race history private generation operator", () => {
         retainedEvidenceReadBudget: {
           maximumClassBOperations: 2_000,
           paidUsageAllowed: false,
+        },
+      }),
+    );
+  });
+
+  it("preaccounts bounded resumable race-document cache evidence", async () => {
+    mocks.collect.mockResolvedValue(completeStep(null, 2_001));
+    const persistence = repositories();
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+
+    await expect(operator.execute(invocation)).resolves.toMatchObject({
+      kind: "generation",
+    });
+    expect(persistence.budget.reserve).toHaveBeenCalledTimes(2);
+    expect(persistence.budget.reserve).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        ownerId,
+        windowId,
+        plannedUsage: {
+          storageBytes: 101 * 128 * 1_024,
+          classAOperations: 101,
+          classBOperations: 202,
+        },
+      }),
+    );
+    expect(persistence.budget.account).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        actualUsage: {
+          storageBytes: 101 * 128 * 1_024,
+          classAOperations: 101,
+          classBOperations: 202,
         },
       }),
     );

@@ -3,6 +3,7 @@ import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
 import {
   DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES,
   DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING,
+  DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
   materializeAndPublishLatestDnaCoreRaceHistory,
   type DnaCoreRaceHistoryGenerationMaterializerResult,
 } from "./dna-core-race-history-generation-materializer";
@@ -16,6 +17,7 @@ import type {
   DnaCoreRaceHistoryMaterializationEvidenceStore,
   DnaCoreRaceHistoryR2EvidenceStore,
 } from "./dna-core-race-history-r2-evidence";
+import { DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_CACHE_MAXIMUM_OBJECT_BYTES } from "./dna-core-race-history-r2-evidence";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
@@ -165,6 +167,56 @@ function materializationBudgetAuthority(input: {
       domain: "dna-core-race-history-materialization-request/v1",
       value,
     }),
+  });
+}
+
+function materializationCacheBudgetAuthority(input: {
+  ownerId: string;
+  cycleId: string;
+  attemptNumber: number;
+  materializationAttemptedAt: string;
+  batchCount: number;
+  chunkIndex: number;
+  chunkCount: number;
+  chunkBatchCount: number;
+}): Readonly<{
+  reservationId: string;
+  requestSha256: string;
+  plannedUsage: Readonly<{
+    storageBytes: number;
+    classAOperations: number;
+    classBOperations: number;
+  }>;
+}> {
+  const plannedUsage = Object.freeze({
+    storageBytes:
+      input.chunkBatchCount *
+      DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_CACHE_MAXIMUM_OBJECT_BYTES,
+    classAOperations: input.chunkBatchCount,
+    classBOperations: input.chunkBatchCount * 2,
+  });
+  const value = Object.freeze({
+    version: "dna-core-race-history-race-document-cache-budget/v1" as const,
+    ownerId: input.ownerId,
+    cycleId: input.cycleId,
+    attemptNumber: input.attemptNumber,
+    materializationAttemptedAt: input.materializationAttemptedAt,
+    purpose: "retain_resumable_race_document_batches" as const,
+    batchCount: input.batchCount,
+    chunkIndex: input.chunkIndex,
+    chunkCount: input.chunkCount,
+    plannedUsage,
+  });
+  return Object.freeze({
+    reservationId: dnaOpenLabRawEvidenceSha256({
+      domain: "dna-core-race-history-race-document-cache-reservation/v1",
+      value,
+    }),
+    requestSha256: dnaOpenLabRawEvidenceSha256({
+      domain: "dna-core-race-history-race-document-cache-request/v1",
+      value,
+    }),
+    plannedUsage,
   });
 }
 
@@ -393,6 +445,73 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
           !sameUsage(accounting.actualUsage, plannedUsage)
         ) {
           operatorError("materialization budget accounting drifted");
+        }
+      }
+
+      // A completed historical package can contain more race-document
+      // requests than one bounded command can safely finish. Each completed
+      // request batch is retained privately and replayed on the next command.
+      // Reserve a conservative per-attempt ceiling before the first cache
+      // read or write; storage and Class A are charged at the maximum object
+      // size even when a replay finds an existing immutable batch.
+      const raceDocumentBatchCount = Math.ceil(
+        completion.acceptedResultCount /
+          DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
+      );
+      const maximumCacheBatchesPerChunk = Math.min(
+        DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classAOperations,
+        Math.floor(
+          DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_DAILY_REFRESH.classBOperations /
+            2,
+        ),
+      );
+      const cacheChunkCount = Math.ceil(
+        raceDocumentBatchCount / maximumCacheBatchesPerChunk,
+      );
+      for (let chunkIndex = 0; chunkIndex < cacheChunkCount; chunkIndex += 1) {
+        const chunkBatchCount = Math.min(
+          maximumCacheBatchesPerChunk,
+          raceDocumentBatchCount - chunkIndex * maximumCacheBatchesPerChunk,
+        );
+        const authority = materializationCacheBudgetAuthority({
+          ownerId,
+          cycleId: step.stored.cycle.cycleId,
+          attemptNumber: step.stored.cycle.attemptNumber,
+          materializationAttemptedAt: invocation.attemptedAt,
+          batchCount: raceDocumentBatchCount,
+          chunkIndex,
+          chunkCount: cacheChunkCount,
+          chunkBatchCount,
+        });
+        const decision = await input.repositories.budget.reserve({
+          ownerId,
+          windowId: budgetWindowId,
+          refreshCycleId: authority.reservationId,
+          requestSha256: authority.requestSha256,
+          plannedUsage: authority.plannedUsage,
+        });
+        if (materializationBudgetDecision(decision) === "blocked") {
+          return Object.freeze({
+            kind: "materialization_budget_blocked" as const,
+            blockerIds: Object.freeze([...decision.blockerIds]),
+          });
+        }
+        const accounting = await input.repositories.budget.account({
+          ownerId,
+          windowId: budgetWindowId,
+          refreshCycleId: authority.reservationId,
+          requestSha256: authority.requestSha256,
+          actualUsage: authority.plannedUsage,
+        });
+        if (
+          accounting.windowId !== budgetWindowId ||
+          accounting.refreshCycleId !== authority.reservationId ||
+          accounting.requestSha256 !== authority.requestSha256 ||
+          accounting.status !== "accounted" ||
+          !sameUsage(accounting.plannedUsage, authority.plannedUsage) ||
+          !sameUsage(accounting.actualUsage, authority.plannedUsage)
+        ) {
+          operatorError("materialization cache budget accounting drifted");
         }
       }
       const result = await materializeAndPublishLatestDnaCoreRaceHistory({

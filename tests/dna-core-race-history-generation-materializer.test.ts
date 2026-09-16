@@ -330,7 +330,7 @@ describe("DNA Core result retained-evidence generation materializer", () => {
 
   it("hydrates race authority in endpoint-safe batches", async () => {
     const raceIds = Array.from(
-      { length: 26 },
+      { length: DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE + 1 },
       (_, index) => `race-${String(index + 1).padStart(2, "0")}`,
     );
     const test = request(raceIds);
@@ -345,6 +345,42 @@ describe("DNA Core result retained-evidence generation materializer", () => {
       DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
     );
     expect(test.loadRaceDocuments.mock.calls[1]?.[0]).toHaveLength(1);
+  });
+
+  it("resumes race-document hydration from retained immutable batches", async () => {
+    const raceIds = Array.from(
+      { length: DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE + 1 },
+      (_, index) => `race-${String(index + 1).padStart(2, "0")}`,
+    );
+    const test = request(raceIds);
+    const cached = new Map<
+      string,
+      readonly ReturnType<typeof raceDocument>[]
+    >();
+    const readCached = vi.fn(
+      async ({ sourceRaceIds }) =>
+        cached.get(sourceRaceIds.join("\u0000")) ?? null,
+    );
+    const writeCached = vi.fn(async ({ sourceRaceIds, documents }) => {
+      cached.set(sourceRaceIds.join("\u0000"), documents);
+      return documents;
+    });
+    Object.assign(test.input.evidenceStore, {
+      readMaterializationRaceDocumentBatch: readCached,
+      writeMaterializationRaceDocumentBatch: writeCached,
+    });
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).resolves.toMatchObject({ kind: "published" });
+    expect(test.loadRaceDocuments).toHaveBeenCalledTimes(2);
+    test.loadRaceDocuments.mockClear();
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory(test.input),
+    ).resolves.toMatchObject({ kind: "published" });
+    expect(test.loadRaceDocuments).not.toHaveBeenCalled();
+    expect(readCached).toHaveBeenCalledTimes(4);
   });
 
   it("fails closed before hydration or publication when retained coverage is missing", async () => {

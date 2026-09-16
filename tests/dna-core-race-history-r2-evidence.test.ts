@@ -10,6 +10,10 @@ import {
 } from "../lib/dna-core-race-history-r2-evidence";
 import type { DnaCoreRaceHistoryRow } from "../lib/dna-core-race-history-client";
 import type { DnaOpenLabResponse } from "../lib/dna-open-lab-v1-client";
+import type {
+  CanonicalRaceDocumentMetadata,
+  DnaOpenLabEvidence,
+} from "../lib/dna-open-lab-v1-adapters";
 
 type StoredObject = Readonly<{
   body: Uint8Array;
@@ -120,6 +124,28 @@ function row(
     pos: 2,
     start_time: "2026-09-14T10:20:30Z",
     ...overrides,
+  });
+}
+
+function raceDocument(
+  sourceRaceId: string,
+): DnaOpenLabEvidence<CanonicalRaceDocumentMetadata> {
+  return Object.freeze({
+    source: "dna_open_lab",
+    sourceVersion: "v1",
+    scope: "races",
+    endpoint: "races.docs",
+    entityKey: `race:${sourceRaceId}`,
+    observedAt: "2026-09-15T07:00:00.000Z",
+    rawEvidenceSha256: "a".repeat(64),
+    canonical: Object.freeze({
+      sourceType: "race_document",
+      sourceRaceId,
+      mode: "bike",
+      distanceMetres: 1200,
+      gateCount: 12,
+      entrantCoreIds: Object.freeze(["42"]),
+    }),
   });
 }
 
@@ -337,6 +363,68 @@ describe("DNA Core race history private R2 evidence", () => {
     await expect(
       evidence.read({ cycle: authority, coreId: 42, pageNumber: 1 }),
     ).rejects.toThrow("quarantine receipt conflicts with stored evidence");
+  });
+
+  it("retains replay-safe race-document batches without exposing partial generations", async () => {
+    const storage = new MemoryR2Storage();
+    const evidence = store(storage);
+    const sourceRaceIds = ["private-race-1", "private-race-2"];
+    const documents = sourceRaceIds.map(raceDocument);
+
+    await expect(
+      evidence.readMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      evidence.writeMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds,
+        documents,
+      }),
+    ).resolves.toEqual(documents);
+    await expect(
+      evidence.readMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds,
+      }),
+    ).resolves.toEqual(documents);
+    expect(storage.putCount).toBe(1);
+    await expect(
+      store(
+        storage,
+        "other-owner@example.test",
+      ).readMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("rejects reordered or oversized race-document cache batches before writing", async () => {
+    const storage = new MemoryR2Storage();
+    const evidence = store(storage);
+    await expect(
+      evidence.writeMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds: ["race-2", "race-1"],
+        documents: [raceDocument("race-2"), raceDocument("race-1")],
+      }),
+    ).rejects.toThrow("race-document batch identity is invalid");
+    await expect(
+      evidence.writeMaterializationRaceDocumentBatch?.({
+        cycle: authority,
+        sourceRaceIds: Array.from(
+          { length: 21 },
+          (_, index) => `race-${String(index + 1).padStart(2, "0")}`,
+        ),
+        documents: Array.from({ length: 21 }, (_, index) =>
+          raceDocument(`race-${String(index + 1).padStart(2, "0")}`),
+        ),
+      }),
+    ).rejects.toThrow("race-document batch identity is invalid");
+    expect(storage.putCount).toBe(0);
   });
 
   it("fails before any write when the bucket is exposed", async () => {
