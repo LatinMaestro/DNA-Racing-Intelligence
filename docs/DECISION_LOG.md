@@ -2663,3 +2663,14 @@ After the private Pro League milestone, continue in this order:
 - Missing entrant evidence still blocks publication. This fail-closed
   quarantine does not alter raw evidence, deploy a site, touch Production or
   authorize any game action.
+
+## 2026-09-16 — Bound downstream analytics to the active Core history generation
+
+- The commissioned Preview publication now has one complete active generation;
+  partial or staging generations remain invisible.
+- Add owner-scoped function-only reads for the active generation metadata and
+  at most 250 ordered rows per call. Continuation uses the last accepted
+  ordinal, so retries are stable and bounded.
+- Keep direct table access denied. This boundary exposes canonical analytical
+  observations, not raw API responses, and is the required source for the next
+  Pro League evidence generation.

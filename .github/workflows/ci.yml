@@ -267,6 +267,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0103_dna_core_race_history_entrant_mismatches.up.sql
       - name: Run Core race history entrant-mismatch smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0103_dna_core_race_history_entrant_mismatches.smoke.sql
+      - name: Apply Core race history active-read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.up.sql
+      - name: Run Core race history active-read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.smoke.sql
+      - name: Reverse Core race history active-read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.down.sql
+      - name: Verify Core race history active-read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0104_dna_core_race_history_active_read.removal.sql
       - name: Reverse Core race history entrant-mismatch migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0103_dna_core_race_history_entrant_mismatches.down.sql
       - name: Verify Core race history entrant-mismatch removal
