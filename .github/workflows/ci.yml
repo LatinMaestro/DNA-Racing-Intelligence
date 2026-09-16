@@ -275,6 +275,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.up.sql
       - name: Run Pro League Core history source smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.smoke.sql
+      - name: Apply Pro League mixed-mode source migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.up.sql
+      - name: Run Pro League mixed-mode source smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.smoke.sql
+      - name: Reverse Pro League mixed-mode source migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.down.sql
+      - name: Verify Pro League mixed-mode source reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.removal.sql
       - name: Reverse Pro League Core history source migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0105_pro_league_core_history_source.down.sql
       - name: Verify Pro League Core history source removal
