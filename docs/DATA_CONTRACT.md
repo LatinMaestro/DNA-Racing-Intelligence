@@ -131,10 +131,14 @@ contradictory-entrant omissions separately; a merely absent entrant collection
 still fails closed.
 The subsequent generation boundary recomputes the observation hash, reconciles
 all counts exactly and stages no more than 250 rows per call. Migrations `0101`
-through `0103` store those rows behind forced owner isolation and function-only
+through `0104` store and read those rows behind forced owner isolation and function-only
 runtime access, then independently recompute the ordered row digest before
 atomically moving the owner-local active pointer. Failed, conflicting,
 cross-owner, older or incomplete staging cannot replace last-good. The
+active published generation is available to downstream private analytics only
+through bounded, owner-scoped, ordinal pagination; the runtime role retains no
+direct table access. This lets Pro League evidence derive from one immutable
+complete generation without exposing partial rows or raw API responses. The
 retained-evidence reader now
 returns the canonical accepted page together with the exact reconstructed page
 receipt. Before hydration, the composer replays every ordered receipt into a
