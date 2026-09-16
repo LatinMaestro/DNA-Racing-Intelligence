@@ -26,6 +26,7 @@ import {
 
 export const DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE = 25;
 export const DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING = 4;
+export const DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY = 8;
 export const DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES = 50_000;
 export const DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_RESULTS = 500_000;
 export const DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_RACE_DOCUMENTS = 500_000;
@@ -253,44 +254,68 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
       coreId: checkpoint.coreId,
     });
     for (
-      let pageNumber = 1;
-      pageNumber <= checkpoint.terminalPageNumber!;
-      pageNumber += 1
+      let firstPageNumber = 1;
+      firstPageNumber <= checkpoint.terminalPageNumber!;
+      firstPageNumber +=
+        DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY
     ) {
-      const retained = await input.evidenceStore.readMaterializationPage({
-        cycle,
-        coreId: checkpoint.coreId,
-        pageNumber,
-      });
-      if (retained === null) return unavailable("retained page is unavailable");
-      const { page, receipt } = retained;
-      if (
-        page.ownerId !== ownerId ||
-        page.cycleId !== cycle.cycleId ||
-        page.attemptNumber !== cycle.attemptNumber ||
-        page.coreId !== checkpoint.coreId ||
-        page.pageNumber !== pageNumber ||
-        page.terminal !== (pageNumber === checkpoint.terminalPageNumber) ||
-        receipt.cycleId !== page.cycleId ||
-        receipt.attemptNumber !== page.attemptNumber ||
-        receipt.coreId !== page.coreId ||
-        receipt.pageNumber !== page.pageNumber ||
-        receipt.terminal !== page.terminal ||
-        receipt.sourceRowCount !== page.sourceRowCount ||
-        receipt.acceptedResultCount !== page.results.length ||
-        page.results.some((result) => result.observedAt !== receipt.observedAt)
-      ) {
-        return unavailable("retained page receipt or content drifted");
-      }
-      replayedCheckpoint = applyDnaCoreRaceHistoryPageReceipt({
-        checkpoint: replayedCheckpoint,
-        receipt,
-      });
-      pages.push(page);
-      resultCount += page.results.length;
-      sourceRowCount += page.sourceRowCount;
-      if (resultCount > maximumResults) {
-        return unavailable("result coverage exceeds its safe bound");
+      const pageNumbers = Array.from(
+        {
+          length: Math.min(
+            DNA_CORE_RACE_HISTORY_MATERIALIZER_PAGE_READ_CONCURRENCY,
+            checkpoint.terminalPageNumber! - firstPageNumber + 1,
+          ),
+        },
+        (_, index) => firstPageNumber + index,
+      );
+      // R2 latency dominated the first complete Preview package. Read only a
+      // small fixed window concurrently, then validate and replay that window
+      // in canonical page order. This changes no budget, receipt-chain,
+      // checksum or publication authority and keeps memory bounded.
+      const retainedPages = await Promise.all(
+        pageNumbers.map((pageNumber) =>
+          input.evidenceStore.readMaterializationPage({
+            cycle,
+            coreId: checkpoint.coreId,
+            pageNumber,
+          }),
+        ),
+      );
+      for (const [index, retained] of retainedPages.entries()) {
+        const pageNumber = pageNumbers[index]!;
+        if (retained === null)
+          return unavailable("retained page is unavailable");
+        const { page, receipt } = retained;
+        if (
+          page.ownerId !== ownerId ||
+          page.cycleId !== cycle.cycleId ||
+          page.attemptNumber !== cycle.attemptNumber ||
+          page.coreId !== checkpoint.coreId ||
+          page.pageNumber !== pageNumber ||
+          page.terminal !== (pageNumber === checkpoint.terminalPageNumber) ||
+          receipt.cycleId !== page.cycleId ||
+          receipt.attemptNumber !== page.attemptNumber ||
+          receipt.coreId !== page.coreId ||
+          receipt.pageNumber !== page.pageNumber ||
+          receipt.terminal !== page.terminal ||
+          receipt.sourceRowCount !== page.sourceRowCount ||
+          receipt.acceptedResultCount !== page.results.length ||
+          page.results.some(
+            (result) => result.observedAt !== receipt.observedAt,
+          )
+        ) {
+          return unavailable("retained page receipt or content drifted");
+        }
+        replayedCheckpoint = applyDnaCoreRaceHistoryPageReceipt({
+          checkpoint: replayedCheckpoint,
+          receipt,
+        });
+        pages.push(page);
+        resultCount += page.results.length;
+        sourceRowCount += page.sourceRowCount;
+        if (resultCount > maximumResults) {
+          return unavailable("result coverage exceeds its safe bound");
+        }
       }
     }
     if (!sameCanonicalAuthority(replayedCheckpoint, checkpoint)) {
