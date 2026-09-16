@@ -152,9 +152,9 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   eventTagsSourceValues?: readonly string[];
   payoutSourceValue?: string;
   prizeSourceValue?: number;
-  prizeEvidenceStatus?: "explicitly_absent";
+  prizeEvidenceStatus?: "explicitly_absent" | "unsupported_source_value";
   prizeUsdSourceValue?: number;
-  prizeUsdEvidenceStatus?: "explicitly_absent";
+  prizeUsdEvidenceStatus?: "explicitly_absent" | "unsupported_source_value";
   trackSourceValue?: string;
   yellowStarSourceCoreIds?: readonly string[];
   blueStarSourceCoreIds?: readonly string[];
@@ -1094,32 +1094,26 @@ export function adaptDnaRaceDocument(input: {
         ? { prizeEvidenceStatus: "explicitly_absent" as const }
         : rawPrize === undefined
           ? {}
-          : {
-              prizeSourceValue: raceDocumentAdaptationBoundary(
-                "race_document_adaptation_prize_type_unavailable",
-                () => {
-                  if (typeof rawPrize !== "number") {
-                    throw new DnaRaceDocumentAdaptationProcessingError(
-                      "race_document_adaptation_prize_non_numeric_unavailable",
-                    );
-                  }
-                  return raceDocumentAdaptationBoundary(
-                    "race_document_adaptation_prize_value_unavailable",
-                    () => nonNegativeFinite(rawPrize, "race.prize"),
-                  );
-                },
-              ),
-            }),
+          : typeof rawPrize !== "number"
+            ? { prizeEvidenceStatus: "unsupported_source_value" as const }
+            : {
+                prizeSourceValue: raceDocumentAdaptationBoundary(
+                  "race_document_adaptation_prize_value_unavailable",
+                  () => nonNegativeFinite(rawPrize, "race.prize"),
+                ),
+              }),
       ...(rawPrizeUsd === null
         ? { prizeUsdEvidenceStatus: "explicitly_absent" as const }
         : rawPrizeUsd === undefined
           ? {}
-          : {
-              prizeUsdSourceValue: raceDocumentAdaptationBoundary(
-                "race_document_adaptation_prize_usd_unavailable",
-                () => nonNegativeFinite(rawPrizeUsd, "race.prizeUsd"),
-              ),
-            }),
+          : typeof rawPrizeUsd !== "number"
+            ? { prizeUsdEvidenceStatus: "unsupported_source_value" as const }
+            : {
+                prizeUsdSourceValue: raceDocumentAdaptationBoundary(
+                  "race_document_adaptation_prize_usd_unavailable",
+                  () => nonNegativeFinite(rawPrizeUsd, "race.prizeUsd"),
+                ),
+              }),
     }),
   );
   const schedule = raceDocumentAdaptationBoundary(
