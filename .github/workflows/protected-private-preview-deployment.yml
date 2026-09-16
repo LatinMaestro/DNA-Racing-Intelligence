@@ -1,0 +1,164 @@
+name: Protected private Preview deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact accepted main commit to deploy
+        required: true
+        type: string
+      deploy_protected_preview:
+        description: Confirm one deliberate protected private Preview deployment
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protected-private-preview-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy-protected-preview:
+    name: Deploy exact-main protected private Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: preview
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Require exact main and explicit Preview deployment arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This deployment may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.deploy_protected_preview }}" != "true" ]]; then
+            echo "The protected private Preview deployment was not explicitly armed."
+            exit 1
+          fi
+          if [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+            echo "The requested release candidate does not match this workflow head."
+            exit 1
+          fi
+          if [[ ! "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The workflow head is not a full commit identity."
+            exit 1
+          fi
+      - name: Checkout exact accepted head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 0
+      - name: Prove deployment head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The protected Preview deployment head is no longer current main."
+            exit 1
+          fi
+          if ! grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json; then
+            echo "Automatic Git deployment must remain disabled."
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "The accepted checkout is not clean."
+            exit 1
+          fi
+      - name: Validate protected Preview provider settings without exposure
+        shell: bash
+        run: |
+          invalid=0
+          for name in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN; do
+            value="${!name:-}"
+            if [[ -z "${value}" ]] || [[ "${value}" != "${value# }" ]] || \
+               [[ "${value}" != "${value% }" ]] || [[ ${#value} -gt 4096 ]]; then
+              echo "Missing or invalid protected Preview setting: ${name}"
+              invalid=1
+            fi
+          done
+          if [[ "${invalid}" -ne 0 ]]; then
+            exit 1
+          fi
+          echo "Validated protected Preview settings without printing their values."
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@50.1.6
+      - name: Link only the protected Preview project
+        shell: bash
+        run: |
+          mkdir -p .vercel
+          node --input-type=module <<'NODE'
+          import { writeFile } from "node:fs/promises";
+
+          await writeFile(
+            ".vercel/project.json",
+            JSON.stringify({
+              orgId: process.env.VERCEL_ORG_ID,
+              projectId: process.env.VERCEL_PROJECT_ID,
+            }),
+            { mode: 0o600 },
+          );
+          NODE
+      - name: Pull protected Preview configuration
+        shell: bash
+        run: >-
+          vercel pull
+          --yes
+          --environment=preview
+          --token="${VERCEL_TOKEN}"
+      - name: Build accepted Preview artifact
+        shell: bash
+        run: >-
+          vercel build
+          --token="${VERCEL_TOKEN}"
+      - name: Deploy isolated Preview artifact
+        id: deploy
+        shell: bash
+        run: |
+          url="$(vercel deploy --prebuilt --yes --token="${VERCEL_TOKEN}")"
+          if [[ ! "${url}" =~ ^https://[^/]+\.vercel\.app$ ]]; then
+            echo "The deployment command did not return a valid Preview URL."
+            exit 1
+          fi
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "Created the isolated protected Preview deployment."
+      - name: Verify deployment is ready and private
+        shell: bash
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          vercel inspect "${PREVIEW_URL}" \
+            --wait --timeout=10m --token="${VERCEL_TOKEN}"
+          status="$(curl --silent --show-error --output /dev/null \
+            --write-out '%{http_code}' "${PREVIEW_URL}/")"
+          case "${status}" in
+            401|403|307|308) ;;
+            *)
+              echo "The Preview did not fail closed to an unauthenticated request."
+              exit 1
+              ;;
+          esac
+          echo "Verified the Preview is ready and unauthenticated access is blocked."
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the protected Preview deployment."
+            exit 1
+          fi
