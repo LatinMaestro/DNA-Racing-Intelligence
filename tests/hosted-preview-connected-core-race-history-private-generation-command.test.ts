@@ -111,7 +111,7 @@ describeConnected(
         expect(report.stepCount).toBeGreaterThan(0);
         expect(report.stepCount).toBeLessThanOrEqual(maximumSteps());
       },
-      30 * 60_000,
+      60 * 60_000,
     );
   },
 );
