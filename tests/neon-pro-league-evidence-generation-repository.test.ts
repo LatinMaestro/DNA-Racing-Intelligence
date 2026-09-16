@@ -12,6 +12,7 @@ import {
 const databaseOwnerId = "84000000-0000-4000-8000-000000000001";
 const generationId = "84000000-0000-4000-8000-000000000301";
 const raceDatasetVersionId = "84000000-0000-4000-8000-000000000201";
+const coreHistoryGenerationId = "f".repeat(64);
 const ownerId = "private_owner";
 const runtimeRole = "dna_app_runtime";
 
@@ -22,8 +23,10 @@ function isolation(overrides: Record<string, unknown> = {}) {
     all_force_rls_enabled: true,
     runtime_can_access_tables: false,
     runtime_can_begin: true,
+    runtime_can_begin_core_history: true,
     runtime_can_stage: true,
     runtime_can_publish: true,
+    runtime_can_publish_core_history: true,
     runtime_can_read_generation: true,
     runtime_can_read_rows: true,
     session_user_name: runtimeRole,
@@ -137,6 +140,43 @@ describe("Neon Pro League evidence generation repository", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
   });
 
+  it("begins evidence from an immutable active Core history generation", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ disposition: "staging" }],
+    ]);
+    await expect(
+      test.repository.beginCoreHistory(ownerId, {
+        generationId,
+        coreHistoryGenerationId,
+        workerId: "evidence-worker",
+        sourceVersionSetSha256: "a".repeat(64),
+        evidenceCutoffAt: "2026-09-16T10:00:00.000Z",
+        inputObservationCount: 10,
+        acceptedEntryCount: 6,
+        nonBikeEntryCount: 1,
+        missingFormatEntryCount: 1,
+        unsupportedFormatEntryCount: 1,
+        unpublishedCellEntryCount: 1,
+      }),
+    ).resolves.toBe("staging");
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      generationId,
+      coreHistoryGenerationId,
+      "evidence-worker",
+      "a".repeat(64),
+      "2026-09-16T10:00:00.000Z",
+      10,
+      6,
+      1,
+      1,
+      1,
+      1,
+    ]);
+  });
+
   it("stages bounded rows and requires exact ordered database hashes", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
@@ -190,6 +230,29 @@ describe("Neon Pro League evidence generation repository", () => {
     });
   });
 
+  it("publishes Core history evidence through its source-specific guard", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ disposition: "published", benchmark_count: 2, profile_count: 8 }],
+    ]);
+    await expect(
+      test.repository.publishCoreHistory(ownerId, {
+        generationId,
+        workerId: "evidence-worker",
+        expectedBenchmarkCount: 2,
+        expectedProfileCount: 8,
+        unbenchmarkedEntryCount: 0,
+        payloadSha256: "d".repeat(64),
+        publishedAt: "2026-09-16T10:01:00Z",
+      }),
+    ).resolves.toEqual({
+      disposition: "published",
+      benchmarkCount: 2,
+      profileCount: 8,
+    });
+  });
+
   it("reads only the active generation and bounded ordered private rows", async () => {
     const generation = harness([
       [{ owner_scope: databaseOwnerId }],
@@ -197,7 +260,9 @@ describe("Neon Pro League evidence generation repository", () => {
       [
         {
           generation_id: generationId,
+          source_kind: "race_dataset_version",
           race_dataset_version_id: raceDatasetVersionId,
+          core_history_generation_id: null,
           source_version_set_sha256: "a".repeat(64),
           evidence_cutoff_at: new Date("2026-09-07T01:00:00Z"),
           input_observation_count: "10",
@@ -245,6 +310,42 @@ describe("Neon Pro League evidence generation repository", () => {
     ).resolves.toMatchObject([
       { generationId, family: "benchmark", ordinal: 2 },
     ]);
+  });
+
+  it("reads an API-derived generation with one unambiguous source identity", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          source_kind: "core_history_generation",
+          race_dataset_version_id: null,
+          core_history_generation_id: coreHistoryGenerationId,
+          source_version_set_sha256: "a".repeat(64),
+          evidence_cutoff_at: new Date("2026-09-16T10:00:00Z"),
+          input_observation_count: "10",
+          accepted_entry_count: "6",
+          non_bike_entry_count: "1",
+          missing_format_entry_count: "1",
+          unsupported_format_entry_count: "1",
+          unpublished_cell_entry_count: "1",
+          unbenchmarked_entry_count: "0",
+          benchmark_count: 2,
+          profile_count: 8,
+          payload_sha256: "d".repeat(64),
+          state: "published",
+          published_at: new Date("2026-09-16T10:01:00Z"),
+        },
+      ],
+    ]);
+    await expect(
+      test.repository.readActiveGeneration(ownerId),
+    ).resolves.toMatchObject({
+      sourceKind: "core_history_generation",
+      raceDatasetVersionId: null,
+      coreHistoryGenerationId,
+    });
   });
 
   it("rolls back when the runtime boundary is privileged", async () => {
