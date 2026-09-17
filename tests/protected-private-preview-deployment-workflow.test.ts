@@ -27,6 +27,20 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).not.toMatch(/--prod(?:uction)?\b/u);
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
+    expect(workflow).toContain(
+      "AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}",
+    );
+    expect(workflow).toContain("DATABASE_URL: ${{ secrets.DATABASE_URL }}");
+    expect(workflow).toContain(
+      "DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}",
+    );
+    expect(workflow).toContain("DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime");
+    expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "1"');
+    expect(workflow).toContain("synchronize_preview_runtime");
+    expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
+    expect(workflow).toContain("--environment=production");
+    expect(workflow).toContain("--environment=preview");
+    expect(workflow).toContain("--validate-only");
     expect(workflow).toContain("401|403)");
     expect(workflow).toContain("302|303|307|308)");
     expect(workflow).toContain(
@@ -38,6 +52,6 @@ describe("protected private Preview deployment workflow", () => {
     );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
-    expect(workflow).not.toMatch(/DATABASE_URL|DNA_OPEN_LAB_API_KEY|DNA_R2_/u);
+    expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY|DNA_R2_/u);
   });
 });
