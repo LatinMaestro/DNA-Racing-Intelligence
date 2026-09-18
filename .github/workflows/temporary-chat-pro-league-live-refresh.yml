@@ -1,0 +1,32 @@
+name: temporary-chat-pro-league-live-refresh
+on:
+  push:
+    branches:
+      - temporary/chat-pro-league-live-refresh-2026-09-18-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  live-refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PRO_LEAGUE_LIVE_REFRESH: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/temporary-chat-pro-league-live-refresh.test.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: temporary-chat-pro-league-live-refresh
+          path: pro-league-live-refresh.json
+          if-no-files-found: error
+          retention-days: 1
