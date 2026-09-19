@@ -17,19 +17,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Pull public current-roster esports stats
+      - name: Pull public current-roster and Latin hstats
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           const base='https://api.dnaracing.run/fbike/esports';
           const teamIds=['e4879e84ec','68082d17da','1c0422c92c','8c52c6d87d'];
+          const ourIds=[15184,23282,9926,14798,23260,23269,20292,8431,14186,8888,25574,20382,9960,22164,20365,23467,23388,20777,22145,23271,19423,9852,25645,12873,9216];
           const outDir='esports-opponent-scan';
           fs.mkdirSync(outDir,{recursive:true});
           async function post(path,body={}){
             try{
               const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','accept':'application/json','user-agent':'Mozilla/5.0 ChatGPT read-only opponent analysis'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
-              const text=await r.text(); let data=null; try{data=JSON.parse(text)}catch{}
+              const text=await r.text();let data=null;try{data=JSON.parse(text)}catch{}
               return {status:r.status,ok:r.ok,data,text:data===null?text.slice(0,1000):undefined};
             }catch(e){return {status:null,ok:false,error:String(e)}}
           }
@@ -39,18 +40,18 @@ jobs:
             await Promise.all(Array.from({length:Math.min(limit,items.length)},runner));return out;
           }
           async function main(){
-            const teams={}; const ids=new Set();
+            const teams={};const opponentIds=new Set();
             for(const tid of teamIds){
               const team=await post('/team',{team_id:tid});
               teams[tid]=team;
-              const cores=team?.data?.result?.cores_list||[];
-              cores.forEach(x=>ids.add(Number(x)));
+              (team?.data?.result?.cores_list||[]).forEach(x=>opponentIds.add(Number(x)));
             }
+            const ids=[...new Set([...opponentIds,...ourIds])];
             const hstats={};
-            const rows=await pooled([...ids],20,async hid=>({hid,res:await post('/hstats',{hid,season:'all'})}));
+            const rows=await pooled(ids,20,async hid=>({hid,res:await post('/hstats',{hid,season:'all'})}));
             for(const row of rows)hstats[String(row.hid)]=row.res;
-            fs.writeFileSync(outDir+'/opponents-hstats.json',JSON.stringify({generatedAt:new Date().toISOString(),teams,hstats},null,2));
-            console.log(JSON.stringify({teamCount:Object.keys(teams).length,coreCount:Object.keys(hstats).length},null,2));
+            fs.writeFileSync(outDir+'/all-hstats.json',JSON.stringify({generatedAt:new Date().toISOString(),teams,ourIds,opponentIds:[...opponentIds],hstats},null,2));
+            console.log(JSON.stringify({teamCount:Object.keys(teams).length,coreCount:Object.keys(hstats).length,ourCount:ourIds.length},null,2));
           }
           main().catch(e=>{console.error(e);process.exitCode=1});
           NODE
