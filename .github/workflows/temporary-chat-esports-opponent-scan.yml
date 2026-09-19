@@ -17,121 +17,42 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Pull public opponent team, match and mapping evidence
+      - name: Pull public current-roster esports stats
         shell: bash
         run: |
           node <<'NODE'
-          const fs = require('fs');
-          const base = 'https://api.dnaracing.run/fbike/esports';
-          const teamIds = ['e4879e84ec','68082d17da','1c0422c92c','8c52c6d87d'];
-          const mapCandidates = ['Anchor','Glory','Measure','Miracles','map-1','map-2','map-3','map-4'];
-          const outDir = 'esports-opponent-scan';
+          const fs=require('fs');
+          const base='https://api.dnaracing.run/fbike/esports';
+          const teamIds=['e4879e84ec','68082d17da','1c0422c92c','8c52c6d87d'];
+          const outDir='esports-opponent-scan';
           fs.mkdirSync(outDir,{recursive:true});
-
-          async function post(path, body={}) {
-            try {
-              const res = await fetch(base + path, {
-                method:'POST',
-                headers:{
-                  'content-type':'application/json',
-                  'accept':'application/json',
-                  'user-agent':'Mozilla/5.0 ChatGPT read-only opponent analysis'
-                },
-                body:JSON.stringify(body),
-                redirect:'follow',
-                signal:AbortSignal.timeout(20000)
-              });
-              const text = await res.text();
-              let data = null;
-              try { data = JSON.parse(text); } catch {}
-              return {ok:res.ok,status:res.status,data,text:data===null?text.slice(0,2000):undefined};
-            } catch (error) {
-              return {ok:false,status:null,error:String(error)};
-            }
+          async function post(path,body={}){
+            try{
+              const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','accept':'application/json','user-agent':'Mozilla/5.0 ChatGPT read-only opponent analysis'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+              const text=await r.text(); let data=null; try{data=JSON.parse(text)}catch{}
+              return {status:r.status,ok:r.ok,data,text:data===null?text.slice(0,1000):undefined};
+            }catch(e){return {status:null,ok:false,error:String(e)}}
           }
-
-          function collectEventIds(value,set) {
-            if (!value) return;
-            if (Array.isArray(value)) { for (const x of value) collectEventIds(x,set); return; }
-            if (typeof value !== 'object') return;
-            for (const [k,v] of Object.entries(value)) {
-              if ((k === 'event_id' || k === 'eventId') && (typeof v === 'string' || typeof v === 'number')) set.add(String(v));
-              collectEventIds(v,set);
-            }
+          async function pooled(items,limit,fn){
+            const out=new Array(items.length);let next=0;
+            async function runner(){while(true){const i=next++;if(i>=items.length)return;out[i]=await fn(items[i],i)}}
+            await Promise.all(Array.from({length:Math.min(limit,items.length)},runner));return out;
           }
-
-          async function pooled(items, limit, worker) {
-            const out = new Array(items.length);
-            let next = 0;
-            async function runner() {
-              while (true) {
-                const i = next++;
-                if (i >= items.length) return;
-                out[i] = await worker(items[i],i);
-              }
+          async function main(){
+            const teams={}; const ids=new Set();
+            for(const tid of teamIds){
+              const team=await post('/team',{team_id:tid});
+              teams[tid]=team;
+              const cores=team?.data?.result?.cores_list||[];
+              cores.forEach(x=>ids.add(Number(x)));
             }
-            await Promise.all(Array.from({length:Math.min(limit,items.length)}, runner));
-            return out;
+            const hstats={};
+            const rows=await pooled([...ids],20,async hid=>({hid,res:await post('/hstats',{hid,season:'all'})}));
+            for(const row of rows)hstats[String(row.hid)]=row.res;
+            fs.writeFileSync(outDir+'/opponents-hstats.json',JSON.stringify({generatedAt:new Date().toISOString(),teams,hstats},null,2));
+            console.log(JSON.stringify({teamCount:Object.keys(teams).length,coreCount:Object.keys(hstats).length},null,2));
           }
-
-          async function main() {
-            const output = {generatedAt:new Date().toISOString(),globals:{},teams:{},events:{}};
-
-            const globalSpecs = [
-              ['maps','/maps',{}],
-              ['race_types','/race_types',{}],
-              ['seasons','/seasons',{}],
-              ['season_state','/season_state',{}],
-              ['standings','/standings',{season:null}],
-              ['events','/events',{week:null,season:null}]
-            ];
-            const globalRows = await Promise.all(globalSpecs.map(([k,p,b])=>post(p,b)));
-            globalSpecs.forEach(([k],i)=>output.globals[k]=globalRows[i]);
-
-            await Promise.all(teamIds.map(async teamId => {
-              const [team,events,history,stats,subs_state,subs_history] = await Promise.all([
-                post('/team',{team_id:teamId}),
-                post('/team/events',{team_id:teamId}),
-                post('/team/match_history',{team_id:teamId,limit:100,skip:0,bucket:null}),
-                post('/vault_stats',{team_id:teamId,of_vault:null,season:0}),
-                post('/team/subs_state',{team_id:teamId}),
-                post('/team/subs_history',{team_id:teamId})
-              ]);
-              output.teams[teamId]={team,events,history,stats,subs_state,subs_history};
-            }));
-
-            const eventIds = new Set();
-            for (const team of Object.values(output.teams)) {
-              collectEventIds(team.history?.data,eventIds);
-              collectEventIds(team.events?.data,eventIds);
-            }
-            const ids=[...eventIds];
-
-            const eventRows = await pooled(ids,12,async eventId => {
-              const [event,assign1,assign2,assign3] = await Promise.all([
-                post('/event',{event_id:eventId}),
-                post('/event/assign_status',{event_id:eventId,map_slot:1}),
-                post('/event/assign_status',{event_id:eventId,map_slot:2}),
-                post('/event/assign_status',{event_id:eventId,map_slot:3})
-              ]);
-              const coreLists = {};
-              const results = await Promise.all(mapCandidates.map(map=>post('/match/get_cores_list',{event_id:eventId,map})));
-              mapCandidates.forEach((map,i)=>{ if (results[i]?.data) coreLists[map]=results[i]; });
-              return {eventId,event,assign1,assign2,assign3,coreLists};
-            });
-            for (const row of eventRows) output.events[row.eventId]=row;
-
-            fs.writeFileSync(outDir + '/opponents-api.json',JSON.stringify(output,null,2));
-            console.log(JSON.stringify({
-              teamCount:Object.keys(output.teams).length,
-              eventCount:Object.keys(output.events).length,
-              teamSummary:Object.fromEntries(Object.entries(output.teams).map(([id,t]) => [
-                id,{team:t.team.status,events:t.events.status,history:t.history.status,stats:t.stats.status}
-              ]))
-            },null,2));
-          }
-
-          main().catch(error=>{console.error(error);process.exitCode=1});
+          main().catch(e=>{console.error(e);process.exitCode=1});
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
