@@ -49,74 +49,72 @@ jobs:
             return s.replace(/[^a-zA-Z0-9._-]+/g,'_').slice(0,180);
           }
 
-          const summary = {generatedAt:new Date().toISOString(), teams:{}, assets:[], candidates:[]};
-          const assetUrls = new Set();
+          async function main() {
+            const summary = {generatedAt:new Date().toISOString(), teams:{}, assets:[], candidates:[]};
+            const assetUrls = new Set();
 
-          for (const id of teamIds) {
-            const url = origin + '/teams?team_id=' + encodeURIComponent(id);
-            const res = await get(url);
-            fs.writeFileSync(path.join(outDir, 'team-' + id + '.html'), res.body);
-            const scripts = [...res.body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]);
-            const links = [...res.body.matchAll(/<link[^>]+href=["']([^"']+)["']/gi)].map(m=>m[1]);
-            for (const src of [...scripts,...links]) {
-              try {
-                const u = new URL(src, origin);
-                if (u.origin === origin && (u.pathname.endsWith('.js') || u.pathname.includes('/_next/'))) assetUrls.add(u.href);
-              } catch {}
-            }
-            summary.teams[id] = {
-              requestedUrl:url,status:res.status,finalUrl:res.url,
-              contentType:res.headers['content-type'] || null,
-              bodyLength:res.body.length,
-              scriptCount:scripts.length,
-              scripts
-            };
-          }
-
-          let i=0;
-          for (const url of [...assetUrls]) {
-            try {
-              const res=await get(url);
-              const filename='asset-' + String(++i).padStart(3,'0') + '-' + safeName(new URL(url).pathname.split('/').pop()||'asset') + '.txt';
-              fs.writeFileSync(path.join(outDir,filename),res.body);
-              summary.assets.push({url,status:res.status,bodyLength:res.body.length,file:filename});
-
-              const patterns = [
-                /https?:\\/\\/[^"'\\s)]+/g,
-                /["'`](\\/api\\/[^"'\`\\s]+)["'`]/g,
-                /["'`](\\/(?:teams|all_teams|schedule|matches|match|maps)[^"'\`\\s]*)["'`]/gi,
-                /fetch\\(([^)]{0,300})\\)/g,
-                /axios\.(?:get|post)\\(([^)]{0,300})\\)/g
-              ];
-              for (const p of patterns) {
-                for (const m of res.body.matchAll(p)) {
-                  const text=(m[0]||'').slice(0,500);
-                  if (/team|match|map|schedule|esport|dnaracing|api/i.test(text)) {
-                    summary.candidates.push({asset:url,text});
-                  }
-                  if (summary.candidates.length > 500) break;
-                }
-                if (summary.candidates.length > 500) break;
+            for (const id of teamIds) {
+              const url = origin + '/teams?team_id=' + encodeURIComponent(id);
+              const res = await get(url);
+              fs.writeFileSync(path.join(outDir, 'team-' + id + '.html'), res.body);
+              const scripts = [...res.body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]);
+              const links = [...res.body.matchAll(/<link[^>]+href=["']([^"']+)["']/gi)].map(m=>m[1]);
+              for (const src of [...scripts,...links]) {
+                try {
+                  const u = new URL(src, origin);
+                  if (u.origin === origin && (u.pathname.endsWith('.js') || u.pathname.includes('/_next/'))) assetUrls.add(u.href);
+                } catch {}
               }
-            } catch (e) {
-              summary.assets.push({url,error:String(e)});
+              summary.teams[id] = {
+                requestedUrl:url,status:res.status,finalUrl:res.url,
+                contentType:res.headers['content-type'] || null,
+                bodyLength:res.body.length,
+                scriptCount:scripts.length,
+                scripts
+              };
             }
+
+            let i=0;
+            for (const url of [...assetUrls]) {
+              try {
+                const res=await get(url);
+                const filename='asset-' + String(++i).padStart(3,'0') + '-' + safeName(new URL(url).pathname.split('/').pop()||'asset') + '.txt';
+                fs.writeFileSync(path.join(outDir,filename),res.body);
+                summary.assets.push({url,status:res.status,bodyLength:res.body.length,file:filename});
+
+                const candidateRegex = /(?:https?:\/\/[^"'\s)]+|\/api\/[^"'\s,)}]+|\/(?:teams|all_teams|schedule|matches|match|maps)[^"'\s,)}]*)/gi;
+                for (const m of res.body.matchAll(candidateRegex)) {
+                  const candidate=(m[0]||'').slice(0,500);
+                  if (/team|match|map|schedule|esport|dnaracing|api/i.test(candidate)) {
+                    summary.candidates.push({asset:url,text:candidate});
+                  }
+                  if (summary.candidates.length > 1000) break;
+                }
+              } catch (e) {
+                summary.assets.push({url,error:String(e)});
+              }
+            }
+
+            const seen = new Set();
+            summary.candidates = summary.candidates.filter(x => {
+              const k=x.text; if(seen.has(k)) return false; seen.add(k); return true;
+            }).slice(0,1000);
+
+            fs.writeFileSync(path.join(outDir,'scan-summary.json'), JSON.stringify(summary,null,2));
+            console.log(JSON.stringify({
+              teams:Object.fromEntries(Object.entries(summary.teams).map(([k,v])=>[k,{status:v.status,bodyLength:v.bodyLength,scriptCount:v.scriptCount}])),
+              assetCount:summary.assets.length,
+              candidateCount:summary.candidates.length
+            },null,2));
           }
 
-          // De-duplicate candidate strings.
-          const seen = new Set();
-          summary.candidates = summary.candidates.filter(x => {
-            const k=x.text; if(seen.has(k)) return false; seen.add(k); return true;
-          }).slice(0,500);
-
-          fs.writeFileSync(path.join(outDir,'scan-summary.json'), JSON.stringify(summary,null,2));
-          console.log(JSON.stringify({
-            teams:Object.fromEntries(Object.entries(summary.teams).map(([k,v])=>[k,{status:v.status,bodyLength:v.bodyLength,scriptCount:v.scriptCount}])),
-            assetCount:summary.assets.length,
-            candidateCount:summary.candidates.length
-          },null,2));
+          main().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
           NODE
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: temporary-chat-esports-opponent-scan
           path: esports-opponent-scan
