@@ -18,4 +18,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --method POST             repos/${GITHUB_REPOSITORY}/actions/workflows/dna-open-lab-private-daily-refresh-command.yml/dispatches             -f ref=main             -f 'inputs[finished_history_upper_bound_at]=2026-09-19T07:40:00.000Z'             -f 'inputs[maximum_steps]=100'             -f 'inputs[execute_bounded_private_preview_refresh]=true'
+          gh api --method POST             repos/${GITHUB_REPOSITORY}/actions/workflows/dna-open-lab-private-daily-refresh-command.yml/dispatches             -f ref=main             -f 'inputs[finished_history_upper_bound_at]=2026-09-19T07:38:00.000Z'             -f 'inputs[maximum_steps]=100'             -f 'inputs[execute_bounded_private_preview_refresh]=true'
