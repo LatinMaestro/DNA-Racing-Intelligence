@@ -1,0 +1,21 @@
+name: temporary-chat-dispatch-preview-refresh
+on:
+  push:
+    branches:
+      - temporary/chat-pro-league-live-refresh-2026-09-18-do-not-merge
+    paths:
+      - ".github/workflows/temporary-chat-dispatch-preview-refresh.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-main-preview-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch guarded main Preview refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST             repos/${GITHUB_REPOSITORY}/actions/workflows/dna-open-lab-private-daily-refresh-command.yml/dispatches             -f ref=main             -f 'inputs[finished_history_upper_bound_at]=2026-09-19T07:40:00.000Z'             -f 'inputs[maximum_steps]=100'             -f 'inputs[execute_bounded_private_preview_refresh]=true'
