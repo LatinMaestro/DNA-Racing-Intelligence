@@ -6,9 +6,11 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   live-refresh:
+    if: ${{ !contains(github.event.head_commit.message, '[dispatch-preview-refresh]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -31,4 +33,24 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-# chat refresh trigger: 2026-09-19-free-test-review
+  dispatch-preview-refresh:
+    if: ${{ contains(github.event.head_commit.message, '[dispatch-preview-refresh]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch the existing exact-main Preview refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/dna-open-lab-private-daily-refresh-command.yml/dispatches" \
+            --input - <<'JSON'
+          {
+            "ref": "main",
+            "inputs": {
+              "finished_history_upper_bound_at": "2026-09-19T07:38:00.000Z",
+              "maximum_steps": "100",
+              "execute_bounded_private_preview_refresh": "true"
+            }
+          }
+          JSON
