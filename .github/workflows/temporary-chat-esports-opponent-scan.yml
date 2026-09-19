@@ -1,0 +1,123 @@
+name: temporary chat esports opponent scan
+
+on:
+  push:
+    branches:
+      - temporary/chat-esports-opponent-scan-2026-09-20-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch public team pages and inspect client assets
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const origin = 'https://esports.dnaracing.run';
+          const teamIds = ['e4879e84ec','68082d17da','1c0422c92c','8c52c6d87d'];
+          const outDir = 'esports-opponent-scan';
+          fs.mkdirSync(outDir, {recursive:true});
+
+          const headers = {
+            'user-agent': 'Mozilla/5.0 ChatGPT read-only opponent analysis',
+            'accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8'
+          };
+
+          async function get(url) {
+            const r = await fetch(url, {headers, redirect:'follow'});
+            const body = await r.text();
+            return {
+              status:r.status,
+              url:r.url,
+              headers:Object.fromEntries(r.headers.entries()),
+              body
+            };
+          }
+
+          function safeName(s) {
+            return s.replace(/[^a-zA-Z0-9._-]+/g,'_').slice(0,180);
+          }
+
+          const summary = {generatedAt:new Date().toISOString(), teams:{}, assets:[], candidates:[]};
+          const assetUrls = new Set();
+
+          for (const id of teamIds) {
+            const url = origin + '/teams?team_id=' + encodeURIComponent(id);
+            const res = await get(url);
+            fs.writeFileSync(path.join(outDir, 'team-' + id + '.html'), res.body);
+            const scripts = [...res.body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]);
+            const links = [...res.body.matchAll(/<link[^>]+href=["']([^"']+)["']/gi)].map(m=>m[1]);
+            for (const src of [...scripts,...links]) {
+              try {
+                const u = new URL(src, origin);
+                if (u.origin === origin && (u.pathname.endsWith('.js') || u.pathname.includes('/_next/'))) assetUrls.add(u.href);
+              } catch {}
+            }
+            summary.teams[id] = {
+              requestedUrl:url,status:res.status,finalUrl:res.url,
+              contentType:res.headers['content-type'] || null,
+              bodyLength:res.body.length,
+              scriptCount:scripts.length,
+              scripts
+            };
+          }
+
+          let i=0;
+          for (const url of [...assetUrls]) {
+            try {
+              const res=await get(url);
+              const filename='asset-' + String(++i).padStart(3,'0') + '-' + safeName(new URL(url).pathname.split('/').pop()||'asset') + '.txt';
+              fs.writeFileSync(path.join(outDir,filename),res.body);
+              summary.assets.push({url,status:res.status,bodyLength:res.body.length,file:filename});
+
+              const patterns = [
+                /https?:\\/\\/[^"'\\s)]+/g,
+                /["'`](\\/api\\/[^"'\`\\s]+)["'`]/g,
+                /["'`](\\/(?:teams|all_teams|schedule|matches|match|maps)[^"'\`\\s]*)["'`]/gi,
+                /fetch\\(([^)]{0,300})\\)/g,
+                /axios\.(?:get|post)\\(([^)]{0,300})\\)/g
+              ];
+              for (const p of patterns) {
+                for (const m of res.body.matchAll(p)) {
+                  const text=(m[0]||'').slice(0,500);
+                  if (/team|match|map|schedule|esport|dnaracing|api/i.test(text)) {
+                    summary.candidates.push({asset:url,text});
+                  }
+                  if (summary.candidates.length > 500) break;
+                }
+                if (summary.candidates.length > 500) break;
+              }
+            } catch (e) {
+              summary.assets.push({url,error:String(e)});
+            }
+          }
+
+          // De-duplicate candidate strings.
+          const seen = new Set();
+          summary.candidates = summary.candidates.filter(x => {
+            const k=x.text; if(seen.has(k)) return false; seen.add(k); return true;
+          }).slice(0,500);
+
+          fs.writeFileSync(path.join(outDir,'scan-summary.json'), JSON.stringify(summary,null,2));
+          console.log(JSON.stringify({
+            teams:Object.fromEntries(Object.entries(summary.teams).map(([k,v])=>[k,{status:v.status,bodyLength:v.bodyLength,scriptCount:v.scriptCount}])),
+            assetCount:summary.assets.length,
+            candidateCount:summary.candidates.length
+          },null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-esports-opponent-scan
+          path: esports-opponent-scan
+          retention-days: 1
