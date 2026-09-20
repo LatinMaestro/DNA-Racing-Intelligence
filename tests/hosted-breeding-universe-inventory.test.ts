@@ -7,6 +7,7 @@ import {
   type DnaRaceDocument,
   type DnaRaceIdentifier,
 } from "../lib/dna-open-lab-v1-client";
+import { dnaSpliceArenaNeedsContinuation } from "../lib/dna-splice-arena-pagination";
 import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-telemetry-client";
 
 const enabled = process.env.DNA_BREEDING_UNIVERSE_BACKFILL === "1";
@@ -20,6 +21,7 @@ const FINISHED_LIMIT = 200;
 const MIN_FINISHED_WINDOW_MS = 1_000;
 const CORE_BATCH_SIZE = 20;
 const CONCURRENCY_GROUP = 8;
+const MAXIMUM_ARENA_PAGES_PER_MODE = 512;
 
 type AnyRecord = Record<string, unknown>;
 type CoreFamilies = {
@@ -303,12 +305,52 @@ describeConnected("aggressive owner breeding universe backfill", () => {
         horse: [],
       };
       for (const mode of ["bike", "car", "horse"] as const) {
-        for (let page = 1; page <= 100; page++) {
+        let pageSizeLimit: number | null = null;
+        const seenArenaCoreIds = new Set<number>();
+        for (let page = 1; page <= MAXIMUM_ARENA_PAGES_PER_MODE; page++) {
           const response = await paced(() =>
             client.spliceArena({ filter: { rvmode: mode }, page }),
           );
-          arenas[mode]!.push(...(response.result.cores as AnyRecord[]));
-          if (!response.result.has_more) break;
+          const rows = response.result.cores as readonly AnyRecord[];
+          if (response.result.page !== page) {
+            throw new Error(
+              `Arena ${mode} page drift: requested ${page}, received ${response.result.page}`,
+            );
+          }
+          if (
+            pageSizeLimit !== null &&
+            response.result.limit !== pageSizeLimit
+          ) {
+            throw new Error(
+              `Arena ${mode} page limit changed from ${pageSizeLimit} to ${response.result.limit}`,
+            );
+          }
+          pageSizeLimit = response.result.limit;
+          for (const row of rows) {
+            const hid = finiteHid(row.hid);
+            if (hid === null) {
+              throw new Error(`Arena ${mode} returned an invalid Core id`);
+            }
+            if (seenArenaCoreIds.has(hid)) {
+              throw new Error(
+                `Arena ${mode} repeated Core ${hid} across pages`,
+              );
+            }
+            seenArenaCoreIds.add(hid);
+          }
+          arenas[mode]!.push(...rows);
+          if (
+            !dnaSpliceArenaNeedsContinuation({
+              hasMore: response.result.has_more,
+              rowCount: rows.length,
+              pageSizeLimit: response.result.limit,
+            })
+          ) {
+            break;
+          }
+          if (page === MAXIMUM_ARENA_PAGES_PER_MODE) {
+            throw new Error(`Arena ${mode} exceeded its bounded page capacity`);
+          }
         }
       }
 
