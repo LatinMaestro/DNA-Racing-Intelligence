@@ -48,7 +48,8 @@ export const proLeagueCurrentRules = Object.freeze({
 });
 
 export const proLeagueOwnerRosterStrategy = Object.freeze({
-  strategyId: "owner-pro-league/win-first-25-core-2026-09-20",
+  strategyId: "owner-pro-league/ageing-aware-25-core-2026-08-31",
+  policyUpdatedAt: "2026-09-20",
   evidenceStatus: "owner_confirmed" as const,
   targetRosterSize: 25,
   targetRosterPolicy: "exactly_25" as const,
