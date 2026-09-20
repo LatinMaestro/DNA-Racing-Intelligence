@@ -244,6 +244,38 @@ The distinction requires sample growth. As the sample grows:
 - if times become tight around an ordinary/weak median after two-category
   rule-out testing, benching becomes reasonable.
 
+## Proven-Core benchmark screens
+
+Discovery may use a short controlled normal-Free benchmark screen when the
+owner needs to decide whether a low-sample or high-variance Core has enough
+latent ceiling to justify continued testing, roster consideration or an
+adjacent-distance hypothesis.
+
+The benchmark-screen policy is:
+
+- same racing mode and exact distance;
+- challenger paired with a proven strong/elite owned Core where practical;
+- two races initially and normally no more than five per Core/distance;
+- Yellow/source-Gold and Blue stars are the **primary small-sample signal**;
+- finish position and elapsed time remain secondary context for the screen;
+- repeated stars over more than one proven benchmark are stronger evidence than
+  repeated stars over one weak or unknown field;
+- if an external Core receives the stars, inspect that external Core's
+  same-mode/exact-distance quality before classifying the challenger as a miss;
+  and
+- the screen never authorises automatic promotion, benching or race entry.
+
+This does not reverse the broader evidence hierarchy. Once an adequate
+historical sample exists, exact-format pace, repeatability and direct outcomes
+remain primary for mature ranking. The controlled benchmark screen exists
+because two to five race finishes are too noisy to estimate a volatile Core's
+distribution reliably, while repeated stars over known strong opposition can
+still reveal ceiling.
+
+The shared policy constant lives in `domain/discovery-methodology.ts`. The Pro
+League pre-roster experiment queue carries that policy as advisory metadata so
+the website can recommend the benchmark-screen method without entering races.
+
 ## No-star interpretation
 
 No Blue/Yellow/Gold stars are never interpreted without opportunity context.
