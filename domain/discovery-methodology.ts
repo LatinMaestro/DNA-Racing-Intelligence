@@ -95,6 +95,26 @@ export type DiscoveryStarOpportunityEvidence = Readonly<{
   yellowOrGoldReceivedCount: number;
 }>;
 
+export const discoveryBenchmarkScreenPolicy = Object.freeze({
+  evidenceClass: "normal_free" as const,
+  opponentStrategy: "proven_same_mode_exact_distance_core" as const,
+  initialRaceCount: 2 as const,
+  maximumRaceCount: 5 as const,
+  primarySmallSampleSignal: "yellow_blue_stars" as const,
+  finishAndTimeUse: "secondary_context" as const,
+  externalStarHolderReviewRequired: true as const,
+});
+export type DiscoveryBenchmarkScreenPolicy =
+  typeof discoveryBenchmarkScreenPolicy;
+
+export type DiscoveryBenchmarkStarScreenEvidence = Readonly<{
+  provenBenchmarkRaceCount: number;
+  targetStarredRaceCount: number;
+  targetYellowOrGoldRaceCount: number;
+  targetBlueRaceCount: number;
+  strongExternalStarHolderRaceCount: number;
+}>;
+
 function required(value: string, label: string): string {
   const normalized = value.trim();
   if (normalized === "") throw new Error(`${label} is required.`);
@@ -515,6 +535,55 @@ export function buildDiscoveryCoreMethodologyPlan(
     automaticPromotionAllowed: false,
     automaticBenchAllowed: false,
   });
+}
+
+export function assessDiscoveryBenchmarkStarScreen(
+  input: DiscoveryBenchmarkStarScreenEvidence,
+): DiscoverySupportAssessment {
+  const provenBenchmarkRaceCount = count(
+    input.provenBenchmarkRaceCount,
+    "Proven benchmark race count",
+  );
+  const targetStarredRaceCount = count(
+    input.targetStarredRaceCount,
+    "Target benchmark-screen starred race count",
+  );
+  const targetYellowOrGoldRaceCount = count(
+    input.targetYellowOrGoldRaceCount,
+    "Target benchmark-screen Yellow-or-Gold race count",
+  );
+  const targetBlueRaceCount = count(
+    input.targetBlueRaceCount,
+    "Target benchmark-screen Blue race count",
+  );
+  const strongExternalStarHolderRaceCount = count(
+    input.strongExternalStarHolderRaceCount,
+    "Strong external star-holder race count",
+  );
+
+  if (
+    targetStarredRaceCount > provenBenchmarkRaceCount ||
+    targetYellowOrGoldRaceCount > targetStarredRaceCount ||
+    targetBlueRaceCount > targetStarredRaceCount ||
+    strongExternalStarHolderRaceCount > provenBenchmarkRaceCount
+  ) {
+    throw new Error(
+      "Discovery benchmark-screen star evidence is inconsistent.",
+    );
+  }
+
+  if (provenBenchmarkRaceCount === 0) return "unavailable";
+  if (provenBenchmarkRaceCount >= 2 && targetStarredRaceCount >= 2) {
+    return "strong_support";
+  }
+  if (targetStarredRaceCount >= 1) return "supporting";
+  if (
+    provenBenchmarkRaceCount >= 3 &&
+    strongExternalStarHolderRaceCount === 0
+  ) {
+    return "caution";
+  }
+  return "neutral";
 }
 
 export function noStarEvidenceSupportsCaution(
