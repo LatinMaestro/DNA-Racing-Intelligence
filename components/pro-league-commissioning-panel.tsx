@@ -900,6 +900,11 @@ export function ProLeagueCommissioningPanel({
                     takes a star, review the external star holder before
                     downgrading either Core.
                   </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    {experiment.benchmarkCore === null
+                      ? "No proven same-distance roster benchmark is currently available; choose one manually only after its quality is verified."
+                      : `Preferred benchmark: ${experiment.benchmarkCore.displayName} (${experiment.benchmarkCore.directRaceCount} proven same-distance race(s), ${label(experiment.benchmarkCore.benchmarkSignal)}).`}
+                  </p>
                 </li>
               ))}
             </ol>
