@@ -1,0 +1,113 @@
+name: temporary corrected Arena Preview refresh
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-corrected-arena-preview-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_COMMAND: "1"
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_MAXIMUM_STEPS: "100"
+      DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT: "2026-09-20T23:00:00.000Z"
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Checkout exact PR base main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Prove checked out code is still current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          if [[ "$(git rev-parse HEAD)" != "$BASE_SHA" ]] || [[ "$(git rev-parse origin/main)" != "$BASE_SHA" ]]; then
+            echo "Main moved; refusing Preview refresh from stale code."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded Preview configuration
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_OPEN_LAB_API_KEY_2",
+            "DNA_OPEN_LAB_API_KEY_3",
+            "DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT",
+            "DNA_OPEN_LAB_VAULT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length) throw new Error("Missing/invalid Preview settings: " + invalid.join(", "));
+          const cutoff = new Date(process.env.DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT);
+          if (Number.isNaN(cutoff.getTime()) || cutoff.toISOString() !== process.env.DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT || cutoff.getTime() > Date.now()) {
+            throw new Error("Refresh upper bound is invalid or future.");
+          }
+          const keys = [
+            process.env.DNA_OPEN_LAB_API_KEY_1,
+            process.env.DNA_OPEN_LAB_API_KEY_2,
+            process.env.DNA_OPEN_LAB_API_KEY_3,
+          ];
+          if (new Set(keys).size !== 3) throw new Error("Three distinct DNA API keys are required.");
+          console.log("Preview configuration valid; private values not printed.");
+          NODE
+      - name: Advance official bounded Preview daily refresh
+        shell: bash
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          GITHUB_SHA="$BASE_SHA" npx vitest run --no-file-parallelism tests/hosted-preview-connected-private-daily-refresh-command.test.ts
+      - name: Prove main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          if [[ "$(git rev-parse origin/main)" != "$BASE_SHA" ]]; then
+            echo "Main changed during Preview refresh."
+            exit 1
+          fi
