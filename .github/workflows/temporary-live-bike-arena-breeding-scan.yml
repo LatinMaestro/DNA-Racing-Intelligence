@@ -1,4 +1,4 @@
-name: temporary complete live Bike Arena scan
+name: temporary full Bike Arena performance screen
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
     steps:
@@ -19,51 +19,46 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Pull complete Bike Arena using verified terminal rule
+      - name: Pull complete Bike Arena and racing stats
         run: |
           node <<'NODE'
           const fs=require('fs');
           const key=process.env.DNA_OPEN_LAB_API_KEY_3;
-          const url='https://api.dnaracing.run/fbike/pub/v1/splice/arena';
+          const base='https://api.dnaracing.run/fbike/pub/v1';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function fetchPage(page){
+          let lastStarted=0;
+          async function pacedFetch(path,init){
+            const wait=Math.max(0,2200-(Date.now()-lastStarted));
+            if(wait>0) await sleep(wait);
+            lastStarted=Date.now();
             let lastError=null;
             for(let attempt=1;attempt<=5;attempt++){
               const controller=new AbortController();
               const timer=setTimeout(()=>controller.abort(),60000);
               try{
-                const r=await fetch(url,{
-                  method:'POST',
-                  headers:{
-                    'authorization':'Bearer '+key,
-                    'accept':'application/json',
-                    'content-type':'application/json'
-                  },
-                  body:JSON.stringify({f:{rvmode:'bike'},page}),
-                  signal:controller.signal
-                });
+                const r=await fetch(base+path,{...init,signal:controller.signal});
                 const text=await r.text();
-                let j=null; try{j=JSON.parse(text)}catch{}
+                let j=null;try{j=JSON.parse(text)}catch{}
                 if(r.status===429){
                   await sleep(Math.max(3000,Number(r.headers.get('retry-after')||3)*1000));
                   continue;
                 }
-                if(!r.ok||j?.status!=='success') throw new Error('page '+page+' '+r.status+' '+text.slice(0,400));
+                if(!r.ok||j?.status!=='success') throw new Error(path+' '+r.status+' '+text.slice(0,400));
                 return j.result;
               }catch(error){
                 lastError=error;
                 if(attempt===5) throw error;
                 await sleep(3000);
-              }finally{
-                clearTimeout(timer);
-              }
+              }finally{clearTimeout(timer)}
             }
-            throw lastError??new Error('page retries exhausted '+page);
+            throw lastError??new Error('request retries exhausted '+path);
           }
+          const headers={'authorization':'Bearer '+key,'accept':'application/json','content-type':'application/json'};
+          const post=(path,body)=>pacedFetch(path,{method:'POST',headers,body:JSON.stringify(body)});
           (async()=>{
-            const pages=[]; const cores=[]; const seen=new Set(); let expectedLimit=null;
+            const pages=[];const cores=[];const seen=new Set();let expectedLimit=null;
             for(let p=1;p<=100;p++){
-              const result=await fetchPage(p);
+              const result=await post('/splice/arena',{f:{rvmode:'bike'},page:p});
               const rows=Array.isArray(result.cores)?result.cores:[];
               if(result.page!==p) throw new Error('page drift '+p+' -> '+result.page);
               if(!Number.isSafeInteger(result.limit)||result.limit<1) throw new Error('invalid limit');
@@ -71,21 +66,26 @@ jobs:
               expectedLimit=result.limit;
               for(const row of rows){
                 if(seen.has(row.hid)) throw new Error('duplicate hid '+row.hid);
-                seen.add(row.hid); cores.push(row);
+                seen.add(row.hid);cores.push(row);
               }
               pages.push({page:p,count:rows.length,limit:result.limit,reportedHasMore:result.has_more});
-              const needsMore=result.has_more===true || rows.length===result.limit;
-              if(!needsMore) break;
-              await sleep(2200);
+              if(!(result.has_more===true || rows.length===result.limit)) break;
               if(p===100) throw new Error('page bound exceeded');
             }
-            fs.writeFileSync('complete-live-bike-arena.json',JSON.stringify({
-              fetchedAt:new Date().toISOString(),pages,listingCount:cores.length,cores
+            const hids=cores.map(c=>Number(c.hid));
+            const racingStats=[];
+            for(let i=0;i<hids.length;i+=20){
+              const rows=await post('/cores/racing_stats_bulk',{hids:hids.slice(i,i+20)});
+              if(!Array.isArray(rows)) throw new Error('racing stats bulk result is not an array');
+              racingStats.push(...rows);
+            }
+            fs.writeFileSync('full-bike-arena-performance-screen.json',JSON.stringify({
+              fetchedAt:new Date().toISOString(),pages,listingCount:cores.length,cores,racingStats
             },null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: complete-live-bike-arena
-          path: complete-live-bike-arena.json
+          name: full-bike-arena-performance-screen
+          path: full-bike-arena-performance-screen.json
           retention-days: 1
