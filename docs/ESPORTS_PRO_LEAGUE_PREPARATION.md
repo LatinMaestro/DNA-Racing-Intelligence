@@ -322,12 +322,28 @@ For each candidate show separate evidence dimensions, including:
 
 Candidate ordering may use a transparent deterministic review order but must expose the underlying dimensions.
 
-Raw star totals and raw conversion never improve esports ranking. Only
-opposition-adjusted star evidence known before the race may break an otherwise
-tied intrinsic exact-format/distance comparison. A perfect record over weak or
-unknown fields is descriptive only; a star over a pre-race elite opponent is
-positive supporting evidence. Exact-format time, speed and consistency remain
-primary.
+Raw star totals and raw conversion from uncontrolled fields never improve
+esports ranking by themselves. Opposition quality must be known from evidence
+available before the race.
+
+For mature historical comparisons with adequate samples, exact-format time,
+speed, consistency and direct result distributions remain the primary evidence.
+A perfect star record over weak or unknown fields is descriptive only.
+
+A **controlled normal-Free benchmark screen** is different. When a challenger
+is deliberately paired at the same Bike distance with a proven strong/elite
+Core and only 2–5 races are planned, Yellow/source-Gold and Blue stars are the
+primary small-sample signal of latent ceiling. Finish position and elapsed time
+remain useful secondary context but are too noisy to overrule repeated stars in
+such a tiny high-variance sample. Repeated stars over more than one proven
+benchmark are strong supporting evidence even when the challenger finishes
+poorly.
+
+If neither owned Core receives a star, inspect the external star holder before
+downgrading either Core. A strong external star holder makes that race
+inconclusive rather than negative. Repeated no-star results across several
+quality-known benchmark opportunities may support caution, but never create an
+automatic bench decision.
 
 ## API-only evidence hierarchy
 
@@ -415,6 +431,14 @@ normal mode-aware Discovery workflow.
 
 Before roster lock, convert remaining uncertainty into ranked normal-racing
 probes rather than spending Pro League ageing blindly.
+
+When a question is specifically about latent distance ceiling, prefer a
+controlled normal-Free **benchmark screen** where practical: pair the challenger
+with a proven same-mode/exact-distance owned Core, start with two races and
+normally stop within 2–5 races per Core/distance once the star signal is
+decision-ready. This short screen does not replace the ten-race analytical
+minimum or the wider normal-Free study target when a full distribution is
+needed.
 
 Prioritise:
 
