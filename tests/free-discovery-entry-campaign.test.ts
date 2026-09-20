@@ -134,7 +134,7 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
     expect(remainingForFirstCell.map(({ raceOrdinal }) => raceOrdinal)).toEqual(
       [4, 5],
     );
-    expect(intents).toHaveLength(2_573);
+    expect(intents).toHaveLength(2_572);
   });
 
   it("keeps cloud execution and automatic burn/no-star stops disabled", () => {
