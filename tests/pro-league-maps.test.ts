@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 
 import {
+  buildProLeagueFullGateMapLineup,
   buildProLeagueMapLineup,
   proLeagueGateAllocation,
   proLeagueMapAuthority,
   proLeagueMaps,
+  resolveProLeagueFullGateMapAssignment,
   resolveProLeagueMapAssignment,
 } from "@/domain/pro-league-maps";
 
@@ -147,6 +149,65 @@ describe("Pro League maps", () => {
           mapId === "map-1" && raceType === "1v1" && distanceMetres === 1000,
       ),
     ).toBe(true);
+  });
+
+  it("models every owned gate in large fields instead of one Core per race line", () => {
+    const resolved = resolveProLeagueFullGateMapAssignment({
+      mapId: "map-4",
+      raceNumber: 2,
+      coreIds: Array.from({ length: 12 }, (_, index) => `core-${index + 1}`),
+      scope: "same_type_and_distance",
+    });
+
+    expect(resolved).toHaveLength(9);
+    expect(resolved[0]).toMatchObject({
+      raceNumber: 2,
+      totalGateEntries: 24,
+      gateEntriesPerVault: 12,
+      coreIds: Array.from(
+        { length: 12 },
+        (_, index) => `core-${index + 1}`,
+      ),
+    });
+
+    const lineup = buildProLeagueFullGateMapLineup({
+      mapId: "map-4",
+      rosterCoreIds: Array.from(
+        { length: 12 },
+        (_, index) => `core-${index + 1}`,
+      ),
+      assignments: [
+        {
+          mapId: "map-4",
+          raceNumber: 2,
+          coreIds: Array.from(
+            { length: 12 },
+            (_, index) => `core-${index + 1}`,
+          ),
+          scope: "same_type_and_distance",
+        },
+      ],
+    });
+    expect(lineup.assignedRaceCount).toBe(9);
+    expect(lineup.assignedCoreEntryCount).toBe(108);
+
+    expect(() =>
+      resolveProLeagueFullGateMapAssignment({
+        mapId: "map-4",
+        raceNumber: 1,
+        coreIds: Array.from({ length: 10 }, (_, index) => `core-${index + 1}`),
+        scope: "single_race",
+      }),
+    ).toThrow("exactly 11");
+
+    expect(() =>
+      resolveProLeagueFullGateMapAssignment({
+        mapId: "map-1",
+        raceNumber: 2,
+        coreIds: ["core-1", "core-1", "core-2"],
+        scope: "single_race",
+      }),
+    ).toThrow("cannot map the same Core more than once");
   });
 
   it("reports first-16 coverage and rejects non-roster or conflicting mappings", () => {
