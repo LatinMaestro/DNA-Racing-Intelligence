@@ -7,6 +7,10 @@ import {
   freeDiscoveryEntryCellKey,
   validateFreeDiscoveryEntryCampaign,
 } from "@/domain/free-discovery-entry-campaign";
+import {
+  buildHorseBurnGradePendingEntryIntents,
+  horseBurnGradeFreeDiscoveryEntryCampaign,
+} from "@/lib/horse-free-discovery-entry-campaign";
 
 const campaignPath =
   "campaigns/horse-burn-grade-discovery-2026-09-20.json";
@@ -64,6 +68,14 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
         0,
       ),
     ).toBe(515);
+  });
+
+  it("is directly consumable by the local/native Auto-Entry planner", () => {
+    expect(horseBurnGradeFreeDiscoveryEntryCampaign.summary).toMatchObject({
+      coreDistanceCellCount: 515,
+      plannedRaceCount: 2_575,
+    });
+    expect(buildHorseBurnGradePendingEntryIntents()).toHaveLength(2_575);
   });
 
   it("expands each Core-distance cell to five idempotent entry intents", () => {
