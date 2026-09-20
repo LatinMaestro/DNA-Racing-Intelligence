@@ -290,10 +290,25 @@ export type ProLeagueMapAssignmentCommand = Readonly<{
   scope: ProLeagueMapAssignmentScope;
 }>;
 
+export type ProLeagueFullGateAssignmentCommand = Readonly<{
+  mapId: ProLeagueMapId;
+  raceNumber: number;
+  coreIds: readonly string[];
+  scope: ProLeagueMapAssignmentScope;
+}>;
+
 export type ProLeagueMapLineupEntry = ProLeagueMapRace &
   Readonly<{
     mapId: ProLeagueMapId;
     coreId: string;
+    sourceRaceNumber: number;
+    scope: ProLeagueMapAssignmentScope;
+  }>;
+
+export type ProLeagueFullGateLineupEntry = ProLeagueMapRace &
+  Readonly<{
+    mapId: ProLeagueMapId;
+    coreIds: readonly string[];
     sourceRaceNumber: number;
     scope: ProLeagueMapAssignmentScope;
   }>;
@@ -339,6 +354,144 @@ export function resolveProLeagueMapAssignment(
     sourceRaceNumber: sourceRace.raceNumber,
     scope: command.scope,
   }));
+}
+
+function fullGateCoreIds(
+  values: readonly string[],
+  expectedCount: number,
+): readonly string[] {
+  if (!Array.isArray(values) || values.length !== expectedCount) {
+    throw new Error(
+      `Pro League full-gate assignment requires exactly ${expectedCount} Core(s).`,
+    );
+  }
+  const normalized = values.map((value) => value.trim());
+  if (normalized.some((value) => value === "")) {
+    throw new Error("A mapped Core ID must not be blank.");
+  }
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error(
+      "A Pro League full-gate race cannot map the same Core more than once.",
+    );
+  }
+  return Object.freeze(normalized);
+}
+
+export function resolveProLeagueFullGateMapAssignment(
+  command: ProLeagueFullGateAssignmentCommand,
+): readonly ProLeagueFullGateLineupEntry[] {
+  if (
+    command.scope !== "single_race" &&
+    command.scope !== "same_type_and_distance"
+  ) {
+    throw new Error("Pro League map assignment scope is invalid.");
+  }
+  const map = mapById(command.mapId);
+  const sourceRace = map.races.find(
+    ({ raceNumber }) => raceNumber === command.raceNumber,
+  );
+  if (sourceRace === undefined) {
+    throw new Error(
+      `Race ${command.raceNumber} is not defined for ${command.mapId}.`,
+    );
+  }
+  const coreIds = fullGateCoreIds(
+    command.coreIds,
+    sourceRace.gateEntriesPerVault,
+  );
+  const races =
+    command.scope === "single_race"
+      ? [sourceRace]
+      : map.races.filter(
+          ({ raceType, distanceMetres }) =>
+            raceType === sourceRace.raceType &&
+            distanceMetres === sourceRace.distanceMetres,
+        );
+  return races.map((race) =>
+    Object.freeze({
+      ...race,
+      mapId: command.mapId,
+      coreIds,
+      sourceRaceNumber: sourceRace.raceNumber,
+      scope: command.scope,
+    }),
+  );
+}
+
+function sameCoreIds(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((coreId, index) => coreId === right[index])
+  );
+}
+
+export function buildProLeagueFullGateMapLineup(
+  input: Readonly<{
+    mapId: ProLeagueMapId;
+    rosterCoreIds: readonly string[];
+    assignments: readonly ProLeagueFullGateAssignmentCommand[];
+  }>,
+): Readonly<{
+  map: ProLeagueMap;
+  entries: readonly ProLeagueFullGateLineupEntry[];
+  assignedRaceCount: number;
+  assignedFirst16Count: number;
+  assignedCoreEntryCount: number;
+  unassignedRaceNumbers: readonly number[];
+}> {
+  const map = mapById(input.mapId);
+  const roster = new Set(input.rosterCoreIds.map((coreId) => coreId.trim()));
+  if (roster.has("")) throw new Error("Roster Core IDs must not be blank.");
+  const entries = new Map<number, ProLeagueFullGateLineupEntry>();
+
+  for (const command of input.assignments) {
+    if (command.mapId !== input.mapId) {
+      throw new Error(
+        "A map lineup cannot contain assignments for another map.",
+      );
+    }
+    for (const resolved of resolveProLeagueFullGateMapAssignment(command)) {
+      for (const coreId of resolved.coreIds) {
+        if (!roster.has(coreId)) {
+          throw new Error(`Mapped Core ${coreId} is not on the roster.`);
+        }
+      }
+      const existing = entries.get(resolved.raceNumber);
+      if (
+        existing !== undefined &&
+        !sameCoreIds(existing.coreIds, resolved.coreIds)
+      ) {
+        throw new Error(
+          `Race ${resolved.raceNumber} has conflicting full-gate Core assignments.`,
+        );
+      }
+      entries.set(resolved.raceNumber, resolved);
+    }
+  }
+
+  const orderedEntries = [...entries.values()].sort(
+    (left, right) => left.raceNumber - right.raceNumber,
+  );
+  return Object.freeze({
+    map,
+    entries: Object.freeze(orderedEntries),
+    assignedRaceCount: orderedEntries.length,
+    assignedFirst16Count: orderedEntries.filter(
+      ({ raceNumber }) => raceNumber <= 16,
+    ).length,
+    assignedCoreEntryCount: orderedEntries.reduce(
+      (sum, entry) => sum + entry.coreIds.length,
+      0,
+    ),
+    unassignedRaceNumbers: Object.freeze(
+      map.races
+        .filter(({ raceNumber }) => !entries.has(raceNumber))
+        .map(({ raceNumber }) => raceNumber),
+    ),
+  });
 }
 
 export function buildProLeagueMapLineup(
