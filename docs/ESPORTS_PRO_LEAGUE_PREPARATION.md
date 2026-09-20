@@ -1,7 +1,7 @@
 # DNA Pro League Preparation
 
 Status: **current Pro League preparation authority**  
-Effective: **29 August 2026**
+Effective: **20 September 2026**
 
 **Terminology authority:** DNA Pro League and DNA Esports are the same Bike
 competition. This document uses `Pro League/Esports` when the equivalence needs
@@ -15,8 +15,9 @@ This document combines:
 
 - the DNA Community Update supplied by the owner on 20 August 2026;
 - later owner-provided/confirmed Pro League roster rules that supersede the initial announcement assumptions; and
-- the public DNA Esports trial pages and owner-supplied trial announcements reviewed on 29 August 2026; and
-- the 27 August 2026 API-first architecture decision.
+- the public DNA Esports trial pages and owner-supplied trial announcements reviewed on 29 August 2026;
+- the 27 August 2026 API-first architecture decision; and
+- the owner-confirmed 20 September 2026 roster-selection, full-gate mapping and controlled normal-Free benchmark-screen methodology.
 
 Where current rules below conflict with the older announcement snapshot, the current rules govern validation and recommendations. The older announcement remains recorded later in this document as historical evidence.
 
@@ -207,6 +208,59 @@ It must also show the equal gate allocation for every race line, compare our
 mapped Core with the opposing Vault's selected or best-supported likely Core,
 and rank the role-eligible map choices by favourable, contested, unfavourable
 and unknown exact-format lines.
+
+## Current owner roster-selection and win-first mapping doctrine
+
+The following is the current **owner strategy**, not an additional DNA game rule.
+Where it is stricter than the formal roster limits, preserve the owner strategy
+until the owner changes it.
+
+Roster selection:
+
+- register exactly **25 Cores**;
+- use **no Genesis** in the owner roster even though the current DNA rules permit
+  limited Genesis;
+- apply the owner eligibility guardrail of no more than **400 Bike ageing used**
+  when selecting the initial roster;
+- prefer elite or genuinely elite-potential Cores only; do not use structural
+  filler merely to occupy a legal slot;
+- optimise primarily for **Anchor, Measure and Glory**; treat Miracles as a
+  deny/contingency map and do not let it drive roster selection;
+- protect valuable normal-tournament Cores unless their Pro League contribution
+  clearly justifies the ageing exposure; and
+- evaluate exact race type plus exact distance first, while preserving
+  star/variance/upside evidence for high-variance Cores.
+
+Mapping is **win-first**, not usage-balanced:
+
+- every published race line must show the equal per-Vault gate allocation:
+  `1v1 = 1`, `4-gate = 2`, `6-gate = 3`, `12-gate = 6`,
+  `16-gate = 8`, `22-gate = 11`, `24-gate = 12` owned Cores;
+- fill every available owned gate with the strongest defensible
+  **distance-appropriate** roster depth;
+- do not spread starts for fairness. Reuse the strongest specialist whenever
+  the same exact cell repeats;
+- for large fields, rank exact-distance specialists first, then use only
+  credible neighbouring-distance depth. Do not put a sprint-only Core into a
+  2000/2200 field or a long-only Core into a 1000/1200 field merely to consume
+  roster depth;
+- an elite 2200 Core may be valid depth in a large-gate 2000 race when stronger
+  exact-2000 options have already been used, because it is the adjacent long
+  distance. Stretch only **one distance step** unless direct evidence supports
+  more;
+- the **first 16** race lines matter most because a map may finish from race 16
+  onward. Optimise those lineups first, then complete all 42 lines;
+- Miracles must still use the real full-depth 11/12-Core lineups for its
+  22/24-gate races even though the map is strategically secondary; and
+- roster membership is not a requirement to receive starts. A Core may remain
+  as opponent-specific or contingency depth if stronger specialists cover its
+  default cells.
+
+Ageing-aware mapping must not weaken the team merely to equalise exposure.
+However, when two Cores are comparable or the replacement is stronger, move
+unnecessary starts away from the more valuable/high-use Core. Track starts by
+map, distance and first-16 exposure so concentrated ageing can be reviewed
+explicitly before lock.
 
 ## Ageing-aware 25-Core owner strategy
 
