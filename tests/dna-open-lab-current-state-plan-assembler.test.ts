@@ -180,9 +180,9 @@ describe("DNA Open Lab dynamic current-state plan assembly", () => {
 
     expect(assembled.status).toBe("needs_continuation");
     expect(assembled.arenaPageNumbersByMode).toEqual({ bike: [1] });
-    expect(assembled.continuationRequests.map((entry) => entry.payload)).toEqual([
-      { filter: { rvmode: "bike" }, page: 2 },
-    ]);
+    expect(
+      assembled.continuationRequests.map((entry) => entry.payload),
+    ).toEqual([{ filter: { rvmode: "bike" }, page: 2 }]);
   });
 
   it("accepts a page after false has_more when the previous page was full", () => {
