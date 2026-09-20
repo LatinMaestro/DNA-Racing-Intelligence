@@ -1,0 +1,97 @@
+name: temporary live Bike Arena breeding scan
+
+on:
+  push:
+    branches:
+      - temporary/chat-arena-breeding-scan-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pull complete live Bike Arena and current metadata
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const base='https://api.dnaracing.run/fbike/pub/v1';
+          const key=process.env.DNA_OPEN_LAB_API_KEY_1;
+          if(!key) throw new Error('missing API key');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function req(path,method='GET',body){
+            for(let attempt=0;attempt<5;attempt++){
+              const r=await fetch(base+path,{
+                method,
+                headers:{
+                  'authorization':'Bearer '+key,
+                  'accept':'application/json',
+                  ...(body===undefined?{}:{'content-type':'application/json'})
+                },
+                ...(body===undefined?{}:{body:JSON.stringify(body)})
+              });
+              const text=await r.text();
+              if(r.status===429){
+                const retry=Number(r.headers.get('retry-after')||2);
+                await sleep(Math.max(1000,retry*1000));
+                continue;
+              }
+              let json; try{json=JSON.parse(text)}catch{throw new Error('non-json '+path+' '+r.status)}
+              if(!r.ok || json.status!=='success') throw new Error(path+' '+r.status+' '+text.slice(0,500));
+              await sleep(650);
+              return json.result;
+            }
+            throw new Error('rate limit retries exhausted '+path);
+          }
+          async function bulk(path,hids){
+            const rows=[];
+            for(let i=0;i<hids.length;i+=20){
+              const chunk=hids.slice(i,i+20);
+              const got=await req(path,'POST',{hids:chunk});
+              if(!Array.isArray(got)) throw new Error('bulk non-array '+path);
+              rows.push(...got);
+            }
+            return rows;
+          }
+          (async()=>{
+            const pages=[],cores=[];
+            let page=1;
+            while(true){
+              const result=await req('/splice/arena','POST',{f:{rvmode:'bike'},page});
+              pages.push({page,limit:result.limit,has_more:result.has_more,count:result.cores.length});
+              cores.push(...result.cores);
+              if(!result.has_more) break;
+              page++;
+              if(page>100) throw new Error('arena page bound exceeded');
+            }
+            const hids=[...new Set(cores.map(x=>Number(x.hid)))];
+            const [power,racingStats,splicingInfo]=await Promise.all([
+              bulk('/cores/power_bulk',hids),
+              bulk('/cores/racing_stats_bulk',hids),
+              bulk('/cores/splicing_info_bulk',hids)
+            ]);
+            fs.writeFileSync('live-bike-arena.json',JSON.stringify({
+              fetchedAt:new Date().toISOString(),
+              pages,
+              listingCount:cores.length,
+              uniqueCoreCount:hids.length,
+              cores,
+              power,
+              racingStats,
+              splicingInfo
+            },null,2));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-bike-arena
+          path: live-bike-arena.json
+          retention-days: 1
