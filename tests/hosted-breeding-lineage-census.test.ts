@@ -202,9 +202,7 @@ describeConnected("lineage-first breeding census fallback", () => {
             break;
           }
           if (page === MAXIMUM_ARENA_PAGES_PER_MODE) {
-            throw new Error(
-              `Arena ${mode} exceeded its bounded page capacity`,
-            );
+            throw new Error(`Arena ${mode} exceeded its bounded page capacity`);
           }
         }
       }
