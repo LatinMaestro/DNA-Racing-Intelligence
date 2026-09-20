@@ -1,0 +1,31 @@
+name: temporary chat horse Free audit
+
+on:
+  push:
+    branches:
+      - temporary/chat-horse-free-audit-2026-09-20-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HORSE_FREE_AUDIT: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx vitest run tests/temporary-chat-horse-free-audit.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-horse-free-audit
+          path: horse-free-discovery-audit.json
+          retention-days: 1
