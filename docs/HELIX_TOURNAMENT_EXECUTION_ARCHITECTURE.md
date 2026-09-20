@@ -1,21 +1,23 @@
 # Helix Tournament Execution Architecture
 
 Status: **Accepted future architecture; post-critical-path implementation only**  
-Authority date: **15 September 2026**  
+Authority date: **20 September 2026**  
 Tracking issue: **#555**  
 Scope: private single-owner DNA Racing Intelligence deployment.
 
 ## 1. Purpose and delivery placement
 
-This document defines the owner-approved future architecture for automating paid tournament qualification after the current API/Pro League critical path and private website commissioning are complete.
+This document defines the owner-approved future architecture for automating paid tournament qualification **and Free-racing Discovery** after the current API/Pro League critical path and private website commissioning are complete.
 
 It is intentionally **not** current Production execution authority. The existing critical-path application remains advisory/read-only with respect to DNA Racing write actions until the release gates in this document are satisfied.
 
-Primary objective:
+Primary objectives:
 
-> Use DNA Racing Intelligence to select profitable tournament qualification opportunities and an owner-authorised local executor to enter suitable races with HLX credits, one owned Core per race, while applying realised-P/L stop losses and hard spend/exposure controls.
+> **Tournament execution:** use DNA Racing Intelligence to select profitable tournament qualification opportunities and an owner-authorised local executor to enter suitable races with HLX credits while applying realised-P/L stop losses and hard spend/exposure controls.
 
-Free Discovery may later reuse the same executor, but tournament qualification is the primary use case.
+> **Free Discovery execution:** use the same planning/execution/reconciliation framework to run controlled zero-entry-fee Discovery campaigns across Bike, Car and Horse, including both broad normal-Free distance discovery and deliberate challenger-vs-proven-Core benchmark screens.
+
+Tournament qualification remains the paid/exposure-sensitive use case. Free Discovery is a first-class zero-fee execution mode, not an informal fallback.
 
 ## 2. Current owner-confirmed HLX mechanics
 
@@ -54,7 +56,7 @@ This is materially better than preloading a large Auto-Entry queue and attemptin
 
 DNA Auto-Entry remains a secondary/fallback executor for:
 
-- free Discovery campaigns;
+- normal-Free Discovery campaigns and controlled benchmark campaigns when its selection controls are sufficient;
 - race surfaces where single-entry execution is unsupported;
 - DEZ-only activity if required;
 - failure or instability of the native single-entry request contract; or
@@ -356,11 +358,112 @@ The private PWA/Web Push layer should notify on exceptions and meaningful milest
 
 Each notification deep-links to the relevant private tournament/segment/Core state.
 
-## 17. Auto-Entry fallback
+## 17. Free Discovery execution
 
-Auto-Entry is not removed from the product model; it is demoted to a fallback executor.
+The race-entry agent must support Free Discovery as a separate campaign family from paid tournament execution.
 
-Commission separately before use. If used, preserve the same controls where technically possible:
+### 17.1 Normal-Free discovery campaign
+
+Purpose: systematically determine a Core's useful and weak mode/distance ranges without paying race-entry fees.
+
+A normal-Free campaign persists:
+
+- Core ID;
+- mode;
+- exact distance;
+- target number of **new** Free races;
+- existing usable Free sample;
+- campaign reason, such as unresolved short/middle/long coverage, burn-safety classification, Maiden preparation, tournament preparation or general Discovery;
+- completed/pending entry counts;
+- Horse/Car/Bike ageing budget and remaining ageing where available;
+- star/finish/time evidence accumulated during the campaign;
+- stop/completion status; and
+- evidence cutoff used when the campaign was created.
+
+Execution rules:
+
+- select only authoritative normal races whose race name qualifies as standalone `Free`;
+- enforce the requested mode and **exact distance**;
+- use the owner-specified race class/gate/format constraints when the campaign defines them;
+- default to **one owned Core per Free race** for ordinary discovery;
+- do not enter a Core into an unrequested distance merely because a suitable Free race is available;
+- stop scheduling once the campaign's new-race target is reached;
+- stop or pause if ageing, ownership, eligibility, session, race-contract or data-freshness guards fail; and
+- reconcile every submitted entry/result before counting the campaign complete.
+
+Free campaigns have no realised-P/L stop-loss because the entry fee is zero. Their hard controls are race-count target, ageing budget, pending-exposure count, campaign pause/kill switch and evidence completion.
+
+### 17.2 Targeted proven-Core benchmark campaign
+
+Purpose: test a challenger against a **proven same-mode/exact-distance owned Core** and observe which Cores receive Yellow/source-Gold and Blue stars.
+
+This mode intentionally creates a narrow exception to the normal one-owned-Core-per-race policy:
+
+> A targeted 4-gate Free benchmark race may contain **exactly two owned Cores**: one challenger and one pre-selected proven benchmark. Never place a third owned Core into that race.
+
+Requirements:
+
+- benchmark Core quality must be established **before entry** from same-mode/exact-distance evidence;
+- challenger and benchmark must use the same mode and exact distance;
+- prefer 4-gate normal-Free races so two independent external opponents remain;
+- persist challenger Core ID and benchmark Core ID as an explicit pair;
+- use a bounded race target, normally the owner-approved 2–5-race screen or another explicitly configured count;
+- Yellow/source-Gold and Blue stars are the primary small-sample latent-ceiling signal for this controlled screen;
+- finish position and elapsed time remain secondary context;
+- when neither owned Core receives a star, capture the external star holder and review its pre-existing same-mode/exact-distance quality before interpreting the race negatively;
+- repeated stars over proven benchmarks strengthen the challenger case even when finish/time are noisy; and
+- no-star results never trigger an automatic burn/bench conclusion without opportunity and external-star-holder context.
+
+The benchmark Core is a control, not filler. The planner must not choose a merely convenient owned Core and label it proven.
+
+### 17.3 Discovery campaign state
+
+At minimum:
+
+```text
+planned
+  -> queued
+  -> searching
+  -> race_selected
+  -> reserved
+  -> submit_requested
+  -> submitted
+  -> reconciled
+  -> result_pending
+  -> result_recorded
+  -> searching | target_complete
+
+control/terminal states:
+paused | ageing_guard_hit | authority_stale | failed | cancelled
+```
+
+For benchmark campaigns, the reservation and reconciliation identity includes both owned Core IDs and the race ID.
+
+### 17.4 Discovery opportunity scoring
+
+Free-race selection may consider:
+
+- campaign mode and exact distance;
+- authoritative `Free` classification;
+- gate count and available places;
+- whether another owned Core is already entered;
+- for benchmark screens, whether the intended benchmark is already paired with the challenger;
+- known external field quality;
+- likely time to fill/start;
+- campaign remaining-race requirement;
+- Core ageing exposure;
+- pending/unsettled campaign entries; and
+- whether the race advances a specific unresolved Discovery question.
+
+Do not optimise free campaigns for payout or entry-fee EV.
+
+## 18. DNA Auto-Entry fallback
+
+DNA Auto-Entry is not removed from the product model; it is a secondary executor alongside the preferred direct race-by-race local agent.
+
+Commission it separately before use.
+
+For paid tournament execution, preserve tournament controls where technically possible:
 
 - one owned Core per race;
 - realised-P/L stop-loss;
@@ -369,7 +472,22 @@ Commission separately before use. If used, preserve the same controls where tech
 - pending exposure accounting; and
 - exact audit/reconciliation.
 
-## 18. Audit requirements
+For Free Discovery, Auto-Entry must support campaign-scoped configuration:
+
+- selected Core(s);
+- mode;
+- exact distance;
+- authoritative Free-race constraint;
+- new-race target;
+- normal-discovery versus targeted-benchmark campaign type;
+- optional proven benchmark Core;
+- max owned Cores per race: one for normal discovery, exactly two for benchmark mode;
+- ageing/race-count guards; and
+- pause/cancel plus reconciliation state.
+
+If DNA Auto-Entry cannot guarantee the benchmark pair or owned-Core occupancy limit, use the direct local executor instead.
+
+## 19. Audit requirements
 
 Persist an immutable owner-scoped audit record for:
 
@@ -386,33 +504,42 @@ Persist an immutable owner-scoped audit record for:
 - stop-loss triggered;
 - segment/Core paused or completed;
 - spend ceiling triggered; and
-- owner kill-switch actions.
+- owner kill-switch actions;
+- Discovery campaign created/paused/completed/cancelled;
+- Discovery target-race count and ageing guard evaluated;
+- benchmark challenger/benchmark pair selected;
+- Free race selected/rejected and reason;
+- external star holder observed; and
+- Discovery result reconciled into the evidence store.
 
 Every audit record must bind to tournament configuration version, segment identity, Core ID, race ID, action/idempotency ID and timestamps.
 
-## 19. Release gates
+## 20. Release gates
 
 Implementation may begin only after the current delivery critical path is complete or the owner explicitly reprioritises it.
 
 Commissioning order:
 
-1. Persist segment execution state and guard configuration.
-2. Build race opportunity scoring without execution.
+1. Persist tournament segment state plus Discovery campaign state and guard configuration.
+2. Build race opportunity scoring without execution for both paid tournament and Free Discovery lanes.
 3. Build local executor heartbeat/control protocol.
-4. Manually observe one low-cost HLX entry and record only the sanitised contract shape.
-5. Prove one synthetic request-shape flow.
-6. Prove one owner-supervised automated low-cost HLX entry.
-7. Prove read-side reconciliation and duplicate-prevention.
-8. Prove one-owned-Core-per-race hard guard.
-9. Prove P/L accounting and stop-loss halt.
-10. Prove spend/exposure ceilings and kill switch.
-11. Prove concurrent independent segment controllers.
-12. Add PWA/Web Push exception/milestone notifications.
-13. Expand to tournament automation only after all prior gates pass.
+4. Instrument one owner-supervised **Free** entry first, because it exercises the native entry action without paid exposure.
+5. Prove one normal-Free campaign entry end-to-end with read-side reconciliation and duplicate prevention.
+6. Prove the normal-Free one-owned-Core-per-race guard.
+7. Prove one targeted 4-gate benchmark Free entry with exactly the configured challenger + proven benchmark and no third owned Core.
+8. Prove benchmark result reconciliation, star capture and external-star-holder review linkage.
+9. Prove a bounded multi-race Free campaign stops exactly at its configured new-race target and ageing guard.
+10. Manually observe one low-cost HLX tournament entry and record only the sanitised paid-entry contract shape.
+11. Prove one synthetic paid request-shape flow.
+12. Prove one owner-supervised automated low-cost HLX tournament entry.
+13. Prove tournament one-owned-Core-per-race, P/L accounting, stop-loss halt, spend/exposure ceilings and kill switch.
+14. Prove concurrent independent tournament segments and Discovery campaigns cannot create incompatible Core/race reservations.
+15. Add PWA/Web Push exception/milestone notifications.
+16. Expand to broader unattended execution only after all prior gates pass.
 
 Fail closed on contract drift, stale ownership/fill authority, ambiguous eligibility, executor/session failure or unreconciled prior action.
 
-## 20. Relationship to current architecture
+## 21. Relationship to current architecture
 
 `docs/ARCHITECTURE.md` remains the current critical-path architecture authority. Its advisory/read-only game-action boundary continues to control current Production and critical-path work.
 
