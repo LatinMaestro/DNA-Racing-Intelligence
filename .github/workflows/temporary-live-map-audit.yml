@@ -1,0 +1,58 @@
+name: temporary live DNA maps audit
+
+on:
+  push:
+    branches:
+      - temporary/chat-live-map-audit-2026-09-20-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch live maps page and API
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          async function getText(url, opts={}) {
+            const r = await fetch(url, opts);
+            const t = await r.text();
+            return {status:r.status, headers:Object.fromEntries(r.headers.entries()), text:t};
+          }
+          (async()=>{
+            const page = await getText('https://esports.dnaracing.run/maps');
+            let api = await getText('https://api.dnaracing.run/fbike/esports/maps', {
+              method:'POST',
+              headers:{'content-type':'application/json'},
+              body:JSON.stringify({})
+            });
+            let apiJson = null;
+            try { apiJson = JSON.parse(api.text); } catch {}
+            const assetUrls = [...page.text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>m[1]);
+            const base = new URL('https://esports.dnaracing.run/maps');
+            const assets = [];
+            for (const src of assetUrls.slice(-8)) {
+              const u = new URL(src, base).href;
+              const res = await getText(u);
+              assets.push({url:u,status:res.status,text:res.text.slice(0,250000)});
+            }
+            fs.writeFileSync('live-maps-audit.json', JSON.stringify({
+              fetchedAt:new Date().toISOString(),
+              page:{status:page.status,headers:page.headers,html:page.text},
+              api:{status:api.status,headers:api.headers,text:api.text,json:apiJson},
+              assets
+            }, null, 2));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-maps-audit
+          path: live-maps-audit.json
+          retention-days: 1
