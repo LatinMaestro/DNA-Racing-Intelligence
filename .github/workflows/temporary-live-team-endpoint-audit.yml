@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Discover public esports team endpoints
+      - name: Inspect esports client transport
         run: |
           node <<'NODE'
           const fs=require('fs');
@@ -25,35 +25,19 @@ jobs:
           (async()=>{
             const page=await text('https://esports.dnaracing.run/team');
             const srcs=[...page.text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>new URL(m[1],'https://esports.dnaracing.run/team').href);
-            const endpoints=new Set();
             const snippets=[];
             for(const u of srcs){
-              const a=await text(u);
-              const t=a.text;
-              for(const re of [
-                /\/fbike\/esports\/[A-Za-z0-9_./-]+/g,
-                /["']\/(?:team|teams|maps|events|event|match|lineup|assign)[A-Za-z0-9_./-]*["']/g
-              ]){
-                for(const m of t.matchAll(re)) endpoints.add(m[0].replace(/^["']|["']$/g,''));
-              }
-              for(const key of ['assign_status','cores_list','map_association','team_id','lineup','map_slot']){
-                let idx=t.indexOf(key);
-                if(idx>=0) snippets.push({key,url:u,snippet:t.slice(Math.max(0,idx-700),Math.min(t.length,idx+1200))});
+              const a=await text(u); const t=a.text;
+              for(const key of ['preset/status','RT=','function RT','bE=','yE=','credentials','authorization','fetch(']){
+                const idx=t.indexOf(key);
+                if(idx>=0) snippets.push({key,url:u,snippet:t.slice(Math.max(0,idx-1800),Math.min(t.length,idx+3200))});
               }
             }
-            const teams=await text('https://api.dnaracing.run/fbike/esports/teams',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
-            fs.writeFileSync('team-endpoint-audit.json',JSON.stringify({
-              fetchedAt:new Date().toISOString(),
-              pageStatus:page.status,
-              endpoints:[...endpoints].sort(),
-              snippets,
-              teamsStatus:teams.status,
-              teamsText:teams.text
-            },null,2));
+            fs.writeFileSync('team-client-transport.json',JSON.stringify({fetchedAt:new Date().toISOString(),pageStatus:page.status,snippets},null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: team-endpoint-audit
-          path: team-endpoint-audit.json
+          name: team-client-transport
+          path: team-client-transport.json
           retention-days: 1
