@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,7 +23,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const key=process.env.DNA_OPEN_LAB_API_KEY_1;
+          const key=process.env.DNA_OPEN_LAB_API_KEY_2;
           const base='https://api.dnaracing.run/fbike/pub/v1';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
           async function arena(page){
