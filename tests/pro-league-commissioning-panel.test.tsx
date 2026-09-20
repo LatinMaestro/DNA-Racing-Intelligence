@@ -311,6 +311,13 @@ describe("Pro League commissioning panel", () => {
               finishAndTimeUse: "secondary_context",
               externalStarHolderReviewRequired: true,
             },
+            benchmarkCore: {
+              coreId: "benchmark-core",
+              displayName: "Proven Benchmark",
+              distanceMetres: 1000,
+              benchmarkSignal: "winning_range",
+              directRaceCount: 18,
+            },
             evidenceCurrentThrough: "2026-09-01T00:00:00.000Z",
             warnings: ["EXPERIMENTAL_SMALL_SAMPLE"],
             automaticRaceEntryAllowed: false,
