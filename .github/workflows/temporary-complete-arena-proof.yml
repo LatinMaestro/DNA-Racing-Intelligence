@@ -1,0 +1,223 @@
+name: temporary complete Arena proof
+
+on:
+  push:
+    branches:
+      - temporary/chat-arena-complete-proof-2026-09-21-do-not-merge
+    paths:
+      - .github/workflows/temporary-complete-arena-proof.yml
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pull complete Arena and enrich Bike listings
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) {
+            throw new Error("DNA Open Lab API key is missing or invalid");
+          }
+
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          let lastStartedAt = 0;
+
+          async function request(path, method = "GET", body) {
+            let lastError = null;
+            for (let attempt = 1; attempt <= 6; attempt += 1) {
+              const wait = Math.max(0, 2200 - (Date.now() - lastStartedAt));
+              if (wait > 0) await sleep(wait);
+              lastStartedAt = Date.now();
+
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 60000);
+              try {
+                const response = await fetch(base + path, {
+                  method,
+                  signal: controller.signal,
+                  headers: {
+                    authorization: "Bearer " + key,
+                    accept: "application/json",
+                    ...(body === undefined ? {} : {"content-type": "application/json"}),
+                  },
+                  ...(body === undefined ? {} : {body: JSON.stringify(body)}),
+                });
+                const text = await response.text();
+                let json = null;
+                try { json = JSON.parse(text); } catch {}
+                if (response.status === 429) {
+                  const retry = Math.max(3, Number(response.headers.get("retry-after") || 3));
+                  await sleep(retry * 1000);
+                  continue;
+                }
+                if (!response.ok || json?.status !== "success" || !("result" in json)) {
+                  throw new Error(path + " " + response.status + " " + text.slice(0, 400));
+                }
+                return json.result;
+              } catch (error) {
+                lastError = error;
+                if (attempt === 6) throw error;
+                await sleep(3000);
+              } finally {
+                clearTimeout(timer);
+              }
+            }
+            throw lastError ?? new Error("request retries exhausted");
+          }
+
+          async function post(path, body) {
+            return request(path, "POST", body);
+          }
+
+          function assertPositiveInteger(value, field) {
+            if (!Number.isSafeInteger(value) || value < 1) {
+              throw new Error(field + " is invalid");
+            }
+          }
+
+          async function pullMode(mode) {
+            const pages = [];
+            const cores = [];
+            const seen = new Set();
+            let expectedLimit = null;
+
+            for (let page = 1; page <= 512; page += 1) {
+              const result = await post("/splice/arena", {f: {rvmode: mode}, page});
+              if (!result || typeof result !== "object" || Array.isArray(result)) {
+                throw new Error(mode + " page " + page + " result is malformed");
+              }
+              if (result.page !== page) {
+                throw new Error(mode + " page drift " + page + " -> " + result.page);
+              }
+              assertPositiveInteger(result.limit, mode + " limit");
+              if (expectedLimit !== null && result.limit !== expectedLimit) {
+                throw new Error(mode + " page-size drift");
+              }
+              expectedLimit = result.limit;
+              if (typeof result.has_more !== "boolean" || !Array.isArray(result.cores)) {
+                throw new Error(mode + " pagination envelope is malformed");
+              }
+              if (result.cores.length > result.limit) {
+                throw new Error(mode + " page exceeds provider limit");
+              }
+              for (const core of result.cores) {
+                assertPositiveInteger(core?.hid, mode + " hid");
+                if (seen.has(core.hid)) {
+                  throw new Error(mode + " duplicate Core " + core.hid);
+                }
+                seen.add(core.hid);
+                cores.push(core);
+              }
+              pages.push({
+                page,
+                count: result.cores.length,
+                limit: result.limit,
+                reportedHasMore: result.has_more,
+              });
+
+              const needsContinuation =
+                result.has_more === true || result.cores.length === result.limit;
+              if (!needsContinuation) break;
+              if (page === 512) throw new Error(mode + " page bound exceeded");
+            }
+
+            const final = pages.at(-1);
+            if (!final || final.reportedHasMore === true || final.count === final.limit) {
+              throw new Error(mode + " did not reach a proven terminal short/empty page");
+            }
+            return {mode, pages, cores};
+          }
+
+          function chunks(values, size) {
+            const result = [];
+            for (let i = 0; i < values.length; i += size) {
+              result.push(values.slice(i, i + size));
+            }
+            return result;
+          }
+
+          (async () => {
+            const modes = {};
+            for (const mode of ["bike", "car", "horse"]) {
+              modes[mode] = await pullMode(mode);
+            }
+
+            const bikeHids = modes.bike.cores.map((core) => Number(core.hid));
+            const enrichment = {
+              info: [],
+              racingStats: [],
+              power: [],
+              splicingInfo: [],
+            };
+
+            for (const batch of chunks(bikeHids, 20)) {
+              const info = await post("/cores/info_bulk", {hids: batch});
+              const racingStats = await post("/cores/racing_stats_bulk", {hids: batch});
+              const power = await post("/cores/power_bulk", {hids: batch});
+              const splicingInfo = await post("/cores/splicing_info_bulk", {hids: batch});
+              for (const [name, rows] of Object.entries({info, racingStats, power, splicingInfo})) {
+                if (!Array.isArray(rows) || rows.length !== batch.length) {
+                  throw new Error(name + " bulk coverage mismatch");
+                }
+              }
+              enrichment.info.push(...info);
+              enrichment.racingStats.push(...racingStats);
+              enrichment.power.push(...power);
+              enrichment.splicingInfo.push(...splicingInfo);
+            }
+
+            const union = new Set();
+            for (const mode of Object.values(modes)) {
+              for (const core of mode.cores) union.add(Number(core.hid));
+            }
+
+            const report = {
+              fetchedAt: new Date().toISOString(),
+              continuationRule: "has_more_true_or_full_page; terminal_short_or_empty_and_has_more_false",
+              modes,
+              counts: {
+                bike: modes.bike.cores.length,
+                car: modes.car.cores.length,
+                horse: modes.horse.cores.length,
+                unionUniqueCoreIds: union.size,
+                summedModeListings:
+                  modes.bike.cores.length + modes.car.cores.length + modes.horse.cores.length,
+              },
+              bikeEnrichment: enrichment,
+            };
+            fs.writeFileSync("complete-arena-proof.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify({
+              fetchedAt: report.fetchedAt,
+              counts: report.counts,
+              pages: {
+                bike: modes.bike.pages,
+                car: modes.car.pages,
+                horse: modes.horse.pages,
+              },
+              bikeEnrichmentRows: Object.fromEntries(
+                Object.entries(enrichment).map(([key, rows]) => [key, rows.length]),
+              ),
+            }));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: complete-arena-proof
+          path: complete-arena-proof.json
+          retention-days: 1
