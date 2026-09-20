@@ -2,13 +2,7 @@ export const freeDiscoveryEntryCampaignSchemaVersion =
   "free-discovery-entry-campaign/v1" as const;
 
 export const freeDiscoveryEntryDistances = Object.freeze([
-  1_000,
-  1_200,
-  1_400,
-  1_600,
-  1_800,
-  2_000,
-  2_200,
+  1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_200,
 ] as const);
 
 export type FreeDiscoveryEntryDistance =
@@ -35,8 +29,7 @@ export type FreeDiscoveryEntryCampaign = Readonly<{
     fallbackExecutor: "owner_authorized_local_entry_agent";
     plannedNewRacesPerCell: 5;
     maximumOwnedCoresPerRace: 2;
-    twoOwnedCorePolicy:
-      "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
+    twoOwnedCorePolicy: "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
     cloudRaceEntryAllowed: false;
     localExecutorCommissioned: false;
     ownerAuthorizedPlanConsumption: true;
@@ -67,8 +60,7 @@ export type FreeDiscoveryEntryIntent = Readonly<{
   idempotencyKey: string;
   selector: FreeDiscoveryEntryCampaign["raceSelector"];
   maximumOwnedCoresPerRace: 2;
-  twoOwnedCorePolicy:
-    "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
+  twoOwnedCorePolicy: "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
 }>;
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -98,10 +90,7 @@ function positiveInteger(value: unknown, label: string): number {
 function canonicalTimestamp(value: unknown, label: string): string {
   const normalized = requiredString(value, label);
   const parsed = new Date(normalized);
-  if (
-    Number.isNaN(parsed.getTime()) ||
-    parsed.toISOString() !== normalized
-  ) {
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== normalized) {
     throw new Error(`${label} must be a canonical ISO timestamp.`);
   }
   return normalized;
@@ -177,11 +166,7 @@ export function validateFreeDiscoveryEntryCampaign(
     "owner_authorized_local_entry_agent",
     "Fallback executor",
   );
-  literal(
-    execution.plannedNewRacesPerCell,
-    5,
-    "Planned new races per cell",
-  );
+  literal(execution.plannedNewRacesPerCell, 5, "Planned new races per cell");
   literal(
     execution.maximumOwnedCoresPerRace,
     2,
@@ -221,15 +206,9 @@ export function validateFreeDiscoveryEntryCampaign(
     execution.idempotencyKeyScheme,
     "Idempotency key scheme",
   );
-  for (const placeholder of [
-    "{coreId}",
-    "{distanceMetres}",
-    "{raceOrdinal}",
-  ]) {
+  for (const placeholder of ["{coreId}", "{distanceMetres}", "{raceOrdinal}"]) {
     if (!idempotencyKeyScheme.includes(placeholder)) {
-      throw new Error(
-        `Idempotency key scheme is missing ${placeholder}.`,
-      );
+      throw new Error(`Idempotency key scheme is missing ${placeholder}.`);
     }
   }
 
@@ -308,7 +287,8 @@ export function validateFreeDiscoveryEntryCampaign(
   }
 
   const unexpectedDistance = Object.keys(queuesRaw).find(
-    (key) => !freeDiscoveryEntryDistances.some((distance) => String(distance) === key),
+    (key) =>
+      !freeDiscoveryEntryDistances.some((distance) => String(distance) === key),
   );
   if (unexpectedDistance !== undefined) {
     throw new Error(
@@ -363,8 +343,7 @@ export function validateFreeDiscoveryEntryCampaign(
     }),
     progress: Object.freeze({
       doNotRepeatCompletedCells: true as const,
-      completionAuthority:
-        "authoritative_reconciled_finished_race" as const,
+      completionAuthority: "authoritative_reconciled_finished_race" as const,
       resultsFeedRound2: true as const,
     }),
     summary: Object.freeze({
@@ -407,9 +386,7 @@ export function buildPendingFreeDiscoveryEntryIntents(
         completed < 0 ||
         completed > campaign.execution.plannedNewRacesPerCell
       ) {
-        throw new Error(
-          `Completed race count for ${cellKey} is invalid.`,
-        );
+        throw new Error(`Completed race count for ${cellKey} is invalid.`);
       }
       for (
         let raceOrdinal = completed + 1;

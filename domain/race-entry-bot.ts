@@ -30,8 +30,7 @@ export const raceEntryBotDevelopmentContract = Object.freeze({
         "challenger_plus_proven_same_mode_exact_distance_benchmark_only" as const,
       exactCampaignSelectorRequired: true as const,
       campaignTargetIsHardMaximum: true as const,
-      completionAuthority:
-        "authoritative_reconciled_finished_race" as const,
+      completionAuthority: "authoritative_reconciled_finished_race" as const,
       automaticPerformanceStopAllowed: false as const,
       automaticBurnDecisionAllowed: false as const,
       resultsFeedDiscoveryReview: true as const,

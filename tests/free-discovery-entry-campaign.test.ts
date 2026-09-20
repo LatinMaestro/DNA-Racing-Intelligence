@@ -12,8 +12,7 @@ import {
   horseBurnGradeFreeDiscoveryEntryCampaign,
 } from "@/lib/horse-free-discovery-entry-campaign";
 
-const campaignPath =
-  "campaigns/horse-burn-grade-discovery-2026-09-20.json";
+const campaignPath = "campaigns/horse-burn-grade-discovery-2026-09-20.json";
 
 function loadCampaign() {
   return validateFreeDiscoveryEntryCampaign(
@@ -23,9 +22,8 @@ function loadCampaign() {
 
 describe("Horse burn-grade Free Discovery entry campaign", () => {
   it("keeps Free Discovery separate from the paid-tournament one-Core guard", async () => {
-    const { raceEntryBotDevelopmentContract } = await import(
-      "@/domain/race-entry-bot"
-    );
+    const { raceEntryBotDevelopmentContract } =
+      await import("@/domain/race-entry-bot");
 
     expect(
       raceEntryBotDevelopmentContract.executionPurposes.paidTournament
@@ -38,11 +36,8 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
     expect(
       raceEntryBotDevelopmentContract.executionPurposes.freeDiscovery
         .twoOwnedCorePolicy,
-    ).toBe(
-      "challenger_plus_proven_same_mode_exact_distance_benchmark_only",
-    );
+    ).toBe("challenger_plus_proven_same_mode_exact_distance_benchmark_only");
   });
-
 
   it("loads the owner-approved 515-cell / 2575-race Horse campaign", () => {
     const campaign = loadCampaign();
@@ -107,12 +102,12 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
     const intents = buildPendingFreeDiscoveryEntryIntents(campaign);
 
     expect(intents).toHaveLength(2_575);
-    expect(new Set(intents.map(({ idempotencyKey }) => idempotencyKey)).size).toBe(
-      2_575,
-    );
-    expect(intents.every(({ selector }) => selector.raceNameToken === "Free")).toBe(
-      true,
-    );
+    expect(
+      new Set(intents.map(({ idempotencyKey }) => idempotencyKey)).size,
+    ).toBe(2_575);
+    expect(
+      intents.every(({ selector }) => selector.raceNameToken === "Free"),
+    ).toBe(true);
     expect(
       intents.every(
         ({ maximumOwnedCoresPerRace, twoOwnedCorePolicy }) =>
@@ -136,9 +131,9 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
         coreId === firstCore && distanceMetres === 1_000,
     );
 
-    expect(remainingForFirstCell.map(({ raceOrdinal }) => raceOrdinal)).toEqual([
-      4, 5,
-    ]);
+    expect(remainingForFirstCell.map(({ raceOrdinal }) => raceOrdinal)).toEqual(
+      [4, 5],
+    );
     expect(intents).toHaveLength(2_573);
   });
 
@@ -167,7 +162,8 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
     );
 
     const duplicate = structuredClone(raw);
-    duplicate.distanceQueues["1000"]![1] = duplicate.distanceQueues["1000"]![0]!;
+    duplicate.distanceQueues["1000"]![1] =
+      duplicate.distanceQueues["1000"]![0]!;
     expect(() => validateFreeDiscoveryEntryCampaign(duplicate)).toThrow(
       "Duplicate campaign cell",
     );
