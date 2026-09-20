@@ -169,7 +169,10 @@ describeConnected("lineage-first breeding census fallback", () => {
               `Arena ${mode} page drift: requested ${page}, received ${response.result.page}`,
             );
           }
-          if (pageSizeLimit !== null && response.result.limit !== pageSizeLimit) {
+          if (
+            pageSizeLimit !== null &&
+            response.result.limit !== pageSizeLimit
+          ) {
             throw new Error(
               `Arena ${mode} page limit changed from ${pageSizeLimit} to ${response.result.limit}`,
             );
@@ -199,7 +202,9 @@ describeConnected("lineage-first breeding census fallback", () => {
             break;
           }
           if (page === MAXIMUM_ARENA_PAGES_PER_MODE) {
-            throw new Error(`Arena ${mode} exceeded its bounded page capacity`);
+            throw new Error(
+              `Arena ${mode} exceeded its bounded page capacity`,
+            );
           }
         }
       }
