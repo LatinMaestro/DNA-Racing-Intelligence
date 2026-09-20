@@ -17,34 +17,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Pull public Latin Racing event assignment state
+      - name: Pull raw public Latin Racing events
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const base='https://api.dnaracing.run/fbike/esports';
-          async function post(path,body){
-            const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-            const text=await r.text(); let json=null; try{json=JSON.parse(text)}catch{}
-            return {status:r.status,text,json};
-          }
           (async()=>{
-            const team_id='953adec8ad';
-            const events=await post('/team/events',{team_id});
-            const result={fetchedAt:new Date().toISOString(),team_id,events,assignments:{}};
-            const list=events?.json?.result??[];
-            for(const e of list){
-              const event_id=e.event_id??e.id;
-              if(!event_id) continue;
-              result.assignments[event_id]={event:await post('/event',{event_id}),slots:{}};
-              for(const map_slot of [1,2,3]){
-                result.assignments[event_id].slots[map_slot]=await post('/event/assign_status',{event_id,map_slot});
-              }
-            }
-            fs.writeFileSync('public-event-assignments.json',JSON.stringify(result,null,2));
+            const r=await fetch('https://api.dnaracing.run/fbike/esports/team/events',{
+              method:'POST',
+              headers:{'content-type':'application/json'},
+              body:JSON.stringify({team_id:'953adec8ad'})
+            });
+            const text=await r.text();
+            let json=null; try{json=JSON.parse(text)}catch{}
+            fs.writeFileSync('latin-racing-events-raw.json',JSON.stringify({
+              fetchedAt:new Date().toISOString(),status:r.status,text,json
+            },null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: public-event-assignments
-          path: public-event-assignments.json
+          name: latin-racing-events-raw
+          path: latin-racing-events-raw.json
           retention-days: 1
