@@ -22,6 +22,28 @@ function loadCampaign() {
 }
 
 describe("Horse burn-grade Free Discovery entry campaign", () => {
+  it("keeps Free Discovery separate from the paid-tournament one-Core guard", async () => {
+    const { raceEntryBotDevelopmentContract } = await import(
+      "@/domain/race-entry-bot"
+    );
+
+    expect(
+      raceEntryBotDevelopmentContract.executionPurposes.paidTournament
+        .maximumOwnedCoresPerRace,
+    ).toBe(1);
+    expect(
+      raceEntryBotDevelopmentContract.executionPurposes.freeDiscovery
+        .maximumOwnedCoresPerRace,
+    ).toBe(2);
+    expect(
+      raceEntryBotDevelopmentContract.executionPurposes.freeDiscovery
+        .twoOwnedCorePolicy,
+    ).toBe(
+      "challenger_plus_proven_same_mode_exact_distance_benchmark_only",
+    );
+  });
+
+
   it("loads the owner-approved 515-cell / 2575-race Horse campaign", () => {
     const campaign = loadCampaign();
 
@@ -39,7 +61,9 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
         preferredExecutor: "dna_native_auto_entry",
         fallbackExecutor: "owner_authorized_local_entry_agent",
         plannedNewRacesPerCell: 5,
-        maximumOwnedCoresPerRace: 1,
+        maximumOwnedCoresPerRace: 2,
+        twoOwnedCorePolicy:
+          "challenger_plus_proven_same_mode_exact_distance_benchmark_only",
         cloudRaceEntryAllowed: false,
         localExecutorCommissioned: false,
         ownerAuthorizedPlanConsumption: true,
@@ -89,9 +113,14 @@ describe("Horse burn-grade Free Discovery entry campaign", () => {
     expect(intents.every(({ selector }) => selector.raceNameToken === "Free")).toBe(
       true,
     );
-    expect(intents.every(({ maximumOwnedCoresPerRace }) => maximumOwnedCoresPerRace === 1)).toBe(
-      true,
-    );
+    expect(
+      intents.every(
+        ({ maximumOwnedCoresPerRace, twoOwnedCorePolicy }) =>
+          maximumOwnedCoresPerRace === 2 &&
+          twoOwnedCorePolicy ===
+            "challenger_plus_proven_same_mode_exact_distance_benchmark_only",
+      ),
+    ).toBe(true);
   });
 
   it("does not recreate already reconciled races for a cell", () => {
