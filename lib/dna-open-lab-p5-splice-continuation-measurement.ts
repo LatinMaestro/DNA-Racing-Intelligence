@@ -11,6 +11,7 @@ import {
   type DnaOpenLabResponse,
   type DnaSpliceArenaResult,
 } from "./dna-open-lab-v1-client";
+import { dnaSpliceArenaNeedsContinuation } from "./dna-splice-arena-pagination";
 
 const RACE_MODES = Object.freeze(["bike", "car", "horse"] as const);
 const MAXIMUM_ARENA_PAGES_PER_MODE = 512;
@@ -231,7 +232,15 @@ export async function measureDnaOpenLabP5SpliceContinuation(input: {
       modeBytes = add(modeBytes, bytes, "modeBytes");
       modeRecords = add(modeRecords, cores.length, "modeRecords");
 
-      if (!hasMore) break;
+      if (
+        !dnaSpliceArenaNeedsContinuation({
+          hasMore,
+          rowCount: cores.length,
+          pageSizeLimit: Number(limit),
+        })
+      ) {
+        break;
+      }
       if (page >= MAXIMUM_ARENA_PAGES_PER_MODE) {
         measurementError("splice pagination exceeds its bounded limit");
       }

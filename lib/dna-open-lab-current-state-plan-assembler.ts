@@ -20,6 +20,7 @@ import type {
   DnaSpliceArenaResult,
   DnaVaultCore,
 } from "./dna-open-lab-v1-client";
+import { dnaSpliceArenaNeedsContinuation } from "./dna-splice-arena-pagination";
 
 const MAXIMUM_ARENA_PAGES_PER_MODE = 512;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -275,7 +276,14 @@ export function assembleDnaCurrentStateSyncPlan(input: {
           `Arena mode ${mode} page limit changed during acquisition`,
         );
       }
-      if (index < pages.length - 1 && !page.canonical.hasMore) {
+      if (
+        index < pages.length - 1 &&
+        !dnaSpliceArenaNeedsContinuation({
+          hasMore: page.canonical.hasMore,
+          rowCount: page.canonical.listings.length,
+          pageSizeLimit: page.canonical.pageSizeLimit,
+        })
+      ) {
         assemblyError(
           `Arena mode ${mode} contains a page after its terminal page`,
         );
@@ -290,7 +298,13 @@ export function assembleDnaCurrentStateSyncPlan(input: {
     const pageNumbers = Object.freeze(pages.map((page) => page.canonical.page));
     arenaPageNumbersByMode[mode] = pageNumbers;
     const last = pages.at(-1)!;
-    if (last.canonical.hasMore) {
+    if (
+      dnaSpliceArenaNeedsContinuation({
+        hasMore: last.canonical.hasMore,
+        rowCount: last.canonical.listings.length,
+        pageSizeLimit: last.canonical.pageSizeLimit,
+      })
+    ) {
       if (last.canonical.page >= MAXIMUM_ARENA_PAGES_PER_MODE) {
         assemblyError(`Arena mode ${mode} exceeded its bounded page capacity`);
       }

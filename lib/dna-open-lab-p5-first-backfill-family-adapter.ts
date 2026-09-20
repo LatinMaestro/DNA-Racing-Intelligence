@@ -23,6 +23,7 @@ import {
   type DnaSpliceArenaResult,
   type DnaVaultCore,
 } from "./dna-open-lab-v1-client";
+import { dnaSpliceArenaNeedsContinuation } from "./dna-splice-arena-pagination";
 /*
  * A persistently malformed envelope may cover a time window rather than one
  * race. Subdivide that window instead of inventing a partial race or silently
@@ -564,7 +565,15 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
             seenCoreIds.add(hid);
           }
           terminalUnitCount = add(terminalUnitCount, 1);
-          if (!hasMore) break;
+          if (
+            !dnaSpliceArenaNeedsContinuation({
+              hasMore,
+              rowCount: records(pageRecord.cores).length,
+              pageSizeLimit: Number(limit),
+            })
+          ) {
+            break;
+          }
           if (page >= MAXIMUM_ARENA_PAGES_PER_MODE) adapterError();
           page += 1;
         }

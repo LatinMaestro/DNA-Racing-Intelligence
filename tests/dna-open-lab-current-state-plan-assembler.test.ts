@@ -162,6 +162,57 @@ describe("DNA Open Lab dynamic current-state plan assembly", () => {
     expect(assembled.plan).toBeNull();
   });
 
+  it("continues after a provider false-negative has_more on a full Arena page", () => {
+    const assembled = assembleDnaCurrentStateSyncPlan({
+      vault: "owner-vault",
+      spliceModes: ["bike"],
+      observations: [
+        ...base(),
+        arena({
+          mode: "bike",
+          page: 1,
+          hasMore: false,
+          coreIds: [11, 12],
+          limit: 2,
+        }),
+      ],
+    });
+
+    expect(assembled.status).toBe("needs_continuation");
+    expect(assembled.arenaPageNumbersByMode).toEqual({ bike: [1] });
+    expect(
+      assembled.continuationRequests.map((entry) => entry.payload),
+    ).toEqual([{ filter: { rvmode: "bike" }, page: 2 }]);
+  });
+
+  it("accepts a page after false has_more when the previous page was full", () => {
+    const assembled = assembleDnaCurrentStateSyncPlan({
+      vault: "owner-vault",
+      spliceModes: ["bike"],
+      observations: [
+        ...base(),
+        arena({
+          mode: "bike",
+          page: 1,
+          hasMore: false,
+          coreIds: [11, 12],
+          limit: 2,
+        }),
+        arena({
+          mode: "bike",
+          page: 2,
+          hasMore: false,
+          coreIds: [22],
+          limit: 2,
+        }),
+      ],
+    });
+
+    expect(assembled.status).toBe("ready");
+    expect(assembled.arenaPageNumbersByMode).toEqual({ bike: [1, 2] });
+    expect(assembled.continuationRequests).toEqual([]);
+  });
+
   it("emits one deterministic complete plan after all modes terminate", () => {
     const assembled = assembleDnaCurrentStateSyncPlan({
       vault: "owner-vault",
