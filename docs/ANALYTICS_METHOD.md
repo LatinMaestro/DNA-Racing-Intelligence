@@ -227,13 +227,36 @@ A limited-sample ME core may receive a stronger provisional recommendation when 
 
 ## Auto-Entry allocation
 
-Recommend an initial batch and adaptive continuation rule. Do not target 50% gate occupancy.
+The race-entry planner supports separate paid-tournament and Free-Discovery
+allocation policies.
 
-For fastest-time qualification, estimate diminishing probability of improving the current best time with more attempts.
+For paid tournament qualification, recommend an initial batch and adaptive
+continuation rule. Do not target 50% gate occupancy. For fastest-time
+qualification, estimate diminishing probability of improving the current best
+time with more attempts. For median qualification, ensure minimum sample
+requirements and assess whether additional races are likely to improve or
+stabilize the median.
 
-For median qualification, ensure minimum sample requirements and assess whether additional races are likely to improve or stabilize the median.
+For Free Discovery, allocate exactly the campaign-authorised new-race count for
+each Core × mode × exact-distance cell. Reconciled completed races reduce the
+remaining target one-for-one and completed cells do not reopen automatically.
+The planner must not add unlisted distances merely because Auto-Entry has spare
+capacity.
 
-Historical star strength may help prioritize which uncertain cores deserve initial attempts, but live field occupancy remains user-managed and is not available from periodic imports.
+In four-gate Free races, one owned Core is the default. A second owned Core is
+allowed only as a deliberate proven same-mode, exact-distance benchmark for the
+challenger. This preserves independent opposition while enabling the
+benchmark-star screen methodology.
+
+Yellow/source-Gold and Blue stars are the primary small-sample ceiling signal in
+those controlled benchmark screens. Finish/time remain secondary context.
+No-star evidence never creates an automatic stop, bench or burn action; inspect
+external star holders and complete the authorised campaign unless the owner
+changes the plan.
+
+Current cloud Production remains non-executing. These allocation rules feed the
+future owner-authorised local race-entry bot / DNA native Auto-Entry executor
+after commissioning.
 
 ## Breeding research
 
