@@ -24,8 +24,9 @@ last-good generation:
 - the Token receipt must declare exactly one complete snapshot;
 - every requested Arena mode must contain pages starting at page 1 without a
   gap;
-- every non-terminal page must report `has_more: true` and the final page must
-  report `has_more: false`;
+- Arena continuation is derived defensively: `has_more: true` always continues,
+  and a full page also continues even when the provider reports `has_more: false`;
+  only a short/empty page with `has_more: false` proves terminal coverage;
 - a Core cannot repeat across pages for the same mode;
 - flattened listing count must equal the complete `splice_arena` receipt;
 - observations cannot be later than the generation cutoff; and
