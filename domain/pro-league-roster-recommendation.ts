@@ -634,6 +634,11 @@ export function buildProLeagueDraftRosterRecommendation(
       }
       return candidate(core);
     })
+    .filter(
+      ({ core }) =>
+        proLeagueOwnerRosterStrategy.genesisPolicy !==
+          "exclude_from_owner_roster" || core.coreClass !== "Genesis",
+    )
     .sort(compareCandidates);
 
   let selected: readonly ProLeagueRosterCandidateScore[] | null = null;

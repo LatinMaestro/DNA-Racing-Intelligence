@@ -1,7 +1,7 @@
 # DNA Pro League Preparation
 
 Status: **current Pro League preparation authority**  
-Effective: **29 August 2026**
+Effective: **20 September 2026**
 
 **Terminology authority:** DNA Pro League and DNA Esports are the same Bike
 competition. This document uses `Pro League/Esports` when the equivalence needs
@@ -15,8 +15,9 @@ This document combines:
 
 - the DNA Community Update supplied by the owner on 20 August 2026;
 - later owner-provided/confirmed Pro League roster rules that supersede the initial announcement assumptions; and
-- the public DNA Esports trial pages and owner-supplied trial announcements reviewed on 29 August 2026; and
-- the 27 August 2026 API-first architecture decision.
+- the public DNA Esports trial pages and owner-supplied trial announcements reviewed on 29 August 2026;
+- the 27 August 2026 API-first architecture decision; and
+- the owner-confirmed 20 September 2026 roster-selection, full-gate mapping and controlled normal-Free benchmark-screen methodology.
 
 Where current rules below conflict with the older announcement snapshot, the current rules govern validation and recommendations. The older announcement remains recorded later in this document as historical evidence.
 
@@ -191,11 +192,17 @@ For every staged assignment retain:
 - map identity and catalogue version;
 - source race number;
 - exact race type and distance;
-- rostered Core ID;
+- total gate count and the equal per-Vault gate count;
+- the **ordered list of rostered Core IDs for every one of our gate entries**;
 - assignment scope: `single_race` or `same_type_and_distance`; and
 - every race line affected by the expansion.
 
-The planner must reject unknown maps/races, non-roster Cores and conflicting assignments. It must report both total map coverage and first-16 coverage. Applying `same_type_and_distance` is scoped to the selected map; it never silently changes another map.
+The planner must reject unknown maps/races, non-roster Cores, duplicate Core IDs
+within one race, the wrong number of mapped Cores for the per-Vault gate count
+and conflicting assignments. It must report total line coverage, first-16 line
+coverage, total mapped Core-entry exposure and per-Core starts by map/distance.
+Applying `same_type_and_distance` is scoped to the selected map; it never
+silently changes another map.
 
 Persist each complete four-map lineup as reusable local strategy state. A
 match references the saved lineup version in force at lock; later edits must
@@ -203,10 +210,65 @@ not rewrite the historical locked matchup. Also retain home pick, home denial,
 away pick, third-map policy/result, lock time and whether an administrator or
 deadline fallback supplied any choice.
 
-It must also show the equal gate allocation for every race line, compare our
-mapped Core with the opposing Vault's selected or best-supported likely Core,
-and rank the role-eligible map choices by favourable, contested, unfavourable
-and unknown exact-format lines.
+It must also show the equal gate allocation for every race line, compare the
+full set of our mapped Cores with the opposing Vault's selected or
+best-supported likely depth, and rank the role-eligible map choices by
+favourable, contested, unfavourable and unknown exact-format lines. A
+single-lead-Core recommendation is not a complete match-ready lineup for any
+race with more than one gate per Vault.
+
+## Current owner roster-selection and win-first mapping doctrine
+
+The following is the current **owner strategy**, not an additional DNA game rule.
+Where it is stricter than the formal roster limits, preserve the owner strategy
+until the owner changes it.
+
+Roster selection:
+
+- register exactly **25 Cores**;
+- use **no Genesis** in the owner roster even though the current DNA rules permit
+  limited Genesis;
+- apply the owner eligibility guardrail of no more than **400 Bike ageing used**
+  when selecting the initial roster;
+- prefer elite or genuinely elite-potential Cores only; do not use structural
+  filler merely to occupy a legal slot;
+- optimise primarily for **Anchor, Measure and Glory**; treat Miracles as a
+  deny/contingency map and do not let it drive roster selection;
+- protect valuable normal-tournament Cores unless their Pro League contribution
+  clearly justifies the ageing exposure; and
+- evaluate exact race type plus exact distance first, while preserving
+  star/variance/upside evidence for high-variance Cores.
+
+Mapping is **win-first**, not usage-balanced:
+
+- every published race line must show the equal per-Vault gate allocation:
+  `1v1 = 1`, `4-gate = 2`, `6-gate = 3`, `12-gate = 6`,
+  `16-gate = 8`, `22-gate = 11`, `24-gate = 12` owned Cores;
+- fill every available owned gate with the strongest defensible
+  **distance-appropriate** roster depth;
+- do not spread starts for fairness. Reuse the strongest specialist whenever
+  the same exact cell repeats;
+- for large fields, rank exact-distance specialists first, then use only
+  credible neighbouring-distance depth. Do not put a sprint-only Core into a
+  2000/2200 field or a long-only Core into a 1000/1200 field merely to consume
+  roster depth;
+- an elite 2200 Core may be valid depth in a large-gate 2000 race when stronger
+  exact-2000 options have already been used, because it is the adjacent long
+  distance. Stretch only **one distance step** unless direct evidence supports
+  more;
+- the **first 16** race lines matter most because a map may finish from race 16
+  onward. Optimise those lineups first, then complete all 42 lines;
+- Miracles must still use the real full-depth 11/12-Core lineups for its
+  22/24-gate races even though the map is strategically secondary; and
+- roster membership is not a requirement to receive starts. A Core may remain
+  as opponent-specific or contingency depth if stronger specialists cover its
+  default cells.
+
+Ageing-aware mapping must not weaken the team merely to equalise exposure.
+However, when two Cores are comparable or the replacement is stronger, move
+unnecessary starts away from the more valuable/high-use Core. Track starts by
+map, distance and first-16 exposure so concentrated ageing can be reviewed
+explicitly before lock.
 
 ## Ageing-aware 25-Core owner strategy
 
@@ -268,12 +330,28 @@ For each candidate show separate evidence dimensions, including:
 
 Candidate ordering may use a transparent deterministic review order but must expose the underlying dimensions.
 
-Raw star totals and raw conversion never improve esports ranking. Only
-opposition-adjusted star evidence known before the race may break an otherwise
-tied intrinsic exact-format/distance comparison. A perfect record over weak or
-unknown fields is descriptive only; a star over a pre-race elite opponent is
-positive supporting evidence. Exact-format time, speed and consistency remain
-primary.
+Raw star totals and raw conversion from uncontrolled fields never improve
+esports ranking by themselves. Opposition quality must be known from evidence
+available before the race.
+
+For mature historical comparisons with adequate samples, exact-format time,
+speed, consistency and direct result distributions remain the primary evidence.
+A perfect star record over weak or unknown fields is descriptive only.
+
+A **controlled normal-Free benchmark screen** is different. When a challenger
+is deliberately paired at the same Bike distance with a proven strong/elite
+Core and only 2–5 races are planned, Yellow/source-Gold and Blue stars are the
+primary small-sample signal of latent ceiling. Finish position and elapsed time
+remain useful secondary context but are too noisy to overrule repeated stars in
+such a tiny high-variance sample. Repeated stars over more than one proven
+benchmark are strong supporting evidence even when the challenger finishes
+poorly.
+
+If neither owned Core receives a star, inspect the external star holder before
+downgrading either Core. A strong external star holder makes that race
+inconclusive rather than negative. Repeated no-star results across several
+quality-known benchmark opportunities may support caution, but never create an
+automatic bench decision.
 
 ## API-only evidence hierarchy
 
@@ -361,6 +439,14 @@ normal mode-aware Discovery workflow.
 
 Before roster lock, convert remaining uncertainty into ranked normal-racing
 probes rather than spending Pro League ageing blindly.
+
+When a question is specifically about latent distance ceiling, prefer a
+controlled normal-Free **benchmark screen** where practical: pair the challenger
+with a proven same-mode/exact-distance owned Core, start with two races and
+normally stop within 2–5 races per Core/distance once the star signal is
+decision-ready. This short screen does not replace the ten-race analytical
+minimum or the wider normal-Free study target when a full distribution is
+needed.
 
 Prioritise:
 

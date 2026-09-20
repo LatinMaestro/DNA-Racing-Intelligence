@@ -49,8 +49,12 @@ export const proLeagueCurrentRules = Object.freeze({
 
 export const proLeagueOwnerRosterStrategy = Object.freeze({
   strategyId: "owner-pro-league/ageing-aware-25-core-2026-08-31",
+  policyUpdatedAt: "2026-09-20",
   evidenceStatus: "owner_confirmed" as const,
   targetRosterSize: 25,
+  targetRosterPolicy: "exactly_25" as const,
+  genesisPolicy: "exclude_from_owner_roster" as const,
+  initialSelectionMaximumBikeAgeingUsed: 400,
   registrationIsAgeNeutral: true,
   protectedTournamentCores: Object.freeze({
     defaultDisposition: "exclude_from_roster" as const,
@@ -66,10 +70,29 @@ export const proLeagueOwnerRosterStrategy = Object.freeze({
     minimizeConcentratedAgeing: true,
     preserveNormalTournamentCapacity: true,
     mapOnlyWhenCompetitivelyJustified: true,
+    doNotBalanceStartsForFairness: true,
+    replaceStartsOnlyWhenStrengthIsNotReduced: true,
+  }),
+  mappingPolicy: Object.freeze({
+    primaryMaps: Object.freeze(["Anchor", "Measure", "Glory"] as const),
+    contingencyMap: "Miracles" as const,
+    first16Priority: true,
+    fillEveryOwnedGate: true,
+    exactDistanceFirst: true,
+    maximumAdjacentDistanceStepsWithoutDirectEvidence: 1,
+    useDistanceAppropriateDepth: true,
   }),
   evidencePolicy: Object.freeze({
     proLeagueResultsMayStrengthenEvidenceIncidentally: true,
     proLeagueIsDiscoveryAfterProperAssessment: false,
+    controlledNormalFreeBenchmarkScreen: Object.freeze({
+      initialRaceCount: 2,
+      maximumRaceCountPerCoreDistance: 5,
+      primarySmallSampleSignal: "yellow_blue_stars" as const,
+      finishAndTimeUse: "secondary_context" as const,
+      requireProvenSameDistanceBenchmark: true,
+      externalStarHolderReviewRequired: true,
+    }),
   }),
 });
 

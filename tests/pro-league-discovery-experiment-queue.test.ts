@@ -151,7 +151,12 @@ describe("Pro League Discovery experiment queue", () => {
             raceCount: 12,
           }),
         ]),
-        candidate("nucleus", [cell(1_000, "winning_range")]),
+        candidate("nucleus", [
+          cell(1_000, "winning_range", {
+            evidenceUse: "ranked",
+            raceCount: 12,
+          }),
+        ]),
       ]),
     );
 
@@ -165,6 +170,22 @@ describe("Pro League Discovery experiment queue", () => {
       directRaceCount: 8,
       observationsToMinimum: 2,
       recommendedNextRaceCount: 2,
+      benchmarkScreen: {
+        evidenceClass: "normal_free",
+        opponentStrategy: "proven_same_mode_exact_distance_core",
+        initialRaceCount: 2,
+        maximumRaceCount: 5,
+        primarySmallSampleSignal: "yellow_blue_stars",
+        finishAndTimeUse: "secondary_context",
+        externalStarHolderReviewRequired: true,
+      },
+      benchmarkCore: {
+        coreId: "nucleus",
+        displayName: "Core nucleus",
+        distanceMetres: 1_000,
+        benchmarkSignal: "winning_range",
+        directRaceCount: 12,
+      },
       automaticRaceEntryAllowed: false,
       automaticRosterMutationAllowed: false,
     });

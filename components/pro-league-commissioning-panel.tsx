@@ -889,6 +889,22 @@ export function ProLeagueCommissioningPanel({
                     Lineage evidence and opposition quality remain unknown when
                     flagged; neither is treated favourably.
                   </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    Normal-Free benchmark screen: pair the candidate with a
+                    proven same-mode, exact-distance Core. Start with{" "}
+                    {experiment.benchmarkScreen.initialRaceCount} race(s) and
+                    normally stop by{" "}
+                    {experiment.benchmarkScreen.maximumRaceCount}. Yellow/Blue
+                    stars are the primary small-sample ceiling signal; finish
+                    and time remain secondary context. If neither owned Core
+                    takes a star, review the external star holder before
+                    downgrading either Core.
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    {experiment.benchmarkCore === null
+                      ? "No proven same-distance roster benchmark is currently available; choose one manually only after its quality is verified."
+                      : `Preferred benchmark: ${experiment.benchmarkCore.displayName} (${experiment.benchmarkCore.directRaceCount} proven same-distance race(s), ${label(experiment.benchmarkCore.benchmarkSignal)}).`}
+                  </p>
                 </li>
               ))}
             </ol>

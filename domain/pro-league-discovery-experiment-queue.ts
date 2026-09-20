@@ -1,3 +1,7 @@
+import {
+  discoveryBenchmarkScreenPolicy,
+  type DiscoveryBenchmarkScreenPolicy,
+} from "@/domain/discovery-methodology";
 import type { ProLeagueCoverageGap } from "@/domain/pro-league-matchup";
 import type {
   ProLeagueCandidateCellScore,
@@ -14,6 +18,17 @@ const MINIMUM_EXACT_DISTANCE_RACES = 10;
 type Gap = ProLeagueCoverageGap;
 type Candidate = ProLeagueRosterCandidateScore;
 type Cell = ProLeagueCandidateCellScore;
+
+export type ProLeagueDiscoveryBenchmarkCore = Readonly<{
+  coreId: string;
+  displayName: string;
+  distanceMetres: number;
+  benchmarkSignal: Extract<
+    Cell["benchmarkAssessment"],
+    "winning_range" | "top_three_range"
+  >;
+  directRaceCount: number;
+}>;
 
 export type ProLeagueDiscoveryExperiment = Readonly<{
   coreId: string;
@@ -36,12 +51,15 @@ export type ProLeagueDiscoveryExperiment = Readonly<{
   observationsToMinimum: number;
   recommendedNextRaceCount: number;
   decision: "complete_exact_minimum" | "single_confirmation";
+  benchmarkScreen: DiscoveryBenchmarkScreenPolicy;
+  benchmarkCore: ProLeagueDiscoveryBenchmarkCore | null;
   evidenceCurrentThrough: string;
   warnings: readonly (
     | "EXPERIMENTAL_SMALL_SAMPLE"
     | "ADJACENT_DISTANCE_IS_HYPOTHESIS_ONLY"
     | "LINEAGE_EVIDENCE_UNAVAILABLE"
     | "OPPOSITION_QUALITY_UNAVAILABLE"
+    | "PROVEN_BENCHMARK_CORE_UNAVAILABLE"
     | "SUBSTITUTION_BUDGET_USAGE_UNAVAILABLE"
   )[];
   automaticRaceEntryAllowed: false;
@@ -87,6 +105,67 @@ function strongSupportingSignal(cell: Cell): boolean {
         stars.strongFieldBlueReceivedCount > 0 ||
         stars.eliteOpponentYellowReceivedCount > 0 ||
         stars.eliteOpponentBlueReceivedCount > 0))
+  );
+}
+
+function provenBenchmarkCandidatesByDistance(
+  candidates: readonly Candidate[],
+  rosterRoles: ReadonlyMap<string, string>,
+): ReadonlyMap<number, readonly ProLeagueDiscoveryBenchmarkCore[]> {
+  const byDistance = new Map<
+    number,
+    Map<string, ProLeagueDiscoveryBenchmarkCore>
+  >();
+  for (const candidate of candidates) {
+    if (!rosterRoles.has(candidate.core.coreId)) continue;
+    for (const cell of candidate.cells) {
+      if (
+        cell.evidenceUse !== "ranked" ||
+        cell.raceCount < MINIMUM_EXACT_DISTANCE_RACES ||
+        (cell.benchmarkAssessment !== "winning_range" &&
+          cell.benchmarkAssessment !== "top_three_range")
+      ) {
+        continue;
+      }
+      const perCore =
+        byDistance.get(cell.distanceMetres) ??
+        new Map<string, ProLeagueDiscoveryBenchmarkCore>();
+      const next: ProLeagueDiscoveryBenchmarkCore = Object.freeze({
+        coreId: candidate.core.coreId,
+        displayName: candidate.core.displayName,
+        distanceMetres: cell.distanceMetres,
+        benchmarkSignal: cell.benchmarkAssessment,
+        directRaceCount: cell.raceCount,
+      });
+      const existing = perCore.get(candidate.core.coreId);
+      const rank = { winning_range: 0, top_three_range: 1 } as const;
+      if (
+        existing === undefined ||
+        rank[next.benchmarkSignal] < rank[existing.benchmarkSignal] ||
+        (next.benchmarkSignal === existing.benchmarkSignal &&
+          next.directRaceCount > existing.directRaceCount)
+      ) {
+        perCore.set(candidate.core.coreId, next);
+      }
+      byDistance.set(cell.distanceMetres, perCore);
+    }
+  }
+
+  return new Map(
+    [...byDistance].map(([distanceMetres, perCore]) => [
+      distanceMetres,
+      Object.freeze(
+        [...perCore.values()].sort((left, right) => {
+          const rank = { winning_range: 0, top_three_range: 1 } as const;
+          return (
+            rank[left.benchmarkSignal] - rank[right.benchmarkSignal] ||
+            right.directRaceCount - left.directRaceCount ||
+            left.displayName.localeCompare(right.displayName) ||
+            left.coreId.localeCompare(right.coreId)
+          );
+        }),
+      ),
+    ]),
   );
 }
 
@@ -137,6 +216,10 @@ function experiment(
   candidate: Candidate,
   gap: Gap,
   rosterImpact: ProLeagueDiscoveryExperiment["rosterImpact"],
+  benchmarkCandidates: ReadonlyMap<
+    number,
+    readonly ProLeagueDiscoveryBenchmarkCore[]
+  >,
   diagnostics: {
     stoppedWeakPathCount: number;
     conflictingEvidenceCount: number;
@@ -194,6 +277,13 @@ function experiment(
   ) {
     warnings.add("OPPOSITION_QUALITY_UNAVAILABLE");
   }
+  const benchmarkCore =
+    benchmarkCandidates
+      .get(gap.distanceMetres)
+      ?.find((benchmark) => benchmark.coreId !== candidate.core.coreId) ?? null;
+  if (benchmarkCore === null) {
+    warnings.add("PROVEN_BENCHMARK_CORE_UNAVAILABLE");
+  }
   return Object.freeze({
     coreId: candidate.core.coreId,
     displayName: candidate.core.displayName,
@@ -220,6 +310,8 @@ function experiment(
         ? 1
         : Math.min(3, observationsToMinimum),
     decision,
+    benchmarkScreen: discoveryBenchmarkScreenPolicy,
+    benchmarkCore,
     evidenceCurrentThrough: source.dataCurrentThrough,
     warnings: Object.freeze([...warnings].sort()),
     automaticRaceEntryAllowed: false,
@@ -250,11 +342,21 @@ export function buildProLeagueDiscoveryExperimentQueue(
     conflictingEvidenceCount: 0,
     unresolvedCandidateCellCount: 0,
   };
+  const benchmarkCandidates = provenBenchmarkCandidatesByDistance(
+    roster.candidates,
+    rosterRoles,
+  );
   const experiments = priorityGaps.flatMap((gap) =>
     roster.candidates.flatMap((candidate) => {
       const rosterImpact = impact(candidate, rosterRoles);
       if (rosterImpact === null) return [];
-      const value = experiment(candidate, gap, rosterImpact, diagnostics);
+      const value = experiment(
+        candidate,
+        gap,
+        rosterImpact,
+        benchmarkCandidates,
+        diagnostics,
+      );
       return value === null ? [] : [value];
     }),
   );

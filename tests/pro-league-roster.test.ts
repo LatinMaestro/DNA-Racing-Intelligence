@@ -61,13 +61,37 @@ describe("Pro League roster audit", () => {
     });
     expect(proLeagueOwnerRosterStrategy).toMatchObject({
       targetRosterSize: 25,
+      targetRosterPolicy: "exactly_25",
+      genesisPolicy: "exclude_from_owner_roster",
+      initialSelectionMaximumBikeAgeingUsed: 400,
       registrationIsAgeNeutral: true,
       protectedTournamentCores: {
         defaultDisposition: "exclude_from_roster",
       },
+      participationPolicy: {
+        doNotBalanceStartsForFairness: true,
+        replaceStartsOnlyWhenStrengthIsNotReduced: true,
+      },
+      mappingPolicy: {
+        primaryMaps: ["Anchor", "Measure", "Glory"],
+        contingencyMap: "Miracles",
+        first16Priority: true,
+        fillEveryOwnedGate: true,
+        exactDistanceFirst: true,
+        maximumAdjacentDistanceStepsWithoutDirectEvidence: 1,
+        useDistanceAppropriateDepth: true,
+      },
       evidencePolicy: {
         proLeagueResultsMayStrengthenEvidenceIncidentally: true,
         proLeagueIsDiscoveryAfterProperAssessment: false,
+        controlledNormalFreeBenchmarkScreen: {
+          initialRaceCount: 2,
+          maximumRaceCountPerCoreDistance: 5,
+          primarySmallSampleSignal: "yellow_blue_stars",
+          finishAndTimeUse: "secondary_context",
+          requireProvenSameDistanceBenchmark: true,
+          externalStarHolderReviewRequired: true,
+        },
       },
     });
   });
