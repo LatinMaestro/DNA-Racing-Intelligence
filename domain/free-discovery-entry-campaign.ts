@@ -34,7 +34,9 @@ export type FreeDiscoveryEntryCampaign = Readonly<{
     preferredExecutor: "dna_native_auto_entry";
     fallbackExecutor: "owner_authorized_local_entry_agent";
     plannedNewRacesPerCell: 5;
-    maximumOwnedCoresPerRace: 1;
+    maximumOwnedCoresPerRace: 2;
+    twoOwnedCorePolicy:
+      "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
     cloudRaceEntryAllowed: false;
     localExecutorCommissioned: false;
     ownerAuthorizedPlanConsumption: true;
@@ -64,7 +66,9 @@ export type FreeDiscoveryEntryIntent = Readonly<{
   raceOrdinal: number;
   idempotencyKey: string;
   selector: FreeDiscoveryEntryCampaign["raceSelector"];
-  maximumOwnedCoresPerRace: 1;
+  maximumOwnedCoresPerRace: 2;
+  twoOwnedCorePolicy:
+    "challenger_plus_proven_same_mode_exact_distance_benchmark_only";
 }>;
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -180,8 +184,13 @@ export function validateFreeDiscoveryEntryCampaign(
   );
   literal(
     execution.maximumOwnedCoresPerRace,
-    1,
+    2,
     "Maximum owned Cores per race",
+  );
+  literal(
+    execution.twoOwnedCorePolicy,
+    "challenger_plus_proven_same_mode_exact_distance_benchmark_only",
+    "Two-owned-Core Discovery policy",
   );
   literal(
     execution.cloudRaceEntryAllowed,
@@ -342,7 +351,9 @@ export function validateFreeDiscoveryEntryCampaign(
       preferredExecutor: "dna_native_auto_entry" as const,
       fallbackExecutor: "owner_authorized_local_entry_agent" as const,
       plannedNewRacesPerCell: 5 as const,
-      maximumOwnedCoresPerRace: 1 as const,
+      maximumOwnedCoresPerRace: 2 as const,
+      twoOwnedCorePolicy:
+        "challenger_plus_proven_same_mode_exact_distance_benchmark_only" as const,
       cloudRaceEntryAllowed: false as const,
       localExecutorCommissioned: false as const,
       ownerAuthorizedPlanConsumption: true as const,
@@ -421,7 +432,9 @@ export function buildPendingFreeDiscoveryEntryIntents(
               },
             ),
             selector: campaign.raceSelector,
-            maximumOwnedCoresPerRace: 1 as const,
+            maximumOwnedCoresPerRace: 2 as const,
+            twoOwnedCorePolicy:
+              "challenger_plus_proven_same_mode_exact_distance_benchmark_only" as const,
           }),
         );
       }
