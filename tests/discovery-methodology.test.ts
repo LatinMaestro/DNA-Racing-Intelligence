@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessDiscoveryBenchmarkStarScreen,
   buildDiscoveryCoreMethodologyPlan,
   classifyDiscoveryRunnerArchetype,
+  discoveryBenchmarkScreenPolicy,
   noStarEvidenceSupportsCaution,
   selectDiscoveryTwoBandTestPlan,
   type DiscoveryDistanceMethodologyEvidence,
@@ -233,6 +235,48 @@ describe("cross-mode discovery methodology", () => {
         ),
       ).toBe(true);
     }
+  });
+
+  it("treats repeated stars over proven benchmark Cores as a small-sample ceiling signal", () => {
+    expect(discoveryBenchmarkScreenPolicy).toMatchObject({
+      evidenceClass: "normal_free",
+      opponentStrategy: "proven_same_mode_exact_distance_core",
+      initialRaceCount: 2,
+      maximumRaceCount: 5,
+      primarySmallSampleSignal: "yellow_blue_stars",
+      finishAndTimeUse: "secondary_context",
+      externalStarHolderReviewRequired: true,
+    });
+
+    expect(
+      assessDiscoveryBenchmarkStarScreen({
+        provenBenchmarkRaceCount: 2,
+        targetStarredRaceCount: 2,
+        targetYellowOrGoldRaceCount: 1,
+        targetBlueRaceCount: 2,
+        strongExternalStarHolderRaceCount: 0,
+      }),
+    ).toBe("strong_support");
+
+    expect(
+      assessDiscoveryBenchmarkStarScreen({
+        provenBenchmarkRaceCount: 2,
+        targetStarredRaceCount: 0,
+        targetYellowOrGoldRaceCount: 0,
+        targetBlueRaceCount: 0,
+        strongExternalStarHolderRaceCount: 1,
+      }),
+    ).toBe("neutral");
+
+    expect(
+      assessDiscoveryBenchmarkStarScreen({
+        provenBenchmarkRaceCount: 3,
+        targetStarredRaceCount: 0,
+        targetYellowOrGoldRaceCount: 0,
+        targetBlueRaceCount: 0,
+        strongExternalStarHolderRaceCount: 0,
+      }),
+    ).toBe("caution");
   });
 
   it("uses known no-star opportunities as caution only after repeated strong-opposition chances", () => {
