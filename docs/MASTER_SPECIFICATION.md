@@ -288,21 +288,38 @@ Double Up bracket:
 
 Whether the same qualifying races count for both brackets may vary or remain uncertain. Configuration must support shared, separate and unknown.
 
-### 4.10 Auto-Entry planner
+### 4.10 Race-entry planner and local bot
 
 The game permits the user to select multiple eligible cores and a repeated race count.
 
-The website should recommend:
+The current cloud website remains non-executing until the owner-authorised local
+race-entry bot is commissioned. Development must nevertheless support two
+first-class execution purposes:
 
-- which cores to select;
-- intended bracket for each;
-- initial number of races;
-- minimum required races;
-- when another attempt has meaningful expected value;
-- when to stop due to weak times or diminishing qualification improvement;
-- cores to hold in reserve.
+1. **paid tournament qualification**; and
+2. **zero-cost Free Discovery campaigns**.
 
-It must not attempt to operate the game or promise exact live gate control.
+For paid tournament qualification, the website should recommend which Cores to
+select, intended bracket, initial/minimum race counts, continuation value,
+reserve depth and stop-loss/spend controls. The local executor must never place
+more than one owned Core into the same paid tournament race.
+
+For Free Discovery, the website should produce bounded machine-readable
+campaigns containing mode, exact distance, race class, gate count, format,
+target new-race count and Core IDs. The race-entry bot must work through those
+campaigns, reconcile completed races, avoid repeating completed cells and return
+results to Discovery analysis.
+
+In four-gate Free Discovery races, up to two owned Cores may share a field only
+when the second Core is a proven same-mode, exact-distance benchmark for the
+challenger. Otherwise use one owned Core.
+
+No-star results, placing or elapsed time must not automatically stop a Free
+Discovery campaign or create a burn decision. Campaign targets and authoritative
+finished-race reconciliation control completion.
+
+The cloud application must not submit race entries directly unless a later
+security review and release gate explicitly authorise that boundary.
 
 ### 4.11 Breeding intelligence
 

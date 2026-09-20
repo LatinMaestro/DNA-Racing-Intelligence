@@ -7,15 +7,17 @@ Scope: private single-owner DNA Racing Intelligence deployment.
 
 ## 1. Purpose and delivery placement
 
-This document defines the owner-approved future architecture for automating paid tournament qualification after the current API/Pro League critical path and private website commissioning are complete.
+This document defines the owner-approved future architecture for the website-planned, owner-authorised race-entry bot. It supports two distinct execution purposes: paid tournament qualification and zero-cost Free Discovery campaigns.
 
 It is intentionally **not** current Production execution authority. The existing critical-path application remains advisory/read-only with respect to DNA Racing write actions until the release gates in this document are satisfied.
 
-Primary objective:
+Primary objectives:
 
-> Use DNA Racing Intelligence to select profitable tournament qualification opportunities and an owner-authorised local executor to enter suitable races with HLX credits, one owned Core per race, while applying realised-P/L stop losses and hard spend/exposure controls.
+> **Paid tournament lane:** use DNA Racing Intelligence to select profitable tournament qualification opportunities and an owner-authorised local executor to enter suitable races with HLX credits, one owned Core per race, while applying realised-P/L stop losses and hard spend/exposure controls.
 
-Free Discovery may later reuse the same executor, but tournament qualification is the primary use case.
+> **Free Discovery lane:** let the same website planner and race-entry bot execute bounded zero-cost Discovery campaigns from machine-readable plans, reconcile finished races, stop at the campaign target, and feed the results back into Discovery analysis.
+
+The two lanes share execution plumbing, idempotency, reconciliation, audit and pause controls, but they do **not** share performance-stop rules. Tournament uses realised P/L. Free Discovery uses the planned sample target and never converts a no-star result into an automatic stop, bench or burn decision.
 
 ## 2. Current owner-confirmed HLX mechanics
 
@@ -120,6 +122,41 @@ The local executor runs under an owner-controlled authenticated DNA browser/sess
 
 Do not move that write action server-side unless a later explicit security review proves it can operate without exporting private browser/wallet credentials.
 
+## 5.1 Race-entry bot execution purposes
+
+The website race-entry planner and owner-authorised local executor are developed
+as a shared bot with two explicit execution purposes:
+
+### Paid tournament
+
+- paid or prize-bearing tournament qualification;
+- maximum **one owned Core per race**;
+- live poor-performance stop rule is realised P/L only;
+- spend, unsettled exposure and balance controls are mandatory; and
+- direct single-race local execution is preferred where supported.
+
+### Free Discovery
+
+- standalone `Free` races only;
+- campaign-defined mode, exact distance, class, gate count, format and target;
+- DNA native Auto-Entry is preferred for bounded bulk Free campaigns where it
+  can express the campaign safely;
+- the local single-race executor is the fallback and may also be preferred when
+  exact field composition/benchmark pairing needs tighter control;
+- a four-gate Free race may contain **up to two owned Cores only when the second
+  Core is a proven same-mode, exact-distance benchmark** for the challenger;
+- otherwise use one owned Core in the race;
+- the bot must never exceed the campaign's planned new-race count for a
+  Core-distance cell;
+- completed races count only after authoritative reconciliation;
+- no-star, placing, elapsed time or variance may automatically stop the campaign
+  early or produce a burn decision; and
+- completed results return to Discovery for Round-2 narrowing and lifecycle
+  review.
+
+The machine-checkable shared capability contract lives in
+`domain/race-entry-bot.ts`.
+
 ## 6. Tournament segment model
 
 A tournament may contain multiple independent execution segments. A segment is the smallest independently controlled qualification lane, for example:
@@ -168,9 +205,11 @@ The uncertainty classification is a pre-entry planning decision. Once entries ar
 
 ## 8. Hard one-owned-Core-per-race rule
 
-The owner rule is stricter than DNA's general gate-occupancy cap:
+For the **paid tournament lane**, the owner rule is stricter than DNA's general gate-occupancy cap:
 
-> **Never place more than one owned Core into the same race.**
+> **Never place more than one owned Core into the same paid tournament race.**
+
+For **Free Discovery**, Section 5.1 controls instead: two owned Cores are allowed only for a deliberate challenger + proven same-mode/exact-distance benchmark screen.
 
 Before every submission the controller must use the freshest authoritative race/fill evidence available and reject the candidate race if any Core from the owner's current vault is already entered.
 
@@ -368,6 +407,38 @@ Commission separately before use. If used, preserve the same controls where tech
 - idempotent create/cancel actions;
 - pending exposure accounting; and
 - exact audit/reconciliation.
+
+### 17.1 Owner-authorised Horse Free Discovery campaign — 20 September 2026
+
+The owner has explicitly reprioritised the Free Discovery fallback path for one
+bounded Horse campaign so Horse usefulness can be exhausted before eventual
+burn decisions.
+
+Machine-readable authority:
+`campaigns/horse-burn-grade-discovery-2026-09-20.json`.
+
+Campaign contract:
+
+- audit universe: 214 current owned Cores;
+- 515 Core × exact-distance cells;
+- 2,575 planned new Free races;
+- exact distances: 1000, 1200, 1400, 1600, 1800, 2000 and 2200 metres;
+- 5 new races per listed Core-distance cell;
+- Horse mode, standalone `Free`, class 90, four gates, normal format;
+- use one owned Core per race by default; allow two only for a deliberate challenger + proven same-mode/exact-distance benchmark screen;
+- count progress only from authoritative reconciled finished-race evidence;
+- never recreate a completed cell or duplicate an idempotency key;
+- Yellow/source-Gold and Blue stars remain primary small-sample Discovery
+  signals, with finish/time as context;
+- no-star results do not create an automatic stop, bench or burn decision; and
+- completed campaign results feed a later Round-2 narrowing pass.
+
+DNA native Auto-Entry is the preferred executor for this free campaign. The
+website/local race-entry bot is also explicitly developed to execute Free
+Discovery campaigns and may consume the same plan once commissioned. This owner
+instruction authorises **plan consumption/configuration**, not cloud race-entry
+writes: the cloud write path remains disabled and the local executor remains
+uncommissioned until its separate release gates are satisfied.
 
 ## 18. Audit requirements
 
