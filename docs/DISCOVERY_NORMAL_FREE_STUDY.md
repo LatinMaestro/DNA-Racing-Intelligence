@@ -98,6 +98,41 @@ screening signal. If all options are unknown, it uses a neutral representative
 and states that no supporting evidence exists. `SCREEN` is never displayed as
 preferred.
 
+## Controlled benchmark screens
+
+A controlled benchmark screen is a short normal-Free experiment used when the
+question is latent ceiling or side-distance potential rather than estimation of
+a full performance distribution.
+
+Where practical:
+
+- use the same racing mode and exact distance for challenger and benchmark;
+- pair the challenger with a **proven strong/elite owned Core** whose benchmark
+  quality is established from evidence available before the race;
+- in four-gate Free races, use at most two owner Cores so the challenger and
+  benchmark can share the field without crowding out independent opposition;
+- begin with **two races** and normally stop within **2–5 races per
+  Core/distance** once the screen is decision-ready;
+- interpret repeated Yellow/source-Gold or Blue stars over proven benchmarks as
+  a primary small-sample signal of latent ceiling. Finish position and elapsed
+  time remain secondary context because a high-variance Core can roll poorly
+  in two races while still showing elite underlying upside;
+- if neither owned Core receives a star, identify the external star holder and
+  assess that Core's same-mode/exact-distance quality before downgrading either
+  owned Core; and
+- treat repeated no-star results across several quality-known benchmark
+  opportunities as caution only when strong external star holders do not explain
+  the misses.
+
+The benchmark Core is a control, not a sacrificial filler. Do not label a Core
+proven merely because it is familiar or historically popular. Its same-mode,
+exact-distance evidence must support the classification.
+
+A benchmark screen is an **early decision aid**, not analytical completion. It
+does not replace the ten-race minimum for a minimally analytical conclusion or
+the wider normal-Free target below when the owner wants a fuller speed and
+repeatability distribution.
+
 ## Normal-Free test target and measurements
 
 The default owner target is 20 usable normal-Free observations for one owner,
