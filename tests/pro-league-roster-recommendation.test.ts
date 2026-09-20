@@ -215,6 +215,28 @@ describe("Pro League draft roster recommendation", () => {
     expect(result.draftRoster!.audit.elementCounts.Metal).toBe(7);
   });
 
+  it("keeps Genesis formally legal but excludes it from this owner's recommended roster pool", () => {
+    const result = recommend([
+      core(99, {
+        coreClass: "Genesis",
+        exactFormatEvidence: [
+          evidence("winning_range", {
+            medianMilliseconds: 45_000,
+            standardDeviationMilliseconds: 200,
+          }),
+        ],
+      }),
+      ...Array.from({ length: 12 }, (_, index) => core(index)),
+    ]);
+
+    expect(result.candidates.some(({ core: value }) => value.coreClass === "Genesis")).toBe(false);
+    expect(
+      result.draftRoster?.members.some(
+        ({ core: value }) => value.coreClass === "Genesis",
+      ),
+    ).toBe(false);
+  });
+
   it("marks the best-owned population-weak cell provisional and exposes the gap", () => {
     const result = recommend(
       Array.from({ length: 12 }, (_, index) =>
