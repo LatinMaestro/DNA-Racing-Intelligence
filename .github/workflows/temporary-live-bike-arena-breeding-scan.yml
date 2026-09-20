@@ -26,10 +26,11 @@ jobs:
           const key=process.env.DNA_OPEN_LAB_API_KEY_3;
           const url='https://api.dnaracing.run/fbike/pub/v1/splice/arena';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function page(page){
-            for(let attempt=0;attempt<5;attempt++){
+          async function fetchPage(page){
+            let lastError=null;
+            for(let attempt=1;attempt<=5;attempt++){
               const controller=new AbortController();
-              const timer=setTimeout(()=>controller.abort(),20000);
+              const timer=setTimeout(()=>controller.abort(),60000);
               try{
                 const r=await fetch(url,{
                   method:'POST',
@@ -42,23 +43,27 @@ jobs:
                   signal:controller.signal
                 });
                 const text=await r.text();
-                let j=null;try{j=JSON.parse(text)}catch{}
+                let j=null; try{j=JSON.parse(text)}catch{}
                 if(r.status===429){
-                  clearTimeout(timer);
-                  await sleep(Number(r.headers.get('retry-after')||3)*1000);
+                  await sleep(Math.max(3000,Number(r.headers.get('retry-after')||3)*1000));
                   continue;
                 }
                 if(!r.ok||j?.status!=='success') throw new Error('page '+page+' '+r.status+' '+text.slice(0,400));
                 return j.result;
-              } finally { clearTimeout(timer); }
+              }catch(error){
+                lastError=error;
+                if(attempt===5) throw error;
+                await sleep(3000);
+              }finally{
+                clearTimeout(timer);
+              }
             }
-            throw new Error('page retries exhausted '+page);
+            throw lastError??new Error('page retries exhausted '+page);
           }
           (async()=>{
-            const pages=[]; const cores=[]; const seen=new Set();
-            let expectedLimit=null;
+            const pages=[]; const cores=[]; const seen=new Set(); let expectedLimit=null;
             for(let p=1;p<=100;p++){
-              const result=await page(p);
+              const result=await fetchPage(p);
               const rows=Array.isArray(result.cores)?result.cores:[];
               if(result.page!==p) throw new Error('page drift '+p+' -> '+result.page);
               if(!Number.isSafeInteger(result.limit)||result.limit<1) throw new Error('invalid limit');
@@ -71,7 +76,7 @@ jobs:
               pages.push({page:p,count:rows.length,limit:result.limit,reportedHasMore:result.has_more});
               const needsMore=result.has_more===true || rows.length===result.limit;
               if(!needsMore) break;
-              await sleep(2100);
+              await sleep(2200);
               if(p===100) throw new Error('page bound exceeded');
             }
             fs.writeFileSync('complete-live-bike-arena.json',JSON.stringify({
