@@ -1,4 +1,4 @@
-name: temporary live Bike Arena pagination probe
+name: temporary Arena contract probe
 
 on:
   push:
@@ -11,60 +11,62 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
-      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Probe Arena pages beyond has_more
+      - name: Probe Arena request variants
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const key=process.env.DNA_OPEN_LAB_API_KEY_2;
-          const base='https://api.dnaracing.run/fbike/pub/v1';
+          const key=process.env.DNA_OPEN_LAB_API_KEY_3;
+          const url='https://api.dnaracing.run/fbike/pub/v1/splice/arena';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function arena(page){
-            const r=await fetch(base+'/splice/arena',{
+          async function call(label,body){
+            const r=await fetch(url,{
               method:'POST',
               headers:{
                 'authorization':'Bearer '+key,
                 'accept':'application/json',
                 'content-type':'application/json'
               },
-              body:JSON.stringify({f:{rvmode:'bike'},page})
+              body:JSON.stringify(body)
             });
             const text=await r.text();
-            let json=null; try{json=JSON.parse(text)}catch{}
-            await sleep(450);
-            return {status:r.status,json,text};
+            let j=null; try{j=JSON.parse(text)}catch{}
+            const result=j?.result;
+            const cores=Array.isArray(result?.cores)?result.cores:[];
+            await sleep(700);
+            return {
+              label,body,httpStatus:r.status,status:j?.status??null,err:j?.err??null,
+              returnedPage:result?.page??null,limit:result?.limit??null,
+              has_more:result?.has_more??null,count:cores.length,
+              firstHids:cores.slice(0,8).map(x=>x.hid),
+              lastHids:cores.slice(-8).map(x=>x.hid)
+            };
           }
           (async()=>{
-            const pages=[];
-            for(let page=1;page<=25;page++){
-              const x=await arena(page);
-              if(x.status!==200 || x.json?.status!=='success'){
-                pages.push({page,status:x.status,error:x.text.slice(0,400)});
-                break;
-              }
-              const result=x.json.result;
-              pages.push({
-                page,
-                returnedPage:result.page,
-                limit:result.limit,
-                has_more:result.has_more,
-                count:Array.isArray(result.cores)?result.cores.length:null,
-                hids:Array.isArray(result.cores)?result.cores.map(c=>c.hid):[]
-              });
-              if(!Array.isArray(result.cores) || result.cores.length===0) break;
-            }
-            fs.writeFileSync('arena-pagination-probe.json',JSON.stringify({fetchedAt:new Date().toISOString(),pages},null,2));
+            const variants=[
+              ['bike-p1',{f:{rvmode:'bike'},page:1}],
+              ['bike-p2',{f:{rvmode:'bike'},page:2}],
+              ['bike-p3',{f:{rvmode:'bike'},page:3}],
+              ['empty-filter-p1',{f:{},page:1}],
+              ['empty-filter-p2',{f:{},page:2}],
+              ['no-filter-p1',{page:1}],
+              ['bike-no-power-p1',{f:{rvmode:'bike',use_powerstats:false},page:1}],
+              ['bike-power-p1',{f:{rvmode:'bike',use_powerstats:true},page:1}]
+            ];
+            const results=[];
+            for(const [label,body] of variants) results.push(await call(label,body));
+            fs.writeFileSync('arena-contract-probe.json',JSON.stringify({fetchedAt:new Date().toISOString(),results},null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: arena-pagination-probe
-          path: arena-pagination-probe.json
+          name: arena-contract-probe
+          path: arena-contract-probe.json
           retention-days: 1
