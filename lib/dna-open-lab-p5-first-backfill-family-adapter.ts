@@ -568,7 +568,7 @@ export function createDnaOpenLabP5FirstBackfillFamilyAdapter(input: {
           if (
             !dnaSpliceArenaNeedsContinuation({
               hasMore,
-              rowCount: cores.length,
+              rowCount: records(pageRecord.cores).length,
               pageSizeLimit: Number(limit),
             })
           ) {
