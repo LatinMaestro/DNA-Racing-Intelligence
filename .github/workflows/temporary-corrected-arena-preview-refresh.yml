@@ -40,19 +40,20 @@ jobs:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
-      - name: Checkout exact PR base main
+      - name: Checkout exact current main
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
-      - name: Prove checked out code is still current main
+          ref: main
+      - name: Prove checked out code is current main
         shell: bash
         run: |
+          BASE_SHA="$(git rev-parse HEAD)"
           git fetch --no-tags origin main
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          if [[ "$(git rev-parse HEAD)" != "$BASE_SHA" ]] || [[ "$(git rev-parse origin/main)" != "$BASE_SHA" ]]; then
+          if [[ "$(git rev-parse origin/main)" != "$BASE_SHA" ]]; then
             echo "Main moved; refusing Preview refresh from stale code."
             exit 1
           fi
+          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -102,14 +103,12 @@ jobs:
       - name: Advance official bounded Preview daily refresh
         shell: bash
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
           GITHUB_SHA="$BASE_SHA" npx vitest run --no-file-parallelism tests/hosted-preview-connected-private-daily-refresh-command.test.ts
       - name: Prove main remained unchanged
         if: always()
         shell: bash
         run: |
           git fetch --no-tags origin main
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
           if [[ "$(git rev-parse origin/main)" != "$BASE_SHA" ]]; then
             echo "Main changed during Preview refresh."
             exit 1
