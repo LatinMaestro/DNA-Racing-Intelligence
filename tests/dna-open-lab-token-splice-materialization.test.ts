@@ -59,6 +59,7 @@ function page(input: {
   hasMore: boolean;
   coreIds: readonly number[];
   observedAt?: string;
+  limit?: number;
 }) {
   return adaptDnaSpliceArenaPage({
     mode: "bike",
@@ -66,7 +67,7 @@ function page(input: {
     raw: {
       cores: input.coreIds.map(core),
       has_more: input.hasMore,
-      limit: 20,
+      limit: input.limit ?? 20,
       page: input.page,
     },
   });
@@ -123,6 +124,35 @@ describe("DNA Open Lab Token/Splice generation materialization", () => {
       page: 1,
       canonical: { sourceCoreId: "101", priceUsdSourceValue: 10.1 },
     });
+  });
+
+  it("accepts a full non-final page when the provider falsely reports has_more false", () => {
+    const value = input();
+    const result = createDnaTokenSpliceMaterialization({
+      ...value,
+      candidate: candidate({ arenaCount: 3 }),
+      arenaPages: [
+        page({
+          page: 1,
+          hasMore: false,
+          coreIds: [101, 202],
+          limit: 2,
+        }),
+        page({
+          page: 2,
+          hasMore: false,
+          coreIds: [303],
+          limit: 2,
+        }),
+      ],
+    });
+
+    expect(result.arenaPages.map((entry) => entry.page)).toEqual([1, 2]);
+    expect(result.arenaListings.map((entry) => entry.sourceCoreId)).toEqual([
+      "101",
+      "202",
+      "303",
+    ]);
   });
 
   it("accepts a proven empty mode only with its terminal page", () => {

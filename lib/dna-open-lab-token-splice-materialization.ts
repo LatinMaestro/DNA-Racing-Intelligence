@@ -9,6 +9,7 @@ import type {
   DnaOpenLabEvidence,
 } from "./dna-open-lab-v1-adapters";
 import type { DnaRaceMode } from "./dna-open-lab-v1-client";
+import { dnaSpliceArenaNeedsContinuation } from "./dna-splice-arena-pagination";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const MODE_ORDER: Readonly<Record<DnaRaceMode, number>> = Object.freeze({
@@ -233,7 +234,12 @@ function arenaRows(input: {
         );
       }
       const isLast = index === modePages.length - 1;
-      if (page.canonical.hasMore === isLast) {
+      const needsContinuation = dnaSpliceArenaNeedsContinuation({
+        hasMore: page.canonical.hasMore,
+        rowCount: page.canonical.listings.length,
+        pageSizeLimit: page.canonical.pageSizeLimit,
+      });
+      if (needsContinuation === isLast) {
         materializationError(
           `Arena mode ${mode} pagination must end at exactly one terminal page`,
         );
