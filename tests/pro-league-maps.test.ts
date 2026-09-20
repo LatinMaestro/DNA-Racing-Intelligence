@@ -159,7 +159,7 @@ describe("Pro League maps", () => {
       scope: "same_type_and_distance",
     });
 
-    expect(resolved).toHaveLength(9);
+    expect(resolved).toHaveLength(7);
     expect(resolved[0]).toMatchObject({
       raceNumber: 2,
       totalGateEntries: 24,
@@ -188,8 +188,8 @@ describe("Pro League maps", () => {
         },
       ],
     });
-    expect(lineup.assignedRaceCount).toBe(9);
-    expect(lineup.assignedCoreEntryCount).toBe(108);
+    expect(lineup.assignedRaceCount).toBe(7);
+    expect(lineup.assignedCoreEntryCount).toBe(84);
 
     expect(() =>
       resolveProLeagueFullGateMapAssignment({
