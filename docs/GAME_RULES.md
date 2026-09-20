@@ -119,9 +119,13 @@ Historical no-overage material indicates a threshold of 3× DNA base fee, with o
 
 ## Auto-Entry
 
-- The user can select a qualifying race, select multiple eligible cores and choose repeated race counts.
+- The user can select a qualifying race, select multiple eligible Cores and choose repeated race counts.
 - The game auto-runs those entries.
-- The website recommends candidates and allocations but does not control live occupancy or enter races.
+- Current cloud Production recommends candidates and allocations but does not submit race entries.
+- The owner-approved future race-entry bot is developed to execute both paid tournament entry and zero-cost Free Discovery campaigns from the website planner through an owner-authorised local session.
+- Paid tournament execution retains the hard maximum of one owned Core per race.
+- Four-gate Free Discovery may use up to two owned Cores only for a deliberate challenger + proven same-mode/exact-distance benchmark screen; otherwise use one.
+- Free Discovery completion is governed by the campaign target and authoritative finished-race reconciliation, not by no-star/placing/time stop rules.
 
 ## Race allowance
 
