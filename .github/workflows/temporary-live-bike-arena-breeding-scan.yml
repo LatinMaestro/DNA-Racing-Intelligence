@@ -1,9 +1,7 @@
 name: temporary full Bike Arena performance screen
 
 on:
-  push:
-    branches:
-      - temporary/chat-arena-breeding-scan-2026-09-21-do-not-merge
+  workflow_dispatch:
 
 permissions:
   contents: read
