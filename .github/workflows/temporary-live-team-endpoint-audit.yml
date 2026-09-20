@@ -17,13 +17,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Test anonymous preset status reads
+      - name: Test vault-header preset status reads
         run: |
           node <<'NODE'
           const fs=require('fs');
           async function post(body){
             const r=await fetch('https://api.dnaracing.run/fbike/esports/preset/status',{
-              method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)
+              method:'POST',
+              headers:{'content-type':'application/json','x-vault':'0x5a29c2f20faf3f5160d27efa5100aa10e9bb934d'},
+              body:JSON.stringify(body)
             });
             return {status:r.status,text:await r.text()};
           }
@@ -33,11 +35,11 @@ jobs:
             for(const map_name of ['Anchor','Glory','Measure','Miracles']){
               result.maps[map_name]=await post({team_id,map_name});
             }
-            fs.writeFileSync('anonymous-preset-status.json',JSON.stringify(result,null,2));
+            fs.writeFileSync('vault-header-preset-status.json',JSON.stringify(result,null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: anonymous-preset-status
-          path: anonymous-preset-status.json
+          name: vault-header-preset-status
+          path: vault-header-preset-status.json
           retention-days: 1
