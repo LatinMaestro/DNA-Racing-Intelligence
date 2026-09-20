@@ -288,21 +288,72 @@ Double Up bracket:
 
 Whether the same qualifying races count for both brackets may vary or remain uncertain. Configuration must support shared, separate and unknown.
 
-### 4.10 Auto-Entry planner
+### 4.10 Auto-Entry planner and future race-entry agent
 
-The game permits the user to select multiple eligible cores and a repeated race count.
+The game permits the user to select multiple eligible cores and a repeated race
+count.
 
-The website should recommend:
+The current website remains advisory until the separately commissioned local
+race-entry executor in
+`docs/HELIX_TOURNAMENT_EXECUTION_ARCHITECTURE.md` satisfies its release gates.
+Before that commissioning, the website must not operate the game or promise
+exact live gate control.
+
+The planner should support three execution intents:
+
+1. **tournament qualification** — choose eligible Cores, race counts and adaptive
+   continuation/stop rules under the tournament configuration;
+2. **normal-Free Discovery** — run an explicitly bounded number of zero-fee
+   races for one Core at one exact mode/distance to determine useful/weak
+   distances, Maiden/tournament fit, or burn-safety evidence; and
+3. **targeted proven-Core benchmark Discovery** — deliberately pair a
+   challenger with one proven same-mode/exact-distance owned benchmark Core in
+   a suitable 4-gate Free race to compare Yellow/source-Gold and Blue star
+   signals.
+
+For tournament planning, recommend:
 
 - which cores to select;
 - intended bracket for each;
 - initial number of races;
 - minimum required races;
 - when another attempt has meaningful expected value;
-- when to stop due to weak times or diminishing qualification improvement;
+- when to stop due to the tournament's configured execution policy; and
 - cores to hold in reserve.
 
-It must not attempt to operate the game or promise exact live gate control.
+For normal-Free Discovery, persist/recommend:
+
+- Core ID, mode and exact distance;
+- evidence gap or Discovery objective;
+- existing usable Free sample;
+- number of **new** Free races required;
+- ageing/race-count guard;
+- completed/pending count;
+- whether the campaign is complete; and
+- the evidence cutoff that justified the campaign.
+
+For targeted benchmark Discovery:
+
+- challenger and benchmark Core IDs are an explicit pair;
+- the benchmark must be proven from pre-race same-mode/exact-distance evidence;
+- use an authoritative normal-Free race at the exact distance;
+- prefer 4-gate races;
+- allow exactly two owned Cores in that race: challenger + benchmark;
+- never add a third owned Core;
+- normally use the configured 2–5-race benchmark screen unless the owner
+  explicitly requests another count;
+- Yellow/source-Gold and Blue stars are the primary small-sample ceiling signal;
+- finish/time remain secondary context; and
+- if neither owned Core receives a star, retain the external star holder for
+  quality review before downgrading the challenger.
+
+Normal-Free Discovery defaults to one owned Core per race. The two-owned-Core
+exception exists only for the explicit benchmark-pair campaign.
+
+After the local executor is separately commissioned, it may execute these
+planner intents using the first-party DNA race-entry action. DNA Auto-Entry may
+also be used as a secondary bulk executor only where it can enforce the same
+campaign, distance, Core-occupancy, ageing and reconciliation controls.
 
 ### 4.11 Breeding intelligence
 
