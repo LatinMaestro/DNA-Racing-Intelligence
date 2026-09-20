@@ -1,0 +1,28 @@
+name: temporary pro league methodology validation
+
+on:
+  push:
+    branches:
+      - feature/pro-league-roster-mapping-free-benchmark-methodology-20260920
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event.head_commit.message == 'Add temporary pro league methodology validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check formatting
+        run: npx prettier --check components/pro-league-commissioning-panel.tsx domain/discovery-methodology.ts domain/pro-league-discovery-experiment-queue.ts domain/pro-league-maps.ts domain/pro-league-roster-recommendation.ts domain/pro-league-roster.ts tests/discovery-methodology.test.ts tests/pro-league-commissioning-panel.test.tsx tests/pro-league-discovery-experiment-queue.test.ts tests/pro-league-maps.test.ts tests/pro-league-roster-recommendation.test.ts tests/pro-league-roster.test.ts docs/DISCOVERY_METHODOLOGY_V2.md docs/DISCOVERY_NORMAL_FREE_STUDY.md docs/ESPORTS_PRO_LEAGUE_PREPARATION.md docs/PRIVATE_OWNER_SCOPE.md
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Focused tests
+        run: npx vitest run tests/discovery-methodology.test.ts tests/pro-league-discovery-experiment-queue.test.ts tests/pro-league-commissioning-panel.test.tsx tests/pro-league-maps.test.ts tests/pro-league-roster.test.ts tests/pro-league-roster-recommendation.test.ts
