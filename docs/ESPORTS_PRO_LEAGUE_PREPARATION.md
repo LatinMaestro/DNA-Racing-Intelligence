@@ -192,11 +192,17 @@ For every staged assignment retain:
 - map identity and catalogue version;
 - source race number;
 - exact race type and distance;
-- rostered Core ID;
+- total gate count and the equal per-Vault gate count;
+- the **ordered list of rostered Core IDs for every one of our gate entries**;
 - assignment scope: `single_race` or `same_type_and_distance`; and
 - every race line affected by the expansion.
 
-The planner must reject unknown maps/races, non-roster Cores and conflicting assignments. It must report both total map coverage and first-16 coverage. Applying `same_type_and_distance` is scoped to the selected map; it never silently changes another map.
+The planner must reject unknown maps/races, non-roster Cores, duplicate Core IDs
+within one race, the wrong number of mapped Cores for the per-Vault gate count
+and conflicting assignments. It must report total line coverage, first-16 line
+coverage, total mapped Core-entry exposure and per-Core starts by map/distance.
+Applying `same_type_and_distance` is scoped to the selected map; it never
+silently changes another map.
 
 Persist each complete four-map lineup as reusable local strategy state. A
 match references the saved lineup version in force at lock; later edits must
@@ -204,10 +210,12 @@ not rewrite the historical locked matchup. Also retain home pick, home denial,
 away pick, third-map policy/result, lock time and whether an administrator or
 deadline fallback supplied any choice.
 
-It must also show the equal gate allocation for every race line, compare our
-mapped Core with the opposing Vault's selected or best-supported likely Core,
-and rank the role-eligible map choices by favourable, contested, unfavourable
-and unknown exact-format lines.
+It must also show the equal gate allocation for every race line, compare the
+full set of our mapped Cores with the opposing Vault's selected or
+best-supported likely depth, and rank the role-eligible map choices by
+favourable, contested, unfavourable and unknown exact-format lines. A
+single-lead-Core recommendation is not a complete match-ready lineup for any
+race with more than one gate per Vault.
 
 ## Current owner roster-selection and win-first mapping doctrine
 
