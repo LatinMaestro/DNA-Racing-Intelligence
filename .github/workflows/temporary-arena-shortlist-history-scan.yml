@@ -1,0 +1,82 @@
+name: temporary Arena shortlist history scan
+
+on:
+  push:
+    branches:
+      - temporary/chat-arena-breeding-scan-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pull detailed histories and race docs
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const hids=[20693,3939,14344,22867,22444,17451,17662,15466,14360,1504,25329,4126,24475,18882,24999,24931,14471,11631,25017,10345,25086,25370];
+          const historyUrl='https://api.dnaracing.run/fbike/i/hraces';
+          const openBase='https://api.dnaracing.run/fbike/pub/v1';
+          const key=process.env.DNA_OPEN_LAB_API_KEY_1;
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function historyPage(hid,page){
+            for(let attempt=0;attempt<5;attempt++){
+              const r=await fetch(historyUrl,{method:'POST',headers:{'accept':'application/json','content-type':'application/json'},body:JSON.stringify({hid,page})});
+              const text=await r.text();
+              if(r.status===429){await sleep(Number(r.headers.get('retry-after')||2)*1000);continue}
+              let j;try{j=JSON.parse(text)}catch{throw new Error('history nonjson '+hid+' '+page)}
+              if(!r.ok||j.status!=='success'||!Array.isArray(j.result)) throw new Error('history error '+hid+' '+page+' '+r.status+' '+text.slice(0,300));
+              await sleep(550);
+              return j.result;
+            }
+            throw new Error('history retry exhausted '+hid);
+          }
+          async function openPost(path,body){
+            for(let attempt=0;attempt<5;attempt++){
+              const r=await fetch(openBase+path,{method:'POST',headers:{'authorization':'Bearer '+key,'accept':'application/json','content-type':'application/json'},body:JSON.stringify(body)});
+              const text=await r.text();
+              if(r.status===429){await sleep(Number(r.headers.get('retry-after')||2)*1000);continue}
+              let j;try{j=JSON.parse(text)}catch{throw new Error('open nonjson '+path)}
+              if(!r.ok||j.status!=='success') throw new Error('open error '+path+' '+r.status+' '+text.slice(0,300));
+              await sleep(650);
+              return j.result;
+            }
+            throw new Error('open retry exhausted '+path);
+          }
+          (async()=>{
+            const histories={}; const ridSet=new Set();
+            for(const hid of hids){
+              const rows=[];
+              for(let page=1;page<=30;page++){
+                const got=await historyPage(hid,page);
+                rows.push(...got);
+                for(const x of got){if(x.rid!==undefined&&x.rid!==null)ridSet.add(String(x.rid))}
+                if(got.length===0) break;
+                if(page===30) throw new Error('history page bound '+hid);
+              }
+              histories[String(hid)]=rows;
+            }
+            const rids=[...ridSet];
+            const docs=[];
+            for(let i=0;i<rids.length;i+=20){
+              docs.push(...await openPost('/races/docs',{rids:rids.slice(i,i+20)}));
+            }
+            fs.writeFileSync('arena-shortlist-history.json',JSON.stringify({
+              fetchedAt:new Date().toISOString(),hids,histories,raceDocs:docs
+            },null,2));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arena-shortlist-history
+          path: arena-shortlist-history.json
+          retention-days: 1
