@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - temporary/chat-preview-full-arena-refresh-2026-09-21-do-not-merge
 
 permissions:
   contents: read
