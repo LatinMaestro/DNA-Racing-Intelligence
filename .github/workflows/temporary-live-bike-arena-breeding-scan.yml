@@ -1,4 +1,4 @@
-name: temporary Arena contract probe
+name: temporary complete live Bike Arena scan
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
     steps:
@@ -19,54 +19,68 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Probe Arena request variants
+      - name: Pull complete Bike Arena using verified terminal rule
         run: |
           node <<'NODE'
           const fs=require('fs');
           const key=process.env.DNA_OPEN_LAB_API_KEY_3;
           const url='https://api.dnaracing.run/fbike/pub/v1/splice/arena';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function call(label,body){
-            const r=await fetch(url,{
-              method:'POST',
-              headers:{
-                'authorization':'Bearer '+key,
-                'accept':'application/json',
-                'content-type':'application/json'
-              },
-              body:JSON.stringify(body)
-            });
-            const text=await r.text();
-            let j=null; try{j=JSON.parse(text)}catch{}
-            const result=j?.result;
-            const cores=Array.isArray(result?.cores)?result.cores:[];
-            await sleep(700);
-            return {
-              label,body,httpStatus:r.status,status:j?.status??null,err:j?.err??null,
-              returnedPage:result?.page??null,limit:result?.limit??null,
-              has_more:result?.has_more??null,count:cores.length,
-              firstHids:cores.slice(0,8).map(x=>x.hid),
-              lastHids:cores.slice(-8).map(x=>x.hid)
-            };
+          async function page(page){
+            for(let attempt=0;attempt<5;attempt++){
+              const controller=new AbortController();
+              const timer=setTimeout(()=>controller.abort(),20000);
+              try{
+                const r=await fetch(url,{
+                  method:'POST',
+                  headers:{
+                    'authorization':'Bearer '+key,
+                    'accept':'application/json',
+                    'content-type':'application/json'
+                  },
+                  body:JSON.stringify({f:{rvmode:'bike'},page}),
+                  signal:controller.signal
+                });
+                const text=await r.text();
+                let j=null;try{j=JSON.parse(text)}catch{}
+                if(r.status===429){
+                  clearTimeout(timer);
+                  await sleep(Number(r.headers.get('retry-after')||3)*1000);
+                  continue;
+                }
+                if(!r.ok||j?.status!=='success') throw new Error('page '+page+' '+r.status+' '+text.slice(0,400));
+                return j.result;
+              } finally { clearTimeout(timer); }
+            }
+            throw new Error('page retries exhausted '+page);
           }
           (async()=>{
-            const variants=[
-              ['bike-p1',{f:{rvmode:'bike'},page:1}],
-              ['bike-p2',{f:{rvmode:'bike'},page:2}],
-              ['bike-p3',{f:{rvmode:'bike'},page:3}],
-              ['empty-filter-p1',{f:{},page:1}],
-              ['empty-filter-p2',{f:{},page:2}],
-              ['no-filter-p1',{page:1}],
-              ['bike-no-power-p1',{f:{rvmode:'bike',use_powerstats:false},page:1}],
-              ['bike-power-p1',{f:{rvmode:'bike',use_powerstats:true},page:1}]
-            ];
-            const results=[];
-            for(const [label,body] of variants) results.push(await call(label,body));
-            fs.writeFileSync('arena-contract-probe.json',JSON.stringify({fetchedAt:new Date().toISOString(),results},null,2));
+            const pages=[]; const cores=[]; const seen=new Set();
+            let expectedLimit=null;
+            for(let p=1;p<=100;p++){
+              const result=await page(p);
+              const rows=Array.isArray(result.cores)?result.cores:[];
+              if(result.page!==p) throw new Error('page drift '+p+' -> '+result.page);
+              if(!Number.isSafeInteger(result.limit)||result.limit<1) throw new Error('invalid limit');
+              if(expectedLimit!==null&&expectedLimit!==result.limit) throw new Error('limit drift');
+              expectedLimit=result.limit;
+              for(const row of rows){
+                if(seen.has(row.hid)) throw new Error('duplicate hid '+row.hid);
+                seen.add(row.hid); cores.push(row);
+              }
+              pages.push({page:p,count:rows.length,limit:result.limit,reportedHasMore:result.has_more});
+              const needsMore=result.has_more===true || rows.length===result.limit;
+              if(!needsMore) break;
+              await sleep(2100);
+              if(p===100) throw new Error('page bound exceeded');
+            }
+            fs.writeFileSync('complete-live-bike-arena.json',JSON.stringify({
+              fetchedAt:new Date().toISOString(),pages,listingCount:cores.length,cores
+            },null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: arena-contract-probe
-          path: arena-contract-probe.json
+          name: complete-live-bike-arena
+          path: complete-live-bike-arena.json
           retention-days: 1
