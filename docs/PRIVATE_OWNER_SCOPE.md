@@ -58,6 +58,11 @@ same competition format.
 
 - Do **not** recommend or plan additional Genesis minting. Use the existing owner-maintained My Vault plus breeding.
 - Current roster requirements are 12–25 Cores; maximum 7 Metal, 8 Fire and 10 Earth; maximum 2 Genesis per element; maximum 5 at F5 or below; maximum 12 at F10 or below; minimum 2 above F15; at least 32% females rounded up (4 for 12 Cores and 8 for 25); and names for every rostered Core.
+- The current owner strategy is stricter than those formal limits: register exactly 25 Cores, use no Genesis, and apply an owner eligibility guardrail of no more than 400 Bike ageing used at initial roster selection.
+- The owner roster is quality-first: elite or genuinely elite-potential only, no structural filler merely to occupy a legal slot. Optimise Anchor, Measure and Glory first; treat Miracles as contingency/deny rather than a roster-selection driver.
+- Pro League mapping is win-first rather than usage-balanced. Fill every per-Vault gate with the strongest distance-appropriate depth, use exact distance first and only one-step adjacent distance where large gates require it, and prioritise the first 16 race lines.
+- Track mapped starts and first-16 exposure by Core. Protect ageing only when an equal-or-stronger replacement exists; do not weaken a race merely to spread starts.
+- For deliberately small normal-Free screens before roster lock, pair the challenger with a proven same-mode/exact-distance owned Core where practical. Start with two races and normally cap the screen at 2–5 races per Core/distance. In that controlled context, Yellow/Blue stars are the primary latent-ceiling signal and finish/time are secondary; inspect any external star holder before treating a no-star result as negative.
 - Use confirmed DNA breeding rules for offspring class, element and F-number. An above-F15 structural target requires parent F-numbers summing to at least 16. Do not claim offspring sex can be deterministically targeted.
 - Bred/non-Genesis depth can improve roster flexibility under the Genesis cap. Once structural requirements are met, breeding should continue only where elite-upside evidence can improve the strongest compliant nucleus rather than merely add quantity.
 - Current Pro League competition and mapping are **Bike-only**. Car and Horse
