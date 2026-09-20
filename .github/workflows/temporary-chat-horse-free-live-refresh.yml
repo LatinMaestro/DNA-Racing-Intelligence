@@ -1,0 +1,31 @@
+name: temporary chat Horse Free live refresh
+
+on:
+  push:
+    branches:
+      - temporary/chat-horse-free-refresh-2026-09-20b-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      HORSE_FREE_REFRESH_AUDIT: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/temporary-chat-horse-free-live-refresh.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporary-chat-horse-free-live-refresh
+          path: horse-free-live-refresh.json
+          retention-days: 1
