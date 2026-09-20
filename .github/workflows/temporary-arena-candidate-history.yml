@@ -1,0 +1,112 @@
+name: temporary current Arena candidate history scan
+
+on:
+  push:
+    branches:
+      - temporary/chat-arena-candidate-history-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pull complete per-Core public race histories
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const allHids = [35,140,187,493,765,1174,1217,1450,1504,1885,2312,2491,2519,3426,4126,4287,4402,8278,8772,8918,9589,10345,11631,14007,14344,14811,14961,15466,15568,17170,17418,17605,17625,17658,17787,17807,17851,17922,18346,18827,19035,19642,19779,20168,20228,20477,20693,22054,22331,22382,22455,22670,22736,22867,23018,23255,23379,23396,23447,23480,23538,23540,23683,23767,23780,23796,23947,24024,24033,24124,24154,24173,24207,24361,24370,24413,24475,24557,24571,24931,24999,25017,25034,25058,25086,25159,25370,25466];
+          const shard = Number(process.env.SHARD);
+          const hids = allHids.filter((_, index) => index % 2 === shard);
+          const historyUrl = "https://api.dnaracing.run/fbike/i/hraces";
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          async function historyPage(hid, page) {
+            for (let attempt = 1; attempt <= 5; attempt += 1) {
+              const response = await fetch(historyUrl, {
+                method: "POST",
+                headers: {
+                  accept: "application/json",
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify({ hid, page }),
+              });
+              const text = await response.text();
+              if (response.status === 429) {
+                const retryAfter = Number(response.headers.get("retry-after") || 2);
+                await sleep(Math.max(2000, retryAfter * 1000));
+                continue;
+              }
+              let parsed;
+              try {
+                parsed = JSON.parse(text);
+              } catch {
+                throw new Error("history returned non-JSON");
+              }
+              if (!response.ok || parsed?.status !== "success" || !Array.isArray(parsed.result)) {
+                throw new Error("history returned a non-success response");
+              }
+              await sleep(650);
+              return parsed.result;
+            }
+            throw new Error("history retries exhausted");
+          }
+
+          (async () => {
+            const histories = {};
+            const counts = {};
+            for (const hid of hids) {
+              const rows = [];
+              let terminal = false;
+              for (let page = 1; page <= 64; page += 1) {
+                const got = await historyPage(hid, page);
+                rows.push(...got);
+                if (got.length === 0) {
+                  terminal = true;
+                  break;
+                }
+                if (page === 64) {
+                  throw new Error("history page bound exceeded for " + hid);
+                }
+              }
+              if (!terminal) throw new Error("history terminality not proven for " + hid);
+              histories[String(hid)] = rows;
+              counts[String(hid)] = rows.length;
+            }
+            const report = {
+              fetchedAt: new Date().toISOString(),
+              shard,
+              hids,
+              counts,
+              histories,
+            };
+            const file = "arena-candidate-history-" + shard + ".json";
+            fs.writeFileSync(file, JSON.stringify(report));
+            console.log(JSON.stringify({
+              fetchedAt: report.fetchedAt,
+              shard,
+              coreCount: hids.length,
+              historyRowCount: Object.values(counts).reduce((a, b) => a + b, 0),
+            }));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arena-candidate-history-${{ matrix.shard }}
+          path: arena-candidate-history-${{ matrix.shard }}.json
+          retention-days: 1
