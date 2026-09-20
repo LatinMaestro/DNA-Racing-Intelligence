@@ -355,9 +355,11 @@ Current-state plan assembly is evidence-driven. Validated `vault.cores_full`
 and `races.active` observations determine the exact Core bulk and race-fill
 requests; caller-supplied stale identity lists are not authoritative. Arena
 pages must be contiguous from page 1 with stable page limits and no repeated
-Core across pages. A mode with `has_more: true` yields exactly one next-page
-request, and the immutable runner schedule is withheld until every selected
-mode has one terminal page. The complete schedule is capped at the durable
+Core across pages. A mode continues when `has_more: true` **or** the returned
+page is full; this protects against the observed provider false-negative
+`has_more: false` on 100-row Arena pages. The immutable runner schedule is
+withheld until every selected mode ends on a short/empty page with
+`has_more: false`. The complete schedule is capped at the durable
 checkpoint limit of 512 requests.
 
 Dynamic discovery executes as deterministic child cycles derived from one root
