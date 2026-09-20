@@ -17,27 +17,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Inspect esports client transport
+      - name: Test anonymous preset status reads
         run: |
           node <<'NODE'
           const fs=require('fs');
-          async function text(url,opts={}){const r=await fetch(url,opts);return {status:r.status,text:await r.text()}}
+          async function post(body){
+            const r=await fetch('https://api.dnaracing.run/fbike/esports/preset/status',{
+              method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)
+            });
+            return {status:r.status,text:await r.text()};
+          }
           (async()=>{
-            const page=await text('https://esports.dnaracing.run/team');
-            const srcs=[...page.text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>new URL(m[1],'https://esports.dnaracing.run/team').href);
-            const snippets=[];
-            for(const u of srcs){
-              const a=await text(u); const t=a.text;
-              for(const key of ['preset/status','RT=','function RT','bE=','yE=','credentials','authorization','fetch(']){
-                const idx=t.indexOf(key);
-                if(idx>=0) snippets.push({key,url:u,snippet:t.slice(Math.max(0,idx-1800),Math.min(t.length,idx+3200))});
-              }
+            const team_id='953adec8ad';
+            const result={fetchedAt:new Date().toISOString(),team_id,maps:{}};
+            for(const map_name of ['Anchor','Glory','Measure','Miracles']){
+              result.maps[map_name]=await post({team_id,map_name});
             }
-            fs.writeFileSync('team-client-transport.json',JSON.stringify({fetchedAt:new Date().toISOString(),pageStatus:page.status,snippets},null,2));
+            fs.writeFileSync('anonymous-preset-status.json',JSON.stringify(result,null,2));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: team-client-transport
-          path: team-client-transport.json
+          name: anonymous-preset-status
+          path: anonymous-preset-status.json
           retention-days: 1
