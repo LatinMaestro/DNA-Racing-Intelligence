@@ -369,6 +369,37 @@ Commission separately before use. If used, preserve the same controls where tech
 - pending exposure accounting; and
 - exact audit/reconciliation.
 
+### 17.1 Owner-authorised Horse Free Discovery campaign — 20 September 2026
+
+The owner has explicitly reprioritised the Free Discovery fallback path for one
+bounded Horse campaign so Horse usefulness can be exhausted before eventual
+burn decisions.
+
+Machine-readable authority:
+`campaigns/horse-burn-grade-discovery-2026-09-20.json`.
+
+Campaign contract:
+
+- audit universe: 214 current owned Cores;
+- 515 Core × exact-distance cells;
+- 2,575 planned new Free races;
+- exact distances: 1000, 1200, 1400, 1600, 1800, 2000 and 2200 metres;
+- 5 new races per listed Core-distance cell;
+- Horse mode, standalone `Free`, class 90, four gates, normal format;
+- never place more than one owned Core in the same race;
+- count progress only from authoritative reconciled finished-race evidence;
+- never recreate a completed cell or duplicate an idempotency key;
+- Yellow/source-Gold and Blue stars remain primary small-sample Discovery
+  signals, with finish/time as context;
+- no-star results do not create an automatic stop, bench or burn decision; and
+- completed campaign results feed a later Round-2 narrowing pass.
+
+DNA native Auto-Entry is the preferred executor for this free campaign. The
+local entry agent may consume the same plan once commissioned. This owner
+instruction authorises **plan consumption/configuration**, not cloud race-entry
+writes: the cloud write path remains disabled and the local executor remains
+uncommissioned until its separate release gates are satisfied.
+
 ## 18. Audit requirements
 
 Persist an immutable owner-scoped audit record for:
