@@ -1,3 +1,7 @@
+import {
+  discoveryBenchmarkScreenPolicy,
+  type DiscoveryBenchmarkScreenPolicy,
+} from "@/domain/discovery-methodology";
 import type { ProLeagueCoverageGap } from "@/domain/pro-league-matchup";
 import type {
   ProLeagueCandidateCellScore,
@@ -36,6 +40,7 @@ export type ProLeagueDiscoveryExperiment = Readonly<{
   observationsToMinimum: number;
   recommendedNextRaceCount: number;
   decision: "complete_exact_minimum" | "single_confirmation";
+  benchmarkScreen: DiscoveryBenchmarkScreenPolicy;
   evidenceCurrentThrough: string;
   warnings: readonly (
     | "EXPERIMENTAL_SMALL_SAMPLE"
@@ -220,6 +225,7 @@ function experiment(
         ? 1
         : Math.min(3, observationsToMinimum),
     decision,
+    benchmarkScreen: discoveryBenchmarkScreenPolicy,
     evidenceCurrentThrough: source.dataCurrentThrough,
     warnings: Object.freeze([...warnings].sort()),
     automaticRaceEntryAllowed: false,
