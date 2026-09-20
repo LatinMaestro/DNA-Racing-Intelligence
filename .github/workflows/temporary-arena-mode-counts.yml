@@ -1,0 +1,162 @@
+name: temporary complete Arena mode count probe
+
+on:
+  push:
+    branches:
+      - temporary/chat-arena-mode-counts-2026-09-21-do-not-merge
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Count complete Arena listings by mode
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          if (!key) throw new Error("DNA Open Lab API key is unavailable");
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          let lastStarted = 0;
+
+          async function pacedFetch(path, init) {
+            const wait = Math.max(0, 2200 - (Date.now() - lastStarted));
+            if (wait > 0) await sleep(wait);
+            lastStarted = Date.now();
+            let lastError = null;
+            for (let attempt = 1; attempt <= 5; attempt += 1) {
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 60_000);
+              try {
+                const response = await fetch(base + path, {
+                  ...init,
+                  signal: controller.signal,
+                });
+                const text = await response.text();
+                let parsed = null;
+                try {
+                  parsed = JSON.parse(text);
+                } catch {}
+                if (response.status === 429) {
+                  const retryAfter = Number(response.headers.get("retry-after") || 3);
+                  await sleep(Math.max(3000, retryAfter * 1000));
+                  continue;
+                }
+                if (!response.ok || parsed?.status !== "success") {
+                  throw new Error(path + " returned a non-success response");
+                }
+                return parsed.result;
+              } catch (error) {
+                lastError = error;
+                if (attempt === 5) throw error;
+                await sleep(3000);
+              } finally {
+                clearTimeout(timer);
+              }
+            }
+            throw lastError ?? new Error("request retries exhausted");
+          }
+
+          const headers = {
+            authorization: "Bearer " + key,
+            accept: "application/json",
+            "content-type": "application/json",
+          };
+          const post = (path, body) =>
+            pacedFetch(path, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(body),
+            });
+
+          (async () => {
+            const report = {
+              observedAt: null,
+              modes: {},
+            };
+            for (const mode of ["bike", "car", "horse"]) {
+              const seen = new Set();
+              const pages = [];
+              let expectedLimit = null;
+              let terminal = false;
+              for (let page = 1; page <= 512; page += 1) {
+                const result = await post("/splice/arena", {
+                  f: { rvmode: mode },
+                  page,
+                });
+                if (result.page !== page) {
+                  throw new Error(mode + " page drift");
+                }
+                if (!Number.isSafeInteger(result.limit) || result.limit < 1) {
+                  throw new Error(mode + " invalid page limit");
+                }
+                if (expectedLimit !== null && result.limit !== expectedLimit) {
+                  throw new Error(mode + " page limit drift");
+                }
+                expectedLimit = result.limit;
+                if (!Array.isArray(result.cores)) {
+                  throw new Error(mode + " malformed cores list");
+                }
+                for (const core of result.cores) {
+                  const hid = Number(core?.hid);
+                  if (!Number.isSafeInteger(hid) || hid < 1) {
+                    throw new Error(mode + " invalid Core id");
+                  }
+                  if (seen.has(hid)) {
+                    throw new Error(mode + " duplicate Core across pages");
+                  }
+                  seen.add(hid);
+                }
+                pages.push({
+                  page,
+                  count: result.cores.length,
+                  limit: result.limit,
+                  reportedHasMore: result.has_more === true,
+                });
+                const needsContinuation =
+                  result.has_more === true || result.cores.length === result.limit;
+                if (!needsContinuation) {
+                  terminal = true;
+                  break;
+                }
+                if (page === 512) {
+                  throw new Error(mode + " exceeded bounded page capacity");
+                }
+              }
+              if (!terminal) throw new Error(mode + " did not prove terminality");
+              const last = pages.at(-1);
+              report.modes[mode] = {
+                listingCount: seen.size,
+                pageCount: pages.length,
+                pageSizeLimit: expectedLimit,
+                terminalPage: last.page,
+                terminalPageCount: last.count,
+                terminalReportedHasMore: last.reportedHasMore,
+                fullPagesReportingFalseHasMore: pages.filter(
+                  (entry) =>
+                    entry.count === entry.limit &&
+                    entry.reportedHasMore === false,
+                ).length,
+              };
+            }
+            report.observedAt = new Date().toISOString();
+            fs.writeFileSync("arena-mode-counts.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report));
+          })();
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arena-mode-counts
+          path: arena-mode-counts.json
+          retention-days: 1
