@@ -112,7 +112,10 @@ function provenBenchmarkCandidatesByDistance(
   candidates: readonly Candidate[],
   rosterRoles: ReadonlyMap<string, string>,
 ): ReadonlyMap<number, readonly ProLeagueDiscoveryBenchmarkCore[]> {
-  const byDistance = new Map<number, Map<string, ProLeagueDiscoveryBenchmarkCore>>();
+  const byDistance = new Map<
+    number,
+    Map<string, ProLeagueDiscoveryBenchmarkCore>
+  >();
   for (const candidate of candidates) {
     if (!rosterRoles.has(candidate.core.coreId)) continue;
     for (const cell of candidate.cells) {

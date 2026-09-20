@@ -164,10 +164,7 @@ describe("Pro League maps", () => {
       raceNumber: 2,
       totalGateEntries: 24,
       gateEntriesPerVault: 12,
-      coreIds: Array.from(
-        { length: 12 },
-        (_, index) => `core-${index + 1}`,
-      ),
+      coreIds: Array.from({ length: 12 }, (_, index) => `core-${index + 1}`),
     });
 
     const lineup = buildProLeagueFullGateMapLineup({

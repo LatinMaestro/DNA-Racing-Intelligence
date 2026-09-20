@@ -229,7 +229,11 @@ describe("Pro League draft roster recommendation", () => {
       ...Array.from({ length: 12 }, (_, index) => core(index)),
     ]);
 
-    expect(result.candidates.some(({ core: value }) => value.coreClass === "Genesis")).toBe(false);
+    expect(
+      result.candidates.some(
+        ({ core: value }) => value.coreClass === "Genesis",
+      ),
+    ).toBe(false);
     expect(
       result.draftRoster?.members.some(
         ({ core: value }) => value.coreClass === "Genesis",
