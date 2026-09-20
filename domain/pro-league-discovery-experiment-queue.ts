@@ -152,14 +152,15 @@ function provenBenchmarkCandidatesByDistance(
     [...byDistance].map(([distanceMetres, perCore]) => [
       distanceMetres,
       Object.freeze(
-        [...perCore.values()].sort(
-          (left, right) =>
-            { winning_range: 0, top_three_range: 1 }[left.benchmarkSignal] -
-              { winning_range: 0, top_three_range: 1 }[right.benchmarkSignal] ||
+        [...perCore.values()].sort((left, right) => {
+          const rank = { winning_range: 0, top_three_range: 1 } as const;
+          return (
+            rank[left.benchmarkSignal] - rank[right.benchmarkSignal] ||
             right.directRaceCount - left.directRaceCount ||
             left.displayName.localeCompare(right.displayName) ||
-            left.coreId.localeCompare(right.coreId),
-        ),
+            left.coreId.localeCompare(right.coreId)
+          );
+        }),
       ),
     ]),
   );
