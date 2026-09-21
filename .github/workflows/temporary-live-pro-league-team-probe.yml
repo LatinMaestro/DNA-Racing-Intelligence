@@ -1,0 +1,108 @@
+name: temporary live Pro League team probe
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/temporary-live-pro-league-team-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Probe current registered Pro League team read surface
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          const vault = process.env.DNA_OPEN_LAB_VAULT;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) {
+            throw new Error("DNA Open Lab API key is missing or invalid");
+          }
+          if (typeof vault !== "string" || vault.trim() === "") {
+            throw new Error("DNA Open Lab vault is missing");
+          }
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const endpoint = "https://api.dnaracing.run/fbike/esports/team";
+          const payloads = [
+            ["vault", { vault }],
+            ["owner", { owner: vault }],
+            ["racing_vault", { racing_vault: vault }],
+          ];
+          function sanitize(value) {
+            if (typeof value === "string") {
+              return value.toLowerCase() === vault.toLowerCase() ? "[OWNER]" : value;
+            }
+            if (Array.isArray(value)) return value.map(sanitize);
+            if (value && typeof value === "object") {
+              return Object.fromEntries(Object.entries(value).map(([k,v]) => [k, sanitize(v)]));
+            }
+            return value;
+          }
+          (async () => {
+            const attempts = [];
+            let selected = null;
+            for (const [variant, body] of payloads) {
+              const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                  authorization: "Bearer " + key,
+                  accept: "application/json",
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify(body),
+              });
+              const text = await response.text();
+              let json = null;
+              try { json = JSON.parse(text); } catch {}
+              attempts.push({
+                variant,
+                status: response.status,
+                envelopeStatus: json?.status ?? null,
+                hasResult: Boolean(json && Object.prototype.hasOwnProperty.call(json, "result")),
+              });
+              if (response.ok && json?.status === "success" && Object.prototype.hasOwnProperty.call(json, "result")) {
+                selected = { variant, result: sanitize(json.result) };
+                break;
+              }
+              await sleep(2200);
+            }
+            const report = {
+              fetchedAt: new Date().toISOString(),
+              endpoint: "/fbike/esports/team",
+              attempts,
+              selected,
+            };
+            fs.writeFileSync("live-pro-league-team-probe.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify({
+              fetchedAt: report.fetchedAt,
+              attempts,
+              selectedVariant: selected?.variant ?? null,
+              resultType: selected === null ? null : Array.isArray(selected.result) ? "array" : typeof selected.result,
+            }));
+            if (selected === null) process.exitCode = 1;
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-pro-league-team-probe
+          path: live-pro-league-team-probe.json
+          if-no-files-found: ignore
+          retention-days: 1
