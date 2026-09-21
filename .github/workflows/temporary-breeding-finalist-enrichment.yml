@@ -16,14 +16,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Fetch bounded read-only finalist evidence
+      - name: Fetch bounded read-only owned-parent evidence
         run: |
           node <<'NODE'
           const fs = require("fs");
           const key = process.env.DNA_OPEN_LAB_API_KEY_3;
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
-          const hids = [24361,24370,1450,19035,10345,140,24931,25017,18346,23396,23683,22670,15568,17851];
+          const hids = [25574,22338,23282,23388,22164,15184,20292,20827,16495,20365,19495];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function post(path) {
             const r = await fetch(base + path, {
@@ -46,23 +46,20 @@ jobs:
             await sleep(2200);
             const power = await post("/cores/power_bulk");
             await sleep(2200);
-            const listing = await post("/cores/listing_price_bulk");
-            await sleep(2200);
             const splicing = await post("/cores/splicing_info_bulk");
-            const out = { observedAt, requestedHids: hids, info, power, listing, splicing };
-            fs.writeFileSync("breeding-finalist-enrichment.json", JSON.stringify(out, null, 2));
+            const out = { observedAt, requestedHids: hids, info, power, splicing };
+            fs.writeFileSync("breeding-owned-parent-enrichment.json", JSON.stringify(out, null, 2));
             console.log(JSON.stringify({
               observedAt,
               requested: hids.length,
               info: Array.isArray(info) ? info.length : null,
               power: Array.isArray(power) ? power.length : null,
-              listing: Array.isArray(listing) ? listing.length : null,
               splicing: Array.isArray(splicing) ? splicing.length : null,
             }));
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: breeding-finalist-enrichment
-          path: breeding-finalist-enrichment.json
+          name: breeding-owned-parent-enrichment
+          path: breeding-owned-parent-enrichment.json
           retention-days: 1
