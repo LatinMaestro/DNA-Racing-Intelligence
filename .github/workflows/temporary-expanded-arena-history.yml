@@ -1,0 +1,56 @@
+name: temporary expanded Arena history screen
+on:
+  push:
+    branches: [temporary/chat-arena-expanded-history-2026-09-21-do-not-merge]
+permissions:
+  contents: read
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Pull expanded public histories
+        run: |
+          node <<'NODE'
+          const fs=require("fs");
+          const all=[38,48,127,147,152,188,322,369,446,517,526,534,662,753,858,937,941,1070,1089,1097,1152,1275,1332,1565,1875,2000,2090,2096,2180,2472,2481,2654,2817,2911,3079,3306,3380,3655,3820,4055,4350,4730,4833,5223,5280,5768,6018,6490,6854,7147,7156,7418,7801,7995,8043,8106,8237,8532,8580,8911,9235,9532,10226,10714,11047,11528,11807,11815,12001,12074,12131,12170,12244,12295,12457,12604,12878,13227,13419,13511,13520,13551,13671,13740,13865,13930,14471,15151,15417,15483,15603,16459,17277,17742,18009,19209,19680,20020,20042,20066,200107,200115,200221,200250,200267,20275,20335,20828,20916,21964,22057,22663,22717,22780,22965,23035,23275,23752,23776,24203,24555,24795,25033,25094,25104,25413,25448];
+          const shard=Number(process.env.SHARD), shardCount=3;
+          const hids=all.filter((_,i)=>i%shardCount===shard);
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function page(hid,p){
+            for(let a=1;a<=5;a++){
+              const r=await fetch("https://api.dnaracing.run/fbike/i/hraces",{method:"POST",headers:{accept:"application/json","content-type":"application/json"},body:JSON.stringify({hid,page:p})});
+              const t=await r.text(); if(r.status===429){await sleep(Math.max(2000,Number(r.headers.get("retry-after")||2)*1000));continue}
+              let j;try{j=JSON.parse(t)}catch{throw new Error("non-json")}
+              if(!r.ok||j?.status!=="success"||!Array.isArray(j.result)) throw new Error("history failed "+hid);
+              await sleep(650); return j.result;
+            }
+            throw new Error("retries exhausted "+hid);
+          }
+          (async()=>{
+            const histories={},counts={};
+            for(const hid of hids){
+              const rows=[];let terminal=false;
+              for(let p=1;p<=64;p++){const got=await page(hid,p);rows.push(...got);if(got.length===0){terminal=true;break}if(p===64)throw new Error("page bound "+hid)}
+              if(!terminal)throw new Error("no terminal "+hid);
+              histories[String(hid)]=rows;counts[String(hid)]=rows.length;
+            }
+            const out={fetchedAt:new Date().toISOString(),shard,hids,counts,histories};
+            fs.writeFileSync("expanded-history-"+shard+".json",JSON.stringify(out));
+            console.log(JSON.stringify({shard,coreCount:hids.length,rowCount:Object.values(counts).reduce((a,b)=>a+b,0)}));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: expanded-history-${{ matrix.shard }}
+          path: expanded-history-${{ matrix.shard }}.json
+          retention-days: 1
