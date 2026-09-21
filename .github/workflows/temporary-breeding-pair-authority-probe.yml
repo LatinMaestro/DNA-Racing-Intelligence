@@ -1,0 +1,81 @@
+name: temporary breeding pair authority probe
+
+on:
+  push:
+    branches:
+      - temporary/chat-owned-breeding-parent-screen-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read official pair validation and pair-info surfaces
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("API key unavailable");
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          const pairs = [
+            {label:"swift-lightning", father:19035, mother:20365, distance:1800},
+            {label:"swift-divine", father:19035, mother:22338, distance:1800},
+            {label:"mister-cyber", father:24361, mother:20827, distance:1000},
+            {label:"mister-frost", father:24361, mother:25574, distance:1000},
+            {label:"livid-april", father:23269, mother:18346, distance:2000}
+          ];
+          const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+          let last=0;
+          async function get(path) {
+            const wait=Math.max(0,2200-(Date.now()-last)); if(wait) await sleep(wait); last=Date.now();
+            const response=await fetch(base+path,{headers:{authorization:"Bearer "+key,accept:"application/json"}});
+            const text=await response.text();
+            let json=null; try{json=JSON.parse(text)}catch{}
+            return {
+              httpStatus:response.status,
+              ok:response.ok,
+              envelopeStatus:json?.status ?? null,
+              result:json?.result ?? null,
+              error:json?.error ?? json?.message ?? null,
+              textPreview: json===null ? text.slice(0,300) : null
+            };
+          }
+          (async()=>{
+            const results=[];
+            for(const pair of pairs){
+              const q="father_coreid="+pair.father+"&mother_coreid="+pair.mother;
+              const validation=await get("/splice/pair_validate?"+q);
+              const info=await get("/splice/pair_info?"+q);
+              results.push({...pair,validation,info});
+            }
+            const report={observedAt:new Date().toISOString(),results};
+            fs.writeFileSync("breeding-pair-authority-probe.json",JSON.stringify(report,null,2));
+            console.log(JSON.stringify({
+              observedAt:report.observedAt,
+              results:results.map(x=>({
+                label:x.label,
+                validateHttp:x.validation.httpStatus,
+                validateStatus:x.validation.envelopeStatus,
+                validateHasResult:x.validation.result!==null,
+                infoHttp:x.info.httpStatus,
+                infoStatus:x.info.envelopeStatus,
+                infoHasResult:x.info.result!==null
+              }))
+            }));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-pair-authority-probe
+          path: breeding-pair-authority-probe.json
+          retention-days: 1
