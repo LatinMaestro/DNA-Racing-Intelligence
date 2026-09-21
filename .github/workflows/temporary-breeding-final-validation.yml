@@ -55,12 +55,12 @@ jobs:
           if(!terminal) throw new Error("Arena terminality not proven");
           for(const hid of arenaTargets) if(!currentArena.has(hid)) throw new Error("Arena candidate no longer listed: "+hid);
 
-          const hids=[24361,9926,23396,23484,19035,23282,8431,18346,10345,8888,24475,25017,20292];
+          const hids=[24361,9926,23396,23484,19035,23282,8431,18346,10345,8888,24475,25017,20292,9852,22164];
           const power=await post("/cores/power_bulk",{hids});
           const info=await post("/cores/info_bulk",{hids});
           const splicing=await post("/cores/splicing_info_bulk",{hids});
           const byHid=rows=>Object.fromEntries(rows.map(x=>[String(x.hid),x]));
-          const pairs=[{"father":24361,"mother":9926,"label":"Mr. Mister x Solar Surge","target":1000},{"father":23396,"mother":23484,"label":"Crimson Desert x Phantom Panther","target":1400},{"father":19035,"mother":23282,"label":"SWIFT ESCORT x Swift Fist","target":1800},{"father":8431,"mother":18346,"label":"Final Masquerade x April O'Neil","target":2000},{"father":8431,"mother":10345,"label":"Final Masquerade x Baylor","target":2200},{"father":8888,"mother":24475,"label":"Angry Dan x Thunderdome","target":1600},{"father":25017,"mother":20292,"label":"Dumpster Diver x Zoey","target":2000}];
+          const pairs=[{"father":24361,"mother":9926,"label":"Mr. Mister x Solar Surge","target":1000},{"father":23396,"mother":23484,"label":"Crimson Desert x Phantom Panther","target":1400},{"father":19035,"mother":23282,"label":"SWIFT ESCORT x Swift Fist","target":1800},{"father":8431,"mother":18346,"label":"Final Masquerade x April O'Neil","target":2000},{"father":8431,"mother":10345,"label":"Final Masquerade x Baylor","target":2200},{"father":8888,"mother":24475,"label":"Angry Dan x Thunderdome","target":1600},{"father":25017,"mother":20292,"label":"Dumpster Diver x Zoey","target":2000},{"father":9852,"mother":22164,"label":"Grand Azula x Flame Dash","target":2200},{"father":8431,"mother":20292,"label":"Final Masquerade x Zoey","target":2000},{"father":8888,"mother":23282,"label":"Angry Dan x Swift Fist","target":1800}];
           const validated=[];
           for(const p of pairs){
             let validation=null, pairInfo=null, error=null;
