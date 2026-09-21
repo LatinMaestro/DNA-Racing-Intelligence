@@ -1,0 +1,27 @@
+name: temporary breeding strength probe
+on:
+  push:
+    branches: [temporary/chat-breeding-strength-2026-09-21-do-not-merge]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull current Core strength
+        run: |
+          node <<'NODE'
+          const key=process.env.DNA_OPEN_LAB_API_KEY_2;
+          (async()=>{
+            const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);
+            try{
+              const r=await fetch("https://api.dnaracing.run/fbike/pub/v1/cores/power_bulk",{method:"POST",signal:ctl.signal,headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},body:JSON.stringify({hids:[24361,9926,19035,23282,8431,10345,18346,9852,22164,23396,23484,24475,25017,20292,8888]})});
+              const j=await r.json();if(!r.ok||j?.status!=="success")throw new Error("power bulk failed");
+              console.log(JSON.stringify({fetchedAt:new Date().toISOString(),rows:j.result.map(x=>({hid:x.hid,bike:x.power?.bike??null}))}));
+            }finally{clearTimeout(timer)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
