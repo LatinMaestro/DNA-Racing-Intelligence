@@ -1,0 +1,53 @@
+name: temporary fast pair validation
+on:
+  push:
+    branches: [temporary/chat-pair-validate-fast-2026-09-21-do-not-merge]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Validate final pairs read-only
+        run: |
+          node <<'NODE'
+          const fs=require("fs");
+          const key=process.env.DNA_OPEN_LAB_API_KEY_1,base="https://api.dnaracing.run/fbike/pub/v1";
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));let last=0;
+          async function get(path){
+            const wait=Math.max(0,2200-(Date.now()-last));if(wait)await sleep(wait);last=Date.now();
+            for(let a=1;a<=4;a++){
+              const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),20000);
+              try{
+                const r=await fetch(base+path,{signal:ctl.signal,headers:{authorization:"Bearer "+key,accept:"application/json"}});
+                const t=await r.text();let j=null;try{j=JSON.parse(t)}catch{}
+                if(r.status===429){await sleep(Math.max(3000,Number(r.headers.get("retry-after")||3)*1000));continue}
+                if(!r.ok||j?.status!=="success") throw new Error(path+" "+r.status);
+                return j.result;
+              }finally{clearTimeout(timer)}
+            }
+          }
+          (async()=>{
+            const pairs=[{"father":24361,"mother":9926,"label":"Mr. Mister x Solar Surge"},{"father":19035,"mother":23282,"label":"SWIFT ESCORT x Swift Fist"},{"father":8431,"mother":10345,"label":"Final Masquerade x Baylor"},{"father":8431,"mother":18346,"label":"Final Masquerade x April O'Neil"},{"father":9852,"mother":22164,"label":"Grand Azula x Flame Dash"}],out=[];
+            for(const p of pairs){
+              let validation=null,info=null,error=null;
+              try{validation=await get("/splice/pair_validate?father_coreid="+p.father+"&mother_coreid="+p.mother);info=await get("/splice/pair_info?father_coreid="+p.father+"&mother_coreid="+p.mother)}
+              catch(e){error=String(e?.message||e)}
+              out.push({...p,validation,info,error});
+            }
+            const report={fetchedAt:new Date().toISOString(),pairs:out};
+            fs.writeFileSync("fast-pair-validation.json",JSON.stringify(report,null,2));
+            console.log(JSON.stringify(report));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fast-pair-validation
+          path: fast-pair-validation.json
+          retention-days: 1
