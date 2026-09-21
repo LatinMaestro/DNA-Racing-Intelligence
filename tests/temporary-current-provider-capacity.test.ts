@@ -38,8 +38,8 @@ describe("temporary current provider capacity diagnostic",()=>{
       intent:DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
       authenticatedOwnerId:ownerId,
       exactCodeHeadSha:required("GITHUB_SHA").toLowerCase(),
-      refreshCycleId:"temporary-current-capacity-cycle",
-      budgetWindowId:"temporary-current-capacity-window",
+      refreshCycleId:"a".repeat(64),
+      budgetWindowId:"b".repeat(64),
       plannedR2UsagePerRefresh:DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
       plannedNeonUsagePerRefresh:DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
     });
