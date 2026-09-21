@@ -1,4 +1,4 @@
-name: temporary Quest Vault read-only scan
+name: temporary Quest 30-day historical extension
 
 on:
   push:
@@ -13,60 +13,78 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
-      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Scan current Vault Quest predictors read-only
+      - name: Extend proven Quest history read-only
         shell: bash
         run: |
           node <<'NODE'
-          const fs = require("fs");
-          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
-          const vault = process.env.DNA_OPEN_LAB_VAULT;
-          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("DNA API key missing/invalid");
-          if (!vault) throw new Error("DNA vault missing");
-          const base = "https://api.dnaracing.run/fbike/pub/v1";
-          let last=0, requests=0;
-          const sleep = ms => new Promise(r=>setTimeout(r,ms));
-          async function api(path, method="GET", body) {
-            for (let attempt=1; attempt<=5; attempt++) {
+          const fs=require("fs");
+          const key=process.env.DNA_OPEN_LAB_API_KEY_3;
+          if(!/^dna_[A-Za-z0-9_-]{43}$/.test(key??"")) throw new Error("API key missing");
+          const base="https://api.dnaracing.run/fbike/pub/v1";
+          let last=0,requests=0,splits=0; const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function api(path,method="GET",body){
+            for(let attempt=1;attempt<=6;attempt++){
               const wait=Math.max(0,2200-(Date.now()-last)); if(wait) await sleep(wait);
               last=Date.now(); requests++;
-              const res=await fetch(base+path,{
-                method,
-                headers:{authorization:"Bearer "+key,accept:"application/json",...(body===undefined?{}:{"content-type":"application/json"})},
-                ...(body===undefined?{}:{body:JSON.stringify(body)})
-              });
-              const text=await res.text(); let json; try{json=JSON.parse(text)}catch{json=null}
-              if(res.status===429){await sleep(Math.max(3,Number(res.headers.get("retry-after")||3))*1000);continue}
-              if(!res.ok||json?.status!=="success"||!("result" in json)) throw new Error(path+" "+res.status+" "+text.slice(0,300));
-              return json.result;
+              const c=new AbortController(), timer=setTimeout(()=>c.abort(),60000);
+              try{
+                const res=await fetch(base+path,{method,signal:c.signal,headers:{authorization:"Bearer "+key,accept:"application/json",...(body===undefined?{}:{"content-type":"application/json"})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+                const text=await res.text(); let json; try{json=JSON.parse(text)}catch{json=null}
+                if(res.status===429){await sleep(Math.max(3,Number(res.headers.get("retry-after")||3))*1000);continue}
+                if(!res.ok||json?.status!=="success"||!("result" in json)) throw new Error(path+" "+res.status+" "+text.slice(0,300));
+                return json.result;
+              }catch(e){if(attempt===6) throw e; await sleep(3000)} finally{clearTimeout(timer)}
             }
           }
-          (async()=>{
-            const cores=await api("/vault/"+encodeURIComponent(vault)+"/cores_full");
-            if(!Array.isArray(cores)) throw new Error("cores malformed");
-            const hids=cores.map(x=>Number(x.hid)).filter(Number.isSafeInteger);
-            const powers=[], stats=[];
-            for(let i=0;i<hids.length;i+=20){
-              const batch=hids.slice(i,i+20);
-              powers.push(...await api("/cores/power_bulk","POST",{hids:batch}));
-              stats.push(...await api("/cores/racing_stats_bulk","POST",{hids:batch}));
+          const questRows=new Map(), windows=[];
+          function isQuest(x){
+            const rid=String(x?.rid??""); const format=String(x?.format??"").toLowerCase();
+            return rid.startsWith("quest_") || format==="quest" || format==="sub_quest";
+          }
+          function rootRid(rid){
+            return String(rid).replace(/-[1-5]-[A-Z]$/,"");
+          }
+          async function crawl(st,ed,depth=0){
+            const rows=await api("/races/finished","POST",{st:st.toISOString(),ed:ed.toISOString(),limit:200});
+            if(!Array.isArray(rows)) throw new Error("finished malformed");
+            windows.push({st:st.toISOString(),ed:ed.toISOString(),count:rows.length,depth});
+            if(rows.length===200 && ed-st>5*60*1000){
+              splits++; const mid=new Date(st.getTime()+Math.floor((ed-st)/2));
+              await crawl(st,mid,depth+1); await crawl(new Date(mid.getTime()+1),ed,depth+1); return;
             }
-            fs.writeFileSync("quest-vault-current.json",JSON.stringify({
-              fetchedAt:new Date().toISOString(),readOnly:true,requestCount:requests,vaultCoreCount:hids.length,cores,powers,stats
-            },null,2));
-            console.log(JSON.stringify({fetchedAt:new Date().toISOString(),requestCount:requests,vaultCoreCount:hids.length,powerCount:powers.length,statsCount:stats.length}));
+            for(const row of rows) if(isQuest(row)) questRows.set(String(row.rid),row);
+          }
+          async function batches(path, values, keyName){
+            const out=[]; for(let i=0;i<values.length;i+=20) out.push(...await api(path,"POST",{[keyName]:values.slice(i,i+20)})); return out;
+          }
+          (async()=>{
+            const st0=new Date("2026-08-22T10:03:14.637Z");
+            const ed0=new Date("2026-09-14T10:03:14.636Z");
+            for(let t=st0.getTime();t<ed0.getTime();t+=6*60*60*1000){
+              const st=new Date(t), ed=new Date(Math.min(ed0.getTime(),t+6*60*60*1000-1));
+              await crawl(st,ed);
+            }
+            const sparse=[...questRows.values()];
+            const rootIds=[...new Set(sparse.map(x=>rootRid(x.rid)))];
+            const roots=rootIds.length?await batches("/races/docs",rootIds,"rids"):[];
+            const userHids=[...new Set(roots.map(x=>Number(x?.r_form?.u_hid)).filter(Number.isSafeInteger))];
+            const info=userHids.length?await batches("/cores/info_bulk",userHids,"hids"):[];
+            const power=userHids.length?await batches("/cores/power_bulk",userHids,"hids"):[];
+            const report={fetchedAt:new Date().toISOString(),readOnly:true,scope:{start:st0.toISOString(),end:ed0.toISOString()},requestCount:requests,splitCount:splits,windowCount:windows.length,questSparseCount:sparse.length,rootIdCount:rootIds.length,rootFoundCount:roots.length,userCoreCount:userHids.length,windows,questSparse:sparse,roots,info,power};
+            fs.writeFileSync("quest-history-extension.json",JSON.stringify(report,null,2));
+            console.log(JSON.stringify({fetchedAt:report.fetchedAt,requestCount:requests,splitCount:splits,windowCount:windows.length,questSparseCount:sparse.length,rootIdCount:rootIds.length,rootFoundCount:roots.length,userCoreCount:userHids.length}));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: quest-vault-current
-          path: quest-vault-current.json
+          name: quest-history-extension
+          path: quest-history-extension.json
           retention-days: 1
