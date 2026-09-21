@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate final bounded read-only pair authority gaps
+      - name: Validate bounded read-only preferred-shortlist pair authority
         run: |
           node <<'NODE'
           const fs = require("fs");
@@ -24,9 +24,15 @@ jobs:
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
           const pairs = [
-            {label:"Ivory Jet x Cyber Dancer", father:140, mother:20827},
-            {label:"Black Mamba x Zoey", father:22670, mother:20292},
-            {label:"Midnight City x April O'Neil", father:10980, mother:18346}
+            {label:"TECTONIC BLAZE x April O'Neil", father:14961, mother:18346},
+            {label:"Drift King x Frost Rocket", father:19802, mother:25574},
+            {label:"MYSTERIOUS GURU x Frost Rocket", father:17922, mother:25574},
+            {label:"Trust me, bro x Frost Rocket", father:23480, mother:25574},
+            {label:"TECTONIC BLAZE x Lightning Gale", father:14961, mother:20365},
+            {label:"MYSTERIOUS GURU x Lightning Gale", father:17922, mother:20365},
+            {label:"Drift King x Lightning Gale", father:19802, mother:20365},
+            {label:"MYSTERIOUS GURU x Divine Riot", father:17922, mother:22338},
+            {label:"MYSTERIOUS GURU x April O'Neil", father:17922, mother:18346}
           ];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function get(path) {
