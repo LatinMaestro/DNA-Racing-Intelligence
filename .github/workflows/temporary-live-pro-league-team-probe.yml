@@ -40,7 +40,7 @@ jobs:
           const payloads = [
             ["vault", { vault }],
             ["owner", { owner: vault }],
-            ["racing_vault", { racing_vault: vault }],
+            ["racing_vault", { racing_vault: vault }],\n            ["team_id", { team_id: "953adec8ad" }],\n            ["id", { id: "953adec8ad" }],
           ];
           function sanitize(value) {
             if (typeof value === "string") {
