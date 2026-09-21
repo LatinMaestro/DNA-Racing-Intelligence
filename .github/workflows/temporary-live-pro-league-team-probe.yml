@@ -74,7 +74,7 @@ jobs:
                 envelopeStatus: json?.status ?? null,
                 hasResult: Boolean(json && Object.prototype.hasOwnProperty.call(json, "result")),
               });
-              if (response.ok && json?.status === "success" && Object.prototype.hasOwnProperty.call(json, "result")) {
+              if (response.ok && json?.status === "success" && Object.prototype.hasOwnProperty.call(json, "result") && json.result !== null) {
                 selected = { variant, result: sanitize(json.result) };
                 break;
               }
