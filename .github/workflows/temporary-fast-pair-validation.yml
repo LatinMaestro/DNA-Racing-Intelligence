@@ -37,8 +37,8 @@ jobs:
             const pairs=[{"father":24361,"mother":9926,"label":"Mr. Mister x Solar Surge"},{"father":19035,"mother":23282,"label":"SWIFT ESCORT x Swift Fist"},{"father":8431,"mother":10345,"label":"Final Masquerade x Baylor"},{"father":8431,"mother":18346,"label":"Final Masquerade x April O'Neil"},{"father":9852,"mother":22164,"label":"Grand Azula x Flame Dash"}],out=[];
             for(const p of pairs){
               let validation=null,info=null,error=null;
-              try{validation=await get("/splice/pair_validate?father_coreid="+p.father+"&mother_coreid="+p.mother);info=await get("/splice/pair_info?father_coreid="+p.father+"&mother_coreid="+p.mother)}
-              catch(e){error=String(e?.message||e)}
+              try{validation=await get("/splice/pair_validate?father_coreid="+p.father+"&mother_coreid="+p.mother)}catch(e){error="validate: "+String(e?.message||e)}
+              try{info=await get("/splice/pair_info?father_coreid="+p.father+"&mother_coreid="+p.mother)}catch(e){error=(error?error+"; ":"")+"info: "+String(e?.message||e)}
               out.push({...p,validation,info,error});
             }
             const report={fetchedAt:new Date().toISOString(),pairs:out};
