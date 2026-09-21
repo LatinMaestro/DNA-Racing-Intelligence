@@ -1,4 +1,4 @@
-name: temporary Quest deep historical read-only scan
+name: temporary Quest complete archived-history read-only scan
 
 on:
   push:
@@ -13,232 +13,202 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Deep-scan proven Quest history read-only
+      - name: Install repository dependencies
+        run: npm ci --ignore-scripts
+      - name: Scan immutable Open Lab historical archive read-only
         shell: bash
         run: |
-          node <<'NODE'
-          const fs = require("fs");
-          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
-          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("DNA API key missing/invalid");
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import crypto from "node:crypto";
+          import {
+            S3Client,
+            ListObjectsV2Command,
+            GetObjectCommand,
+          } from "@aws-sdk/client-s3";
 
-          const base = "https://api.dnaracing.run/fbike/pub/v1";
-          const EXISTING_START = new Date("2026-08-22T10:03:14.637Z");
-          const ABSOLUTE_FLOOR = new Date("2026-01-01T00:00:00.000Z");
-          const BLOCK_DAYS = 30;
-          const MAX_CONSECUTIVE_EMPTY_BLOCKS = 3;
-          const BASE_WINDOW_MS = 6 * 60 * 60 * 1000;
-          const MIN_SPLIT_MS = 5 * 60 * 1000;
+          const accountId=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const accessKeyId=process.env.DNA_R2_ACCESS_KEY_ID;
+          const secretAccessKey=process.env.DNA_R2_SECRET_ACCESS_KEY;
+          const ownerId=process.env.AUTHORIZED_CLERK_USER_ID;
+          const bucket=process.env.DNA_R2_BUCKET_NAME;
+          const apiKey=process.env.DNA_OPEN_LAB_API_KEY_3;
+          for (const [name,value] of Object.entries({accountId,accessKeyId,secretAccessKey,ownerId,bucket})) {
+            if (!value) throw new Error(name+" missing");
+          }
+          const ownerPrefix=crypto.createHash("sha256").update("dna-open-lab-owner\0"+ownerId,"utf8").digest("hex");
+          const prefix="dna-open-lab/v1/"+ownerPrefix+"/races/finished-windows/";
+          const s3=new S3Client({
+            region:"auto",
+            endpoint:"https://"+accountId+".r2.cloudflarestorage.com",
+            credentials:{accessKeyId,secretAccessKey},
+          });
 
-          let lastStartedAt = 0;
-          let requestCount = 0;
-          let splitCount = 0;
-          let rateLimitedCount = 0;
-          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-          async function api(path, method="GET", body) {
-            for (let attempt=1; attempt<=6; attempt++) {
-              const wait = Math.max(0, 2200 - (Date.now() - lastStartedAt));
-              if (wait) await sleep(wait);
-              lastStartedAt = Date.now();
-              requestCount++;
-              const controller = new AbortController();
-              const timer = setTimeout(() => controller.abort(), 60000);
-              try {
-                const response = await fetch(base + path, {
-                  method,
-                  signal: controller.signal,
-                  headers: {
-                    authorization: "Bearer " + key,
-                    accept: "application/json",
-                    ...(body === undefined ? {} : {"content-type":"application/json"}),
-                  },
-                  ...(body === undefined ? {} : {body: JSON.stringify(body)}),
-                });
-                const text = await response.text();
-                let json;
-                try { json = JSON.parse(text); } catch { json = null; }
-                if (response.status === 429) {
-                  rateLimitedCount++;
-                  const retry = Math.max(3, Number(response.headers.get("retry-after") || 3));
-                  await sleep(retry * 1000);
-                  continue;
-                }
-                if (!response.ok || json?.status !== "success" || !("result" in json)) {
-                  throw new Error(path + " " + response.status + " " + text.slice(0,500));
-                }
-                return json.result;
-              } catch (error) {
-                if (attempt === 6) throw error;
-                await sleep(3000);
-              } finally {
-                clearTimeout(timer);
+          async function bodyText(body) {
+            if (!body) throw new Error("R2 body missing");
+            if (typeof body.transformToString === "function") return body.transformToString();
+            const chunks=[];
+            for await (const chunk of body) chunks.push(Buffer.from(chunk));
+            return Buffer.concat(chunks).toString("utf8");
+          }
+          async function getJson(key) {
+            const out=await s3.send(new GetObjectCommand({Bucket:bucket,Key:key}));
+            return JSON.parse(await bodyText(out.Body));
+          }
+          function isQuest(row) {
+            const rid=String(row?.rid??"");
+            const format=String(row?.format??"").toLowerCase();
+            return rid.startsWith("quest_") || format==="quest" || format==="sub_quest";
+          }
+          async function mapLimit(items,limit,fn) {
+            const out=new Array(items.length);
+            let next=0;
+            async function worker(){
+              while(true){
+                const i=next++;
+                if(i>=items.length)return;
+                out[i]=await fn(items[i],i);
               }
             }
-          }
-
-          function isQuest(row) {
-            const rid = String(row?.rid ?? "");
-            const format = String(row?.format ?? "").toLowerCase();
-            return rid.startsWith("quest_") || format === "quest" || format === "sub_quest";
-          }
-
-          function rootRid(rid) {
-            return String(rid).replace(/-[1-5]-[A-Z]$/u, "");
-          }
-
-          async function batched(path, values, keyName) {
-            const out = [];
-            for (let i=0; i<values.length; i+=20) {
-              const rows = await api(path, "POST", {[keyName]: values.slice(i,i+20)});
-              if (!Array.isArray(rows)) throw new Error(path + " malformed");
-              out.push(...rows);
-            }
+            await Promise.all(Array.from({length:Math.min(limit,items.length)},()=>worker()));
             return out;
           }
 
-          const questRows = new Map();
-          const windows = [];
-          const blocks = [];
-
-          async function crawlWindow(st, ed, depth=0) {
-            const rows = await api("/races/finished", "POST", {
-              st: st.toISOString(),
-              ed: ed.toISOString(),
-              limit: 200,
-            });
-            if (!Array.isArray(rows)) throw new Error("finished races malformed");
-            windows.push({st:st.toISOString(), ed:ed.toISOString(), count:rows.length, depth});
-            if (rows.length === 200 && (ed.getTime() - st.getTime()) > MIN_SPLIT_MS) {
-              splitCount++;
-              const mid = new Date(st.getTime() + Math.floor((ed.getTime()-st.getTime())/2));
-              await crawlWindow(st, mid, depth+1);
-              await crawlWindow(new Date(mid.getTime()+1), ed, depth+1);
-              return;
-            }
-            for (const row of rows) {
-              if (isQuest(row) && row?.rid !== undefined) questRows.set(String(row.rid), row);
-            }
-          }
-
-          async function crawlBlock(st, ed) {
-            const before = questRows.size;
-            const requestBefore = requestCount;
-            for (let t=st.getTime(); t<ed.getTime(); t+=BASE_WINDOW_MS) {
-              const ws = new Date(t);
-              const we = new Date(Math.min(ed.getTime()-1, t+BASE_WINDOW_MS-1));
-              await crawlWindow(ws, we);
-            }
-            return {
-              st: st.toISOString(),
-              ed: ed.toISOString(),
-              questRowsAdded: questRows.size - before,
-              requests: requestCount - requestBefore,
-            };
-          }
-
-          (async()=>{
-            let cursor = EXISTING_START;
-            let consecutiveEmptyBlocks = 0;
-            while (cursor > ABSOLUTE_FLOOR && consecutiveEmptyBlocks < MAX_CONSECUTIVE_EMPTY_BLOCKS) {
-              const blockStart = new Date(Math.max(
-                ABSOLUTE_FLOOR.getTime(),
-                cursor.getTime() - BLOCK_DAYS*24*60*60*1000
-              ));
-              const block = await crawlBlock(blockStart, cursor);
-              blocks.push(block);
-              if (block.questRowsAdded === 0) consecutiveEmptyBlocks++;
-              else consecutiveEmptyBlocks = 0;
-              console.log(JSON.stringify({
-                checkpoint:true,
-                block,
-                cumulativeQuestRows:questRows.size,
-                requestCount,
-                consecutiveEmptyBlocks,
-              }));
-              cursor = blockStart;
-            }
-
-            const sparse = [...questRows.values()];
-            const rootIds = [...new Set(sparse.map(x=>rootRid(x.rid)))];
-            const roots = rootIds.length ? await batched("/races/docs", rootIds, "rids") : [];
-            const subIds = [];
-            for (const root of roots) {
-              for (const group of Object.values(root?.format_inf?.rounds ?? {})) {
-                for (const sub of Object.values(group ?? {})) {
-                  if (sub?.rid) subIds.push(String(sub.rid));
-                }
-              }
-            }
-            const uniqueSubIds = [...new Set(subIds)];
-            const subdocs = uniqueSubIds.length ? await batched("/races/docs", uniqueSubIds, "rids") : [];
-            const userHids = [...new Set(
-              roots.map(x=>Number(x?.r_form?.u_hid)).filter(Number.isSafeInteger)
-            )];
-            const info = userHids.length ? await batched("/cores/info_bulk", userHids, "hids") : [];
-            const power = userHids.length ? await batched("/cores/power_bulk", userHids, "hids") : [];
-            const stats = userHids.length ? await batched("/cores/racing_stats_bulk", userHids, "hids") : [];
-
-            const output = {
-              fetchedAt:new Date().toISOString(),
-              readOnly:true,
-              policy:{
-                requestIntervalMs:2200,
-                maximumConsecutiveEmptyBlocks:MAX_CONSECUTIVE_EMPTY_BLOCKS,
-                blockDays:BLOCK_DAYS,
-                absoluteFloor:ABSOLUTE_FLOOR.toISOString(),
-                existingCoverageStartsAt:EXISTING_START.toISOString(),
-              },
-              scannedStart:blocks.at(-1)?.st ?? EXISTING_START.toISOString(),
-              scannedEnd:EXISTING_START.toISOString(),
-              stoppedAfterConsecutiveEmptyBlocks:consecutiveEmptyBlocks,
-              reachedAbsoluteFloor:cursor.getTime() <= ABSOLUTE_FLOOR.getTime(),
-              requestCount,
-              rateLimitedCount,
-              splitCount,
-              windowCount:windows.length,
-              blocks,
-              questSparseCount:sparse.length,
-              rootIdCount:rootIds.length,
-              rootFoundCount:roots.length,
-              subIdCount:uniqueSubIds.length,
-              subdocFoundCount:subdocs.length,
-              userCoreCount:userHids.length,
-              questSparse:sparse,
-              roots,
-              subdocs,
-              info,
-              power,
-              stats,
-            };
-            fs.writeFileSync("quest-deep-history.json", JSON.stringify(output,null,2));
-            console.log(JSON.stringify({
-              completed:true,
-              fetchedAt:output.fetchedAt,
-              scannedStart:output.scannedStart,
-              scannedEnd:output.scannedEnd,
-              stoppedAfterConsecutiveEmptyBlocks:output.stoppedAfterConsecutiveEmptyBlocks,
-              reachedAbsoluteFloor:output.reachedAbsoluteFloor,
-              requestCount,
-              rateLimitedCount,
-              splitCount,
-              windowCount:windows.length,
-              questSparseCount:sparse.length,
-              rootFoundCount:roots.length,
-              subdocFoundCount:subdocs.length,
-              userCoreCount:userHids.length,
+          const manifestKeys=[];
+          let token=undefined;
+          do {
+            const page=await s3.send(new ListObjectsV2Command({
+              Bucket:bucket,Prefix:prefix,ContinuationToken:token,MaxKeys:1000
             }));
-          })().catch((e)=>{console.error(e);process.exit(1)});
+            for (const obj of page.Contents??[]) if (obj.Key?.endsWith(".json")) manifestKeys.push(obj.Key);
+            token=page.IsTruncated ? page.NextContinuationToken : undefined;
+          } while(token);
+
+          console.log(JSON.stringify({phase:"listed",manifestCount:manifestKeys.length,prefix}));
+
+          const questSparseByRid=new Map();
+          const questObjectKeyByRid=new Map();
+          let manifestReadCount=0;
+          let discoveredRaceCount=0;
+          await mapLimit(manifestKeys,24,async(key)=>{
+            const manifest=await getJson(key);
+            const discovered=Array.isArray(manifest?.discoveredRaces)?manifest.discoveredRaces:[];
+            const refs=Array.isArray(manifest?.raceDocumentObjects)?manifest.raceDocumentObjects:[];
+            const refByRid=new Map(refs.map(x=>[String(x?.sourceRaceId??""),x?.objectKey]));
+            discoveredRaceCount+=discovered.length;
+            for(const row of discovered){
+              if(!isQuest(row))continue;
+              const rid=String(row.rid);
+              questSparseByRid.set(rid,row);
+              const objectKey=refByRid.get(rid);
+              if(objectKey)questObjectKeyByRid.set(rid,objectKey);
+            }
+            manifestReadCount++;
+            if(manifestReadCount%1000===0)console.log(JSON.stringify({
+              phase:"manifest_scan",manifestReadCount,questSparseCount:questSparseByRid.size,discoveredRaceCount
+            }));
+          });
+
+          const questRids=[...questSparseByRid.keys()];
+          const missingObjectRefs=questRids.filter(rid=>!questObjectKeyByRid.has(rid));
+          const questDocsByRid=new Map();
+          await mapLimit([...questObjectKeyByRid.entries()],24,async([rid,key],i)=>{
+            const doc=await getJson(key);
+            questDocsByRid.set(rid,doc);
+            if((i+1)%100===0)console.log(JSON.stringify({phase:"quest_docs",read:i+1,total:questObjectKeyByRid.size}));
+          });
+
+          const roots=[...questDocsByRid.values()].filter(x=>String(x?.format??"").toLowerCase()==="quest");
+          const subdocs=[...questDocsByRid.values()].filter(x=>String(x?.format??"").toLowerCase()==="sub_quest");
+          const userHids=[...new Set(roots.map(x=>Number(x?.r_form?.u_hid)).filter(Number.isSafeInteger))];
+
+          let lastStartedAt=0,apiRequestCount=0,rateLimitedCount=0;
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function api(path,body){
+            if(!/^dna_[A-Za-z0-9_-]{43}$/.test(apiKey??"")) throw new Error("DNA API key missing/invalid");
+            for(let attempt=1;attempt<=5;attempt++){
+              const wait=Math.max(0,2200-(Date.now()-lastStartedAt));if(wait)await sleep(wait);
+              lastStartedAt=Date.now();apiRequestCount++;
+              const res=await fetch("https://api.dnaracing.run/fbike/pub/v1"+path,{
+                method:"POST",
+                headers:{authorization:"Bearer "+apiKey,accept:"application/json","content-type":"application/json"},
+                body:JSON.stringify(body),
+              });
+              const text=await res.text();let j;try{j=JSON.parse(text)}catch{j=null}
+              if(res.status===429){rateLimitedCount++;await sleep(Math.max(3,Number(res.headers.get("retry-after")||3))*1000);continue}
+              if(!res.ok||j?.status!=="success"||!("result" in j))throw new Error(path+" "+res.status+" "+text.slice(0,300));
+              return j.result;
+            }
+          }
+          async function bulk(path,hids){
+            const out=[];
+            for(let i=0;i<hids.length;i+=20)out.push(...await api(path,{hids:hids.slice(i,i+20)}));
+            return out;
+          }
+
+          const info=userHids.length?await bulk("/cores/info_bulk",userHids):[];
+          const power=userHids.length?await bulk("/cores/power_bulk",userHids):[];
+          const stats=userHids.length?await bulk("/cores/racing_stats_bulk",userHids):[];
+
+          const output={
+            fetchedAt:new Date().toISOString(),
+            readOnly:true,
+            archiveAuthority:{
+              source:"immutable_private_r2_api_evidence",
+              endpoint:"races.finished + races.docs",
+              historicalCutoff:"2026-09-02T00:11:55.961Z",
+              originalHistoryStart:"1970-01-01T00:00:00.000Z",
+              ownerPrefix,
+            },
+            manifestCount:manifestKeys.length,
+            manifestReadCount,
+            discoveredRaceCount,
+            questSparseCount:questSparseByRid.size,
+            questDocumentCount:questDocsByRid.size,
+            rootCount:roots.length,
+            subdocCount:subdocs.length,
+            missingObjectRefs,
+            userCoreCount:userHids.length,
+            apiEnrichmentRequestCount:apiRequestCount,
+            apiEnrichmentRateLimitedCount:rateLimitedCount,
+            questSparse:[...questSparseByRid.values()],
+            roots,
+            subdocs,
+            info,
+            power,
+            stats,
+          };
+          fs.writeFileSync("quest-complete-archive.json",JSON.stringify(output,null,2));
+          console.log(JSON.stringify({
+            completed:true,
+            manifestCount,
+            manifestReadCount,
+            discoveredRaceCount,
+            questSparseCount:output.questSparseCount,
+            questDocumentCount:output.questDocumentCount,
+            rootCount:output.rootCount,
+            subdocCount:output.subdocCount,
+            userCoreCount:output.userCoreCount,
+            apiEnrichmentRequestCount,
+            apiEnrichmentRateLimitedCount:rateLimitedCount,
+            missingObjectRefs:missingObjectRefs.length,
+          }));
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: quest-deep-history
-          path: quest-deep-history.json
+          name: quest-complete-archive
+          path: quest-complete-archive.json
           retention-days: 1
