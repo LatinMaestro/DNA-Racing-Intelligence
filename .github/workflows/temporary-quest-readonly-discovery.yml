@@ -194,7 +194,7 @@ jobs:
           fs.writeFileSync("quest-complete-archive.json",JSON.stringify(output,null,2));
           console.log(JSON.stringify({
             completed:true,
-            manifestCount,
+            manifestCount:manifestKeys.length,
             manifestReadCount,
             discoveredRaceCount,
             questSparseCount:output.questSparseCount,
