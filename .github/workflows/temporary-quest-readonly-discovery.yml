@@ -1,4 +1,4 @@
-name: temporary Quest read-only discovery
+name: temporary Quest positive-control read-only probe
 
 on:
   push:
@@ -9,60 +9,145 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
-  roots:
+  discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: quest-hydrated-docs
-          path: hydrated
-          run-id: 35587388043
-          github-token: ${{ github.token }}
-          repository: ${{ github.repository }}
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Hydrate Quest root documents read-only
+      - name: Probe known Quest positive controls read-only
         shell: bash
         run: |
           node <<'NODE'
-          const fs=require("fs");
-          const key=process.env.DNA_OPEN_LAB_API_KEY_3;
-          if(!/^dna_[A-Za-z0-9_-]{43}$/.test(key??"")) throw new Error("DNA API key missing/invalid");
-          const docs=JSON.parse(fs.readFileSync("hydrated/quest-hydrated-docs.json","utf8")).docs;
-          const roots=new Set();
-          for(const d of docs){
-            if(d?.format==="quest") roots.add(String(d.rid));
-            if(d?.format==="sub_quest" && d?.baserid) roots.add(String(d.baserid));
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("DNA API key missing/invalid");
+
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          const historyUrl = "https://api.dnaracing.run/fbike/i/hraces";
+          let lastStartedAt = 0;
+          let requestCount = 0;
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          async function acquire() {
+            const wait = Math.max(0, 2200 - (Date.now() - lastStartedAt));
+            if (wait) await sleep(wait);
+            lastStartedAt = Date.now();
+            requestCount++;
           }
-          const rids=[...roots];
-          const base="https://api.dnaracing.run/fbike/pub/v1";
-          let last=0,count=0; const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function api(batch){
-            const wait=Math.max(0,2200-(Date.now()-last));if(wait)await sleep(wait);last=Date.now();count++;
-            const response=await fetch(base+"/races/docs",{method:"POST",headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},body:JSON.stringify({rids:batch})});
-            const text=await response.text();let j=null;try{j=JSON.parse(text)}catch{}
-            if(!response.ok||j?.status!=="success"||!Array.isArray(j?.result)) throw new Error("root docs failed "+response.status+" "+text.slice(0,400));
-            return j.result;
+
+          async function jsonFetch(url, init) {
+            for (let attempt=1; attempt<=5; attempt++) {
+              await acquire();
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 60000);
+              try {
+                const response = await fetch(url, {...init, signal: controller.signal});
+                const text = await response.text();
+                let json;
+                try { json = JSON.parse(text); } catch { json = null; }
+                if (response.status === 429) {
+                  const retry = Math.max(3, Number(response.headers.get("retry-after") || 3));
+                  await sleep(retry * 1000);
+                  continue;
+                }
+                if (!response.ok || json?.status !== "success" || !("result" in json)) {
+                  throw new Error(url + " " + response.status + " " + text.slice(0,500));
+                }
+                return json.result;
+              } catch (e) {
+                if (attempt === 5) throw e;
+                await sleep(3000);
+              } finally {
+                clearTimeout(timer);
+              }
+            }
           }
-          (async()=>{
-            const out=[];
-            for(let i=0;i<rids.length;i+=20) out.push(...await api(rids.slice(i,i+20)));
-            const by=new Map(out.map(d=>[String(d?.rid),d]));
-            const report={fetchedAt:new Date().toISOString(),requestCount:count,requested:rids.length,found:out.length,missing:rids.filter(r=>!by.has(r)),roots:out};
-            fs.writeFileSync("quest-root-docs.json",JSON.stringify(report,null,2));
-            console.log(JSON.stringify({requestCount:count,requested:rids.length,found:out.length,missing:report.missing.length}));
-          })().catch(e=>{console.error(e);process.exit(1)});
+
+          async function history(hid, page=1) {
+            return jsonFetch(historyUrl, {
+              method: "POST",
+              headers: {"content-type":"application/json","accept":"application/json"},
+              body: JSON.stringify({hid, page}),
+            });
+          }
+
+          async function api(path, method="GET", body) {
+            return jsonFetch(base + path, {
+              method,
+              headers: {
+                authorization: "Bearer " + key,
+                accept: "application/json",
+                ...(body === undefined ? {} : {"content-type":"application/json"}),
+              },
+              ...(body === undefined ? {} : {body: JSON.stringify(body)}),
+            });
+          }
+
+          function questLike(row) {
+            const rid = String(row?.rid ?? "");
+            const format = String(row?.format ?? "").toLowerCase();
+            const name = String(row?.race_name ?? "").toLowerCase();
+            return rid.startsWith("quest_") || format.includes("quest") || /\bround-[1-5]\b/i.test(name);
+          }
+
+          (async () => {
+            const controls = [
+              {hid: 20292, name: "Zoey"},
+              {hid: 23282, name: "Swift Fist"},
+            ];
+
+            const histories = {};
+            const questRows = [];
+            for (const control of controls) {
+              const page1 = await history(control.hid, 1);
+              if (!Array.isArray(page1)) throw new Error("history malformed for " + control.hid);
+              histories[String(control.hid)] = page1;
+              for (const row of page1) {
+                if (questLike(row)) questRows.push({...row, positiveControlHid: control.hid, positiveControlName: control.name});
+              }
+            }
+
+            const rids = [...new Set(questRows.map(x => x.rid).filter(x => typeof x === "string" && x.length > 0))];
+            const docs = rids.length ? await api("/races/docs", "POST", {rids: rids.slice(0,20)}) : [];
+            const fills = rids.length ? await api("/races/fills", "POST", {rids: rids.slice(0,20)}) : [];
+            const info = await api("/cores/info_bulk", "POST", {hids: controls.map(x=>x.hid)});
+            const power = await api("/cores/power_bulk", "POST", {hids: controls.map(x=>x.hid)});
+
+            const report = {
+              fetchedAt: new Date().toISOString(),
+              readOnly: true,
+              requestCount,
+              controls,
+              historyPage1: histories,
+              questRows,
+              questRids: rids,
+              docs,
+              fills,
+              info,
+              power,
+            };
+            fs.writeFileSync("quest-positive-controls.json", JSON.stringify(report,null,2));
+            console.log(JSON.stringify({
+              fetchedAt: report.fetchedAt,
+              requestCount,
+              zoeyRows: histories["20292"]?.length ?? 0,
+              swiftFistRows: histories["23282"]?.length ?? 0,
+              questRows: questRows.length,
+              questRids: rids.length,
+              docCount: Array.isArray(docs) ? docs.length : null,
+              fillCount: Array.isArray(fills) ? fills.length : null,
+            }));
+          })().catch((e)=>{ console.error(e); process.exit(1); });
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: quest-root-docs
-          path: quest-root-docs.json
+          name: quest-positive-controls
+          path: quest-positive-controls.json
           retention-days: 1
