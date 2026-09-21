@@ -18,7 +18,7 @@ permissions:
 jobs:
   prove:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
     steps:
@@ -26,82 +26,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Refresh complete Bike Arena and shortlisted parent prices
+      - name: Refresh shortlisted external parent Arena status and prices
         shell: bash
         run: |
           node <<'NODE'
           const fs = require("fs");
           const key = process.env.DNA_OPEN_LAB_API_KEY_3;
           if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("API key unavailable");
-
-          const base = "https://api.dnaracing.run/fbike/pub/v1";
-          const targetHids = [35,140,1450,4126,4287,10345,14961,15568,17922,18346,19035,22670,23396,23480,23538,23683,24361,24370,24931,25017];
-          const sleep = ms => new Promise(r => setTimeout(r, ms));
-          let lastStartedAt = 0;
-
-          async function post(path, body) {
-            for (let attempt=1; attempt<=6; attempt++) {
-              const wait=Math.max(0,2100-(Date.now()-lastStartedAt));
-              if (wait) await sleep(wait);
-              lastStartedAt=Date.now();
-              const res=await fetch(base+path,{method:"POST",headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},body:JSON.stringify(body)});
-              const text=await res.text();
-              let json=null; try {json=JSON.parse(text)} catch {}
-              if (res.status===429) {
-                await sleep(Math.max(3,Number(res.headers.get("retry-after")||3))*1000);
-                continue;
-              }
-              if (!res.ok || json?.status!=="success" || !("result" in json)) {
-                if (attempt===6) throw new Error(path+" "+res.status+" "+text.slice(0,400));
-                await sleep(2500); continue;
-              }
-              return json.result;
-            }
-            throw new Error("request retries exhausted");
-          }
-
-          (async()=>{
-            const pages=[], cores=[], seen=new Set();
-            let limit=null;
-            for (let page=1; page<=512; page++) {
-              const result=await post("/splice/arena",{f:{rvmode:"bike"},page});
-              if (result.page!==page || !Number.isSafeInteger(result.limit) || result.limit<1 || !Array.isArray(result.cores) || typeof result.has_more!=="boolean") throw new Error("malformed Arena page "+page);
-              if (limit!==null && result.limit!==limit) throw new Error("page-size drift");
-              limit=result.limit;
-              for (const row of result.cores) {
-                if (!Number.isSafeInteger(row?.hid) || row.hid<1 || seen.has(row.hid)) throw new Error("invalid/duplicate HID");
-                seen.add(row.hid); cores.push(row);
-              }
-              pages.push({page,count:result.cores.length,limit:result.limit,reportedHasMore:result.has_more});
-              const more=result.has_more===true || result.cores.length===result.limit;
-              if (!more) break;
-              if (page===512) throw new Error("page bound exceeded");
-            }
-            const final=pages.at(-1);
-            if (!final || final.reportedHasMore===true || final.count===final.limit) throw new Error("terminal page not proven");
-
-            const found=targetHids.filter(hid=>seen.has(hid));
-            const splicing=found.length ? await post("/cores/splicing_info_bulk",{hids:found}) : [];
-            if (!Array.isArray(splicing) || splicing.length!==found.length) throw new Error("splicing coverage mismatch");
-            const spliceByHid=new Map(splicing.map(x=>[Number(x?.hid),x]));
-
-            const candidates=targetHids.map(hid=>({
-              hid,
-              inArena: seen.has(hid),
-              arenaRow: cores.find(x=>Number(x.hid)===hid) ?? null,
-              splicing: spliceByHid.get(hid) ?? null
-            }));
-            const report={
-              fetchedAt:new Date().toISOString(),
-              continuationRule:"has_more_true_or_full_page; terminal_short_or_empty_and_has_more_false",
-              bikeListingCount:cores.length,
-              pageCount:pages.length,
-              pages,
-              candidates
-            };
-            fs.writeFileSync("arena-shortlist-refresh.json",JSON.stringify(report,null,2));
-            console.log(JSON.stringify({fetchedAt:report.fetchedAt,bikeListingCount:report.bikeListingCount,pageCount:pages.length,found:found.length,missing:targetHids.filter(h=>!seen.has(h))}));
-          })().catch(e=>{console.error(e);process.exit(1)});
+          const hids=[35,140,1450,4126,4287,10345,14961,15568,17922,18346,19035,22670,23396,23480,23538,23683,24361,24370,24931,25017];
+          const res=await fetch("https://api.dnaracing.run/fbike/pub/v1/cores/splicing_info_bulk",{
+            method:"POST",
+            headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},
+            body:JSON.stringify({hids})
+          });
+          const text=await res.text();
+          let json=null; try {json=JSON.parse(text)} catch {}
+          if (!res.ok || json?.status!=="success" || !Array.isArray(json.result)) throw new Error("splicing_info_bulk "+res.status+" "+text.slice(0,500));
+          const byHid=new Map(json.result.map(x=>[Number(x?.hid),x]));
+          const candidates=hids.map(hid=>({hid,found:byHid.has(hid),splicing:byHid.get(hid)??null}));
+          const report={fetchedAt:new Date().toISOString(),endpoint:"/cores/splicing_info_bulk",candidates};
+          fs.writeFileSync("arena-shortlist-refresh.json",JSON.stringify(report,null,2));
+          console.log(JSON.stringify({fetchedAt:report.fetchedAt,rows:json.result.length,inStud:candidates.filter(x=>x.splicing?.in_stud===true).map(x=>x.hid),notInStud:candidates.filter(x=>x.splicing?.in_stud===false).map(x=>x.hid)}));
           NODE
       - uses: actions/upload-artifact@v4
         with:
