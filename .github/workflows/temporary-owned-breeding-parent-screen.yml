@@ -1,0 +1,86 @@
+name: temporary owned breeding parent screen
+
+on:
+  push:
+    branches:
+      - temporary/chat-owned-breeding-parent-screen-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch current read-only owned-parent metadata
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) {
+            throw new Error("DNA Open Lab API key is missing or invalid");
+          }
+          const hids = [
+            8888,19423,20777,8431,22145,22164,23271,23467,25574,9852,20382,
+            23269,9960,9216,23484,23260,15184,9926,20524,23282,23388,20292
+          ];
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          let lastStartedAt = 0;
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          async function post(path, body) {
+            const wait = Math.max(0, 2200 - (Date.now() - lastStartedAt));
+            if (wait > 0) await sleep(wait);
+            lastStartedAt = Date.now();
+            const response = await fetch(base + path, {
+              method: "POST",
+              headers: {
+                authorization: "Bearer " + key,
+                accept: "application/json",
+                "content-type": "application/json",
+              },
+              body: JSON.stringify(body),
+            });
+            const text = await response.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch {}
+            if (!response.ok || json?.status !== "success" || !("result" in json)) {
+              throw new Error(path + " " + response.status + " " + text.slice(0, 300));
+            }
+            return json.result;
+          }
+          (async () => {
+            const chunks = [];
+            for (let i = 0; i < hids.length; i += 20) chunks.push(hids.slice(i, i + 20));
+            const info = [], power = [], splicing = [];
+            for (const batch of chunks) {
+              const [i,p,s] = await Promise.all([
+                post("/cores/info_bulk", {hids: batch}),
+                post("/cores/power_bulk", {hids: batch}),
+                post("/cores/splicing_info_bulk", {hids: batch}),
+              ]);
+              for (const [name, rows] of [["info",i],["power",p],["splicing",s]]) {
+                if (!Array.isArray(rows) || rows.length !== batch.length) {
+                  throw new Error(name + " coverage mismatch");
+                }
+              }
+              info.push(...i); power.push(...p); splicing.push(...s);
+              await sleep(2200);
+            }
+            const report = {observedAt:new Date().toISOString(),requestedHids:hids,info,power,splicing};
+            fs.writeFileSync("owned-breeding-parent-screen.json", JSON.stringify(report,null,2));
+            console.log(JSON.stringify({observedAt:report.observedAt,count:hids.length}));
+          })().catch((error)=>{ console.error(error); process.exit(1); });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: owned-breeding-parent-screen
+          path: owned-breeding-parent-screen.json
+          retention-days: 1
