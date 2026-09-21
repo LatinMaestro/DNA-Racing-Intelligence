@@ -1,0 +1,85 @@
+name: temporary final breeding validation
+
+on:
+  push:
+    branches:
+      - temporary/chat-breeding-final-validation-2026-09-21-do-not-merge
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Revalidate Arena, strength, lineage and official pairs
+        run: |
+          node <<'NODE'
+          const fs=require("fs");
+          const key=process.env.DNA_OPEN_LAB_API_KEY_2;
+          if(!/^dna_[A-Za-z0-9_-]{43}$/.test(key??"")) throw new Error("API key unavailable");
+          const base="https://api.dnaracing.run/fbike/pub/v1";
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          let last=0;
+          async function req(path,method="GET",body){
+            const wait=Math.max(0,2200-(Date.now()-last)); if(wait) await sleep(wait); last=Date.now();
+            for(let attempt=1;attempt<=5;attempt++){
+              const r=await fetch(base+path,{method,headers:{authorization:"Bearer "+key,accept:"application/json",...(body?{"content-type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
+              const text=await r.text(); let j=null; try{j=JSON.parse(text)}catch{}
+              if(r.status===429){await sleep(Math.max(3000,Number(r.headers.get("retry-after")||3)*1000));continue}
+              if(!r.ok||j?.status!=="success") throw new Error(path+" failed");
+              return j.result;
+            }
+            throw new Error(path+" retries exhausted");
+          }
+          const post=(path,body)=>req(path,"POST",body);
+          const arenaTargets=new Set([24361,23396,19035,18346,10345,24475,25017]);
+          const currentArena=new Map();
+          let expectedLimit=null,terminal=false;
+          for(let page=1;page<=512;page++){
+            const x=await post("/splice/arena",{f:{rvmode:"bike"},page});
+            if(x.page!==page||!Array.isArray(x.cores)||!Number.isSafeInteger(x.limit)||x.limit<1) throw new Error("malformed Arena page");
+            if(expectedLimit!==null&&x.limit!==expectedLimit) throw new Error("Arena limit drift");
+            expectedLimit=x.limit;
+            for(const c of x.cores){ if(currentArena.has(c.hid)) throw new Error("Arena duplicate"); currentArena.set(c.hid,c); }
+            if(!(x.has_more===true||x.cores.length===x.limit)){terminal=true;break}
+          }
+          if(!terminal) throw new Error("Arena terminality not proven");
+          for(const hid of arenaTargets) if(!currentArena.has(hid)) throw new Error("Arena candidate no longer listed: "+hid);
+
+          const hids=[24361,9926,23396,23484,19035,23282,8431,18346,10345,8888,24475,25017,20292];
+          const power=await post("/cores/power_bulk",{hids});
+          const info=await post("/cores/info_bulk",{hids});
+          const splicing=await post("/cores/splicing_info_bulk",{hids});
+          const byHid=rows=>Object.fromEntries(rows.map(x=>[String(x.hid),x]));
+          const pairs=[{"father":24361,"mother":9926,"label":"Mr. Mister x Solar Surge","target":1000},{"father":23396,"mother":23484,"label":"Crimson Desert x Phantom Panther","target":1400},{"father":19035,"mother":23282,"label":"SWIFT ESCORT x Swift Fist","target":1800},{"father":8431,"mother":18346,"label":"Final Masquerade x April O'Neil","target":2000},{"father":8431,"mother":10345,"label":"Final Masquerade x Baylor","target":2200},{"father":8888,"mother":24475,"label":"Angry Dan x Thunderdome","target":1600},{"father":25017,"mother":20292,"label":"Dumpster Diver x Zoey","target":2000}];
+          const validated=[];
+          for(const p of pairs){
+            let validation=null, pairInfo=null, error=null;
+            try{
+              validation=await req("/splice/pair_validate?father_coreid="+p.father+"&mother_coreid="+p.mother);
+              pairInfo=await req("/splice/pair_info?father_coreid="+p.father+"&mother_coreid="+p.mother);
+            }catch(e){error=String(e?.message||e)}
+            validated.push({...p,validation,pairInfo,error});
+          }
+          const report={
+            fetchedAt:new Date().toISOString(),
+            currentArenaCount:currentArena.size,
+            arenaListings:Object.fromEntries([...arenaTargets].map(h=>[String(h),currentArena.get(h)])),
+            power:byHid(power),info:byHid(info),splicing:byHid(splicing),pairs:validated
+          };
+          fs.writeFileSync("breeding-final-validation.json",JSON.stringify(report,null,2));
+          console.log(JSON.stringify({fetchedAt:report.fetchedAt,currentArenaCount:report.currentArenaCount,pairs:validated.map(p=>({label:p.label,valid:p.validation?.valid??null,error:p.error,baby:p.pairInfo?.baby_info??null,prices:p.pairInfo?.prices??null}))}));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breeding-final-validation
+          path: breeding-final-validation.json
+          retention-days: 1
