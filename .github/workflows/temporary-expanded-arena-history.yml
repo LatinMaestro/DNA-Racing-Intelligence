@@ -37,14 +37,16 @@ jobs:
             throw new Error("retries exhausted "+hid);
           }
           (async()=>{
-            const histories={},counts={};
+            const histories={},counts={},failures={};
             for(const hid of hids){
-              const rows=[];let terminal=false;
-              for(let p=1;p<=64;p++){const got=await page(hid,p);rows.push(...got);if(got.length===0){terminal=true;break}if(p===64)throw new Error("page bound "+hid)}
-              if(!terminal)throw new Error("no terminal "+hid);
-              histories[String(hid)]=rows;counts[String(hid)]=rows.length;
+              try{
+                const rows=[];let terminal=false;
+                for(let p=1;p<=64;p++){const got=await page(hid,p);rows.push(...got);if(got.length===0){terminal=true;break}if(p===64)throw new Error("page bound "+hid)}
+                if(!terminal)throw new Error("no terminal "+hid);
+                histories[String(hid)]=rows;counts[String(hid)]=rows.length;
+              }catch(e){failures[String(hid)]=String(e?.message||e)}
             }
-            const out={fetchedAt:new Date().toISOString(),shard,hids,counts,histories};
+            const out={fetchedAt:new Date().toISOString(),shard,hids,counts,failures,histories};
             fs.writeFileSync("expanded-history-"+shard+".json",JSON.stringify(out));
             console.log(JSON.stringify({shard,coreCount:hids.length,rowCount:Object.values(counts).reduce((a,b)=>a+b,0)}));
           })().catch(e=>{console.error(e);process.exit(1)});
