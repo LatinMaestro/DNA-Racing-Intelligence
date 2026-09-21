@@ -12,12 +12,11 @@ permissions:
   actions: read
 
 jobs:
-  analyse:
+  roots:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     env:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
-      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -30,136 +29,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Join Quest rounds to result history and current Core state
+      - name: Hydrate Quest root documents read-only
         shell: bash
         run: |
           node <<'NODE'
-          const fs = require("fs");
-          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
-          const vault = process.env.DNA_OPEN_LAB_VAULT;
-          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("DNA API key missing/invalid");
-          if (!vault || vault.length > 512) throw new Error("DNA vault missing/invalid");
-
-          const hydrated = JSON.parse(fs.readFileSync("hydrated/quest-hydrated-docs.json","utf8"));
-          const docs = hydrated.docs;
-          const userHid = (d) => {
-            const r = d?.r_form?.u_hid;
-            if (Number.isSafeInteger(r) && r > 0) return r;
-            if (d?.format === "quest" && Array.isArray(d?.hids) && Number.isSafeInteger(d.hids[0])) return d.hids[0];
-            return null;
-          };
-          const subDocs = docs.filter(d => d?.format === "sub_quest" && userHid(d));
-          const targetsByHid = new Map();
-          for (const d of subDocs) {
-            const hid = userHid(d);
-            if (!targetsByHid.has(hid)) targetsByHid.set(hid, new Set());
-            targetsByHid.get(hid).add(String(d.rid));
+          const fs=require("fs");
+          const key=process.env.DNA_OPEN_LAB_API_KEY_3;
+          if(!/^dna_[A-Za-z0-9_-]{43}$/.test(key??"")) throw new Error("DNA API key missing/invalid");
+          const docs=JSON.parse(fs.readFileSync("hydrated/quest-hydrated-docs.json","utf8")).docs;
+          const roots=new Set();
+          for(const d of docs){
+            if(d?.format==="quest") roots.add(String(d.rid));
+            if(d?.format==="sub_quest" && d?.baserid) roots.add(String(d.baserid));
           }
-          const hids = [...targetsByHid.keys()].sort((a,b)=>a-b);
-
-          const apiBase = "https://api.dnaracing.run/fbike/pub/v1";
-          const historyUrl = "https://api.dnaracing.run/fbike/i/hraces";
-          let lastApiAt=0, lastHistoryAt=0, apiRequestCount=0, historyRequestCount=0;
-          const sleep = ms => new Promise(r=>setTimeout(r,ms));
-
-          async function api(path, body) {
-            for (let attempt=1; attempt<=6; attempt++) {
-              const wait=Math.max(0,2200-(Date.now()-lastApiAt)); if(wait) await sleep(wait);
-              lastApiAt=Date.now(); apiRequestCount++;
-              const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),60000);
-              try{
-                const response=await fetch(apiBase+path,{method:"POST",signal:controller.signal,headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},body:JSON.stringify(body)});
-                const text=await response.text(); let json=null; try{json=JSON.parse(text)}catch{}
-                if(response.status===429){await sleep(Math.max(3,Number(response.headers.get("retry-after")||3))*1000);continue;}
-                if(!response.ok||json?.status!=="success"||!("result" in json)) throw new Error(path+" "+response.status+" "+text.slice(0,500));
-                return json.result;
-              }catch(e){if(attempt===6)throw e;await sleep(3000)}finally{clearTimeout(timer)}
-            }
+          const rids=[...roots];
+          const base="https://api.dnaracing.run/fbike/pub/v1";
+          let last=0,count=0; const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function api(batch){
+            const wait=Math.max(0,2200-(Date.now()-last));if(wait)await sleep(wait);last=Date.now();count++;
+            const response=await fetch(base+"/races/docs",{method:"POST",headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},body:JSON.stringify({rids:batch})});
+            const text=await response.text();let j=null;try{j=JSON.parse(text)}catch{}
+            if(!response.ok||j?.status!=="success"||!Array.isArray(j?.result)) throw new Error("root docs failed "+response.status+" "+text.slice(0,400));
+            return j.result;
           }
-          async function history(hid,page) {
-            for(let attempt=1;attempt<=5;attempt++) {
-              const wait=Math.max(0,800-(Date.now()-lastHistoryAt)); if(wait) await sleep(wait);
-              lastHistoryAt=Date.now(); historyRequestCount++;
-              const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),60000);
-              try{
-                const response=await fetch(historyUrl,{method:"POST",signal:controller.signal,headers:{accept:"application/json","content-type":"application/json"},body:JSON.stringify({hid,page})});
-                const text=await response.text(); let json=null; try{json=JSON.parse(text)}catch{}
-                if(!response.ok||json?.status!=="success"||!Array.isArray(json?.result)) throw new Error("history "+hid+" p"+page+" "+response.status+" "+text.slice(0,400));
-                return json.result;
-              }catch(e){if(attempt===5)throw e; await sleep(1500)}finally{clearTimeout(timer)}
-            }
-          }
-
           (async()=>{
-            const ownedFull = await fetch(apiBase+"/vault/"+encodeURIComponent(vault)+"/cores_full",{headers:{authorization:"Bearer "+key,accept:"application/json"}}).then(async r=>{
-              apiRequestCount++; const j=await r.json(); if(!r.ok||j?.status!=="success"||!Array.isArray(j?.result)) throw new Error("vault cores_full failed"); return j.result;
-            });
-            const ownedSet=new Set(ownedFull.map(x=>Number(x?.hid)).filter(Number.isSafeInteger));
-
-            const infos=[], powers=[], stats=[];
-            for(let i=0;i<hids.length;i+=20){
-              const batch=hids.slice(i,i+20);
-              infos.push(...await api("/cores/info_bulk",{hids:batch}));
-              powers.push(...await api("/cores/power_bulk",{hids:batch}));
-              stats.push(...await api("/cores/racing_stats_bulk",{hids:batch}));
-            }
-            const infoBy=new Map(infos.map(x=>[Number(x?.hid),x]));
-            const powerBy=new Map(powers.map(x=>[Number(x?.hid),x]));
-            const statsBy=new Map(stats.map(x=>[Number(x?.hid),x]));
-
-            const historyByHid={};
-            for(const hid of hids){
-              const wanted=targetsByHid.get(hid);
-              const found=new Map();
-              let terminalEmpty=false;
-              for(let page=1;page<=20;page++){
-                const rows=await history(hid,page);
-                for(const row of rows){
-                  const rid=String(row?.rid ?? "");
-                  if(wanted.has(rid)) found.set(rid,row);
-                }
-                if(found.size===wanted.size) break;
-                if(rows.length===0){terminalEmpty=true;break;}
-              }
-              historyByHid[hid]={
-                targetCount:wanted.size,
-                foundCount:found.size,
-                terminalEmpty,
-                missing:[...wanted].filter(r=>!found.has(r)),
-                rows:[...found.values()],
-              };
-            }
-
-            const cores=hids.map(hid=>({
-              hid,
-              owned:ownedSet.has(hid),
-              info:infoBy.get(hid)??null,
-              power:powerBy.get(hid)??null,
-              racingStats:statsBy.get(hid)??null,
-              questHistory:historyByHid[hid],
-            }));
-            const report={
-              fetchedAt:new Date().toISOString(),
-              sourceHydrationRun:35587388043,
-              apiRequestCount,
-              historyRequestCount,
-              userCoreCount:hids.length,
-              ownedQuestCoreHids:hids.filter(h=>ownedSet.has(h)),
-              cores,
-            };
-            fs.writeFileSync("quest-core-joined.json",JSON.stringify(report,null,2));
-            console.log(JSON.stringify({
-              fetchedAt:report.fetchedAt,
-              apiRequestCount,historyRequestCount,userCoreCount:hids.length,
-              ownedQuestCoreHids:report.ownedQuestCoreHids,
-              totalTargetRounds:cores.reduce((s,c)=>s+c.questHistory.targetCount,0),
-              totalFoundRounds:cores.reduce((s,c)=>s+c.questHistory.foundCount,0),
-              missing:cores.flatMap(c=>c.questHistory.missing.map(r=>({hid:c.hid,rid:r}))).length
-            }));
+            const out=[];
+            for(let i=0;i<rids.length;i+=20) out.push(...await api(rids.slice(i,i+20)));
+            const by=new Map(out.map(d=>[String(d?.rid),d]));
+            const report={fetchedAt:new Date().toISOString(),requestCount:count,requested:rids.length,found:out.length,missing:rids.filter(r=>!by.has(r)),roots:out};
+            fs.writeFileSync("quest-root-docs.json",JSON.stringify(report,null,2));
+            console.log(JSON.stringify({requestCount:count,requested:rids.length,found:out.length,missing:report.missing.length}));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: quest-core-joined
-          path: quest-core-joined.json
+          name: quest-root-docs
+          path: quest-root-docs.json
           retention-days: 1
