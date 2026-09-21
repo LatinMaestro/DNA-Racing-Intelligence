@@ -8,7 +8,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     env:
       DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
     steps:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate bounded read-only preferred-shortlist pair authority
+      - name: Validate bounded read-only vault-wide breeding finalists
         run: |
           node <<'NODE'
           const fs = require("fs");
@@ -24,25 +24,32 @@ jobs:
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
           const pairs = [
-            {label:"TECTONIC BLAZE x April O'Neil", father:14961, mother:18346},
-            {label:"Drift King x Frost Rocket", father:19802, mother:25574},
-            {label:"MYSTERIOUS GURU x Frost Rocket", father:17922, mother:25574},
-            {label:"Trust me, bro x Frost Rocket", father:23480, mother:25574},
-            {label:"TECTONIC BLAZE x Lightning Gale", father:14961, mother:20365},
-            {label:"MYSTERIOUS GURU x Lightning Gale", father:17922, mother:20365},
-            {label:"Drift King x Lightning Gale", father:19802, mother:20365},
-            {label:"MYSTERIOUS GURU x Divine Riot", father:17922, mother:22338},
-            {label:"MYSTERIOUS GURU x April O'Neil", father:17922, mother:18346}
+            {label:"Utopian Risk x Lightning Gale", father:8902, mother:20365},
+            {label:"Krillin x Lightning Gale", father:15833, mother:20365},
+            {label:"Cash Bag x Lightning Gale", father:583, mother:20365},
+            {label:"Utopian Risk x Flame Dash", father:8902, mother:22164},
+            {label:"Krillin x Flame Dash", father:15833, mother:22164},
+            {label:"Cash Bag x Flame Dash", father:583, mother:22164},
+            {label:"Livid Jaguar x Swift Fist", father:23269, mother:23282},
+            {label:"Livid Jaguar x Violet Jaguar", father:23269, mother:23388},
+            {label:"Phantom Panther x Violet Jaguar", father:23484, mother:23388},
+            {label:"Drift King x Violet Jaguar", father:19802, mother:23388},
+            {label:"Drift King x Swift Fist", father:19802, mother:23282},
+            {label:"Utopian Risk x Creeper", father:8902, mother:25564},
+            {label:"Utopian Risk x Peak Crown", father:8902, mother:9216},
+            {label:"Krillin x Peak Crown", father:15833, mother:9216},
+            {label:"Krillin x Salsa", father:15833, mother:10457},
+            {label:"Livid Jaguar x Starline", father:23269, mother:20524}
           ];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function get(path) {
-            for (let attempt=1; attempt<=4; attempt++) {
+            for (let attempt=1; attempt<=5; attempt++) {
               const r = await fetch(base + path, {
                 method: "GET",
                 headers: { authorization: "Bearer " + key, accept: "application/json" }
               });
               const text = await r.text();
-              if (r.status === 429 && attempt < 4) {
+              if (r.status === 429 && attempt < 5) {
                 const retrySeconds = Math.max(10, Number(r.headers.get("retry-after") || 20));
                 await sleep(retrySeconds * 1000);
                 continue;
