@@ -1,4 +1,4 @@
-name: temporary breeding population-qualifier pair validation
+name: temporary breeding owned-and-low-fee finalist validation
 on:
   push:
     branches:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate bounded read-only globally-qualified pairs
+      - name: Validate bounded read-only owned and low-fee finalist pairs
         run: |
           node <<'NODE'
           const fs = require("fs");
@@ -24,19 +24,23 @@ jobs:
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
           const pairs = [
-            {label:"Junior Jet x Johnny B. Goode", father:35, mother:23538},
-            {label:"MYSTERIOUS GURU x Johnny B. Goode", father:17922, mother:23538},
-            {label:"Hell has Frozen Over x Zoo Trek", father:23683, mother:4287},
-            {label:"Tectonic Hybrid x Zoo Trek", father:1450, mother:4287},
-            {label:"Black Mamba x April O'Neil", father:22670, mother:18346},
-            {label:"Moltres x April O'Neil", father:24931, mother:18346},
+            {label:"Midnight City x Zoey", father:10980, mother:20292},
+            {label:"Midnight City x Lightning Gale", father:10980, mother:20365},
+            {label:"Drift King x Divine Riot", father:19802, mother:22338},
+            {label:"Mr Brightside x Divine Riot", father:16515, mother:22338},
+            {label:"Allurity x Cyber Dancer", father:1675, mother:20827},
+            {label:"Utopian Risk x Cyber Dancer", father:8902, mother:20827},
+            {label:"Hell has Frozen Over x Divine Riot", father:23683, mother:22338},
+            {label:"Trust me, bro x Divine Riot", father:23480, mother:22338},
+            {label:"TECTONIC BLAZE x Divine Riot", father:14961, mother:22338},
+            {label:"Invincible Jumper x Divine Riot", father:4126, mother:22338}
           ];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function get(path) {
             for (let attempt=1; attempt<=4; attempt++) {
               const r = await fetch(base + path, {
                 method: "GET",
-                headers: { authorization: "Bearer " + key, accept: "application/json" },
+                headers: { authorization: "Bearer " + key, accept: "application/json" }
               });
               const text = await r.text();
               if (r.status === 429 && attempt < 4) {
@@ -59,12 +63,12 @@ jobs:
               results.push({...pair, validation, info});
               await sleep(2200);
             }
-            fs.writeFileSync("breeding-global-qualifier-pair-validation.json", JSON.stringify({observedAt,results}, null, 2));
+            fs.writeFileSync("breeding-owned-low-fee-pair-validation.json", JSON.stringify({observedAt,results}, null, 2));
             console.log(JSON.stringify({observedAt,pairCount:results.length}));
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: breeding-global-qualifier-pair-validation
-          path: breeding-global-qualifier-pair-validation.json
+          name: breeding-owned-low-fee-pair-validation
+          path: breeding-owned-low-fee-pair-validation.json
           retention-days: 1
