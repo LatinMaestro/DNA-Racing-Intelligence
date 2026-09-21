@@ -202,7 +202,7 @@ jobs:
             rootCount:output.rootCount,
             subdocCount:output.subdocCount,
             userCoreCount:output.userCoreCount,
-            apiEnrichmentRequestCount,
+            apiEnrichmentRequestCount:apiRequestCount,
             apiEnrichmentRateLimitedCount:rateLimitedCount,
             missingObjectRefs:missingObjectRefs.length,
           }));
