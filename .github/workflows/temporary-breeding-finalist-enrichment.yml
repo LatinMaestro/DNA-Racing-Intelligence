@@ -1,4 +1,4 @@
-name: temporary breeding population-qualifier enrichment
+name: temporary breeding population-qualifier pair validation
 on:
   push:
     branches:
@@ -6,35 +6,37 @@ on:
 permissions:
   contents: read
 jobs:
-  enrich:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
-      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Fetch bounded read-only full-population qualifier evidence
+      - name: Validate bounded read-only globally-qualified pairs
         run: |
           node <<'NODE'
           const fs = require("fs");
-          const key = process.env.DNA_OPEN_LAB_API_KEY_2;
+          const key = process.env.DNA_OPEN_LAB_API_KEY_1;
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
-          const hids = [18346,24931,4287,25017,23480,35,17922,23538,22670,15568,23683,14961,4126,1450];
+          const pairs = [
+            {label:"Junior Jet x Johnny B. Goode", father:35, mother:23538},
+            {label:"MYSTERIOUS GURU x Johnny B. Goode", father:17922, mother:23538},
+            {label:"Hell has Frozen Over x Zoo Trek", father:23683, mother:4287},
+            {label:"Tectonic Hybrid x Zoo Trek", father:1450, mother:4287},
+            {label:"Black Mamba x April O'Neil", father:22670, mother:18346},
+            {label:"Moltres x April O'Neil", father:24931, mother:18346},
+          ];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
-          async function post(path) {
+          async function get(path) {
             for (let attempt=1; attempt<=4; attempt++) {
               const r = await fetch(base + path, {
-                method: "POST",
-                headers: {
-                  authorization: "Bearer " + key,
-                  accept: "application/json",
-                  "content-type": "application/json",
-                },
-                body: JSON.stringify({ hids }),
+                method: "GET",
+                headers: { authorization: "Bearer " + key, accept: "application/json" },
               });
               const text = await r.text();
               if (r.status === 429 && attempt < 4) {
@@ -42,32 +44,27 @@ jobs:
                 await sleep(retrySeconds * 1000);
                 continue;
               }
-              let j; try { j = JSON.parse(text); } catch { throw new Error(path + " non-json"); }
-              if (!r.ok || j?.status !== "success") throw new Error(path + " " + r.status + " " + text.slice(0,300));
-              return j.result;
+              let body; try { body = JSON.parse(text); } catch { body = { raw: text.slice(0,500) }; }
+              return { httpStatus:r.status, ok:r.ok, body };
             }
-            throw new Error(path + " retry exhausted");
           }
           (async () => {
             const observedAt = new Date().toISOString();
-            const info = await post("/cores/info_bulk");
-            await sleep(2200);
-            const power = await post("/cores/power_bulk");
-            await sleep(2200);
-            const splicing = await post("/cores/splicing_info_bulk");
-            const out = { observedAt, requestedHids: hids, info, power, splicing };
-            fs.writeFileSync("breeding-global-qualifier-enrichment.json", JSON.stringify(out, null, 2));
-            console.log(JSON.stringify({
-              observedAt,
-              requested: hids.length,
-              info: Array.isArray(info) ? info.length : null,
-              power: Array.isArray(power) ? power.length : null,
-              splicing: Array.isArray(splicing) ? splicing.length : null,
-            }));
+            const results = [];
+            for (const pair of pairs) {
+              const q = "father_coreid="+pair.father+"&mother_coreid="+pair.mother;
+              const validation = await get("/splice/pair_validate?"+q);
+              await sleep(2200);
+              const info = await get("/splice/pair_info?"+q);
+              results.push({...pair, validation, info});
+              await sleep(2200);
+            }
+            fs.writeFileSync("breeding-global-qualifier-pair-validation.json", JSON.stringify({observedAt,results}, null, 2));
+            console.log(JSON.stringify({observedAt,pairCount:results.length}));
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: breeding-global-qualifier-enrichment
-          path: breeding-global-qualifier-enrichment.json
+          name: breeding-global-qualifier-pair-validation
+          path: breeding-global-qualifier-pair-validation.json
           retention-days: 1
