@@ -34,19 +34,22 @@ jobs:
           const key = process.env.DNA_OPEN_LAB_API_KEY_3;
           if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key ?? "")) throw new Error("API key unavailable");
           const hids=[35,140,1450,4126,4287,10345,14961,15568,17922,18346,19035,22670,23396,23480,23538,23683,24361,24370,24931,25017];
-          const res=await fetch("https://api.dnaracing.run/fbike/pub/v1/cores/splicing_info_bulk",{
-            method:"POST",
-            headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},
-            body:JSON.stringify({hids})
-          });
-          const text=await res.text();
-          let json=null; try {json=JSON.parse(text)} catch {}
-          if (!res.ok || json?.status!=="success" || !Array.isArray(json.result)) throw new Error("splicing_info_bulk "+res.status+" "+text.slice(0,500));
-          const byHid=new Map(json.result.map(x=>[Number(x?.hid),x]));
-          const candidates=hids.map(hid=>({hid,found:byHid.has(hid),splicing:byHid.get(hid)??null}));
-          const report={fetchedAt:new Date().toISOString(),endpoint:"/cores/splicing_info_bulk",candidates};
-          fs.writeFileSync("arena-shortlist-refresh.json",JSON.stringify(report,null,2));
-          console.log(JSON.stringify({fetchedAt:report.fetchedAt,rows:json.result.length,inStud:candidates.filter(x=>x.splicing?.in_stud===true).map(x=>x.hid),notInStud:candidates.filter(x=>x.splicing?.in_stud===false).map(x=>x.hid)}));
+
+          (async()=>{
+            const res=await fetch("https://api.dnaracing.run/fbike/pub/v1/cores/splicing_info_bulk",{
+              method:"POST",
+              headers:{authorization:"Bearer "+key,accept:"application/json","content-type":"application/json"},
+              body:JSON.stringify({hids})
+            });
+            const text=await res.text();
+            let json=null; try {json=JSON.parse(text)} catch {}
+            if (!res.ok || json?.status!=="success" || !Array.isArray(json.result)) throw new Error("splicing_info_bulk "+res.status+" "+text.slice(0,500));
+            const byHid=new Map(json.result.map(x=>[Number(x?.hid),x]));
+            const candidates=hids.map(hid=>({hid,found:byHid.has(hid),splicing:byHid.get(hid)??null}));
+            const report={fetchedAt:new Date().toISOString(),endpoint:"/cores/splicing_info_bulk",candidates};
+            fs.writeFileSync("arena-shortlist-refresh.json",JSON.stringify(report,null,2));
+            console.log(JSON.stringify({fetchedAt:report.fetchedAt,rows:json.result.length,inStud:candidates.filter(x=>x.splicing?.in_stud===true).map(x=>x.hid),notInStud:candidates.filter(x=>x.splicing?.in_stud===false).map(x=>x.hid)}));
+          })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
