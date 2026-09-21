@@ -23,6 +23,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require("fs");
+          (async()=>{
           const key=process.env.DNA_OPEN_LAB_API_KEY_2;
           if(!/^dna_[A-Za-z0-9_-]{43}$/.test(key??"")) throw new Error("API key unavailable");
           const base="https://api.dnaracing.run/fbike/pub/v1";
@@ -77,6 +78,7 @@ jobs:
           };
           fs.writeFileSync("breeding-final-validation.json",JSON.stringify(report,null,2));
           console.log(JSON.stringify({fetchedAt:report.fetchedAt,currentArenaCount:report.currentArenaCount,pairs:validated.map(p=>({label:p.label,valid:p.validation?.valid??null,error:p.error,baby:p.pairInfo?.baby_info??null,prices:p.pairInfo?.prices??null}))}));
+          })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
