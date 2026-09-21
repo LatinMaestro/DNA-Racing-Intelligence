@@ -8,9 +8,9 @@ permissions:
 jobs:
   enrich:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
-      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,25 +20,33 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require("fs");
-          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          const key = process.env.DNA_OPEN_LAB_API_KEY_2;
           if (!key) throw new Error("DNA API key unavailable");
           const base = "https://api.dnaracing.run/fbike/pub/v1";
           const hids = [25574,22338,23282,23388,22164,15184,20292,20827,16495,20365,19495];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function post(path) {
-            const r = await fetch(base + path, {
-              method: "POST",
-              headers: {
-                authorization: "Bearer " + key,
-                accept: "application/json",
-                "content-type": "application/json",
-              },
-              body: JSON.stringify({ hids }),
-            });
-            const text = await r.text();
-            let j; try { j = JSON.parse(text); } catch { throw new Error(path + " non-json"); }
-            if (!r.ok || j?.status !== "success") throw new Error(path + " " + r.status + " " + text.slice(0,300));
-            return j.result;
+            for (let attempt=1; attempt<=4; attempt++) {
+              const r = await fetch(base + path, {
+                method: "POST",
+                headers: {
+                  authorization: "Bearer " + key,
+                  accept: "application/json",
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify({ hids }),
+              });
+              const text = await r.text();
+              if (r.status === 429 && attempt < 4) {
+                const retrySeconds = Math.max(10, Number(r.headers.get("retry-after") || 20));
+                await sleep(retrySeconds * 1000);
+                continue;
+              }
+              let j; try { j = JSON.parse(text); } catch { throw new Error(path + " non-json"); }
+              if (!r.ok || j?.status !== "success") throw new Error(path + " " + r.status + " " + text.slice(0,300));
+              return j.result;
+            }
+            throw new Error(path + " retry exhausted");
           }
           (async () => {
             const observedAt = new Date().toISOString();
