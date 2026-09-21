@@ -1,4 +1,4 @@
-name: temporary Quest historical subrace hydration
+name: temporary Quest external racing-stats enrichment
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   actions: read
 
 jobs:
-  hydrate:
+  enrich:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -28,20 +28,14 @@ jobs:
           path: prior
           run-id: 35589865808
           github-token: ${{ github.token }}
-      - name: Hydrate historical Quest sub-races read-only
+      - name: Fetch Quest Core racing stats read-only
         shell: bash
         run: |
           node <<'NODE'
           const fs=require("fs");
           const key=process.env.DNA_OPEN_LAB_API_KEY_3;
           const src=JSON.parse(fs.readFileSync("prior/quest-history-extension.json","utf8"));
-          const rids=[];
-          for(const root of src.roots??[]){
-            for(const group of Object.values(root?.format_inf?.rounds??{})){
-              for(const sub of Object.values(group??{})) if(sub?.rid) rids.push(String(sub.rid));
-            }
-          }
-          const unique=[...new Set(rids)];
+          const hids=[...new Set((src.roots??[]).map(x=>Number(x?.r_form?.u_hid)).filter(Number.isSafeInteger))];
           const base="https://api.dnaracing.run/fbike/pub/v1";
           let last=0,requests=0; const sleep=ms=>new Promise(r=>setTimeout(r,ms));
           async function api(path,body){
@@ -55,14 +49,14 @@ jobs:
             }
           }
           (async()=>{
-            const docs=[];
-            for(let i=0;i<unique.length;i+=20) docs.push(...await api("/races/docs",{rids:unique.slice(i,i+20)}));
-            fs.writeFileSync("quest-history-subdocs.json",JSON.stringify({fetchedAt:new Date().toISOString(),readOnly:true,sourceRun:35589865808,requestCount:requests,requested:unique.length,found:docs.length,docs},null,2));
-            console.log(JSON.stringify({requestCount:requests,requested:unique.length,found:docs.length}));
+            const stats=[];
+            for(let i=0;i<hids.length;i+=20) stats.push(...await api("/cores/racing_stats_bulk",{hids:hids.slice(i,i+20)}));
+            fs.writeFileSync("quest-history-racing-stats.json",JSON.stringify({fetchedAt:new Date().toISOString(),readOnly:true,requestCount:requests,hidCount:hids.length,stats},null,2));
+            console.log(JSON.stringify({requestCount:requests,hidCount:hids.length,statsCount:stats.length}));
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: quest-history-subdocs
-          path: quest-history-subdocs.json
+          name: quest-history-racing-stats
+          path: quest-history-racing-stats.json
           retention-days: 1
