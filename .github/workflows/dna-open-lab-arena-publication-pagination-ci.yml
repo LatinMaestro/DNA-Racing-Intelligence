@@ -1,0 +1,74 @@
+name: DNA Open Lab Arena publication pagination migration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.smoke.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.down.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.removal.sql
+      - .github/workflows/dna-open-lab-arena-publication-pagination-ci.yml
+  push:
+    branches:
+      - main
+    paths:
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.smoke.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.down.sql
+      - database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.removal.sql
+      - .github/workflows/dna-open-lab-arena-publication-pagination-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_arena_publication_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_arena_publication_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_arena_publication_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply authoritative CI migration baseline through 0109
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t migrations < <(
+            grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
+              awk '!seen[$0]++'
+          )
+          if [[ "${#migrations[@]}" -lt 1 ]] || [[ "${migrations[-1]}" != "database/migrations/0109_dna_open_lab_empty_power_modes.up.sql" ]]; then
+            echo "Authoritative CI migration baseline does not end at 0109."
+            exit 1
+          fi
+          for migration in "${migrations[@]}"; do
+            psql --set ON_ERROR_STOP=1 --file "$migration" >/dev/null
+          done
+      - name: Apply Arena publication pagination migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql
+      - name: Run Arena publication pagination smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.smoke.sql
+      - name: Reverse Arena publication pagination migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.down.sql
+      - name: Verify Arena publication pagination reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.removal.sql
