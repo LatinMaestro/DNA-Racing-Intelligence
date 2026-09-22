@@ -339,14 +339,14 @@ describe("weekly Pro League roster performance", () => {
       now,
     });
 
-    expect(
-      result.rows.find(({ coreId }) => coreId === "core-1"),
-    ).toMatchObject({
-      weeklyKnownResultCount: 3,
-      weeklySuccessCount: 2,
-      weeklySuccessRatePercent: 67,
-      timingTrend: "stable",
-      action: "keep",
-    });
+    expect(result.rows.find(({ coreId }) => coreId === "core-1")).toMatchObject(
+      {
+        weeklyKnownResultCount: 3,
+        weeklySuccessCount: 2,
+        weeklySuccessRatePercent: 67,
+        timingTrend: "stable",
+        action: "keep",
+      },
+    );
   });
 });
