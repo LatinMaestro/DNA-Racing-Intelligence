@@ -66,9 +66,7 @@ export type ProLeagueSubstitutionWatchCandidate = Readonly<{
   exactFormatCellCount: number;
   acceptedRaceCount: number;
   watchReason:
-    | "performance_or_map_upgrade"
-    | "coverage_option"
-    | "development_watch";
+    "performance_or_map_upgrade" | "coverage_option" | "development_watch";
   recommendedScenario: ProLeagueSubstitutionScenario;
 }>;
 
@@ -159,7 +157,9 @@ function bestAdjacentCell(
 function ownerPrimaryDistances(
   candidate: ProLeagueRosterCandidateScore,
 ): readonly number[] {
-  return ownerPlanEntryByName(candidate.core.displayName)?.primaryDistances ?? [];
+  return (
+    ownerPlanEntryByName(candidate.core.displayName)?.primaryDistances ?? []
+  );
 }
 
 function distanceStrength(
@@ -186,9 +186,7 @@ function distanceStrength(
   const adjacentStrength =
     adjacent === null
       ? 0
-      : 5_500 +
-        cellEvidenceTier(adjacent) +
-        adjacent.first16RaceLineCount * 3;
+      : 5_500 + cellEvidenceTier(adjacent) + adjacent.first16RaceLineCount * 3;
   const primaryAdjacentStrength = primary.some(
     (distance) =>
       Math.abs(distance - distanceMetres) === ADJACENT_DISTANCE_METRES,
@@ -241,8 +239,11 @@ function lineStrength(
 function strongestDistances(
   candidate: ProLeagueRosterCandidateScore,
 ): readonly number[] {
-  const distances = new Set(candidate.cells.map(({ distanceMetres }) => distanceMetres));
-  for (const distance of ownerPrimaryDistances(candidate)) distances.add(distance);
+  const distances = new Set(
+    candidate.cells.map(({ distanceMetres }) => distanceMetres),
+  );
+  for (const distance of ownerPrimaryDistances(candidate))
+    distances.add(distance);
   return Object.freeze(
     [...distances]
       .map((distance) => ({
@@ -321,7 +322,10 @@ function scenarioForSwap(input: {
     }
   }
 
-  const depthByDistance = new Map<number, readonly ProLeagueRosterCandidateScore[]>();
+  const depthByDistance = new Map<
+    number,
+    readonly ProLeagueRosterCandidateScore[]
+  >();
   for (const distance of [1000, 1200, 1400, 1600, 1800, 2000, 2200]) {
     const ranked = [...scenarioCandidates]
       .map((candidate) => ({
@@ -428,9 +432,11 @@ function scenarioForSwap(input: {
   }
 
   const incomingRank =
-    input.candidateRank.get(input.incoming.core.coreId) ?? Number.MAX_SAFE_INTEGER;
+    input.candidateRank.get(input.incoming.core.coreId) ??
+    Number.MAX_SAFE_INTEGER;
   const outgoingRank =
-    input.candidateRank.get(input.outgoing.core.coreId) ?? Number.MAX_SAFE_INTEGER;
+    input.candidateRank.get(input.outgoing.core.coreId) ??
+    Number.MAX_SAFE_INTEGER;
 
   return Object.freeze({
     incomingCoreId: input.incoming.core.coreId,
@@ -448,8 +454,7 @@ function scenarioForSwap(input: {
     weakerLineCount,
     strongerFirst16LineCount,
     weakerFirst16LineCount,
-    netFirst16Direction:
-      strongerFirst16LineCount - weakerFirst16LineCount,
+    netFirst16Direction: strongerFirst16LineCount - weakerFirst16LineCount,
     netAllLineDirection: strongerLineCount - weakerLineCount,
     qualityRankDelta: outgoingRank - incomingRank,
     changedLines: Object.freeze(
@@ -469,9 +474,7 @@ function recommendedScenario(input: {
   candidateRank: ReadonlyMap<string, number>;
   candidateByName: ReadonlyMap<string, ProLeagueRosterCandidateScore>;
 }): ProLeagueSubstitutionScenario | null {
-  const rosteredIds = new Set(
-    input.roster.draftRoster?.rosteredCoreIds ?? [],
-  );
+  const rosteredIds = new Set(input.roster.draftRoster?.rosteredCoreIds ?? []);
   const scenarios = input.roster.candidates
     .filter(({ core }) => rosteredIds.has(core.coreId))
     .map((outgoing) =>
@@ -492,10 +495,12 @@ function recommendedScenario(input: {
   return scenarios[0] ?? null;
 }
 
-export function buildProLeagueSubstitutionWatch(input: Readonly<{
-  roster: ProLeagueDraftRosterRecommendation;
-  ownerPlan: ProLeagueOwnerCommissioningPlan;
-}>): ProLeagueSubstitutionWatch {
+export function buildProLeagueSubstitutionWatch(
+  input: Readonly<{
+    roster: ProLeagueDraftRosterRecommendation;
+    ownerPlan: ProLeagueOwnerCommissioningPlan;
+  }>,
+): ProLeagueSubstitutionWatch {
   if (
     input.roster.draftRoster === null ||
     input.roster.draftRoster.audit.readiness !== "compliant" ||
@@ -574,11 +579,7 @@ export function buildProLeagueSubstitutionWatch(input: Readonly<{
       metrics: "time_speed_consistency_sample_freshness" as const,
       populationBoundary: "required_but_currently_gated" as const,
       first16Priority: true as const,
-      primaryMaps: Object.freeze([
-        "Anchor",
-        "Measure",
-        "Glory",
-      ] as const),
+      primaryMaps: Object.freeze(["Anchor", "Measure", "Glory"] as const),
       contingencyMap: "Miracles" as const,
       maximumAdjacentDistanceSteps:
         proLeagueOwnerRosterStrategy.mappingPolicy
