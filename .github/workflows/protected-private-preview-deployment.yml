@@ -39,7 +39,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime
-      ENABLE_PHASE0_REVIEW: "1"
+      ENABLE_PHASE0_REVIEW: "true"
     steps:
       - name: Require exact main and explicit Preview deployment arm
         shell: bash

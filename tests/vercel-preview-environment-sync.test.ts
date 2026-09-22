@@ -15,7 +15,7 @@ const validEnvironment = {
     "postgresql://dna_app_runtime:private@ep-example-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require",
   DNA_DATABASE_OWNER_ID: "database-owner-id",
   DNA_DATABASE_RUNTIME_ROLE: "dna_app_runtime",
-  ENABLE_PHASE0_REVIEW: "1",
+  ENABLE_PHASE0_REVIEW: "true",
   VERCEL_TOKEN: "vercel-private-token",
   VERCEL_ORG_ID: "team_example",
   VERCEL_PROJECT_ID: "prj_example",
@@ -183,6 +183,12 @@ describe("Vercel Preview environment synchronization", () => {
       previewEnvironmentSpecification({
         ...validEnvironment,
         ENABLE_PHASE0_REVIEW: "0",
+      }),
+    ).toThrow("explicitly enable Preview");
+    expect(() =>
+      previewEnvironmentSpecification({
+        ...validEnvironment,
+        ENABLE_PHASE0_REVIEW: "1",
       }),
     ).toThrow("explicitly enable Preview");
   });
