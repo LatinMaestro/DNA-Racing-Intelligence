@@ -64,9 +64,7 @@ export default async function ProLeaguePage() {
       neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
         {
           ...databaseEnvironment,
-          ...(configuredOwnerId === null
-            ? {}
-            : { ownerId: configuredOwnerId }),
+          ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
         },
         DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
       ),
