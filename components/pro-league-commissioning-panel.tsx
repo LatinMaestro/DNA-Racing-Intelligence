@@ -23,6 +23,10 @@ function coverage(primaryDistances: readonly number[], distance: number) {
   return primaryDistances.includes(distance) ? "✓" : "—";
 }
 
+function number(value: number): string {
+  return value.toLocaleString("en-AU");
+}
+
 export function ProLeagueCommissioningPanel({
   state,
 }: Readonly<{ state: ProLeagueDraftCommissioningState }>) {
@@ -183,7 +187,7 @@ export function ProLeagueCommissioningPanel({
             </p>
           </div>
           <p className="text-sm font-semibold">
-            {plan.assignedCoreEntries}/{plan.requiredCoreEntries} gate entries
+            {number(plan.assignedCoreEntries)}/{number(plan.requiredCoreEntries)} gate entries
             filled
           </p>
         </div>
@@ -193,10 +197,9 @@ export function ProLeagueCommissioningPanel({
             <details
               className="rounded-xl border border-[var(--border)]"
               key={map.mapId}
-              open={map.name === plan.mapStrategy.homePick}
             >
               <summary className="cursor-pointer px-4 py-4 font-semibold">
-                {map.name} · {map.assignedCoreEntries}/{map.requiredCoreEntries}
+                {map.name} · {number(map.assignedCoreEntries)}/{number(map.requiredCoreEntries)}
                 {" "}gate entries
               </summary>
               <div className="overflow-x-auto border-t border-[var(--border)]">
