@@ -55,6 +55,24 @@ function direction(value: "stronger" | "weaker" | "neutral"): string {
   return "→ neutral";
 }
 
+function weeklyAction(
+  value: "keep" | "monitor" | "remap_review" | "substitution_review",
+): string {
+  if (value === "keep") return "Keep";
+  if (value === "remap_review") return "Remap review";
+  if (value === "substitution_review") return "Substitution review";
+  return "Monitor";
+}
+
+function timingTrend(
+  value: "faster" | "stable" | "slower" | "unknown",
+): string {
+  if (value === "faster") return "Faster";
+  if (value === "stable") return "Stable";
+  if (value === "slower") return "Slower";
+  return "—";
+}
+
 export function ProLeagueCommissioningPanel({
   state,
 }: Readonly<{ state: ProLeagueDraftCommissioningState }>) {
@@ -92,6 +110,9 @@ export function ProLeagueCommissioningPanel({
       ({ code, status }) =>
         code === "POPULATION_BENCHMARK" && status === "block",
     ) ?? false;
+  const weeklyFlagCount =
+    (state.weeklyPerformance?.summary.remapReviewCount ?? 0) +
+    (state.weeklyPerformance?.summary.substitutionReviewCount ?? 0);
   if (plan === undefined) {
     return (
       <section className="rounded-2xl border border-[var(--warning)] bg-[var(--surface-raised)] p-6">
@@ -141,7 +162,7 @@ export function ProLeagueCommissioningPanel({
         <h2 className="text-lg font-semibold" id="pro-league-roster-health">
           Roster health
         </h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-xl border border-[var(--border)] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Substitutions
@@ -166,6 +187,19 @@ export function ProLeagueCommissioningPanel({
             </p>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Ranked with the same Bike-only roster and map methodology.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Weekly performance
+            </p>
+            <p className="mt-2 font-semibold">
+              {weeklyFlagCount} review flag{weeklyFlagCount === 1 ? "" : "s"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              {state.weeklyPerformance?.sourceStatus === "esports_connected"
+                ? "Rolling 7-day completed Esports results connected."
+                : "League-result lane pending; mapping/evidence health only."}
             </p>
           </div>
           <div className="rounded-xl border border-[var(--border)] p-4">
@@ -283,6 +317,124 @@ export function ProLeagueCommissioningPanel({
           </table>
         </div>
       </section>
+
+      {state.weeklyPerformance === undefined ? null : (
+        <details className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)]">
+          <summary className="cursor-pointer px-6 py-5">
+            <span className="font-semibold">Weekly roster performance</span>
+            <span className="ml-2 text-sm text-[var(--muted)]">
+              · {weeklyFlagCount} review flag{weeklyFlagCount === 1 ? "" : "s"} ·{" "}
+              {state.weeklyPerformance.sourceStatus === "esports_connected"
+                ? "7-day Esports results"
+                : "league result source pending"}
+            </span>
+          </summary>
+          <div className="border-t border-[var(--border)] p-6">
+            <p className="max-w-4xl text-sm leading-6 text-[var(--muted)]">
+              This monitor separates Core weakness from mapping weakness. Poor
+              results trigger a mapping review first; substitution review
+              requires a larger poor-result sample, slower matching-format
+              timing and a demonstrably better legal replacement.
+            </p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <th className="px-3 py-3">Core</th>
+                    <th className="px-3 py-3">League week</th>
+                    <th className="px-3 py-3">Mapped load</th>
+                    <th className="px-3 py-3">Exact evidence</th>
+                    <th className="px-3 py-3">Timing</th>
+                    <th className="px-3 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.weeklyPerformance.rows.map((row) => (
+                    <tr
+                      className="border-b border-[var(--border)]/70"
+                      key={row.coreId}
+                    >
+                      <td className="px-3 py-3 font-semibold">
+                        {row.displayName}
+                      </td>
+                      <td className="px-3 py-3">
+                        {row.weeklyKnownResultCount === null
+                          ? "API lane pending"
+                          : row.weeklyKnownResultCount === 0
+                            ? "No completed result"
+                            : `${row.weeklySuccessCount}/${row.weeklyKnownResultCount} successful`}
+                      </td>
+                      <td className="px-3 py-3 text-[var(--muted)]">
+                        {row.mappedEntryCount} entries ·{" "}
+                        {row.first16MappedEntryCount} first-16
+                      </td>
+                      <td className="px-3 py-3 text-[var(--muted)]">
+                        {row.rankedMappedCellCount}/{row.mappedCellCount} cells ·{" "}
+                        {row.mappedEvidenceCoveragePercent}%
+                      </td>
+                      <td className="px-3 py-3">
+                        {timingTrend(row.timingTrend)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="font-semibold">
+                          {weeklyAction(row.action)}
+                        </p>
+                        {row.replacementCandidateName === null ? null : (
+                          <p className="mt-1 text-xs text-[var(--muted)]">
+                            Watch: {row.replacementCandidateName}
+                          </p>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {state.weeklyPerformance.rows
+                .filter(
+                  ({ action }) =>
+                    action === "remap_review" ||
+                    action === "substitution_review",
+                )
+                .map((row) => (
+                  <details
+                    className="rounded-xl border border-[var(--border)]"
+                    key={row.coreId}
+                  >
+                    <summary className="cursor-pointer px-4 py-3 font-semibold">
+                      Review {row.displayName} · {weeklyAction(row.action)}
+                    </summary>
+                    <div className="border-t border-[var(--border)] p-4 text-sm">
+                      <ul className="list-disc space-y-2 pl-5 text-[var(--muted)]">
+                        {row.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                      {row.weakMappedCells.length === 0 ? null : (
+                        <p className="mt-3 text-[var(--muted)]">
+                          Weak / unproven mapped cells:{" "}
+                          {row.weakMappedCells.join(", ")}.
+                        </p>
+                      )}
+                      {row.strongerSupportedCells.length === 0 ? null : (
+                        <p className="mt-2 text-[var(--muted)]">
+                          Better-supported alternatives for this Core:{" "}
+                          {row.strongerSupportedCells.join(", ")}.
+                        </p>
+                      )}
+                    </div>
+                  </details>
+                ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+              {state.weeklyPerformance.guidance}
+            </p>
+          </div>
+        </details>
+      )}
 
       {state.substitutionWatch === undefined ? null : (
         <section
