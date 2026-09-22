@@ -415,9 +415,7 @@ export async function loadProLeagueDraftCommissioningState(
           ownerId: authenticatedOwnerId,
           roster,
           ownerPlan,
-          ...(substitutionWatch === undefined
-            ? {}
-            : { substitutionWatch }),
+          ...(substitutionWatch === undefined ? {} : { substitutionWatch }),
           ...(input.weeklyEsportsRepository === undefined
             ? {}
             : { esportsRepository: input.weeklyEsportsRepository }),
