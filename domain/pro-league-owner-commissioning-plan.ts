@@ -116,15 +116,12 @@ function compareForRace(
       return a.medianMilliseconds - b.medianMilliseconds;
     }
     if (a.standardDeviationMilliseconds !== b.standardDeviationMilliseconds) {
-      return (
-        a.standardDeviationMilliseconds - b.standardDeviationMilliseconds
-      );
+      return a.standardDeviationMilliseconds - b.standardDeviationMilliseconds;
     }
     if (a.raceCount !== b.raceCount) return b.raceCount - a.raceCount;
     if (a.freshness !== b.freshness) {
       return (
-        Number(b.freshness === "current") -
-        Number(a.freshness === "current")
+        Number(b.freshness === "current") - Number(a.freshness === "current")
       );
     }
   }
