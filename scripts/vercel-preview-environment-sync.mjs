@@ -59,7 +59,7 @@ export function previewEnvironmentSpecification(environment) {
 
   const databaseOwnerId = requiredValue(environment, "DNA_DATABASE_OWNER_ID");
   const previewAccess = requiredValue(environment, "ENABLE_PHASE0_REVIEW");
-  if (previewAccess !== "1") {
+  if (previewAccess !== "true") {
     throw new Error(
       "ENABLE_PHASE0_REVIEW must explicitly enable Preview access",
     );
