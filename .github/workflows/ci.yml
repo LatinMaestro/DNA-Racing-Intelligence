@@ -287,6 +287,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.up.sql
       - name: Run partial power modes smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.smoke.sql
+      - name: Apply empty power modes migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0109_dna_open_lab_empty_power_modes.up.sql
+      - name: Run empty power modes smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0109_dna_open_lab_empty_power_modes.smoke.sql
+      - name: Reverse empty power modes migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0109_dna_open_lab_empty_power_modes.down.sql
+      - name: Verify empty power modes removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0109_dna_open_lab_empty_power_modes.removal.sql
       - name: Reverse partial power modes migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.down.sql
       - name: Verify partial power modes removal
