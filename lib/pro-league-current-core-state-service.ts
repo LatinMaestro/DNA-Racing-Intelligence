@@ -162,6 +162,12 @@ export async function loadProLeagueCurrentCoreState(
     ) {
       throw new Error("Pro League current Core family authority is invalid.");
     }
+    const bikePower = power.canonical.byMode.bike;
+    if (bikePower === undefined) {
+      throw new Error(
+        `Pro League current Core state lacks reported Bike power for ${selected.displayName}.`,
+      );
+    }
     const observationTimes = [...rows.values()]
       .map((row) => {
         const parsed = new Date(row.observedAt);
@@ -188,7 +194,7 @@ export async function loadProLeagueCurrentCoreState(
       displayName: selected.displayName,
       latestObservedAt,
       dataCurrentThrough,
-      bikePower: power.canonical.byMode.bike,
+      bikePower,
       stamina: Object.freeze({
         current: stamina.canonical.current,
         maximum: stamina.canonical.maximum,
