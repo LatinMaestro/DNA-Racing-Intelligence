@@ -191,6 +191,31 @@ export async function runDnaCurrentStateScheduledCycleStep(input: {
       ownerId: input.ownerId,
       validatedAt: input.attemptedAt,
     });
+  const normalizedCycleId = input.cycleId.trim().toLowerCase();
+  if (priorIndex?.generationId === normalizedCycleId) {
+    const published = validateDnaCurrentStateEvidenceIndex({
+      index: priorIndex,
+      plan: input.plan,
+      validatedAt: input.attemptedAt,
+    });
+    const state = await input.publicationRepository.read({
+      ownerId: input.ownerId,
+    });
+    if (state.servingGenerationId !== published.generationId) {
+      throw new Error(
+        "DNA Open Lab current-state cycle coordinator: published cycle is not serving",
+      );
+    }
+    return Object.freeze({
+      kind: "published" as const,
+      publicationMode: published.receipts.every(
+        (receipt) => receipt.cycleId === published.generationId,
+      )
+        ? ("full" as const)
+        : ("staggered" as const),
+      state,
+    });
+  }
   const authority = createDnaCurrentStateScheduledCycleAuthority({
     evaluatedAt: input.evaluatedAt,
     validatedAt: input.attemptedAt,
