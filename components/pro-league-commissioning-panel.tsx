@@ -162,7 +162,9 @@ export function ProLeagueCommissioningPanel({
                   className="border-b border-[var(--border)]/70"
                   key={core.coreId}
                 >
-                  <td className="px-3 py-3 font-semibold">{core.displayName}</td>
+                  <td className="px-3 py-3 font-semibold">
+                    {core.displayName}
+                  </td>
                   <td className="px-3 py-3 text-[var(--muted)]">
                     {core.element} · F{core.fNumber}
                   </td>
