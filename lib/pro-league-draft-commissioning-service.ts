@@ -322,6 +322,7 @@ export async function loadProLeagueDraftCommissioningState(
     generation: active.generation,
     rosterVersionId: `draft-roster/${active.generation.generationId}`,
     versionNumber: 1,
+    useOwnerFinalPlan: true,
     ...(input.maximumSearchNodes === undefined
       ? {}
       : { maximumSearchNodes: input.maximumSearchNodes }),
