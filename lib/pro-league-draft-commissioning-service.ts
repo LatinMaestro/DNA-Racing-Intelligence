@@ -24,6 +24,10 @@ import {
   type ProLeagueOwnerCommissioningPlan,
 } from "@/domain/pro-league-owner-commissioning-plan";
 import {
+  buildProLeagueSubstitutionWatch,
+  type ProLeagueSubstitutionWatch,
+} from "@/domain/pro-league-substitution-watch";
+import {
   loadActiveProLeagueVaultEvidence,
   type ProLeagueEvidenceReadRepository,
 } from "@/lib/pro-league-active-vault-evidence-service";
@@ -67,6 +71,11 @@ import {
   type ProLeagueHistoryCoverageState,
 } from "@/lib/pro-league-history-coverage-service";
 import type { DnaOpenLabP5FirstBackfillStatusReadRepository } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import type { ProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
+import {
+  loadProLeagueSubstitutionLedgerState,
+  type ProLeagueSubstitutionLedgerState,
+} from "@/lib/pro-league-substitution-ledger-service";
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 
@@ -126,6 +135,8 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   syncHealth?: ProLeagueSyncHealthState;
   historyCoverage?: ProLeagueHistoryCoverageState;
   ownerPlan?: ProLeagueOwnerCommissioningPlan;
+  substitutionWatch?: ProLeagueSubstitutionWatch;
+  substitutionLedger?: ProLeagueSubstitutionLedgerState;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -241,6 +252,11 @@ export async function loadProLeagueDraftCommissioningState(
     syncRatePolicyRepository?: DnaOpenLabSyncRatePolicyRepository;
     syncHealthRepository?: DnaOpenLabSyncHealthReadRepository | null;
     historyCoverageRepository?: DnaOpenLabP5FirstBackfillStatusReadRepository | null;
+    rosterVersionRepository?: Pick<
+      ProLeagueRosterVersionRepository,
+      "listSubstitutions"
+    > | null;
+    substitutionSeasonYear?: number;
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
@@ -376,6 +392,15 @@ export async function loadProLeagueDraftCommissioningState(
     input.useOwnerFinalPlan === true
       ? buildProLeagueOwnerCommissioningPlan(roster)
       : undefined;
+  const substitutionLedger = await loadProLeagueSubstitutionLedgerState({
+    ownerId: authenticatedOwnerId,
+    seasonYear: input.substitutionSeasonYear ?? now.getUTCFullYear(),
+    repository: input.rosterVersionRepository ?? null,
+  });
+  const substitutionWatch =
+    ownerPlan === undefined
+      ? undefined
+      : buildProLeagueSubstitutionWatch({ roster, ownerPlan });
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
@@ -468,7 +493,7 @@ export async function loadProLeagueDraftCommissioningState(
       raceOpportunities.exactGapMatchingAvailable,
     breedingResearchConnected: breedingObjectives.status === "connected",
     breedingObjectiveCount: breedingObjectives.objectives.length,
-    substitutionLedgerResolved: false,
+    substitutionLedgerResolved: substitutionLedger.status === "connected",
     opponentExactFormatEvidenceAvailable: false,
     everyAutomaticOrGameActionDisabled:
       !mapPreparation.matchActionAllowed &&
@@ -485,6 +510,8 @@ export async function loadProLeagueDraftCommissioningState(
     roster,
     lineup,
     ...(ownerPlan === undefined ? {} : { ownerPlan }),
+    ...(substitutionWatch === undefined ? {} : { substitutionWatch }),
+    substitutionLedger,
     mapPreparation,
     readiness,
     currentState,

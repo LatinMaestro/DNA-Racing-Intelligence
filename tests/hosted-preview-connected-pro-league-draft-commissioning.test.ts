@@ -10,6 +10,7 @@ import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-own
 import { neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
+import { createNeonProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
 const connected =
@@ -57,6 +58,13 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           ...databaseEnvironment,
           validatedAt: verifiedAt,
         });
+      const rosterVersionRepository =
+        createNeonProLeagueRosterVersionRepository({
+          databaseUrl: databaseEnvironment.databaseUrl,
+          databaseOwnerId: databaseEnvironment.databaseOwnerId,
+          ownerId,
+          runtimeRole: databaseEnvironment.runtimeRole,
+        });
       const state = await loadProLeagueDraftCommissioningState({
         authenticatedOwnerId: ownerId,
         configuredOwnerId: ownerId,
@@ -88,6 +96,8 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
             { ...databaseEnvironment, ownerId },
             DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
           ),
+        rosterVersionRepository,
+        substitutionSeasonYear: 2026,
         now,
       });
 
@@ -163,6 +173,27 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         }),
       );
       expect(state.readiness?.summary.blockCount).toBeGreaterThanOrEqual(1);
+      expect(state.substitutionLedger?.status).toBe("connected");
+      expect(state.substitutionLedger?.maximumSubstitutions).toBe(10);
+      expect(state.substitutionLedger?.usedCount).not.toBeNull();
+      expect(state.substitutionWatch?.candidates.length).toBeGreaterThan(0);
+      expect(state.substitutionWatch?.methodology).toMatchObject({
+        primaryEvidence: "same_bike_race_type_and_exact_distance",
+        first16Priority: true,
+        primaryMaps: ["Anchor", "Measure", "Glory"],
+        contingencyMap: "Miracles",
+        maximumAdjacentDistanceSteps: 1,
+        automaticRosterMutationAllowed: false,
+      });
+      expect(
+        state.substitutionWatch?.candidates.every(
+          ({ recommendedScenario }) =>
+            recommendedScenario.rosterCompliant &&
+            recommendedScenario.allSlotsFilled &&
+            recommendedScenario.assignedCoreEntries ===
+              recommendedScenario.requiredCoreEntries,
+        ),
+      ).toBe(true);
       expect(state.readiness?.protectedPreviewDeploymentAllowed).toBe(false);
       expect(state.readiness?.productionActivationAllowed).toBe(false);
       expect(state.readiness?.rosterOrMapSubmissionAllowed).toBe(false);
@@ -173,6 +204,9 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(markup).toContain("Roster recommendation");
       expect(markup).toContain("Map selection &amp; deny preference");
       expect(markup).toContain("Race mapping");
+      expect(markup).toContain("Roster health");
+      expect(markup).toContain("Substitution watch");
+      expect(markup).toContain("Analyse");
       expect(markup).toContain("Population benchmark pending");
       expect(markup).toContain(
         "remain provisional against the whole DNA Bike population",
@@ -222,6 +256,10 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           historyBaselineStatus: state.historyCoverage!.baselineStatus,
           discoveryExperimentCount: state.discoveryQueue!.experiments.length,
           breedingObjectiveCount: state.breedingObjectives!.objectives.length,
+          substitutionLedgerStatus: state.substitutionLedger!.status,
+          substitutionsUsed: state.substitutionLedger!.usedCount,
+          substitutionWatchCandidateCount:
+            state.substitutionWatch!.candidates.length,
           initialRosterConsumesSubstitution: false,
           automaticActionAllowed: false,
           previewOnly: true,
