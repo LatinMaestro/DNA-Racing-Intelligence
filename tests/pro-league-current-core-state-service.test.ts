@@ -171,6 +171,34 @@ describe("Pro League current Core state service", () => {
     ).rejects.toThrow("incomplete for Silver Comet");
   });
 
+  it("fails closed when the provider omits Bike power for a selected Core", async () => {
+    const values = rows().map((value) =>
+      value.family === "power"
+        ? row("power", {
+            sourceType: "core_power_snapshot",
+            sourceCoreId: "101",
+            byMode: {
+              car: {
+                powerSourceValue: null,
+                adjustedOddsSourceValue: null,
+                varianceSourceValue: null,
+                raceCount: 0,
+              },
+            },
+            aggregateStatsSourceValue: null,
+          })
+        : value,
+    );
+
+    await expect(
+      loadProLeagueCurrentCoreState({
+        ownerId: "private_owner",
+        selectedCores: [{ sourceCoreId: "101", displayName: "Silver Comet" }],
+        repository: repository(values),
+      }),
+    ).rejects.toThrow("lacks reported Bike power for Silver Comet");
+  });
+
   it("distinguishes missing configuration from an absent active generation", async () => {
     await expect(
       loadProLeagueCurrentCoreState({
