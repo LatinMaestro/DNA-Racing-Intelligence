@@ -115,6 +115,7 @@ describe("Vercel Preview environment synchronization", () => {
       expect(call[0]).toBe("vercel");
       expect(call[1]).toContain("preview");
       expect(call[1]).toContain("--force");
+      expect(call[1]).not.toContain("--yes");
       expect(call[1]).not.toContain("production");
       expect(call[1].join(" ")).not.toContain(call[2].input);
     }

@@ -212,7 +212,6 @@ export async function syncPreviewEnvironment({
             entry.name,
             "preview",
             "--force",
-            "--yes",
             "--visibility",
             entry.visibility,
             `--token=${token}`,
