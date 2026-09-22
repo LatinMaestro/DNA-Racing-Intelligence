@@ -19,10 +19,7 @@ const FASTER_THRESHOLD_BASIS_POINTS = -300;
 type TimingTrend = "faster" | "stable" | "slower" | "unknown";
 
 export type ProLeagueWeeklyRosterAction =
-  | "keep"
-  | "monitor"
-  | "remap_review"
-  | "substitution_review";
+  "keep" | "monitor" | "remap_review" | "substitution_review";
 
 export type ProLeagueWeeklyRosterPerformanceRow = Readonly<{
   coreId: string;
@@ -77,7 +74,9 @@ function ranked(cell: ProLeagueCandidateCellScore): boolean {
 function candidateById(
   roster: ProLeagueDraftRosterRecommendation,
 ): ReadonlyMap<string, ProLeagueRosterCandidateScore> {
-  return new Map(roster.candidates.map((candidate) => [candidate.core.coreId, candidate]));
+  return new Map(
+    roster.candidates.map((candidate) => [candidate.core.coreId, candidate]),
+  );
 }
 
 function observationsForWeek(input: {
@@ -233,8 +232,7 @@ function replacementFor(
     ? null
     : Object.freeze({
         name: value.displayName,
-        netFirst16Direction:
-          value.recommendedScenario.netFirst16Direction,
+        netFirst16Direction: value.recommendedScenario.netFirst16Direction,
         weakerFirst16LineCount:
           value.recommendedScenario.weakerFirst16LineCount,
       });
@@ -336,14 +334,16 @@ function actionFor(input: {
   });
 }
 
-export function buildProLeagueWeeklyRosterPerformance(input: Readonly<{
-  roster: ProLeagueDraftRosterRecommendation;
-  ownerPlan: ProLeagueOwnerCommissioningPlan;
-  substitutionWatch?: ProLeagueSubstitutionWatch;
-  esportsObservations?: readonly CoreEsportsRaceObservation[];
-  esportsSourceConnected: boolean;
-  now: Date;
-}>): ProLeagueWeeklyRosterPerformance {
+export function buildProLeagueWeeklyRosterPerformance(
+  input: Readonly<{
+    roster: ProLeagueDraftRosterRecommendation;
+    ownerPlan: ProLeagueOwnerCommissioningPlan;
+    substitutionWatch?: ProLeagueSubstitutionWatch;
+    esportsObservations?: readonly CoreEsportsRaceObservation[];
+    esportsSourceConnected: boolean;
+    now: Date;
+  }>,
+): ProLeagueWeeklyRosterPerformance {
   if (
     input.roster.draftRoster === null ||
     input.roster.draftRoster.audit.readiness !== "compliant"
@@ -374,7 +374,9 @@ export function buildProLeagueWeeklyRosterPerformance(input: Readonly<{
         displayName: member.core.displayName,
       });
       const rankedCellKeys = new Set(
-        candidate.cells.filter(ranked).map((cell) => key(cell.raceType, cell.distanceMetres)),
+        candidate.cells
+          .filter(ranked)
+          .map((cell) => key(cell.raceType, cell.distanceMetres)),
       );
       const rankedMappedCellCount = mapped.cellKeys.filter((cellKey) =>
         rankedCellKeys.has(cellKey),
@@ -388,7 +390,11 @@ export function buildProLeagueWeeklyRosterPerformance(input: Readonly<{
         .map((cellKey) => mapped.labels.get(cellKey) ?? cellKey)
         .slice(0, 4);
       const strongerSupportedCells = candidate.cells
-        .filter((cell) => ranked(cell) && !mapped.cellKeys.includes(key(cell.raceType, cell.distanceMetres)))
+        .filter(
+          (cell) =>
+            ranked(cell) &&
+            !mapped.cellKeys.includes(key(cell.raceType, cell.distanceMetres)),
+        )
         .sort(
           (left, right) =>
             right.first16RaceLineCount - left.first16RaceLineCount ||
