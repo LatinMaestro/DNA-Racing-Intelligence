@@ -28,12 +28,14 @@ export type ProLeagueCurrentCoreState = Readonly<{
     displayName: string;
     latestObservedAt: string;
     dataCurrentThrough: string;
-    bikePower: Readonly<{
-      powerSourceValue: JsonSourceValue;
-      adjustedOddsSourceValue: JsonSourceValue;
-      varianceSourceValue: JsonSourceValue;
-      raceCount: number;
-    }>;
+    bikePower:
+      | Readonly<{
+          powerSourceValue: JsonSourceValue;
+          adjustedOddsSourceValue: JsonSourceValue;
+          varianceSourceValue: JsonSourceValue;
+          raceCount: number;
+        }>
+      | null;
     stamina: Readonly<{
       current: number;
       maximum: number;
@@ -162,12 +164,7 @@ export async function loadProLeagueCurrentCoreState(
     ) {
       throw new Error("Pro League current Core family authority is invalid.");
     }
-    const bikePower = power.canonical.byMode.bike;
-    if (bikePower === undefined) {
-      throw new Error(
-        `Pro League current Core state lacks reported Bike power for ${selected.displayName}.`,
-      );
-    }
+    const bikePower = power.canonical.byMode.bike ?? null;
     const observationTimes = [...rows.values()]
       .map((row) => {
         const parsed = new Date(row.observedAt);
