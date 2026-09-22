@@ -6,7 +6,7 @@ DROP FUNCTION dna.validate_dna_open_lab_supplemental_core_canonical(
   jsonb
 );
 
-ALTER FUNCTION dna.validate_dna_open_lab_supplemental_core_canonical_complete_power_modes(
+ALTER FUNCTION dna.validate_dna_open_lab_supplemental_core_canonical_strict_modes(
   text,
   text,
   jsonb
