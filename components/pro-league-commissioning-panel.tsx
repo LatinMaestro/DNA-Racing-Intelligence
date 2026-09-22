@@ -28,12 +28,10 @@ function number(value: number): string {
 }
 
 function watchReason(
-  value:
-    | "performance_or_map_upgrade"
-    | "coverage_option"
-    | "development_watch",
+  value: "performance_or_map_upgrade" | "coverage_option" | "development_watch",
 ): string {
-  if (value === "performance_or_map_upgrade") return "Performance / map upgrade";
+  if (value === "performance_or_map_upgrade")
+    return "Performance / map upgrade";
   if (value === "coverage_option") return "Coverage option";
   return "Development watch";
 }
@@ -176,7 +174,8 @@ export function ProLeagueCommissioningPanel({
             </p>
             <p className="mt-2 font-semibold">Watch authority pending</p>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              No numeric season cap is invented while mechanics remain unresolved.
+              No numeric season cap is invented while mechanics remain
+              unresolved.
             </p>
           </div>
           <div className="rounded-xl border border-[var(--border)] p-4">
@@ -411,10 +410,10 @@ export function ProLeagueCommissioningPanel({
                     </div>
 
                     <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-                      This is a full remap simulation, not a straight one-for-one
-                      mapping swap. The incoming Core can change secondary
-                      distance depth and therefore reassign other rostered Cores
-                      on the same or different maps.
+                      This is a full remap simulation, not a straight
+                      one-for-one mapping swap. The incoming Core can change
+                      secondary distance depth and therefore reassign other
+                      rostered Cores on the same or different maps.
                     </p>
 
                     <div className="mt-4 space-y-3">
@@ -466,7 +465,8 @@ export function ProLeagueCommissioningPanel({
                                             "—"}
                                         </td>
                                         <td className="px-3 py-2">
-                                          {line.addedCoreNames.join(", ") || "—"}
+                                          {line.addedCoreNames.join(", ") ||
+                                            "—"}
                                         </td>
                                         <td className="px-3 py-2">
                                           {direction(line.strengthDirection)}
@@ -483,9 +483,9 @@ export function ProLeagueCommissioningPanel({
                     </div>
 
                     <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-                      Scenario {index + 1} is advisory only. Opening this analysis
-                      does not consume a substitution, record a roster change or
-                      submit any map to DNA.
+                      Scenario {index + 1} is advisory only. Opening this
+                      analysis does not consume a substitution, record a roster
+                      change or submit any map to DNA.
                     </p>
                   </div>
                 </details>
