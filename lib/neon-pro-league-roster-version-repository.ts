@@ -417,13 +417,6 @@ export function createNeonProLeagueRosterVersionRepository(
       return transaction({
         ownerId,
         readOnly: true,
-        availabilityProbe: {
-          sql: PROBE_SUBSTITUTION_LEDGER_SQL,
-          label: "substitution ledger availability",
-          isAvailable: (value) =>
-            bool(value.substitution_table_exists, "substitution table") &&
-            bool(value.list_function_exists, "substitution list function"),
-        },
         async execute(query) {
           const result = await query(READ_VERSION_SQL, [
             databaseOwnerId,
@@ -513,6 +506,13 @@ export function createNeonProLeagueRosterVersionRepository(
       return transaction({
         ownerId,
         readOnly: true,
+        availabilityProbe: {
+          sql: PROBE_SUBSTITUTION_LEDGER_SQL,
+          label: "substitution ledger availability",
+          isAvailable: (value) =>
+            bool(value.substitution_table_exists, "substitution table") &&
+            bool(value.list_function_exists, "substitution list function"),
+        },
         async execute(query) {
           const result = await query(LIST_SUBSTITUTIONS_SQL, [
             databaseOwnerId,
