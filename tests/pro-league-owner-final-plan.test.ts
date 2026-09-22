@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { proLeagueMaps } from "@/domain/pro-league-maps";
 import {
   normalizeProLeagueOwnerCoreName,
   proLeagueOwnerDistanceDepth,
@@ -28,6 +29,11 @@ describe("final owner Pro League plan", () => {
         ).size,
       ).toBe(12);
     }
+
+    const requiredOwnedGateEntries = proLeagueMaps
+      .flatMap(({ races }) => races)
+      .reduce((sum, race) => sum + race.gateEntriesPerVault, 0);
+    expect(requiredOwnedGateEntries).toBe(1_021);
 
     expect(proLeagueOwnerMapStrategy).toMatchObject({
       homePick: "map-1",
