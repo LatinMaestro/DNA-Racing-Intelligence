@@ -100,13 +100,17 @@ export function ProLeagueCommissioningPanel({
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Home pick
             </p>
-            <p className="mt-2 text-xl font-semibold">{plan.mapStrategy.homePick}</p>
+            <p className="mt-2 text-xl font-semibold">
+              {plan.mapStrategy.homePick}
+            </p>
           </div>
           <div className="rounded-xl border border-[var(--border)] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Home deny
             </p>
-            <p className="mt-2 text-xl font-semibold">{plan.mapStrategy.homeDeny}</p>
+            <p className="mt-2 text-xl font-semibold">
+              {plan.mapStrategy.homeDeny}
+            </p>
           </div>
           <div className="rounded-xl border border-[var(--border)] p-4 sm:col-span-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -154,7 +158,10 @@ export function ProLeagueCommissioningPanel({
             </thead>
             <tbody>
               {plan.roster.map((core) => (
-                <tr className="border-b border-[var(--border)]/70" key={core.coreId}>
+                <tr
+                  className="border-b border-[var(--border)]/70"
+                  key={core.coreId}
+                >
                   <td className="px-3 py-3 font-semibold">{core.displayName}</td>
                   <td className="px-3 py-3 text-[var(--muted)]">
                     {core.element} · F{core.fNumber}
@@ -187,8 +194,8 @@ export function ProLeagueCommissioningPanel({
             </p>
           </div>
           <p className="text-sm font-semibold">
-            {number(plan.assignedCoreEntries)}/{number(plan.requiredCoreEntries)} gate entries
-            filled
+            {number(plan.assignedCoreEntries)}/
+            {number(plan.requiredCoreEntries)} gate entries filled
           </p>
         </div>
 
@@ -199,8 +206,8 @@ export function ProLeagueCommissioningPanel({
               key={map.mapId}
             >
               <summary className="cursor-pointer px-4 py-4 font-semibold">
-                {map.name} · {number(map.assignedCoreEntries)}/{number(map.requiredCoreEntries)}
-                {" "}gate entries
+                {map.name} · {number(map.assignedCoreEntries)}/
+                {number(map.requiredCoreEntries)} gate entries
               </summary>
               <div className="overflow-x-auto border-t border-[var(--border)]">
                 <table className="min-w-full text-left text-sm">
