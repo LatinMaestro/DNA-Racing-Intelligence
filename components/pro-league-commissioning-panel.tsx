@@ -3,85 +3,24 @@ import type { ProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-co
 const unavailableCopy = {
   identity_not_connected: {
     heading: "Private recommendation not connected",
-    detail:
-      "Sign in as the authorised owner to read the private exact-format recommendation.",
+    detail: "Sign in as the authorised owner to view the Pro League plan.",
   },
   persistence_not_configured: {
-    heading: "Private recommendation storage not connected",
+    heading: "Pro League evidence not connected",
     detail:
-      "The server requires both the owner Vault catalogue and the read-only active evidence repository. No partial recommendation is shown.",
+      "The private owner data and exact-format evidence are required before a roster or mapping can be shown.",
   },
   active_generation_unavailable: {
-    heading: "No verified active recommendation generation",
+    heading: "No active Pro League evidence generation",
     detail:
-      "The previous website view remains available, but an exact-format recommendation is hidden until a complete verified generation is active.",
+      "The last-good website data remains protected, but no current owner plan can be rendered.",
   },
 } as const;
 
-function label(value: string): string {
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
+const distances = [1000, 1200, 1400, 1600, 1800, 2000, 2200] as const;
 
-function timestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-AU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(parsed);
-}
-
-function sourceMetric(value: unknown): string {
-  if (value === null || value === undefined) return "Unavailable";
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return String(value);
-  }
-  return "Available";
-}
-
-function fixedFees(values: Readonly<Record<string, number>>): string {
-  const entries = Object.entries(values);
-  return entries.length === 0
-    ? "None reported"
-    : entries.map(([asset, amount]) => `${amount} ${asset}`).join(", ");
-}
-
-function percentage(basisPoints: number): string {
-  return `${(basisPoints / 100).toLocaleString("en-AU", {
-    maximumFractionDigits: 2,
-  })}%`;
-}
-
-function megabytes(bytes: number): string {
-  return `${(bytes / 1_000_000).toLocaleString("en-AU", {
-    maximumFractionDigits: 1,
-  })} MB`;
-}
-
-function countLabel(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
-}
-
-function SummaryCard({
-  label: cardLabel,
-  value,
-}: Readonly<{ label: string; value: string | number }>) {
-  return (
-    <div className="rounded-xl border border-[var(--border)] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-        {cardLabel}
-      </p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-    </div>
-  );
+function coverage(primaryDistances: readonly number[], distance: number) {
+  return primaryDistances.includes(distance) ? "✓" : "—";
 }
 
 export function ProLeagueCommissioningPanel({
@@ -95,8 +34,8 @@ export function ProLeagueCommissioningPanel({
     const copy = unavailableCopy[state.connectionStatus];
     return (
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-        <h2 className="text-lg font-semibold">{copy.heading}</h2>
-        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+        <h1 className="text-2xl font-semibold">{copy.heading}</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
           {copy.detail}
         </p>
       </section>
@@ -104,999 +43,205 @@ export function ProLeagueCommissioningPanel({
   }
 
   if (state.connectionStatus === "structural_pool_connected") {
-    const pool = state.structuralPool;
-    if (pool === undefined) {
-      throw new Error("Connected Pro League structural pool is incomplete.");
-    }
     return (
-      <section
-        aria-labelledby="pro-league-structural-pool"
-        className="space-y-5 rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-6"
-      >
-        <div>
-          <p className="text-sm font-semibold text-[var(--accent)]">
-            Complete private Core list connected
-          </p>
-          <h2
-            className="mt-2 text-2xl font-semibold"
-            id="pro-league-structural-pool"
-          >
-            Pro League roster inputs are available
-          </h2>
-          <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-            The latest complete data package contains {pool.coreCount} owned
-            Cores, current through {timestamp(pool.dataCurrentThrough)}.
-            Freshness: {label(pool.freshness)}. This confirms names and
-            roster-rule details only. Performance selection, the final roster
-            and all four map assignments remain held until exact Bike race type,
-            distance and elapsed-time evidence is verified.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Owned Cores" value={pool.coreCount} />
-          <SummaryCard label="Named Cores" value={pool.namedCoreCount} />
-          <SummaryCard label="Female Cores" value={pool.femaleCount} />
-          <SummaryCard label="Above F15" value={pool.aboveF15Count} />
-          <SummaryCard label="F5 or below" value={pool.f5OrBelowCount} />
-          <SummaryCard label="F10 or below" value={pool.f10OrBelowCount} />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pool.elements.map((item) => (
-            <div
-              className="rounded-xl border border-[var(--border)] p-4"
-              key={item.element}
-            >
-              <p className="font-semibold">{item.element}</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {item.coreCount} owned · {item.genesisCount} Genesis
-              </p>
-            </div>
-          ))}
-        </div>
-        <p className="text-sm leading-6 text-[var(--warning)]">
-          No Core has been ranked or selected from metadata alone. No roster or
-          map was published, and viewing this page cannot submit anything or
-          perform a game action.
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
+        <h1 className="text-2xl font-semibold">Pro League plan not ready</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          The owner Core list is connected, but exact-format elapsed-time
+          evidence is not available for the final roster and race mapping.
         </p>
       </section>
     );
   }
 
-  const { evidence, roster } = state;
-  if (evidence === null || roster === null) {
-    throw new Error("Connected Pro League recommendation is incomplete.");
+  const plan = state.ownerPlan;
+  if (plan === undefined) {
+    return (
+      <section className="rounded-2xl border border-[var(--warning)] bg-[var(--surface-raised)] p-6">
+        <h1 className="text-2xl font-semibold">Final owner plan unavailable</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          The finalised 25-Core owner plan could not be reconstructed from the
+          active generation. No substitute roster is shown.
+        </p>
+      </section>
+    );
   }
-  const selected = roster.draftRoster?.members.filter(
-    ({ disposition }) => disposition === "rostered",
-  );
-  const coreName = new Map(
-    roster.candidates.map(({ core }) => [core.coreId, core.displayName]),
-  );
-  const priorityGaps = roster.coverageGaps.filter(
-    ({ discoveryPriority }) => discoveryPriority !== "maintain",
-  );
-  const raceOpportunities = state.raceOpportunities;
-  const discoveryQueue = state.discoveryQueue;
-  const breedingObjectives = state.breedingObjectives;
-  const mapPreparation = state.mapPreparation;
-  const readiness = state.readiness;
-  const syncRatePolicy = state.syncRatePolicy;
-  const syncHealth = state.syncHealth;
-  const historyCoverage = state.historyCoverage;
-  const substitutionBudget = discoveryQueue?.substitutionBudget;
-  const readinessBlockCount = readiness?.summary.blockCount ?? null;
 
   return (
-    <section
-      aria-labelledby="pro-league-current-recommendation"
-      className="space-y-6 rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-6"
-    >
-      <div>
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-6">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Verified private read model
+          Final owner Pro League plan
         </p>
-        <h2
-          className="mt-2 text-2xl font-semibold"
-          id="pro-league-current-recommendation"
-        >
-          Current exact-format recommendation
-        </h2>
-        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-          Evidence is current through {timestamp(evidence.evidenceCutoffAt)} and
-          was activated {timestamp(evidence.publishedAt)}. Historical evidence
-          freshness: {label(evidence.freshness)}. Rankings use the same Bike
-          race type and exact distance; wins and Top 3 results remain supporting
-          context only.
+        <h1 className="mt-2 text-3xl font-semibold">Roster & race mapping</h1>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+          The finalised 25-Core roster is fixed as the team authority. Current
+          same-Bike-race-type and exact-distance elapsed-time, consistency,
+          sample and freshness evidence can refine race ordering inside the
+          audited distance depth, but it cannot silently replace a roster
+          member. Every race fills exactly half of the published gates from our
+          Vault.
         </p>
-      </div>
+      </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          label="Population profiles"
-          value={evidence.populationProfileCount}
-        />
-        <SummaryCard
-          label="Owned profiles"
-          value={evidence.ownedProfileCount}
-        />
-        <SummaryCard
-          label="Owned Cores without evidence"
-          value={evidence.ownedCoreWithoutEvidenceCount}
-        />
-        <SummaryCard
-          label="Recommended roster"
-          value={selected?.length ?? "Unavailable"}
-        />
-      </div>
-
-      <div
-        aria-labelledby="pro-league-owner-readiness-summary"
-        className="rounded-xl border border-[var(--border)] p-5"
+      <section
+        aria-labelledby="pro-league-map-strategy"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
       >
-        <h3
-          className="text-lg font-semibold"
-          id="pro-league-owner-readiness-summary"
-        >
-          Owner readiness at a glance
-        </h3>
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-          This summary separates complete serving data from review items. Open
-          each detailed section below before locking a roster or map.
+        <h2 className="text-xl font-semibold" id="pro-league-map-strategy">
+          Map selection & deny preference
+        </h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Home pick
+            </p>
+            <p className="mt-2 text-xl font-semibold">{plan.mapStrategy.homePick}</p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Home deny
+            </p>
+            <p className="mt-2 text-xl font-semibold">{plan.mapStrategy.homeDeny}</p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4 sm:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Away priority
+            </p>
+            <p className="mt-2 text-xl font-semibold">
+              {plan.mapStrategy.awayPriority.join(" → ")}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+          {plan.mapStrategy.contingencyMap} remains the contingency map rather
+          than a roster-selection driver.
         </p>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Data freshness
-            </dt>
-            <dd className="mt-2 font-semibold">
-              Historical evidence: {label(evidence.freshness)}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Daily sync
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {syncHealth?.connectionStatus === "connected"
-                ? label(syncHealth.syncStatus ?? "status_unavailable")
-                : "Status unavailable"}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Last-good data
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {syncHealth?.lastGood === null || syncHealth === undefined
-                ? "No complete current-state version"
-                : `Serving complete version ${syncHealth.lastGood.versionFingerprint}`}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Historical coverage
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {historyCoverage?.connectionStatus === "connected"
-                ? label(historyCoverage.baselineStatus)
-                : "Status unavailable"}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Roster and maps
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {roster.draftRoster?.audit?.readiness === "compliant"
-                ? "Roster compliant"
-                : "Roster blocked"}
-              {state.lineup === null
-                ? " · maps unavailable"
-                : ` · ${state.lineup.maps.length}/4 maps · ${state.lineup.totals.lineCount}/168 lines`}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Provisional gaps
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {state.lineup === null
-                ? "Not assessed"
-                : `${state.lineup.totals.provisionalLineCount} provisional · ${state.lineup.totals.noExactEvidenceLineCount} without exact evidence`}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Discovery actions
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {discoveryQueue === undefined
-                ? "Queue unavailable"
-                : `${countLabel(discoveryQueue.experiments.length, "bounded test")}`}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Breeding hold
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {breedingObjectives?.status === "connected"
-                ? `${countLabel(breedingObjectives.objectives.length, "research objective")} · held`
-                : "Research unavailable · held"}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Substitutions
-            </dt>
-            <dd className="mt-2 font-semibold">
-              Initial roster uses 0
-              {substitutionBudget?.usedCount === null ||
-              substitutionBudget === undefined
-                ? " · later use unavailable"
-                : ` · ${substitutionBudget.usedCount}/${substitutionBudget.maximumPerYear} later changes used`}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] p-4 sm:col-span-2 xl:col-span-3">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Exact blockers
-            </dt>
-            <dd className="mt-2 font-semibold">
-              {readinessBlockCount === null
-                ? "Readiness assessment unavailable"
-                : readinessBlockCount === 0
-                  ? "No protected Preview blockers; owner review is still required"
-                  : `${readinessBlockCount} protected Preview blocker${readinessBlockCount === 1 ? "" : "s"}`}
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          Read-only advice only. This page cannot connect a wallet, submit a
-          roster or map, enter a race, place a bet, approve a splice, spend a
-          token or perform any game transaction.
-        </p>
-      </div>
+      </section>
 
-      {readiness === undefined ? null : (
-        <div className="rounded-xl border border-[var(--border)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold">
-                Protected Preview readiness
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {readiness.status === "ready_for_protected_preview_review"
-                  ? "The core Pro League package is ready for a protected owner review."
-                  : "The core Pro League package still has blocking evidence gaps."}
-              </p>
-            </div>
-            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
-              {readiness.summary.passCount} passed ·{" "}
-              {readiness.summary.reviewCount} review ·{" "}
-              {readiness.summary.blockCount} blocked
-            </p>
-          </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {readiness.checks.map((check) => (
-              <div
-                className="rounded-lg border border-[var(--border)] p-4"
-                key={check.code}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold">{label(check.code)}</p>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    {label(check.status)}
-                  </p>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  {check.detail}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-            This checklist cannot deploy Preview or Production, submit a roster
-            or map, enter a race, recommend a breeding pair, or perform a game
-            action. Owner acceptance remains a separate deliberate step.
-          </p>
-        </div>
-      )}
-
-      {syncRatePolicy === undefined ? null : (
-        <div className="rounded-xl border border-[var(--border)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold">API refresh safety</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {syncRatePolicy.connectionStatus === "connected"
-                  ? "The owner-only rate policy is connected."
-                  : "The owner rate policy is unavailable, so the safe default applies."}
-              </p>
-            </div>
-            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
-              {syncRatePolicy.policy.effectiveRequestsPerMinute} aggregate rpm
-            </p>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            Requested {syncRatePolicy.policy.requestedRequestsPerMinute} rpm ·
-            provider limit{" "}
-            {syncRatePolicy.policy.lastProviderLimit === null
-              ? "not reported"
-              : `${syncRatePolicy.policy.lastProviderLimit} rpm`}
-            {syncRatePolicy.policy.fallbackReason === null
-              ? ""
-              : ` · safe fallback: ${label(syncRatePolicy.policy.fallbackReason)}`}
-            .
-          </p>
-          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-            This is rate-control status only. It does not claim that a refresh
-            is running or complete; last-good evidence remains authoritative.
-          </p>
-        </div>
-      )}
-
-      {syncHealth === undefined ? null : (
-        <div className="rounded-xl border border-[var(--border)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold">API refresh status</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {syncHealth.connectionStatus === "connected"
-                  ? syncHealth.lastGood === null
-                    ? "The sync status is connected, but no complete current-state version is available yet."
-                    : `The website is serving verified last-good version ${syncHealth.lastGood.versionFingerprint}.`
-                  : "Current-state sync status is unavailable. Existing historical recommendations remain visible."}
-              </p>
-            </div>
-            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
-              {label(syncHealth.syncStatus ?? syncHealth.connectionStatus)}
-            </p>
-          </div>
-
-          {syncHealth.lastGood === null ? null : (
-            <>
-              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                Complete current-state evidence through{" "}
-                {timestamp(syncHealth.lastGood.dataCurrentThrough)} · published{" "}
-                {timestamp(syncHealth.lastGood.publishedAt)} ·{" "}
-                {syncHealth.lastGood.receiptCount} verified receipts.
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {syncHealth.families.map((family) => (
-                  <div
-                    className="rounded-lg border border-[var(--border)] p-4"
-                    key={family.family}
-                  >
-                    <p className="font-semibold">{label(family.family)}</p>
-                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      Current through {timestamp(family.dataCurrentThrough)}
-                      <br />
-                      Last completed {timestamp(family.lastCompletedAt)} ·{" "}
-                      {family.receiptCount} receipts
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {syncHealth.lastInterruption === null ? null : (
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Last interruption: {label(syncHealth.lastInterruption.reason)} at{" "}
-              {timestamp(syncHealth.lastInterruption.at)}
-              {syncHealth.lastInterruption.retryAfterSeconds === null
-                ? ""
-                : ` · retry after ${syncHealth.lastInterruption.retryAfterSeconds} seconds`}
-              . The complete last-good version remains active.
-            </p>
-          )}
-
-          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-            This status is owner-only and read-only. Viewing it cannot start a
-            refresh, advance a checkpoint, publish data or perform a game
-            action.
-          </p>
-        </div>
-      )}
-
-      {historyCoverage === undefined ? null : (
-        <div className="rounded-xl border border-[var(--border)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold">Historical race archive</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {historyCoverage.connectionStatus !== "connected"
-                  ? "Historical archive status is unavailable. Existing verified recommendations remain visible."
-                  : historyCoverage.baselineStatus === "complete"
-                    ? `The one-time private baseline is complete as version ${historyCoverage.versionFingerprint ?? "unavailable"}.`
-                    : historyCoverage.baselineStatus === "in_progress"
-                      ? "The private baseline checkpoint is incomplete; no complete-history claim is made."
-                      : "The private historical baseline has not started."}
-              </p>
-            </div>
-            <p className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
-              {label(
-                historyCoverage.connectionStatus === "connected"
-                  ? historyCoverage.baselineStatus
-                  : historyCoverage.connectionStatus,
-              )}
-            </p>
-          </div>
-
-          {historyCoverage.connectionStatus === "connected" ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <SummaryCard
-                label="Archive receipts"
-                value={historyCoverage.receiptCount.toLocaleString("en-AU")}
-              />
-              <SummaryCard
-                label="Finished-race receipts"
-                value={
-                  historyCoverage.finishedRaceReceiptCount?.toLocaleString(
-                    "en-AU",
-                  ) ?? "Pending"
-                }
-              />
-              <SummaryCard
-                label="Private archive size"
-                value={megabytes(historyCoverage.retainedR2Bytes)}
-              />
-              <SummaryCard
-                label="Approved omissions"
-                value={historyCoverage.omittedIdentityObservationCount}
-              />
-            </div>
-          ) : null}
-
-          {historyCoverage.dataCurrentThrough === null ? null : (
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Complete baseline coverage is bounded through{" "}
-              {timestamp(historyCoverage.dataCurrentThrough)}. The measured
-              inventory contained up to{" "}
-              {historyCoverage.sourceRecordUpperBound.toLocaleString("en-AU")}{" "}
-              source records.
-            </p>
-          )}
-          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-            This baseline is not a recurring history refresh. New finished races
-            after its cutoff still require a separate durable incremental
-            checkpoint and complete catch-up before the website may call history
-            current. Viewing this status cannot call the API, write Neon or R2,
-            publish data or perform a game action.
-          </p>
-        </div>
-      )}
-
-      {state.currentState === undefined ? null : state.currentState.status !==
-        "connected" ? (
-        <div className="rounded-xl border border-[var(--border)] p-5">
-          <h3 className="font-semibold">Current API Core state unavailable</h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            The historical exact-format recommendation remains usable. Current
-            power, odds, variance, stamina, assets, listing, owner and splicing
-            observations stay hidden until one complete last-good API generation
-            is available.
-          </p>
-        </div>
-      ) : (
-        <div>
-          <h3 className="text-lg font-semibold">Current API dimensions</h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Complete required observations are available through{" "}
-            {timestamp(state.currentState.dataCurrentThrough!)} (
-            {label(state.currentState.freshness)}); the newest field was
-            observed {timestamp(state.currentState.latestObservedAt!)}. These
-            point-in-time fields are presented separately and do not alter the
-            historical performance ranking until predictive lift is validated.
-          </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                <tr>
-                  <th className="pb-2 pr-4">Core</th>
-                  <th className="pb-2 pr-4">Bike power</th>
-                  <th className="pb-2 pr-4">Adjusted odds</th>
-                  <th className="pb-2 pr-4">Variance</th>
-                  <th className="pb-2 pr-4">API races</th>
-                  <th className="pb-2 pr-4">Stamina</th>
-                  <th className="pb-2 pr-4">Listing</th>
-                  <th className="pb-2">Assets</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {state.currentState.cores.map((core, index) => (
-                  <tr key={`${core.displayName}/${String(index)}`}>
-                    <td className="py-2 pr-4 font-medium">
-                      {core.displayName}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {sourceMetric(core.bikePower.powerSourceValue)}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {sourceMetric(core.bikePower.adjustedOddsSourceValue)}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {sourceMetric(core.bikePower.varianceSourceValue)}
-                    </td>
-                    <td className="py-2 pr-4">{core.bikePower.raceCount}</td>
-                    <td className="py-2 pr-4">
-                      {core.stamina.current}/{core.stamina.maximum}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {core.listing.priceSourceValue === undefined
-                        ? "Not listed"
-                        : `${core.listing.priceSourceValue} ${
-                            core.listing.paymentAssetSourceValue ?? ""
-                          }`.trim()}
-                    </td>
-                    <td className="py-2">
-                      {core.bikeSkinAttached || core.trailsAttached
-                        ? "Attached"
-                        : "None observed"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-            Racing statistics, owner state and splicing state are also verified
-            for every listed roster Core. Wallet addresses and raw payloads are
-            never rendered.
-          </p>
-        </div>
-      )}
-
-      {state.connectionStatus === "draft_unavailable" ||
-      selected === undefined ? (
-        <div className="rounded-xl border border-[var(--warning)]/50 p-5">
-          <h3 className="font-semibold">A compliant draft is not available</h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Search status: {label(roster.search.status)}. The verified evidence
-            remains readable, but no roster or map assignment is presented as
-            ready.
-          </p>
-        </div>
-      ) : (
-        <>
+      <section
+        aria-labelledby="pro-league-roster"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold">Recommended roster</h3>
-            <ol className="mt-3 divide-y divide-[var(--border)]">
-              {selected.map((member) => (
-                <li className="py-3" key={member.position}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-semibold">
-                      {member.position}. {member.core.displayName}
-                    </p>
-                    <span className="text-xs font-semibold text-[var(--accent)]">
-                      {label(member.role)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {member.core.element} · {member.core.coreClass} ·{" "}
-                    {label(member.core.sex)} · F{member.core.fNumber}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                    {member.reason}
-                  </p>
-                </li>
-              ))}
-            </ol>
+            <h2 className="text-xl font-semibold" id="pro-league-roster">
+              Roster recommendation
+            </h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Finalised 25 Cores. Checkmarks show the primary distance family
+              used when building full-gate depth.
+            </p>
           </div>
-
-          {mapPreparation === undefined ? null : (
-            <div>
-              <h3 className="text-lg font-semibold">Map preparation order</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Home preference:{" "}
-                {mapPreparation.homePreferenceOrder
-                  .map(
-                    (mapId) =>
-                      mapPreparation.assessments.find(
-                        (assessment) => assessment.mapId === mapId,
-                      )?.name ?? label(mapId),
-                  )
-                  .join(" → ")}
-                . Defensive preparation starts with{" "}
-                {mapPreparation.defensivePreparationOrder
-                  .map(
-                    (mapId) =>
-                      mapPreparation.assessments.find(
-                        (assessment) => assessment.mapId === mapId,
-                      )?.name ?? label(mapId),
-                  )
-                  .join(" → ")}
-                .
-              </p>
-              <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
-                This order compares owned exact-format coverage, prioritising
-                the first 16 race points. Opponent-specific denial and
-                head-to-head advice remain held because authoritative opponent
-                evidence is unavailable. No match or lineup action is enabled.
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {mapPreparation.assessments.map((assessment) => (
-                  <div
-                    className="rounded-xl border border-[var(--border)] p-4"
-                    key={assessment.mapId}
-                  >
-                    <p className="font-semibold">{assessment.name}</p>
-                    <p className="mt-1 text-xs font-semibold text-[var(--accent)]">
-                      {label(assessment.readiness)}
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      First 16: {assessment.first16.winningRangeLineCount}{" "}
-                      winning-range, {assessment.first16.topThreeRangeLineCount}{" "}
-                      Top-3-range, {assessment.first16.provisionalLineCount}{" "}
-                      provisional, {assessment.first16.noExactEvidenceLineCount}{" "}
-                      without exact evidence.
-                    </p>
-                  </div>
+          <p className="text-sm font-semibold">{plan.roster.length}/25 Cores</p>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                <th className="px-3 py-3">Core</th>
+                <th className="px-3 py-3">Element / F</th>
+                {distances.map((distance) => (
+                  <th className="px-3 py-3 text-center" key={distance}>
+                    {distance}
+                  </th>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {state.lineup === null ? null : (
-            <div>
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold">Four-map assignment</h3>
-                  <p className="mt-2 text-sm text-[var(--muted)]">
-                    {state.lineup.totals.lineCount} race lines ·{" "}
-                    {state.lineup.totals.provisionalLineCount} provisional ·{" "}
-                    {state.lineup.totals.noExactEvidenceLineCount} without exact
-                    evidence
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-3">
-                {state.lineup.maps.map((map) => (
-                  <details
-                    className="rounded-xl border border-[var(--border)] p-4"
-                    key={map.mapId}
-                  >
-                    <summary className="cursor-pointer font-semibold">
-                      {map.name} · {map.lineCount} lines ·{" "}
-                      {map.provisionalLineCount} provisional
-                    </summary>
-                    <div className="mt-4 overflow-x-auto">
-                      <table className="w-full min-w-[720px] text-left text-sm">
-                        <thead className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                          <tr>
-                            <th className="pb-2 pr-4">Race</th>
-                            <th className="pb-2 pr-4">Format</th>
-                            <th className="pb-2 pr-4">Core</th>
-                            <th className="pb-2">Evidence</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border)]">
-                          {map.lines.map((line) => (
-                            <tr key={line.raceNumber}>
-                              <td className="py-2 pr-4">{line.raceNumber}</td>
-                              <td className="py-2 pr-4">
-                                {line.raceType} · {line.distanceMetres} m
-                              </td>
-                              <td className="py-2 pr-4">
-                                {coreName.get(line.coreId) ?? "Unavailable"}
-                              </td>
-                              <td className="py-2">
-                                {label(line.evidenceStatus)}
-                                {line.provisional ? " · test before lock" : ""}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {priorityGaps.length > 0 ? (
-        <div>
-          <h3 className="text-lg font-semibold">Population coverage gaps</h3>
-          <ul className="mt-3 space-y-3">
-            {priorityGaps.map((gap) => (
-              <li
-                className="rounded-xl border border-[var(--warning)]/40 p-4"
-                key={`${gap.raceType}/${gap.distanceMetres}`}
-              >
-                <p className="font-semibold">
-                  {gap.raceType} · {gap.distanceMetres} m · {label(gap.status)}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                  {gap.raceLineCount} published race lines ·{" "}
-                  {label(gap.discoveryPriority)} Discovery priority.{" "}
-                  {gap.guidance}
-                </p>
-                {gap.bestAvailableCoreIds.length > 0 ? (
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    Best owned:{" "}
-                    {gap.bestAvailableCoreIds
-                      .map((id) => coreName.get(id) ?? "Unavailable")
-                      .join(", ")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {discoveryQueue === undefined ? null : (
-        <div>
-          <h3 className="text-lg font-semibold">
-            Pro League Discovery experiments
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Bike-only tests that could prove a provisional member or challenge a
-            marginal roster slot. Each experiment targets the authoritative{" "}
-            {discoveryQueue.exactDistanceMinimumRaceCount}-race exact-distance
-            minimum. Race entry and roster changes remain manual.
-          </p>
-          <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
-            Initial registration uses zero substitutions. Later roster changes
-            count toward the annual limit of{" "}
-            {discoveryQueue.substitutionBudget.maximumPerYear}, but current
-            usage is unavailable until the ledger is connected.{" "}
-            {discoveryQueue.diagnostics.stoppedWeakPathCount} weak path(s) were
-            stopped early; {discoveryQueue.diagnostics.conflictingEvidenceCount}{" "}
-            conflicting path(s) require review. Showing{" "}
-            {discoveryQueue.experiments.length} of{" "}
-            {discoveryQueue.diagnostics.eligibleExperimentCount} justified
-            experiment(s).
-          </p>
-          {discoveryQueue.experiments.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-              No bounded owned-Core experiment is currently justified by the
-              available exact or adjacent-distance evidence.
-            </p>
-          ) : (
-            <ol className="mt-3 space-y-3">
-              {discoveryQueue.experiments.map((experiment, index) => (
-                <li
-                  className="rounded-xl border border-[var(--border)] p-4"
-                  key={`${experiment.coreId}/${experiment.raceType}/${experiment.distanceMetres}`}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-semibold">
-                      {index + 1}. {experiment.displayName} ·{" "}
-                      {experiment.raceType}
-                      {" · "}
-                      {experiment.distanceMetres} m
-                    </p>
-                    <span className="text-xs font-semibold text-[var(--accent)]">
-                      {label(experiment.gapPriority)} priority · next{" "}
-                      {experiment.recommendedNextRaceCount} race(s)
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                    {experiment.directRaceCount}/
-                    {discoveryQueue.exactDistanceMinimumRaceCount}{" "}
-                    exact-distance races · {experiment.raceLineCount} published
-                    map line(s) · {label(experiment.rosterImpact)}.
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                    {experiment.hypothesisSource ===
-                    "adjacent_distance_same_race_type"
-                      ? `Adjacent ${experiment.sourceDistanceMetres} m evidence is hypothesis-only.`
-                      : "Existing exact-distance evidence remains a small-sample hypothesis."}{" "}
-                    Lineage evidence and opposition quality remain unknown when
-                    flagged; neither is treated favourably.
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                    Normal-Free benchmark screen: pair the candidate with a
-                    proven same-mode, exact-distance Core. Start with{" "}
-                    {experiment.benchmarkScreen.initialRaceCount} race(s) and
-                    normally stop by{" "}
-                    {experiment.benchmarkScreen.maximumRaceCount}. Yellow/Blue
-                    stars are the primary small-sample ceiling signal; finish
-                    and time remain secondary context. If neither owned Core
-                    takes a star, review the external star holder before
-                    downgrading either Core.
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                    {experiment.benchmarkCore === null
-                      ? "No proven same-distance roster benchmark is currently available; choose one manually only after its quality is verified."
-                      : `Preferred benchmark: ${experiment.benchmarkCore.displayName} (${experiment.benchmarkCore.directRaceCount} proven same-distance race(s), ${label(experiment.benchmarkCore.benchmarkSignal)}).`}
-                  </p>
-                </li>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.roster.map((core) => (
+                <tr className="border-b border-[var(--border)]/70" key={core.coreId}>
+                  <td className="px-3 py-3 font-semibold">{core.displayName}</td>
+                  <td className="px-3 py-3 text-[var(--muted)]">
+                    {core.element} · F{core.fNumber}
+                  </td>
+                  {distances.map((distance) => (
+                    <td className="px-3 py-3 text-center" key={distance}>
+                      {coverage(core.primaryDistances, distance)}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </ol>
-          )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </section>
 
-      {raceOpportunities === undefined ? null : (
-        <div>
-          <h3 className="text-lg font-semibold">
-            Open Bike race opportunities
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Read-only API snapshot scanned {raceOpportunities.scannedRaceCount}{" "}
-            active race(s). Only Bike races still marked filling, at least 50%
-            filled and with an open gate are shown. No entry or wallet action is
-            available here.
-          </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            Snapshot freshness: {label(raceOpportunities.freshness)}
-            {raceOpportunities.observedAt === null
-              ? ". Observation time is unavailable."
-              : ` through ${timestamp(raceOpportunities.observedAt)}.`}
-          </p>
-          {raceOpportunities.status !== "connected" ? (
-            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-              Current race opportunities are unavailable. The last-good roster,
-              lineup and gap analysis remain visible.
+      <section
+        aria-labelledby="pro-league-race-mapping"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold" id="pro-league-race-mapping">
+              Race mapping
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Win-first, not usage-balanced. Exact/strong evidence is preferred
+              inside the audited distance depth; every last slot must remain
+              defensible by the agreed distance family.
             </p>
-          ) : raceOpportunities.opportunities.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-              No API-visible Bike race currently meets the fill and open-gate
-              threshold in this snapshot.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-3">
-              {raceOpportunities.opportunities.map((race) => (
-                <li
-                  className="rounded-xl border border-[var(--border)] p-4"
-                  key={race.sourceRaceId}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-semibold">{race.displayName}</p>
-                    <span className="text-xs font-semibold text-[var(--accent)]">
-                      {race.filledGateCount}/{race.gateCount} gates ·{" "}
-                      {race.fillPercentage}%
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {race.availableGateCount} open · {race.entrantCount}{" "}
-                    entrant(s) · {race.entryFeeUsd} USD · {race.paymentAsset} ·
-                    observed {timestamp(race.observedAt)}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    Scheduled{" "}
-                    {race.startAt === null
-                      ? "not reported"
-                      : timestamp(race.startAt)}
-                    {" · "}Source format {sourceMetric(race.formatSourceValue)}
-                    {" · "}Source class{" "}
-                    {sourceMetric(race.raceClassSourceValue)}
-                    {" · "}Fixed fees {fixedFees(race.fixedFeesByAsset)}
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
-                    API distance and Pro League race-type authority are
-                    unavailable, so this race cannot yet be matched to the{" "}
-                    {raceOpportunities.priorityGapCount} priority population
-                    gap(s) or receive a Core recommendation. Verify those
-                    details in DNA before manual entry. A direct race link is
-                    also withheld until its route is authoritatively
-                    established.
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+          </div>
+          <p className="text-sm font-semibold">
+            {plan.assignedCoreEntries}/{plan.requiredCoreEntries} gate entries
+            filled
+          </p>
         </div>
-      )}
 
-      {breedingObjectives === undefined ? null : (
-        <div>
-          <h3 className="text-lg font-semibold">
-            Pro League breeding research
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Verified roster gaps may be matched to held Bike breeding research
-            at the exact distance. Pair performance is not race-type-specific,
-            Gate E remains held, and no validation, wallet or splice action is
-            available here.
-          </p>
-          {breedingObjectives.status === "connected" ? (
-            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              Performance evidence:{" "}
-              {label(breedingObjectives.performanceFreshness)}
-              {breedingObjectives.performanceDataCurrentThrough === null
-                ? " (time unavailable)"
-                : ` through ${timestamp(breedingObjectives.performanceDataCurrentThrough)}`}
-              . Arena evidence: {label(breedingObjectives.arenaFreshness)}
-              {breedingObjectives.arenaDataCurrentThrough === null
-                ? " (time unavailable)."
-                : ` through ${timestamp(breedingObjectives.arenaDataCurrentThrough)}.`}
-            </p>
-          ) : null}
-          {breedingObjectives.status !== "connected" ? (
-            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-              {breedingObjectives.status === "persistence_not_configured"
-                ? "The compact owner breeding ranking repository is not connected. The verified roster, lineup and gap analysis remain available."
-                : "Breeding ranking evidence failed owner, cutoff or integrity validation. It is hidden while the verified roster, lineup and gap analysis remain available."}
-            </p>
-          ) : breedingObjectives.objectives.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-              No high- or medium-priority roster gap currently requires a
-              breeding research objective.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-4">
-              <p className="text-xs leading-5 text-[var(--warning)]">
-                Current official pair validation, pair information and any Arena
-                availability must be checked again at owner decision time.
-              </p>
-              {breedingObjectives.objectives.map((objective) => (
-                <article
-                  className="rounded-xl border border-[var(--border)] p-4"
-                  key={objective.objectiveId}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-semibold">
-                      {objective.raceType} · {objective.distanceMetres} m
-                    </p>
-                    <span className="text-xs font-semibold text-[var(--accent)]">
-                      {label(objective.gapPriority)} priority ·{" "}
-                      {objective.raceLineCount} map line(s)
-                    </span>
-                  </div>
-                  {objective.candidates.length === 0 ? (
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      WAIT — no current exact-distance Bike pair research meets
-                      the held evidence gates. Adjacent-distance or cross-mode
-                      evidence is not substituted.
-                    </p>
-                  ) : (
-                    <ol className="mt-3 space-y-3">
-                      {objective.candidates.map((candidate) => (
-                        <li
-                          className="rounded-lg border border-[var(--border)] p-3"
-                          key={candidate.candidateNumber}
-                        >
-                          <p className="font-medium">
-                            Research pair {candidate.candidateNumber} ·{" "}
-                            {candidate.predictedOffspringClass} ·{" "}
-                            {candidate.predictedOffspringElement} · F
-                            {candidate.predictedOffspringFNumber}
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                            {label(candidate.evidenceConfidence)} confidence ·{" "}
-                            {label(candidate.source)} · roles{" "}
-                            {candidate.researchRoles.map(label).join(" + ")}.
-                            Experimental exceptional upside{" "}
-                            {percentage(candidate.exceptionalUpsideBasisPoints)}
-                            ; stronger-or-exceptional{" "}
-                            {percentage(
-                              candidate.strongerOrExceptionalBasisPoints,
-                            )}
-                            ; Vault fit{" "}
-                            {percentage(candidate.vaultFitBasisPoints)}.
-                          </p>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                  <p className="mt-2 text-xs leading-5 text-[var(--warning)]">
-                    Race-type pair evidence unavailable · official pair
-                    validation and pair information required · breeding outcome
-                    remains probabilistic.
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
+        <div className="mt-4 space-y-3">
+          {plan.maps.map((map) => (
+            <details
+              className="rounded-xl border border-[var(--border)]"
+              key={map.mapId}
+              open={map.name === plan.mapStrategy.homePick}
+            >
+              <summary className="cursor-pointer px-4 py-4 font-semibold">
+                {map.name} · {map.assignedCoreEntries}/{map.requiredCoreEntries}
+                {" "}gate entries
+              </summary>
+              <div className="overflow-x-auto border-t border-[var(--border)]">
+                <table className="min-w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                      <th className="px-3 py-3">Race</th>
+                      <th className="px-3 py-3">Type</th>
+                      <th className="px-3 py-3">Distance</th>
+                      <th className="px-3 py-3">Our slots</th>
+                      <th className="px-3 py-3">Mapped Cores</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {map.lines.map((line) => (
+                      <tr
+                        className="border-b border-[var(--border)]/70"
+                        key={line.raceNumber}
+                      >
+                        <td className="px-3 py-3 font-semibold">
+                          {line.raceNumber}
+                          {line.first16 ? " ★" : ""}
+                        </td>
+                        <td className="px-3 py-3">{line.raceType}</td>
+                        <td className="px-3 py-3">{line.distanceMetres}m</td>
+                        <td className="px-3 py-3">
+                          {line.coreNames.length}/{line.ourSlots}
+                        </td>
+                        <td className="px-3 py-3 text-[var(--muted)]">
+                          {line.coreNames.join(", ")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          ))}
         </div>
-      )}
 
-      {roster.operationalWarnings.length > 0 ? (
-        <div>
-          <h3 className="font-semibold">Operational warnings</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--muted)]">
-            {roster.operationalWarnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+          ★ = first 16 priority. This page is advisory only and cannot submit a
+          roster, choose/deny a map, enter a race or perform any game action.
+        </p>
+      </section>
+    </div>
   );
 }
