@@ -30,11 +30,16 @@ function unavailable(
   });
 }
 
-export async function loadProLeagueSubstitutionLedgerState(input: Readonly<{
-  ownerId: string;
-  seasonYear: number;
-  repository: Pick<ProLeagueRosterVersionRepository, "listSubstitutions"> | null;
-}>): Promise<ProLeagueSubstitutionLedgerState> {
+export async function loadProLeagueSubstitutionLedgerState(
+  input: Readonly<{
+    ownerId: string;
+    seasonYear: number;
+    repository: Pick<
+      ProLeagueRosterVersionRepository,
+      "listSubstitutions"
+    > | null;
+  }>,
+): Promise<ProLeagueSubstitutionLedgerState> {
   if (
     !Number.isSafeInteger(input.seasonYear) ||
     input.seasonYear < 2026 ||
