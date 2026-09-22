@@ -28,14 +28,12 @@ export type ProLeagueCurrentCoreState = Readonly<{
     displayName: string;
     latestObservedAt: string;
     dataCurrentThrough: string;
-    bikePower:
-      | Readonly<{
-          powerSourceValue: JsonSourceValue;
-          adjustedOddsSourceValue: JsonSourceValue;
-          varianceSourceValue: JsonSourceValue;
-          raceCount: number;
-        }>
-      | null;
+    bikePower: Readonly<{
+      powerSourceValue: JsonSourceValue;
+      adjustedOddsSourceValue: JsonSourceValue;
+      varianceSourceValue: JsonSourceValue;
+      raceCount: number;
+    }> | null;
     stamina: Readonly<{
       current: number;
       maximum: number;
