@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { proLeagueMaps } from "@/domain/pro-league-maps";
 import {
+  PRO_LEAGUE_OWNER_DISTANCES,
   normalizeProLeagueOwnerCoreName,
-  proLeagueOwnerDistanceDepth,
+  ownerDistanceDepth,
   proLeagueOwnerFinalRosterPlan,
   proLeagueOwnerMapStrategy,
 } from "@/domain/pro-league-owner-final-plan";
@@ -19,14 +20,11 @@ describe("final owner Pro League plan", () => {
       ).size,
     ).toBe(25);
 
-    for (const distance of [1000, 1200, 1400, 1600, 1800, 2000, 2200]) {
-      expect(proLeagueOwnerDistanceDepth[distance]).toHaveLength(12);
+    for (const distance of PRO_LEAGUE_OWNER_DISTANCES) {
+      const depth = ownerDistanceDepth(distance);
+      expect(depth).toHaveLength(12);
       expect(
-        new Set(
-          proLeagueOwnerDistanceDepth[distance].map(
-            normalizeProLeagueOwnerCoreName,
-          ),
-        ).size,
+        new Set((depth ?? []).map(normalizeProLeagueOwnerCoreName)).size,
       ).toBe(12);
     }
 
