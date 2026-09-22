@@ -303,6 +303,12 @@ describe("Neon Pro League roster version repository", () => {
 
     const reader = harness([
       [{ owner_scope: databaseOwnerId }],
+      [
+        {
+          substitution_table_exists: true,
+          list_function_exists: true,
+        },
+      ],
       [isolation()],
       [
         {
@@ -359,6 +365,12 @@ describe("Neon Pro League roster version repository", () => {
 
     const driftedSubstitution = harness([
       [{ owner_scope: databaseOwnerId }],
+      [
+        {
+          substitution_table_exists: true,
+          list_function_exists: true,
+        },
+      ],
       [isolation()],
       [
         {
@@ -381,6 +393,25 @@ describe("Neon Pro League roster version repository", () => {
     await expect(
       driftedSubstitution.repository.listSubstitutions(ownerId, 2026),
     ).rejects.toThrow("substitution fingerprint drifted");
+  });
+
+  it("reports an undeployed substitution ledger before isolation verification", async () => {
+    const unavailable = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [
+        {
+          substitution_table_exists: false,
+          list_function_exists: false,
+        },
+      ],
+    ]);
+
+    await expect(
+      unavailable.repository.listSubstitutions(ownerId, 2026),
+    ).rejects.toThrow(
+      "Pro League substitution ledger persistence is not configured.",
+    );
+    expect(unavailable.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
   it("rolls back unsafe runtime isolation and rejects another owner", async () => {
