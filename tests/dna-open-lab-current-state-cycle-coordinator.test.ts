@@ -165,6 +165,40 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
     ).toThrow("indexedAt cannot follow validation time");
   });
 
+  it("accepts serving receipts newer than the durable evaluation point when they predate the current attempt", () => {
+    const { plan, priorIndex } = fixture();
+    const observedAt = "2026-08-28T12:01:00.000Z";
+    const laterIndex = Object.freeze({
+      ...priorIndex,
+      indexedAt: observedAt,
+      receipts: Object.freeze(
+        priorIndex.receipts.map((receipt) =>
+          Object.freeze({ ...receipt, observedAt }),
+        ),
+      ),
+    });
+
+    const authority = createDnaCurrentStateScheduledCycleAuthority({
+      evaluatedAt: firstAt,
+      validatedAt: "2026-08-28T12:02:00.000Z",
+      plan,
+      priorIndex: laterIndex,
+    });
+
+    expect(authority.cachedEvidenceObservedAt).toEqual({
+      race_activity: observedAt,
+      token_prices: observedAt,
+      vault_identity: observedAt,
+      core_current_state: observedAt,
+      splice_arena: observedAt,
+    });
+    expect(authority.schedule).toMatchObject({
+      evaluatedAt: firstAt,
+      status: "idle",
+      nextEvaluationAt: "2026-08-29T12:01:00.000Z",
+    });
+  });
+
   it("refreshes every recurring group together at the daily boundary", () => {
     const { plan, priorIndex } = fixture();
     const evaluatedAt = "2026-08-29T12:00:00.000Z";

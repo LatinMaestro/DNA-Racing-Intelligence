@@ -156,6 +156,7 @@ function allRequests(
  */
 export function createDnaCurrentStateAcquisitionSchedule(input: {
   evaluatedAt: string;
+  checkpointValidatedAt?: string;
   plan: DnaCurrentStateSyncPlan;
   checkpoints?: Partial<
     Record<
@@ -168,6 +169,14 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
 }): DnaCurrentStateAcquisitionSchedule {
   const evaluatedAt = timestamp(input.evaluatedAt, "evaluatedAt");
   const evaluatedMilliseconds = Date.parse(evaluatedAt);
+  const checkpointValidatedAt =
+    input.checkpointValidatedAt === undefined
+      ? evaluatedAt
+      : timestamp(input.checkpointValidatedAt, "checkpointValidatedAt");
+  const checkpointValidationMilliseconds = Date.parse(checkpointValidatedAt);
+  if (checkpointValidationMilliseconds < evaluatedMilliseconds) {
+    acquisitionError("checkpointValidatedAt cannot precede evaluatedAt");
+  }
   const maximumAggregateRequestsPerMinute =
     input.maximumAggregateRequestsPerMinute ??
     DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
@@ -197,7 +206,7 @@ export function createDnaCurrentStateAcquisitionSchedule(input: {
       `${group}.completedAt`,
     );
     const completedMilliseconds = Date.parse(completedAt);
-    if (completedMilliseconds > evaluatedMilliseconds) {
+    if (completedMilliseconds > checkpointValidationMilliseconds) {
       acquisitionError(`${group}.completedAt cannot be in the future`);
     }
     checkpointMilliseconds.set(group, completedMilliseconds);
