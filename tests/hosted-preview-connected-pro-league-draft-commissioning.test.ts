@@ -10,7 +10,7 @@ import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-own
 import { neonDnaOpenLabCombinedServingReadRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-sync-publication";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
-import { createNeonProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
+import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
 const connected =
@@ -59,7 +59,7 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           validatedAt: verifiedAt,
         });
       const rosterVersionRepository =
-        createNeonProLeagueRosterVersionRepository({
+        createNeonProLeagueSubstitutionLedgerReadRepository({
           databaseUrl: databaseEnvironment.databaseUrl,
           databaseOwnerId: databaseEnvironment.databaseOwnerId,
           ownerId,
