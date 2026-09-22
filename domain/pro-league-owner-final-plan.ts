@@ -39,7 +39,21 @@ export const proLeagueOwnerFinalRosterPlan = Object.freeze([
   { displayName: "Zero Mercy", primaryDistances: [2200] },
 ] as const satisfies readonly ProLeagueOwnerRosterPlanEntry[]);
 
-export const proLeagueOwnerDistanceDepth = Object.freeze({
+export const PRO_LEAGUE_OWNER_DISTANCES = Object.freeze([
+  1000,
+  1200,
+  1400,
+  1600,
+  1800,
+  2000,
+  2200,
+] as const);
+export type ProLeagueOwnerDistance =
+  (typeof PRO_LEAGUE_OWNER_DISTANCES)[number];
+
+export const proLeagueOwnerDistanceDepth: Readonly<
+  Record<ProLeagueOwnerDistance, readonly string[]>
+> = Object.freeze({
   1000: Object.freeze([
     "Solar Surge",
     "Frost Rocket",
@@ -138,7 +152,7 @@ export const proLeagueOwnerDistanceDepth = Object.freeze({
     "Flux Dagger",
     "Zoey",
   ]),
-} as const satisfies Readonly<Record<number, readonly string[]>>);
+});
 
 export const proLeagueOwnerMapStrategy = Object.freeze({
   homePick: "map-1" as ProLeagueMapId,
@@ -179,12 +193,21 @@ export function ownerPlanEntryByName(
   );
 }
 
+export function ownerDistanceDepth(
+  distanceMetres: number,
+): readonly string[] | null {
+  const distance = PRO_LEAGUE_OWNER_DISTANCES.find(
+    (candidate) => candidate === distanceMetres,
+  );
+  return distance === undefined ? null : proLeagueOwnerDistanceDepth[distance];
+}
+
 export function ownerDistanceDepthRank(
   distanceMetres: number,
   displayName: string,
 ): number | null {
-  const depth = proLeagueOwnerDistanceDepth[distanceMetres];
-  if (depth === undefined) return null;
+  const depth = ownerDistanceDepth(distanceMetres);
+  if (depth === null) return null;
   const normalized = normalizeProLeagueOwnerCoreName(displayName);
   const index = depth.findIndex(
     (name) => normalizeProLeagueOwnerCoreName(name) === normalized,
