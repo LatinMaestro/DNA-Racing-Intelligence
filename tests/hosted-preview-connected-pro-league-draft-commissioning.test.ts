@@ -63,6 +63,7 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         vaultId: "my-vault",
         vaultDisplayName: "My Vault",
         rosteredCoreIds: [],
+        useOwnerFinalPlan: true,
         vaultRepository:
           neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
         evidenceRepository: neonProLeagueEvidenceReadRepositoryFromEnvironment({
