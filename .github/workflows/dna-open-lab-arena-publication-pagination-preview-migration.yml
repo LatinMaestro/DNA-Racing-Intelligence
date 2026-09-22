@@ -1,0 +1,79 @@
+name: DNA Open Lab Arena publication pagination Preview migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_private_preview_migration:
+        description: Confirm reviewed migration apply to private Preview only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-arena-publication-pagination-preview-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migration:
+    name: Apply reviewed Arena publication pagination migration to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Require exact main dispatch and explicit Preview migration arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This migration may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.apply_private_preview_migration }}" != "true" ]]; then
+            echo "The private Preview migration was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The migration head is no longer current main."
+            exit 1
+          fi
+      - name: Validate private Preview database binding without exposure
+        shell: bash
+        run: |
+          if [[ -z "${DATABASE_URL}" ]]; then
+            echo "The private Preview database binding is unavailable."
+            exit 1
+          fi
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Apply Arena publication pagination migration
+        run: >-
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file
+          database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql
+      - name: Prove Arena publication pagination migration on Preview
+        run: >-
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file
+          database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.smoke.sql
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the private Preview migration."
+            exit 1
+          fi
