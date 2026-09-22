@@ -80,8 +80,23 @@ function cell(
     medianVersusTopThreeBasisPoints: 500,
     consistencyVersusTopThreeBasisPoints: 500,
     supportingOutcomes: { status: "available", winCount: 1, topThreeCount: 4 },
-    supportingOpposition: { status: "unavailable" },
-    supportingStars: { status: "unavailable" },
+    supportingOpposition: {
+      status: "unavailable",
+      raceCount: 0,
+      winCount: 0,
+      topThreeCount: 0,
+    },
+    supportingStars: {
+      status: "unavailable",
+      qualityKnownRaceCount: 0,
+      strongFieldYellowReceivedCount: 0,
+      strongFieldBlueReceivedCount: 0,
+      eliteOpponentYellowReceivedCount: 0,
+      eliteOpponentBlueReceivedCount: 0,
+      yellowFieldAdjustedIndex: null,
+      blueFieldAdjustedIndex: null,
+      rawConversionUsedForRanking: false,
+    },
   };
 }
 
