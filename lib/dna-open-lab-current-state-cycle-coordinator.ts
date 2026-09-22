@@ -127,6 +127,7 @@ export function createDnaCurrentStateScheduledCycleAuthority(input: {
   return Object.freeze({
     schedule: createDnaCurrentStateAcquisitionSchedule({
       evaluatedAt: input.evaluatedAt,
+      checkpointValidatedAt: input.validatedAt,
       plan: input.plan,
       ...(input.maximumAggregateRequestsPerMinute === undefined
         ? {}
