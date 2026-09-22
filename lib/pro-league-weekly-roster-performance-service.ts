@@ -27,7 +27,7 @@ export const unavailableProLeagueWeeklyEsportsRepository: ProLeagueWeeklyEsports
 function timestamp(value: string, label: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
-    throw new Error(\`Pro League weekly \${label} is invalid.\`);
+    throw new Error(`Pro League weekly ${label} is invalid.`);
   }
   return value;
 }
