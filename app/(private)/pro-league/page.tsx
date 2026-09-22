@@ -71,6 +71,7 @@ export default async function ProLeaguePage() {
       vaultId: "my-vault",
       vaultDisplayName: "My Vault",
       rosteredCoreIds: [],
+      useOwnerFinalPlan: true,
       vaultRepository,
       evidenceRepository,
       ownedCoreRepository: combinedServingRepository,
