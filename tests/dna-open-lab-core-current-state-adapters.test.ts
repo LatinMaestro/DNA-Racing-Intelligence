@@ -114,12 +114,35 @@ describe("DNA Open Lab supplemental Core current-state adapters", () => {
           ...power,
           power: {
             ...power.power,
-            bike: { ...power.power.bike, races_n: -1 },
+            bike: { ...power.power.bike!, races_n: -1 },
           },
         },
         observedAt: OBSERVED_AT,
       }),
     ).toThrowError("core.power.bike.raceCount must be a non-negative");
+  });
+
+  it("preserves provider-omitted power modes as absent instead of inventing zero evidence", () => {
+    const adapted = adaptDnaCorePower({
+      raw: {
+        ...power,
+        power: {
+          bike: power.power.bike!,
+        },
+      },
+      observedAt: OBSERVED_AT,
+    });
+
+    expect(adapted.canonical.byMode).toEqual({
+      bike: {
+        powerSourceValue: 91.5,
+        adjustedOddsSourceValue: "1.8",
+        varianceSourceValue: 0.12,
+        raceCount: 8,
+      },
+    });
+    expect(adapted.canonical.byMode).not.toHaveProperty("car");
+    expect(adapted.canonical.byMode).not.toHaveProperty("horse");
   });
 
   it("preserves absent listing fields instead of inferring a listing state", () => {
