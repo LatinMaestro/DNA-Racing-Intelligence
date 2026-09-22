@@ -323,7 +323,8 @@ export function ProLeagueCommissioningPanel({
           <summary className="cursor-pointer px-6 py-5">
             <span className="font-semibold">Weekly roster performance</span>
             <span className="ml-2 text-sm text-[var(--muted)]">
-              · {weeklyFlagCount} review flag{weeklyFlagCount === 1 ? "" : "s"} ·{" "}
+              · {weeklyFlagCount} review flag{weeklyFlagCount === 1 ? "" : "s"}{" "}
+              ·{" "}
               {state.weeklyPerformance.sourceStatus === "esports_connected"
                 ? "7-day Esports results"
                 : "league result source pending"}
@@ -369,8 +370,8 @@ export function ProLeagueCommissioningPanel({
                         {row.first16MappedEntryCount} first-16
                       </td>
                       <td className="px-3 py-3 text-[var(--muted)]">
-                        {row.rankedMappedCellCount}/{row.mappedCellCount} cells ·{" "}
-                        {row.mappedEvidenceCoveragePercent}%
+                        {row.rankedMappedCellCount}/{row.mappedCellCount} cells
+                        · {row.mappedEvidenceCoveragePercent}%
                       </td>
                       <td className="px-3 py-3">
                         {timingTrend(row.timingTrend)}
