@@ -27,6 +27,36 @@ function number(value: number): string {
   return value.toLocaleString("en-AU");
 }
 
+function watchReason(
+  value:
+    | "performance_or_map_upgrade"
+    | "coverage_option"
+    | "development_watch",
+): string {
+  if (value === "performance_or_map_upgrade") return "Performance / map upgrade";
+  if (value === "coverage_option") return "Coverage option";
+  return "Development watch";
+}
+
+function selectionStatus(
+  value:
+    | "winning_range"
+    | "top_three_range"
+    | "population_weak_provisional"
+    | "unproven",
+): string {
+  if (value === "winning_range") return "Winning range";
+  if (value === "top_three_range") return "Top-3 range";
+  if (value === "population_weak_provisional") return "Population-weak";
+  return "Unproven";
+}
+
+function direction(value: "stronger" | "weaker" | "neutral"): string {
+  if (value === "stronger") return "↑ stronger";
+  if (value === "weaker") return "↓ weaker";
+  return "→ neutral";
+}
+
 export function ProLeagueCommissioningPanel({
   state,
 }: Readonly<{ state: ProLeagueDraftCommissioningState }>) {
@@ -105,6 +135,63 @@ export function ProLeagueCommissioningPanel({
           </p>
         </section>
       ) : null}
+
+      <section
+        aria-labelledby="pro-league-roster-health"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+      >
+        <h2 className="text-lg font-semibold" id="pro-league-roster-health">
+          Roster health
+        </h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Substitutions
+            </p>
+            <p className="mt-2 font-semibold">
+              {state.substitutionLedger?.status === "connected"
+                ? `${state.substitutionLedger.usedCount}/${state.substitutionLedger.maximumSubstitutions} used`
+                : "Usage unavailable"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              {state.substitutionLedger?.status === "connected"
+                ? `${state.substitutionLedger.remainingCount} remaining · season ${state.substitutionLedger.seasonYear}`
+                : "Initial roster is still zero substitutions; later usage is never inferred."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Upgrade watch
+            </p>
+            <p className="mt-2 font-semibold">
+              {state.substitutionWatch?.candidates.length ?? 0} Cores
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Ranked with the same Bike-only roster and map methodology.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Ageing
+            </p>
+            <p className="mt-2 font-semibold">Watch authority pending</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              No numeric season cap is invented while mechanics remain unresolved.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Population validation
+            </p>
+            <p className="mt-2 font-semibold">
+              {populationBenchmarkBlocked ? "Pending" : "Connected"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Whole-population strength remains a required decision boundary.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section
         aria-labelledby="pro-league-map-strategy"
@@ -197,6 +284,220 @@ export function ProLeagueCommissioningPanel({
           </table>
         </div>
       </section>
+
+      {state.substitutionWatch === undefined ? null : (
+        <section
+          aria-labelledby="pro-league-substitution-watch"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2
+                className="text-xl font-semibold"
+                id="pro-league-substitution-watch"
+              >
+                Substitution watch
+              </h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+                Non-rostered Cores are watched with the same quality-first
+                methodology as the squad: Bike only, exact race type + exact
+                distance first, elapsed-time central tendency and consistency,
+                sample/freshness, first-16 impact and full roster legality.
+                Miracles remains contingency rather than a roster driver.
+              </p>
+            </div>
+            <p className="text-sm font-semibold">
+              {state.substitutionWatch.candidates.length} watch candidates
+            </p>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-3 py-3">Core</th>
+                  <th className="px-3 py-3">Why watch</th>
+                  <th className="px-3 py-3">Best distances</th>
+                  <th className="px-3 py-3">Recommended out</th>
+                  <th className="px-3 py-3">Map impact</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.substitutionWatch.candidates.map((candidate) => (
+                  <tr
+                    className="border-b border-[var(--border)]/70"
+                    key={candidate.coreId}
+                  >
+                    <td className="px-3 py-3">
+                      <p className="font-semibold">{candidate.displayName}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        {candidate.element} · F{candidate.fNumber} ·{" "}
+                        {selectionStatus(candidate.selectionStatus)}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3">
+                      {watchReason(candidate.watchReason)}
+                    </td>
+                    <td className="px-3 py-3">
+                      {candidate.strongestDistances.length === 0
+                        ? "Evidence developing"
+                        : candidate.strongestDistances
+                            .map((value) => `${value}m`)
+                            .join(", ")}
+                    </td>
+                    <td className="px-3 py-3 font-semibold">
+                      {candidate.recommendedScenario.outgoingCoreName}
+                    </td>
+                    <td className="px-3 py-3 text-[var(--muted)]">
+                      {candidate.recommendedScenario.changedLineCount} changed ·{" "}
+                      {candidate.recommendedScenario.strongerLineCount} ↑ ·{" "}
+                      {candidate.recommendedScenario.weakerLineCount} ↓
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {state.substitutionWatch.candidates.map((candidate, index) => {
+              const scenario = candidate.recommendedScenario;
+              return (
+                <details
+                  className="rounded-xl border border-[var(--border)]"
+                  key={candidate.coreId}
+                >
+                  <summary className="cursor-pointer px-4 py-4 font-semibold">
+                    Analyse {candidate.displayName} → replace{" "}
+                    {scenario.outgoingCoreName}
+                  </summary>
+                  <div className="border-t border-[var(--border)] p-4">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                          Substitution
+                        </p>
+                        <p className="mt-1 font-semibold">
+                          {state.substitutionLedger?.status === "connected"
+                            ? `#${(state.substitutionLedger.usedCount ?? 0) + 1} of ${state.substitutionLedger.maximumSubstitutions}`
+                            : "Ledger usage unavailable"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                          Full mapping
+                        </p>
+                        <p className="mt-1 font-semibold">
+                          {number(scenario.assignedCoreEntries)}/
+                          {number(scenario.requiredCoreEntries)} gates
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                          First 16 changes
+                        </p>
+                        <p className="mt-1 font-semibold">
+                          {scenario.changedFirst16LineCount} lines ·{" "}
+                          {scenario.strongerFirst16LineCount} ↑ ·{" "}
+                          {scenario.weakerFirst16LineCount} ↓
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                          Roster rules
+                        </p>
+                        <p className="mt-1 font-semibold">Compliant</p>
+                      </div>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                      This is a full remap simulation, not a straight one-for-one
+                      mapping swap. The incoming Core can change secondary
+                      distance depth and therefore reassign other rostered Cores
+                      on the same or different maps.
+                    </p>
+
+                    <div className="mt-4 space-y-3">
+                      {["Anchor", "Measure", "Glory", "Miracles"].map(
+                        (mapName) => {
+                          const lines = scenario.changedLines.filter(
+                            (line) => line.mapName === mapName,
+                          );
+                          if (lines.length === 0) return null;
+                          return (
+                            <details
+                              className="rounded-lg border border-[var(--border)]"
+                              key={mapName}
+                            >
+                              <summary className="cursor-pointer px-3 py-3 text-sm font-semibold">
+                                {mapName} · {lines.length} changed race
+                                {lines.length === 1 ? "" : "s"}
+                              </summary>
+                              <div className="overflow-x-auto border-t border-[var(--border)]">
+                                <table className="min-w-full text-left text-xs">
+                                  <thead>
+                                    <tr className="border-b border-[var(--border)] uppercase tracking-wide text-[var(--muted)]">
+                                      <th className="px-3 py-2">Race</th>
+                                      <th className="px-3 py-2">Type</th>
+                                      <th className="px-3 py-2">Distance</th>
+                                      <th className="px-3 py-2">Out</th>
+                                      <th className="px-3 py-2">In</th>
+                                      <th className="px-3 py-2">Model</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {lines.map((line) => (
+                                      <tr
+                                        className="border-b border-[var(--border)]/70"
+                                        key={line.raceNumber}
+                                      >
+                                        <td className="px-3 py-2 font-semibold">
+                                          {line.raceNumber}
+                                          {line.first16 ? " ★" : ""}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {line.raceType}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {line.distanceMetres}m
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {line.removedCoreNames.join(", ") ||
+                                            "—"}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {line.addedCoreNames.join(", ") || "—"}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {direction(line.strengthDirection)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </details>
+                          );
+                        },
+                      )}
+                    </div>
+
+                    <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+                      Scenario {index + 1} is advisory only. Opening this analysis
+                      does not consume a substitution, record a roster change or
+                      submit any map to DNA.
+                    </p>
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+
+          <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+            {state.substitutionWatch.ageingWatch.detail}
+          </p>
+        </section>
+      )}
 
       <section
         aria-labelledby="pro-league-race-mapping"
