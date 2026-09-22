@@ -202,9 +202,7 @@ export function assessProLeagueCommissioningReadiness(
       "POPULATION_BENCHMARK",
       input.populationBenchmarkReady ? "pass" : "block",
       true,
-      input.populationBenchmarkReady
-        ? input.populationBenchmarkDetail
-        : input.populationBenchmarkDetail,
+      input.populationBenchmarkDetail,
     ),
     check(
       "GENERATION_CONSISTENCY",
