@@ -7,6 +7,9 @@ import {
 
 const readyInput: ProLeagueCommissioningReadinessInput = {
   activeEvidence: true,
+  populationBenchmarkReady: true,
+  populationBenchmarkDetail:
+    "Population evidence includes unowned exact-format profiles.",
   populationProfileCount: 1_200,
   ownedProfileCount: 25,
   ownedCoreWithoutEvidenceCount: 2,
@@ -67,6 +70,25 @@ describe("Pro League commissioning readiness", () => {
     expect(result.protectedPreviewDeploymentAllowed).toBe(false);
     expect(result.productionActivationAllowed).toBe(false);
     expect(result.rosterOrMapSubmissionAllowed).toBe(false);
+  });
+
+  it("blocks protected Preview acceptance when whole-population benchmarking is unavailable", () => {
+    const result = assessProLeagueCommissioningReadiness({
+      ...readyInput,
+      populationBenchmarkReady: false,
+      populationBenchmarkDetail:
+        "Current API exact-format evidence is owner-history-only.",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        code: "POPULATION_BENCHMARK",
+        status: "block",
+        requiredForProtectedPreview: true,
+        detail: "Current API exact-format evidence is owner-history-only.",
+      }),
+    );
   });
 
   it("flags an elevated API rate for explicit Preview review", () => {
