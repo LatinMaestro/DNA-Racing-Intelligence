@@ -43,6 +43,7 @@ export const DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE =
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
 const MAXIMUM_STEPS = 100;
+const MAXIMUM_RUNTIME_MILLISECONDS = 12 * 60_000;
 
 export type DnaOpenLabPrivateDailyRefreshCommandEnvironment =
   DnaOpenLabPrivateDailyRefreshSourceEnvironment &
@@ -62,6 +63,7 @@ export type DnaOpenLabPrivateDailyRefreshCommandInvocation = Readonly<{
   exactCodeHeadSha: string;
   finishedHistoryUpperBoundAt: string;
   maximumSteps: number;
+  maximumRuntimeMilliseconds: number;
 }>;
 
 export type DnaOpenLabPrivateDailyRefreshCommandReceipt = Readonly<{
@@ -275,6 +277,15 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           "DNA Open Lab private daily refresh command step bound is invalid.",
         );
       }
+      if (
+        !Number.isSafeInteger(invocation.maximumRuntimeMilliseconds) ||
+        invocation.maximumRuntimeMilliseconds < 1 ||
+        invocation.maximumRuntimeMilliseconds > MAXIMUM_RUNTIME_MILLISECONDS
+      ) {
+        throw new Error(
+          "DNA Open Lab private daily refresh command runtime bound is invalid.",
+        );
+      }
       const exactCodeHeadSha = exactHead(invocation.exactCodeHeadSha);
       const finishedHistoryUpperBoundAt = timestamp(
         invocation.finishedHistoryUpperBoundAt,
@@ -423,6 +434,13 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           throw new Error(
             "DNA Open Lab private daily refresh command clock is invalid.",
           );
+        }
+        if (
+          stepAt.getTime() - commandStartedAt.getTime() >=
+          invocation.maximumRuntimeMilliseconds
+        ) {
+          terminalKind = "runtime_bound_reached";
+          break;
         }
         if (stepAt.getTime() >= Date.parse(preflightValidUntil)) {
           const renewedMeasurement = await measurementSource.measure({

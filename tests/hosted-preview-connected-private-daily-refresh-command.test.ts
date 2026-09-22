@@ -35,6 +35,18 @@ function maximumSteps(): number {
   return parsed;
 }
 
+function maximumRuntimeMilliseconds(): number {
+  const parsed = Number(
+    requiredEnvironment(
+      "DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_MAXIMUM_RUNTIME_MILLISECONDS",
+    ),
+  );
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 12 * 60_000) {
+    throw new Error("bounded Preview refresh runtime bound is invalid");
+  }
+  return parsed;
+}
+
 describeConnected(
   "hosted Preview bounded private daily refresh command",
   () => {
@@ -87,6 +99,7 @@ describeConnected(
             "DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_UPPER_BOUND_AT",
           ),
           maximumSteps: maximumSteps(),
+          maximumRuntimeMilliseconds: maximumRuntimeMilliseconds(),
         });
         const report = Object.freeze({
           commandVersion: DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_COMMAND_VERSION,

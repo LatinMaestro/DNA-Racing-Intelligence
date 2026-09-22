@@ -2734,3 +2734,14 @@ After the private Pro League milestone, continue in this order:
   content-free hold with the last-good generation preserved. The aggregate DNA
   request ceiling remains 30 per minute, reserved R2 accounting remains
   conservative, and no paid use, Production change or game action is allowed.
+
+## 2026-09-22 — Return resumable progress before the hosted test ceiling
+
+- A 100-step Preview continuation kept making durable progress but reached the
+  connected test's 15-minute ceiling before it could emit its content-free
+  receipt, so GitHub reported a failure despite the restart-safe checkpoints.
+- Bound the command itself to twelve minutes and check that elapsed-time limit
+  before every next request. A reached runtime bound returns an `advanced`
+  receipt and preserves the checkpoint for the next exact-main continuation.
+- Keep the independent step bound, provider-capacity renewal, 30-request/minute
+  ceiling, last-good publication boundary and zero-cost safeguards unchanged.
