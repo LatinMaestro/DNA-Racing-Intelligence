@@ -40,13 +40,7 @@ export const proLeagueOwnerFinalRosterPlan = Object.freeze([
 ] as const satisfies readonly ProLeagueOwnerRosterPlanEntry[]);
 
 export const PRO_LEAGUE_OWNER_DISTANCES = Object.freeze([
-  1000,
-  1200,
-  1400,
-  1600,
-  1800,
-  2000,
-  2200,
+  1000, 1200, 1400, 1600, 1800, 2000, 2200,
 ] as const);
 export type ProLeagueOwnerDistance =
   (typeof PRO_LEAGUE_OWNER_DISTANCES)[number];
