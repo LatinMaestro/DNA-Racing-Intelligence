@@ -279,6 +279,22 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.up.sql
       - name: Run Pro League mixed-mode source smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.smoke.sql
+      - name: Apply Arena pagination truth migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0107_dna_open_lab_arena_pagination_truth.up.sql
+      - name: Run Arena pagination truth smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0107_dna_open_lab_arena_pagination_truth.smoke.sql
+      - name: Apply partial power modes migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.up.sql
+      - name: Run partial power modes smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.smoke.sql
+      - name: Reverse partial power modes migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.down.sql
+      - name: Verify partial power modes removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0108_dna_open_lab_partial_power_modes.removal.sql
+      - name: Reverse Arena pagination truth migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0107_dna_open_lab_arena_pagination_truth.down.sql
+      - name: Verify Arena pagination truth removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0107_dna_open_lab_arena_pagination_truth.removal.sql
       - name: Reverse Pro League mixed-mode source migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0106_pro_league_mixed_mode_source.down.sql
       - name: Verify Pro League mixed-mode source reversal
