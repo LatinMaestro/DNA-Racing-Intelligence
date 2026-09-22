@@ -2,6 +2,10 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const MAXIMUM_VALUE_LENGTH = 4096;
+const INHERITED_PRODUCTION_KEYS = [
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+  "CLERK_SECRET_KEY",
+];
 
 function requiredValue(environment, name) {
   const value = environment[name] ?? "";
@@ -22,19 +26,6 @@ export function previewEnvironmentSpecification(environment) {
     throw new Error(
       "DNA_DATABASE_RUNTIME_ROLE is not the commissioned runtime role",
     );
-  }
-
-  const publishableKey = requiredValue(
-    environment,
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-  );
-  if (!/^pk_(?:test|live)_[A-Za-z0-9_-]+$/u.test(publishableKey)) {
-    throw new Error("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY has an invalid shape");
-  }
-
-  const clerkSecretKey = requiredValue(environment, "CLERK_SECRET_KEY");
-  if (!/^sk_(?:test|live)_[A-Za-z0-9_-]+$/u.test(clerkSecretKey)) {
-    throw new Error("CLERK_SECRET_KEY has an invalid shape");
   }
 
   const authorizedOwnerId = requiredValue(
@@ -76,16 +67,6 @@ export function previewEnvironmentSpecification(environment) {
 
   return [
     {
-      name: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-      value: publishableKey,
-      visibility: "config",
-    },
-    {
-      name: "CLERK_SECRET_KEY",
-      value: clerkSecretKey,
-      visibility: "secret",
-    },
-    {
       name: "AUTHORIZED_CLERK_USER_ID",
       value: authorizedOwnerId,
       visibility: "secret",
@@ -121,62 +102,177 @@ function redact(text, sensitiveValues) {
   return result;
 }
 
-export function syncPreviewEnvironment({
+function metadataUrl(environment, suffix = "") {
+  const projectId = encodeURIComponent(
+    requiredValue(environment, "VERCEL_PROJECT_ID"),
+  );
+  const organizationId = encodeURIComponent(
+    requiredValue(environment, "VERCEL_ORG_ID"),
+  );
+  return `https://api.vercel.com/v9/projects/${projectId}/env${suffix}?teamId=${organizationId}`;
+}
+
+async function readJsonResponse(response, action) {
+  if (!response.ok) {
+    throw new Error(`${action} failed with HTTP ${response.status}`);
+  }
+  try {
+    return await response.json();
+  } catch {
+    throw new Error(`${action} returned invalid JSON`);
+  }
+}
+
+function hasTarget(entry, target) {
+  return Array.isArray(entry.target) && entry.target.includes(target);
+}
+
+function selectInheritedEntry(entries, key) {
+  const matches = entries.filter(
+    (entry) =>
+      entry &&
+      entry.key === key &&
+      entry.gitBranch == null &&
+      hasTarget(entry, "production"),
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      `${key} does not have exactly one unbranched Production binding`,
+    );
+  }
+  const [entry] = matches;
+  if (typeof entry.id !== "string" || entry.id === "") {
+    throw new Error(`${key} has no environment-variable identity`);
+  }
+  return entry;
+}
+
+async function fetchEnvironmentMetadata(environment, fetcher) {
+  const token = requiredValue(environment, "VERCEL_TOKEN");
+  const response = await fetcher(metadataUrl(environment), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const payload = await readJsonResponse(
+    response,
+    "Vercel environment metadata lookup",
+  );
+  if (!Array.isArray(payload.envs)) {
+    throw new Error("Vercel environment metadata response has no envs list");
+  }
+  return payload.envs;
+}
+
+async function extendInheritedBindings(environment, fetcher, entries) {
+  const token = requiredValue(environment, "VERCEL_TOKEN");
+  for (const key of INHERITED_PRODUCTION_KEYS) {
+    const entry = selectInheritedEntry(entries, key);
+    if (hasTarget(entry, "preview")) {
+      continue;
+    }
+    const targets = [...new Set([...entry.target, "preview"])];
+    const response = await fetcher(
+      metadataUrl(environment, `/${encodeURIComponent(entry.id)}`),
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ target: targets }),
+      },
+    );
+    await readJsonResponse(
+      response,
+      `Vercel Preview scope extension for ${key}`,
+    );
+  }
+}
+
+export async function syncPreviewEnvironment({
   environment = process.env,
   runner = spawnSync,
+  fetcher = fetch,
+  validateOnly = false,
 } = {}) {
   const specification = previewEnvironmentSpecification(environment);
   const token = requiredValue(environment, "VERCEL_TOKEN");
   const sensitiveValues = [token, ...specification.map(({ value }) => value)];
 
-  for (const entry of specification) {
-    const result = runner(
-      "vercel",
-      [
-        "env",
-        "add",
-        entry.name,
-        "preview",
-        "--force",
-        "--yes",
-        "--visibility",
-        entry.visibility,
-        `--token=${token}`,
-      ],
-      {
-        input: entry.value,
-        encoding: "utf8",
-        maxBuffer: 1024 * 1024,
-      },
-    );
+  try {
+    let entries = await fetchEnvironmentMetadata(environment, fetcher);
+    if (!validateOnly) {
+      await extendInheritedBindings(environment, fetcher, entries);
 
-    if (result.error || result.status !== 0) {
-      const detail = redact(
-        [result.error?.message, result.stderr, result.stdout]
-          .filter(Boolean)
-          .join("\n"),
-        sensitiveValues,
-      );
-      throw new Error(
-        `Could not synchronize ${entry.name} to Preview${detail === "" ? "" : `: ${detail}`}`,
-      );
+      for (const entry of specification) {
+        const result = runner(
+          "vercel",
+          [
+            "env",
+            "add",
+            entry.name,
+            "preview",
+            "--force",
+            "--yes",
+            "--visibility",
+            entry.visibility,
+            `--token=${token}`,
+          ],
+          {
+            input: entry.value,
+            encoding: "utf8",
+            maxBuffer: 1024 * 1024,
+          },
+        );
+
+        if (result.error || result.status !== 0) {
+          const detail = [result.error?.message, result.stderr, result.stdout]
+            .filter(Boolean)
+            .join("\n");
+          throw new Error(
+            `Could not synchronize ${entry.name} to Preview${detail === "" ? "" : `: ${detail}`}`,
+          );
+        }
+      }
+      entries = await fetchEnvironmentMetadata(environment, fetcher);
     }
+
+    for (const key of [
+      ...INHERITED_PRODUCTION_KEYS,
+      ...specification.map(({ name }) => name),
+    ]) {
+      const matches = entries.filter(
+        (entry) =>
+          entry &&
+          entry.key === key &&
+          entry.gitBranch == null &&
+          hasTarget(entry, "preview"),
+      );
+      if (matches.length !== 1) {
+        throw new Error(
+          `${key} does not have exactly one unbranched Preview binding`,
+        );
+      }
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(redact(detail, sensitiveValues));
   }
 
-  return specification.map(({ name, visibility }) => ({ name, visibility }));
+  return [
+    ...INHERITED_PRODUCTION_KEYS.map((name) => ({
+      name,
+      source: "existing-production-binding",
+    })),
+    ...specification.map(({ name, visibility }) => ({ name, visibility })),
+  ];
 }
 
 async function main() {
   const validateOnly = process.argv.includes("--validate-only");
-  const specification = validateOnly
-    ? previewEnvironmentSpecification(process.env).map(
-        ({ name, visibility }) => ({ name, visibility }),
-      )
-    : syncPreviewEnvironment();
-
+  const specification = await syncPreviewEnvironment({ validateOnly });
   const action = validateOnly ? "Validated" : "Synchronized";
   process.stdout.write(
-    `${action} ${specification.length} bounded Preview environment variables without printing values.\n`,
+    `${action} ${specification.length} bounded Preview environment variables without printing values or provider identifiers.\n`,
   );
 }
 

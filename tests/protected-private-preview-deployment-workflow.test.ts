@@ -23,7 +23,9 @@ describe("protected private Preview deployment workflow", () => {
     );
     expect(workflow).toContain("--environment=preview");
     expect(workflow).toContain("npm install --global vercel@50.1.6");
-    expect(workflow).toContain("deploy --prebuilt --yes");
+    expect(workflow).toContain("deploy --yes");
+    expect(workflow).not.toContain("deploy --prebuilt");
+    expect(workflow).not.toContain("vercel build");
     expect(workflow).not.toMatch(/--prod(?:uction)?\b/u);
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
@@ -38,7 +40,6 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "1"');
     expect(workflow).toContain("synchronize_preview_runtime");
     expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
-    expect(workflow).toContain("--environment=production");
     expect(workflow).toContain("--environment=preview");
     expect(workflow).toContain("--validate-only");
     expect(workflow).toContain("401|403)");
