@@ -21,6 +21,11 @@ export type PreviewEnvironmentRunner = (
   error?: Error;
 }>;
 
+export type PreviewEnvironmentFetcher = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
 export function previewEnvironmentSpecification(
   environment: Readonly<Record<string, string | undefined>>,
 ): PreviewEnvironmentEntry[];
@@ -29,10 +34,15 @@ export function syncPreviewEnvironment(
   options?: Readonly<{
     environment?: Readonly<Record<string, string | undefined>>;
     runner?: PreviewEnvironmentRunner;
+    fetcher?: PreviewEnvironmentFetcher;
+    validateOnly?: boolean;
   }>,
-): Array<
-  Readonly<{
-    name: string;
-    visibility: PreviewEnvironmentVisibility;
-  }>
+): Promise<
+  Array<
+    Readonly<{
+      name: string;
+      visibility?: PreviewEnvironmentVisibility;
+      source?: "existing-production-binding";
+    }>
+  >
 >;

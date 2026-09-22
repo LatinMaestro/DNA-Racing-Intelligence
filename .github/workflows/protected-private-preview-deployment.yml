@@ -132,24 +132,8 @@ jobs:
       - name: Synchronize bounded Preview runtime configuration without exposure
         shell: bash
         run: |
-          production_environment="$(mktemp)"
-          preview_environment="$(mktemp)"
-          cleanup() {
-            rm -f "${production_environment}" "${preview_environment}"
-          }
-          trap cleanup EXIT
-          chmod 600 "${production_environment}" "${preview_environment}"
-
-          vercel env pull "${production_environment}" \
-            --yes --environment=production --token="${VERCEL_TOKEN}" >/dev/null
-          node --env-file="${production_environment}" \
-            scripts/vercel-preview-environment-sync.mjs
-
-          vercel env pull "${preview_environment}" \
-            --yes --environment=preview --token="${VERCEL_TOKEN}" >/dev/null
-          env -i PATH="${PATH}" HOME="${HOME}" \
-            node --env-file="${preview_environment}" \
-            scripts/vercel-preview-environment-sync.mjs --validate-only
+          node scripts/vercel-preview-environment-sync.mjs
+          node scripts/vercel-preview-environment-sync.mjs --validate-only
       - name: Pull protected Preview configuration
         shell: bash
         run: >-
@@ -157,16 +141,11 @@ jobs:
           --yes
           --environment=preview
           --token="${VERCEL_TOKEN}"
-      - name: Build accepted Preview artifact
-        shell: bash
-        run: >-
-          vercel build
-          --token="${VERCEL_TOKEN}"
-      - name: Deploy isolated Preview artifact
+      - name: Build and deploy isolated Preview remotely
         id: deploy
         shell: bash
         run: |
-          url="$(vercel deploy --prebuilt --yes --token="${VERCEL_TOKEN}")"
+          url="$(vercel deploy --yes --token="${VERCEL_TOKEN}")"
           if [[ ! "${url}" =~ ^https://[^/]+\.vercel\.app$ ]]; then
             echo "The deployment command did not return a valid Preview URL."
             exit 1
