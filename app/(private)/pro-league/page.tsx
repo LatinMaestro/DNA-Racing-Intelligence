@@ -7,7 +7,7 @@ import { neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment } from
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
-import { createNeonProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
+import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function ProLeaguePage() {
     databaseEnvironment.databaseUrl.trim() !== "" &&
     databaseEnvironment.databaseOwnerId !== undefined &&
     databaseEnvironment.databaseOwnerId.trim() !== ""
-      ? createNeonProLeagueRosterVersionRepository({
+      ? createNeonProLeagueSubstitutionLedgerReadRepository({
           databaseUrl: databaseEnvironment.databaseUrl,
           databaseOwnerId: databaseEnvironment.databaseOwnerId,
           ownerId: configuredOwnerId,
