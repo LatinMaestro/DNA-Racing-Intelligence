@@ -201,6 +201,7 @@ function resultKind(value: unknown): string {
 function heldResult(kind: string): boolean {
   return (
     kind === "provider_capacity_held" ||
+    kind.startsWith("provider_capacity_held:") ||
     kind === "budget_unavailable" ||
     kind === "budget_blocked" ||
     kind.startsWith("finished_history:paused") ||
@@ -303,31 +304,40 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
         "dna-open-lab-private-current-state-cycle/v1",
         { ownerId, finishedHistoryUpperBoundAt },
       );
-      const cachedMeasurementSource = fixedMeasurementSource(measurement);
-      const sourcesRuntime =
-        dependencies.sourcesFromMeasurement?.(cachedMeasurementSource) ??
-        dnaOpenLabPrivateDailyRefreshSourcesFromEnvironment(environment, {
-          providerCapacityMeasurementSource: cachedMeasurementSource,
-          ...(dependencies.now === undefined ? {} : { now }),
-        });
-      if (sourcesRuntime.status !== "ready") {
-        throw new Error(
-          "DNA Open Lab private daily refresh command sources are unavailable.",
-        );
-      }
-      const preflight =
-        await sourcesRuntime.sources.providerCapacityPreflight.inspect({
-          preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
-          intent: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
-          authenticatedOwnerId: ownerId,
-          exactCodeHeadSha,
-          refreshCycleId,
-          budgetWindowId,
-          plannedR2UsagePerRefresh:
-            DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
-          plannedNeonUsagePerRefresh:
-            DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
-        });
+      const prepareRuntime = async (
+        capacityMeasurement: DnaOpenLabProviderCapacityMeasurement,
+      ) => {
+        const cachedMeasurementSource =
+          fixedMeasurementSource(capacityMeasurement);
+        const sourcesRuntime =
+          dependencies.sourcesFromMeasurement?.(cachedMeasurementSource) ??
+          dnaOpenLabPrivateDailyRefreshSourcesFromEnvironment(environment, {
+            providerCapacityMeasurementSource: cachedMeasurementSource,
+            ...(dependencies.now === undefined ? {} : { now }),
+          });
+        if (sourcesRuntime.status !== "ready") {
+          throw new Error(
+            "DNA Open Lab private daily refresh command sources are unavailable.",
+          );
+        }
+        const preflight =
+          await sourcesRuntime.sources.providerCapacityPreflight.inspect({
+            preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
+            intent: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
+            authenticatedOwnerId: ownerId,
+            exactCodeHeadSha,
+            refreshCycleId,
+            budgetWindowId,
+            plannedR2UsagePerRefresh:
+              DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
+            plannedNeonUsagePerRefresh:
+              DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
+          });
+        return Object.freeze({ sourcesRuntime, preflight });
+      };
+
+      let prepared = await prepareRuntime(measurement);
+      let preflight = prepared.preflight;
       if (preflight.status !== "ready") {
         return Object.freeze({
           status: "held" as const,
@@ -348,6 +358,9 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           preserveLastGood: true as const,
         });
       }
+      let activeMeasurement = measurement;
+      let preflightValidUntil = preflight.validUntil;
+      let preflightSha256 = preflight.preflightSha256;
 
       // A refresh can span multiple short-lived GitHub runners. The concrete
       // source meter only observes the current process, so using it at final
@@ -355,12 +368,15 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
       // resumptions. Account the entire preflight-approved reservation instead.
       // This is deliberately conservative, restart-safe, and can never create
       // more free-tier headroom than the provider has actually supplied.
-      const restartSafeSources = Object.freeze({
-        ...sourcesRuntime.sources,
-        async measureActualR2Usage() {
-          return DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE;
-        },
-      });
+      const restartSafeSources = (
+        sources: DnaOpenLabPrivateDailyRefreshSources,
+      ) =>
+        Object.freeze({
+          ...sources,
+          async measureActualR2Usage() {
+            return DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE;
+          },
+        });
 
       const existingWindow = await budgetRepository.readWindow(ownerId);
       if (existingWindow?.windowId !== budgetWindowId) {
@@ -373,23 +389,31 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           baselineUsage: measurement.currentR2Usage,
         });
       }
-      const operator =
-        dependencies.operatorFromSources?.(restartSafeSources) ??
-        dnaOpenLabPrivateDailyRefreshOperatorFromEnvironment(
-          {
-            databaseUrl,
-            databaseOwnerId,
-            ownerId,
-            runtimeRole,
-          },
-          restartSafeSources,
-          dependencies.sessionFactory,
-        );
-      if (operator.status !== "ready") {
-        throw new Error(
-          "DNA Open Lab private daily refresh command operator is unavailable.",
-        );
-      }
+      const createOperator = (
+        sources: DnaOpenLabPrivateDailyRefreshSources,
+      ) => {
+        const safeSources = restartSafeSources(sources);
+        const operator =
+          dependencies.operatorFromSources?.(safeSources) ??
+          dnaOpenLabPrivateDailyRefreshOperatorFromEnvironment(
+            {
+              databaseUrl,
+              databaseOwnerId,
+              ownerId,
+              runtimeRole,
+            },
+            safeSources,
+            dependencies.sessionFactory,
+          );
+        if (operator.status !== "ready") {
+          throw new Error(
+            "DNA Open Lab private daily refresh command operator is unavailable.",
+          );
+        }
+        return operator;
+      };
+
+      let operator = createOperator(prepared.sourcesRuntime.sources);
 
       let terminalKind = "step_bound_reached";
       let stepCount = 0;
@@ -399,6 +423,45 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           throw new Error(
             "DNA Open Lab private daily refresh command clock is invalid.",
           );
+        }
+        if (stepAt.getTime() >= Date.parse(preflightValidUntil)) {
+          const renewedMeasurement = await measurementSource.measure({
+            ownerId,
+          });
+          const renewedBudgetWindowId = authorityId(
+            "dna-open-lab-r2-budget-window/v1",
+            {
+              ownerId,
+              startAt: renewedMeasurement.billingWindowStartAt,
+              endAt: renewedMeasurement.billingWindowEndAt,
+            },
+          );
+          if (renewedBudgetWindowId !== budgetWindowId) {
+            terminalKind = "provider_capacity_held:billing_window_changed";
+            preflightSha256 = authorityId(
+              "dna-open-lab-private-daily-refresh-billing-window-change/v1",
+              {
+                budgetWindowId,
+                renewedBudgetWindowId,
+              },
+            );
+            break;
+          }
+          prepared = await prepareRuntime(renewedMeasurement);
+          if (prepared.preflight.status !== "ready") {
+            preflight = prepared.preflight;
+            terminalKind = `provider_capacity_held:${preflight.reason}`;
+            preflightSha256 = authorityId(
+              "dna-open-lab-private-daily-refresh-held/v1",
+              preflight,
+            );
+            break;
+          }
+          preflight = prepared.preflight;
+          activeMeasurement = renewedMeasurement;
+          preflightValidUntil = preflight.validUntil;
+          preflightSha256 = preflight.preflightSha256;
+          operator = createOperator(prepared.sourcesRuntime.sources);
         }
         const at = stepAt.toISOString();
         const result = await operator.execute({
@@ -412,7 +475,7 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
           plannedR2Usage: DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
           plannedNeonUsage:
             DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
-          currentR2Usage: measurement.currentR2Usage,
+          currentR2Usage: activeMeasurement.currentR2Usage,
           finishedHistoryUpperBoundAt,
           currentStateCycleId,
           evaluatedAt: at,
@@ -440,7 +503,7 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
         finishedHistoryUpperBoundAt,
         refreshCycleId,
         budgetWindowId,
-        preflightSha256: preflight.preflightSha256,
+        preflightSha256,
         r2AccountingBasis: "reserved_upper_bound" as const,
         persistentWriteArmed: true as const,
         previewOnly: true as const,
