@@ -173,6 +173,17 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         }),
       );
       expect(state.readiness?.summary.blockCount).toBeGreaterThanOrEqual(1);
+      expect(state.weeklyPerformance).toBeDefined();
+      expect(state.weeklyPerformance?.sourceStatus).toBe("intrinsic_only");
+      expect(state.weeklyPerformance?.rows).toHaveLength(25);
+      expect(state.weeklyPerformance?.summary.substitutionReviewCount).toBe(0);
+      expect(state.weeklyPerformance?.summary.remapReviewCount).toBe(0);
+      expect(
+        state.weeklyPerformance?.rows.every(
+          ({ action, weeklyRaceCount }) =>
+            action === "monitor" && weeklyRaceCount === null,
+        ),
+      ).toBe(true);
       expect(state.substitutionLedger?.status).toBe("connected");
       expect(state.substitutionLedger?.maximumSubstitutions).toBe(10);
       expect(state.substitutionLedger?.usedCount).not.toBeNull();
@@ -205,6 +216,9 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(markup).toContain("Map selection &amp; deny preference");
       expect(markup).toContain("Race mapping");
       expect(markup).toContain("Roster health");
+      expect(markup).toContain("Weekly roster performance");
+      expect(markup).toContain("league result source pending");
+      expect(markup).toContain("API lane pending");
       expect(markup).toContain("Substitution watch");
       expect(markup).toContain("Analyse");
       expect(markup).toContain("Population benchmark pending");
@@ -260,6 +274,12 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           substitutionsUsed: state.substitutionLedger!.usedCount,
           substitutionWatchCandidateCount:
             state.substitutionWatch!.candidates.length,
+          weeklyPerformanceSource: state.weeklyPerformance!.sourceStatus,
+          weeklyPerformanceRowCount: state.weeklyPerformance!.rows.length,
+          weeklyRemapReviewCount:
+            state.weeklyPerformance!.summary.remapReviewCount,
+          weeklySubstitutionReviewCount:
+            state.weeklyPerformance!.summary.substitutionReviewCount,
           initialRosterConsumesSubstitution: false,
           automaticActionAllowed: false,
           previewOnly: true,
