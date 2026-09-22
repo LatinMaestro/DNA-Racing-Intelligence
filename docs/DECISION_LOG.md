@@ -2719,3 +2719,18 @@ After the private Pro League milestone, continue in this order:
 - Publish only after exact source coverage, row ordinals, family counts and the
   complete two-family digest reconcile. Keep the previous last-good pointer on
   any source drift, failure or incomplete run.
+
+## 2026-09-22 — Renew capacity authority during long Preview refresh runs
+
+- The corrected complete-Arena Preview refresh advanced 14 durable steps, then
+  stopped after five minutes because its single cached read-only provider
+  measurement had reached the existing freshness limit. This was an authority
+  expiry, not proof that free provider capacity was exhausted.
+- Before starting a later bounded step after that expiry, obtain a fresh
+  Cloudflare/Neon measurement, rerun the same conservative monthly projection
+  and rebuild the connected operator from that authority. Continue only when
+  the billing window is unchanged and the renewed projection is ready.
+- A changed billing window, failed measurement or closed projection remains a
+  content-free hold with the last-good generation preserved. The aggregate DNA
+  request ceiling remains 30 per minute, reserved R2 accounting remains
+  conservative, and no paid use, Production change or game action is allowed.

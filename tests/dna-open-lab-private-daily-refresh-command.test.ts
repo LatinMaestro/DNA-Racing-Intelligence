@@ -39,19 +39,22 @@ function environment() {
   };
 }
 
-function measurement(): DnaOpenLabProviderCapacityMeasurement {
+function measurement(input?: {
+  measuredAt?: string;
+  classAOperations?: number;
+}): DnaOpenLabProviderCapacityMeasurement {
   return Object.freeze({
     evidenceSource: "provider_api",
     r2StorageClass: "Standard",
-    measuredAt: "2026-09-09T13:04:59.000Z",
+    measuredAt: input?.measuredAt ?? "2026-09-09T13:04:59.000Z",
     billingWindowStartAt: "2026-09-01T00:00:00.000Z",
     billingWindowEndAt: "2026-10-01T00:00:00.000Z",
     currentR2Usage: {
       storageBytes: 900_000_000,
-      classAOperations: 10_000,
+      classAOperations: input?.classAOperations ?? 10_000,
       classBOperations: 20_000,
     },
-    neonMeasuredAt: "2026-09-09T13:04:59.000Z",
+    neonMeasuredAt: input?.measuredAt ?? "2026-09-09T13:04:59.000Z",
     neonBillingWindowStartAt: "2026-09-01T00:00:00.000Z",
     neonBillingWindowEndAt: "2026-10-01T00:00:00.000Z",
     currentNeonUsage: {
@@ -61,7 +64,11 @@ function measurement(): DnaOpenLabProviderCapacityMeasurement {
   });
 }
 
-function sources(input?: { held?: boolean; order?: string[] }) {
+function sources(input?: {
+  held?: boolean;
+  order?: string[];
+  validUntil?: string;
+}) {
   const inspect = vi.fn(async () => {
     input?.order?.push("preflight");
     return input?.held
@@ -86,7 +93,7 @@ function sources(input?: { held?: boolean; order?: string[] }) {
           planSha256: sha,
           preflightSha256: sha,
           checkedAt: "2026-09-09T13:05:00.000Z",
-          validUntil: "2026-09-09T13:09:59.000Z",
+          validUntil: input?.validUntil ?? "2026-09-09T13:09:59.000Z",
           projection: {
             allowed: true,
             action: "commission_refresh" as const,
@@ -307,6 +314,150 @@ describe("DNA Open Lab private daily refresh command", () => {
       classAOperations: 1_000,
       classBOperations: 2_000,
     });
+  });
+
+  it("renews expired read-only capacity authority before the next bounded step", async () => {
+    const order: string[] = [];
+    const repository = budget(order);
+    const measurements = [
+      measurement(),
+      measurement({
+        measuredAt: "2026-09-09T13:09:59.000Z",
+        classAOperations: 10_100,
+      }),
+    ];
+    const clock = [
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:10:00.000Z"),
+    ];
+    const invocations: DnaOpenLabPrivateDailyRefreshInvocation[] = [];
+    let runtimeCount = 0;
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now: () => clock.shift() ?? new Date("2026-09-09T13:10:00.000Z"),
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => {
+            order.push("measure");
+            const next = measurements.shift();
+            if (next === undefined) throw new Error("unexpected measurement");
+            return next;
+          }),
+        },
+        budgetRepository: repository.value,
+        sourcesFromMeasurement: () => {
+          const source = sources({
+            order,
+            validUntil:
+              runtimeCount === 0
+                ? "2026-09-09T13:09:59.000Z"
+                : "2026-09-09T13:14:59.000Z",
+          });
+          runtimeCount += 1;
+          return { status: "ready", sources: source.value };
+        },
+        operatorFromSources: () => ({
+          status: "ready",
+          execute: vi.fn(async (request) => {
+            order.push("operator");
+            invocations.push(request);
+            return {
+              kind: "finished_history",
+              step: { kind: "advanced" },
+            } as never;
+          }),
+        }),
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "advanced",
+      stepCount: 2,
+      terminalKind: "finished_history:advanced",
+    });
+    expect(order).toEqual([
+      "measure",
+      "preflight",
+      "read_window",
+      "open_window",
+      "operator",
+      "measure",
+      "preflight",
+      "operator",
+    ]);
+    expect(runtimeCount).toBe(2);
+    expect(invocations[0]?.currentR2Usage.classAOperations).toBe(10_000);
+    expect(invocations[1]?.currentR2Usage.classAOperations).toBe(10_100);
+  });
+
+  it("holds without another operator step when renewed capacity closes", async () => {
+    const order: string[] = [];
+    const repository = budget(order);
+    const measurements = [
+      measurement(),
+      measurement({ measuredAt: "2026-09-09T13:09:59.000Z" }),
+    ];
+    const clock = [
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:10:00.000Z"),
+    ];
+    let runtimeCount = 0;
+    const execute = vi.fn(async () => {
+      order.push("operator");
+      return {
+        kind: "finished_history",
+        step: { kind: "advanced" },
+      } as never;
+    });
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now: () => clock.shift() ?? new Date("2026-09-09T13:10:00.000Z"),
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => {
+            order.push("measure");
+            const next = measurements.shift();
+            if (next === undefined) throw new Error("unexpected measurement");
+            return next;
+          }),
+        },
+        budgetRepository: repository.value,
+        sourcesFromMeasurement: () => {
+          const source = sources({
+            order,
+            held: runtimeCount === 1,
+            validUntil: "2026-09-09T13:09:59.000Z",
+          });
+          runtimeCount += 1;
+          return { status: "ready", sources: source.value };
+        },
+        operatorFromSources: () => ({ status: "ready", execute }),
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "held",
+      stepCount: 1,
+      terminalKind: "provider_capacity_held:capacity_blocked",
+      paidUsageAllowed: false,
+      preserveLastGood: true,
+    });
+    expect(order).toEqual([
+      "measure",
+      "preflight",
+      "read_window",
+      "open_window",
+      "operator",
+      "measure",
+      "preflight",
+    ]);
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 
   it("retains a content-free finished-history pause reason", async () => {
