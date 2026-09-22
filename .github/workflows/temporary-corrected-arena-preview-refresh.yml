@@ -55,6 +55,13 @@ jobs:
             exit 1
           fi
           echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+      - name: Prove daily refresh lineage fix is present on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+          grep -Fq 'WITH RECURSIVE lineage AS' database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+          grep -Fq '0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql' .github/workflows/ci.yml
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
