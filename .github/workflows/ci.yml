@@ -29,7 +29,22 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: TEMPORARY print weekly-monitor Prettier diff
+        shell: bash
+        run: |
+          npx prettier --write \
+            components/pro-league-commissioning-panel.tsx \
+            domain/pro-league-weekly-roster-performance.ts \
+            lib/pro-league-draft-commissioning-service.ts \
+            lib/pro-league-weekly-roster-performance-service.ts \
+            tests/pro-league-weekly-roster-performance.test.ts
+          git diff -- \
+            components/pro-league-commissioning-panel.tsx \
+            domain/pro-league-weekly-roster-performance.ts \
+            lib/pro-league-draft-commissioning-service.ts \
+            lib/pro-league-weekly-roster-performance-service.ts \
+            tests/pro-league-weekly-roster-performance.test.ts
+          exit 1
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
