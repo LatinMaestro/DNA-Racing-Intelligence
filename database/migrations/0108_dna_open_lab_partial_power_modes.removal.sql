@@ -15,7 +15,7 @@ DECLARE
   }'::jsonb;
 BEGIN
   IF to_regprocedure(
-    'dna.validate_dna_open_lab_supplemental_core_canonical_complete_power_modes(text,text,jsonb)'
+    'dna.validate_dna_open_lab_supplemental_core_canonical_strict_modes(text,text,jsonb)'
   ) IS NOT NULL THEN
     RAISE EXCEPTION 'partial power-mode helper still exists';
   END IF;
