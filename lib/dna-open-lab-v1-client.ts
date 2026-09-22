@@ -155,11 +155,7 @@ export type DnaCorePowerMode = DnaOpenLabRecord<{
 
 export type DnaCorePower = DnaOpenLabRecord<{
   hid: number;
-  power: Readonly<{
-    bike: DnaCorePowerMode;
-    car: DnaCorePowerMode;
-    horse: DnaCorePowerMode;
-  }>;
+  power: Readonly<Partial<Record<DnaRaceMode, DnaCorePowerMode>>>;
   m_stats: unknown;
 }>;
 
