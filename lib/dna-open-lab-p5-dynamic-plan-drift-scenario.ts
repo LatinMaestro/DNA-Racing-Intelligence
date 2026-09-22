@@ -178,6 +178,7 @@ export function createDnaOpenLabP5DynamicPlanDriftScenario(
     for (const plan of changedPlans) {
       const authority = createDnaCurrentStateScheduledCycleAuthority({
         evaluatedAt,
+        validatedAt: evaluatedAt,
         plan,
         priorIndex: prior.index,
       });

@@ -82,10 +82,13 @@ function latestReceiptByGroup(
 /**
  * Derives cadence only from the serving last-good index. Plan drift forces a
  * full cycle, so cached receipts can never be applied to a changed ownership,
- * race or Arena request set.
+ * race or Arena request set. The durable evaluation point remains authoritative
+ * for scheduling, while validatedAt independently proves persisted evidence is
+ * not from the future relative to the current operator attempt.
  */
 export function createDnaCurrentStateScheduledCycleAuthority(input: {
   evaluatedAt: string;
+  validatedAt: string;
   plan: DnaCurrentStateSyncPlan;
   priorIndex: DnaCurrentStateEvidenceIndex | null;
   maximumAggregateRequestsPerMinute?: number;
@@ -110,7 +113,7 @@ export function createDnaCurrentStateScheduledCycleAuthority(input: {
     const prior = validateDnaCurrentStateEvidenceIndex({
       index: input.priorIndex,
       plan: input.plan,
-      validatedAt: input.evaluatedAt,
+      validatedAt: input.validatedAt,
     });
     cachedEvidenceObservedAt = latestReceiptByGroup(prior);
     checkpoints = Object.fromEntries(
@@ -189,6 +192,7 @@ export async function runDnaCurrentStateScheduledCycleStep(input: {
     });
   const authority = createDnaCurrentStateScheduledCycleAuthority({
     evaluatedAt: input.evaluatedAt,
+    validatedAt: input.attemptedAt,
     plan: input.plan,
     priorIndex,
     ...(input.maximumAggregateRequestsPerMinute === undefined

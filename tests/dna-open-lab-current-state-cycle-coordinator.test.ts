@@ -94,8 +94,10 @@ function fixture() {
 describe("DNA Open Lab current-state cycle coordinator", () => {
   it("requires a full cycle without serving receipt authority", () => {
     const { plan } = fixture();
+    const evaluatedAt = "2026-08-28T12:02:00.000Z";
     const authority = createDnaCurrentStateScheduledCycleAuthority({
-      evaluatedAt: "2026-08-28T12:02:00.000Z",
+      evaluatedAt,
+      validatedAt: evaluatedAt,
       plan,
       priorIndex: null,
     });
@@ -108,8 +110,10 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
 
   it("stays idle before the complete daily boundary", () => {
     const { plan, priorIndex } = fixture();
+    const evaluatedAt = "2026-08-28T12:02:00.000Z";
     const authority = createDnaCurrentStateScheduledCycleAuthority({
-      evaluatedAt: "2026-08-28T12:02:00.000Z",
+      evaluatedAt,
+      validatedAt: evaluatedAt,
       plan,
       priorIndex,
     });
@@ -130,10 +134,43 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
     });
   });
 
+  it("validates a newer serving index at the current attempt while preserving the durable evaluation point", () => {
+    const { plan, priorIndex } = fixture();
+    const laterIndex = Object.freeze({
+      ...priorIndex,
+      indexedAt: "2026-08-28T12:01:00.000Z",
+    });
+
+    const authority = createDnaCurrentStateScheduledCycleAuthority({
+      evaluatedAt: firstAt,
+      validatedAt: "2026-08-28T12:02:00.000Z",
+      plan,
+      priorIndex: laterIndex,
+    });
+
+    expect(authority.cachedEvidenceObservedAt).toEqual({
+      race_activity: firstAt,
+      token_prices: firstAt,
+      vault_identity: firstAt,
+      core_current_state: firstAt,
+      splice_arena: firstAt,
+    });
+    expect(() =>
+      createDnaCurrentStateScheduledCycleAuthority({
+        evaluatedAt: firstAt,
+        validatedAt: firstAt,
+        plan,
+        priorIndex: laterIndex,
+      }),
+    ).toThrow("indexedAt cannot follow validation time");
+  });
+
   it("refreshes every recurring group together at the daily boundary", () => {
     const { plan, priorIndex } = fixture();
+    const evaluatedAt = "2026-08-29T12:00:00.000Z";
     const authority = createDnaCurrentStateScheduledCycleAuthority({
-      evaluatedAt: "2026-08-29T12:00:00.000Z",
+      evaluatedAt,
+      validatedAt: evaluatedAt,
       plan,
       priorIndex,
     });
@@ -154,8 +191,10 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
       spliceArenaPagesByMode: { bike: [1] },
     });
     expect(changed).not.toEqual(plan);
+    const evaluatedAt = "2026-08-28T12:02:00.000Z";
     const authority = createDnaCurrentStateScheduledCycleAuthority({
-      evaluatedAt: "2026-08-28T12:02:00.000Z",
+      evaluatedAt,
+      validatedAt: evaluatedAt,
       plan: changed,
       priorIndex,
     });
