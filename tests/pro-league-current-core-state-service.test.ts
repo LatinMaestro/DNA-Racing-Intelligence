@@ -171,7 +171,7 @@ describe("Pro League current Core state service", () => {
     ).rejects.toThrow("incomplete for Silver Comet");
   });
 
-  it("fails closed when the provider omits Bike power for a selected Core", async () => {
+  it("keeps a valid current generation connected when Bike power is omitted explicitly", async () => {
     const values = rows().map((value) =>
       value.family === "power"
         ? row("power", {
@@ -195,8 +195,12 @@ describe("Pro League current Core state service", () => {
         ownerId: "private_owner",
         selectedCores: [{ sourceCoreId: "101", displayName: "Silver Comet" }],
         repository: repository(values),
+        now: new Date("2026-09-08T00:00:00.000Z"),
       }),
-    ).rejects.toThrow("lacks reported Bike power for Silver Comet");
+    ).resolves.toMatchObject({
+      status: "connected",
+      cores: [{ displayName: "Silver Comet", bikePower: null }],
+    });
   });
 
   it("distinguishes missing configuration from an absent active generation", async () => {
