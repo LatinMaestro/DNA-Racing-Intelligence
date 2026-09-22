@@ -59,7 +59,7 @@ export async function loadProLeagueSubstitutionLedgerState(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (
-      /does not exist|undefined table|undefined function|relation .* does not exist|function .* does not exist/iu.test(
+      /not configured|does not exist|undefined table|undefined function|relation .* does not exist|function .* does not exist/iu.test(
         message,
       )
     ) {
