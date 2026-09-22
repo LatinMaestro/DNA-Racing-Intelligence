@@ -1,0 +1,74 @@
+name: DNA Open Lab daily refresh lineage migration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.smoke.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.down.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.removal.sql
+      - .github/workflows/dna-open-lab-daily-refresh-lineage-ci.yml
+  push:
+    branches:
+      - main
+    paths:
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.smoke.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.down.sql
+      - database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.removal.sql
+      - .github/workflows/dna-open-lab-daily-refresh-lineage-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_racing_daily_refresh_lineage_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_racing_daily_refresh_lineage_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_racing_daily_refresh_lineage_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply authoritative CI migration baseline through 0110
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t migrations < <(
+            grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
+              awk '!seen[$0]++'
+          )
+          if [[ "${#migrations[@]}" -lt 1 ]] || [[ "${migrations[-1]}" != "database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql" ]]; then
+            echo "Authoritative CI migration baseline does not end at 0110."
+            exit 1
+          fi
+          for migration in "${migrations[@]}"; do
+            psql --set ON_ERROR_STOP=1 --file "$migration" >/dev/null
+          done
+      - name: Apply daily refresh lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+      - name: Run daily refresh lineage smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.smoke.sql
+      - name: Reverse daily refresh lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.down.sql
+      - name: Verify daily refresh lineage reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.removal.sql
