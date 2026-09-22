@@ -4,7 +4,7 @@ ALTER FUNCTION dna.validate_dna_open_lab_supplemental_core_canonical(
   text,
   text,
   jsonb
-) RENAME TO validate_dna_open_lab_supplemental_core_canonical_complete_power_modes;
+) RENAME TO validate_dna_open_lab_supplemental_core_canonical_strict_modes;
 
 CREATE FUNCTION dna.validate_dna_open_lab_supplemental_core_canonical(
   p_family text,
@@ -22,7 +22,7 @@ DECLARE
   v_mode_value jsonb;
 BEGIN
   IF p_family <> 'power' THEN
-    PERFORM dna.validate_dna_open_lab_supplemental_core_canonical_complete_power_modes(
+    PERFORM dna.validate_dna_open_lab_supplemental_core_canonical_strict_modes(
       p_family,
       p_source_core_id,
       p_canonical
