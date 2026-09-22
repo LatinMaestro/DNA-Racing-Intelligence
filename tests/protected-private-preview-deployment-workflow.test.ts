@@ -37,7 +37,7 @@ describe("protected private Preview deployment workflow", () => {
       "DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}",
     );
     expect(workflow).toContain("DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime");
-    expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "1"');
+    expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "true"');
     expect(workflow).toContain("synchronize_preview_runtime");
     expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
     expect(workflow).toContain("--environment=preview");
