@@ -72,6 +72,14 @@ const RECORD_SUBSTITUTION_SQL = `SELECT * FROM dna.record_pro_league_roster_subs
 )`;
 const LIST_SUBSTITUTIONS_SQL =
   "SELECT * FROM dna.list_pro_league_roster_substitutions($1::uuid,$2::integer)";
+const PROBE_SUBSTITUTION_LEDGER_SQL = `
+  SELECT
+    to_regclass('dna.pro_league_roster_substitution') IS NOT NULL
+      AS substitution_table_exists,
+    to_regprocedure(
+      'dna.list_pro_league_roster_substitutions(uuid,integer)'
+    ) IS NOT NULL AS list_function_exists
+`;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 type Row = Readonly<Record<string, unknown>>;
@@ -315,6 +323,11 @@ export function createNeonProLeagueRosterVersionRepository(
     options: Readonly<{
       ownerId: string;
       readOnly: boolean;
+      availabilityProbe?: Readonly<{
+        sql: string;
+        label: string;
+        isAvailable: (value: Row) => boolean;
+      }>;
       execute: (
         query: (
           statement: string,
@@ -334,6 +347,17 @@ export function createNeonProLeagueRosterVersionRepository(
           : "BEGIN ISOLATION LEVEL SERIALIZABLE",
       );
       await session.client.query(SET_OWNER_SCOPE_SQL, [databaseOwnerId]);
+      if (options.availabilityProbe !== undefined) {
+        const probe = one(
+          await session.client.query(options.availabilityProbe.sql),
+          options.availabilityProbe.label,
+        );
+        if (!options.availabilityProbe.isAvailable(probe)) {
+          throw new Error(
+            "Pro League substitution ledger persistence is not configured.",
+          );
+        }
+      }
       verifyIsolation(
         await session.client.query(VERIFY_ISOLATION_SQL, [
           databaseOwnerId,
@@ -482,6 +506,13 @@ export function createNeonProLeagueRosterVersionRepository(
       return transaction({
         ownerId,
         readOnly: true,
+        availabilityProbe: {
+          sql: PROBE_SUBSTITUTION_LEDGER_SQL,
+          label: "substitution ledger availability",
+          isAvailable: (value) =>
+            bool(value.substitution_table_exists, "substitution table") &&
+            bool(value.list_function_exists, "substitution list function"),
+        },
         async execute(query) {
           const result = await query(LIST_SUBSTITUTIONS_SQL, [
             databaseOwnerId,
