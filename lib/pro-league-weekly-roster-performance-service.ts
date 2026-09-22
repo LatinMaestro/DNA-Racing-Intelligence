@@ -1,4 +1,7 @@
-import { buildCoreEsportsPerformanceProfiles, type CoreEsportsRaceObservation } from "@/domain/core-esports-performance";
+import {
+  buildCoreEsportsPerformanceProfiles,
+  type CoreEsportsRaceObservation,
+} from "@/domain/core-esports-performance";
 import type { ProLeagueOwnerCommissioningPlan } from "@/domain/pro-league-owner-commissioning-plan";
 import type { ProLeagueDraftRosterRecommendation } from "@/domain/pro-league-roster-recommendation";
 import type { ProLeagueSubstitutionWatch } from "@/domain/pro-league-substitution-watch";
@@ -11,9 +14,7 @@ export type ProLeagueWeeklyEsportsRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      listRaceObservationsByOwner: (
-        ownerId: string,
-      ) => Promise<
+      listRaceObservationsByOwner: (ownerId: string) => Promise<
         Readonly<{
           observations: readonly CoreEsportsRaceObservation[];
           lastSyncedAt: string | null;
@@ -32,14 +33,16 @@ function timestamp(value: string, label: string): string {
   return value;
 }
 
-export async function loadProLeagueWeeklyRosterPerformance(input: Readonly<{
-  ownerId: string;
-  roster: ProLeagueDraftRosterRecommendation;
-  ownerPlan: ProLeagueOwnerCommissioningPlan;
-  substitutionWatch?: ProLeagueSubstitutionWatch;
-  esportsRepository?: ProLeagueWeeklyEsportsRepository;
-  now: Date;
-}>): Promise<ProLeagueWeeklyRosterPerformance> {
+export async function loadProLeagueWeeklyRosterPerformance(
+  input: Readonly<{
+    ownerId: string;
+    roster: ProLeagueDraftRosterRecommendation;
+    ownerPlan: ProLeagueOwnerCommissioningPlan;
+    substitutionWatch?: ProLeagueSubstitutionWatch;
+    esportsRepository?: ProLeagueWeeklyEsportsRepository;
+    now: Date;
+  }>,
+): Promise<ProLeagueWeeklyRosterPerformance> {
   if (Number.isNaN(input.now.getTime())) {
     throw new Error("Pro League weekly performance time is invalid.");
   }
@@ -56,7 +59,9 @@ export async function loadProLeagueWeeklyRosterPerformance(input: Readonly<{
       now: input.now,
     });
   }
-  const projection = await repository.listRaceObservationsByOwner(input.ownerId);
+  const projection = await repository.listRaceObservationsByOwner(
+    input.ownerId,
+  );
   const lastSyncedAt =
     projection.lastSyncedAt === null
       ? null
