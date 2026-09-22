@@ -26,6 +26,7 @@ const invocation: DnaOpenLabPrivateDailyRefreshCommandInvocation =
     exactCodeHeadSha: head,
     finishedHistoryUpperBoundAt: upperBoundAt,
     maximumSteps: 2,
+    maximumRuntimeMilliseconds: 12 * 60_000,
   });
 
 function environment() {
@@ -204,6 +205,33 @@ describe("DNA Open Lab private daily refresh command", () => {
     expect(order).toEqual([]);
   });
 
+  it("rejects a runtime bound outside the safe hosted window", async () => {
+    const order: string[] = [];
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now,
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => measurement()),
+        },
+        budgetRepository: budget(order).value,
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(
+      command.execute({ ...invocation, maximumRuntimeMilliseconds: 0 }),
+    ).rejects.toThrow("runtime bound is invalid");
+    await expect(
+      command.execute({
+        ...invocation,
+        maximumRuntimeMilliseconds: 12 * 60_000 + 1,
+      }),
+    ).rejects.toThrow("runtime bound is invalid");
+    expect(order).toEqual([]);
+  });
+
   it("holds before the first durable write when fresh capacity is blocked", async () => {
     const order: string[] = [];
     const source = sources({ held: true, order });
@@ -314,6 +342,54 @@ describe("DNA Open Lab private daily refresh command", () => {
       classAOperations: 1_000,
       classBOperations: 2_000,
     });
+  });
+
+  it("returns saved progress before the hosted runtime ceiling", async () => {
+    const order: string[] = [];
+    const source = sources();
+    const repository = budget(order);
+    const clock = [
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:05:00.000Z"),
+      new Date("2026-09-09T13:05:01.000Z"),
+    ];
+    const execute = vi.fn(
+      async () =>
+        ({
+          kind: "finished_history" as const,
+          step: { kind: "advanced" as const },
+        }) as never,
+    );
+    const command = dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
+      environment(),
+      {
+        now: () => clock.shift() ?? new Date("2026-09-09T13:05:01.000Z"),
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => measurement()),
+        },
+        budgetRepository: repository.value,
+        sourcesFromMeasurement: () => ({
+          status: "ready",
+          sources: source.value,
+        }),
+        operatorFromSources: () => ({ status: "ready", execute }),
+      },
+    );
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(
+      command.execute({
+        ...invocation,
+        maximumRuntimeMilliseconds: 1_000,
+      }),
+    ).resolves.toMatchObject({
+      status: "advanced",
+      stepCount: 1,
+      terminalKind: "runtime_bound_reached",
+      preserveLastGood: true,
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 
   it("renews expired read-only capacity authority before the next bounded step", async () => {
