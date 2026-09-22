@@ -330,6 +330,47 @@ describe("DNA Open Lab current-state publication runner", () => {
     ).toHaveLength(2);
   });
 
+  it("publishes explicit partial power-mode evidence without fabricating omitted modes", async () => {
+    const { schedule, checkpoint, readEvidence } = fixture();
+    const originalRead = readEvidence.getMockImplementation()!;
+    readEvidence.mockImplementation(async (input) => {
+      const value = await originalRead(input);
+      if (value.request.endpoint !== "cores.power_bulk") return value;
+      return {
+        ...value,
+        response: {
+          ...value.response,
+          result: [
+            {
+              hid: 101,
+              power: {
+                bike: { power: 1, adjodds: 2, variance: 3, races_n: 4 },
+              },
+              m_stats: null,
+            },
+          ],
+        },
+      };
+    });
+
+    const assembled = await assembleDnaCurrentStatePublication({
+      cycleId,
+      schedule,
+      checkpoint,
+      validatedAt: observedAt,
+      readEvidence,
+    });
+
+    expect(assembled.supplementalCore.power[0]?.canonical.byMode).toEqual({
+      bike: {
+        powerSourceValue: 1,
+        adjustedOddsSourceValue: 2,
+        varianceSourceValue: 3,
+        raceCount: 4,
+      },
+    });
+  });
+
   it("calls the atomic repository once only after reconstruction", async () => {
     const { schedule, checkpoint, readEvidence } = fixture();
     const publishCandidate = vi.fn(
