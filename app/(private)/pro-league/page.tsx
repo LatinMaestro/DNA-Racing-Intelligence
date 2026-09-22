@@ -7,6 +7,7 @@ import { neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment } from
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
+import { createNeonProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,20 @@ export default async function ProLeaguePage() {
       ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
     },
   );
+  const rosterVersionRepository =
+    configuredOwnerId !== null &&
+    databaseEnvironment.databaseUrl !== undefined &&
+    databaseEnvironment.databaseUrl.trim() !== "" &&
+    databaseEnvironment.databaseOwnerId !== undefined &&
+    databaseEnvironment.databaseOwnerId.trim() !== ""
+      ? createNeonProLeagueRosterVersionRepository({
+          databaseUrl: databaseEnvironment.databaseUrl,
+          databaseOwnerId: databaseEnvironment.databaseOwnerId,
+          ownerId: configuredOwnerId,
+          runtimeRole:
+            databaseEnvironment.runtimeRole?.trim() || "dna_app_runtime",
+        })
+      : null;
   const commissioning = await loadProLeagueDraftCommissioningState({
     authenticatedOwnerId,
     configuredOwnerId,
@@ -68,6 +83,8 @@ export default async function ProLeaguePage() {
         },
         DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
       ),
+    rosterVersionRepository,
+    substitutionSeasonYear: now.getUTCFullYear(),
     now,
   });
 
