@@ -20,6 +20,11 @@ import {
   type ProLeagueRosterRole,
   type ProLeagueRosterVersion,
 } from "@/domain/pro-league-roster-version";
+import {
+  PRO_LEAGUE_OWNER_FINAL_PLAN_ID,
+  normalizeProLeagueOwnerCoreName,
+  proLeagueOwnerFinalRosterPlan,
+} from "@/domain/pro-league-owner-final-plan";
 import type { ActiveProLeagueEvidenceGeneration } from "@/lib/neon-pro-league-evidence-generation-repository";
 
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9._:/-]{0,127}$/iu;
@@ -89,7 +94,7 @@ export type ProLeagueDraftRosterRecommendation = Readonly<{
     intrinsicMetrics: "time_speed_consistency_sample_freshness";
     resultEvidenceRole: "supporting_only_not_ranked";
     missingOppositionQuality: "unknown_never_favourable";
-    rosterTarget: "largest_rule_valid_up_to_25";
+    rosterTarget: "largest_rule_valid_up_to_25" | "owner_finalized_25";
   }>;
   generationId: string;
   evidenceCutoffAt: string;
@@ -570,6 +575,43 @@ function reason(candidate: ProLeagueRosterCandidateScore): string {
   return `${prefix}${vector.winningLines} winning-range and ${vector.topThreeOrBetterLines} top-three-or-better published line(s) across ${vector.exactFormatCells} ranked exact-format cell(s). Intrinsic time/consistency controlled selection; outcomes were supporting only.`;
 }
 
+function selectOwnerFinalRoster(
+  candidates: readonly ProLeagueRosterCandidateScore[],
+): Readonly<{
+  selected: readonly ProLeagueRosterCandidateScore[] | null;
+  missingNames: readonly string[];
+}> {
+  const byName = new Map<string, ProLeagueRosterCandidateScore>();
+  for (const value of candidates) {
+    const name = normalizeProLeagueOwnerCoreName(value.core.displayName);
+    if (byName.has(name)) {
+      throw new Error(
+        `Pro League owner final roster name is ambiguous: ${value.core.displayName}.`,
+      );
+    }
+    byName.set(name, value);
+  }
+  const missingNames: string[] = [];
+  const selected: ProLeagueRosterCandidateScore[] = [];
+  for (const planned of proLeagueOwnerFinalRosterPlan) {
+    const value = byName.get(
+      normalizeProLeagueOwnerCoreName(planned.displayName),
+    );
+    if (value === undefined) {
+      missingNames.push(planned.displayName);
+      continue;
+    }
+    selected.push(value);
+  }
+  return Object.freeze({
+    selected:
+      missingNames.length === 0 && selected.length === 25
+        ? Object.freeze(selected)
+        : null,
+    missingNames: Object.freeze(missingNames),
+  });
+}
+
 function selectedVault(
   vault: ProLeagueMatchupVault,
   selected: readonly ProLeagueRosterCandidateScore[],
@@ -591,6 +633,7 @@ export function buildProLeagueDraftRosterRecommendation(
     rosterVersionId: string;
     versionNumber: number;
     maximumSearchNodes?: number;
+    useOwnerFinalPlan?: boolean;
   }>,
 ): ProLeagueDraftRosterRecommendation {
   identity(input.vault.vaultId, "Vault ID");
@@ -648,20 +691,28 @@ export function buildProLeagueDraftRosterRecommendation(
   );
   let visitedNodeCount = 0;
   let boundReached = false;
-  while (
-    targetSize >= proLeagueCurrentRules.minimumRosterSize &&
-    selected === null &&
-    !boundReached
-  ) {
-    const found = selectRoster(
-      candidates,
-      targetSize,
-      maximumNodeCount - visitedNodeCount,
-    );
-    visitedNodeCount += found.visitedNodeCount;
-    selected = found.selected;
-    boundReached = found.boundReached;
-    if (selected === null) targetSize -= 1;
+  let missingOwnerRosterNames: readonly string[] = Object.freeze([]);
+  if (input.useOwnerFinalPlan === true) {
+    const ownerSelection = selectOwnerFinalRoster(candidates);
+    selected = ownerSelection.selected;
+    missingOwnerRosterNames = ownerSelection.missingNames;
+    targetSize = proLeagueOwnerRosterStrategy.targetRosterSize;
+  } else {
+    while (
+      targetSize >= proLeagueCurrentRules.minimumRosterSize &&
+      selected === null &&
+      !boundReached
+    ) {
+      const found = selectRoster(
+        candidates,
+        targetSize,
+        maximumNodeCount - visitedNodeCount,
+      );
+      visitedNodeCount += found.visitedNodeCount;
+      selected = found.selected;
+      boundReached = found.boundReached;
+      if (selected === null) targetSize -= 1;
+    }
   }
 
   const draftRoster =
@@ -674,7 +725,9 @@ export function buildProLeagueDraftRosterRecommendation(
             proLeagueCurrentRules.initialRosterCountsAsSubstitutions,
           evidenceCutoffAt: input.generation.evidenceCutoffAt,
           rationale:
-            "Quality-first draft from the active verified same-Bike-race-type-plus-exact-distance generation. Review current ageing and protected Tournament status before lock.",
+            input.useOwnerFinalPlan === true
+              ? `Finalised owner 25 (${PRO_LEAGUE_OWNER_FINAL_PLAN_ID}) matched to the active verified same-Bike-race-type-plus-exact-distance generation. Current evidence refines mapping order without silently replacing the agreed roster.`
+              : "Quality-first draft from the active verified same-Bike-race-type-plus-exact-distance generation. Review current ageing and protected Tournament status before lock.",
           members: selected.map((value) => ({
             core: value.core,
             disposition: "rostered" as const,
@@ -713,7 +766,10 @@ export function buildProLeagueDraftRosterRecommendation(
       intrinsicMetrics: "time_speed_consistency_sample_freshness",
       resultEvidenceRole: "supporting_only_not_ranked",
       missingOppositionQuality: "unknown_never_favourable",
-      rosterTarget: "largest_rule_valid_up_to_25",
+      rosterTarget:
+        input.useOwnerFinalPlan === true
+          ? "owner_finalized_25"
+          : "largest_rule_valid_up_to_25",
     }),
     generationId: input.generation.generationId,
     evidenceCutoffAt: input.generation.evidenceCutoffAt,
@@ -734,6 +790,13 @@ export function buildProLeagueDraftRosterRecommendation(
     }),
     operationalWarnings: Object.freeze([
       "This is a draft only. It does not submit a roster or consume a substitution.",
+      ...(input.useOwnerFinalPlan === true
+        ? [
+            missingOwnerRosterNames.length === 0
+              ? `The finalised owner 25 (${PRO_LEAGUE_OWNER_FINAL_PLAN_ID}) is the roster authority; active evidence may refine race mapping but does not silently swap roster members.`
+              : `The finalised owner 25 cannot be reconstructed because these named Cores are missing from the active eligible pool: ${missingOwnerRosterNames.join(", ")}.`,
+          ]
+        : []),
       "Current ageing totals and protected Tournament-Core status are not present in the exact-format evidence generation; review them before lock.",
       "Initial registration uses zero substitutions; only later roster changes count toward the annual 10-substitution budget.",
       "Population-weak or unproven structural selections are provisional and should be tested before lock.",
