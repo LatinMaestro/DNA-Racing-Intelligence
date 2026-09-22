@@ -6,8 +6,8 @@ import type {
 import {
   PRO_LEAGUE_OWNER_FINAL_PLAN_ID,
   normalizeProLeagueOwnerCoreName,
+  ownerDistanceDepth,
   ownerPlanEntryByName,
-  proLeagueOwnerDistanceDepth,
   proLeagueOwnerMapStrategy,
 } from "@/domain/pro-league-owner-final-plan";
 import { proLeagueMaps, type ProLeagueMapId } from "@/domain/pro-league-maps";
@@ -183,8 +183,8 @@ export function buildProLeagueOwnerCommissioningPlan(
 
   const maps = proLeagueMaps.map((map): ProLeagueOwnerMapMapping => {
     const lines = map.races.map((race): ProLeagueOwnerRaceMapping => {
-      const depth = proLeagueOwnerDistanceDepth[race.distanceMetres];
-      if (depth === undefined || depth.length < race.gateEntriesPerVault) {
+      const depth = ownerDistanceDepth(race.distanceMetres);
+      if (depth === null || depth.length < race.gateEntriesPerVault) {
         throw new Error(
           `Owner distance depth is incomplete at ${race.distanceMetres}m.`,
         );
