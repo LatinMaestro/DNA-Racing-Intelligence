@@ -217,7 +217,9 @@ export function createNeonProLeagueSubstitutionLedgerReadRepository(
   const configuredOwnerId = text(input.ownerId, "owner ID");
   const runtimeRole = text(input.runtimeRole, "runtime role");
   if (!UUID_PATTERN.test(databaseOwnerId)) {
-    throw new Error("Pro League substitution ledger database owner ID is invalid.");
+    throw new Error(
+      "Pro League substitution ledger database owner ID is invalid.",
+    );
   }
   if (!SAFE_RUNTIME_ROLE_PATTERN.test(runtimeRole)) {
     throw new Error("Pro League substitution ledger runtime role is invalid.");
@@ -272,9 +274,7 @@ export function createNeonProLeagueSubstitutionLedgerReadRepository(
           databaseOwnerId,
           seasonYear,
         ]);
-        const substitutions = Object.freeze(
-          result.rows.map(parseSubstitution),
-        );
+        const substitutions = Object.freeze(result.rows.map(parseSubstitution));
         await session.client.query("COMMIT");
         return substitutions;
       } catch (error) {
