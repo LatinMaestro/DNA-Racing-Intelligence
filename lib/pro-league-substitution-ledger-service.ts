@@ -56,7 +56,15 @@ export async function loadProLeagueSubstitutionLedgerState(
       input.ownerId,
       input.seasonYear,
     );
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      /does not exist|undefined table|undefined function|relation .* does not exist|function .* does not exist/iu.test(
+        message,
+      )
+    ) {
+      return unavailable("not_configured", input.seasonYear);
+    }
     return unavailable("invalid_state", input.seasonYear);
   }
   if (

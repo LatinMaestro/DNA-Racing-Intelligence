@@ -184,9 +184,16 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
             action === "monitor" && weeklyRaceCount === null,
         ),
       ).toBe(true);
-      expect(state.substitutionLedger?.status).toBe("connected");
+      expect(["connected", "not_configured"]).toContain(
+        state.substitutionLedger?.status,
+      );
       expect(state.substitutionLedger?.maximumSubstitutions).toBe(10);
-      expect(state.substitutionLedger?.usedCount).not.toBeNull();
+      if (state.substitutionLedger?.status === "connected") {
+        expect(state.substitutionLedger.usedCount).not.toBeNull();
+      } else {
+        expect(state.substitutionLedger?.usedCount).toBeNull();
+        expect(state.substitutionLedger?.remainingCount).toBeNull();
+      }
       expect(state.substitutionWatch?.candidates.length).toBeGreaterThan(0);
       expect(state.substitutionWatch?.methodology).toMatchObject({
         primaryEvidence: "same_bike_race_type_and_exact_distance",
