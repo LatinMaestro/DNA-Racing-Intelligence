@@ -58,6 +58,27 @@ describe("Pro League substitution ledger state", () => {
     });
   });
 
+  it("treats an undeployed hosted ledger schema as not configured", async () => {
+    await expect(
+      loadProLeagueSubstitutionLedgerState({
+        ownerId: "private_owner",
+        seasonYear: 2026,
+        repository: {
+          listSubstitutions: vi.fn(async () => {
+            throw new Error(
+              'relation "dna.pro_league_roster_substitution" does not exist',
+            );
+          }),
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "not_configured",
+      maximumSubstitutions: 10,
+      usedCount: null,
+      remainingCount: null,
+    });
+  });
+
   it("fails closed when the persisted sequence is not contiguous", async () => {
     await expect(
       loadProLeagueSubstitutionLedgerState({
