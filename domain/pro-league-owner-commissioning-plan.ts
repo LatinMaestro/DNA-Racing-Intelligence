@@ -122,7 +122,10 @@ function compareForRace(
     }
     if (a.raceCount !== b.raceCount) return b.raceCount - a.raceCount;
     if (a.freshness !== b.freshness) {
-      return Number(b.freshness === "current") - Number(a.freshness === "current");
+      return (
+        Number(b.freshness === "current") -
+        Number(a.freshness === "current")
+      );
     }
   }
   return (
@@ -151,7 +154,9 @@ export function buildProLeagueOwnerCommissioningPlan(
     selectedIds.has(core.coreId),
   );
   if (selectedCandidates.length !== 25) {
-    throw new Error("Owner Pro League final roster must contain exactly 25 Cores.");
+    throw new Error(
+      "Owner Pro League final roster must contain exactly 25 Cores.",
+    );
   }
 
   const candidateByName = new Map(
