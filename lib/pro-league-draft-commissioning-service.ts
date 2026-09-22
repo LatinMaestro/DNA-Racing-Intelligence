@@ -323,6 +323,16 @@ export async function loadProLeagueDraftCommissioningState(
     unownedProfileCount: active.unownedProfileCount,
     ownedCoreWithoutEvidenceCount: active.ownedCoreWithoutEvidenceCount,
   });
+  const populationBenchmarkReady =
+    active.generation.sourceKind === "race_dataset_version" &&
+    evidence.unownedProfileCount > 0;
+  const populationBenchmarkDetail =
+    active.generation.sourceKind === "core_history_generation"
+      ? "Current API exact-format evidence is derived from owner Core history only. It does not provide whole-DNA-population elapsed-time profiles, so population-relative roster and mapping validation remains provisional."
+      : evidence.unownedProfileCount > 0
+        ? `Population evidence includes ${evidence.unownedProfileCount} unowned exact-format profiles for comparison.`
+        : "The active population evidence contains no unowned exact-format profiles, so whole-population comparison is unavailable.";
+
   const roster = buildProLeagueDraftRosterRecommendation({
     vault: active.vault,
     generation: active.generation,
@@ -416,6 +426,8 @@ export async function loadProLeagueDraftCommissioningState(
   );
   const readiness = assessProLeagueCommissioningReadiness({
     activeEvidence: true,
+    populationBenchmarkReady,
+    populationBenchmarkDetail,
     populationProfileCount: evidence.populationProfileCount,
     ownedProfileCount: evidence.ownedProfileCount,
     ownedCoreWithoutEvidenceCount: evidence.ownedCoreWithoutEvidenceCount,

@@ -154,10 +154,15 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         retainedR2Bytes: 874_370_990,
         omittedIdentityObservationCount: 1,
       });
-      expect(state.readiness?.status).toBe(
-        "ready_for_protected_preview_review",
+      expect(state.readiness?.status).toBe("blocked");
+      expect(state.readiness?.checks).toContainEqual(
+        expect.objectContaining({
+          code: "POPULATION_BENCHMARK",
+          status: "block",
+          requiredForProtectedPreview: true,
+        }),
       );
-      expect(state.readiness?.summary.blockCount).toBe(0);
+      expect(state.readiness?.summary.blockCount).toBeGreaterThanOrEqual(1);
       expect(state.readiness?.protectedPreviewDeploymentAllowed).toBe(false);
       expect(state.readiness?.productionActivationAllowed).toBe(false);
       expect(state.readiness?.rosterOrMapSubmissionAllowed).toBe(false);
@@ -168,6 +173,10 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(markup).toContain("Roster recommendation");
       expect(markup).toContain("Map selection &amp; deny preference");
       expect(markup).toContain("Race mapping");
+      expect(markup).toContain("Population benchmark pending");
+      expect(markup).toContain(
+        "remain provisional against the whole DNA Bike population",
+      );
       expect(markup).toContain("Anchor");
       expect(markup).toContain("Miracles");
       expect(markup).toContain("1,021/1,021 gate entries");
@@ -181,6 +190,7 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           status: state.connectionStatus,
           populationProfileCount: state.evidence!.populationProfileCount,
           ownedProfileCount: state.evidence!.ownedProfileCount,
+          unownedProfileCount: state.evidence!.unownedProfileCount,
           ownedCoreWithoutEvidenceCount:
             state.evidence!.ownedCoreWithoutEvidenceCount,
           rosterCoreCount: audit.selectedCoreCount,
