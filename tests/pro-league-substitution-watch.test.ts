@@ -21,7 +21,13 @@ function candidate(
       coreId: `core-${index + 1}`,
       displayName,
       element:
-        index < 7 ? "Metal" : index < 14 ? "Fire" : index < 21 ? "Earth" : "Water",
+        index < 7
+          ? "Metal"
+          : index < 14
+            ? "Fire"
+            : index < 21
+              ? "Earth"
+              : "Water",
       coreClass: "Morphed",
       sex: index < 12 ? "female" : "male",
       fNumber: 11 + index,
@@ -165,9 +171,7 @@ function fixture(): Readonly<{
         raceNumber: index + 1,
         first16: index < 16,
         raceType: "1v1",
-        distanceMetres: [1000, 1200, 1400, 1600, 1800, 2000, 2200][
-          index % 7
-        ]!,
+        distanceMetres: [1000, 1200, 1400, 1600, 1800, 2000, 2200][index % 7]!,
         totalGateEntries: 2,
         ourSlots: 1,
         coreIds: [baseCandidates[index % 12]!.core.coreId],
@@ -210,9 +214,7 @@ describe("Pro League substitution watch", () => {
     expect(
       result.candidates[0]?.recommendedScenario.requiredCoreEntries,
     ).toBeGreaterThan(0);
-    expect(
-      result.candidates[0]?.recommendedScenario.assignedCoreEntries,
-    ).toBe(
+    expect(result.candidates[0]?.recommendedScenario.assignedCoreEntries).toBe(
       result.candidates[0]?.recommendedScenario.requiredCoreEntries,
     );
   });
