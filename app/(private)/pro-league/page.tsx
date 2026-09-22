@@ -56,7 +56,9 @@ export default async function ProLeaguePage() {
         ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
       }),
     syncRatePolicyRepository:
-      neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(databaseEnvironment),
+      neonDnaOpenLabSyncRatePolicyRepositoryFromEnvironment(
+        databaseEnvironment,
+      ),
     syncHealthRepository: combinedServingRepository,
     historyCoverageRepository:
       neonDnaOpenLabP5FirstBackfillStatusReadRepositoryFromEnvironment(
