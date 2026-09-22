@@ -71,6 +71,11 @@ import {
   type ProLeagueHistoryCoverageState,
 } from "@/lib/pro-league-history-coverage-service";
 import type { DnaOpenLabP5FirstBackfillStatusReadRepository } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import {
+  loadProLeagueWeeklyRosterPerformance,
+  type ProLeagueWeeklyEsportsRepository,
+} from "@/lib/pro-league-weekly-roster-performance-service";
+import type { ProLeagueWeeklyRosterPerformance } from "@/domain/pro-league-weekly-roster-performance";
 import type { ProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
 import {
   loadProLeagueSubstitutionLedgerState,
@@ -137,6 +142,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   ownerPlan?: ProLeagueOwnerCommissioningPlan;
   substitutionWatch?: ProLeagueSubstitutionWatch;
   substitutionLedger?: ProLeagueSubstitutionLedgerState;
+  weeklyPerformance?: ProLeagueWeeklyRosterPerformance;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -257,6 +263,7 @@ export async function loadProLeagueDraftCommissioningState(
       "listSubstitutions"
     > | null;
     substitutionSeasonYear?: number;
+    weeklyEsportsRepository?: ProLeagueWeeklyEsportsRepository;
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
@@ -401,6 +408,19 @@ export async function loadProLeagueDraftCommissioningState(
     ownerPlan === undefined
       ? undefined
       : buildProLeagueSubstitutionWatch({ roster, ownerPlan });
+  const weeklyPerformance =
+    ownerPlan === undefined
+      ? undefined
+      : await loadProLeagueWeeklyRosterPerformance({
+          ownerId: authenticatedOwnerId,
+          roster,
+          ownerPlan,
+          ...(substitutionWatch === undefined ? {} : { substitutionWatch }),
+          ...(input.weeklyEsportsRepository === undefined
+            ? {}
+            : { esportsRepository: input.weeklyEsportsRepository }),
+          now,
+        });
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
@@ -512,6 +532,7 @@ export async function loadProLeagueDraftCommissioningState(
     ...(ownerPlan === undefined ? {} : { ownerPlan }),
     ...(substitutionWatch === undefined ? {} : { substitutionWatch }),
     substitutionLedger,
+    ...(weeklyPerformance === undefined ? {} : { weeklyPerformance }),
     mapPreparation,
     readiness,
     currentState,

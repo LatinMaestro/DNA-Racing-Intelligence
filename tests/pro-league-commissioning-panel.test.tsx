@@ -102,6 +102,68 @@ describe("Pro League commissioning panel", () => {
         remainingCount: 8,
         substitutions: [],
       },
+      weeklyPerformance: {
+        sourceStatus: "esports_connected",
+        weekStart: "2026-09-16T00:00:00.000Z",
+        weekEnd: "2026-09-23T00:00:00.000Z",
+        minimumWeeklyResults: 3,
+        rows: [
+          {
+            coreId: privateIds[0],
+            displayName: "Solar Surge",
+            mappedEntryCount: 12,
+            first16MappedEntryCount: 5,
+            mappedCellCount: 3,
+            rankedMappedCellCount: 2,
+            mappedEvidenceCoveragePercent: 67,
+            weakMappedCells: ["1600m 6 gate madness"],
+            strongerSupportedCells: ["1400m 1v1"],
+            weeklyRaceCount: 4,
+            weeklyKnownResultCount: 4,
+            weeklySuccessCount: 0,
+            weeklySuccessRatePercent: 0,
+            weeklyTimedRaceCount: 4,
+            timingTrend: "slower",
+            timingDeltaBasisPoints: 400,
+            replacementCandidateName: "Rapid Echo",
+            replacementNetFirst16Direction: 1,
+            action: "substitution_review",
+            reasons: [
+              "Weekly league success rate is only 0% across 4 known results.",
+            ],
+          },
+          {
+            coreId: privateIds[2],
+            displayName: "Scarlet Panther",
+            mappedEntryCount: 10,
+            first16MappedEntryCount: 4,
+            mappedCellCount: 2,
+            rankedMappedCellCount: 2,
+            mappedEvidenceCoveragePercent: 100,
+            weakMappedCells: [],
+            strongerSupportedCells: [],
+            weeklyRaceCount: 3,
+            weeklyKnownResultCount: 3,
+            weeklySuccessCount: 2,
+            weeklySuccessRatePercent: 67,
+            weeklyTimedRaceCount: 3,
+            timingTrend: "stable",
+            timingDeltaBasisPoints: 0,
+            replacementCandidateName: null,
+            replacementNetFirst16Direction: null,
+            action: "keep",
+            reasons: ["Weekly league success rate is 67%."],
+          },
+        ],
+        summary: {
+          keepCount: 1,
+          monitorCount: 0,
+          remapReviewCount: 0,
+          substitutionReviewCount: 1,
+        },
+        guidance:
+          "Completed Pro League/Esports results drive weekly contribution checks.",
+      },
       substitutionWatch: {
         methodology: {
           primaryEvidence: "same_bike_race_type_and_exact_distance",
@@ -175,6 +237,10 @@ describe("Pro League commissioning panel", () => {
     expect(markup).toContain("Roster recommendation");
     expect(markup).toContain("Roster health");
     expect(markup).toContain("2/10 used");
+    expect(markup).toContain("Weekly roster performance");
+    expect(markup).toContain("1 review flag");
+    expect(markup).toContain("0/4 successful");
+    expect(markup).toContain("Substitution review");
     expect(markup).toContain("Substitution watch");
     expect(markup).toContain("Rapid Echo");
     expect(markup).toContain("Analyse Rapid Echo");
