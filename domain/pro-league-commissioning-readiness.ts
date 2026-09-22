@@ -3,6 +3,7 @@ import type { FreshnessState } from "@/domain/freshness";
 export type ProLeagueCommissioningReadinessCheck = Readonly<{
   code:
     | "ACTIVE_EVIDENCE"
+    | "POPULATION_BENCHMARK"
     | "GENERATION_CONSISTENCY"
     | "COMPLIANT_ROSTER"
     | "COMPLETE_MAP_ASSIGNMENT"
@@ -39,6 +40,8 @@ export type ProLeagueCommissioningReadiness = Readonly<{
 
 export type ProLeagueCommissioningReadinessInput = Readonly<{
   activeEvidence: boolean;
+  populationBenchmarkReady: boolean;
+  populationBenchmarkDetail: string;
   populationProfileCount: number;
   ownedProfileCount: number;
   ownedCoreWithoutEvidenceCount: number;
@@ -194,6 +197,14 @@ export function assessProLeagueCommissioningReadiness(
       activeEvidenceReady
         ? `${populationProfileCount} population profiles and ${ownedProfileCount} owned profiles are available from one verified active generation; ${ownedCoreWithoutEvidenceCount} owned Cores currently lack exact-format evidence.`
         : "A complete active evidence generation with owned and population profiles is required.",
+    ),
+    check(
+      "POPULATION_BENCHMARK",
+      input.populationBenchmarkReady ? "pass" : "block",
+      true,
+      input.populationBenchmarkReady
+        ? input.populationBenchmarkDetail
+        : input.populationBenchmarkDetail,
     ),
     check(
       "GENERATION_CONSISTENCY",
