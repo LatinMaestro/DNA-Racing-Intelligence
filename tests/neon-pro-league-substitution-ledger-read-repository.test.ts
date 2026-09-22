@@ -120,7 +120,9 @@ describe("read-only Pro League substitution ledger repository", () => {
     ).rejects.toThrow(
       "Pro League substitution ledger persistence is not configured.",
     );
-    expect(test.events.some((event) => event.includes("app_owner"))).toBe(false);
+    expect(test.events.some((event) => event.includes("app_owner"))).toBe(
+      false,
+    );
     expect(test.events.slice(-2)).toEqual(["ROLLBACK", "close"]);
   });
 
