@@ -20,6 +20,10 @@ import {
   type ProLeagueDraftRosterRecommendation,
 } from "@/domain/pro-league-roster-recommendation";
 import {
+  buildProLeagueOwnerCommissioningPlan,
+  type ProLeagueOwnerCommissioningPlan,
+} from "@/domain/pro-league-owner-commissioning-plan";
+import {
   loadActiveProLeagueVaultEvidence,
   type ProLeagueEvidenceReadRepository,
 } from "@/lib/pro-league-active-vault-evidence-service";
@@ -121,6 +125,7 @@ export type ProLeagueDraftCommissioningState = Readonly<{
   syncRatePolicy?: DnaOpenLabSyncRatePageState;
   syncHealth?: ProLeagueSyncHealthState;
   historyCoverage?: ProLeagueHistoryCoverageState;
+  ownerPlan?: ProLeagueOwnerCommissioningPlan;
 }>;
 
 function ownerId(value: string | null): string | null {
@@ -239,6 +244,7 @@ export async function loadProLeagueDraftCommissioningState(
     now?: Date;
     pageSize?: number;
     maximumSearchNodes?: number;
+    useOwnerFinalPlan?: boolean;
   }>,
 ): Promise<ProLeagueDraftCommissioningState> {
   const authenticatedOwnerId = ownerId(input.authenticatedOwnerId);
@@ -322,6 +328,7 @@ export async function loadProLeagueDraftCommissioningState(
     generation: active.generation,
     rosterVersionId: `draft-roster/${active.generation.generationId}`,
     versionNumber: 1,
+    useOwnerFinalPlan: input.useOwnerFinalPlan === true,
     ...(input.maximumSearchNodes === undefined
       ? {}
       : { maximumSearchNodes: input.maximumSearchNodes }),
@@ -355,6 +362,10 @@ export async function loadProLeagueDraftCommissioningState(
     repository: input.currentRaceRepository ?? null,
     now,
   }).catch(() => invalidProLeagueRaceOpportunityState(priorityGapCount));
+  const ownerPlan =
+    input.useOwnerFinalPlan === true
+      ? buildProLeagueOwnerCommissioningPlan(roster)
+      : undefined;
   const lineup = buildProLeagueDraftLineupRecommendation({
     roster,
     lineupVersionId: `draft-lineup/${active.generation.generationId}`,
@@ -461,6 +472,7 @@ export async function loadProLeagueDraftCommissioningState(
     evidence,
     roster,
     lineup,
+    ...(ownerPlan === undefined ? {} : { ownerPlan }),
     mapPreparation,
     readiness,
     currentState,
