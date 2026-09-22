@@ -295,6 +295,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.up.sql
       - name: Run Arena publication pagination truth smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.smoke.sql
+      - name: Apply daily refresh lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
+      - name: Run daily refresh lineage smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.smoke.sql
+      - name: Reverse daily refresh lineage migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.down.sql
+      - name: Verify daily refresh lineage removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.removal.sql
       - name: Reverse Arena publication pagination truth migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0110_dna_open_lab_arena_publication_pagination_truth.down.sql
       - name: Verify Arena publication pagination truth removal
