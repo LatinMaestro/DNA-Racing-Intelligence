@@ -259,12 +259,8 @@ function actionFor(input: {
     );
     if (input.mappedCellCount > 0 && input.mappedCoveragePercent < 50) {
       reasons.push(
-        "Less than half of the Core's mapped exact-format cells have ranked direct evidence, so mapping deserves review.",
+        "Less than half of the Core's mapped exact-format cells have ranked direct evidence. Keep this visible as a mapping evidence gap, but do not call it weekly underperformance without completed Esports results.",
       );
-      return Object.freeze({
-        action: "remap_review" as const,
-        reasons: Object.freeze(reasons),
-      });
     }
     return Object.freeze({
       action: "monitor" as const,
