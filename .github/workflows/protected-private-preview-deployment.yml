@@ -12,6 +12,11 @@ on:
         required: true
         default: false
         type: boolean
+      synchronize_preview_runtime:
+        description: Synchronize the approved Preview runtime bindings without exposure
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -30,6 +35,11 @@ jobs:
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime
+      ENABLE_PHASE0_REVIEW: "1"
     steps:
       - name: Require exact main and explicit Preview deployment arm
         shell: bash
@@ -40,6 +50,10 @@ jobs:
           fi
           if [[ "${{ inputs.deploy_protected_preview }}" != "true" ]]; then
             echo "The protected private Preview deployment was not explicitly armed."
+            exit 1
+          fi
+          if [[ "${{ inputs.synchronize_preview_runtime }}" != "true" ]]; then
+            echo "The protected Preview runtime synchronization was not explicitly armed."
             exit 1
           fi
           if [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
@@ -76,7 +90,9 @@ jobs:
         shell: bash
         run: |
           invalid=0
-          for name in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN; do
+          for name in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN \
+            AUTHORIZED_CLERK_USER_ID DATABASE_URL DNA_DATABASE_OWNER_ID \
+            DNA_DATABASE_RUNTIME_ROLE ENABLE_PHASE0_REVIEW; do
             value="${!name:-}"
             if [[ -z "${value}" ]] || [[ "${value}" != "${value# }" ]] || \
                [[ "${value}" != "${value% }" ]] || [[ ${#value} -gt 4096 ]]; then
@@ -113,6 +129,27 @@ jobs:
             { mode: 0o600 },
           );
           NODE
+      - name: Synchronize bounded Preview runtime configuration without exposure
+        shell: bash
+        run: |
+          production_environment="$(mktemp)"
+          preview_environment="$(mktemp)"
+          cleanup() {
+            rm -f "${production_environment}" "${preview_environment}"
+          }
+          trap cleanup EXIT
+          chmod 600 "${production_environment}" "${preview_environment}"
+
+          vercel env pull "${production_environment}" \
+            --yes --environment=production --token="${VERCEL_TOKEN}" >/dev/null
+          node --env-file="${production_environment}" \
+            scripts/vercel-preview-environment-sync.mjs
+
+          vercel env pull "${preview_environment}" \
+            --yes --environment=preview --token="${VERCEL_TOKEN}" >/dev/null
+          env -i PATH="${PATH}" HOME="${HOME}" \
+            node --env-file="${preview_environment}" \
+            scripts/vercel-preview-environment-sync.mjs --validate-only
       - name: Pull protected Preview configuration
         shell: bash
         run: >-
