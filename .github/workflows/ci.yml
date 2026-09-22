@@ -29,7 +29,16 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: TEMPORARY print read-only ledger Prettier diff
+        shell: bash
+        run: |
+          npx prettier --write \
+            lib/neon-pro-league-substitution-ledger-read-repository.ts \
+            tests/neon-pro-league-substitution-ledger-read-repository.test.ts
+          git diff -- \
+            lib/neon-pro-league-substitution-ledger-read-repository.ts \
+            tests/neon-pro-league-substitution-ledger-read-repository.test.ts
+          exit 1
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
