@@ -204,6 +204,8 @@ export async function syncPreviewEnvironment({
       await extendInheritedBindings(environment, fetcher, entries);
 
       for (const entry of specification) {
+        const sensitivityArguments =
+          entry.visibility === "secret" ? ["--sensitive"] : [];
         const result = runner(
           "vercel",
           [
@@ -212,8 +214,7 @@ export async function syncPreviewEnvironment({
             entry.name,
             "preview",
             "--force",
-            "--visibility",
-            entry.visibility,
+            ...sensitivityArguments,
             `--token=${token}`,
           ],
           {

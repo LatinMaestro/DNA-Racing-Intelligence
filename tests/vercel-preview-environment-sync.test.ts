@@ -111,11 +111,17 @@ describe("Vercel Preview environment synchronization", () => {
     expect(result).toHaveLength(7);
     expect(runner).toHaveBeenCalledTimes(5);
     expect(fetcher).toHaveBeenCalledTimes(4);
-    for (const call of runner.mock.calls) {
+    for (const [index, call] of runner.mock.calls.entries()) {
       expect(call[0]).toBe("vercel");
       expect(call[1]).toContain("preview");
       expect(call[1]).toContain("--force");
       expect(call[1]).not.toContain("--yes");
+      if (index < 3) {
+        expect(call[1]).toContain("--sensitive");
+      } else {
+        expect(call[1]).not.toContain("--sensitive");
+      }
+      expect(call[1]).not.toContain("--visibility");
       expect(call[1]).not.toContain("production");
       expect(call[1].join(" ")).not.toContain(call[2].input);
     }
