@@ -260,6 +260,30 @@ describe("DNA Open Lab current-state acquisition cadence", () => {
     ).toBe("api_unavailable");
   });
 
+  it("validates cached checkpoints against the current attempt without changing durable cadence evaluation", () => {
+    const schedule = createDnaCurrentStateAcquisitionSchedule({
+      evaluatedAt,
+      checkpointValidatedAt: "2026-08-28T12:32:00.000Z",
+      plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
+      checkpoints: checkpoints("2026-08-28T12:31:00.000Z"),
+    });
+
+    expect(schedule).toMatchObject({
+      evaluatedAt,
+      status: "idle",
+      nextEvaluationAt: "2026-08-29T12:31:00.000Z",
+    });
+
+    expect(() =>
+      createDnaCurrentStateAcquisitionSchedule({
+        evaluatedAt,
+        checkpointValidatedAt: "2026-08-28T12:30:30.000Z",
+        plan: createDnaCurrentStateSyncPlan({ vault: "synthetic-owner" }),
+        checkpoints: checkpoints("2026-08-28T12:31:00.000Z"),
+      }),
+    ).toThrow("race_activity.completedAt cannot be in the future");
+  });
+
   it("fails closed on future checkpoints or future evidence", () => {
     expect(() =>
       createDnaCurrentStateAcquisitionSchedule({
