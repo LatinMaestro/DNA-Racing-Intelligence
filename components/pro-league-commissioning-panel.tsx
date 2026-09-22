@@ -59,6 +59,11 @@ export function ProLeagueCommissioningPanel({
   }
 
   const plan = state.ownerPlan;
+  const populationBenchmarkBlocked =
+    state.readiness?.checks.some(
+      ({ code, status }) =>
+        code === "POPULATION_BENCHMARK" && status === "block",
+    ) ?? false;
   if (plan === undefined) {
     return (
       <section className="rounded-2xl border border-[var(--warning)] bg-[var(--surface-raised)] p-6">
@@ -87,6 +92,19 @@ export function ProLeagueCommissioningPanel({
           Vault.
         </p>
       </section>
+
+      {populationBenchmarkBlocked ? (
+        <section className="rounded-2xl border border-[var(--warning)] bg-[var(--surface-raised)] p-5">
+          <p className="font-semibold">Population benchmark pending</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            The current API generation contains owner-history evidence only, so
+            the finalised roster and full-gate mapping below remain provisional
+            against the whole DNA Bike population. No population-relative claim
+            is made until an authoritative population result source is
+            available.
+          </p>
+        </section>
+      ) : null}
 
       <section
         aria-labelledby="pro-league-map-strategy"
