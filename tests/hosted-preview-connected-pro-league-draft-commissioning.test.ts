@@ -102,12 +102,35 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(state.roster?.draftRoster?.initialRosterCountingPolicy).toBe(
         "does_not_count",
       );
+      expect(state.roster?.draftRoster?.rosteredCoreIds).toHaveLength(25);
+      expect(state.roster?.selectionMethod.rosterTarget).toBe(
+        "owner_finalized_25",
+      );
+      expect(state.ownerPlan).toBeDefined();
+      expect(state.ownerPlan?.roster).toHaveLength(25);
+      expect(state.ownerPlan?.maps).toHaveLength(4);
+      expect(state.ownerPlan?.requiredCoreEntries).toBe(1_021);
+      expect(state.ownerPlan?.assignedCoreEntries).toBe(1_021);
+      expect(state.ownerPlan?.allSlotsFilled).toBe(true);
       expect(
-        state.roster?.draftRoster?.rosteredCoreIds.length,
-      ).toBeGreaterThanOrEqual(12);
-      expect(
-        state.roster?.draftRoster?.rosteredCoreIds.length,
-      ).toBeLessThanOrEqual(25);
+        state.ownerPlan?.maps.every(
+          (map) =>
+            map.allSlotsFilled &&
+            map.lines.length === 42 &&
+            map.lines.every(
+              (line) =>
+                line.allSlotsFilled &&
+                line.coreIds.length === line.ourSlots &&
+                line.ourSlots * 2 === line.totalGateEntries,
+            ),
+        ),
+      ).toBe(true);
+      expect(state.ownerPlan?.mapStrategy).toMatchObject({
+        homePick: "Anchor",
+        homeDeny: "Miracles",
+        awayPriority: ["Anchor", "Measure", "Glory", "Miracles"],
+        contingencyMap: "Miracles",
+      });
       expect(state.lineup?.maps).toHaveLength(4);
       expect(state.lineup?.maps.every(({ lines }) => lines.length === 42)).toBe(
         true,
@@ -142,12 +165,15 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       const markup = renderToStaticMarkup(
         createElement(ProLeagueCommissioningPanel, { state }),
       );
-      expect(markup).toContain("Owner readiness at a glance");
-      expect(markup).toContain("Roster compliant");
-      expect(markup).toContain("4/4 maps · 168/168 lines");
-      expect(markup).toContain("Initial roster uses 0");
-      expect(markup).toContain("No protected Preview blockers");
-      expect(markup).toContain("This page cannot connect a wallet");
+      expect(markup).toContain("Roster recommendation");
+      expect(markup).toContain("Map selection &amp; deny preference");
+      expect(markup).toContain("Race mapping");
+      expect(markup).toContain("Anchor");
+      expect(markup).toContain("Miracles");
+      expect(markup).toContain("1,021/1,021 gate entries");
+      expect(markup).not.toContain("API refresh safety");
+      expect(markup).not.toContain("Breeding for roster quality");
+      expect(markup).not.toContain("Discovery");
 
       const audit = state.roster!.draftRoster!.audit;
       console.log(
@@ -163,6 +189,11 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           aboveF15Count: audit.aboveF15Count,
           elementCounts: audit.elementCounts,
           mapCount: state.lineup!.maps.length,
+          fullGateRequiredCoreEntries: state.ownerPlan!.requiredCoreEntries,
+          fullGateAssignedCoreEntries: state.ownerPlan!.assignedCoreEntries,
+          fullGateComplete: state.ownerPlan!.allSlotsFilled,
+          homePick: state.ownerPlan!.mapStrategy.homePick,
+          homeDeny: state.ownerPlan!.mapStrategy.homeDeny,
           lineCount: state.lineup!.totals.lineCount,
           first16LineCount: state.lineup!.totals.first16LineCount,
           winningRangeLineCount: state.lineup!.totals.winningRangeLineCount,
