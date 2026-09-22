@@ -253,4 +253,70 @@ describe("DNA Open Lab current-state cycle coordinator", () => {
       retryAfterSeconds: null,
     });
   });
+
+  it("resumes an already-published cycle without reacquiring current state", async () => {
+    const { plan, priorIndex } = fixture();
+    const publishedAt = "2026-08-28T12:01:00.000Z";
+    const attemptedAt = "2026-08-28T12:02:00.000Z";
+    const publishedIndex = Object.freeze({
+      ...priorIndex,
+      indexedAt: publishedAt,
+      receipts: Object.freeze(
+        priorIndex.receipts.map((receipt) =>
+          Object.freeze({ ...receipt, observedAt: publishedAt }),
+        ),
+      ),
+    });
+    const state: DnaLastGoodSyncState = Object.freeze({
+      acceptedGenerationId: cycleId,
+      acceptedObservedAt: firstAt,
+      acceptedAt: publishedAt,
+      servingGenerationId: cycleId,
+      syncStatus: "current",
+      catchUpRequired: false,
+      lastAttemptAt: publishedAt,
+      lastInterruption: null,
+      lastCatchUpCompletedAt: publishedAt,
+    });
+    const read = vi.fn(async () => state);
+    const readServingCurrentStateEvidenceIndex = vi.fn(
+      async () => publishedIndex,
+    );
+    const execute = vi.fn();
+    const publicationRepository = {
+      publishCandidate: vi.fn(),
+      pause: vi.fn(),
+      read,
+      readServingOwnedCores: vi.fn(),
+      readServingCurrentRaces: vi.fn(),
+      readServingCurrentStateEvidenceIndex,
+    } as unknown as NeonDnaOpenLabSyncPublicationRepository;
+
+    const result = await runDnaCurrentStateScheduledCycleStep({
+      ownerId: "private-owner",
+      cycleId,
+      evaluatedAt: firstAt,
+      attemptedAt,
+      recordedAt: attemptedAt,
+      acceptedAt: attemptedAt,
+      plan,
+      checkpointRepository: new MemoryCheckpointRepository(),
+      publicationRepository,
+      pool: { execute } as unknown as DnaOpenLabClientPool,
+      persistEvidence: vi.fn(),
+      readEvidence: vi.fn(),
+    });
+
+    expect(result).toEqual({
+      kind: "published",
+      publicationMode: "full",
+      state,
+    });
+    expect(readServingCurrentStateEvidenceIndex).toHaveBeenCalledWith({
+      ownerId: "private-owner",
+      validatedAt: attemptedAt,
+    });
+    expect(read).toHaveBeenCalledWith({ ownerId: "private-owner" });
+    expect(execute).not.toHaveBeenCalled();
+  });
 });
