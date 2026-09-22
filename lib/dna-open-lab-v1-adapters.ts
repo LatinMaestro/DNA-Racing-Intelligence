@@ -199,7 +199,9 @@ export type CanonicalCorePowerModeSnapshot = Readonly<{
 export type CanonicalCorePowerSnapshot = Readonly<{
   sourceType: "core_power_snapshot";
   sourceCoreId: string;
-  byMode: Readonly<Record<DnaRaceMode, CanonicalCorePowerModeSnapshot>>;
+  byMode: Readonly<
+    Partial<Record<DnaRaceMode, CanonicalCorePowerModeSnapshot>>
+  >;
   aggregateStatsSourceValue: JsonSourceValue;
 }>;
 
@@ -1289,13 +1291,20 @@ export function adaptDnaCorePower(input: {
   observedAt: string;
 }): DnaOpenLabEvidence<CanonicalCorePowerSnapshot> {
   const sourceCoreId = sourceCoreIdentifier(input.raw.hid);
+  const bike = input.raw.power.bike;
+  const car = input.raw.power.car;
+  const horse = input.raw.power.horse;
   const canonical: CanonicalCorePowerSnapshot = Object.freeze({
     sourceType: "core_power_snapshot",
     sourceCoreId,
     byMode: Object.freeze({
-      bike: canonicalCorePowerMode(input.raw.power.bike, "bike"),
-      car: canonicalCorePowerMode(input.raw.power.car, "car"),
-      horse: canonicalCorePowerMode(input.raw.power.horse, "horse"),
+      ...(bike === undefined
+        ? {}
+        : { bike: canonicalCorePowerMode(bike, "bike") }),
+      ...(car === undefined ? {} : { car: canonicalCorePowerMode(car, "car") }),
+      ...(horse === undefined
+        ? {}
+        : { horse: canonicalCorePowerMode(horse, "horse") }),
     }),
     aggregateStatsSourceValue: jsonSourceValue(
       input.raw.m_stats,
