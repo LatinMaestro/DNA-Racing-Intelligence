@@ -29,6 +29,8 @@ export type ProLeagueEsportsTimeDistribution = Readonly<{
   medianMilliseconds: number;
   upperQuartileMilliseconds: number;
   slowestMilliseconds: number;
+  standardDeviationMilliseconds: number;
+  interquartileRangeMilliseconds: number;
 }>;
 
 export type ProLeagueEsportsWinningCell = Readonly<{
@@ -37,6 +39,7 @@ export type ProLeagueEsportsWinningCell = Readonly<{
   gateCount: number;
   scoring: "wta_win" | "podium_majority";
   raceCount: number;
+  uniqueCoreCount: number;
   sampleStatus: "early_signal" | "developing" | "representative";
   firstPlaceTimes: ProLeagueEsportsTimeDistribution;
   positiveContributorTimes: ProLeagueEsportsTimeDistribution;
@@ -99,6 +102,17 @@ function percentile(values: readonly number[], quantile: number): number {
   );
 }
 
+function standardDeviation(values: readonly number[]): number {
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return Math.round(Math.sqrt(variance));
+}
+
+function canonicalRaceType(value: string): string {
+  return value.trim().toLowerCase().replaceAll("_", " ").replace(/\s+/gu, " ");
+}
+
 function distribution(
   values: readonly number[],
 ): ProLeagueEsportsTimeDistribution {
@@ -106,13 +120,18 @@ function distribution(
     throw new Error("An Esports time distribution cannot be empty.");
   }
   const sorted = [...values].sort((left, right) => left - right);
+  const lowerQuartileMilliseconds = percentile(sorted, 0.25);
+  const upperQuartileMilliseconds = percentile(sorted, 0.75);
   return Object.freeze({
     observationCount: sorted.length,
     fastestMilliseconds: sorted[0]!,
-    lowerQuartileMilliseconds: percentile(sorted, 0.25),
+    lowerQuartileMilliseconds,
     medianMilliseconds: percentile(sorted, 0.5),
-    upperQuartileMilliseconds: percentile(sorted, 0.75),
+    upperQuartileMilliseconds,
     slowestMilliseconds: sorted.at(-1)!,
+    standardDeviationMilliseconds: standardDeviation(sorted),
+    interquartileRangeMilliseconds:
+      upperQuartileMilliseconds - lowerQuartileMilliseconds,
   });
 }
 
@@ -123,7 +142,7 @@ function cellKey(
   >,
 ): string {
   return JSON.stringify([
-    value.raceType.trim().toLowerCase(),
+    canonicalRaceType(value.raceType),
     value.distanceMetres,
     value.gateCount,
     value.scoring,
@@ -139,6 +158,7 @@ type CellAccumulator = {
   firstPlaceTimes: number[];
   positiveContributorTimes: number[];
   podiumCutoffTimes: number[];
+  coreIds: Set<string>;
 };
 
 function sideForCore(
@@ -168,7 +188,7 @@ export function buildProLeagueEsportsBenchmark(input: {
       raceId: text(raw.raceId, "Esports race ID"),
       mapId: text(raw.mapId, "Esports map ID"),
       raceNumber: positiveInteger(raw.raceNumber, "Esports race number"),
-      raceType: text(raw.raceType, "Esports race type").toLowerCase(),
+      raceType: canonicalRaceType(text(raw.raceType, "Esports race type")),
       distanceMetres: positiveInteger(raw.distanceMetres, "Esports distance"),
       gateCount: positiveInteger(raw.gateCount, "Esports gate count"),
       homeTeamId: text(raw.homeTeamId, "Esports home team ID"),
@@ -274,9 +294,11 @@ export function buildProLeagueEsportsBenchmark(input: {
       firstPlaceTimes: [],
       positiveContributorTimes: [],
       podiumCutoffTimes: [],
+      coreIds: new Set<string>(),
     };
     cell.raceCount += 1;
     cell.firstPlaceTimes.push(first.elapsedTimeMilliseconds);
+    for (const result of results) cell.coreIds.add(result.coreId);
     if (race.scoring === "wta_win") {
       cell.positiveContributorTimes.push(first.elapsedTimeMilliseconds);
     } else {
@@ -321,6 +343,7 @@ export function buildProLeagueEsportsBenchmark(input: {
             gateCount: cell.gateCount,
             scoring: cell.scoring,
             raceCount: cell.raceCount,
+            uniqueCoreCount: cell.coreIds.size,
             sampleStatus:
               cell.raceCount >= 20
                 ? "representative"
