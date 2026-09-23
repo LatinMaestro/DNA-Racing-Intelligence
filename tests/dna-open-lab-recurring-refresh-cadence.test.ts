@@ -17,9 +17,7 @@ describe("DNA recurring refresh cadence", () => {
     expect(decision.finishedRaces.status).toBe("start_incremental_cycle");
     expect(decision.finishedRaces.intervalMilliseconds).toBe(60_000);
     expect(decision.currentState.due).toBe(false);
-    expect(decision.currentState.intervalMilliseconds).toBe(
-      24 * 60 * 60_000,
-    );
+    expect(decision.currentState.intervalMilliseconds).toBe(24 * 60 * 60_000);
   });
 
   it("resumes an unfinished race cycle instead of starting a competing cycle", () => {
@@ -68,9 +66,7 @@ describe("DNA recurring refresh cadence", () => {
     expect(decision.finishedRaces.status).toBe("start_incremental_cycle");
     expect(decision.currentState.due).toBe(true);
     expect(DNA_FINISHED_RACE_NEAR_LIVE_INTERVAL_MILLISECONDS).toBe(60_000);
-    expect(DNA_NON_RACE_CURRENT_STATE_INTERVAL_MILLISECONDS).toBe(
-      86_400_000,
-    );
+    expect(DNA_NON_RACE_CURRENT_STATE_INTERVAL_MILLISECONDS).toBe(86_400_000);
   });
 
   it("rejects future checkpoints", () => {
