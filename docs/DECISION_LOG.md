@@ -2763,7 +2763,6 @@ After the private Pro League milestone, continue in this order:
   Successor lineage composition and the bounded existing-Core delta proof
   remain required before connected refresh resumes.
 
-
 ## 2026-09-24 — Run finished-race history near-live; keep non-race state daily
 
 - After the current population reconciliation/backfill publishes a complete
