@@ -294,6 +294,18 @@ last-good generation serving; replay resumes the same staged candidate or
 loads the exact generation if it already published. The provider-neutral
 publisher is backed by the owner-isolated function-only Neon adapter.
 
+Whole-population Bike benchmarking uses a separate fail-closed planning gate.
+The candidate universe is derived only from canonical entrants in the complete
+global finished-Race document lineage, never from the owner Vault or an Arena
+shortlist. Unknown Race modes, missing Bike entrant authority, malformed Core
+identities or duplicate Race authority hold the plan rather than silently
+shrinking the denominator. Owned Cores are removed from the additional request
+set, and the remaining sorted identities are split into deterministic cohorts
+that fit the existing 4,096-Core durable acquisition boundary. Creating this
+plan authorizes no provider read or persistent write: at least one history
+request per candidate is required, so measured request, R2 and Neon projections
+must pass the zero-cost guards before collection can be armed.
+
 The retained-evidence composer performs the missing pre-publication proof. Its
 reader returns each canonical accepted page with the exact receipt reconstructed
 from the private immutable object. The composer replays the ordered receipts
