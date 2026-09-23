@@ -118,10 +118,14 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         latestCompleteCoreHistory.cycle.completion.completedCoreCount !==
           latestCompleteCoreHistory.cycle.coreIds.length
       ) {
-        throw new Error("complete persisted Core-history authority is unavailable");
+        throw new Error(
+          "complete persisted Core-history authority is unavailable",
+        );
       }
       if (activeGeneration === null || activeGeneration.state !== "published") {
-        throw new Error("active persisted Core-history generation is unavailable");
+        throw new Error(
+          "active persisted Core-history generation is unavailable",
+        );
       }
 
       const packet = DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET;
@@ -256,9 +260,9 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         expect(serialized).not.toContain(secret);
       }
       expect(report.authority.baselineReceiptCount).toBe(17_464);
-      expect(report.persistedPerformance.completedCoreHistoryCount).toBeGreaterThan(
-        0,
-      );
+      expect(
+        report.persistedPerformance.completedCoreHistoryCount,
+      ).toBeGreaterThan(0);
       expect(
         report.persistedPerformance.activeExactDistanceConfirmedCount,
       ).toBe(report.persistedPerformance.activeObservationCount);
