@@ -227,8 +227,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
             latestCompleteCoreHistory.cycle.coreSetSha256,
           populationCoreHistoryCount: plan.persistedPerformanceCoreCount,
           missingPopulationCoreHistoryCount: plan.missingPerformanceCoreCount,
-          missingPopulationCoreSetSha256:
-            plan.missingPerformanceCoreSetSha256,
+          missingPopulationCoreSetSha256: plan.missingPerformanceCoreSetSha256,
           planStatus: plan.status,
           activeObservationCount: activeGeneration.observationCount,
           activeExactDistanceConfirmedCount:
