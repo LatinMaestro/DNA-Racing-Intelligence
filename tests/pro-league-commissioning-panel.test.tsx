@@ -222,6 +222,7 @@ describe("Pro League commissioning panel", () => {
             },
           },
         ],
+        holdReasons: [],
         ageingWatch: {
           status: "authority_pending",
           detail:

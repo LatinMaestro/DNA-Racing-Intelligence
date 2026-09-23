@@ -231,6 +231,7 @@ function fixture(): Readonly<{
         },
       },
     ],
+    holdReasons: [],
     ageingWatch: {
       status: "authority_pending",
       detail: "Do not invent a cap.",

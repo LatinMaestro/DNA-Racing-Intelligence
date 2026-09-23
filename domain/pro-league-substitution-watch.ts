@@ -3,6 +3,7 @@ import {
   normalizeProLeagueOwnerCoreName,
   ownerDistanceDepthRank,
   ownerPlanEntryByName,
+  proLeagueOwnerOverAgeingSubstitutionExclusions,
 } from "@/domain/pro-league-owner-final-plan";
 import type {
   ProLeagueOwnerCommissioningPlan,
@@ -20,7 +21,13 @@ import type {
 } from "@/domain/pro-league-roster-recommendation";
 
 const MAXIMUM_WATCH_CANDIDATES = 10;
+const MAXIMUM_ALTERNATIVES_PER_OUTGOING_CORE = 2;
 const ADJACENT_DISTANCE_METRES = 200;
+const ownerExcludedNames = new Set(
+  proLeagueOwnerOverAgeingSubstitutionExclusions.map(
+    normalizeProLeagueOwnerCoreName,
+  ),
+);
 
 export type ProLeagueSubstitutionChangedLine = Readonly<{
   mapId: ProLeagueMapId;
@@ -74,7 +81,8 @@ export type ProLeagueSubstitutionWatch = Readonly<{
   methodology: Readonly<{
     primaryEvidence: "same_bike_race_type_and_exact_distance";
     metrics: "time_speed_consistency_sample_freshness";
-    populationBoundary: "required_but_currently_gated";
+    populationBoundary:
+      "required_but_currently_gated" | "whole_population_verified";
     first16Priority: true;
     primaryMaps: readonly ["Anchor", "Measure", "Glory"];
     contingencyMap: "Miracles";
@@ -83,6 +91,9 @@ export type ProLeagueSubstitutionWatch = Readonly<{
     automaticRosterMutationAllowed: false;
   }>;
   candidates: readonly ProLeagueSubstitutionWatchCandidate[];
+  holdReasons: readonly (
+    "population_benchmark_unavailable" | "bike_ageing_used_unverified"
+  )[];
   ageingWatch: Readonly<{
     status: "authority_pending";
     detail: string;
@@ -467,38 +478,14 @@ function scenarioForSwap(input: {
   });
 }
 
-function recommendedScenario(input: {
-  incoming: ProLeagueRosterCandidateScore;
-  roster: ProLeagueDraftRosterRecommendation;
-  ownerPlan: ProLeagueOwnerCommissioningPlan;
-  candidateRank: ReadonlyMap<string, number>;
-  candidateByName: ReadonlyMap<string, ProLeagueRosterCandidateScore>;
-}): ProLeagueSubstitutionScenario | null {
-  const rosteredIds = new Set(input.roster.draftRoster?.rosteredCoreIds ?? []);
-  const scenarios = input.roster.candidates
-    .filter(({ core }) => rosteredIds.has(core.coreId))
-    .map((outgoing) =>
-      scenarioForSwap({
-        incoming: input.incoming,
-        outgoing,
-        roster: input.roster,
-        ownerPlan: input.ownerPlan,
-        candidateRank: input.candidateRank,
-        candidateByName: input.candidateByName,
-      }),
-    )
-    .filter(
-      (scenario): scenario is ProLeagueSubstitutionScenario =>
-        scenario !== null && scenario.allSlotsFilled,
-    )
-    .sort(compareScenarios);
-  return scenarios[0] ?? null;
-}
-
 export function buildProLeagueSubstitutionWatch(
   input: Readonly<{
     roster: ProLeagueDraftRosterRecommendation;
     ownerPlan: ProLeagueOwnerCommissioningPlan;
+    populationBenchmarkReady: boolean;
+    // Only owner-verified *used* amounts belong here. The API's opaque ageing
+    // source value must never be treated as used or remaining by inference.
+    verifiedBikeAgeingUsedByCoreId?: ReadonlyMap<string, number>;
   }>,
 ): ProLeagueSubstitutionWatch {
   if (
@@ -523,26 +510,87 @@ export function buildProLeagueSubstitutionWatch(
       candidate,
     ]),
   );
-  const candidates = input.roster.candidates
-    .filter(({ core }) => !rosteredIds.has(core.coreId))
-    .map((incoming) => {
-      const scenario = recommendedScenario({
-        incoming,
-        roster: input.roster,
-        ownerPlan: input.ownerPlan,
-        candidateRank,
-        candidateByName,
-      });
-      return scenario === null ? null : { incoming, scenario };
+  const holdReasons: Array<ProLeagueSubstitutionWatch["holdReasons"][number]> =
+    input.populationBenchmarkReady ? [] : ["population_benchmark_unavailable"];
+  const eligibleIncoming = input.roster.candidates.filter(
+    ({ core, selectionStatus, cells }) => {
+      if (rosteredIds.has(core.coreId) || core.coreClass === "Genesis")
+        return false;
+      if (
+        ownerExcludedNames.has(
+          normalizeProLeagueOwnerCoreName(core.displayName),
+        )
+      )
+        return false;
+      const provenElite = selectionStatus === "winning_range";
+      const credibleElitePotential =
+        selectionStatus === "top_three_range" &&
+        cells.some(
+          (cell) =>
+            cell.evidenceUse === "ranked" &&
+            cell.supportingStars.qualityKnownRaceCount > 0 &&
+            (cell.supportingStars.eliteOpponentYellowReceivedCount > 0 ||
+              cell.supportingStars.eliteOpponentBlueReceivedCount > 0),
+        );
+      if (!provenElite && !credibleElitePotential) return false;
+      const used = input.verifiedBikeAgeingUsedByCoreId?.get(core.coreId);
+      return (
+        input.populationBenchmarkReady &&
+        used !== undefined &&
+        Number.isSafeInteger(used) &&
+        used >= 0 &&
+        used <=
+          proLeagueOwnerRosterStrategy.initialSelectionMaximumBikeAgeingUsed
+      );
+    },
+  );
+  if (
+    input.verifiedBikeAgeingUsedByCoreId === undefined ||
+    input.roster.candidates.some(({ core }) => {
+      if (rosteredIds.has(core.coreId)) return false;
+      const used = input.verifiedBikeAgeingUsedByCoreId?.get(core.coreId);
+      return used === undefined || !Number.isSafeInteger(used) || used < 0;
     })
-    .filter(
-      (
-        value,
-      ): value is Readonly<{
-        incoming: ProLeagueRosterCandidateScore;
-        scenario: ProLeagueSubstitutionScenario;
-      }> => value !== null,
-    )
+  ) {
+    holdReasons.push("bike_ageing_used_unverified");
+  }
+  const primaryMaps = new Set(["Anchor", "Measure", "Glory"]);
+  const scenarios = eligibleIncoming.flatMap((incoming) =>
+    input.roster.candidates
+      .filter(({ core }) => rosteredIds.has(core.coreId))
+      .map((outgoing) => {
+        const scenario = scenarioForSwap({
+          incoming,
+          outgoing,
+          roster: input.roster,
+          ownerPlan: input.ownerPlan,
+          candidateRank,
+          candidateByName,
+        });
+        return scenario === null ? null : { incoming, scenario };
+      })
+      .filter(
+        (
+          value,
+        ): value is Readonly<{
+          incoming: ProLeagueRosterCandidateScore;
+          scenario: ProLeagueSubstitutionScenario;
+        }> =>
+          value !== null &&
+          value.scenario.allSlotsFilled &&
+          value.scenario.weakerFirst16LineCount === 0 &&
+          value.scenario.changedLines.some(
+            (line) =>
+              line.first16 &&
+              primaryMaps.has(line.mapName) &&
+              line.strengthDirection === "stronger" &&
+              line.addedCoreNames.includes(incoming.core.displayName),
+          ),
+      ),
+  );
+  const watchedIncoming = new Set<string>();
+  const alternativesByOutgoing = new Map<string, number>();
+  const candidates = scenarios
     .sort(
       (left, right) =>
         compareScenarios(left.scenario, right.scenario) ||
@@ -551,7 +599,21 @@ export function buildProLeagueSubstitutionWatch(
           (candidateRank.get(right.incoming.core.coreId) ??
             Number.MAX_SAFE_INTEGER),
     )
-    .slice(0, MAXIMUM_WATCH_CANDIDATES)
+    .filter(({ incoming, scenario }) => {
+      if (
+        watchedIncoming.has(incoming.core.coreId) ||
+        (alternativesByOutgoing.get(scenario.outgoingCoreId) ?? 0) >=
+          MAXIMUM_ALTERNATIVES_PER_OUTGOING_CORE ||
+        watchedIncoming.size >= MAXIMUM_WATCH_CANDIDATES
+      )
+        return false;
+      watchedIncoming.add(incoming.core.coreId);
+      alternativesByOutgoing.set(
+        scenario.outgoingCoreId,
+        (alternativesByOutgoing.get(scenario.outgoingCoreId) ?? 0) + 1,
+      );
+      return true;
+    })
     .map(({ incoming, scenario }): ProLeagueSubstitutionWatchCandidate =>
       Object.freeze({
         coreId: incoming.core.coreId,
@@ -577,7 +639,9 @@ export function buildProLeagueSubstitutionWatch(
     methodology: Object.freeze({
       primaryEvidence: "same_bike_race_type_and_exact_distance" as const,
       metrics: "time_speed_consistency_sample_freshness" as const,
-      populationBoundary: "required_but_currently_gated" as const,
+      populationBoundary: input.populationBenchmarkReady
+        ? ("whole_population_verified" as const)
+        : ("required_but_currently_gated" as const),
       first16Priority: true as const,
       primaryMaps: Object.freeze(["Anchor", "Measure", "Glory"] as const),
       contingencyMap: "Miracles" as const,
@@ -588,10 +652,11 @@ export function buildProLeagueSubstitutionWatch(
       automaticRosterMutationAllowed: false as const,
     }),
     candidates: Object.freeze(candidates),
+    holdReasons: Object.freeze(holdReasons),
     ageingWatch: Object.freeze({
       status: "authority_pending" as const,
       detail:
-        "Current authoritative Pro League ageing increments and cap mechanics remain unresolved. The watch list must not invent a cap; once authoritative numeric ageing usage and limits are connected, ageing-triggered substitutions can use the same remap simulation.",
+        "The owner requires at most 400 verified Bike ageing used for incoming Cores. The API ageing field's used-versus-remaining meaning and real Pro League ageing increments remain unverified, so an opaque value never qualifies a substitution.",
     }),
   });
 }

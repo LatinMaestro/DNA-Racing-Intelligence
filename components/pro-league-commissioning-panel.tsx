@@ -451,17 +451,34 @@ export function ProLeagueCommissioningPanel({
                 Substitution watch
               </h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
-                Non-rostered Cores are watched with the same quality-first
-                methodology as the squad: Bike only, exact race type + exact
-                distance first, elapsed-time central tendency and consistency,
-                sample/freshness, first-16 impact and full roster legality.
-                Miracles remains contingency rather than a roster driver.
+                Only elite or credibly elite-potential Bike Cores with verified
+                ageing eligibility can appear here. Each outgoing Core has at
+                most two alternatives. Every option must improve an early race
+                on Anchor, Measure or Glory without weakening another early
+                race, and retain a legal, fully mapped roster.
               </p>
             </div>
             <p className="text-sm font-semibold">
               {state.substitutionWatch.candidates.length} watch candidates
             </p>
           </div>
+
+          {state.substitutionWatch.candidates.length === 0 && (
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              No qualified substitution is ready to suggest.{" "}
+              {state.substitutionWatch.holdReasons.includes(
+                "population_benchmark_unavailable",
+              )
+                ? "Whole-population timing evidence is unavailable. "
+                : ""}
+              {state.substitutionWatch.holdReasons.includes(
+                "bike_ageing_used_unverified",
+              )
+                ? "Bike ageing used is unverified for one or more candidates. "
+                : ""}
+              Unproven or ageing-ineligible Cores are withheld.
+            </p>
+          )}
 
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
