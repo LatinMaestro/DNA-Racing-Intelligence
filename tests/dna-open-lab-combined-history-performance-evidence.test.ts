@@ -267,8 +267,18 @@ function fixture(overrides?: {
 
 describe("combined DNA finished-history performance evidence", () => {
   it("verifies baseline and incremental R2 evidence, deduplicates overlap and holds unsupported analysis", async () => {
-    const assessment =
-      await assessDnaOpenLabCombinedHistoryPerformanceEvidence(fixture());
+    const documents: Array<{
+      sourceRaceId: string;
+      entrantCoreIds?: readonly string[];
+    }> = [];
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...fixture(),
+        onCanonicalRaceDocument: (document) => {
+          documents.push(document);
+        },
+      },
+    );
 
     expect(assessment).toEqual({
       authority: "complete_serving_generation_combined_finished_history",
@@ -298,6 +308,14 @@ describe("combined DNA finished-history performance evidence", () => {
       persistentWritePerformed: false,
       paidUsageAllowed: false,
     });
+    expect(documents).toEqual([
+      expect.objectContaining({
+        sourceRaceId: "101",
+        entrantCoreIds: ["501", "502"],
+      }),
+      expect.objectContaining({ sourceRaceId: "202" }),
+    ]);
+    expect(assessment).not.toHaveProperty("raceDocuments");
   });
 
   it("fails closed when the evidence bucket is not private", async () => {
