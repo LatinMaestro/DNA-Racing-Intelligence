@@ -388,11 +388,8 @@ describe("combined DNA finished-history performance evidence", () => {
   it("bounds baseline evidence concurrency while preserving receipt order", async () => {
     const input = fixture();
     const receiptCount = 32;
-    const [templateReceipt] = await input.baseline.loadReceipts({
-      afterRequestOrdinal: 0,
-      limit: 1,
-    });
-    const evidenceTemplate = await input.baseline.readEvidence(1);
+    const [templateReceipt] = await input.baseline.loadReceipts();
+    const evidenceTemplate = await input.baseline.readEvidence();
     if (templateReceipt === undefined) {
       throw new Error("baseline receipt fixture is unavailable");
     }
@@ -400,6 +397,7 @@ describe("combined DNA finished-history performance evidence", () => {
       Object.freeze({
         ...templateReceipt,
         requestOrdinal: index + 1,
+        quarantineBound: false as const,
       }),
     );
     let activeReads = 0;
@@ -425,13 +423,13 @@ describe("combined DNA finished-history performance evidence", () => {
           }),
           loadReceipts: async (query: {
             afterRequestOrdinal: number;
-            limit: number;
+            limit?: number;
           }) =>
             receipts
               .filter(
                 (receipt) => receipt.requestOrdinal > query.afterRequestOrdinal,
               )
-              .slice(0, query.limit),
+              .slice(0, query.limit ?? receipts.length),
           readEvidence: async (requestOrdinal: number) => {
             activeReads += 1;
             maximumActiveReads = Math.max(maximumActiveReads, activeReads);
