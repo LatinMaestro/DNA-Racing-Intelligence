@@ -405,7 +405,8 @@ describe("combined DNA finished-history performance evidence", () => {
     let activeReads = 0;
     let maximumActiveReads = 0;
 
-    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence({
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
       ...input,
       baselineAuthority: {
         ...input.baselineAuthority,
@@ -428,8 +429,7 @@ describe("combined DNA finished-history performance evidence", () => {
         }) =>
           receipts
             .filter(
-              (receipt) =>
-                receipt.requestOrdinal > query.afterRequestOrdinal,
+              (receipt) => receipt.requestOrdinal > query.afterRequestOrdinal,
             )
             .slice(0, query.limit),
         readEvidence: async (requestOrdinal: number) => {
@@ -446,16 +446,16 @@ describe("combined DNA finished-history performance evidence", () => {
           }
         },
       },
-      readBudget: {
-        maximumClassBOperations: receiptCount * 2 + 6,
-        paidUsageAllowed: false,
+        readBudget: {
+          maximumClassBOperations: receiptCount * 2 + 6,
+          paidUsageAllowed: false,
+        },
       },
-    });
+    );
 
     expect(assessment.baselineReceiptCount).toBe(receiptCount);
     expect(assessment.baselineFinishedRaceReceiptCount).toBe(receiptCount);
     expect(maximumActiveReads).toBeGreaterThan(1);
     expect(maximumActiveReads).toBeLessThanOrEqual(16);
   });
-
 });
