@@ -75,18 +75,12 @@ export function createDnaRecurringRefreshCadenceDecision(input: {
     "lastCurrentStateCompletedAt",
   );
 
-  if (
-    lastRace !== null &&
-    Date.parse(lastRace) > evaluatedMs
-  ) {
+  if (lastRace !== null && Date.parse(lastRace) > evaluatedMs) {
     throw new Error(
       "DNA recurring refresh cadence finished-race checkpoint is in the future.",
     );
   }
-  if (
-    lastCurrent !== null &&
-    Date.parse(lastCurrent) > evaluatedMs
-  ) {
+  if (lastCurrent !== null && Date.parse(lastCurrent) > evaluatedMs) {
     throw new Error(
       "DNA recurring refresh cadence current-state checkpoint is in the future.",
     );
