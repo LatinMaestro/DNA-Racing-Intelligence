@@ -1,0 +1,2005 @@
+{
+  "source": "Completed official Season 1 Week 1 esports events and race_result observations",
+  "dataCurrentThrough": "2026-09-23T06:36:45.070Z",
+  "completedMatches": 17,
+  "scoredRaces": 984,
+  "resultCount": 9346,
+  "participatingCoreCount": 706,
+  "exactCellCount": 62,
+  "validation": "All 984 scored races reconciled to completed event authority, complete unique entrant identities and finishing positions, supported scoring/point authority, finite positive elapsed times, and full equal gate allocation.",
+  "cells": [
+    {
+      "race_type": "1v1",
+      "distance_m": 1000,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 62,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 62,
+        "fastest_seconds": 53.454,
+        "p25_seconds": 55.531,
+        "median_seconds": 56.4645,
+        "p75_seconds": 57.01175,
+        "slowest_seconds": 58.886
+      },
+      "positive_contributor_times": {
+        "n": 62,
+        "fastest_seconds": 53.454,
+        "p25_seconds": 55.531,
+        "median_seconds": 56.4645,
+        "p75_seconds": 57.01175,
+        "slowest_seconds": 58.886
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 55.531,
+        "expected_winning_seconds": 56.4645,
+        "maximum_positive_seconds": 57.01175
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 1000,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 54.557,
+        "p25_seconds": 55.707,
+        "median_seconds": 56.074,
+        "p75_seconds": 56.6825,
+        "slowest_seconds": 57.608
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 54.557,
+        "p25_seconds": 55.707,
+        "median_seconds": 56.074,
+        "p75_seconds": 56.6825,
+        "slowest_seconds": 57.608
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 55.707,
+        "expected_winning_seconds": 56.074,
+        "maximum_positive_seconds": 56.6825
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 1000,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 45,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 45,
+        "fastest_seconds": 52.688,
+        "p25_seconds": 54.873,
+        "median_seconds": 55.649,
+        "p75_seconds": 56.315,
+        "slowest_seconds": 57.659
+      },
+      "positive_contributor_times": {
+        "n": 96,
+        "fastest_seconds": 53.055,
+        "p25_seconds": 55.717,
+        "median_seconds": 56.412,
+        "p75_seconds": 56.856,
+        "slowest_seconds": 58.276
+      },
+      "podium_cutoff_times": {
+        "n": 45,
+        "fastest_seconds": 55.938,
+        "p25_seconds": 56.556,
+        "median_seconds": 56.933,
+        "p75_seconds": 57.283,
+        "slowest_seconds": 58.276
+      },
+      "targets": {
+        "elite_seconds": 55.717,
+        "expected_winning_seconds": 56.412,
+        "maximum_positive_seconds": 56.856
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 1000,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 22,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 22,
+        "fastest_seconds": 52.274,
+        "p25_seconds": 54.53725,
+        "median_seconds": 55.442,
+        "p75_seconds": 55.86075,
+        "slowest_seconds": 56.919
+      },
+      "positive_contributor_times": {
+        "n": 22,
+        "fastest_seconds": 52.274,
+        "p25_seconds": 54.53725,
+        "median_seconds": 55.442,
+        "p75_seconds": 55.86075,
+        "slowest_seconds": 56.919
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 54.53725,
+        "expected_winning_seconds": 55.442,
+        "maximum_positive_seconds": 55.86075
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 1000,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 12,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 12,
+        "fastest_seconds": 52.696,
+        "p25_seconds": 53.96625,
+        "median_seconds": 54.5035,
+        "p75_seconds": 54.71625,
+        "slowest_seconds": 55.702
+      },
+      "positive_contributor_times": {
+        "n": 12,
+        "fastest_seconds": 52.696,
+        "p25_seconds": 53.96625,
+        "median_seconds": 54.5035,
+        "p75_seconds": 54.71625,
+        "slowest_seconds": 55.702
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 53.96625,
+        "expected_winning_seconds": 54.5035,
+        "maximum_positive_seconds": 54.71625
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 1000,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 3,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 3,
+        "fastest_seconds": 51.764,
+        "p25_seconds": 52.7745,
+        "median_seconds": 53.785,
+        "p75_seconds": 54.5165,
+        "slowest_seconds": 55.248
+      },
+      "positive_contributor_times": {
+        "n": 3,
+        "fastest_seconds": 51.764,
+        "p25_seconds": 52.7745,
+        "median_seconds": 53.785,
+        "p75_seconds": 54.5165,
+        "slowest_seconds": 55.248
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 52.7745,
+        "expected_winning_seconds": 53.785,
+        "maximum_positive_seconds": 54.5165
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 1000,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 12,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 12,
+        "fastest_seconds": 53.734,
+        "p25_seconds": 53.97975,
+        "median_seconds": 54.9675,
+        "p75_seconds": 55.19525,
+        "slowest_seconds": 55.597
+      },
+      "positive_contributor_times": {
+        "n": 27,
+        "fastest_seconds": 53.734,
+        "p25_seconds": 54.9675,
+        "median_seconds": 55.476,
+        "p75_seconds": 55.7905,
+        "slowest_seconds": 56.113
+      },
+      "podium_cutoff_times": {
+        "n": 12,
+        "fastest_seconds": 54.626,
+        "p25_seconds": 55.2145,
+        "median_seconds": 55.8015,
+        "p75_seconds": 55.9295,
+        "slowest_seconds": 56.113
+      },
+      "targets": {
+        "elite_seconds": 54.9675,
+        "expected_winning_seconds": 55.476,
+        "maximum_positive_seconds": 55.7905
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 1000,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 12,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 12,
+        "fastest_seconds": 52.723,
+        "p25_seconds": 54.2485,
+        "median_seconds": 54.4035,
+        "p75_seconds": 55.05075,
+        "slowest_seconds": 55.325
+      },
+      "positive_contributor_times": {
+        "n": 12,
+        "fastest_seconds": 52.723,
+        "p25_seconds": 54.2485,
+        "median_seconds": 54.4035,
+        "p75_seconds": 55.05075,
+        "slowest_seconds": 55.325
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 54.2485,
+        "expected_winning_seconds": 54.4035,
+        "maximum_positive_seconds": 55.05075
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 1200,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 15,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 15,
+        "fastest_seconds": 68.536,
+        "p25_seconds": 69.798,
+        "median_seconds": 69.91,
+        "p75_seconds": 70.5975,
+        "slowest_seconds": 71.548
+      },
+      "positive_contributor_times": {
+        "n": 15,
+        "fastest_seconds": 68.536,
+        "p25_seconds": 69.798,
+        "median_seconds": 69.91,
+        "p75_seconds": 70.5975,
+        "slowest_seconds": 71.548
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 69.798,
+        "expected_winning_seconds": 69.91,
+        "maximum_positive_seconds": 70.5975
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 1200,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 10,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 10,
+        "fastest_seconds": 68.131,
+        "p25_seconds": 68.67325,
+        "median_seconds": 69.4585,
+        "p75_seconds": 70.1315,
+        "slowest_seconds": 70.559
+      },
+      "positive_contributor_times": {
+        "n": 10,
+        "fastest_seconds": 68.131,
+        "p25_seconds": 68.67325,
+        "median_seconds": 69.4585,
+        "p75_seconds": 70.1315,
+        "slowest_seconds": 70.559
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 68.67325,
+        "expected_winning_seconds": 69.4585,
+        "maximum_positive_seconds": 70.1315
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 1200,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 30,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 30,
+        "fastest_seconds": 66.911,
+        "p25_seconds": 68.5295,
+        "median_seconds": 69.2275,
+        "p75_seconds": 69.7425,
+        "slowest_seconds": 70.396
+      },
+      "positive_contributor_times": {
+        "n": 62,
+        "fastest_seconds": 67.542,
+        "p25_seconds": 69.03325,
+        "median_seconds": 69.875,
+        "p75_seconds": 70.38775,
+        "slowest_seconds": 72.17
+      },
+      "podium_cutoff_times": {
+        "n": 30,
+        "fastest_seconds": 68.893,
+        "p25_seconds": 70.06775,
+        "median_seconds": 70.414,
+        "p75_seconds": 70.89725,
+        "slowest_seconds": 72.17
+      },
+      "targets": {
+        "elite_seconds": 69.03325,
+        "expected_winning_seconds": 69.875,
+        "maximum_positive_seconds": 70.38775
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 1200,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 10,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 10,
+        "fastest_seconds": 67.659,
+        "p25_seconds": 68.8505,
+        "median_seconds": 68.994,
+        "p75_seconds": 69.6845,
+        "slowest_seconds": 70.136
+      },
+      "positive_contributor_times": {
+        "n": 10,
+        "fastest_seconds": 67.659,
+        "p25_seconds": 68.8505,
+        "median_seconds": 68.994,
+        "p75_seconds": 69.6845,
+        "slowest_seconds": 70.136
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 68.8505,
+        "expected_winning_seconds": 68.994,
+        "maximum_positive_seconds": 69.6845
+      }
+    },
+    {
+      "race_type": "12_gate_madness",
+      "distance_m": 1200,
+      "gate": 12,
+      "scoring": "podium_majority",
+      "race_count": 8,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 8,
+        "fastest_seconds": 68.587,
+        "p25_seconds": 68.9055,
+        "median_seconds": 69.1525,
+        "p75_seconds": 69.5275,
+        "slowest_seconds": 69.877
+      },
+      "positive_contributor_times": {
+        "n": 16,
+        "fastest_seconds": 68.676,
+        "p25_seconds": 69.098,
+        "median_seconds": 69.516,
+        "p75_seconds": 69.75475,
+        "slowest_seconds": 70.201
+      },
+      "podium_cutoff_times": {
+        "n": 8,
+        "fastest_seconds": 69.403,
+        "p25_seconds": 69.5075,
+        "median_seconds": 69.772,
+        "p75_seconds": 69.97725,
+        "slowest_seconds": 70.691
+      },
+      "targets": {
+        "elite_seconds": 69.098,
+        "expected_winning_seconds": 69.516,
+        "maximum_positive_seconds": 69.75475
+      }
+    },
+    {
+      "race_type": "12_gate_wta",
+      "distance_m": 1200,
+      "gate": 12,
+      "scoring": "wta_win",
+      "race_count": 14,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 14,
+        "fastest_seconds": 65.99,
+        "p25_seconds": 67.598,
+        "median_seconds": 68.3165,
+        "p75_seconds": 68.85025,
+        "slowest_seconds": 69.653
+      },
+      "positive_contributor_times": {
+        "n": 14,
+        "fastest_seconds": 65.99,
+        "p25_seconds": 67.598,
+        "median_seconds": 68.3165,
+        "p75_seconds": 68.85025,
+        "slowest_seconds": 69.653
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 67.598,
+        "expected_winning_seconds": 68.3165,
+        "maximum_positive_seconds": 68.85025
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 1200,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 67.866,
+        "p25_seconds": 67.957,
+        "median_seconds": 68.393,
+        "p75_seconds": 69.0155,
+        "slowest_seconds": 69.942
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 67.866,
+        "p25_seconds": 67.957,
+        "median_seconds": 68.393,
+        "p75_seconds": 69.0155,
+        "slowest_seconds": 69.942
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 67.957,
+        "expected_winning_seconds": 68.393,
+        "maximum_positive_seconds": 69.0155
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 1200,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 8,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 8,
+        "fastest_seconds": 67.861,
+        "p25_seconds": 68.26675,
+        "median_seconds": 68.4725,
+        "p75_seconds": 68.629,
+        "slowest_seconds": 69.051
+      },
+      "positive_contributor_times": {
+        "n": 8,
+        "fastest_seconds": 67.861,
+        "p25_seconds": 68.26675,
+        "median_seconds": 68.4725,
+        "p75_seconds": 68.629,
+        "slowest_seconds": 69.051
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 68.26675,
+        "expected_winning_seconds": 68.4725,
+        "maximum_positive_seconds": 68.629
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 1200,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 65.911,
+        "p25_seconds": 67.277,
+        "median_seconds": 67.846,
+        "p75_seconds": 69.047,
+        "slowest_seconds": 69.422
+      },
+      "positive_contributor_times": {
+        "n": 20,
+        "fastest_seconds": 65.911,
+        "p25_seconds": 67.903,
+        "median_seconds": 68.673,
+        "p75_seconds": 69.383,
+        "slowest_seconds": 69.827
+      },
+      "podium_cutoff_times": {
+        "n": 9,
+        "fastest_seconds": 68.133,
+        "p25_seconds": 68.756,
+        "median_seconds": 69.075,
+        "p75_seconds": 69.534,
+        "slowest_seconds": 69.827
+      },
+      "targets": {
+        "elite_seconds": 67.903,
+        "expected_winning_seconds": 68.673,
+        "maximum_positive_seconds": 69.383
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 1200,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 66.505,
+        "p25_seconds": 67.347,
+        "median_seconds": 68.354,
+        "p75_seconds": 68.875,
+        "slowest_seconds": 69.237
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 66.505,
+        "p25_seconds": 67.347,
+        "median_seconds": 68.354,
+        "p75_seconds": 68.875,
+        "slowest_seconds": 69.237
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 67.347,
+        "expected_winning_seconds": 68.354,
+        "maximum_positive_seconds": 68.875
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 1400,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 15,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 15,
+        "fastest_seconds": 80.265,
+        "p25_seconds": 81.7585,
+        "median_seconds": 82.27,
+        "p75_seconds": 82.762,
+        "slowest_seconds": 83.751
+      },
+      "positive_contributor_times": {
+        "n": 15,
+        "fastest_seconds": 80.265,
+        "p25_seconds": 81.7585,
+        "median_seconds": 82.27,
+        "p75_seconds": 82.762,
+        "slowest_seconds": 83.751
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 81.7585,
+        "expected_winning_seconds": 82.27,
+        "maximum_positive_seconds": 82.762
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 1400,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 20,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 20,
+        "fastest_seconds": 79.758,
+        "p25_seconds": 81.06,
+        "median_seconds": 81.708,
+        "p75_seconds": 82.275,
+        "slowest_seconds": 83.71
+      },
+      "positive_contributor_times": {
+        "n": 20,
+        "fastest_seconds": 79.758,
+        "p25_seconds": 81.06,
+        "median_seconds": 81.708,
+        "p75_seconds": 82.275,
+        "slowest_seconds": 83.71
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 81.06,
+        "expected_winning_seconds": 81.708,
+        "maximum_positive_seconds": 82.275
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 1400,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 14,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 14,
+        "fastest_seconds": 79.307,
+        "p25_seconds": 80.757,
+        "median_seconds": 81.404,
+        "p75_seconds": 81.98075,
+        "slowest_seconds": 83.002
+      },
+      "positive_contributor_times": {
+        "n": 29,
+        "fastest_seconds": 79.307,
+        "p25_seconds": 81.869,
+        "median_seconds": 82.337,
+        "p75_seconds": 82.842,
+        "slowest_seconds": 83.642
+      },
+      "podium_cutoff_times": {
+        "n": 14,
+        "fastest_seconds": 82.17,
+        "p25_seconds": 82.51575,
+        "median_seconds": 82.732,
+        "p75_seconds": 82.921,
+        "slowest_seconds": 83.642
+      },
+      "targets": {
+        "elite_seconds": 81.869,
+        "expected_winning_seconds": 82.337,
+        "maximum_positive_seconds": 82.842
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 1400,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 18,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 18,
+        "fastest_seconds": 79.776,
+        "p25_seconds": 80.456,
+        "median_seconds": 80.785,
+        "p75_seconds": 81.2255,
+        "slowest_seconds": 82.888
+      },
+      "positive_contributor_times": {
+        "n": 18,
+        "fastest_seconds": 79.776,
+        "p25_seconds": 80.456,
+        "median_seconds": 80.785,
+        "p75_seconds": 81.2255,
+        "slowest_seconds": 82.888
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 80.456,
+        "expected_winning_seconds": 80.785,
+        "maximum_positive_seconds": 81.2255
+      }
+    },
+    {
+      "race_type": "12_gate_madness",
+      "distance_m": 1400,
+      "gate": 12,
+      "scoring": "podium_majority",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 79.288,
+        "p25_seconds": 80.13,
+        "median_seconds": 80.895,
+        "p75_seconds": 81.186,
+        "slowest_seconds": 82.164
+      },
+      "positive_contributor_times": {
+        "n": 20,
+        "fastest_seconds": 79.288,
+        "p25_seconds": 80.7185,
+        "median_seconds": 81.3435,
+        "p75_seconds": 81.747,
+        "slowest_seconds": 82.247
+      },
+      "podium_cutoff_times": {
+        "n": 9,
+        "fastest_seconds": 80.702,
+        "p25_seconds": 81.722,
+        "median_seconds": 81.822,
+        "p75_seconds": 81.978,
+        "slowest_seconds": 82.885
+      },
+      "targets": {
+        "elite_seconds": 80.7185,
+        "expected_winning_seconds": 81.3435,
+        "maximum_positive_seconds": 81.747
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 1400,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 12,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 12,
+        "fastest_seconds": 78.789,
+        "p25_seconds": 79.70175,
+        "median_seconds": 80.7235,
+        "p75_seconds": 81.3395,
+        "slowest_seconds": 81.957
+      },
+      "positive_contributor_times": {
+        "n": 12,
+        "fastest_seconds": 78.789,
+        "p25_seconds": 79.70175,
+        "median_seconds": 80.7235,
+        "p75_seconds": 81.3395,
+        "slowest_seconds": 81.957
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 79.70175,
+        "expected_winning_seconds": 80.7235,
+        "maximum_positive_seconds": 81.3395
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 1400,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 1,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 1,
+        "fastest_seconds": 80.072,
+        "p25_seconds": 80.072,
+        "median_seconds": 80.072,
+        "p75_seconds": 80.072,
+        "slowest_seconds": 80.072
+      },
+      "positive_contributor_times": {
+        "n": 1,
+        "fastest_seconds": 80.072,
+        "p25_seconds": 80.072,
+        "median_seconds": 80.072,
+        "p75_seconds": 80.072,
+        "slowest_seconds": 80.072
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 80.072,
+        "expected_winning_seconds": 80.072,
+        "maximum_positive_seconds": 80.072
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 1400,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 6,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 6,
+        "fastest_seconds": 79.442,
+        "p25_seconds": 80.603,
+        "median_seconds": 80.6935,
+        "p75_seconds": 80.85975,
+        "slowest_seconds": 81.684
+      },
+      "positive_contributor_times": {
+        "n": 14,
+        "fastest_seconds": 79.442,
+        "p25_seconds": 80.7255,
+        "median_seconds": 81.134,
+        "p75_seconds": 81.495,
+        "slowest_seconds": 81.774
+      },
+      "podium_cutoff_times": {
+        "n": 6,
+        "fastest_seconds": 80.718,
+        "p25_seconds": 81.0675,
+        "median_seconds": 81.486,
+        "p75_seconds": 81.549,
+        "slowest_seconds": 81.986
+      },
+      "targets": {
+        "elite_seconds": 80.7255,
+        "expected_winning_seconds": 81.134,
+        "maximum_positive_seconds": 81.495
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 1400,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 78.88,
+        "p25_seconds": 79.5425,
+        "median_seconds": 80.293,
+        "p75_seconds": 80.9735,
+        "slowest_seconds": 81.843
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 78.88,
+        "p25_seconds": 79.5425,
+        "median_seconds": 80.293,
+        "p75_seconds": 80.9735,
+        "slowest_seconds": 81.843
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 79.5425,
+        "expected_winning_seconds": 80.293,
+        "maximum_positive_seconds": 80.9735
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 1600,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 23,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 23,
+        "fastest_seconds": 90.159,
+        "p25_seconds": 93.1255,
+        "median_seconds": 93.803,
+        "p75_seconds": 95.072,
+        "slowest_seconds": 96.432
+      },
+      "positive_contributor_times": {
+        "n": 23,
+        "fastest_seconds": 90.159,
+        "p25_seconds": 93.1255,
+        "median_seconds": 93.803,
+        "p75_seconds": 95.072,
+        "slowest_seconds": 96.432
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 93.1255,
+        "expected_winning_seconds": 93.803,
+        "maximum_positive_seconds": 95.072
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 1600,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 91.329,
+        "p25_seconds": 93.282,
+        "median_seconds": 93.671,
+        "p75_seconds": 93.721,
+        "slowest_seconds": 95.183
+      },
+      "positive_contributor_times": {
+        "n": 9,
+        "fastest_seconds": 91.329,
+        "p25_seconds": 93.282,
+        "median_seconds": 93.671,
+        "p75_seconds": 93.721,
+        "slowest_seconds": 95.183
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 93.282,
+        "expected_winning_seconds": 93.671,
+        "maximum_positive_seconds": 93.721
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 1600,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 23,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 23,
+        "fastest_seconds": 91.208,
+        "p25_seconds": 92.8045,
+        "median_seconds": 93.194,
+        "p75_seconds": 93.889,
+        "slowest_seconds": 94.571
+      },
+      "positive_contributor_times": {
+        "n": 47,
+        "fastest_seconds": 91.208,
+        "p25_seconds": 93.58,
+        "median_seconds": 94.129,
+        "p75_seconds": 94.5725,
+        "slowest_seconds": 95.556
+      },
+      "podium_cutoff_times": {
+        "n": 23,
+        "fastest_seconds": 93.757,
+        "p25_seconds": 94.3975,
+        "median_seconds": 94.574,
+        "p75_seconds": 95.024,
+        "slowest_seconds": 95.556
+      },
+      "targets": {
+        "elite_seconds": 93.58,
+        "expected_winning_seconds": 94.129,
+        "maximum_positive_seconds": 94.5725
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 1600,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 5,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 5,
+        "fastest_seconds": 90.286,
+        "p25_seconds": 91.019,
+        "median_seconds": 91.556,
+        "p75_seconds": 93.282,
+        "slowest_seconds": 94.772
+      },
+      "positive_contributor_times": {
+        "n": 5,
+        "fastest_seconds": 90.286,
+        "p25_seconds": 91.019,
+        "median_seconds": 91.556,
+        "p75_seconds": 93.282,
+        "slowest_seconds": 94.772
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 91.019,
+        "expected_winning_seconds": 91.556,
+        "maximum_positive_seconds": 93.282
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 1600,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 90.95,
+        "p25_seconds": 92.345,
+        "median_seconds": 93.148,
+        "p75_seconds": 93.3885,
+        "slowest_seconds": 94.148
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 90.95,
+        "p25_seconds": 92.345,
+        "median_seconds": 93.148,
+        "p75_seconds": 93.3885,
+        "slowest_seconds": 94.148
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 92.345,
+        "expected_winning_seconds": 93.148,
+        "maximum_positive_seconds": 93.3885
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 1600,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 92.201,
+        "p25_seconds": 92.478,
+        "median_seconds": 92.883,
+        "p75_seconds": 93.33,
+        "slowest_seconds": 93.768
+      },
+      "positive_contributor_times": {
+        "n": 9,
+        "fastest_seconds": 92.201,
+        "p25_seconds": 92.478,
+        "median_seconds": 92.883,
+        "p75_seconds": 93.33,
+        "slowest_seconds": 93.768
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 92.478,
+        "expected_winning_seconds": 92.883,
+        "maximum_positive_seconds": 93.33
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 1600,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 1,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 1,
+        "fastest_seconds": 92.421,
+        "p25_seconds": 92.421,
+        "median_seconds": 92.421,
+        "p75_seconds": 92.421,
+        "slowest_seconds": 92.421
+      },
+      "positive_contributor_times": {
+        "n": 3,
+        "fastest_seconds": 92.421,
+        "p25_seconds": 92.8695,
+        "median_seconds": 93.318,
+        "p75_seconds": 93.4425,
+        "slowest_seconds": 93.567
+      },
+      "podium_cutoff_times": {
+        "n": 1,
+        "fastest_seconds": 93.567,
+        "p25_seconds": 93.567,
+        "median_seconds": 93.567,
+        "p75_seconds": 93.567,
+        "slowest_seconds": 93.567
+      },
+      "targets": {
+        "elite_seconds": 92.8695,
+        "expected_winning_seconds": 93.318,
+        "maximum_positive_seconds": 93.4425
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 1600,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 27,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 27,
+        "fastest_seconds": 90.544,
+        "p25_seconds": 91.755,
+        "median_seconds": 92.361,
+        "p75_seconds": 93.012,
+        "slowest_seconds": 93.954
+      },
+      "positive_contributor_times": {
+        "n": 27,
+        "fastest_seconds": 90.544,
+        "p25_seconds": 91.755,
+        "median_seconds": 92.361,
+        "p75_seconds": 93.012,
+        "slowest_seconds": 93.954
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 91.755,
+        "expected_winning_seconds": 92.361,
+        "maximum_positive_seconds": 93.012
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 1800,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 46,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 46,
+        "fastest_seconds": 102.806,
+        "p25_seconds": 105.42025,
+        "median_seconds": 106.133,
+        "p75_seconds": 106.78325,
+        "slowest_seconds": 108.653
+      },
+      "positive_contributor_times": {
+        "n": 46,
+        "fastest_seconds": 102.806,
+        "p25_seconds": 105.42025,
+        "median_seconds": 106.133,
+        "p75_seconds": 106.78325,
+        "slowest_seconds": 108.653
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 105.42025,
+        "expected_winning_seconds": 106.133,
+        "maximum_positive_seconds": 106.78325
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 1800,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 32,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 32,
+        "fastest_seconds": 102.498,
+        "p25_seconds": 104.68725,
+        "median_seconds": 105.2665,
+        "p75_seconds": 105.982,
+        "slowest_seconds": 107.34
+      },
+      "positive_contributor_times": {
+        "n": 32,
+        "fastest_seconds": 102.498,
+        "p25_seconds": 104.68725,
+        "median_seconds": 105.2665,
+        "p75_seconds": 105.982,
+        "slowest_seconds": 107.34
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 104.68725,
+        "expected_winning_seconds": 105.2665,
+        "maximum_positive_seconds": 105.982
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 1800,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 23,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 23,
+        "fastest_seconds": 102.86,
+        "p25_seconds": 104.953,
+        "median_seconds": 105.26,
+        "p75_seconds": 105.9105,
+        "slowest_seconds": 106.592
+      },
+      "positive_contributor_times": {
+        "n": 53,
+        "fastest_seconds": 102.86,
+        "p25_seconds": 105.281,
+        "median_seconds": 105.951,
+        "p75_seconds": 106.718,
+        "slowest_seconds": 108.305
+      },
+      "podium_cutoff_times": {
+        "n": 23,
+        "fastest_seconds": 105.632,
+        "p25_seconds": 106.3325,
+        "median_seconds": 106.718,
+        "p75_seconds": 106.861,
+        "slowest_seconds": 108.305
+      },
+      "targets": {
+        "elite_seconds": 105.281,
+        "expected_winning_seconds": 105.951,
+        "maximum_positive_seconds": 106.718
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 1800,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 103.375,
+        "p25_seconds": 105.143,
+        "median_seconds": 105.974,
+        "p75_seconds": 106.434,
+        "slowest_seconds": 106.854
+      },
+      "positive_contributor_times": {
+        "n": 9,
+        "fastest_seconds": 103.375,
+        "p25_seconds": 105.143,
+        "median_seconds": 105.974,
+        "p75_seconds": 106.434,
+        "slowest_seconds": 106.854
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 105.143,
+        "expected_winning_seconds": 105.974,
+        "maximum_positive_seconds": 106.434
+      }
+    },
+    {
+      "race_type": "12_gate_madness",
+      "distance_m": 1800,
+      "gate": 12,
+      "scoring": "podium_majority",
+      "race_count": 3,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 3,
+        "fastest_seconds": 102.728,
+        "p25_seconds": 102.761,
+        "median_seconds": 102.794,
+        "p75_seconds": 104.5445,
+        "slowest_seconds": 106.295
+      },
+      "positive_contributor_times": {
+        "n": 8,
+        "fastest_seconds": 102.794,
+        "p25_seconds": 104.72625,
+        "median_seconds": 106.153,
+        "p75_seconds": 106.6475,
+        "slowest_seconds": 106.799
+      },
+      "podium_cutoff_times": {
+        "n": 3,
+        "fastest_seconds": 104.898,
+        "p25_seconds": 105.826,
+        "median_seconds": 106.754,
+        "p75_seconds": 106.7765,
+        "slowest_seconds": 106.799
+      },
+      "targets": {
+        "elite_seconds": 104.72625,
+        "expected_winning_seconds": 106.153,
+        "maximum_positive_seconds": 106.6475
+      }
+    },
+    {
+      "race_type": "12_gate_wta",
+      "distance_m": 1800,
+      "gate": 12,
+      "scoring": "wta_win",
+      "race_count": 14,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 14,
+        "fastest_seconds": 103.742,
+        "p25_seconds": 104.3295,
+        "median_seconds": 104.8405,
+        "p75_seconds": 105.50125,
+        "slowest_seconds": 106.219
+      },
+      "positive_contributor_times": {
+        "n": 14,
+        "fastest_seconds": 103.742,
+        "p25_seconds": 104.3295,
+        "median_seconds": 104.8405,
+        "p75_seconds": 105.50125,
+        "slowest_seconds": 106.219
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 104.3295,
+        "expected_winning_seconds": 104.8405,
+        "maximum_positive_seconds": 105.50125
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 1800,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 6,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 6,
+        "fastest_seconds": 102.763,
+        "p25_seconds": 103.46675,
+        "median_seconds": 103.9875,
+        "p75_seconds": 104.284,
+        "slowest_seconds": 104.535
+      },
+      "positive_contributor_times": {
+        "n": 6,
+        "fastest_seconds": 102.763,
+        "p25_seconds": 103.46675,
+        "median_seconds": 103.9875,
+        "p75_seconds": 104.284,
+        "slowest_seconds": 104.535
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 103.46675,
+        "expected_winning_seconds": 103.9875,
+        "maximum_positive_seconds": 104.284
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 1800,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 4,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 4,
+        "fastest_seconds": 104.011,
+        "p25_seconds": 104.22625,
+        "median_seconds": 104.3205,
+        "p75_seconds": 104.43975,
+        "slowest_seconds": 104.73
+      },
+      "positive_contributor_times": {
+        "n": 4,
+        "fastest_seconds": 104.011,
+        "p25_seconds": 104.22625,
+        "median_seconds": 104.3205,
+        "p75_seconds": 104.43975,
+        "slowest_seconds": 104.73
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 104.22625,
+        "expected_winning_seconds": 104.3205,
+        "maximum_positive_seconds": 104.43975
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 1800,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 14,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 14,
+        "fastest_seconds": 103.491,
+        "p25_seconds": 104.13025,
+        "median_seconds": 104.4775,
+        "p75_seconds": 105.2625,
+        "slowest_seconds": 105.72
+      },
+      "positive_contributor_times": {
+        "n": 35,
+        "fastest_seconds": 103.491,
+        "p25_seconds": 104.529,
+        "median_seconds": 105.255,
+        "p75_seconds": 105.541,
+        "slowest_seconds": 106.617
+      },
+      "podium_cutoff_times": {
+        "n": 14,
+        "fastest_seconds": 104.751,
+        "p25_seconds": 105.30875,
+        "median_seconds": 105.7095,
+        "p75_seconds": 106.18325,
+        "slowest_seconds": 106.617
+      },
+      "targets": {
+        "elite_seconds": 104.529,
+        "expected_winning_seconds": 105.255,
+        "maximum_positive_seconds": 105.541
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 1800,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 102.443,
+        "p25_seconds": 103.556,
+        "median_seconds": 104.493,
+        "p75_seconds": 104.902,
+        "slowest_seconds": 105.397
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 102.443,
+        "p25_seconds": 103.556,
+        "median_seconds": 104.493,
+        "p75_seconds": 104.902,
+        "slowest_seconds": 105.397
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 103.556,
+        "expected_winning_seconds": 104.493,
+        "maximum_positive_seconds": 104.902
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 2000,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 14,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 14,
+        "fastest_seconds": 116.082,
+        "p25_seconds": 117.633,
+        "median_seconds": 118.0135,
+        "p75_seconds": 118.27175,
+        "slowest_seconds": 118.761
+      },
+      "positive_contributor_times": {
+        "n": 14,
+        "fastest_seconds": 116.082,
+        "p25_seconds": 117.633,
+        "median_seconds": 118.0135,
+        "p75_seconds": 118.27175,
+        "slowest_seconds": 118.761
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 117.633,
+        "expected_winning_seconds": 118.0135,
+        "maximum_positive_seconds": 118.27175
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 2000,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 114.888,
+        "p25_seconds": 116.449,
+        "median_seconds": 117.137,
+        "p75_seconds": 117.748,
+        "slowest_seconds": 119.235
+      },
+      "positive_contributor_times": {
+        "n": 9,
+        "fastest_seconds": 114.888,
+        "p25_seconds": 116.449,
+        "median_seconds": 117.137,
+        "p75_seconds": 117.748,
+        "slowest_seconds": 119.235
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 116.449,
+        "expected_winning_seconds": 117.137,
+        "maximum_positive_seconds": 117.748
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 2000,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 41,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 41,
+        "fastest_seconds": 114.557,
+        "p25_seconds": 116.682,
+        "median_seconds": 117.23,
+        "p75_seconds": 117.814,
+        "slowest_seconds": 118.329
+      },
+      "positive_contributor_times": {
+        "n": 90,
+        "fastest_seconds": 114.557,
+        "p25_seconds": 117.43425,
+        "median_seconds": 118.0995,
+        "p75_seconds": 118.63825,
+        "slowest_seconds": 119.71
+      },
+      "podium_cutoff_times": {
+        "n": 41,
+        "fastest_seconds": 117.102,
+        "p25_seconds": 118.434,
+        "median_seconds": 118.702,
+        "p75_seconds": 118.948,
+        "slowest_seconds": 119.71
+      },
+      "targets": {
+        "elite_seconds": 117.43425,
+        "expected_winning_seconds": 118.0995,
+        "maximum_positive_seconds": 118.63825
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 2000,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 42,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 42,
+        "fastest_seconds": 115.235,
+        "p25_seconds": 116.55425,
+        "median_seconds": 117.1815,
+        "p75_seconds": 118.01625,
+        "slowest_seconds": 118.818
+      },
+      "positive_contributor_times": {
+        "n": 42,
+        "fastest_seconds": 115.235,
+        "p25_seconds": 116.55425,
+        "median_seconds": 117.1815,
+        "p75_seconds": 118.01625,
+        "slowest_seconds": 118.818
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 116.55425,
+        "expected_winning_seconds": 117.1815,
+        "maximum_positive_seconds": 118.01625
+      }
+    },
+    {
+      "race_type": "12_gate_madness",
+      "distance_m": 2000,
+      "gate": 12,
+      "scoring": "podium_majority",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 115.285,
+        "p25_seconds": 116.236,
+        "median_seconds": 116.895,
+        "p75_seconds": 117.094,
+        "slowest_seconds": 117.434
+      },
+      "positive_contributor_times": {
+        "n": 20,
+        "fastest_seconds": 115.285,
+        "p25_seconds": 116.97675,
+        "median_seconds": 117.268,
+        "p75_seconds": 118.337,
+        "slowest_seconds": 118.939
+      },
+      "podium_cutoff_times": {
+        "n": 9,
+        "fastest_seconds": 117.055,
+        "p25_seconds": 118.14,
+        "median_seconds": 118.32,
+        "p75_seconds": 118.551,
+        "slowest_seconds": 118.939
+      },
+      "targets": {
+        "elite_seconds": 116.97675,
+        "expected_winning_seconds": 117.268,
+        "maximum_positive_seconds": 118.337
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 2000,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 7,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 7,
+        "fastest_seconds": 114.966,
+        "p25_seconds": 116.117,
+        "median_seconds": 116.474,
+        "p75_seconds": 116.827,
+        "slowest_seconds": 117.035
+      },
+      "positive_contributor_times": {
+        "n": 7,
+        "fastest_seconds": 114.966,
+        "p25_seconds": 116.117,
+        "median_seconds": 116.474,
+        "p75_seconds": 116.827,
+        "slowest_seconds": 117.035
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 116.117,
+        "expected_winning_seconds": 116.474,
+        "maximum_positive_seconds": 116.827
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 2000,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 13,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 13,
+        "fastest_seconds": 113.695,
+        "p25_seconds": 115.757,
+        "median_seconds": 116.273,
+        "p75_seconds": 116.718,
+        "slowest_seconds": 117.849
+      },
+      "positive_contributor_times": {
+        "n": 31,
+        "fastest_seconds": 113.695,
+        "p25_seconds": 116.703,
+        "median_seconds": 117.247,
+        "p75_seconds": 117.7975,
+        "slowest_seconds": 118.277
+      },
+      "podium_cutoff_times": {
+        "n": 13,
+        "fastest_seconds": 116.914,
+        "p25_seconds": 117.458,
+        "median_seconds": 117.841,
+        "p75_seconds": 118.033,
+        "slowest_seconds": 118.277
+      },
+      "targets": {
+        "elite_seconds": 116.703,
+        "expected_winning_seconds": 117.247,
+        "maximum_positive_seconds": 117.7975
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 2000,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 115.173,
+        "p25_seconds": 115.689,
+        "median_seconds": 116.494,
+        "p75_seconds": 116.941,
+        "slowest_seconds": 117.599
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 115.173,
+        "p25_seconds": 115.689,
+        "median_seconds": 116.494,
+        "p75_seconds": 116.941,
+        "slowest_seconds": 117.599
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 115.689,
+        "expected_winning_seconds": 116.494,
+        "maximum_positive_seconds": 116.941
+      }
+    },
+    {
+      "race_type": "1v1",
+      "distance_m": 2200,
+      "gate": 2,
+      "scoring": "wta_win",
+      "race_count": 39,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 39,
+        "fastest_seconds": 126.398,
+        "p25_seconds": 129.901,
+        "median_seconds": 130.525,
+        "p75_seconds": 131.049,
+        "slowest_seconds": 131.876
+      },
+      "positive_contributor_times": {
+        "n": 39,
+        "fastest_seconds": 126.398,
+        "p25_seconds": 129.901,
+        "median_seconds": 130.525,
+        "p75_seconds": 131.049,
+        "slowest_seconds": 131.876
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 129.901,
+        "expected_winning_seconds": 130.525,
+        "maximum_positive_seconds": 131.049
+      }
+    },
+    {
+      "race_type": "4_gate_wta",
+      "distance_m": 2200,
+      "gate": 4,
+      "scoring": "wta_win",
+      "race_count": 20,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 20,
+        "fastest_seconds": 126.31,
+        "p25_seconds": 128.87975,
+        "median_seconds": 129.457,
+        "p75_seconds": 130.24925,
+        "slowest_seconds": 131.622
+      },
+      "positive_contributor_times": {
+        "n": 20,
+        "fastest_seconds": 126.31,
+        "p25_seconds": 128.87975,
+        "median_seconds": 129.457,
+        "p75_seconds": 130.24925,
+        "slowest_seconds": 131.622
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 128.87975,
+        "expected_winning_seconds": 129.457,
+        "maximum_positive_seconds": 130.24925
+      }
+    },
+    {
+      "race_type": "6_gate_madness",
+      "distance_m": 2200,
+      "gate": 6,
+      "scoring": "podium_majority",
+      "race_count": 34,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 34,
+        "fastest_seconds": 126.33,
+        "p25_seconds": 128.306,
+        "median_seconds": 128.968,
+        "p75_seconds": 129.87125,
+        "slowest_seconds": 131.114
+      },
+      "positive_contributor_times": {
+        "n": 71,
+        "fastest_seconds": 126.33,
+        "p25_seconds": 129.0845,
+        "median_seconds": 129.974,
+        "p75_seconds": 130.5415,
+        "slowest_seconds": 131.337
+      },
+      "podium_cutoff_times": {
+        "n": 34,
+        "fastest_seconds": 128.553,
+        "p25_seconds": 130.00475,
+        "median_seconds": 130.6535,
+        "p75_seconds": 131.0585,
+        "slowest_seconds": 131.974
+      },
+      "targets": {
+        "elite_seconds": 129.0845,
+        "expected_winning_seconds": 129.974,
+        "maximum_positive_seconds": 130.5415
+      }
+    },
+    {
+      "race_type": "6_gate_wta",
+      "distance_m": 2200,
+      "gate": 6,
+      "scoring": "wta_win",
+      "race_count": 11,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 11,
+        "fastest_seconds": 126.605,
+        "p25_seconds": 128.3325,
+        "median_seconds": 129.217,
+        "p75_seconds": 129.465,
+        "slowest_seconds": 131.198
+      },
+      "positive_contributor_times": {
+        "n": 11,
+        "fastest_seconds": 126.605,
+        "p25_seconds": 128.3325,
+        "median_seconds": 129.217,
+        "p75_seconds": 129.465,
+        "slowest_seconds": 131.198
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 128.3325,
+        "expected_winning_seconds": 129.217,
+        "maximum_positive_seconds": 129.465
+      }
+    },
+    {
+      "race_type": "12_gate_madness",
+      "distance_m": 2200,
+      "gate": 12,
+      "scoring": "podium_majority",
+      "race_count": 9,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 9,
+        "fastest_seconds": 128.248,
+        "p25_seconds": 128.623,
+        "median_seconds": 129.35,
+        "p75_seconds": 129.526,
+        "slowest_seconds": 130.366
+      },
+      "positive_contributor_times": {
+        "n": 21,
+        "fastest_seconds": 128.248,
+        "p25_seconds": 128.832,
+        "median_seconds": 129.789,
+        "p75_seconds": 130.381,
+        "slowest_seconds": 130.792
+      },
+      "podium_cutoff_times": {
+        "n": 9,
+        "fastest_seconds": 128.832,
+        "p25_seconds": 129.789,
+        "median_seconds": 130.457,
+        "p75_seconds": 130.664,
+        "slowest_seconds": 131.103
+      },
+      "targets": {
+        "elite_seconds": 128.832,
+        "expected_winning_seconds": 129.789,
+        "maximum_positive_seconds": 130.381
+      }
+    },
+    {
+      "race_type": "16_gate_wta",
+      "distance_m": 2200,
+      "gate": 16,
+      "scoring": "wta_win",
+      "race_count": 22,
+      "sample_status": "representative",
+      "first_place_times": {
+        "n": 22,
+        "fastest_seconds": 126.806,
+        "p25_seconds": 127.77775,
+        "median_seconds": 128.51,
+        "p75_seconds": 129.1225,
+        "slowest_seconds": 129.943
+      },
+      "positive_contributor_times": {
+        "n": 22,
+        "fastest_seconds": 126.806,
+        "p25_seconds": 127.77775,
+        "median_seconds": 128.51,
+        "p75_seconds": 129.1225,
+        "slowest_seconds": 129.943
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 127.77775,
+        "expected_winning_seconds": 128.51,
+        "maximum_positive_seconds": 129.1225
+      }
+    },
+    {
+      "race_type": "22_gate_wta",
+      "distance_m": 2200,
+      "gate": 22,
+      "scoring": "wta_win",
+      "race_count": 4,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 4,
+        "fastest_seconds": 127.967,
+        "p25_seconds": 128.3465,
+        "median_seconds": 128.664,
+        "p75_seconds": 129.10275,
+        "slowest_seconds": 129.846
+      },
+      "positive_contributor_times": {
+        "n": 4,
+        "fastest_seconds": 127.967,
+        "p25_seconds": 128.3465,
+        "median_seconds": 128.664,
+        "p75_seconds": 129.10275,
+        "slowest_seconds": 129.846
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 128.3465,
+        "expected_winning_seconds": 128.664,
+        "maximum_positive_seconds": 129.10275
+      }
+    },
+    {
+      "race_type": "24_gate_madness",
+      "distance_m": 2200,
+      "gate": 24,
+      "scoring": "podium_majority",
+      "race_count": 17,
+      "sample_status": "developing",
+      "first_place_times": {
+        "n": 17,
+        "fastest_seconds": 127.159,
+        "p25_seconds": 128.245,
+        "median_seconds": 128.547,
+        "p75_seconds": 129.098,
+        "slowest_seconds": 129.534
+      },
+      "positive_contributor_times": {
+        "n": 42,
+        "fastest_seconds": 127.159,
+        "p25_seconds": 128.81675,
+        "median_seconds": 129.2025,
+        "p75_seconds": 129.64775,
+        "slowest_seconds": 130.398
+      },
+      "podium_cutoff_times": {
+        "n": 17,
+        "fastest_seconds": 129.136,
+        "p25_seconds": 129.226,
+        "median_seconds": 129.648,
+        "p75_seconds": 129.805,
+        "slowest_seconds": 130.398
+      },
+      "targets": {
+        "elite_seconds": 128.81675,
+        "expected_winning_seconds": 129.2025,
+        "maximum_positive_seconds": 129.64775
+      }
+    },
+    {
+      "race_type": "24_gate_wta",
+      "distance_m": 2200,
+      "gate": 24,
+      "scoring": "wta_win",
+      "race_count": 1,
+      "sample_status": "early_signal",
+      "first_place_times": {
+        "n": 1,
+        "fastest_seconds": 127.794,
+        "p25_seconds": 127.794,
+        "median_seconds": 127.794,
+        "p75_seconds": 127.794,
+        "slowest_seconds": 127.794
+      },
+      "positive_contributor_times": {
+        "n": 1,
+        "fastest_seconds": 127.794,
+        "p25_seconds": 127.794,
+        "median_seconds": 127.794,
+        "p75_seconds": 127.794,
+        "slowest_seconds": 127.794
+      },
+      "podium_cutoff_times": null,
+      "targets": {
+        "elite_seconds": 127.794,
+        "expected_winning_seconds": 127.794,
+        "maximum_positive_seconds": 127.794
+      }
+    }
+  ]
+}

@@ -184,6 +184,17 @@ export function buildProLeagueEsportsBenchmark(input: {
     if (race.homeTeamId === race.awayTeamId) {
       throw new Error("An Esports race requires two distinct teams.");
     }
+    if (
+      race.gateCount % 2 !== 0 ||
+      race.homeCoreIds.length !== race.gateCount / 2 ||
+      race.awayCoreIds.length !== race.gateCount / 2 ||
+      new Set([...race.homeCoreIds, ...race.awayCoreIds]).size !==
+        race.gateCount
+    ) {
+      throw new Error(
+        "An Esports race requires distinct entrants filling both halves of its gates.",
+      );
+    }
     if (raceById.has(race.raceId)) {
       throw new Error("Duplicate Esports race authority is not allowed.");
     }

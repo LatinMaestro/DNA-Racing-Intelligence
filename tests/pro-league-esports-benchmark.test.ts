@@ -169,4 +169,31 @@ describe("Pro League Esports benchmark", () => {
       }),
     ).toThrow("WTA point authority conflicts");
   });
+
+  it("rejects incomplete or repeated declared entrant authority", () => {
+    const race = {
+      matchId: "match-1",
+      raceId: "race-1",
+      mapId: "anchor",
+      raceNumber: 1,
+      raceType: "4_gate_wta",
+      distanceMetres: 1_200,
+      gateCount: 4,
+      scoring: "wta_win" as const,
+      homeTeamId: "home",
+      awayTeamId: "away",
+      pointTo: "home" as const,
+      homeCoreIds: ["1", "2"],
+      awayCoreIds: ["3", "4"],
+      completedAt,
+    };
+    for (const changed of [
+      { ...race, homeCoreIds: ["1"] },
+      { ...race, awayCoreIds: ["2", "4"] },
+    ]) {
+      expect(() =>
+        buildProLeagueEsportsBenchmark({ races: [changed], results: [] }),
+      ).toThrow("distinct entrants filling both halves");
+    }
+  });
 });
