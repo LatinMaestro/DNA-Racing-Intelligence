@@ -332,7 +332,7 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     },
     {
       name: "format",
-      raw: { rid: 1, format: "" },
+      raw: { rid: 1, format: 1 },
       diagnostic: "race_document_adaptation_format_unavailable",
     },
     {
@@ -426,6 +426,25 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         displayNameEvidenceStatus: "unsupported_source_value",
       });
       expect(evidence.canonical).not.toHaveProperty("displayName");
+      expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+    },
+  );
+
+  it.each(["", "   "])(
+    "preserves a blank Race format as unsupported without inventing a value",
+    (format) => {
+      const raw = { rid: 1, format } as DnaRaceDocument;
+      const evidence = adaptDnaRaceDocument({
+        raw,
+        observedAt: OBSERVED_AT,
+        endpoint: "races.docs",
+      });
+
+      expect(evidence.canonical).toMatchObject({
+        sourceRaceId: "1",
+        formatEvidenceStatus: "unsupported_source_value",
+      });
+      expect(evidence.canonical).not.toHaveProperty("format");
       expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );
