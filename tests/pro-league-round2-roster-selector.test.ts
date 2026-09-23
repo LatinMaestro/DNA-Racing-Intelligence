@@ -38,26 +38,34 @@ function pool(): Round2VerifiedCandidate[] {
     status: "elite_range" as const,
     distanceOnlyProjection: true as const,
   }));
-  return Array.from({ length: 30 }, (_, index) => ({
-    core: {
-      coreId: String(100 + index),
-      displayName: index === 0 ? "Genesis example" : `Owned ${index}`,
-      element:
-        index < 10
-          ? ("Metal" as const)
-          : index < 20
-            ? ("Fire" as const)
-            : ("Earth" as const),
-      coreClass: index === 0 ? ("Genesis" as const) : ("Morphed" as const),
-      sex: index % 2 === 0 ? ("female" as const) : ("male" as const),
-      fNumber: 16,
-      inMyVault: true,
-    },
-    bikeAgeingBalance: index === 1 ? 624 : 900,
-    bikeAgeingObservedAt: now,
-    completeOwnedBikeHistory: true as const,
-    cells,
-  }));
+  return Array.from({ length: 30 }, (_, index): Round2VerifiedCandidate => {
+    const candidate = {
+      core: {
+        coreId: String(100 + index),
+        displayName: index === 0 ? "Genesis example" : `Owned ${index}`,
+        element:
+          index < 10
+            ? ("Metal" as const)
+            : index < 20
+              ? ("Fire" as const)
+              : ("Earth" as const),
+        coreClass: index === 0 ? ("Genesis" as const) : ("Morphed" as const),
+        sex: index % 2 === 0 ? ("female" as const) : ("male" as const),
+        fNumber: 16,
+        inMyVault: true,
+      },
+      bikeAgeingObservedAt: now,
+      completeOwnedBikeHistory: true as const,
+      cells,
+    };
+    return index === 1
+      ? {
+          ...candidate,
+          verifiedBikeAgeingIneligible: true,
+          bikeAgeingProofSource: "connected_owner_bike_balance",
+        }
+      : { ...candidate, bikeAgeingBalance: 900 };
+  });
 }
 
 describe("Round 2 new-roster selector", () => {

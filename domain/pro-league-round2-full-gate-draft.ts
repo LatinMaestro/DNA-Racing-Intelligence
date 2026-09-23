@@ -6,6 +6,7 @@ import {
 } from "@/domain/pro-league-maps";
 import {
   requireCurrentBikeAgeingEvidence,
+  requireCurrentBikeAgeingIneligibility,
   requireCurrentBikeAgeingUpperBound,
   type OwnedBikeCellScreen,
 } from "@/domain/pro-league-owned-bike-pace";
@@ -18,11 +19,19 @@ type AgeProof =
   | Readonly<{
       bikeAgeingBalance: number;
       verifiedBikeAgeingUsedUpperBound?: never;
+      verifiedBikeAgeingIneligible?: never;
       bikeAgeingProofSource?: never;
     }>
   | Readonly<{
       bikeAgeingBalance?: never;
       verifiedBikeAgeingUsedUpperBound: 300 | 400;
+      verifiedBikeAgeingIneligible?: never;
+      bikeAgeingProofSource: "connected_owner_bike_balance";
+    }>
+  | Readonly<{
+      bikeAgeingBalance?: never;
+      verifiedBikeAgeingUsedUpperBound?: never;
+      verifiedBikeAgeingIneligible: true;
       bikeAgeingProofSource: "connected_owner_bike_balance";
     }>;
 
@@ -42,6 +51,14 @@ export function verifiedRound2BikeAgeing(
   minimumRemaining: number;
   evidence: "exact_balance" | "verified_band";
 }> {
+  if (candidate.verifiedBikeAgeingIneligible === true) {
+    requireCurrentBikeAgeingIneligibility({
+      observedAt: candidate.bikeAgeingObservedAt,
+      currentThrough,
+      source: candidate.bikeAgeingProofSource,
+    });
+    throw new Error("Round 2 Core exceeds the verified Bike ageing limit.");
+  }
   if (candidate.bikeAgeingBalance !== undefined) {
     const exact = requireCurrentBikeAgeingEvidence({
       balance: candidate.bikeAgeingBalance,
