@@ -24,6 +24,7 @@ const JSON_CONTENT_TYPE = "application/json";
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
 const RECEIPT_PAGE_SIZE = 500;
+const BASELINE_EVIDENCE_READ_CONCURRENCY = 16;
 
 type ReadableObjectStorage = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
@@ -523,25 +524,44 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     }
   }
 
-  for (const receipt of baselineReceipts) {
-    if (receipt.family !== "finished_races") continue;
-    baselineFinishedRaceReceiptCount += 1;
-    reserveClassBOperations(2);
-    const evidence = validateBaselineEvidence({
-      receipt,
-      evidence: await input.baseline.readEvidence(receipt.requestOrdinal),
-    });
-    if (
-      evidence.endpoint !== "races.finished" &&
-      evidence.endpoint !== "races.docs"
-    ) {
-      historyError("P5 finished-race receipt has an unexpected endpoint");
+  const baselineFinishedRaceReceipts = baselineReceipts.filter(
+    (receipt) => receipt.family === "finished_races",
+  );
+  baselineFinishedRaceReceiptCount = baselineFinishedRaceReceipts.length;
+  for (
+    let start = 0;
+    start < baselineFinishedRaceReceipts.length;
+    start += BASELINE_EVIDENCE_READ_CONCURRENCY
+  ) {
+    const receiptBatch = baselineFinishedRaceReceipts.slice(
+      start,
+      start + BASELINE_EVIDENCE_READ_CONCURRENCY,
+    );
+    for (const _receipt of receiptBatch) {
+      reserveClassBOperations(2);
     }
-    for (const raw of raceDocuments(
-      evidence.response.result,
-      "P5 Race response",
-    )) {
-      acceptDocument(raw, evidence.observedAt, evidence.endpoint);
+    const evidenceBatch = await Promise.all(
+      receiptBatch.map((receipt) =>
+        input.baseline.readEvidence(receipt.requestOrdinal),
+      ),
+    );
+    for (const [index, receipt] of receiptBatch.entries()) {
+      const evidence = validateBaselineEvidence({
+        receipt,
+        evidence: evidenceBatch[index] ?? null,
+      });
+      if (
+        evidence.endpoint !== "races.finished" &&
+        evidence.endpoint !== "races.docs"
+      ) {
+        historyError("P5 finished-race receipt has an unexpected endpoint");
+      }
+      for (const raw of raceDocuments(
+        evidence.response.result,
+        "P5 Race response",
+      )) {
+        acceptDocument(raw, evidence.observedAt, evidence.endpoint);
+      }
     }
   }
 

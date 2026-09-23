@@ -384,4 +384,78 @@ describe("combined DNA finished-history performance evidence", () => {
       }),
     ).rejects.toThrow("read budget is exhausted before provider access");
   });
+
+  it("bounds baseline evidence concurrency while preserving receipt order", async () => {
+    const input = fixture();
+    const receiptCount = 32;
+    const [templateReceipt] = await input.baseline.loadReceipts({
+      afterRequestOrdinal: 0,
+      limit: 1,
+    });
+    const evidenceTemplate = await input.baseline.readEvidence(1);
+    if (templateReceipt === undefined) {
+      throw new Error("baseline receipt fixture is unavailable");
+    }
+    const receipts = Array.from({ length: receiptCount }, (_, index) =>
+      Object.freeze({
+        ...templateReceipt,
+        requestOrdinal: index + 1,
+      }),
+    );
+    let activeReads = 0;
+    let maximumActiveReads = 0;
+
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence({
+      ...input,
+      baselineAuthority: {
+        ...input.baselineAuthority,
+        logicalRequestCount: receiptCount,
+        retainedR2Bytes: receiptCount * templateReceipt.byteLength,
+      },
+      baseline: {
+        load: async () => ({
+          revision: "1",
+          status: "complete" as const,
+          nextRequestOrdinal: receiptCount + 1,
+          logicalRequestCount: receiptCount,
+          retainedR2Bytes: receiptCount * templateReceipt.byteLength,
+          omittedIdentityObservationCount: 0,
+          completionSha256,
+        }),
+        loadReceipts: async (query: {
+          afterRequestOrdinal: number;
+          limit: number;
+        }) =>
+          receipts
+            .filter(
+              (receipt) =>
+                receipt.requestOrdinal > query.afterRequestOrdinal,
+            )
+            .slice(0, query.limit),
+        readEvidence: async (requestOrdinal: number) => {
+          activeReads += 1;
+          maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            return {
+              ...evidenceTemplate,
+              requestOrdinal,
+            };
+          } finally {
+            activeReads -= 1;
+          }
+        },
+      },
+      readBudget: {
+        maximumClassBOperations: receiptCount * 2 + 6,
+        paidUsageAllowed: false,
+      },
+    });
+
+    expect(assessment.baselineReceiptCount).toBe(receiptCount);
+    expect(assessment.baselineFinishedRaceReceiptCount).toBe(receiptCount);
+    expect(maximumActiveReads).toBeGreaterThan(1);
+    expect(maximumActiveReads).toBeLessThanOrEqual(16);
+  });
+
 });
