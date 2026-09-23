@@ -70,6 +70,26 @@ export function requireCurrentBikeAgeingUpperBound(input: {
   });
 }
 
+/** Verifies a private connected proof that the Core is over the owner limit. */
+export function requireCurrentBikeAgeingIneligibility(input: {
+  observedAt: string;
+  currentThrough: string;
+  source: "connected_owner_bike_balance";
+}): Readonly<{ eligible: false }> {
+  const observedAt = Date.parse(input.observedAt);
+  const currentThrough = Date.parse(input.currentThrough);
+  if (
+    input.source !== "connected_owner_bike_balance" ||
+    !Number.isFinite(observedAt) ||
+    !Number.isFinite(currentThrough) ||
+    observedAt > currentThrough ||
+    currentThrough - observedAt > 3 * 86_400_000
+  ) {
+    throw new Error("Verified Bike ageing ineligibility must be current.");
+  }
+  return Object.freeze({ eligible: false });
+}
+
 export type OwnedBikeFinish = Readonly<{
   distanceMetres: number;
   elapsedTimeMilliseconds: number;
