@@ -4,10 +4,7 @@ export const DNA_NON_RACE_CURRENT_STATE_INTERVAL_MILLISECONDS =
   24 * 60 * 60_000;
 
 export type DnaFinishedRaceCadenceStatus =
-  | "start_incremental_cycle"
-  | "resume_active_cycle"
-  | "idle"
-  | "retry_blocked";
+  "start_incremental_cycle" | "resume_active_cycle" | "idle" | "retry_blocked";
 
 export type DnaRecurringRefreshCadenceDecision = Readonly<{
   evaluatedAt: string;
@@ -94,7 +91,8 @@ export function createDnaRecurringRefreshCadenceDecision(input: {
     raceNextMs = Date.parse(retryNotBefore);
   } else if (input.finishedRaceCycleActive === true) {
     raceStatus = "resume_active_cycle";
-    raceNextMs = evaluatedMs + DNA_FINISHED_RACE_NEAR_LIVE_INTERVAL_MILLISECONDS;
+    raceNextMs =
+      evaluatedMs + DNA_FINISHED_RACE_NEAR_LIVE_INTERVAL_MILLISECONDS;
   } else {
     const dueAt =
       lastRace === null
