@@ -62,6 +62,7 @@ function candidate(
 function cell(
   distanceMetres: number,
   raceType = "1v1",
+  benchmarkAssessment: ProLeagueCandidateCellScore["benchmarkAssessment"] = "top_three_range",
 ): ProLeagueCandidateCellScore {
   return {
     raceType,
@@ -70,7 +71,7 @@ function cell(
     raceLineCount: 4,
     first16RaceLineCount: 2,
     evidenceUse: "ranked",
-    benchmarkAssessment: "top_three_range",
+    benchmarkAssessment,
     raceCount: 12,
     freshness: "current",
     dataCurrentThrough: "2026-09-20T02:00:00.000Z",
@@ -109,13 +110,9 @@ function fixture(): Readonly<{
   );
   const challenger = {
     ...candidate(25, "Challenger", [
-      cell(1000),
-      cell(1200),
-      cell(1400),
-      cell(1600),
-      cell(1800),
-      cell(2000),
-      cell(2200),
+      ...[1000, 1200, 1400, 1600, 1800, 2000, 2200].map((distance) =>
+        cell(distance, "1v1", "winning_range"),
+      ),
     ]),
     selectionStatus: "winning_range" as const,
   };
@@ -279,7 +276,9 @@ describe("Pro League substitution watch", () => {
 
   it("keeps only elite, non-Genesis challengers and at most two options per outgoing Core", () => {
     const input = fixture();
-    const cells = [cell(1000), cell(1200), cell(1400), cell(1600)];
+    const cells = [1000, 1200, 1400, 1600].map((distance) =>
+      cell(distance, "1v1", "winning_range"),
+    );
     const next = (index: number, name: string) => ({
       ...candidate(index, name, cells),
       selectionStatus: "winning_range" as const,
@@ -299,7 +298,11 @@ describe("Pro League substitution watch", () => {
         ...candidate(30, "Unproven Challenger", cells),
         selectionStatus: "unproven" as const,
       },
-      candidate(31, "Top-three without elite-opponent evidence", cells),
+      candidate(
+        31,
+        "Top-three without elite-opponent evidence",
+        [1000, 1200, 1400, 1600].map((distance) => cell(distance)),
+      ),
     ];
     const roster = {
       ...input.roster,
@@ -335,5 +338,38 @@ describe("Pro League substitution watch", () => {
       perOutgoing.set(id, (perOutgoing.get(id) ?? 0) + 1);
     }
     expect([...perOutgoing.values()].every((count) => count <= 2)).toBe(true);
+  });
+
+  it("accepts top-three elite potential only when an elite-opponent signal supports ranked time evidence", () => {
+    const input = fixture();
+    const profile = cell(1000);
+    const elitePotential = candidate(26, "Elite Potential", [
+      {
+        ...profile,
+        supportingStars: {
+          ...profile.supportingStars,
+          status: "available",
+          qualityKnownRaceCount: 1,
+          eliteOpponentBlueReceivedCount: 1,
+        },
+      },
+      cell(1200),
+      cell(1400),
+      cell(1600),
+    ]);
+    const result = buildProLeagueSubstitutionWatch({
+      roster: {
+        ...input.roster,
+        candidates: [elitePotential, ...input.roster.candidates.slice(1)],
+      },
+      ownerPlan: input.ownerPlan,
+      populationBenchmarkReady: true,
+      verifiedBikeAgeingUsedByCoreId: new Map([
+        [elitePotential.core.coreId, 250],
+      ]),
+    });
+    expect(result.candidates.map(({ displayName }) => displayName)).toContain(
+      "Elite Potential",
+    );
   });
 });
