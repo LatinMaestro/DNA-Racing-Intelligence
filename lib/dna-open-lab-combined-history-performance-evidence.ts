@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   adaptDnaRaceDocument,
   dnaOpenLabRawEvidenceSha256,
+  type CanonicalRaceDocumentMetadata,
 } from "./dna-open-lab-v1-adapters";
 import type {
   DnaOpenLabP5FirstBackfillEvidenceDocument,
@@ -437,6 +438,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   history: DnaOpenLabCombinedFinishedHistory;
   storage: ReadableObjectStorage;
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
+  onCanonicalRaceDocument?: (document: CanonicalRaceDocumentMetadata) => void;
 }): Promise<DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment> {
   const bucketName = safeText(input.bucketName, "bucketName");
   const prefix = ownerPrefix(input.ownerId);
@@ -731,6 +733,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       observedAt: "2000-01-01T00:00:00.000Z",
       endpoint: "races.docs",
     });
+    input.onCanonicalRaceDocument?.(adapted.canonical);
     if (adapted.canonical.mode !== "bike") continue;
     bikeRaceCount += 1;
     if (
