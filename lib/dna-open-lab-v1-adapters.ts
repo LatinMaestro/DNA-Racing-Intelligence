@@ -616,6 +616,18 @@ function raceDocumentFormat(value: unknown): Readonly<{
     : Object.freeze({ format: normalized });
 }
 
+function raceDocumentPopulationFormat(value: unknown): Readonly<{
+  format?: string | null;
+  formatEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (value === null) return Object.freeze({ format: null });
+  return typeof value === "string"
+    ? raceDocumentFormat(value)
+    : Object.freeze({
+        formatEvidenceStatus: "unsupported_source_value" as const,
+      });
+}
+
 function raceDocumentDistance(value: unknown): Readonly<{
   distanceMetres?: number;
   distanceEvidenceStatus?: "unsupported_source_value";
@@ -1177,6 +1189,55 @@ export function adaptDnaRaceDocument(input: {
     ...economics,
     ...schedule,
     ...results,
+  });
+  return raceDocumentAdaptationBoundary(
+    "race_document_adaptation_evidence_unavailable",
+    () =>
+      evidence({
+        scope: raceDocumentScope(input.endpoint),
+        endpoint: input.endpoint,
+        entityKey: `race:${sourceRaceId}`,
+        observedAt: input.observedAt,
+        raw: input.raw,
+        canonical,
+      }),
+  );
+}
+
+/**
+ * Canonicalizes only the authority required to enumerate the Bike population.
+ * Optional Race descriptors outside identity, mode, format, distance, entrants
+ * and result markers cannot block this inventory-only read. Missing or
+ * unsupported mode/entrant evidence remains explicit so the acquisition plan
+ * holds before any Core-history provider request.
+ */
+export function adaptDnaRaceDocumentPopulationInventory(input: {
+  raw: DnaRaceDocument;
+  observedAt: string;
+  endpoint: DnaRaceDocumentEndpoint;
+}): DnaOpenLabEvidence<CanonicalRaceDocumentMetadata> {
+  const sourceRaceId = raceDocumentAdaptationBoundary(
+    "race_document_adaptation_identity_unavailable",
+    () => raceIdentifier(input.raw.rid),
+  );
+  const canonical: CanonicalRaceDocumentMetadata = Object.freeze({
+    sourceType: "race_document",
+    sourceRaceId,
+    ...(input.raw.rvmode === undefined
+      ? {}
+      : raceDocumentMode(input.raw.rvmode)),
+    ...(input.raw.format === undefined
+      ? {}
+      : raceDocumentPopulationFormat(input.raw.format)),
+    ...(input.raw.cb === undefined ? {} : raceDocumentDistance(input.raw.cb)),
+    ...(input.raw.hids === undefined
+      ? {}
+      : raceDocumentEntrantCoreIds(input.raw.hids)),
+    ...raceDocumentResults({
+      track: input.raw.track,
+      yellowStars: input.raw.yellowstars,
+      blueStars: input.raw.bluestars,
+    }),
   });
   return raceDocumentAdaptationBoundary(
     "race_document_adaptation_evidence_unavailable",

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   adaptDnaRaceDocument,
+  adaptDnaRaceDocumentPopulationInventory,
   dnaOpenLabRawEvidenceSha256,
   type CanonicalRaceDocumentMetadata,
 } from "./dna-open-lab-v1-adapters";
@@ -438,6 +439,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   history: DnaOpenLabCombinedFinishedHistory;
   storage: ReadableObjectStorage;
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
+  canonicalPurpose?: "performance_evidence" | "population_inventory";
   onCanonicalRaceDocument?: (document: CanonicalRaceDocumentMetadata) => void;
 }): Promise<DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment> {
   const bucketName = safeText(input.bucketName, "bucketName");
@@ -485,13 +487,17 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let baselineFinishedRaceReceiptCount = 0;
   let quarantinedIdentityObservationCount =
     baselineState.omittedIdentityObservationCount;
+  const adaptDocument =
+    input.canonicalPurpose === "population_inventory"
+      ? adaptDnaRaceDocumentPopulationInventory
+      : adaptDnaRaceDocument;
 
   function acceptDocument(
     raw: DnaRaceDocument,
     observedAt: string,
     endpoint: "races.finished" | "races.docs",
   ): void {
-    const adapted = adaptDnaRaceDocument({ raw, observedAt, endpoint });
+    const adapted = adaptDocument({ raw, observedAt, endpoint });
     const sourceRaceId = raceId(raw);
     const digest = dnaOpenLabRawEvidenceSha256(raw);
     if (
@@ -728,7 +734,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let bikeRaceWithFormatCount = 0;
   let bikeRaceWithTrackSourceValueCount = 0;
   for (const raw of preferredDocuments.values()) {
-    const adapted = adaptDnaRaceDocument({
+    const adapted = adaptDocument({
       raw,
       observedAt: "2000-01-01T00:00:00.000Z",
       endpoint: "races.docs",

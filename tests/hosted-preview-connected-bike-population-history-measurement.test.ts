@@ -185,6 +185,7 @@ describeConnected(
                 MAXIMUM_HISTORY_AUTHORITY_CLASS_B_OPERATIONS,
               paidUsageAllowed: false,
             },
+            canonicalPurpose: "population_inventory",
             onCanonicalRaceDocument: (document) => {
               raceDocuments.push(document);
             },

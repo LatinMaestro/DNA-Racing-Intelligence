@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { assessDnaOpenLabCombinedHistoryPerformanceEvidence } from "../lib/dna-open-lab-combined-history-performance-evidence";
-import { dnaOpenLabRawEvidenceSha256 } from "../lib/dna-open-lab-v1-adapters";
+import {
+  dnaOpenLabRawEvidenceSha256,
+  type CanonicalRaceDocumentMetadata,
+} from "../lib/dna-open-lab-v1-adapters";
 import type { DnaRaceDocument } from "../lib/dna-open-lab-v1-client";
 import type { DnaOpenLabCombinedFinishedHistory } from "../lib/neon-dna-open-lab-sync-publication";
 
@@ -316,6 +319,28 @@ describe("combined DNA finished-history performance evidence", () => {
       expect.objectContaining({ sourceRaceId: "202" }),
     ]);
     expect(assessment).not.toHaveProperty("raceDocuments");
+  });
+
+  it("uses the population-inventory purpose without weakening essential Race authority", async () => {
+    const input = fixture();
+    const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...input,
+        canonicalPurpose: "population_inventory",
+        onCanonicalRaceDocument: (document) => raceDocuments.push(document),
+      },
+    );
+
+    expect(assessment.uniqueRaceCount).toBe(2);
+    expect(raceDocuments).toEqual([
+      expect.objectContaining({
+        sourceRaceId: "101",
+        mode: "bike",
+        entrantCoreIds: ["501", "502"],
+      }),
+      expect.objectContaining({ sourceRaceId: "202", mode: "car" }),
+    ]);
   });
 
   it("fails closed when the evidence bucket is not private", async () => {

@@ -5,6 +5,7 @@ import {
   adaptDnaCoreAttachedAssets,
   adaptDnaCoreInfo,
   adaptDnaRaceDocument,
+  adaptDnaRaceDocumentPopulationInventory,
   adaptDnaRaceFill,
   adaptDnaVaultCore,
   dnaOpenLabRawEvidenceSha256,
@@ -429,6 +430,37 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
     },
   );
+
+  it("builds population inventory authority without trusting unrelated optional descriptors", () => {
+    const raw = {
+      rid: 202,
+      rvmode: "bike",
+      format: { unsupported: true },
+      cb: 12,
+      hids: [42, 43],
+      status: "",
+      class: "",
+      feeusd: -1,
+      start_time: "not-a-time",
+    } as unknown as DnaRaceDocument;
+    const evidence = adaptDnaRaceDocumentPopulationInventory({
+      raw,
+      observedAt: OBSERVED_AT,
+      endpoint: "races.docs",
+    });
+
+    expect(evidence.canonical).toMatchObject({
+      sourceRaceId: "202",
+      mode: "bike",
+      formatEvidenceStatus: "unsupported_source_value",
+      distanceMetres: 1200,
+      entrantCoreIds: ["42", "43"],
+    });
+    expect(evidence.canonical).not.toHaveProperty("format");
+    expect(evidence.canonical).not.toHaveProperty("status");
+    expect(evidence.canonical).not.toHaveProperty("raceClassSourceValue");
+    expect(evidence.rawEvidenceSha256).toBe(dnaOpenLabRawEvidenceSha256(raw));
+  });
 
   it.each(["", "   "])(
     "preserves a blank Race format as unsupported without inventing a value",
