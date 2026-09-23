@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           node --input-type=module <<'NODE'
+          import { createHash } from "node:crypto";
           const key = process.env.DNA_OPEN_LAB_API_KEY_3;
           const vault = process.env.DNA_OPEN_LAB_VAULT;
           if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key || "") || !/^0x[a-fA-F0-9]{40}$/.test(vault || "")) {
@@ -60,9 +61,17 @@ jobs:
           if (hids.length !== 214 || new Set(hids).size !== 214 || hids.some((hid) => !Number.isSafeInteger(hid) || hid < 1)) {
             throw new Error("Owner Bike identity authority is incomplete.");
           }
-          const sample = [...hids].sort((a, b) => a - b).slice(0, 20);
-          const stats = await read("/cores/racing_stats_bulk", "POST", { hids: sample });
-          if (stats.length !== sample.length || new Set(stats.map((row) => row.hid)).size !== sample.length || stats.some((row) => !sample.includes(row.hid))) {
+          const sortedHids = [...hids].sort((a, b) => a - b);
+          const stats = [];
+          for (let start = 0; start < sortedHids.length; start += 20) {
+            const batch = sortedHids.slice(start, start + 20);
+            const rows = await read("/cores/racing_stats_bulk", "POST", { hids: batch });
+            if (rows.length !== batch.length || new Set(rows.map((row) => row.hid)).size !== batch.length || rows.some((row) => !batch.includes(row.hid))) {
+              throw new Error("Owner Bike racing-stats batch identities did not reconcile.");
+            }
+            stats.push(...rows);
+          }
+          if (stats.length !== sortedHids.length || new Set(stats.map((row) => row.hid)).size !== sortedHids.length) {
             throw new Error("Owner Bike racing-stats identities did not reconcile.");
           }
           const type = (value) => value === null ? "null" : Array.isArray(value) ? "array" : typeof value;
@@ -73,13 +82,36 @@ jobs:
             integerInRange: items.filter((value) => Number.isSafeInteger(value) && value >= 0 && value <= 1025).length,
             integerOutOfRange: items.filter((value) => Number.isSafeInteger(value) && (value < 0 || value > 1025)).length,
           });
+          const pseudonym = (hid) => createHash("sha256").update(`round2-bike-ageing|${hid}`).digest("hex").slice(0, 24);
+          const eligibleHashes = [];
+          const under300Hashes = [];
+          const ageBands = { used0to100: 0, used101to200: 0, used201to300: 0, used301to400: 0, usedOver400: 0, unknown: 0 };
+          for (const row of stats) {
+            const balance = row.ageing?.bike;
+            if (!Number.isSafeInteger(balance) || balance < 0 || balance > 1025) {
+              ageBands.unknown += 1;
+              continue;
+            }
+            const used = 1025 - balance;
+            if (used <= 100) ageBands.used0to100 += 1;
+            else if (used <= 200) ageBands.used101to200 += 1;
+            else if (used <= 300) ageBands.used201to300 += 1;
+            else if (used <= 400) ageBands.used301to400 += 1;
+            else ageBands.usedOver400 += 1;
+            if (used <= 400 && balance > 0) eligibleHashes.push(pseudonym(row.hid));
+            if (used <= 300 && balance > 0) under300Hashes.push(pseudonym(row.hid));
+          }
           console.log(JSON.stringify({
             ownerCount: hids.length,
             sampledStatsCount: stats.length,
+            observedAt: new Date().toISOString(),
             ageingTypes: tally(values.map(type)),
             bikeFieldTypes: tally(mode("bike").map(type)),
             bikeNumericShape: numeric(mode("bike")),
             bikeNestedAllowedKeys: tally(mode("bike").filter((value) => type(value) === "object").flatMap((value) => Object.keys(value).filter((key) => /^(ageing|balance|used|remaining|current|total)$/i.test(key)))),
             otherModeFieldPresence: Object.fromEntries(["car", "horse"].map((name) => [name, mode(name).filter((value) => value !== undefined).length])),
+            ageBands,
+            eligibleHashes: eligibleHashes.sort(),
+            under300Hashes: under300Hashes.sort(),
           }));
           NODE
