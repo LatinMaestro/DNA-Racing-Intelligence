@@ -318,6 +318,17 @@ even though the measurement itself performs no R2 work. A completed slice is
 not whole-population authority unless it covers the exact entire acquisition
 set; connected execution and any persistent collection remain separate gates.
 
+The manual private measurement workflow runs only from an explicitly supplied
+exact current `main` commit. Before reading immutable evidence it obtains a
+fresh provider-capacity measurement, requires R2 Standard, and reserves a
+100,000-Class-B-operation ceiling below the conservative monthly zero-cost
+budget. It reconstructs the complete canonical finished-Race authority and
+the owner-isolated current Core set in memory, then runs at most one unowned
+Core through ten history pages. Its log contains only aggregate counts,
+checksums and safety flags. Incomplete Race authority, insufficient budget or
+a full tenth page holds the result; the workflow has no automatic trigger and
+no provider, R2, Neon, publication, Preview, Production or game write path.
+
 The retained-evidence composer performs the missing pre-publication proof. Its
 reader returns each canonical accepted page with the exact receipt reconstructed
 from the private immutable object. The composer replays the ordered receipts
