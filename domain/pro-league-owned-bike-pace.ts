@@ -22,12 +22,31 @@ export function ownerVerifiedBikeAgeing(balance: number): Readonly<{
   });
 }
 
+/** The calling acquisition must verify that this is the Bike-specific balance. */
+export function requireCurrentBikeAgeingEvidence(input: {
+  balance: number;
+  observedAt: string;
+  currentThrough: string;
+}): ReturnType<typeof ownerVerifiedBikeAgeing> {
+  const observedAt = Date.parse(input.observedAt);
+  const currentThrough = Date.parse(input.currentThrough);
+  if (
+    !Number.isFinite(observedAt) ||
+    !Number.isFinite(currentThrough) ||
+    observedAt > currentThrough ||
+    currentThrough - observedAt > 3 * 86_400_000
+  ) {
+    throw new Error("Verified Bike ageing balance must be current.");
+  }
+  return ownerVerifiedBikeAgeing(input.balance);
+}
+
 export type OwnedBikeFinish = Readonly<{
   distanceMetres: number;
   elapsedTimeMilliseconds: number;
   completedAt: string;
   /** Both ordinary and esports Bike results may contribute to intrinsic pace. */
-  source: "normal_bike" | "esports_bike";
+  source: "normal_bike" | "esports_bike" | "bike_history";
 }>;
 
 export type OwnedBikeCellScreen = Readonly<{
@@ -36,6 +55,7 @@ export type OwnedBikeCellScreen = Readonly<{
   gateCount: number;
   scoring: ProLeagueEsportsWinningCell["scoring"];
   sampleCount: number;
+  recentSampleCount: number;
   officialRaceCount: number;
   medianMilliseconds: number | null;
   standardDeviationMilliseconds: number | null;
@@ -69,7 +89,10 @@ export function screenOwnedBikePace(input: {
   ) {
     throw new Error("A valid evidence cutoff and age window are required.");
   }
-  const byDistance = new Map<number, number[]>();
+  const byDistance = new Map<
+    number,
+    { times: number[]; recentCount: number }
+  >();
   for (const finish of input.finishes) {
     const ended = Date.parse(finish.completedAt);
     if (
@@ -79,23 +102,27 @@ export function screenOwnedBikePace(input: {
       finish.elapsedTimeMilliseconds <= 0 ||
       !Number.isFinite(ended) ||
       ended > asOf ||
-      (finish.source !== "normal_bike" && finish.source !== "esports_bike")
+      (finish.source !== "normal_bike" &&
+        finish.source !== "esports_bike" &&
+        finish.source !== "bike_history")
     ) {
       throw new Error(
         "Bike finish has invalid distance, time, source or timestamp.",
       );
     }
-    if (asOf - ended > maximumAgeDays * 86_400_000) continue;
-    const times = byDistance.get(finish.distanceMetres) ?? [];
-    times.push(finish.elapsedTimeMilliseconds);
-    byDistance.set(finish.distanceMetres, times);
+    const bucket = byDistance.get(finish.distanceMetres) ?? {
+      times: [],
+      recentCount: 0,
+    };
+    bucket.times.push(finish.elapsedTimeMilliseconds);
+    if (asOf - ended <= maximumAgeDays * 86_400_000) bucket.recentCount += 1;
+    byDistance.set(finish.distanceMetres, bucket);
   }
 
   return Object.freeze(
     input.benchmark.cells.map((cell) => {
-      const times = [...(byDistance.get(cell.distanceMetres) ?? [])].sort(
-        (a, b) => a - b,
-      );
+      const bucket = byDistance.get(cell.distanceMetres);
+      const times = [...(bucket?.times ?? [])].sort((a, b) => a - b);
       const midpoint = times.length ? median(times) : null;
       const average =
         times.reduce((sum, value) => sum + value, 0) / times.length;
@@ -105,7 +132,10 @@ export function screenOwnedBikePace(input: {
               times.length,
           )
         : null;
-      const adequate = times.length >= 10 && cell.raceCount >= 5;
+      const adequate =
+        times.length >= 10 &&
+        (bucket?.recentCount ?? 0) >= 3 &&
+        cell.raceCount >= 5;
       const positive =
         midpoint !== null &&
         midpoint <= cell.targets.maximumPositiveMilliseconds;
@@ -121,6 +151,7 @@ export function screenOwnedBikePace(input: {
         gateCount: cell.gateCount,
         scoring: cell.scoring,
         sampleCount: times.length,
+        recentSampleCount: bucket?.recentCount ?? 0,
         officialRaceCount: cell.raceCount,
         medianMilliseconds: midpoint,
         standardDeviationMilliseconds: deviation,
