@@ -358,6 +358,7 @@ describe("Pro League draft commissioning service", () => {
         populationProfileCount: 12,
         ownedProfileCount: 12,
         unownedProfileCount: 0,
+        officialUnbenchmarkedProfileCount: 0,
         ownedCoreWithoutEvidenceCount: 0,
       },
       roster: {

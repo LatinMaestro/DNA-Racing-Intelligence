@@ -31,10 +31,13 @@ const generation: ActiveProLeagueEvidenceGeneration = {
   publishedAt: "2026-09-07T01:01:00.000Z",
 };
 
-function evidence(sourceCoreId: string): Readonly<Record<string, unknown>> {
-  const distanceMetres = 1_000;
+function evidence(
+  sourceCoreId: string,
+  raceType = "1v1",
+  distanceMetres = 1_000,
+): Readonly<Record<string, unknown>> {
   const value: ProLeagueExactFormatEvidence = {
-    raceType: "1v1",
+    raceType,
     distanceMetres,
     raceCount: 12,
     sampleStatus: "minimally_analytical",
@@ -108,14 +111,20 @@ function evidence(sourceCoreId: string): Readonly<Record<string, unknown>> {
 function row(
   ordinal: number,
   sourceCoreId: string,
+  raceType = "1v1",
+  distanceMetres = 1_000,
 ): ActiveProLeagueEvidenceRow {
   return {
     generationId: generation.generationId,
     family: "profile",
     ordinal,
-    naturalKey: JSON.stringify([sourceCoreId, "1v1", 1_000]),
+    naturalKey: JSON.stringify([
+      sourceCoreId,
+      raceType.toLowerCase(),
+      distanceMetres,
+    ]),
     rowSha256: `${ordinal}`.repeat(64).slice(0, 64),
-    payload: evidence(sourceCoreId),
+    payload: evidence(sourceCoreId, raceType, distanceMetres),
   };
 }
 
@@ -186,6 +195,7 @@ describe("active Pro League Vault evidence service", () => {
       populationProfileCount: 2,
       ownedProfileCount: 1,
       unownedProfileCount: 1,
+      officialUnbenchmarkedProfileCount: 0,
       ownedCoreWithoutEvidenceCount: 1,
       vault: {
         vaultId: "my-vault",
@@ -203,6 +213,16 @@ describe("active Pro League Vault evidence service", () => {
       raceType: "1v1",
       distanceMetres: 1_000,
       benchmarkAssessment: "winning_range",
+      populationBenchmark: {
+        dataCurrentThrough: "2026-09-23T06:36:45.070Z",
+        raceEntryCount: 124,
+        coreCount: 43,
+        winningEntryCount: 62,
+        topThreeEntryCount: 62,
+        winningP25Milliseconds: 55_531,
+        winningMedianMilliseconds: 56_464.5,
+        winningP75Milliseconds: 57_011.75,
+      },
     });
     expect(evidenceRepository.listActiveRows).toHaveBeenLastCalledWith(
       ownerId,
@@ -225,6 +245,32 @@ describe("active Pro League Vault evidence service", () => {
         }),
       }),
     ).resolves.toBeNull();
+  });
+
+  it("keeps an unobserved official map cell unavailable without failing the generation", async () => {
+    const unbenchmarkedGeneration = { ...generation, profileCount: 1 };
+    const result = await loadActiveProLeagueVaultEvidence({
+      ownerId,
+      vaultId: "my-vault",
+      vaultDisplayName: "My Vault",
+      rosteredCoreIds: ["owned-1"],
+      vaultRepository: vault(),
+      evidenceRepository: repository({
+        readActiveGeneration: vi.fn(async () => unbenchmarkedGeneration),
+        listActiveRows: vi.fn(async (_owner, _family, after) =>
+          after < 0 ? [row(0, "owned-1", "12 gate madness", 1_000)] : [],
+        ),
+      }),
+    });
+
+    expect(result).toMatchObject({
+      populationProfileCount: 1,
+      ownedProfileCount: 1,
+      unownedProfileCount: 0,
+      officialUnbenchmarkedProfileCount: 1,
+      ownedCoreWithoutEvidenceCount: 2,
+    });
+    expect(result?.vault.cores[0]?.exactFormatEvidence).toEqual([]);
   });
 
   it("fails closed when the active pointer changes during the paged read", async () => {
