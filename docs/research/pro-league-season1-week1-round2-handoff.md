@@ -1,6 +1,6 @@
 # Round 2 esports evidence — Season 1 Week 1
 
-Data current through 2026-09-23T06:36:45.070Z. This is read-only research, not a registered roster or submitted map. The adjacent [exact-cell aggregate](pro-league-season1-week1-exact-cells.json) contains the 62 format × exact-distance × gate × scoring distributions with race counts, fastest, p25, median, p75 and slowest elapsed times. WTA positive times are first-place winners; Madness positive times are members of the point-winning team's top three. The third-place cutoff is also recorded for Madness. These are one-week observations, not guaranteed future winning times.
+Data current through 2026-09-23T06:36:45.070Z. This is read-only research, not a registered roster or submitted map. The adjacent [exact-cell aggregate](pro-league-season1-week1-exact-cells.json) contains the 62 format × exact-distance × gate × scoring distributions with race counts, unique-Core counts, fastest, p25, median, p75, slowest, standard deviation and interquartile range. WTA positive times are first-place winners; Madness positive times are members of the point-winning team's top three. The third-place cutoff is also recorded for Madness. These are one-week observations, not guaranteed future winning times.
 
 ## Validation and uncertainty
 

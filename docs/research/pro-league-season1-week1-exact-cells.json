@@ -14,6 +14,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 62,
+      "unique_core_count": 43,
       "sample_status": "representative",
       "first_place_times": {
         "n": 62,
@@ -21,7 +22,9 @@
         "p25_seconds": 55.531,
         "median_seconds": 56.4645,
         "p75_seconds": 57.01175,
-        "slowest_seconds": 58.886
+        "slowest_seconds": 58.886,
+        "standard_deviation_seconds": 1.112155,
+        "interquartile_range_seconds": 1.48075
       },
       "positive_contributor_times": {
         "n": 62,
@@ -29,7 +32,9 @@
         "p25_seconds": 55.531,
         "median_seconds": 56.4645,
         "p75_seconds": 57.01175,
-        "slowest_seconds": 58.886
+        "slowest_seconds": 58.886,
+        "standard_deviation_seconds": 1.112155,
+        "interquartile_range_seconds": 1.48075
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -44,6 +49,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 44,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -51,7 +57,9 @@
         "p25_seconds": 55.707,
         "median_seconds": 56.074,
         "p75_seconds": 56.6825,
-        "slowest_seconds": 57.608
+        "slowest_seconds": 57.608,
+        "standard_deviation_seconds": 0.818066,
+        "interquartile_range_seconds": 0.9755
       },
       "positive_contributor_times": {
         "n": 11,
@@ -59,7 +67,9 @@
         "p25_seconds": 55.707,
         "median_seconds": 56.074,
         "p75_seconds": 56.6825,
-        "slowest_seconds": 57.608
+        "slowest_seconds": 57.608,
+        "standard_deviation_seconds": 0.818066,
+        "interquartile_range_seconds": 0.9755
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -74,6 +84,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 45,
+      "unique_core_count": 119,
       "sample_status": "representative",
       "first_place_times": {
         "n": 45,
@@ -81,7 +92,9 @@
         "p25_seconds": 54.873,
         "median_seconds": 55.649,
         "p75_seconds": 56.315,
-        "slowest_seconds": 57.659
+        "slowest_seconds": 57.659,
+        "standard_deviation_seconds": 1.09003,
+        "interquartile_range_seconds": 1.442
       },
       "positive_contributor_times": {
         "n": 96,
@@ -89,7 +102,9 @@
         "p25_seconds": 55.717,
         "median_seconds": 56.412,
         "p75_seconds": 56.856,
-        "slowest_seconds": 58.276
+        "slowest_seconds": 58.276,
+        "standard_deviation_seconds": 1.004851,
+        "interquartile_range_seconds": 1.139
       },
       "podium_cutoff_times": {
         "n": 45,
@@ -97,7 +112,9 @@
         "p25_seconds": 56.556,
         "median_seconds": 56.933,
         "p75_seconds": 57.283,
-        "slowest_seconds": 58.276
+        "slowest_seconds": 58.276,
+        "standard_deviation_seconds": 0.521135,
+        "interquartile_range_seconds": 0.727
       },
       "targets": {
         "elite_seconds": 55.717,
@@ -111,6 +128,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 22,
+      "unique_core_count": 66,
       "sample_status": "representative",
       "first_place_times": {
         "n": 22,
@@ -118,7 +136,9 @@
         "p25_seconds": 54.53725,
         "median_seconds": 55.442,
         "p75_seconds": 55.86075,
-        "slowest_seconds": 56.919
+        "slowest_seconds": 56.919,
+        "standard_deviation_seconds": 1.12865,
+        "interquartile_range_seconds": 1.3235
       },
       "positive_contributor_times": {
         "n": 22,
@@ -126,7 +146,9 @@
         "p25_seconds": 54.53725,
         "median_seconds": 55.442,
         "p75_seconds": 55.86075,
-        "slowest_seconds": 56.919
+        "slowest_seconds": 56.919,
+        "standard_deviation_seconds": 1.12865,
+        "interquartile_range_seconds": 1.3235
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -141,6 +163,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 12,
+      "unique_core_count": 176,
       "sample_status": "developing",
       "first_place_times": {
         "n": 12,
@@ -148,7 +171,9 @@
         "p25_seconds": 53.96625,
         "median_seconds": 54.5035,
         "p75_seconds": 54.71625,
-        "slowest_seconds": 55.702
+        "slowest_seconds": 55.702,
+        "standard_deviation_seconds": 0.854292,
+        "interquartile_range_seconds": 0.75
       },
       "positive_contributor_times": {
         "n": 12,
@@ -156,7 +181,9 @@
         "p25_seconds": 53.96625,
         "median_seconds": 54.5035,
         "p75_seconds": 54.71625,
-        "slowest_seconds": 55.702
+        "slowest_seconds": 55.702,
+        "standard_deviation_seconds": 0.854292,
+        "interquartile_range_seconds": 0.75
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -171,6 +198,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 3,
+      "unique_core_count": 22,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 3,
@@ -178,7 +206,9 @@
         "p25_seconds": 52.7745,
         "median_seconds": 53.785,
         "p75_seconds": 54.5165,
-        "slowest_seconds": 55.248
+        "slowest_seconds": 55.248,
+        "standard_deviation_seconds": 1.428405,
+        "interquartile_range_seconds": 1.742
       },
       "positive_contributor_times": {
         "n": 3,
@@ -186,7 +216,9 @@
         "p25_seconds": 52.7745,
         "median_seconds": 53.785,
         "p75_seconds": 54.5165,
-        "slowest_seconds": 55.248
+        "slowest_seconds": 55.248,
+        "standard_deviation_seconds": 1.428405,
+        "interquartile_range_seconds": 1.742
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -201,6 +233,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 12,
+      "unique_core_count": 248,
       "sample_status": "developing",
       "first_place_times": {
         "n": 12,
@@ -208,7 +241,9 @@
         "p25_seconds": 53.97975,
         "median_seconds": 54.9675,
         "p75_seconds": 55.19525,
-        "slowest_seconds": 55.597
+        "slowest_seconds": 55.597,
+        "standard_deviation_seconds": 0.666284,
+        "interquartile_range_seconds": 1.2155
       },
       "positive_contributor_times": {
         "n": 27,
@@ -216,7 +251,9 @@
         "p25_seconds": 54.9675,
         "median_seconds": 55.476,
         "p75_seconds": 55.7905,
-        "slowest_seconds": 56.113
+        "slowest_seconds": 56.113,
+        "standard_deviation_seconds": 0.666144,
+        "interquartile_range_seconds": 0.823
       },
       "podium_cutoff_times": {
         "n": 12,
@@ -224,7 +261,9 @@
         "p25_seconds": 55.2145,
         "median_seconds": 55.8015,
         "p75_seconds": 55.9295,
-        "slowest_seconds": 56.113
+        "slowest_seconds": 56.113,
+        "standard_deviation_seconds": 0.521485,
+        "interquartile_range_seconds": 0.715
       },
       "targets": {
         "elite_seconds": 54.9675,
@@ -238,6 +277,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 12,
+      "unique_core_count": 264,
       "sample_status": "developing",
       "first_place_times": {
         "n": 12,
@@ -245,7 +285,9 @@
         "p25_seconds": 54.2485,
         "median_seconds": 54.4035,
         "p75_seconds": 55.05075,
-        "slowest_seconds": 55.325
+        "slowest_seconds": 55.325,
+        "standard_deviation_seconds": 0.677075,
+        "interquartile_range_seconds": 0.80225
       },
       "positive_contributor_times": {
         "n": 12,
@@ -253,7 +295,9 @@
         "p25_seconds": 54.2485,
         "median_seconds": 54.4035,
         "p75_seconds": 55.05075,
-        "slowest_seconds": 55.325
+        "slowest_seconds": 55.325,
+        "standard_deviation_seconds": 0.677075,
+        "interquartile_range_seconds": 0.80225
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -268,6 +312,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 15,
+      "unique_core_count": 27,
       "sample_status": "developing",
       "first_place_times": {
         "n": 15,
@@ -275,7 +320,9 @@
         "p25_seconds": 69.798,
         "median_seconds": 69.91,
         "p75_seconds": 70.5975,
-        "slowest_seconds": 71.548
+        "slowest_seconds": 71.548,
+        "standard_deviation_seconds": 0.769982,
+        "interquartile_range_seconds": 0.7995
       },
       "positive_contributor_times": {
         "n": 15,
@@ -283,7 +330,9 @@
         "p25_seconds": 69.798,
         "median_seconds": 69.91,
         "p75_seconds": 70.5975,
-        "slowest_seconds": 71.548
+        "slowest_seconds": 71.548,
+        "standard_deviation_seconds": 0.769982,
+        "interquartile_range_seconds": 0.7995
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -298,6 +347,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 10,
+      "unique_core_count": 37,
       "sample_status": "developing",
       "first_place_times": {
         "n": 10,
@@ -305,7 +355,9 @@
         "p25_seconds": 68.67325,
         "median_seconds": 69.4585,
         "p75_seconds": 70.1315,
-        "slowest_seconds": 70.559
+        "slowest_seconds": 70.559,
+        "standard_deviation_seconds": 0.861923,
+        "interquartile_range_seconds": 1.45825
       },
       "positive_contributor_times": {
         "n": 10,
@@ -313,7 +365,9 @@
         "p25_seconds": 68.67325,
         "median_seconds": 69.4585,
         "p75_seconds": 70.1315,
-        "slowest_seconds": 70.559
+        "slowest_seconds": 70.559,
+        "standard_deviation_seconds": 0.861923,
+        "interquartile_range_seconds": 1.45825
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -328,6 +382,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 30,
+      "unique_core_count": 88,
       "sample_status": "representative",
       "first_place_times": {
         "n": 30,
@@ -335,7 +390,9 @@
         "p25_seconds": 68.5295,
         "median_seconds": 69.2275,
         "p75_seconds": 69.7425,
-        "slowest_seconds": 70.396
+        "slowest_seconds": 70.396,
+        "standard_deviation_seconds": 0.868806,
+        "interquartile_range_seconds": 1.213
       },
       "positive_contributor_times": {
         "n": 62,
@@ -343,7 +400,9 @@
         "p25_seconds": 69.03325,
         "median_seconds": 69.875,
         "p75_seconds": 70.38775,
-        "slowest_seconds": 72.17
+        "slowest_seconds": 72.17,
+        "standard_deviation_seconds": 0.930269,
+        "interquartile_range_seconds": 1.3545
       },
       "podium_cutoff_times": {
         "n": 30,
@@ -351,7 +410,9 @@
         "p25_seconds": 70.06775,
         "median_seconds": 70.414,
         "p75_seconds": 70.89725,
-        "slowest_seconds": 72.17
+        "slowest_seconds": 72.17,
+        "standard_deviation_seconds": 0.657637,
+        "interquartile_range_seconds": 0.8295
       },
       "targets": {
         "elite_seconds": 69.03325,
@@ -365,6 +426,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 10,
+      "unique_core_count": 55,
       "sample_status": "developing",
       "first_place_times": {
         "n": 10,
@@ -372,7 +434,9 @@
         "p25_seconds": 68.8505,
         "median_seconds": 68.994,
         "p75_seconds": 69.6845,
-        "slowest_seconds": 70.136
+        "slowest_seconds": 70.136,
+        "standard_deviation_seconds": 0.770095,
+        "interquartile_range_seconds": 0.834
       },
       "positive_contributor_times": {
         "n": 10,
@@ -380,7 +444,9 @@
         "p25_seconds": 68.8505,
         "median_seconds": 68.994,
         "p75_seconds": 69.6845,
-        "slowest_seconds": 70.136
+        "slowest_seconds": 70.136,
+        "standard_deviation_seconds": 0.770095,
+        "interquartile_range_seconds": 0.834
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -395,6 +461,7 @@
       "gate": 12,
       "scoring": "podium_majority",
       "race_count": 8,
+      "unique_core_count": 96,
       "sample_status": "developing",
       "first_place_times": {
         "n": 8,
@@ -402,7 +469,9 @@
         "p25_seconds": 68.9055,
         "median_seconds": 69.1525,
         "p75_seconds": 69.5275,
-        "slowest_seconds": 69.877
+        "slowest_seconds": 69.877,
+        "standard_deviation_seconds": 0.440024,
+        "interquartile_range_seconds": 0.622
       },
       "positive_contributor_times": {
         "n": 16,
@@ -410,7 +479,9 @@
         "p25_seconds": 69.098,
         "median_seconds": 69.516,
         "p75_seconds": 69.75475,
-        "slowest_seconds": 70.201
+        "slowest_seconds": 70.201,
+        "standard_deviation_seconds": 0.416959,
+        "interquartile_range_seconds": 0.65675
       },
       "podium_cutoff_times": {
         "n": 8,
@@ -418,7 +489,9 @@
         "p25_seconds": 69.5075,
         "median_seconds": 69.772,
         "p75_seconds": 69.97725,
-        "slowest_seconds": 70.691
+        "slowest_seconds": 70.691,
+        "standard_deviation_seconds": 0.410173,
+        "interquartile_range_seconds": 0.46975
       },
       "targets": {
         "elite_seconds": 69.098,
@@ -432,6 +505,7 @@
       "gate": 12,
       "scoring": "wta_win",
       "race_count": 14,
+      "unique_core_count": 162,
       "sample_status": "developing",
       "first_place_times": {
         "n": 14,
@@ -439,7 +513,9 @@
         "p25_seconds": 67.598,
         "median_seconds": 68.3165,
         "p75_seconds": 68.85025,
-        "slowest_seconds": 69.653
+        "slowest_seconds": 69.653,
+        "standard_deviation_seconds": 0.960892,
+        "interquartile_range_seconds": 1.25225
       },
       "positive_contributor_times": {
         "n": 14,
@@ -447,7 +523,9 @@
         "p25_seconds": 67.598,
         "median_seconds": 68.3165,
         "p75_seconds": 68.85025,
-        "slowest_seconds": 69.653
+        "slowest_seconds": 69.653,
+        "standard_deviation_seconds": 0.960892,
+        "interquartile_range_seconds": 1.25225
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -462,6 +540,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 176,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -469,7 +548,9 @@
         "p25_seconds": 67.957,
         "median_seconds": 68.393,
         "p75_seconds": 69.0155,
-        "slowest_seconds": 69.942
+        "slowest_seconds": 69.942,
+        "standard_deviation_seconds": 0.714357,
+        "interquartile_range_seconds": 1.0585
       },
       "positive_contributor_times": {
         "n": 11,
@@ -477,7 +558,9 @@
         "p25_seconds": 67.957,
         "median_seconds": 68.393,
         "p75_seconds": 69.0155,
-        "slowest_seconds": 69.942
+        "slowest_seconds": 69.942,
+        "standard_deviation_seconds": 0.714357,
+        "interquartile_range_seconds": 1.0585
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -492,6 +575,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 8,
+      "unique_core_count": 67,
       "sample_status": "developing",
       "first_place_times": {
         "n": 8,
@@ -499,7 +583,9 @@
         "p25_seconds": 68.26675,
         "median_seconds": 68.4725,
         "p75_seconds": 68.629,
-        "slowest_seconds": 69.051
+        "slowest_seconds": 69.051,
+        "standard_deviation_seconds": 0.371307,
+        "interquartile_range_seconds": 0.36225
       },
       "positive_contributor_times": {
         "n": 8,
@@ -507,7 +593,9 @@
         "p25_seconds": 68.26675,
         "median_seconds": 68.4725,
         "p75_seconds": 68.629,
-        "slowest_seconds": 69.051
+        "slowest_seconds": 69.051,
+        "standard_deviation_seconds": 0.371307,
+        "interquartile_range_seconds": 0.36225
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -522,6 +610,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 9,
+      "unique_core_count": 195,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -529,7 +618,9 @@
         "p25_seconds": 67.277,
         "median_seconds": 67.846,
         "p75_seconds": 69.047,
-        "slowest_seconds": 69.422
+        "slowest_seconds": 69.422,
+        "standard_deviation_seconds": 1.131562,
+        "interquartile_range_seconds": 1.77
       },
       "positive_contributor_times": {
         "n": 20,
@@ -537,7 +628,9 @@
         "p25_seconds": 67.903,
         "median_seconds": 68.673,
         "p75_seconds": 69.383,
-        "slowest_seconds": 69.827
+        "slowest_seconds": 69.827,
+        "standard_deviation_seconds": 0.994979,
+        "interquartile_range_seconds": 1.48
       },
       "podium_cutoff_times": {
         "n": 9,
@@ -545,7 +638,9 @@
         "p25_seconds": 68.756,
         "median_seconds": 69.075,
         "p75_seconds": 69.534,
-        "slowest_seconds": 69.827
+        "slowest_seconds": 69.827,
+        "standard_deviation_seconds": 0.564013,
+        "interquartile_range_seconds": 0.778
       },
       "targets": {
         "elite_seconds": 67.903,
@@ -559,6 +654,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 264,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -566,7 +662,9 @@
         "p25_seconds": 67.347,
         "median_seconds": 68.354,
         "p75_seconds": 68.875,
-        "slowest_seconds": 69.237
+        "slowest_seconds": 69.237,
+        "standard_deviation_seconds": 0.939604,
+        "interquartile_range_seconds": 1.528
       },
       "positive_contributor_times": {
         "n": 11,
@@ -574,7 +672,9 @@
         "p25_seconds": 67.347,
         "median_seconds": 68.354,
         "p75_seconds": 68.875,
-        "slowest_seconds": 69.237
+        "slowest_seconds": 69.237,
+        "standard_deviation_seconds": 0.939604,
+        "interquartile_range_seconds": 1.528
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -589,6 +689,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 15,
+      "unique_core_count": 28,
       "sample_status": "developing",
       "first_place_times": {
         "n": 15,
@@ -596,7 +697,9 @@
         "p25_seconds": 81.7585,
         "median_seconds": 82.27,
         "p75_seconds": 82.762,
-        "slowest_seconds": 83.751
+        "slowest_seconds": 83.751,
+        "standard_deviation_seconds": 0.863309,
+        "interquartile_range_seconds": 1.0035
       },
       "positive_contributor_times": {
         "n": 15,
@@ -604,7 +707,9 @@
         "p25_seconds": 81.7585,
         "median_seconds": 82.27,
         "p75_seconds": 82.762,
-        "slowest_seconds": 83.751
+        "slowest_seconds": 83.751,
+        "standard_deviation_seconds": 0.863309,
+        "interquartile_range_seconds": 1.0035
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -619,6 +724,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 20,
+      "unique_core_count": 57,
       "sample_status": "representative",
       "first_place_times": {
         "n": 20,
@@ -626,7 +732,9 @@
         "p25_seconds": 81.06,
         "median_seconds": 81.708,
         "p75_seconds": 82.275,
-        "slowest_seconds": 83.71
+        "slowest_seconds": 83.71,
+        "standard_deviation_seconds": 1.022615,
+        "interquartile_range_seconds": 1.215
       },
       "positive_contributor_times": {
         "n": 20,
@@ -634,7 +742,9 @@
         "p25_seconds": 81.06,
         "median_seconds": 81.708,
         "p75_seconds": 82.275,
-        "slowest_seconds": 83.71
+        "slowest_seconds": 83.71,
+        "standard_deviation_seconds": 1.022615,
+        "interquartile_range_seconds": 1.215
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -649,6 +759,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 14,
+      "unique_core_count": 81,
       "sample_status": "developing",
       "first_place_times": {
         "n": 14,
@@ -656,7 +767,9 @@
         "p25_seconds": 80.757,
         "median_seconds": 81.404,
         "p75_seconds": 81.98075,
-        "slowest_seconds": 83.002
+        "slowest_seconds": 83.002,
+        "standard_deviation_seconds": 0.969477,
+        "interquartile_range_seconds": 1.22375
       },
       "positive_contributor_times": {
         "n": 29,
@@ -664,7 +777,9 @@
         "p25_seconds": 81.869,
         "median_seconds": 82.337,
         "p75_seconds": 82.842,
-        "slowest_seconds": 83.642
+        "slowest_seconds": 83.642,
+        "standard_deviation_seconds": 0.970256,
+        "interquartile_range_seconds": 0.973
       },
       "podium_cutoff_times": {
         "n": 14,
@@ -672,7 +787,9 @@
         "p25_seconds": 82.51575,
         "median_seconds": 82.732,
         "p75_seconds": 82.921,
-        "slowest_seconds": 83.642
+        "slowest_seconds": 83.642,
+        "standard_deviation_seconds": 0.379984,
+        "interquartile_range_seconds": 0.40525
       },
       "targets": {
         "elite_seconds": 81.869,
@@ -686,6 +803,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 18,
+      "unique_core_count": 66,
       "sample_status": "developing",
       "first_place_times": {
         "n": 18,
@@ -693,7 +811,9 @@
         "p25_seconds": 80.456,
         "median_seconds": 80.785,
         "p75_seconds": 81.2255,
-        "slowest_seconds": 82.888
+        "slowest_seconds": 82.888,
+        "standard_deviation_seconds": 0.750701,
+        "interquartile_range_seconds": 0.7695
       },
       "positive_contributor_times": {
         "n": 18,
@@ -701,7 +821,9 @@
         "p25_seconds": 80.456,
         "median_seconds": 80.785,
         "p75_seconds": 81.2255,
-        "slowest_seconds": 82.888
+        "slowest_seconds": 82.888,
+        "standard_deviation_seconds": 0.750701,
+        "interquartile_range_seconds": 0.7695
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -716,6 +838,7 @@
       "gate": 12,
       "scoring": "podium_majority",
       "race_count": 9,
+      "unique_core_count": 108,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -723,7 +846,9 @@
         "p25_seconds": 80.13,
         "median_seconds": 80.895,
         "p75_seconds": 81.186,
-        "slowest_seconds": 82.164
+        "slowest_seconds": 82.164,
+        "standard_deviation_seconds": 0.869361,
+        "interquartile_range_seconds": 1.056
       },
       "positive_contributor_times": {
         "n": 20,
@@ -731,7 +856,9 @@
         "p25_seconds": 80.7185,
         "median_seconds": 81.3435,
         "p75_seconds": 81.747,
-        "slowest_seconds": 82.247
+        "slowest_seconds": 82.247,
+        "standard_deviation_seconds": 0.744241,
+        "interquartile_range_seconds": 1.0285
       },
       "podium_cutoff_times": {
         "n": 9,
@@ -739,7 +866,9 @@
         "p25_seconds": 81.722,
         "median_seconds": 81.822,
         "p75_seconds": 81.978,
-        "slowest_seconds": 82.885
+        "slowest_seconds": 82.885,
+        "standard_deviation_seconds": 0.614373,
+        "interquartile_range_seconds": 0.256
       },
       "targets": {
         "elite_seconds": 80.7185,
@@ -753,6 +882,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 12,
+      "unique_core_count": 176,
       "sample_status": "developing",
       "first_place_times": {
         "n": 12,
@@ -760,7 +890,9 @@
         "p25_seconds": 79.70175,
         "median_seconds": 80.7235,
         "p75_seconds": 81.3395,
-        "slowest_seconds": 81.957
+        "slowest_seconds": 81.957,
+        "standard_deviation_seconds": 1.024496,
+        "interquartile_range_seconds": 1.63775
       },
       "positive_contributor_times": {
         "n": 12,
@@ -768,7 +900,9 @@
         "p25_seconds": 79.70175,
         "median_seconds": 80.7235,
         "p75_seconds": 81.3395,
-        "slowest_seconds": 81.957
+        "slowest_seconds": 81.957,
+        "standard_deviation_seconds": 1.024496,
+        "interquartile_range_seconds": 1.63775
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -783,6 +917,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 1,
+      "unique_core_count": 22,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 1,
@@ -790,7 +925,9 @@
         "p25_seconds": 80.072,
         "median_seconds": 80.072,
         "p75_seconds": 80.072,
-        "slowest_seconds": 80.072
+        "slowest_seconds": 80.072,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "positive_contributor_times": {
         "n": 1,
@@ -798,7 +935,9 @@
         "p25_seconds": 80.072,
         "median_seconds": 80.072,
         "p75_seconds": 80.072,
-        "slowest_seconds": 80.072
+        "slowest_seconds": 80.072,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -813,6 +952,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 6,
+      "unique_core_count": 72,
       "sample_status": "developing",
       "first_place_times": {
         "n": 6,
@@ -820,7 +960,9 @@
         "p25_seconds": 80.603,
         "median_seconds": 80.6935,
         "p75_seconds": 80.85975,
-        "slowest_seconds": 81.684
+        "slowest_seconds": 81.684,
+        "standard_deviation_seconds": 0.658399,
+        "interquartile_range_seconds": 0.25675
       },
       "positive_contributor_times": {
         "n": 14,
@@ -828,7 +970,9 @@
         "p25_seconds": 80.7255,
         "median_seconds": 81.134,
         "p75_seconds": 81.495,
-        "slowest_seconds": 81.774
+        "slowest_seconds": 81.774,
+        "standard_deviation_seconds": 0.605716,
+        "interquartile_range_seconds": 0.7695
       },
       "podium_cutoff_times": {
         "n": 6,
@@ -836,7 +980,9 @@
         "p25_seconds": 81.0675,
         "median_seconds": 81.486,
         "p75_seconds": 81.549,
-        "slowest_seconds": 81.986
+        "slowest_seconds": 81.986,
+        "standard_deviation_seconds": 0.420218,
+        "interquartile_range_seconds": 0.4815
       },
       "targets": {
         "elite_seconds": 80.7255,
@@ -850,6 +996,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 264,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -857,7 +1004,9 @@
         "p25_seconds": 79.5425,
         "median_seconds": 80.293,
         "p75_seconds": 80.9735,
-        "slowest_seconds": 81.843
+        "slowest_seconds": 81.843,
+        "standard_deviation_seconds": 0.908984,
+        "interquartile_range_seconds": 1.431
       },
       "positive_contributor_times": {
         "n": 11,
@@ -865,7 +1014,9 @@
         "p25_seconds": 79.5425,
         "median_seconds": 80.293,
         "p75_seconds": 80.9735,
-        "slowest_seconds": 81.843
+        "slowest_seconds": 81.843,
+        "standard_deviation_seconds": 0.908984,
+        "interquartile_range_seconds": 1.431
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -880,6 +1031,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 23,
+      "unique_core_count": 37,
       "sample_status": "representative",
       "first_place_times": {
         "n": 23,
@@ -887,7 +1039,9 @@
         "p25_seconds": 93.1255,
         "median_seconds": 93.803,
         "p75_seconds": 95.072,
-        "slowest_seconds": 96.432
+        "slowest_seconds": 96.432,
+        "standard_deviation_seconds": 1.429373,
+        "interquartile_range_seconds": 1.9465
       },
       "positive_contributor_times": {
         "n": 23,
@@ -895,7 +1049,9 @@
         "p25_seconds": 93.1255,
         "median_seconds": 93.803,
         "p75_seconds": 95.072,
-        "slowest_seconds": 96.432
+        "slowest_seconds": 96.432,
+        "standard_deviation_seconds": 1.429373,
+        "interquartile_range_seconds": 1.9465
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -910,6 +1066,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 9,
+      "unique_core_count": 36,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -917,7 +1074,9 @@
         "p25_seconds": 93.282,
         "median_seconds": 93.671,
         "p75_seconds": 93.721,
-        "slowest_seconds": 95.183
+        "slowest_seconds": 95.183,
+        "standard_deviation_seconds": 0.965442,
+        "interquartile_range_seconds": 0.439
       },
       "positive_contributor_times": {
         "n": 9,
@@ -925,7 +1084,9 @@
         "p25_seconds": 93.282,
         "median_seconds": 93.671,
         "p75_seconds": 93.721,
-        "slowest_seconds": 95.183
+        "slowest_seconds": 95.183,
+        "standard_deviation_seconds": 0.965442,
+        "interquartile_range_seconds": 0.439
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -940,6 +1101,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 23,
+      "unique_core_count": 110,
       "sample_status": "representative",
       "first_place_times": {
         "n": 23,
@@ -947,7 +1109,9 @@
         "p25_seconds": 92.8045,
         "median_seconds": 93.194,
         "p75_seconds": 93.889,
-        "slowest_seconds": 94.571
+        "slowest_seconds": 94.571,
+        "standard_deviation_seconds": 0.841997,
+        "interquartile_range_seconds": 1.0845
       },
       "positive_contributor_times": {
         "n": 47,
@@ -955,7 +1119,9 @@
         "p25_seconds": 93.58,
         "median_seconds": 94.129,
         "p75_seconds": 94.5725,
-        "slowest_seconds": 95.556
+        "slowest_seconds": 95.556,
+        "standard_deviation_seconds": 0.928272,
+        "interquartile_range_seconds": 0.9925
       },
       "podium_cutoff_times": {
         "n": 23,
@@ -963,7 +1129,9 @@
         "p25_seconds": 94.3975,
         "median_seconds": 94.574,
         "p75_seconds": 95.024,
-        "slowest_seconds": 95.556
+        "slowest_seconds": 95.556,
+        "standard_deviation_seconds": 0.451216,
+        "interquartile_range_seconds": 0.6265
       },
       "targets": {
         "elite_seconds": 93.58,
@@ -977,6 +1145,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 5,
+      "unique_core_count": 30,
       "sample_status": "developing",
       "first_place_times": {
         "n": 5,
@@ -984,7 +1153,9 @@
         "p25_seconds": 91.019,
         "median_seconds": 91.556,
         "p75_seconds": 93.282,
-        "slowest_seconds": 94.772
+        "slowest_seconds": 94.772,
+        "standard_deviation_seconds": 1.628334,
+        "interquartile_range_seconds": 2.263
       },
       "positive_contributor_times": {
         "n": 5,
@@ -992,7 +1163,9 @@
         "p25_seconds": 91.019,
         "median_seconds": 91.556,
         "p75_seconds": 93.282,
-        "slowest_seconds": 94.772
+        "slowest_seconds": 94.772,
+        "standard_deviation_seconds": 1.628334,
+        "interquartile_range_seconds": 2.263
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1007,6 +1180,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 176,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -1014,7 +1188,9 @@
         "p25_seconds": 92.345,
         "median_seconds": 93.148,
         "p75_seconds": 93.3885,
-        "slowest_seconds": 94.148
+        "slowest_seconds": 94.148,
+        "standard_deviation_seconds": 0.912927,
+        "interquartile_range_seconds": 1.0435
       },
       "positive_contributor_times": {
         "n": 11,
@@ -1022,7 +1198,9 @@
         "p25_seconds": 92.345,
         "median_seconds": 93.148,
         "p75_seconds": 93.3885,
-        "slowest_seconds": 94.148
+        "slowest_seconds": 94.148,
+        "standard_deviation_seconds": 0.912927,
+        "interquartile_range_seconds": 1.0435
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1037,6 +1215,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 9,
+      "unique_core_count": 67,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -1044,7 +1223,9 @@
         "p25_seconds": 92.478,
         "median_seconds": 92.883,
         "p75_seconds": 93.33,
-        "slowest_seconds": 93.768
+        "slowest_seconds": 93.768,
+        "standard_deviation_seconds": 0.536708,
+        "interquartile_range_seconds": 0.852
       },
       "positive_contributor_times": {
         "n": 9,
@@ -1052,7 +1233,9 @@
         "p25_seconds": 92.478,
         "median_seconds": 92.883,
         "p75_seconds": 93.33,
-        "slowest_seconds": 93.768
+        "slowest_seconds": 93.768,
+        "standard_deviation_seconds": 0.536708,
+        "interquartile_range_seconds": 0.852
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1067,6 +1250,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 1,
+      "unique_core_count": 24,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 1,
@@ -1074,7 +1258,9 @@
         "p25_seconds": 92.421,
         "median_seconds": 92.421,
         "p75_seconds": 92.421,
-        "slowest_seconds": 92.421
+        "slowest_seconds": 92.421,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "positive_contributor_times": {
         "n": 3,
@@ -1082,7 +1268,9 @@
         "p25_seconds": 92.8695,
         "median_seconds": 93.318,
         "p75_seconds": 93.4425,
-        "slowest_seconds": 93.567
+        "slowest_seconds": 93.567,
+        "standard_deviation_seconds": 0.492152,
+        "interquartile_range_seconds": 0.573
       },
       "podium_cutoff_times": {
         "n": 1,
@@ -1090,7 +1278,9 @@
         "p25_seconds": 93.567,
         "median_seconds": 93.567,
         "p75_seconds": 93.567,
-        "slowest_seconds": 93.567
+        "slowest_seconds": 93.567,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "targets": {
         "elite_seconds": 92.8695,
@@ -1104,6 +1294,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 27,
+      "unique_core_count": 265,
       "sample_status": "representative",
       "first_place_times": {
         "n": 27,
@@ -1111,7 +1302,9 @@
         "p25_seconds": 91.755,
         "median_seconds": 92.361,
         "p75_seconds": 93.012,
-        "slowest_seconds": 93.954
+        "slowest_seconds": 93.954,
+        "standard_deviation_seconds": 0.903223,
+        "interquartile_range_seconds": 1.257
       },
       "positive_contributor_times": {
         "n": 27,
@@ -1119,7 +1312,9 @@
         "p25_seconds": 91.755,
         "median_seconds": 92.361,
         "p75_seconds": 93.012,
-        "slowest_seconds": 93.954
+        "slowest_seconds": 93.954,
+        "standard_deviation_seconds": 0.903223,
+        "interquartile_range_seconds": 1.257
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1134,6 +1329,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 46,
+      "unique_core_count": 38,
       "sample_status": "representative",
       "first_place_times": {
         "n": 46,
@@ -1141,7 +1337,9 @@
         "p25_seconds": 105.42025,
         "median_seconds": 106.133,
         "p75_seconds": 106.78325,
-        "slowest_seconds": 108.653
+        "slowest_seconds": 108.653,
+        "standard_deviation_seconds": 1.182734,
+        "interquartile_range_seconds": 1.363
       },
       "positive_contributor_times": {
         "n": 46,
@@ -1149,7 +1347,9 @@
         "p25_seconds": 105.42025,
         "median_seconds": 106.133,
         "p75_seconds": 106.78325,
-        "slowest_seconds": 108.653
+        "slowest_seconds": 108.653,
+        "standard_deviation_seconds": 1.182734,
+        "interquartile_range_seconds": 1.363
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1164,6 +1364,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 32,
+      "unique_core_count": 67,
       "sample_status": "representative",
       "first_place_times": {
         "n": 32,
@@ -1171,7 +1372,9 @@
         "p25_seconds": 104.68725,
         "median_seconds": 105.2665,
         "p75_seconds": 105.982,
-        "slowest_seconds": 107.34
+        "slowest_seconds": 107.34,
+        "standard_deviation_seconds": 1.03597,
+        "interquartile_range_seconds": 1.29475
       },
       "positive_contributor_times": {
         "n": 32,
@@ -1179,7 +1382,9 @@
         "p25_seconds": 104.68725,
         "median_seconds": 105.2665,
         "p75_seconds": 105.982,
-        "slowest_seconds": 107.34
+        "slowest_seconds": 107.34,
+        "standard_deviation_seconds": 1.03597,
+        "interquartile_range_seconds": 1.29475
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1194,6 +1399,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 23,
+      "unique_core_count": 106,
       "sample_status": "representative",
       "first_place_times": {
         "n": 23,
@@ -1201,7 +1407,9 @@
         "p25_seconds": 104.953,
         "median_seconds": 105.26,
         "p75_seconds": 105.9105,
-        "slowest_seconds": 106.592
+        "slowest_seconds": 106.592,
+        "standard_deviation_seconds": 0.841358,
+        "interquartile_range_seconds": 0.9575
       },
       "positive_contributor_times": {
         "n": 53,
@@ -1209,7 +1417,9 @@
         "p25_seconds": 105.281,
         "median_seconds": 105.951,
         "p75_seconds": 106.718,
-        "slowest_seconds": 108.305
+        "slowest_seconds": 108.305,
+        "standard_deviation_seconds": 0.947672,
+        "interquartile_range_seconds": 1.437
       },
       "podium_cutoff_times": {
         "n": 23,
@@ -1217,7 +1427,9 @@
         "p25_seconds": 106.3325,
         "median_seconds": 106.718,
         "p75_seconds": 106.861,
-        "slowest_seconds": 108.305
+        "slowest_seconds": 108.305,
+        "standard_deviation_seconds": 0.550624,
+        "interquartile_range_seconds": 0.5285
       },
       "targets": {
         "elite_seconds": 105.281,
@@ -1231,6 +1443,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 9,
+      "unique_core_count": 54,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -1238,7 +1451,9 @@
         "p25_seconds": 105.143,
         "median_seconds": 105.974,
         "p75_seconds": 106.434,
-        "slowest_seconds": 106.854
+        "slowest_seconds": 106.854,
+        "standard_deviation_seconds": 1.005943,
+        "interquartile_range_seconds": 1.291
       },
       "positive_contributor_times": {
         "n": 9,
@@ -1246,7 +1461,9 @@
         "p25_seconds": 105.143,
         "median_seconds": 105.974,
         "p75_seconds": 106.434,
-        "slowest_seconds": 106.854
+        "slowest_seconds": 106.854,
+        "standard_deviation_seconds": 1.005943,
+        "interquartile_range_seconds": 1.291
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1261,6 +1478,7 @@
       "gate": 12,
       "scoring": "podium_majority",
       "race_count": 3,
+      "unique_core_count": 36,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 3,
@@ -1268,7 +1486,9 @@
         "p25_seconds": 102.761,
         "median_seconds": 102.794,
         "p75_seconds": 104.5445,
-        "slowest_seconds": 106.295
+        "slowest_seconds": 106.295,
+        "standard_deviation_seconds": 1.666161,
+        "interquartile_range_seconds": 1.7835
       },
       "positive_contributor_times": {
         "n": 8,
@@ -1276,7 +1496,9 @@
         "p25_seconds": 104.72625,
         "median_seconds": 106.153,
         "p75_seconds": 106.6475,
-        "slowest_seconds": 106.799
+        "slowest_seconds": 106.799,
+        "standard_deviation_seconds": 1.356396,
+        "interquartile_range_seconds": 1.92125
       },
       "podium_cutoff_times": {
         "n": 3,
@@ -1284,7 +1506,9 @@
         "p25_seconds": 105.826,
         "median_seconds": 106.754,
         "p75_seconds": 106.7765,
-        "slowest_seconds": 106.799
+        "slowest_seconds": 106.799,
+        "standard_deviation_seconds": 0.885724,
+        "interquartile_range_seconds": 0.9505
       },
       "targets": {
         "elite_seconds": 104.72625,
@@ -1298,6 +1522,7 @@
       "gate": 12,
       "scoring": "wta_win",
       "race_count": 14,
+      "unique_core_count": 162,
       "sample_status": "developing",
       "first_place_times": {
         "n": 14,
@@ -1305,7 +1530,9 @@
         "p25_seconds": 104.3295,
         "median_seconds": 104.8405,
         "p75_seconds": 105.50125,
-        "slowest_seconds": 106.219
+        "slowest_seconds": 106.219,
+        "standard_deviation_seconds": 0.723704,
+        "interquartile_range_seconds": 1.17175
       },
       "positive_contributor_times": {
         "n": 14,
@@ -1313,7 +1540,9 @@
         "p25_seconds": 104.3295,
         "median_seconds": 104.8405,
         "p75_seconds": 105.50125,
-        "slowest_seconds": 106.219
+        "slowest_seconds": 106.219,
+        "standard_deviation_seconds": 0.723704,
+        "interquartile_range_seconds": 1.17175
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1328,6 +1557,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 6,
+      "unique_core_count": 96,
       "sample_status": "developing",
       "first_place_times": {
         "n": 6,
@@ -1335,7 +1565,9 @@
         "p25_seconds": 103.46675,
         "median_seconds": 103.9875,
         "p75_seconds": 104.284,
-        "slowest_seconds": 104.535
+        "slowest_seconds": 104.535,
+        "standard_deviation_seconds": 0.615463,
+        "interquartile_range_seconds": 0.81725
       },
       "positive_contributor_times": {
         "n": 6,
@@ -1343,7 +1575,9 @@
         "p25_seconds": 103.46675,
         "median_seconds": 103.9875,
         "p75_seconds": 104.284,
-        "slowest_seconds": 104.535
+        "slowest_seconds": 104.535,
+        "standard_deviation_seconds": 0.615463,
+        "interquartile_range_seconds": 0.81725
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1358,6 +1592,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 4,
+      "unique_core_count": 66,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 4,
@@ -1365,7 +1600,9 @@
         "p25_seconds": 104.22625,
         "median_seconds": 104.3205,
         "p75_seconds": 104.43975,
-        "slowest_seconds": 104.73
+        "slowest_seconds": 104.73,
+        "standard_deviation_seconds": 0.255926,
+        "interquartile_range_seconds": 0.2135
       },
       "positive_contributor_times": {
         "n": 4,
@@ -1373,7 +1610,9 @@
         "p25_seconds": 104.22625,
         "median_seconds": 104.3205,
         "p75_seconds": 104.43975,
-        "slowest_seconds": 104.73
+        "slowest_seconds": 104.73,
+        "standard_deviation_seconds": 0.255926,
+        "interquartile_range_seconds": 0.2135
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1388,6 +1627,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 14,
+      "unique_core_count": 253,
       "sample_status": "developing",
       "first_place_times": {
         "n": 14,
@@ -1395,7 +1635,9 @@
         "p25_seconds": 104.13025,
         "median_seconds": 104.4775,
         "p75_seconds": 105.2625,
-        "slowest_seconds": 105.72
+        "slowest_seconds": 105.72,
+        "standard_deviation_seconds": 0.694021,
+        "interquartile_range_seconds": 1.13225
       },
       "positive_contributor_times": {
         "n": 35,
@@ -1403,7 +1645,9 @@
         "p25_seconds": 104.529,
         "median_seconds": 105.255,
         "p75_seconds": 105.541,
-        "slowest_seconds": 106.617
+        "slowest_seconds": 106.617,
+        "standard_deviation_seconds": 0.760691,
+        "interquartile_range_seconds": 1.012
       },
       "podium_cutoff_times": {
         "n": 14,
@@ -1411,7 +1655,9 @@
         "p25_seconds": 105.30875,
         "median_seconds": 105.7095,
         "p75_seconds": 106.18325,
-        "slowest_seconds": 106.617
+        "slowest_seconds": 106.617,
+        "standard_deviation_seconds": 0.54463,
+        "interquartile_range_seconds": 0.8745
       },
       "targets": {
         "elite_seconds": 104.529,
@@ -1425,6 +1671,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 264,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -1432,7 +1679,9 @@
         "p25_seconds": 103.556,
         "median_seconds": 104.493,
         "p75_seconds": 104.902,
-        "slowest_seconds": 105.397
+        "slowest_seconds": 105.397,
+        "standard_deviation_seconds": 0.929478,
+        "interquartile_range_seconds": 1.346
       },
       "positive_contributor_times": {
         "n": 11,
@@ -1440,7 +1689,9 @@
         "p25_seconds": 103.556,
         "median_seconds": 104.493,
         "p75_seconds": 104.902,
-        "slowest_seconds": 105.397
+        "slowest_seconds": 105.397,
+        "standard_deviation_seconds": 0.929478,
+        "interquartile_range_seconds": 1.346
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1455,6 +1706,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 14,
+      "unique_core_count": 27,
       "sample_status": "developing",
       "first_place_times": {
         "n": 14,
@@ -1462,7 +1714,9 @@
         "p25_seconds": 117.633,
         "median_seconds": 118.0135,
         "p75_seconds": 118.27175,
-        "slowest_seconds": 118.761
+        "slowest_seconds": 118.761,
+        "standard_deviation_seconds": 0.769663,
+        "interquartile_range_seconds": 0.63875
       },
       "positive_contributor_times": {
         "n": 14,
@@ -1470,7 +1724,9 @@
         "p25_seconds": 117.633,
         "median_seconds": 118.0135,
         "p75_seconds": 118.27175,
-        "slowest_seconds": 118.761
+        "slowest_seconds": 118.761,
+        "standard_deviation_seconds": 0.769663,
+        "interquartile_range_seconds": 0.63875
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1485,6 +1741,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 9,
+      "unique_core_count": 36,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -1492,7 +1749,9 @@
         "p25_seconds": 116.449,
         "median_seconds": 117.137,
         "p75_seconds": 117.748,
-        "slowest_seconds": 119.235
+        "slowest_seconds": 119.235,
+        "standard_deviation_seconds": 1.146308,
+        "interquartile_range_seconds": 1.299
       },
       "positive_contributor_times": {
         "n": 9,
@@ -1500,7 +1759,9 @@
         "p25_seconds": 116.449,
         "median_seconds": 117.137,
         "p75_seconds": 117.748,
-        "slowest_seconds": 119.235
+        "slowest_seconds": 119.235,
+        "standard_deviation_seconds": 1.146308,
+        "interquartile_range_seconds": 1.299
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1515,6 +1776,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 41,
+      "unique_core_count": 110,
       "sample_status": "representative",
       "first_place_times": {
         "n": 41,
@@ -1522,7 +1784,9 @@
         "p25_seconds": 116.682,
         "median_seconds": 117.23,
         "p75_seconds": 117.814,
-        "slowest_seconds": 118.329
+        "slowest_seconds": 118.329,
+        "standard_deviation_seconds": 0.834658,
+        "interquartile_range_seconds": 1.132
       },
       "positive_contributor_times": {
         "n": 90,
@@ -1530,7 +1794,9 @@
         "p25_seconds": 117.43425,
         "median_seconds": 118.0995,
         "p75_seconds": 118.63825,
-        "slowest_seconds": 119.71
+        "slowest_seconds": 119.71,
+        "standard_deviation_seconds": 0.95954,
+        "interquartile_range_seconds": 1.204
       },
       "podium_cutoff_times": {
         "n": 41,
@@ -1538,7 +1804,9 @@
         "p25_seconds": 118.434,
         "median_seconds": 118.702,
         "p75_seconds": 118.948,
-        "slowest_seconds": 119.71
+        "slowest_seconds": 119.71,
+        "standard_deviation_seconds": 0.569272,
+        "interquartile_range_seconds": 0.514
       },
       "targets": {
         "elite_seconds": 117.43425,
@@ -1552,6 +1820,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 42,
+      "unique_core_count": 102,
       "sample_status": "representative",
       "first_place_times": {
         "n": 42,
@@ -1559,7 +1828,9 @@
         "p25_seconds": 116.55425,
         "median_seconds": 117.1815,
         "p75_seconds": 118.01625,
-        "slowest_seconds": 118.818
+        "slowest_seconds": 118.818,
+        "standard_deviation_seconds": 0.840297,
+        "interquartile_range_seconds": 1.462
       },
       "positive_contributor_times": {
         "n": 42,
@@ -1567,7 +1838,9 @@
         "p25_seconds": 116.55425,
         "median_seconds": 117.1815,
         "p75_seconds": 118.01625,
-        "slowest_seconds": 118.818
+        "slowest_seconds": 118.818,
+        "standard_deviation_seconds": 0.840297,
+        "interquartile_range_seconds": 1.462
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1582,6 +1855,7 @@
       "gate": 12,
       "scoring": "podium_majority",
       "race_count": 9,
+      "unique_core_count": 108,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -1589,7 +1863,9 @@
         "p25_seconds": 116.236,
         "median_seconds": 116.895,
         "p75_seconds": 117.094,
-        "slowest_seconds": 117.434
+        "slowest_seconds": 117.434,
+        "standard_deviation_seconds": 0.646436,
+        "interquartile_range_seconds": 0.858
       },
       "positive_contributor_times": {
         "n": 20,
@@ -1597,7 +1873,9 @@
         "p25_seconds": 116.97675,
         "median_seconds": 117.268,
         "p75_seconds": 118.337,
-        "slowest_seconds": 118.939
+        "slowest_seconds": 118.939,
+        "standard_deviation_seconds": 0.947528,
+        "interquartile_range_seconds": 1.36025
       },
       "podium_cutoff_times": {
         "n": 9,
@@ -1605,7 +1883,9 @@
         "p25_seconds": 118.14,
         "median_seconds": 118.32,
         "p75_seconds": 118.551,
-        "slowest_seconds": 118.939
+        "slowest_seconds": 118.939,
+        "standard_deviation_seconds": 0.524762,
+        "interquartile_range_seconds": 0.411
       },
       "targets": {
         "elite_seconds": 116.97675,
@@ -1619,6 +1899,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 7,
+      "unique_core_count": 71,
       "sample_status": "developing",
       "first_place_times": {
         "n": 7,
@@ -1626,7 +1907,9 @@
         "p25_seconds": 116.117,
         "median_seconds": 116.474,
         "p75_seconds": 116.827,
-        "slowest_seconds": 117.035
+        "slowest_seconds": 117.035,
+        "standard_deviation_seconds": 0.663486,
+        "interquartile_range_seconds": 0.71
       },
       "positive_contributor_times": {
         "n": 7,
@@ -1634,7 +1917,9 @@
         "p25_seconds": 116.117,
         "median_seconds": 116.474,
         "p75_seconds": 116.827,
-        "slowest_seconds": 117.035
+        "slowest_seconds": 117.035,
+        "standard_deviation_seconds": 0.663486,
+        "interquartile_range_seconds": 0.71
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1649,6 +1934,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 13,
+      "unique_core_count": 245,
       "sample_status": "developing",
       "first_place_times": {
         "n": 13,
@@ -1656,7 +1942,9 @@
         "p25_seconds": 115.757,
         "median_seconds": 116.273,
         "p75_seconds": 116.718,
-        "slowest_seconds": 117.849
+        "slowest_seconds": 117.849,
+        "standard_deviation_seconds": 0.982054,
+        "interquartile_range_seconds": 0.961
       },
       "positive_contributor_times": {
         "n": 31,
@@ -1664,7 +1952,9 @@
         "p25_seconds": 116.703,
         "median_seconds": 117.247,
         "p75_seconds": 117.7975,
-        "slowest_seconds": 118.277
+        "slowest_seconds": 118.277,
+        "standard_deviation_seconds": 0.972418,
+        "interquartile_range_seconds": 1.0945
       },
       "podium_cutoff_times": {
         "n": 13,
@@ -1672,7 +1962,9 @@
         "p25_seconds": 117.458,
         "median_seconds": 117.841,
         "p75_seconds": 118.033,
-        "slowest_seconds": 118.277
+        "slowest_seconds": 118.277,
+        "standard_deviation_seconds": 0.398829,
+        "interquartile_range_seconds": 0.575
       },
       "targets": {
         "elite_seconds": 116.703,
@@ -1686,6 +1978,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 264,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -1693,7 +1986,9 @@
         "p25_seconds": 115.689,
         "median_seconds": 116.494,
         "p75_seconds": 116.941,
-        "slowest_seconds": 117.599
+        "slowest_seconds": 117.599,
+        "standard_deviation_seconds": 0.771759,
+        "interquartile_range_seconds": 1.252
       },
       "positive_contributor_times": {
         "n": 11,
@@ -1701,7 +1996,9 @@
         "p25_seconds": 115.689,
         "median_seconds": 116.494,
         "p75_seconds": 116.941,
-        "slowest_seconds": 117.599
+        "slowest_seconds": 117.599,
+        "standard_deviation_seconds": 0.771759,
+        "interquartile_range_seconds": 1.252
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1716,6 +2013,7 @@
       "gate": 2,
       "scoring": "wta_win",
       "race_count": 39,
+      "unique_core_count": 41,
       "sample_status": "representative",
       "first_place_times": {
         "n": 39,
@@ -1723,7 +2021,9 @@
         "p25_seconds": 129.901,
         "median_seconds": 130.525,
         "p75_seconds": 131.049,
-        "slowest_seconds": 131.876
+        "slowest_seconds": 131.876,
+        "standard_deviation_seconds": 0.992647,
+        "interquartile_range_seconds": 1.148
       },
       "positive_contributor_times": {
         "n": 39,
@@ -1731,7 +2031,9 @@
         "p25_seconds": 129.901,
         "median_seconds": 130.525,
         "p75_seconds": 131.049,
-        "slowest_seconds": 131.876
+        "slowest_seconds": 131.876,
+        "standard_deviation_seconds": 0.992647,
+        "interquartile_range_seconds": 1.148
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1746,6 +2048,7 @@
       "gate": 4,
       "scoring": "wta_win",
       "race_count": 20,
+      "unique_core_count": 44,
       "sample_status": "representative",
       "first_place_times": {
         "n": 20,
@@ -1753,7 +2056,9 @@
         "p25_seconds": 128.87975,
         "median_seconds": 129.457,
         "p75_seconds": 130.24925,
-        "slowest_seconds": 131.622
+        "slowest_seconds": 131.622,
+        "standard_deviation_seconds": 1.161754,
+        "interquartile_range_seconds": 1.3695
       },
       "positive_contributor_times": {
         "n": 20,
@@ -1761,7 +2066,9 @@
         "p25_seconds": 128.87975,
         "median_seconds": 129.457,
         "p75_seconds": 130.24925,
-        "slowest_seconds": 131.622
+        "slowest_seconds": 131.622,
+        "standard_deviation_seconds": 1.161754,
+        "interquartile_range_seconds": 1.3695
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1776,6 +2083,7 @@
       "gate": 6,
       "scoring": "podium_majority",
       "race_count": 34,
+      "unique_core_count": 111,
       "sample_status": "representative",
       "first_place_times": {
         "n": 34,
@@ -1783,7 +2091,9 @@
         "p25_seconds": 128.306,
         "median_seconds": 128.968,
         "p75_seconds": 129.87125,
-        "slowest_seconds": 131.114
+        "slowest_seconds": 131.114,
+        "standard_deviation_seconds": 1.030075,
+        "interquartile_range_seconds": 1.56525
       },
       "positive_contributor_times": {
         "n": 71,
@@ -1791,7 +2101,9 @@
         "p25_seconds": 129.0845,
         "median_seconds": 129.974,
         "p75_seconds": 130.5415,
-        "slowest_seconds": 131.337
+        "slowest_seconds": 131.337,
+        "standard_deviation_seconds": 1.065927,
+        "interquartile_range_seconds": 1.457
       },
       "podium_cutoff_times": {
         "n": 34,
@@ -1799,7 +2111,9 @@
         "p25_seconds": 130.00475,
         "median_seconds": 130.6535,
         "p75_seconds": 131.0585,
-        "slowest_seconds": 131.974
+        "slowest_seconds": 131.974,
+        "standard_deviation_seconds": 0.700733,
+        "interquartile_range_seconds": 1.05375
       },
       "targets": {
         "elite_seconds": 129.0845,
@@ -1813,6 +2127,7 @@
       "gate": 6,
       "scoring": "wta_win",
       "race_count": 11,
+      "unique_core_count": 56,
       "sample_status": "developing",
       "first_place_times": {
         "n": 11,
@@ -1820,7 +2135,9 @@
         "p25_seconds": 128.3325,
         "median_seconds": 129.217,
         "p75_seconds": 129.465,
-        "slowest_seconds": 131.198
+        "slowest_seconds": 131.198,
+        "standard_deviation_seconds": 1.101961,
+        "interquartile_range_seconds": 1.1325
       },
       "positive_contributor_times": {
         "n": 11,
@@ -1828,7 +2145,9 @@
         "p25_seconds": 128.3325,
         "median_seconds": 129.217,
         "p75_seconds": 129.465,
-        "slowest_seconds": 131.198
+        "slowest_seconds": 131.198,
+        "standard_deviation_seconds": 1.101961,
+        "interquartile_range_seconds": 1.1325
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1843,6 +2162,7 @@
       "gate": 12,
       "scoring": "podium_majority",
       "race_count": 9,
+      "unique_core_count": 108,
       "sample_status": "developing",
       "first_place_times": {
         "n": 9,
@@ -1850,7 +2170,9 @@
         "p25_seconds": 128.623,
         "median_seconds": 129.35,
         "p75_seconds": 129.526,
-        "slowest_seconds": 130.366
+        "slowest_seconds": 130.366,
+        "standard_deviation_seconds": 0.651124,
+        "interquartile_range_seconds": 0.903
       },
       "positive_contributor_times": {
         "n": 21,
@@ -1858,7 +2180,9 @@
         "p25_seconds": 128.832,
         "median_seconds": 129.789,
         "p75_seconds": 130.381,
-        "slowest_seconds": 130.792
+        "slowest_seconds": 130.792,
+        "standard_deviation_seconds": 0.817272,
+        "interquartile_range_seconds": 1.549
       },
       "podium_cutoff_times": {
         "n": 9,
@@ -1866,7 +2190,9 @@
         "p25_seconds": 129.789,
         "median_seconds": 130.457,
         "p75_seconds": 130.664,
-        "slowest_seconds": 131.103
+        "slowest_seconds": 131.103,
+        "standard_deviation_seconds": 0.751729,
+        "interquartile_range_seconds": 0.875
       },
       "targets": {
         "elite_seconds": 128.832,
@@ -1880,6 +2206,7 @@
       "gate": 16,
       "scoring": "wta_win",
       "race_count": 22,
+      "unique_core_count": 176,
       "sample_status": "representative",
       "first_place_times": {
         "n": 22,
@@ -1887,7 +2214,9 @@
         "p25_seconds": 127.77775,
         "median_seconds": 128.51,
         "p75_seconds": 129.1225,
-        "slowest_seconds": 129.943
+        "slowest_seconds": 129.943,
+        "standard_deviation_seconds": 0.848273,
+        "interquartile_range_seconds": 1.34475
       },
       "positive_contributor_times": {
         "n": 22,
@@ -1895,7 +2224,9 @@
         "p25_seconds": 127.77775,
         "median_seconds": 128.51,
         "p75_seconds": 129.1225,
-        "slowest_seconds": 129.943
+        "slowest_seconds": 129.943,
+        "standard_deviation_seconds": 0.848273,
+        "interquartile_range_seconds": 1.34475
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1910,6 +2241,7 @@
       "gate": 22,
       "scoring": "wta_win",
       "race_count": 4,
+      "unique_core_count": 66,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 4,
@@ -1917,7 +2249,9 @@
         "p25_seconds": 128.3465,
         "median_seconds": 128.664,
         "p75_seconds": 129.10275,
-        "slowest_seconds": 129.846
+        "slowest_seconds": 129.846,
+        "standard_deviation_seconds": 0.688674,
+        "interquartile_range_seconds": 0.75625
       },
       "positive_contributor_times": {
         "n": 4,
@@ -1925,7 +2259,9 @@
         "p25_seconds": 128.3465,
         "median_seconds": 128.664,
         "p75_seconds": 129.10275,
-        "slowest_seconds": 129.846
+        "slowest_seconds": 129.846,
+        "standard_deviation_seconds": 0.688674,
+        "interquartile_range_seconds": 0.75625
       },
       "podium_cutoff_times": null,
       "targets": {
@@ -1940,6 +2276,7 @@
       "gate": 24,
       "scoring": "podium_majority",
       "race_count": 17,
+      "unique_core_count": 144,
       "sample_status": "developing",
       "first_place_times": {
         "n": 17,
@@ -1947,7 +2284,9 @@
         "p25_seconds": 128.245,
         "median_seconds": 128.547,
         "p75_seconds": 129.098,
-        "slowest_seconds": 129.534
+        "slowest_seconds": 129.534,
+        "standard_deviation_seconds": 0.608418,
+        "interquartile_range_seconds": 0.853
       },
       "positive_contributor_times": {
         "n": 42,
@@ -1955,7 +2294,9 @@
         "p25_seconds": 128.81675,
         "median_seconds": 129.2025,
         "p75_seconds": 129.64775,
-        "slowest_seconds": 130.398
+        "slowest_seconds": 130.398,
+        "standard_deviation_seconds": 0.688215,
+        "interquartile_range_seconds": 0.831
       },
       "podium_cutoff_times": {
         "n": 17,
@@ -1963,7 +2304,9 @@
         "p25_seconds": 129.226,
         "median_seconds": 129.648,
         "p75_seconds": 129.805,
-        "slowest_seconds": 130.398
+        "slowest_seconds": 130.398,
+        "standard_deviation_seconds": 0.378632,
+        "interquartile_range_seconds": 0.579
       },
       "targets": {
         "elite_seconds": 128.81675,
@@ -1977,6 +2320,7 @@
       "gate": 24,
       "scoring": "wta_win",
       "race_count": 1,
+      "unique_core_count": 24,
       "sample_status": "early_signal",
       "first_place_times": {
         "n": 1,
@@ -1984,7 +2328,9 @@
         "p25_seconds": 127.794,
         "median_seconds": 127.794,
         "p75_seconds": 127.794,
-        "slowest_seconds": 127.794
+        "slowest_seconds": 127.794,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "positive_contributor_times": {
         "n": 1,
@@ -1992,7 +2338,9 @@
         "p25_seconds": 127.794,
         "median_seconds": 127.794,
         "p75_seconds": 127.794,
-        "slowest_seconds": 127.794
+        "slowest_seconds": 127.794,
+        "standard_deviation_seconds": 0.0,
+        "interquartile_range_seconds": 0.0
       },
       "podium_cutoff_times": null,
       "targets": {
