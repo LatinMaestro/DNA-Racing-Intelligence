@@ -1,0 +1,85 @@
+name: TEMPORARY Round 2 Bike ageing shape (DO NOT MERGE)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/temporary-round2-bike-ageing-shape.yml
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-shape:
+    if: github.head_ref == 'temporary/round2-bike-ageing-shape-do-not-merge'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Verify same-repository PR head
+        shell: bash
+        run: |
+          if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]; then
+            echo "Same-repository PR is required."
+            exit 1
+          fi
+      - name: Inspect bounded read-only ageing schema without values or identities
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const key = process.env.DNA_OPEN_LAB_API_KEY_3;
+          const vault = process.env.DNA_OPEN_LAB_VAULT;
+          if (!/^dna_[A-Za-z0-9_-]{43}$/.test(key || "") || !/^0x[a-fA-F0-9]{40}$/.test(vault || "")) {
+            throw new Error("Connected read-only credentials or owner vault are unavailable.");
+          }
+          const base = "https://api.dnaracing.run/fbike/pub/v1";
+          let lastRequest = 0;
+          async function read(path, method = "GET", body) {
+            const delay = 2100 - (Date.now() - lastRequest);
+            if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+            lastRequest = Date.now();
+            let response;
+            try {
+              response = await fetch(base + path, {
+                method,
+                headers: { Authorization: `Bearer ${key}`, Accept: "application/json", "Content-Type": "application/json" },
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+                cache: "no-store",
+              });
+            } catch {
+              throw new Error("Read-only DNA API transport failed.");
+            }
+            if (!response.ok) throw new Error("Read-only DNA API returned a non-success status.");
+            const payload = await response.json();
+            if (!payload || !Array.isArray(payload.result)) throw new Error("Read-only DNA API envelope is invalid.");
+            return payload.result;
+          }
+          const hids = await read(`/vault/${encodeURIComponent(vault)}/cores`);
+          if (hids.length !== 214 || new Set(hids).size !== 214 || hids.some((hid) => !Number.isSafeInteger(hid) || hid < 1)) {
+            throw new Error("Owner Bike identity authority is incomplete.");
+          }
+          const sample = [...hids].sort((a, b) => a - b).slice(0, 20);
+          const stats = await read("/cores/racing_stats_bulk", "POST", { hids: sample });
+          if (stats.length !== sample.length || new Set(stats.map((row) => row.hid)).size !== sample.length || stats.some((row) => !sample.includes(row.hid))) {
+            throw new Error("Owner Bike racing-stats identities did not reconcile.");
+          }
+          const type = (value) => value === null ? "null" : Array.isArray(value) ? "array" : typeof value;
+          const tally = (items) => Object.fromEntries([...new Set(items)].sort().map((item) => [item, items.filter((value) => value === item).length]));
+          const values = stats.map((row) => row.ageing);
+          const mode = (name) => values.filter((value) => type(value) === "object").map((value) => value[name]);
+          const numeric = (items) => ({
+            integerInRange: items.filter((value) => Number.isSafeInteger(value) && value >= 0 && value <= 1025).length,
+            integerOutOfRange: items.filter((value) => Number.isSafeInteger(value) && (value < 0 || value > 1025)).length,
+          });
+          console.log(JSON.stringify({
+            ownerCount: hids.length,
+            sampledStatsCount: stats.length,
+            ageingTypes: tally(values.map(type)),
+            bikeFieldTypes: tally(mode("bike").map(type)),
+            bikeNumericShape: numeric(mode("bike")),
+            bikeNestedAllowedKeys: tally(mode("bike").filter((value) => type(value) === "object").flatMap((value) => Object.keys(value).filter((key) => /^(ageing|balance|used|remaining|current|total)$/i.test(key)))),
+            otherModeFieldPresence: Object.fromEntries(["car", "horse"].map((name) => [name, mode(name).filter((value) => value !== undefined).length])),
+          }));
+          NODE
