@@ -42,20 +42,29 @@ the previous last-good generation continues to serve.
 | Vault/ownership    | bounded current ownership/info refresh                               | publish only after the family refresh validates; local strategy state is never overwritten                                              |
 | Cores              | bounded identity/current supplemental-family refresh                 | timestamp current observations separately from historical analytics                                                                     |
 | Finished races     | adaptive time-window crawl plus <=20 race-document hydration batches | backfill is checkpointed and idempotent; a saturated 200-result window is recursively split                                             |
-| Core race results  | one explicit paginated history cursor per current owned Core         | validate Core/race identity, quarantine incomplete rows, deduplicate replays and publish only a complete owner-scoped result generation |
+| Core race results  | one explicit paginated history cursor per missing population Core    | enrich Bike/Car/Horse once, deduplicate replays, and persist only complete reusable population performance evidence for every analysis. |
 | Active races/fills | short-current-window refresh using documented bounded endpoints      | used for read-only opportunities/field intelligence; stale state remains clearly labelled                                               |
 | Splice Arena/pairs | current Arena plus official pair-info/validation reads               | never performs a splice; local breeding shortlist remains separate                                                                      |
 | Tokens             | bounded current/reference refresh                                    | reference/current display only; not historical valuation                                                                                |
 
-## Zero-cost daily scheduling
+## Zero-cost recurring scheduling
 
-The commissioned private website targets one complete API refresh every 24
-hours. When any recurring family is due, every recurring family is reacquired
-and a new generation is published only after the whole cycle validates. Thirty
-requests/minute remains the permanent safe default and burst ceiling while the
-bounded refresh is running. The owner may temporarily set any whole-number
-aggregate limit from 31 through 150 requests/minute when the current DNA tier
-explicitly permits it.
+After population reconciliation/backfill completes, finished-race ingestion and
+non-race current state use separate clocks.
+
+- **Finished races:** target one incremental poll every minute. A tick resumes an
+  unfinished cycle or starts from the latest complete finished-race checkpoint.
+  It hydrates only missing/new Race documents and schedules only the entrant-Core
+  performance deltas needed to keep Bike, Car and Horse analytical evidence
+  current. A tick must never trigger a new lifetime backfill.
+- **Non-race current state:** retain the existing 24-hour cadence for Arena,
+  Core supplemental state, Vault/ownership and Token prices. Pair reads remain
+  on-demand. A race tick cannot pull these daily families forward.
+
+Thirty requests/minute remains the permanent safe aggregate ceiling while any
+bounded DNA work is running. Retry-After, provider eligibility, R2/Neon capacity
+and no-paid-use guards may delay a minute race tick or a daily refresh; they
+never justify parallel cycles or destructive restart.
 
 It must:
 
@@ -239,13 +248,21 @@ route, page, Worker or schedule imports the command; only an explicitly armed,
 exact-main manual Preview workflow can advance it.
 
 Per-Core result history has a separate versioned acquisition boundary because
-the provider paginates by owned Core rather than by time window. Each cycle is
-bound to one published current-state ownership generation, its exact sorted
-Core set and the immediately preceding completed result-history cycle. Every
-attempt has one owner-scoped checkpoint per Core. Checkpoints advance one page
-at a time and close only after retaining an explicit empty page; a short
-non-empty page remains resumable work. The observed provider cap is 50 rows per
-page.
+the provider paginates by Core rather than by race time window. The durable
+historical source is population-wide across Bike, Car and Horse: reconstruct the
+complete persisted finished-race authority first, derive its exact entrant-Core
+universe, subtract only Cores whose complete performance history is already
+durably persisted, and acquire the missing set. Ownership is not an exclusion
+rule. Because one Core-history request returns all modes, a Core that appears in
+multiple modes is acquired once and reused by every analytical module.
+
+The original owner-scoped acquisition/generation remains valid as a derived
+subset and recovery proof, but it is not the historical source of truth. New
+population enrichment must use versioned persisted Core coverage rather than a
+fresh lifetime pull. Every attempt keeps one owner-isolated checkpoint per
+population Core. Checkpoints advance one page at a time and close only after
+retaining an explicit empty page; a short non-empty page remains resumable work.
+The observed provider cap is 50 rows per page.
 
 Private raw page observations use create-if-absent R2 keys derived from hashed
 owner and Core identities plus cycle, attempt and page. Invalid rows receive a
