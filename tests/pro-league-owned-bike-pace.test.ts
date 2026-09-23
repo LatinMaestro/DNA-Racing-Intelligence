@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildProLeagueEsportsBenchmark } from "@/domain/pro-league-esports-benchmark";
 import {
   ownerVerifiedBikeAgeing,
+  requireCurrentBikeAgeingEvidence,
   screenOwnedBikePace,
 } from "@/domain/pro-league-owned-bike-pace";
 
@@ -54,6 +55,20 @@ describe("owned Bike pace and owner-confirmed ageing", () => {
     expect(ownerVerifiedBikeAgeing(624).eligible).toBe(false);
     expect(() => ownerVerifiedBikeAgeing(Number.NaN)).toThrow();
     expect(() => ownerVerifiedBikeAgeing(1026)).toThrow();
+    expect(
+      requireCurrentBikeAgeingEvidence({
+        balance: 625,
+        observedAt: "2026-09-22T06:36:45.070Z",
+        currentThrough,
+      }).eligible,
+    ).toBe(true);
+    expect(() =>
+      requireCurrentBikeAgeingEvidence({
+        balance: 625,
+        observedAt: "2026-09-18T06:36:45.070Z",
+        currentThrough,
+      }),
+    ).toThrow("current");
   });
 
   it("accepts repeatable normal Bike timing as a distance projection without esports starts", () => {
@@ -81,5 +96,19 @@ describe("owned Bike pace and owner-confirmed ageing", () => {
         currentThrough,
       })[0]?.status,
     ).toBe("provisional");
+    expect(
+      screenOwnedBikePace({
+        finishes: finishes.map((finish, index) => ({
+          ...finish,
+          completedAt: index < 8 ? "2026-01-01T00:00:00.000Z" : currentThrough,
+        })),
+        benchmark: benchmark(),
+        currentThrough,
+      })[0],
+    ).toMatchObject({
+      sampleCount: 10,
+      recentSampleCount: 2,
+      status: "provisional",
+    });
   });
 });
