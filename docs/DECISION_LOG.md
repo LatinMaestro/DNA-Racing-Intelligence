@@ -2745,3 +2745,20 @@ After the private Pro League milestone, continue in this order:
   receipt and preserves the checkpoint for the next exact-main continuation.
 - Keep the independent step bound, provider-capacity renewal, 30-request/minute
   ceiling, last-good publication boundary and zero-cost safeguards unchanged.
+
+## 2026-09-24 — Reconcile Core history incrementally from the active generation
+
+- Keep the complete active 203-Core history generation as the durable
+  analytical authority. Do not replace it with the temporary Round 2 local
+  cache or schedule another lifetime pull for every currently owned Core.
+- Derive one deterministic owner-scoped refresh plan from current ownership,
+  the prior completed acquisition and the active generation. Only newly owned
+  Cores may enter a full-history work set; previously covered Cores require a
+  separately proved bounded delta strategy.
+- Keep no-longer-owned Cores explicit in historical lineage so ownership
+  changes cannot erase accepted observations. Missing or inconsistent prior
+  cycle/generation authority fails closed before provider or persistence work.
+- The planner is a pure boundary: it calls no provider, writes no private data,
+  publishes no generation, deploys nothing and authorizes no game action.
+  Successor lineage composition and the bounded existing-Core delta proof
+  remain required before connected refresh resumes.
