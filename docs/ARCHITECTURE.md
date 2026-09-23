@@ -124,6 +124,23 @@ Historical race backfill uses an adaptive finished-race crawler:
 4. continue until every leaf window is demonstrably non-saturated; and
 5. hydrate race documents in batches no larger than 20.
 
+That finished-race archive covers all DNA modes: Bike, Car and Horse. It is the
+durable race-level historical authority. Where race documents do not expose the
+performance fields required by analytics, the application enriches the archive
+from the per-Core history endpoint. Enrichment is incremental: derive every
+entrant Core from the persisted population, subtract only Cores with already
+complete persisted history, acquire each missing Core once across all modes, and
+persist the reusable result. Owner-Vault history and Pro League views are
+derived subsets of this population authority rather than parallel history
+stores.
+
+After the reconciliation/backfill publishes a complete population generation,
+the race archive runs as a near-live incremental feed. The private hosted
+scheduler targets a one-minute finished-race tick, resumes any unfinished
+durable cycle instead of overlapping it, and enriches only newly observed race
+participants. Non-race current-state families remain daily so minute race polls
+do not multiply Arena/Core/Vault/Token traffic.
+
 All source families use durable checkpoints/cursors, idempotent writes and retry/backoff rules. A partial run cannot replace the last-good published dataset.
 
 ## 8. Availability and API-tier loss

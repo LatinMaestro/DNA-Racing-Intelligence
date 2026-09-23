@@ -2762,3 +2762,27 @@ After the private Pro League milestone, continue in this order:
   publishes no generation, deploys nothing and authorizes no game action.
   Successor lineage composition and the bounded existing-Core delta proof
   remain required before connected refresh resumes.
+
+## 2026-09-24 — Run finished-race history near-live; keep non-race state daily
+
+- After the current population reconciliation/backfill publishes a complete
+  last-good generation, target one incremental `races.finished` poll every
+  minute. This is a freshness target, not permission to exceed provider or
+  zero-cost limits.
+- Keep one durable race cycle at a time. A later scheduler tick resumes an
+  unfinished cycle rather than creating overlapping work. Every new cycle starts
+  from the latest complete finished-race checkpoint and retrieves only
+  missing/new evidence.
+- Hydrate only newly observed Race documents and schedule only the entrant-Core
+  performance deltas required to keep elapsed time, exact distance and finish
+  position current across Bike, Car and Horse. Persist validated enrichment for
+  reuse instead of repeating lifetime history.
+- Keep Arena, current Core supplemental state, Vault/ownership and Token prices
+  on the independent 24-hour current-state cadence. Pair info/validation remains
+  on-demand. A minute race tick cannot make the daily families due.
+- Preserve the <=30 aggregate DNA requests/minute ceiling, Retry-After handling,
+  last-good publication, zero-paid-use policy and R2/Neon fail-closed capacity
+  guards. Any blocker delays the target cadence without destructive restart.
+- Host the eventual minute trigger separately from the daily current-state
+  schedule. Prove it first in protected private Preview after reconciliation
+  completes. Production activation remains a separate owner-gated action.

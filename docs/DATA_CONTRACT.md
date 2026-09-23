@@ -69,11 +69,17 @@ The client/scheduler must:
 - preserve durable progress before backing off; and
 - expose enough metadata for sync/recovery observability without exposing secrets.
 
-The rate ceiling is independent from cadence. Normal commissioned operation
-targets one complete refresh every 24 hours and may run less frequently to stay
-inside free provider allowances. Every daily cycle resumes from checkpoints and
-retrieves only missing/new history plus the current snapshots required for a
-complete generation.
+The rate ceiling is independent from cadence. Finished-race history is the
+high-frequency exception: after the current reconciliation/backfill publishes a
+complete last-good population generation, the private hosted scheduler targets
+one incremental `races.finished` poll every minute. Each tick resumes an active
+durable cycle or starts from the latest complete race checkpoint; it never
+restarts lifetime history. Retry-After, API eligibility and zero-cost capacity
+guards may delay that minute target.
+
+All non-race current-state families remain on the independent 24-hour owner
+policy: Arena, Core supplemental state, Vault/ownership and token prices do not
+refresh merely because a race tick is due. Pair reads remain on-demand.
 
 ## 5. Documented request bounds
 

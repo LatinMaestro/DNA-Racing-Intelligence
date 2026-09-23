@@ -18,9 +18,15 @@ represented as DNA endpoint guarantees or API semantics:
 | Core current state | 24 hours               | bounded identity plus seven supplemental Core families     |
 | Splice Arena       | 24 hours               | complete paginated Arena modes/pages/listings              |
 
-When any recurring family reaches the daily boundary, the scheduler reacquires
-every recurring family and publishes only a complete generation. These
-intervals are owner policy, not claims about DNA endpoint freshness.
+When any recurring current-state family reaches the daily boundary, the
+current-state scheduler reacquires every current-state family and publishes only
+a complete current-state generation. These intervals are owner policy, not
+claims about DNA endpoint freshness.
+
+Finished-race history is deliberately outside this daily scheduler. Once the
+population reconciliation/backfill is complete, its separate durable scheduler
+targets one incremental poll every minute, resumes any unfinished race cycle and
+never causes these daily groups to become due.
 
 Official pair info and pair validation remain explicit on-demand reads. They do
 not enter the recurring crawl, do not prove a completed splice and never perform
