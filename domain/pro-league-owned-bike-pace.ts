@@ -41,6 +41,35 @@ export function requireCurrentBikeAgeingEvidence(input: {
   return ownerVerifiedBikeAgeing(input.balance);
 }
 
+/** Conservative certificate for a private connected proof that reports age bands only. */
+export function requireCurrentBikeAgeingUpperBound(input: {
+  usedUpperBound: 300 | 400;
+  observedAt: string;
+  currentThrough: string;
+  source: "connected_owner_bike_balance";
+}): Readonly<{ usedUpperBound: number; minimumRemaining: number }> {
+  if (
+    input.source !== "connected_owner_bike_balance" ||
+    (input.usedUpperBound !== 300 && input.usedUpperBound !== 400)
+  ) {
+    throw new Error("Verified Bike ageing band authority is invalid.");
+  }
+  const observedAt = Date.parse(input.observedAt);
+  const currentThrough = Date.parse(input.currentThrough);
+  if (
+    !Number.isFinite(observedAt) ||
+    !Number.isFinite(currentThrough) ||
+    observedAt > currentThrough ||
+    currentThrough - observedAt > 3 * 86_400_000
+  ) {
+    throw new Error("Verified Bike ageing band must be current.");
+  }
+  return Object.freeze({
+    usedUpperBound: input.usedUpperBound,
+    minimumRemaining: 1025 - input.usedUpperBound,
+  });
+}
+
 export type OwnedBikeFinish = Readonly<{
   distanceMetres: number;
   elapsedTimeMilliseconds: number;
