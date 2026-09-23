@@ -137,6 +137,7 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   mode?: RaceMode;
   modeEvidenceStatus?: "unsupported_source_value";
   format?: string | null;
+  formatEvidenceStatus?: "unsupported_source_value";
   raceClassSourceValue?: string | number | null;
   distanceMetres?: number;
   distanceEvidenceStatus?: "unsupported_source_value";
@@ -363,10 +364,6 @@ function timestamp(value: unknown, field: string): string {
 
 function optionalTimestamp(value: unknown, field: string): string | null {
   return value === null ? null : timestamp(value, field);
-}
-
-function optionalText(value: unknown, field: string): string | null {
-  return value === null ? null : requiredText(value, field);
 }
 
 function raceClassSourceValue(
@@ -602,6 +599,21 @@ function raceDocumentMode(value: unknown): Readonly<{
     return Object.freeze({ mode: normalized });
   }
   return Object.freeze({ modeEvidenceStatus: "unsupported_source_value" });
+}
+
+function raceDocumentFormat(value: unknown): Readonly<{
+  format?: string | null;
+  formatEvidenceStatus?: "unsupported_source_value";
+}> {
+  if (value === null) return Object.freeze({ format: null });
+  if (typeof value !== "string")
+    return adapterError("race.format must be text");
+  const normalized = value.trim();
+  return normalized.length < 1
+    ? Object.freeze({
+        formatEvidenceStatus: "unsupported_source_value" as const,
+      })
+    : Object.freeze({ format: normalized });
 }
 
 function raceDocumentDistance(value: unknown): Readonly<{
@@ -1006,13 +1018,10 @@ export function adaptDnaRaceDocument(input: {
           )),
       ...(input.raw.format === undefined
         ? {}
-        : {
-            format: raceDocumentAdaptationBoundary(
-              "race_document_adaptation_format_unavailable",
-              () =>
-                optionalText(input.raw.format as string | null, "race.format"),
-            ),
-          }),
+        : raceDocumentAdaptationBoundary(
+            "race_document_adaptation_format_unavailable",
+            () => raceDocumentFormat(input.raw.format),
+          )),
       ...(input.raw.class === undefined
         ? {}
         : {
