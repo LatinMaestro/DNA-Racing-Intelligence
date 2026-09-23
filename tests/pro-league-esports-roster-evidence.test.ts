@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { buildProLeagueEsportsBenchmark } from "@/domain/pro-league-esports-benchmark";
-import { applyOfficialEsportsBenchmark } from "@/domain/pro-league-esports-roster-evidence";
+import {
+  applyOfficialEsportsBenchmark,
+  hasOfficialEsportsBenchmark,
+} from "@/domain/pro-league-esports-roster-evidence";
 import type { ProLeagueExactFormatEvidence } from "@/domain/pro-league-matchup";
 
 const completedAt = "2026-09-23T06:36:45.070Z";
@@ -157,5 +160,12 @@ describe("official Esports roster evidence", () => {
     expect(() => applyOfficialEsportsBenchmark(evidence(), benchmark)).toThrow(
       "Exactly one official Esports benchmark is required",
     );
+    expect(
+      hasOfficialEsportsBenchmark({
+        benchmark,
+        raceType: evidence().raceType,
+        distanceMetres: evidence().distanceMetres,
+      }),
+    ).toBe(false);
   });
 });

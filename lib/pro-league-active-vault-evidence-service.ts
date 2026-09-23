@@ -4,6 +4,11 @@ import {
   type ProLeagueMatchupCore,
   type ProLeagueMatchupVault,
 } from "@/domain/pro-league-matchup";
+import {
+  applyOfficialEsportsBenchmark,
+  hasOfficialEsportsBenchmark,
+} from "@/domain/pro-league-esports-roster-evidence";
+import { proLeagueSeason1Week1Benchmark } from "@/domain/pro-league-esports-week1-authority";
 import { elements, coreClasses } from "@/domain/game-rules";
 import type {
   ActiveProLeagueEvidenceGeneration,
@@ -26,6 +31,7 @@ export type ActiveProLeagueVaultEvidence = Readonly<{
   populationProfileCount: number;
   ownedProfileCount: number;
   unownedProfileCount: number;
+  officialUnbenchmarkedProfileCount: number;
   ownedCoreWithoutEvidenceCount: number;
 }>;
 
@@ -186,6 +192,7 @@ export async function loadActiveProLeagueVaultEvidence(
   let cursor = -1;
   let populationProfileCount = 0;
   let ownedProfileCount = 0;
+  let officialUnbenchmarkedProfileCount = 0;
   while (populationProfileCount < generation.profileCount) {
     const remaining = generation.profileCount - populationProfileCount;
     const rows = await input.evidenceRepository.listActiveRows(
@@ -209,23 +216,40 @@ export async function loadActiveProLeagueVaultEvidence(
           "Pro League active profile generation changed mid-read.",
         );
       }
-      const profile = profileFromPayload(row.payload);
-      const key = naturalKey(profile);
+      const storedProfile = profileFromPayload(row.payload);
+      const key = naturalKey(storedProfile);
       if (row.naturalKey !== key) {
         throw new Error("Pro League active profile natural key drifted.");
       }
-      if (profile.dataCurrentThrough > generation.evidenceCutoffAt) {
+      if (storedProfile.dataCurrentThrough > generation.evidenceCutoffAt) {
         throw new Error(
           "Pro League active profile exceeds its evidence cutoff.",
         );
       }
       cursor = row.ordinal;
       populationProfileCount += 1;
-      if (ownedById.has(profile.sourceCoreId)) {
-        const values = profilesByCore.get(profile.sourceCoreId) ?? [];
-        values.push(profile);
-        profilesByCore.set(profile.sourceCoreId, values);
+      const owned = ownedById.has(storedProfile.sourceCoreId);
+      if (owned) {
         ownedProfileCount += 1;
+      }
+      if (
+        !hasOfficialEsportsBenchmark({
+          benchmark: proLeagueSeason1Week1Benchmark,
+          raceType: storedProfile.raceType,
+          distanceMetres: storedProfile.distanceMetres,
+        })
+      ) {
+        officialUnbenchmarkedProfileCount += 1;
+        continue;
+      }
+      if (owned) {
+        const profile = applyOfficialEsportsBenchmark(
+          storedProfile,
+          proLeagueSeason1Week1Benchmark,
+        );
+        const values = profilesByCore.get(storedProfile.sourceCoreId) ?? [];
+        values.push(profile);
+        profilesByCore.set(storedProfile.sourceCoreId, values);
       }
     }
   }
@@ -275,6 +299,7 @@ export async function loadActiveProLeagueVaultEvidence(
     populationProfileCount,
     ownedProfileCount,
     unownedProfileCount: populationProfileCount - ownedProfileCount,
+    officialUnbenchmarkedProfileCount,
     ownedCoreWithoutEvidenceCount: matchupCores.filter(
       ({ exactFormatEvidence }) => exactFormatEvidence.length === 0,
     ).length,

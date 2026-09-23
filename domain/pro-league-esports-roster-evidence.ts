@@ -35,6 +35,28 @@ function exactCell(
   return cells[0]!;
 }
 
+export function hasOfficialEsportsBenchmark(input: {
+  benchmark: ProLeagueEsportsBenchmark;
+  raceType: string;
+  distanceMetres: number;
+}): boolean {
+  if (input.benchmark.authority !== "completed_official_esports_races") {
+    throw new Error("Official completed Esports authority is required.");
+  }
+  const normalized = canonicalRaceType(input.raceType);
+  const cells = input.benchmark.cells.filter(
+    (cell) =>
+      canonicalRaceType(cell.raceType) === normalized &&
+      cell.distanceMetres === input.distanceMetres,
+  );
+  if (cells.length > 1) {
+    throw new Error(
+      `At most one official Esports benchmark is allowed for ${normalized} at ${input.distanceMetres}m.`,
+    );
+  }
+  return cells.length === 1;
+}
+
 export function toProLeagueExactFormatPopulationBenchmark(input: {
   benchmark: ProLeagueEsportsBenchmark;
   raceType: string;

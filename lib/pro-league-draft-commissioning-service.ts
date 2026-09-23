@@ -92,6 +92,7 @@ export type ProLeagueDraftCommissioningEvidenceSummary = Readonly<{
   populationProfileCount: number;
   ownedProfileCount: number;
   unownedProfileCount: number;
+  officialUnbenchmarkedProfileCount: number;
   ownedCoreWithoutEvidenceCount: number;
 }>;
 
@@ -344,6 +345,7 @@ export async function loadProLeagueDraftCommissioningState(
     populationProfileCount: active.populationProfileCount,
     ownedProfileCount: active.ownedProfileCount,
     unownedProfileCount: active.unownedProfileCount,
+    officialUnbenchmarkedProfileCount: active.officialUnbenchmarkedProfileCount,
     ownedCoreWithoutEvidenceCount: active.ownedCoreWithoutEvidenceCount,
   });
   const populationBenchmarkReady =
@@ -351,10 +353,10 @@ export async function loadProLeagueDraftCommissioningState(
     evidence.unownedProfileCount > 0;
   const populationBenchmarkDetail =
     active.generation.sourceKind === "core_history_generation"
-      ? "Current API exact-format evidence is derived from owner Core history only. It does not provide whole-DNA-population elapsed-time profiles, so population-relative roster and mapping validation remains provisional."
+      ? `Official Week 1 winning pace is applied to every observed exact map cell; ${evidence.officialUnbenchmarkedProfileCount} source profiles have no completed official exact-cell observation and remain unavailable. Current API Core history still does not provide whole-DNA-population elapsed-time profiles, so broad population-relative validation remains provisional.`
       : evidence.unownedProfileCount > 0
-        ? `Population evidence includes ${evidence.unownedProfileCount} unowned exact-format profiles for comparison.`
-        : "The active population evidence contains no unowned exact-format profiles, so whole-population comparison is unavailable.";
+        ? `Official Week 1 winning pace is applied to every observed exact map cell; ${evidence.officialUnbenchmarkedProfileCount} source profiles have no completed official exact-cell observation and remain unavailable. Population evidence includes ${evidence.unownedProfileCount} unowned exact-format profiles for comparison.`
+        : `Official Week 1 winning pace is applied to every observed exact map cell; ${evidence.officialUnbenchmarkedProfileCount} source profiles have no completed official exact-cell observation and remain unavailable. The active population evidence contains no unowned exact-format profiles, so whole-population comparison is unavailable.`;
 
   const roster = buildProLeagueDraftRosterRecommendation({
     vault: active.vault,
