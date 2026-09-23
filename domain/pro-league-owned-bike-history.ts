@@ -67,7 +67,10 @@ export function normalizeOwnedBikeHistory(input: {
           Number.isSafeInteger(row.rid) &&
           row.rid > 0
         ) &&
-        !(typeof row.rid === "string" && /^[1-9]\d*$/u.test(row.rid))
+        !(
+          typeof row.rid === "string" &&
+          /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u.test(row.rid)
+        )
       ) {
         throw new Error("Finished Bike race identity is invalid.");
       }

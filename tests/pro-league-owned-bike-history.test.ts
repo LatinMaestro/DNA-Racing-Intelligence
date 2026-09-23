@@ -24,7 +24,7 @@ describe("owned Bike history reconciliation", () => {
             { ...race, rid: 9002, rvmode: "horse" },
             { ...race, rid: 9003, cb: 13 },
             { ...race, rid: 9004, status: "pending" },
-            { ...race, rid: 9005, cb: "12" },
+            { ...race, rid: "season-1_match", cb: "12" },
           ],
         },
         { page: 2, rows: [] },
@@ -77,6 +77,12 @@ describe("owned Bike history reconciliation", () => {
         pages: pages([{ ...race, time: -1 }]),
       }),
     ).toThrow("elapsed time");
+    expect(() =>
+      normalizeOwnedBikeHistory({
+        coreId: "101",
+        pages: pages([{ ...race, rid: "bad race id" }]),
+      }),
+    ).toThrow("identity");
     expect(() =>
       normalizeOwnedBikeHistory({
         coreId: "101",
