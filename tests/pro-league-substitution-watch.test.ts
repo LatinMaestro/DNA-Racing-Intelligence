@@ -107,15 +107,18 @@ function fixture(): Readonly<{
   const baseCandidates = proLeagueOwnerFinalRosterPlan.map((entry, index) =>
     candidate(index, entry.displayName),
   );
-  const challenger = candidate(25, "Challenger", [
-    cell(1000),
-    cell(1200),
-    cell(1400),
-    cell(1600),
-    cell(1800),
-    cell(2000),
-    cell(2200),
-  ]);
+  const challenger = {
+    ...candidate(25, "Challenger", [
+      cell(1000),
+      cell(1200),
+      cell(1400),
+      cell(1600),
+      cell(1800),
+      cell(2000),
+      cell(2200),
+    ]),
+    selectionStatus: "winning_range" as const,
+  };
   const rosterVersion = buildProLeagueRosterVersion({
     rosterVersionId: "draft-roster/test",
     versionNumber: 1,
@@ -205,7 +208,13 @@ function fixture(): Readonly<{
 
 describe("Pro League substitution watch", () => {
   it("uses the final roster methodology and produces a compliant full-remap scenario", () => {
-    const result = buildProLeagueSubstitutionWatch(fixture());
+    const { roster, ownerPlan } = fixture();
+    const result = buildProLeagueSubstitutionWatch({
+      roster,
+      ownerPlan,
+      populationBenchmarkReady: true,
+      verifiedBikeAgeingUsedByCoreId: new Map([["core-26", 400]]),
+    });
 
     expect(result.methodology).toMatchObject({
       primaryEvidence: "same_bike_race_type_and_exact_distance",
@@ -235,8 +244,96 @@ describe("Pro League substitution watch", () => {
   });
 
   it("keeps ageing-triggered substitutions held until authoritative cap semantics exist", () => {
-    const result = buildProLeagueSubstitutionWatch(fixture());
+    const result = buildProLeagueSubstitutionWatch({
+      ...fixture(),
+      populationBenchmarkReady: false,
+    });
     expect(result.ageingWatch.status).toBe("authority_pending");
-    expect(result.ageingWatch.detail).toContain("must not invent a cap");
+    expect(result.candidates).toHaveLength(0);
+    expect(result.holdReasons).toEqual([
+      "population_benchmark_unavailable",
+      "bike_ageing_used_unverified",
+    ]);
+    expect(result.ageingWatch.detail).toContain(
+      "400 verified Bike ageing used",
+    );
+  });
+
+  it("does not treat an unverified or over-limit ageing figure as eligibility", () => {
+    const input = fixture();
+    for (const verifiedBikeAgeingUsedByCoreId of [
+      undefined,
+      new Map([["core-26", 401]]),
+      new Map([["core-26", Number.NaN]]),
+    ]) {
+      const result = buildProLeagueSubstitutionWatch({
+        ...input,
+        populationBenchmarkReady: true,
+        ...(verifiedBikeAgeingUsedByCoreId === undefined
+          ? {}
+          : { verifiedBikeAgeingUsedByCoreId }),
+      });
+      expect(result.candidates).toHaveLength(0);
+    }
+  });
+
+  it("keeps only elite, non-Genesis challengers and at most two options per outgoing Core", () => {
+    const input = fixture();
+    const cells = [cell(1000), cell(1200), cell(1400), cell(1600)];
+    const next = (index: number, name: string) => ({
+      ...candidate(index, name, cells),
+      selectionStatus: "winning_range" as const,
+    });
+    const challengers = [
+      next(26, "Second Challenger"),
+      next(27, "Third Challenger"),
+      next(28, "Reese Dylan"),
+      {
+        ...next(29, "Genesis Challenger"),
+        core: {
+          ...candidate(29, "Genesis Challenger", cells).core,
+          coreClass: "Genesis" as const,
+        },
+      },
+      {
+        ...candidate(30, "Unproven Challenger", cells),
+        selectionStatus: "unproven" as const,
+      },
+      candidate(31, "Top-three without elite-opponent evidence", cells),
+    ];
+    const roster = {
+      ...input.roster,
+      candidates: [...challengers, ...input.roster.candidates],
+    };
+    const verifiedBikeAgeingUsedByCoreId = new Map(
+      [...challengers, input.roster.candidates[0]!].map(({ core }) => [
+        core.coreId,
+        250,
+      ]),
+    );
+    const result = buildProLeagueSubstitutionWatch({
+      roster,
+      ownerPlan: input.ownerPlan,
+      populationBenchmarkReady: true,
+      verifiedBikeAgeingUsedByCoreId,
+    });
+    expect(result.candidates.length).toBeGreaterThan(0);
+    expect(
+      result.candidates.every(
+        ({ selectionStatus }) => selectionStatus === "winning_range",
+      ),
+    ).toBe(true);
+    expect(
+      result.candidates.map(({ displayName }) => displayName),
+    ).not.toContain("Reese Dylan");
+    expect(
+      result.candidates.map(({ displayName }) => displayName),
+    ).not.toContain("Genesis Challenger");
+    const perOutgoing = new Map<string, number>();
+    for (const candidate of result.candidates) {
+      const id = candidate.recommendedScenario.outgoingCoreId;
+      perOutgoing.set(id, (perOutgoing.get(id) ?? 0) + 1);
+    }
+    expect([...perOutgoing.values()].every((count) => count <= 2)).toBe(true);
   });
 });

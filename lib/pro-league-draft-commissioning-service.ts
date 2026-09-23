@@ -407,7 +407,13 @@ export async function loadProLeagueDraftCommissioningState(
   const substitutionWatch =
     ownerPlan === undefined
       ? undefined
-      : buildProLeagueSubstitutionWatch({ roster, ownerPlan });
+      : buildProLeagueSubstitutionWatch({
+          roster,
+          ownerPlan,
+          populationBenchmarkReady,
+          // The current API preserves ageing as an opaque source value. There
+          // is no verified used-ageing projection to supply to this watch yet.
+        });
   const weeklyPerformance =
     ownerPlan === undefined
       ? undefined

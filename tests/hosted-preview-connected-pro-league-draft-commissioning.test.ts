@@ -194,7 +194,11 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         expect(state.substitutionLedger?.usedCount).toBeNull();
         expect(state.substitutionLedger?.remainingCount).toBeNull();
       }
-      expect(state.substitutionWatch?.candidates.length).toBeGreaterThan(0);
+      expect(state.substitutionWatch?.candidates).toHaveLength(0);
+      expect(state.substitutionWatch?.holdReasons).toEqual([
+        "population_benchmark_unavailable",
+        "bike_ageing_used_unverified",
+      ]);
       expect(state.substitutionWatch?.methodology).toMatchObject({
         primaryEvidence: "same_bike_race_type_and_exact_distance",
         first16Priority: true,
@@ -227,7 +231,8 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(markup).toContain("league result source pending");
       expect(markup).toContain("API lane pending");
       expect(markup).toContain("Substitution watch");
-      expect(markup).toContain("Analyse");
+      expect(markup).toContain("No qualified substitution is ready to suggest");
+      expect(markup).not.toContain("Analyse Reese Dylan");
       expect(markup).toContain("Population benchmark pending");
       expect(markup).toContain(
         "remain provisional against the whole DNA Bike population",

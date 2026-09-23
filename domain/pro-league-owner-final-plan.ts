@@ -39,6 +39,12 @@ export const proLeagueOwnerFinalRosterPlan = Object.freeze([
   { displayName: "Zero Mercy", primaryDistances: [2200] },
 ] as const satisfies readonly ProLeagueOwnerRosterPlanEntry[]);
 
+// The owner confirmed this current exclusion during Preview review. It is
+// independent of the still-unverified meaning of the API ageing source field.
+export const proLeagueOwnerOverAgeingSubstitutionExclusions = Object.freeze([
+  "Reese Dylan",
+] as const);
+
 export const PRO_LEAGUE_OWNER_DISTANCES = Object.freeze([
   1000, 1200, 1400, 1600, 1800, 2000, 2200,
 ] as const);
