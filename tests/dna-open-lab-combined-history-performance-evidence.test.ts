@@ -407,45 +407,45 @@ describe("combined DNA finished-history performance evidence", () => {
 
     const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
       {
-      ...input,
-      baselineAuthority: {
-        ...input.baselineAuthority,
-        logicalRequestCount: receiptCount,
-        retainedR2Bytes: receiptCount * templateReceipt.byteLength,
-      },
-      baseline: {
-        load: async () => ({
-          revision: "1",
-          status: "complete" as const,
-          nextRequestOrdinal: receiptCount + 1,
+        ...input,
+        baselineAuthority: {
+          ...input.baselineAuthority,
           logicalRequestCount: receiptCount,
           retainedR2Bytes: receiptCount * templateReceipt.byteLength,
-          omittedIdentityObservationCount: 0,
-          completionSha256,
-        }),
-        loadReceipts: async (query: {
-          afterRequestOrdinal: number;
-          limit: number;
-        }) =>
-          receipts
-            .filter(
-              (receipt) => receipt.requestOrdinal > query.afterRequestOrdinal,
-            )
-            .slice(0, query.limit),
-        readEvidence: async (requestOrdinal: number) => {
-          activeReads += 1;
-          maximumActiveReads = Math.max(maximumActiveReads, activeReads);
-          try {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-            return {
-              ...evidenceTemplate,
-              requestOrdinal,
-            };
-          } finally {
-            activeReads -= 1;
-          }
         },
-      },
+        baseline: {
+          load: async () => ({
+            revision: "1",
+            status: "complete" as const,
+            nextRequestOrdinal: receiptCount + 1,
+            logicalRequestCount: receiptCount,
+            retainedR2Bytes: receiptCount * templateReceipt.byteLength,
+            omittedIdentityObservationCount: 0,
+            completionSha256,
+          }),
+          loadReceipts: async (query: {
+            afterRequestOrdinal: number;
+            limit: number;
+          }) =>
+            receipts
+              .filter(
+                (receipt) => receipt.requestOrdinal > query.afterRequestOrdinal,
+              )
+              .slice(0, query.limit),
+          readEvidence: async (requestOrdinal: number) => {
+            activeReads += 1;
+            maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+            try {
+              await new Promise((resolve) => setTimeout(resolve, 5));
+              return {
+                ...evidenceTemplate,
+                requestOrdinal,
+              };
+            } finally {
+              activeReads -= 1;
+            }
+          },
+        },
         readBudget: {
           maximumClassBOperations: receiptCount * 2 + 6,
           paidUsageAllowed: false,
