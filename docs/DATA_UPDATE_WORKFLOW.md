@@ -306,6 +306,18 @@ plan authorizes no provider read or persistent write: at least one history
 request per candidate is required, so measured request, R2 and Neon projections
 must pass the zero-cost guards before collection can be armed.
 
+A separate read-only measurement scanner can inspect one deterministic cohort
+slice through the same Core-history client and shared aggregate request budget.
+Each invocation is capped at 64 Cores, 100 pages per Core and no more than 30
+aggregate requests per minute. It keeps responses in memory, returns only
+counts, byte totals and stable slice identities, and cannot write provider,
+R2, Neon or publication state. A full page at the configured page ceiling is
+not terminal: the measurement holds instead of understating the collection.
+Its R2 projection applies the existing conservative per-page evidence ceiling
+even though the measurement itself performs no R2 work. A completed slice is
+not whole-population authority unless it covers the exact entire acquisition
+set; connected execution and any persistent collection remain separate gates.
+
 The retained-evidence composer performs the missing pre-publication proof. Its
 reader returns each canonical accepted page with the exact receipt reconstructed
 from the private immutable object. The composer replays the ordered receipts
