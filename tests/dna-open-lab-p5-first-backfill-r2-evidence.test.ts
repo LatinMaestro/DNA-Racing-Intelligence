@@ -22,6 +22,8 @@ class MemoryR2Storage implements DnaOpenLabP5FirstBackfillR2EvidenceStoragePort 
   readonly objects = new Map<string, StoredObject>();
   privacyReadCount = 0;
   putCount = 0;
+  headCount = 0;
+  getCount = 0;
   privacy = {
     publicAccessDisabled: true,
     r2DevDisabled: true,
@@ -70,6 +72,7 @@ class MemoryR2Storage implements DnaOpenLabP5FirstBackfillR2EvidenceStoragePort 
   }
 
   async headObject(input: { bucketName: string; key: string }) {
+    this.headCount += 1;
     const object = this.objects.get(input.key);
     if (object === undefined) {
       return Object.freeze({ status: "missing" as const });
@@ -84,6 +87,7 @@ class MemoryR2Storage implements DnaOpenLabP5FirstBackfillR2EvidenceStoragePort 
   }
 
   async getObject(input: { bucketName: string; key: string }) {
+    this.getCount += 1;
     const object = this.objects.get(input.key);
     if (object === undefined) {
       return Object.freeze({ status: "missing" as const });
@@ -191,7 +195,8 @@ describe("DNA Open Lab P5 first-backfill request evidence", () => {
       priorReceipts: [receipt],
     });
 
-    await expect(restarted.read(1)).resolves.toEqual(
+    const headCountAfterWrite = storage.headCount;
+    await expect(restarted.read(1, receipt)).resolves.toEqual(
       expect.objectContaining({
         family: "finished_races",
         requestOrdinal: 1,
@@ -201,9 +206,20 @@ describe("DNA Open Lab P5 first-backfill request evidence", () => {
         observedAt: "2026-09-02T03:00:00.000Z",
       }),
     );
+    expect(storage.headCount).toBe(headCountAfterWrite);
+    expect(storage.getCount).toBe(1);
     await expect(restarted.read(2)).resolves.toBeNull();
 
     const receiptlessRestart = writer(storage);
+    const headCountBeforeReceiptBackedRead = storage.headCount;
+    await expect(receiptlessRestart.read(1, receipt)).resolves.toEqual(
+      expect.objectContaining({
+        family: "finished_races",
+        requestOrdinal: 1,
+        response: expect.objectContaining({ result: [{ rid: 1001 }] }),
+      }),
+    );
+    expect(storage.headCount).toBe(headCountBeforeReceiptBackedRead);
     await expect(receiptlessRestart.read(1)).resolves.toEqual(
       expect.objectContaining({
         family: "finished_races",
