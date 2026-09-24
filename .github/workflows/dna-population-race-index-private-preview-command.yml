@@ -124,19 +124,45 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          database_name="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(name)) {
+            throw new Error("The private Preview database name is invalid.");
+          }
+          process.stdout.write(name);
+          NODE
+          )"
+          migration_url="$(npx --yes neon@6.0.0 connection-string \
+            --project-id "${NEON_PROJECT_ID}" \
+            --role-name neondb_owner \
+            --database-name "${database_name}" \
+            --no-color 2>/dev/null)"
+          if [[ ! "${migration_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "The short-lived Preview migration binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${migration_url}"
+          echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
       - name: Apply population index migration only when absent
         shell: bash
         run: |
-          installed="$(psql "${DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+          installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
             --command "SELECT to_regprocedure('dna.read_dna_population_race_index_generation(uuid,text)') IS NOT NULL")"
           if [[ "${installed}" != "t" ]]; then
-            psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0112_dna_population_race_index_generation.up.sql
           fi
       - name: Prove population index migration on private Preview
         run: >-
-          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file
           database/migrations/0112_dna_population_race_index_generation.smoke.sql
+      - name: Remove migration binding from subsequent steps
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
       - name: Fix canonical slice timestamp
         shell: bash
         run: echo "DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "${GITHUB_ENV}"

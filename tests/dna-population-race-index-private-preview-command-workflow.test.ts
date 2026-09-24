@@ -26,6 +26,13 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0112_dna_population_race_index_generation.smoke.sql",
     );
+    expect(workflow).toContain("neon@6.0.0 connection-string");
+    expect(workflow).toContain("--role-name neondb_owner");
+    expect(workflow).toContain('echo "::add-mask::${migration_url}"');
+    expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
+    expect(workflow).toContain(
+      "Remove migration binding from subsequent steps",
+    );
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-race-index-command.test.ts",
     );
