@@ -1,46 +1,13 @@
-name: TEMPORARY kick optimized population history audit
+name: TEMPORARY optimized population history audit kick retained for audit trail
 
 on:
-  push:
-    branches:
-      - temporary/kick-population-preview-2026-09-25-do-not-merge
-    paths:
-      - ".github/workflows/temporary-kick-population-history-audit.yml"
+  workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
-  dispatch-current-main-audit:
+  retained-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - name: Dispatch optimized read-only audit on exact current main
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: "b66dda7e981707e9817f16c75d52f13259f732a1"
-        run: |
-          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
-          if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
-            echo "Main changed; refusing audit dispatch."
-            exit 1
-          fi
-          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/runs?per_page=20"             --jq "[.workflow_runs[] | select(.head_sha == \"${EXPECTED_MAIN_SHA}\" and .status != \"completed\")] | length")"
-          if [[ ! "${active_count}" =~ ^[0-9]+$ ]]; then
-            echo "Competing-audit proof was invalid."
-            exit 1
-          fi
-          if (( active_count > 0 )); then
-            echo "An exact-head population-history audit is already active; no duplicate dispatch."
-            exit 0
-          fi
-          jq -n --arg sha "${EXPECTED_MAIN_SHA}" '{
-            ref: "main",
-            inputs: {
-              expected_main_sha: $sha,
-              execute_read_only_audit: "true"
-            }
-          }' | gh api --method POST             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/dispatches"             --input -
-          echo "Dispatched optimized exact-main read-only population history audit."
+      - run: echo "Temporary audit dispatcher is disabled; do not merge this branch."
