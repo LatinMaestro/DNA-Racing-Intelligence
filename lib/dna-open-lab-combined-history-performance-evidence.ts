@@ -510,7 +510,11 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
 
   const endpointEvidence = new Map<string, string>();
   const raceIds = new Set<string>();
-  const preferredDocuments = new Map<string, CanonicalRaceDocumentMetadata>();
+  const preferredDocuments = new Map<string, DnaRaceDocument>();
+  const compactCanonicalDocuments = new Map<
+    string,
+    CanonicalRaceDocumentMetadata
+  >();
   let duplicateRaceEvidenceCount = 0;
   let conflictingRaceEvidenceCount = 0;
   let baselineFinishedRaceReceiptCount = 0;
@@ -547,8 +551,12 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     }
     endpointEvidence.set(evidenceKey, digest);
     raceIds.add(sourceRaceId);
-    if (endpoint === "races.docs" || !preferredDocuments.has(sourceRaceId)) {
-      preferredDocuments.set(sourceRaceId, canonical);
+    if (
+      endpoint === "races.docs" ||
+      (!preferredDocuments.has(sourceRaceId) &&
+        !compactCanonicalDocuments.has(sourceRaceId))
+    ) {
+      compactCanonicalDocuments.set(sourceRaceId, canonical);
     }
   }
 
@@ -590,7 +598,26 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     ) {
       historyError("canonical Race document identity drifted");
     }
-    acceptCanonicalDocument(adapted.canonical, digest, endpoint);
+    const evidenceKey = `${endpoint}\u0000${sourceRaceId}`;
+    const previous = endpointEvidence.get(evidenceKey);
+    if (previous === digest) {
+      duplicateRaceEvidenceCount += 1;
+      return;
+    }
+    if (previous !== undefined) {
+      conflictingRaceEvidenceCount += 1;
+      return;
+    }
+    endpointEvidence.set(evidenceKey, digest);
+    raceIds.add(sourceRaceId);
+    if (
+      endpoint === "races.docs" ||
+      (!preferredDocuments.has(sourceRaceId) &&
+        !compactCanonicalDocuments.has(sourceRaceId))
+    ) {
+      preferredDocuments.set(sourceRaceId, raw);
+      compactCanonicalDocuments.delete(sourceRaceId);
+    }
   }
 
   if (input.baselineIndex !== undefined) {
@@ -859,7 +886,19 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let bikeRaceCount = 0;
   let bikeRaceWithFormatCount = 0;
   let bikeRaceWithTrackSourceValueCount = 0;
-  for (const canonical of preferredDocuments.values()) {
+  for (const sourceRaceId of raceIds) {
+    const raw = preferredDocuments.get(sourceRaceId);
+    const canonical =
+      raw === undefined
+        ? compactCanonicalDocuments.get(sourceRaceId)
+        : adaptDocument({
+            raw,
+            observedAt: "2000-01-01T00:00:00.000Z",
+            endpoint: "races.docs",
+          }).canonical;
+    if (canonical === undefined) {
+      historyError("preferred Race document is unavailable");
+    }
     input.onCanonicalRaceDocument?.(canonical);
     if (canonical.mode !== "bike") continue;
     bikeRaceCount += 1;
