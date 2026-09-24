@@ -267,6 +267,10 @@ function parseCheckpoint(row: DbRow): DnaPopulationRaceIndexCheckpoint {
       return value;
     })(),
     r2ChunkCount: count(row.r2_chunk_count, "r2ChunkCount"),
+    r2IdentityChunkCount: count(
+      row.r2_identity_chunk_count,
+      "r2IdentityChunkCount",
+    ),
     r2CompactedRaceCount: count(
       row.r2_compacted_race_count,
       "r2CompactedRaceCount",
