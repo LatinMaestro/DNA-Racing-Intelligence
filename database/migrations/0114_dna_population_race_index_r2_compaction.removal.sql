@@ -7,8 +7,10 @@ BEGIN
      OR to_regprocedure('dna.register_dna_population_race_index_r2_compaction_chunk(uuid,text,text,jsonb,jsonb,timestamp with time zone)') IS NOT NULL
      OR to_regprocedure('dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)') IS NOT NULL
      OR to_regprocedure('dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb)') IS NOT NULL
+     OR to_regprocedure('dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)') IS NOT NULL
+     OR to_regprocedure('dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)') IS NOT NULL
      OR to_regprocedure('dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)') IS NOT NULL
-     OR to_regprocedure('dna.retire_dna_population_race_index_legacy_storage(timestamp with time zone)') IS NOT NULL
+     OR to_regprocedure('dna.retire_dna_population_race_index_legacy_storage(uuid,text,timestamp with time zone)') IS NOT NULL
      OR EXISTS (
        SELECT 1 FROM information_schema.columns
        WHERE table_schema = 'dna'
