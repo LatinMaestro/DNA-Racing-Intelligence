@@ -50,6 +50,9 @@ SELECT owner.id::text AS database_owner_id,
     'dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)',
     'EXECUTE') AS runtime_can_read_r2_manifests,
   has_function_privilege(session_user,
+    'dna.read_dna_population_race_index_published_r2_chunk_manifests(uuid,text,integer,integer)',
+    'EXECUTE') AS runtime_can_read_published_r2_manifests,
+  has_function_privilege(session_user,
     'dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)',
     'EXECUTE') AS runtime_can_register_identities,
   has_function_privilege(session_user,
@@ -324,6 +327,10 @@ function verifyIsolation(
       "runtime_can_finalize_compaction",
     ) ||
     !bool(row.runtime_can_read_r2_manifests, "runtime_can_read_r2_manifests") ||
+    !bool(
+      row.runtime_can_read_published_r2_manifests,
+      "runtime_can_read_published_r2_manifests",
+    ) ||
     !bool(
       row.runtime_can_register_identities,
       "runtime_can_register_identities",
@@ -620,6 +627,42 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
         async run(client) {
           const result = await client.query(
             "SELECT * FROM dna.read_dna_population_race_index_r2_chunk_manifests($1::uuid,$2::text,$3::integer,$4::integer)",
+            [
+              databaseOwnerId,
+              generationId,
+              request.afterChunkOrdinal,
+              request.limit,
+            ],
+          );
+          return Object.freeze(
+            result.rows.map((row) =>
+              Object.freeze({
+                ...r2ChunkManifest(row),
+                generationId,
+              }),
+            ),
+          );
+        },
+      });
+    },
+
+    async listPublishedR2ChunkManifests(requestOwnerId, request) {
+      if (
+        !Number.isSafeInteger(request.afterChunkOrdinal) ||
+        request.afterChunkOrdinal < 0 ||
+        !Number.isSafeInteger(request.limit) ||
+        request.limit < 1 ||
+        request.limit > 100
+      ) {
+        throw new Error("published population R2 manifest read bounds are invalid");
+      }
+      const generationId = sha256(request.generationId, "generationId");
+      return transaction({
+        ownerId: requestOwnerId,
+        readOnly: true,
+        async run(client) {
+          const result = await client.query(
+            "SELECT * FROM dna.read_dna_population_race_index_published_r2_chunk_manifests($1::uuid,$2::text,$3::integer,$4::integer)",
             [
               databaseOwnerId,
               generationId,
