@@ -23,8 +23,13 @@ BEGIN
        'dna_app_runtime',
        'dna.append_dna_population_race_index_batch(uuid,text,jsonb,timestamp with time zone)',
        'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'dna_app_runtime',
+       'dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)',
+       'EXECUTE'
      ) THEN
-    RAISE EXCEPTION 'legacy population append remains executable by runtime';
+    RAISE EXCEPTION 'population R2 runtime append authority is invalid';
   END IF;
 END
 $contract$;
@@ -32,20 +37,14 @@ $contract$;
 INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
   ('91130000-0000-4000-8000-000000000001', 'synthetic_population_r2_owner');
 
-\if :{?skip_runtime_role}
-\else
-SET LOCAL ROLE dna_app_runtime;
-\endif
 SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
 
-DO $workflow$
+DO $seed$
 DECLARE
   v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
   v_generation constant text := repeat('1', 64);
   v_worker constant text := 'synthetic-population-r2-worker';
   v_result dna.dna_population_race_index_generation%ROWTYPE;
-  v_count integer;
-  v_retired record;
 BEGIN
   SELECT * INTO v_result
   FROM dna.begin_dna_population_race_index_generation(
@@ -94,7 +93,23 @@ BEGIN
   UPDATE dna.dna_population_race_index_generation
   SET unique_race_count = 2
   WHERE owner_id = v_owner AND generation_id = v_generation::character(64);
+END
+$seed$;
 
+\if :{?skip_runtime_role}
+\else
+SET LOCAL ROLE dna_app_runtime;
+\endif
+SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
+
+DO $compact$
+DECLARE
+  v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
+  v_generation constant text := repeat('1', 64);
+  v_worker constant text := 'synthetic-population-r2-worker';
+  v_result dna.dna_population_race_index_generation%ROWTYPE;
+  v_count integer;
+BEGIN
   SELECT count(*) INTO v_count
   FROM dna.read_dna_population_race_index_legacy_chunk(
     v_owner, v_generation, NULL, 5000
@@ -131,7 +146,9 @@ BEGIN
     ),
     '2026-09-24 10:01:00+00'
   );
-  IF v_result.r2_chunk_count <> 1 OR v_result.r2_compacted_race_count <> 2 THEN
+  IF v_result.r2_chunk_count <> 1
+     OR v_result.r2_compacted_race_count <> 2
+     OR v_result.r2_last_source_race_id <> 'race-2' THEN
     RAISE EXCEPTION 'R2 compaction chunk did not advance exact counts';
   END IF;
 
@@ -204,12 +221,19 @@ BEGIN
      OR v_result.r2_compacted_race_count <> v_result.unique_race_count THEN
     RAISE EXCEPTION 'R2 compaction equivalence did not finalize';
   END IF;
+END
+$compact$;
 
-  \if :{?skip_runtime_role}
-  \else
-  RESET ROLE;
-  \endif
+\if :{?skip_runtime_role}
+\else
+RESET ROLE;
+\endif
+SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
 
+DO $retire$
+DECLARE
+  v_retired record;
+BEGIN
   SELECT * INTO v_retired
   FROM dna.retire_dna_population_race_index_legacy_storage(
     '2026-09-24 10:03:00+00'
@@ -225,13 +249,23 @@ BEGIN
   IF to_regclass('dna.dna_population_race_index_compact_identity_uidx') IS NULL THEN
     RAISE EXCEPTION 'compact race identity uniqueness index was not created';
   END IF;
+END
+$retire$;
 
-  \if :{?skip_runtime_role}
-  \else
-  SET LOCAL ROLE dna_app_runtime;
-  \endif
-  SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
+\if :{?skip_runtime_role}
+\else
+SET LOCAL ROLE dna_app_runtime;
+\endif
+SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
 
+DO $append$
+DECLARE
+  v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
+  v_generation constant text := repeat('1', 64);
+  v_worker constant text := 'synthetic-population-r2-worker';
+  v_result dna.dna_population_race_index_generation%ROWTYPE;
+  v_count integer;
+BEGIN
   SELECT count(*) INTO v_count
   FROM dna.lookup_dna_population_race_index_compact_identities(
     v_owner, v_generation, jsonb_build_array('race-1', 'race-2')
@@ -347,6 +381,11 @@ BEGIN
     END IF;
   END;
 END
-$workflow$;
+$append$;
+
+\if :{?skip_runtime_role}
+\else
+RESET ROLE;
+\endif
 
 ROLLBACK;
