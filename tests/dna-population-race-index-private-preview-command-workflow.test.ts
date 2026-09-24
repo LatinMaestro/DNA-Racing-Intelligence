@@ -40,8 +40,21 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0114_dna_population_race_index_r2_compaction.up.sql",
     );
+    expect(workflow).not.toContain(
+      "database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql",
+    );
+    expect(workflow).toContain("population R2 connected schema proof failed");
     expect(workflow).toContain(
-      "0114_dna_population_race_index_r2_compaction.smoke.sql",
+      "population R2 connected isolation proof failed",
+    );
+    expect(workflow).toContain(
+      "population R2 connected privilege proof failed",
+    );
+    expect(workflow).toContain(
+      "population R2 connected legacy state proof failed",
+    );
+    expect(workflow).toContain(
+      "population R2 connected compact state proof failed",
     );
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-r2-compaction-command.test.ts",

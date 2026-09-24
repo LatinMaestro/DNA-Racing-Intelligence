@@ -204,9 +204,93 @@ jobs:
             database/migrations/0112_dna_population_race_index_generation.smoke.sql
           psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
             --file database/migrations/0113_dna_population_race_index_storage_relief.smoke.sql
-          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
-            --set skip_runtime_role=1 --file \
-            database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
+          PGOPTIONS="-c dna.connected_owner_id=${DNA_DATABASE_OWNER_ID}" \
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $connected_proof$
+          DECLARE
+            v_generation dna.dna_population_race_index_generation%ROWTYPE;
+          BEGIN
+            IF to_regclass('dna.dna_population_race_index_compact_identity') IS NULL
+               OR to_regclass('dna.dna_population_race_index_r2_chunk') IS NULL
+               OR to_regprocedure('dna.read_dna_population_race_index_legacy_chunk(uuid,text,text,integer)') IS NULL
+               OR to_regprocedure('dna.register_dna_population_race_index_r2_compaction_chunk(uuid,text,text,jsonb,jsonb,timestamp with time zone)') IS NULL
+               OR to_regprocedure('dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)') IS NULL
+               OR to_regprocedure('dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)') IS NULL
+               OR to_regprocedure('dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)') IS NULL
+               OR to_regprocedure('dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb)') IS NULL
+               OR to_regprocedure('dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)') IS NULL THEN
+              RAISE EXCEPTION 'population R2 connected schema proof failed';
+            END IF;
+
+            IF EXISTS (
+              SELECT 1
+              FROM pg_class relation
+              JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+              WHERE namespace.nspname = 'dna'
+                AND relation.relname IN (
+                  'dna_population_race_index_compact_identity',
+                  'dna_population_race_index_r2_chunk'
+                )
+                AND (NOT relation.relrowsecurity OR NOT relation.relforcerowsecurity)
+            ) OR (
+              SELECT count(*)
+              FROM pg_class relation
+              JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+              WHERE namespace.nspname = 'dna'
+                AND relation.relname IN (
+                  'dna_population_race_index_compact_identity',
+                  'dna_population_race_index_r2_chunk'
+                )
+            ) <> 2 THEN
+              RAISE EXCEPTION 'population R2 connected isolation proof failed';
+            END IF;
+
+            IF has_table_privilege(
+                 'dna_app_runtime',
+                 'dna.dna_population_race_index_compact_identity',
+                 'SELECT,INSERT,UPDATE,DELETE'
+               )
+               OR has_table_privilege(
+                 'dna_app_runtime',
+                 'dna.dna_population_race_index_r2_chunk',
+                 'SELECT,INSERT,UPDATE,DELETE'
+               )
+               OR has_function_privilege(
+                 'dna_app_runtime',
+                 'dna.append_dna_population_race_index_batch(uuid,text,jsonb,timestamp with time zone)',
+                 'EXECUTE'
+               )
+               OR NOT has_function_privilege(
+                 'dna_app_runtime',
+                 'dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)',
+                 'EXECUTE'
+               ) THEN
+              RAISE EXCEPTION 'population R2 connected privilege proof failed';
+            END IF;
+
+            SELECT generation.* INTO STRICT v_generation
+            FROM dna.dna_population_race_index_generation generation
+            WHERE generation.owner_id =
+              current_setting('dna.connected_owner_id')::uuid;
+
+            IF v_generation.storage_layout = 'legacy_neon_v1' THEN
+              IF v_generation.compacted_at IS NOT NULL
+                 OR v_generation.legacy_storage_retired_at IS NOT NULL
+                 OR v_generation.r2_compacted_race_count > v_generation.unique_race_count THEN
+                RAISE EXCEPTION 'population R2 connected legacy state proof failed';
+              END IF;
+            ELSIF v_generation.storage_layout = 'r2_chunked_v1' THEN
+              IF v_generation.compacted_at IS NULL
+                 OR v_generation.r2_compacted_race_count <> v_generation.unique_race_count
+                 OR v_generation.r2_identity_chunk_count > v_generation.r2_chunk_count THEN
+                RAISE EXCEPTION 'population R2 connected compact state proof failed';
+              END IF;
+            ELSE
+              RAISE EXCEPTION 'population R2 connected layout proof failed';
+            END IF;
+          END
+          $connected_proof$;
+          SQL
       - name: Compact legacy Neon race payload into R2
         id: compact
         shell: bash
