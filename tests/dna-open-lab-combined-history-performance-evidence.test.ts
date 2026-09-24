@@ -360,6 +360,37 @@ describe("combined DNA finished-history performance evidence", () => {
     expect(assessment.duplicateRaceEvidenceCount).toBe(1);
   });
 
+  it("excludes saturated P5 planning windows before reconciling terminal identity authority", async () => {
+    const input = fixture();
+    const readEvidence = input.baseline.readEvidence;
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...input,
+        baseline: {
+          ...input.baseline,
+          readEvidence: async () => {
+            const evidence = await readEvidence();
+            return {
+              ...evidence,
+              response: {
+                ...evidence.response,
+                result: Array.from({ length: 200 }, (_, index) =>
+                  index === 0
+                    ? { rid: null }
+                    : { rid: 1_000 + index, rvmode: "bike" },
+                ),
+              },
+            };
+          },
+        },
+      },
+    );
+
+    expect(assessment.uniqueRaceCount).toBe(2);
+    expect(assessment.duplicateRaceEvidenceCount).toBe(0);
+    expect(assessment.quarantinedIdentityObservationCount).toBe(0);
+  });
+
   it("fails closed when baseline identity omissions exceed immutable authority", async () => {
     const input = fixture();
     const readEvidence = input.baseline.readEvidence;
