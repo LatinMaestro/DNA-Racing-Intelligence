@@ -27,6 +27,23 @@ type DiagnosticStage =
   | "operator-execution"
   | "receipt-validation";
 
+type OperatorBoundary =
+  | "not-started"
+  | "baseline-load"
+  | "after-baseline-load"
+  | "generation-load"
+  | "after-generation-load"
+  | "capacity-preflight"
+  | "after-capacity-preflight"
+  | "legacy-read"
+  | "after-legacy-read"
+  | "r2-write"
+  | "after-r2-write"
+  | "neon-register"
+  | "after-neon-register"
+  | "finalize"
+  | "after-finalize";
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
   if (
@@ -64,6 +81,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
     "moves one bounded unique legacy race chunk to private R2 without DNA requests",
     async () => {
       let diagnosticStage: DiagnosticStage = "environment";
+      let operatorBoundary: OperatorBoundary = "not-started";
       try {
         const exactCodeHeadSha =
           requiredEnvironment("GITHUB_SHA").toLowerCase();
@@ -115,29 +133,86 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           accessKeyId,
           secretAccessKey,
         });
-        const repository = createNeonDnaPopulationRaceIndexGenerationRepository(
-          {
+        const rawRepository =
+          createNeonDnaPopulationRaceIndexGenerationRepository({
             databaseUrl,
             databaseOwnerId,
             ownerId,
             runtimeRole: RUNTIME_ROLE,
+          });
+        const rawCapacityPreflight = createDnaOpenLabProviderCapacityPreflight({
+          configuredOwnerId: ownerId,
+          measurementSource: capacitySource,
+        });
+        const rawChunkStore = createDnaPopulationRaceIndexR2ChunkStore({
+          ownerId,
+          bucketName,
+          storage,
+        });
+        const repository = Object.freeze({
+          ...rawRepository,
+          async load(...args: Parameters<typeof rawRepository.load>) {
+            operatorBoundary = "generation-load";
+            const result = await rawRepository.load(...args);
+            operatorBoundary = "after-generation-load";
+            return result;
           },
-        );
+          async readLegacyChunk(
+            ...args: Parameters<typeof rawRepository.readLegacyChunk>
+          ) {
+            operatorBoundary = "legacy-read";
+            const result = await rawRepository.readLegacyChunk(...args);
+            operatorBoundary = "after-legacy-read";
+            return result;
+          },
+          async registerCompactionChunk(
+            ...args: Parameters<typeof rawRepository.registerCompactionChunk>
+          ) {
+            operatorBoundary = "neon-register";
+            const result = await rawRepository.registerCompactionChunk(...args);
+            operatorBoundary = "after-neon-register";
+            return result;
+          },
+          async finalizeCompaction(
+            ...args: Parameters<typeof rawRepository.finalizeCompaction>
+          ) {
+            operatorBoundary = "finalize";
+            const result = await rawRepository.finalizeCompaction(...args);
+            operatorBoundary = "after-finalize";
+            return result;
+          },
+        });
+        const capacityPreflight = Object.freeze({
+          ...rawCapacityPreflight,
+          async inspect(...args: Parameters<typeof rawCapacityPreflight.inspect>) {
+            operatorBoundary = "capacity-preflight";
+            const result = await rawCapacityPreflight.inspect(...args);
+            operatorBoundary = "after-capacity-preflight";
+            return result;
+          },
+        });
+        const chunkStore = Object.freeze({
+          ...rawChunkStore,
+          async write(...args: Parameters<typeof rawChunkStore.write>) {
+            operatorBoundary = "r2-write";
+            const result = await rawChunkStore.write(...args);
+            operatorBoundary = "after-r2-write";
+            return result;
+          },
+        });
         const operator = createDnaPopulationRaceIndexR2CompactionOperator({
           configuredOwnerId: ownerId,
           baseline: {
-            load: ledger.load.bind(ledger),
+            async load(...args: Parameters<typeof ledger.load>) {
+              operatorBoundary = "baseline-load";
+              const result = await ledger.load(...args);
+              operatorBoundary = "after-baseline-load";
+              return result;
+            },
           },
           repository,
-          capacityPreflight: createDnaOpenLabProviderCapacityPreflight({
-            configuredOwnerId: ownerId,
-            measurementSource: capacitySource,
-          }),
-          chunkStore: createDnaPopulationRaceIndexR2ChunkStore({
-            ownerId,
-            bucketName,
-            storage,
-          }),
+          capacityPreflight,
+          chunkStore,
         });
 
         diagnosticStage = "operator-execution";
@@ -201,6 +276,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
         console.log(
           `DNA_POPULATION_R2_COMPACTION_FAILURE=${JSON.stringify({
             stage: diagnosticStage,
+            boundary: operatorBoundary,
           })}`,
         );
         console.error(
