@@ -17,6 +17,9 @@ import type { DnaRaceDocument } from "./dna-open-lab-v1-client";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 export const DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_BATCH = 500;
+export const DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENTS_PER_BATCH = 4_500;
+export const DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENT_BYTES_PER_BATCH =
+  7 * 1024 * 1024;
 
 export type DnaPopulationRaceIndexDocument = Readonly<{
   requestOrdinal: number;
@@ -132,6 +135,8 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
   baselineOmittedIdentityObservationCount: number;
   afterRequestOrdinal: number;
   maximumReceiptCount: number;
+  maximumDocumentCount?: number;
+  maximumDocumentBytes?: number;
 }): Promise<DnaPopulationRaceIndexReceiptBatch> {
   const completionSha256 = sha256(
     input.baselineCompletionSha256,
@@ -157,9 +162,23 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
     input.maximumReceiptCount,
     "maximumReceiptCount",
   );
+  const maximumDocumentCount = positiveInteger(
+    input.maximumDocumentCount ??
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENTS_PER_BATCH,
+    "maximumDocumentCount",
+  );
+  const maximumDocumentBytes = positiveInteger(
+    input.maximumDocumentBytes ??
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENT_BYTES_PER_BATCH,
+    "maximumDocumentBytes",
+  );
   if (
     maximumReceiptCount >
       DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_BATCH ||
+    maximumDocumentCount >
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENTS_PER_BATCH ||
+    maximumDocumentBytes >
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENT_BYTES_PER_BATCH ||
     afterRequestOrdinal > logicalRequestCount
   ) {
     checkpointError("receipt range is invalid");
@@ -220,10 +239,21 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
       input.baseline.readEvidence(receipt.requestOrdinal, receipt),
     ),
   );
+  const processedReceipts: DnaOpenLabP5FirstBackfillDurableReceipt[] = [];
   const documents: DnaPopulationRaceIndexDocument[] = [];
+  let documentBytes = 2;
   let observedIdentityOmissionCount = 0;
-  for (const [index, receipt] of finishedReceipts.entries()) {
-    const validated = validateEvidence(receipt, evidence[index] ?? null);
+  let finishedRaceReceiptCount = 0;
+  let evidenceIndex = 0;
+  for (const receipt of receipts) {
+    if (receipt.family !== "finished_races") {
+      processedReceipts.push(receipt);
+      continue;
+    }
+    const validated = validateEvidence(
+      receipt,
+      evidence[evidenceIndex++] ?? null,
+    );
     if (
       validated.endpoint !== "races.finished" &&
       validated.endpoint !== "races.docs"
@@ -231,13 +261,14 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
       checkpointError("finished-race receipt endpoint is invalid");
     }
     const rawDocuments = raceDocuments(validated.response.result);
-    if (
+    const canonicalDocuments =
       validated.endpoint === "races.finished" &&
       rawDocuments.length === DNA_FINISHED_RACE_WINDOW_LIMIT
-    ) {
-      continue;
-    }
-    for (const raw of rawDocuments) {
+        ? []
+        : rawDocuments;
+    const receiptDocuments: DnaPopulationRaceIndexDocument[] = [];
+    let receiptIdentityOmissionCount = 0;
+    for (const raw of canonicalDocuments) {
       const adapted = (() => {
         try {
           return adaptDnaRaceDocumentPopulationInventory({
@@ -250,7 +281,7 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
             error instanceof DnaRaceDocumentAdaptationProcessingError &&
             error.diagnostic === "race_document_adaptation_identity_unavailable"
           ) {
-            observedIdentityOmissionCount += 1;
+            receiptIdentityOmissionCount += 1;
             return null;
           }
           throw error;
@@ -265,7 +296,7 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
       ) {
         checkpointError("canonical Race document identity drifted");
       }
-      documents.push(
+      receiptDocuments.push(
         Object.freeze({
           requestOrdinal: receipt.requestOrdinal,
           endpoint: validated.endpoint,
@@ -276,21 +307,40 @@ export async function readDnaPopulationRaceIndexReceiptBatch(input: {
         }),
       );
     }
+    const receiptDocumentBytes = receiptDocuments.reduce(
+      (sum, document) =>
+        sum + Buffer.byteLength(JSON.stringify(document), "utf8") + 1,
+      0,
+    );
+    if (
+      documents.length + receiptDocuments.length > maximumDocumentCount ||
+      documentBytes + receiptDocumentBytes > maximumDocumentBytes
+    ) {
+      if (processedReceipts.length === 0) {
+        checkpointError("single receipt exceeds adaptive write ceiling");
+      }
+      break;
+    }
+    processedReceipts.push(receipt);
+    finishedRaceReceiptCount += 1;
+    observedIdentityOmissionCount += receiptIdentityOmissionCount;
+    documentBytes += receiptDocumentBytes;
+    documents.push(...receiptDocuments);
   }
 
-  const nextOrdinal = receipts.at(-1)!.requestOrdinal;
+  const nextOrdinal = processedReceipts.at(-1)!.requestOrdinal;
   return Object.freeze({
     version: 1,
     baselineCompletionSha256: completionSha256,
     afterRequestOrdinal,
     nextRequestOrdinal: nextOrdinal + 1,
-    processedReceiptCount: receipts.length,
-    processedReceiptBytes: receipts.reduce(
+    processedReceiptCount: processedReceipts.length,
+    processedReceiptBytes: processedReceipts.reduce(
       (sum, receipt) => sum + receipt.byteLength,
       0,
     ),
     processedIdentityOmissionCount: observedIdentityOmissionCount,
-    finishedRaceReceiptCount: finishedReceipts.length,
+    finishedRaceReceiptCount,
     canonicalDocumentObservationCount: documents.length,
     documents: Object.freeze(documents),
     complete: nextOrdinal === logicalRequestCount,
