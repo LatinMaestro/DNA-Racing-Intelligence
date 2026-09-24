@@ -31,7 +31,10 @@ $contract$;
 INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
   ('91120000-0000-4000-8000-000000000001', 'synthetic_population_race_index_owner');
 
+\if :{?skip_runtime_role}
+\else
 SET LOCAL ROLE dna_app_runtime;
+\endif
 SET LOCAL app.owner_id = '91120000-0000-4000-8000-000000000001';
 
 DO $workflow$
@@ -184,7 +187,10 @@ BEGIN
 END
 $workflow$;
 
+\if :{?skip_runtime_role}
+\else
 RESET ROLE;
+\endif
 
 DO $active_pointer$
 BEGIN
