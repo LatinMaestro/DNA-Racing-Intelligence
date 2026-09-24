@@ -1,47 +1,13 @@
-name: TEMPORARY kick protected Preview population index
+name: TEMPORARY population Preview kick retained for audit trail
 
 on:
-  push:
-    branches:
-      - temporary/kick-population-preview-2026-09-25-do-not-merge
+  workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
-  dispatch-current-main:
+  retained-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - name: Dispatch only exact unchanged main with no competing population run
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 704eb411d2f1cd790898b50c6c59492369a93d7c
-        run: |
-          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
-          if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
-            echo "Main changed; refusing temporary population dispatch."
-            exit 1
-          fi
-
-          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/runs?per_page=20"             --jq '[.workflow_runs[] | select(.status != "completed")] | length')"
-          if [[ ! "${active_count}" =~ ^[0-9]+$ ]]; then
-            echo "Competing-run proof was invalid."
-            exit 1
-          fi
-          if (( active_count > 0 )); then
-            echo "A population-index run is already active; no duplicate dispatch."
-            exit 0
-          fi
-
-          jq -n --arg sha "${EXPECTED_MAIN_SHA}" '{
-            ref: "main",
-            inputs: {
-              expected_main_sha: $sha,
-              maximum_receipts: "100",
-              execute_bounded_private_preview_index: "true"
-            }
-          }' | gh api --method POST             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/dispatches"             --input -
-          echo "Dispatched exact-main protected Preview population index."
+      - run: echo "Temporary dispatcher is disabled; do not merge this branch."
