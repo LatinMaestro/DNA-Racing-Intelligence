@@ -42,6 +42,7 @@ ALTER TABLE dna.dna_population_race_index_generation
   DROP COLUMN IF EXISTS compacted_at,
   DROP COLUMN IF EXISTS r2_last_source_race_id,
   DROP COLUMN IF EXISTS r2_compacted_race_count,
+  DROP COLUMN IF EXISTS r2_identity_chunk_count,
   DROP COLUMN IF EXISTS r2_chunk_count,
   DROP COLUMN IF EXISTS storage_layout,
   DROP COLUMN IF EXISTS generation_key;
