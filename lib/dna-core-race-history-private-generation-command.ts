@@ -286,7 +286,7 @@ export function dnaCoreRaceHistoryPrivateGenerationCommandFromEnvironment(
     return createDnaCoreRaceHistoryPrivateGenerationOperator({
       configuredOwnerId: ownerId,
       sources: {
-        loadServingOwnedCores: () => serving.readServingOwnedCores({ ownerId }),
+        loadServingCores: () => serving.readServingOwnedCores({ ownerId }),
         client: createDnaCoreRaceHistoryClient(),
         requestBudget,
         evidenceStore,
