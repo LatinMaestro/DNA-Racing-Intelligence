@@ -459,7 +459,7 @@ describe("combined DNA finished-history performance evidence", () => {
 
   it("bounds baseline evidence concurrency while preserving receipt order", async () => {
     const input = fixture();
-    const receiptCount = 32;
+    const receiptCount = 128;
     const [templateReceipt] = await input.baseline.loadReceipts();
     const evidenceTemplate = await input.baseline.readEvidence();
     if (templateReceipt === undefined) {
@@ -525,7 +525,6 @@ describe("combined DNA finished-history performance evidence", () => {
 
     expect(assessment.baselineReceiptCount).toBe(receiptCount);
     expect(assessment.baselineFinishedRaceReceiptCount).toBe(receiptCount);
-    expect(maximumActiveReads).toBeGreaterThan(1);
-    expect(maximumActiveReads).toBeLessThanOrEqual(16);
+    expect(maximumActiveReads).toBe(64);
   });
 });
