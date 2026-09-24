@@ -569,7 +569,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     }
     const evidenceBatch = await Promise.all(
       receiptBatch.map((receipt) =>
-        input.baseline.readEvidence(receipt.requestOrdinal),
+        input.baseline.readEvidence(receipt.requestOrdinal, receipt),
       ),
     );
     for (const [index, receipt] of receiptBatch.entries()) {
