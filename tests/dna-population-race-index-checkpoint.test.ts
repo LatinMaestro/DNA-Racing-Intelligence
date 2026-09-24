@@ -158,6 +158,35 @@ describe("DNA population race index receipt checkpoint", () => {
     });
   });
 
+  it("stops at a receipt boundary before the adaptive document ceiling", async () => {
+    const { input: values, values: fixtureValues } = input(0, 3);
+    const result = await readDnaPopulationRaceIndexReceiptBatch({
+      ...values,
+      maximumDocumentCount: 1,
+    });
+
+    expect(result).toMatchObject({
+      afterRequestOrdinal: 0,
+      nextRequestOrdinal: 3,
+      processedReceiptCount: 2,
+      processedReceiptBytes: 30,
+      finishedRaceReceiptCount: 1,
+      canonicalDocumentObservationCount: 1,
+      complete: false,
+    });
+    expect(fixtureValues.readEvidence).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when one receipt cannot fit the adaptive ceiling", async () => {
+    const { input: values } = input(0, 1);
+    await expect(
+      readDnaPopulationRaceIndexReceiptBatch({
+        ...values,
+        maximumDocumentBytes: 1,
+      }),
+    ).rejects.toThrow("single receipt exceeds adaptive write ceiling");
+  });
+
   it("returns an empty complete proof without replaying evidence", async () => {
     const { input: values, values: fixtureValues } = input(3, 1);
     const result = await readDnaPopulationRaceIndexReceiptBatch(values);
@@ -191,6 +220,13 @@ describe("DNA population race index receipt checkpoint", () => {
     const oversized = input(0, 501);
     await expect(
       readDnaPopulationRaceIndexReceiptBatch(oversized.input),
+    ).rejects.toThrow("receipt range is invalid");
+
+    await expect(
+      readDnaPopulationRaceIndexReceiptBatch({
+        ...input().input,
+        maximumDocumentCount: 4_501,
+      }),
     ).rejects.toThrow("receipt range is invalid");
   });
 });
