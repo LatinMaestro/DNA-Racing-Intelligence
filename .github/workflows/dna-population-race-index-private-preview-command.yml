@@ -415,6 +415,113 @@ jobs:
           fi
           echo "Verified R2 cutover; legacy Neon payload rows are 0."
           echo "status=complete" >> "${GITHUB_OUTPUT}"
+      - name: Reclaim verified-empty legacy population storage
+        id: reclaim
+        if: steps.retire.outputs.status == 'complete'
+        shell: bash
+        run: |
+          reclaim_proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" --file=- <<'SQL'
+          BEGIN;
+          SELECT set_config('dna.reclaim_owner_id', :'owner_id', true);
+          LOCK TABLE
+            dna.dna_population_race_index_entrant,
+            dna.dna_population_race_index_race
+          IN ACCESS EXCLUSIVE MODE;
+
+          DO $guard$
+          DECLARE
+            v_generation dna.dna_population_race_index_generation%ROWTYPE;
+            v_manifest_count bigint;
+            v_manifest_rows bigint;
+            v_identity_count bigint;
+            v_legacy_count bigint;
+            v_entrant_count bigint;
+          BEGIN
+            SELECT generation.* INTO STRICT v_generation
+            FROM dna.dna_population_race_index_generation generation
+            WHERE generation.owner_id =
+              current_setting('dna.reclaim_owner_id')::uuid;
+
+            SELECT count(*), COALESCE(sum(chunk.row_count), 0)
+            INTO v_manifest_count, v_manifest_rows
+            FROM dna.dna_population_race_index_r2_chunk chunk
+            WHERE chunk.generation_key = v_generation.generation_key;
+
+            SELECT count(*) INTO v_identity_count
+            FROM dna.dna_population_race_index_compact_identity identity
+            WHERE identity.generation_key = v_generation.generation_key;
+
+            SELECT count(*) INTO v_legacy_count
+            FROM dna.dna_population_race_index_race;
+            SELECT count(*) INTO v_entrant_count
+            FROM dna.dna_population_race_index_entrant;
+
+            IF v_generation.storage_layout <> 'r2_chunked_v1'
+               OR v_generation.compacted_at IS NULL
+               OR v_generation.legacy_storage_retired_at IS NULL
+               OR v_generation.unique_race_count = 0
+               OR v_generation.r2_compacted_race_count <>
+                  v_generation.unique_race_count
+               OR v_generation.r2_identity_chunk_count <>
+                  v_generation.r2_chunk_count
+               OR v_manifest_count <> v_generation.r2_chunk_count
+               OR v_manifest_rows <> v_generation.unique_race_count
+               OR v_identity_count <> v_generation.unique_race_count
+               OR v_legacy_count <> 0
+               OR v_entrant_count <> 0 THEN
+              RAISE EXCEPTION
+                'verified-empty legacy population storage reclaim denied';
+            END IF;
+          END
+          $guard$;
+
+          CREATE TEMPORARY TABLE reclaim_metrics (
+            before_bytes bigint NOT NULL
+          ) ON COMMIT DROP;
+          INSERT INTO reclaim_metrics(before_bytes)
+          SELECT
+            pg_total_relation_size('dna.dna_population_race_index_race') +
+            pg_total_relation_size('dna.dna_population_race_index_entrant');
+
+          TRUNCATE TABLE
+            dna.dna_population_race_index_entrant,
+            dna.dna_population_race_index_race;
+
+          SELECT json_build_object(
+            'beforeBytes', metrics.before_bytes,
+            'afterBytes',
+              pg_total_relation_size('dna.dna_population_race_index_race') +
+              pg_total_relation_size('dna.dna_population_race_index_entrant'),
+            'reclaimedBytes',
+              metrics.before_bytes -
+              pg_total_relation_size('dna.dna_population_race_index_race') -
+              pg_total_relation_size('dna.dna_population_race_index_entrant')
+          )::text
+          FROM reclaim_metrics metrics;
+          COMMIT;
+          SQL
+          )"
+          printf '%s' "${reclaim_proof}" | node --input-type=module -e '
+            let body = "";
+            for await (const chunk of process.stdin) body += chunk;
+            const parsed = JSON.parse(body);
+            const keys = ["beforeBytes", "afterBytes", "reclaimedBytes"];
+            if (Object.keys(parsed).length !== keys.length ||
+                keys.some((key) =>
+                  !Number.isSafeInteger(parsed[key]) || parsed[key] < 0
+                ) ||
+                parsed.reclaimedBytes !==
+                  parsed.beforeBytes - parsed.afterBytes ||
+                parsed.reclaimedBytes <= 0) {
+              throw new Error("The legacy population storage reclaim proof is invalid.");
+            }
+            console.log(
+              "DNA_POPULATION_LEGACY_STORAGE_RECLAIM=" +
+                JSON.stringify(parsed),
+            );
+          '
+
       - name: Measure aggregate private Preview population storage
         shell: bash
         run: |
