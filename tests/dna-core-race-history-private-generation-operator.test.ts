@@ -45,7 +45,7 @@ const invocation: DnaCoreRaceHistoryPrivateGenerationInvocation = {
 
 function sources(): DnaCoreRaceHistoryPrivateGenerationSources {
   return {
-    loadServingOwnedCores: vi.fn(),
+    loadServingCores: vi.fn(),
     client: {},
     requestBudget: {
       execute: vi.fn(async (request) => request()),

@@ -304,7 +304,7 @@ export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
   budgetWindowId: string;
   evaluatedAt: string;
   attemptedAt: string;
-  loadServingOwnedCores: () => Promise<
+  loadServingCores: () => Promise<
     readonly DnaCoreRaceHistoryServingAuthorityRow[]
   >;
   acquisitionRepository: DnaCoreRaceHistoryAcquisitionRepository;
@@ -319,7 +319,7 @@ export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
     collectorError("attemptedAt cannot precede evaluatedAt");
   }
 
-  const authority = servingAuthority(await input.loadServingOwnedCores());
+  const authority = servingAuthority(await input.loadServingCores());
   if (authority === null) {
     return Object.freeze({
       kind: "authority_unavailable" as const,

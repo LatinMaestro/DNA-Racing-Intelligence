@@ -55,7 +55,7 @@ export type DnaCoreRaceHistoryPrivateGenerationInvocation = Readonly<{
 }>;
 
 export type DnaCoreRaceHistoryPrivateGenerationSources = Readonly<{
-  loadServingOwnedCores: () => Promise<
+  loadServingCores: () => Promise<
     readonly DnaCoreRaceHistoryServingAuthorityRow[]
   >;
   client: DnaCoreRaceHistoryClient;
@@ -358,7 +358,7 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
         budgetWindowId,
         evaluatedAt: invocation.evaluatedAt,
         attemptedAt: invocation.attemptedAt,
-        loadServingOwnedCores: input.sources.loadServingOwnedCores,
+        loadServingCores: input.sources.loadServingCores,
         acquisitionRepository: input.repositories.acquisition,
         budgetRepository: input.repositories.budget,
         client: input.sources.client,
