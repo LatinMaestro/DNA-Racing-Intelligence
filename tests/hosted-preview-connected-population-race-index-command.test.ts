@@ -116,6 +116,11 @@ describeConnected("hosted Preview population race index command", () => {
             readEvidence: evidence.read,
           },
           repository,
+          chunkStore: createDnaPopulationRaceIndexR2ChunkStore({
+            ownerId,
+            bucketName,
+            storage,
+          }),
           capacityPreflight: createDnaOpenLabProviderCapacityPreflight({
             configuredOwnerId: ownerId,
             measurementSource: capacitySource,
