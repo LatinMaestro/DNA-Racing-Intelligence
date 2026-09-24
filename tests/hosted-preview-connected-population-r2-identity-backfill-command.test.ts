@@ -9,6 +9,7 @@ import {
   DNA_POPULATION_RACE_INDEX_R2_IDENTITY_BACKFILL_INTENT,
   DNA_POPULATION_RACE_INDEX_R2_IDENTITY_BACKFILL_OPERATOR_VERSION,
 } from "@/lib/dna-population-race-index-r2-identity-backfill-operator";
+import { DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_WORKER_ID } from "@/lib/dna-population-race-index-private-preview-operator";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
@@ -116,7 +117,7 @@ describeConnected(
             allowPersistentWrite: true,
             authenticatedOwnerId: ownerId,
             exactCodeHeadSha,
-            workerId: "population-r2-identity-preview-worker",
+            workerId: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_WORKER_ID,
             attemptedAt: requiredEnvironment(
               "DNA_POPULATION_R2_IDENTITY_BACKFILL_ATTEMPTED_AT",
             ),
