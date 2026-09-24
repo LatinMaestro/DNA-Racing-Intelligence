@@ -5,6 +5,7 @@ import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-datas
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabProviderCapacityPreflight } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
+import { DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_WORKER_ID } from "@/lib/dna-population-race-index-private-preview-operator";
 import {
   createDnaPopulationRaceIndexR2CompactionOperator,
   DNA_POPULATION_RACE_INDEX_R2_COMPACTION_INTENT,
@@ -240,7 +241,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           allowPersistentWrite: true,
           authenticatedOwnerId: ownerId,
           exactCodeHeadSha,
-          workerId: "population-r2-compaction-preview-worker",
+          workerId: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_WORKER_ID,
           attemptedAt: requiredEnvironment(
             "DNA_POPULATION_R2_COMPACTION_ATTEMPTED_AT",
           ),
