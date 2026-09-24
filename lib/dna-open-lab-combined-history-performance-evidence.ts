@@ -26,7 +26,7 @@ const JSON_CONTENT_TYPE = "application/json";
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
 const RECEIPT_PAGE_SIZE = 500;
-const BASELINE_EVIDENCE_READ_CONCURRENCY = 16;
+const BASELINE_EVIDENCE_READ_CONCURRENCY = 64;
 
 type ReadableObjectStorage = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
