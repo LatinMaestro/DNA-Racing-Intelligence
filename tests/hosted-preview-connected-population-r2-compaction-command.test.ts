@@ -3,19 +3,19 @@ import { describe, expect, it } from "vitest";
 import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
 import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
-import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabProviderCapacityPreflight } from "@/lib/dna-open-lab-provider-capacity-preflight";
+import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
 import {
-  createDnaPopulationRaceIndexPrivatePreviewOperator,
-  DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_INTENT,
-  DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
-} from "@/lib/dna-population-race-index-private-preview-operator";
+  createDnaPopulationRaceIndexR2CompactionOperator,
+  DNA_POPULATION_RACE_INDEX_R2_COMPACTION_INTENT,
+  DNA_POPULATION_RACE_INDEX_R2_COMPACTION_OPERATOR_VERSION,
+} from "@/lib/dna-population-race-index-r2-compaction-operator";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
 
 const connected =
-  process.env.DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND === "1";
+  process.env.DNA_POPULATION_R2_COMPACTION_PRIVATE_PREVIEW_COMMAND === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
@@ -34,17 +34,9 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
-function receiptBound(): number {
-  const raw = requiredEnvironment("DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS");
-  if (!/^(?:25|50|100)$/u.test(raw)) {
-    throw new Error("receipt bound is invalid");
-  }
-  return Number(raw);
-}
-
-describeConnected("hosted Preview population race index command", () => {
+describeConnected("hosted Preview population R2 compaction command", () => {
   it(
-    "advances one zero-cost, owner-isolated immutable P5 slice without DNA requests",
+    "moves one bounded unique legacy race chunk to private R2 without DNA requests",
     async () => {
       try {
         const exactCodeHeadSha =
@@ -95,12 +87,6 @@ describeConnected("hosted Preview population race index command", () => {
           accessKeyId,
           secretAccessKey,
         });
-        const evidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
-          ownerId,
-          bucketName,
-          storage,
-          approvalPacket: packet,
-        });
         const repository = createNeonDnaPopulationRaceIndexGenerationRepository(
           {
             databaseUrl,
@@ -109,79 +95,79 @@ describeConnected("hosted Preview population race index command", () => {
             runtimeRole: RUNTIME_ROLE,
           },
         );
-        const operator = createDnaPopulationRaceIndexPrivatePreviewOperator({
+        const operator = createDnaPopulationRaceIndexR2CompactionOperator({
           configuredOwnerId: ownerId,
           baseline: {
             load: ledger.load.bind(ledger),
-            loadReceipts: ledger.loadReceipts.bind(ledger),
-            readEvidence: evidence.read,
           },
           repository,
+          capacityPreflight: createDnaOpenLabProviderCapacityPreflight({
+            configuredOwnerId: ownerId,
+            measurementSource: capacitySource,
+          }),
           chunkStore: createDnaPopulationRaceIndexR2ChunkStore({
             ownerId,
             bucketName,
             storage,
           }),
-          capacityPreflight: createDnaOpenLabProviderCapacityPreflight({
-            configuredOwnerId: ownerId,
-            measurementSource: capacitySource,
-          }),
         });
+
         const receipt = await operator.execute({
           operatorVersion:
-            DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
-          intent: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_INTENT,
+            DNA_POPULATION_RACE_INDEX_R2_COMPACTION_OPERATOR_VERSION,
+          intent: DNA_POPULATION_RACE_INDEX_R2_COMPACTION_INTENT,
           allowPersistentWrite: true,
           authenticatedOwnerId: ownerId,
           exactCodeHeadSha,
-          workerId: "population-race-index-preview-worker",
+          workerId: "population-r2-compaction-preview-worker",
           attemptedAt: requiredEnvironment(
-            "DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT",
+            "DNA_POPULATION_R2_COMPACTION_ATTEMPTED_AT",
           ),
-          maximumReceiptCount: receiptBound(),
+          maximumRows: 4_000,
         });
         const report = Object.freeze({
-          version: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
           status: receipt.status,
           reason: receipt.reason,
           exactCodeHeadSha: receipt.exactCodeHeadSha,
-          beforeRequestOrdinal: receipt.beforeRequestOrdinal,
-          afterRequestOrdinal: receipt.afterRequestOrdinal,
-          processedReceiptCount: receipt.processedReceiptCount,
+          beforeCompactedRaceCount: receipt.beforeCompactedRaceCount,
+          afterCompactedRaceCount: receipt.afterCompactedRaceCount,
           uniqueRaceCount: receipt.uniqueRaceCount,
-          uniqueEntrantCoreCount: receipt.uniqueEntrantCoreCount,
-          persistentWriteArmed: receipt.persistentWriteArmed,
-          previewOnly: receipt.previewOnly,
+          r2ChunkCount: receipt.r2ChunkCount,
+          storageLayout: receipt.storageLayout,
+          providerCapacityBlockerIds: receipt.providerCapacityBlockerIds,
+          r2ObjectCreated: receipt.r2ObjectCreated,
           dnaProviderRequestCount: receipt.dnaProviderRequestCount,
-          providerWritePerformed: receipt.providerWritePerformed,
           paidUsageAllowed: receipt.paidUsageAllowed,
+          previewOnly: receipt.previewOnly,
           preserveLastGood: receipt.preserveLastGood,
         });
         expect(report).toMatchObject({
           exactCodeHeadSha,
-          persistentWriteArmed: true,
-          previewOnly: true,
           dnaProviderRequestCount: 0,
-          providerWritePerformed: false,
           paidUsageAllowed: false,
+          previewOnly: true,
           preserveLastGood: true,
         });
         if (report.status === "advanced") {
-          expect(report.processedReceiptCount).toBeGreaterThan(0);
-          expect(report.afterRequestOrdinal).toBeGreaterThan(
-            report.beforeRequestOrdinal,
+          expect(report.afterCompactedRaceCount).toBeGreaterThan(
+            report.beforeCompactedRaceCount,
           );
+        }
+        if (report.status === "complete") {
+          expect(report.afterCompactedRaceCount).toBe(report.uniqueRaceCount);
+          expect(report.storageLayout).toBe("r2_chunked_v1");
         }
         if (report.status === "held") {
           expect(report.reason).toMatch(/^provider_capacity_[a-z0-9_]+$/u);
-          expect(report.processedReceiptCount).toBe(0);
-          expect(report.afterRequestOrdinal).toBe(report.beforeRequestOrdinal);
+          expect(report.afterCompactedRaceCount).toBe(
+            report.beforeCompactedRaceCount,
+          );
         }
         console.log(
-          `DNA_POPULATION_RACE_INDEX_PROGRESS=${JSON.stringify(report)}`,
+          `DNA_POPULATION_R2_COMPACTION_PROGRESS=${JSON.stringify(report)}`,
         );
       } catch {
-        throw new Error("DNA population race index private Preview failed");
+        throw new Error("DNA population R2 compaction private Preview failed");
       }
     },
     30 * 60_000,

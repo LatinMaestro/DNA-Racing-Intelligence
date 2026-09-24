@@ -4,6 +4,7 @@ import type {
   DnaPopulationRaceIndexDocument,
   DnaPopulationRaceIndexReceiptBatch,
 } from "./dna-population-race-index-checkpoint";
+import type { DnaPopulationRaceIndexR2ChunkReceipt } from "./dna-population-race-index-r2-chunk";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -32,6 +33,13 @@ export type DnaPopulationRaceIndexCheckpoint = DnaPopulationRaceIndexAuthority &
     canonicalDocumentObservationCount: number;
     uniqueRaceCount: number;
     uniqueEntrantCoreCount: number;
+    storageLayout: "legacy_neon_v1" | "r2_chunked_v1";
+    r2ChunkCount: number;
+    r2IdentityChunkCount: number;
+    r2CompactedRaceCount: number;
+    r2LastSourceRaceId: string | null;
+    compactedAt: string | null;
+    legacyStorageRetiredAt: string | null;
     updatedAt: string;
     completedAt: string | null;
     publishedAt: string | null;
@@ -52,6 +60,22 @@ export type DnaPopulationRaceIndexWriteBatch = Readonly<{
   complete: boolean;
 }>;
 
+export type DnaPopulationRaceIndexCompactIdentity = Readonly<{
+  sourceRaceId: string;
+  rawEvidenceSha256: string;
+}>;
+
+export type DnaPopulationRaceIndexR2ChunkManifest =
+  DnaPopulationRaceIndexR2ChunkReceipt &
+    Readonly<{
+      registeredAt: string;
+      identityRegisteredAt: string | null;
+    }>;
+
+export type DnaPopulationRaceIndexLegacyChunk = Readonly<{
+  documents: readonly DnaPopulationRaceIndexDocument[];
+}>;
+
 export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
   begin: (
     ownerId: string,
@@ -61,11 +85,64 @@ export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
       startedAt: string;
     }>,
   ) => Promise<DnaPopulationRaceIndexCheckpoint>;
-  appendBatch: (
+  readLegacyChunk: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      afterSourceRaceId: string | null;
+      limit: number;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexLegacyChunk>;
+  registerCompactionChunk: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      receipt: DnaPopulationRaceIndexR2ChunkReceipt;
+      identities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      registeredAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  finalizeCompaction: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      compactedAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  listR2ChunkManifests: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      afterChunkOrdinal: number;
+      limit: number;
+    }>,
+  ) => Promise<readonly DnaPopulationRaceIndexR2ChunkManifest[]>;
+  registerCompactIdentityChunk: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      chunkOrdinal: number;
+      identities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      registeredAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  lookupIdentities: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      sourceRaceIds: readonly string[];
+    }>,
+  ) => Promise<readonly DnaPopulationRaceIndexCompactIdentity[]>;
+  appendR2Batch: (
     ownerId: string,
     request: Readonly<{
       workerId: string;
       batch: DnaPopulationRaceIndexWriteBatch;
+      newIdentities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      chunk: DnaPopulationRaceIndexR2ChunkReceipt | null;
       writtenAt: string;
     }>,
   ) => Promise<DnaPopulationRaceIndexCheckpoint>;
@@ -251,5 +328,73 @@ export function createDnaPopulationRaceIndexWriteBatch(
     ...batchWithoutSha,
     batchSha256: createHash("sha256").update(canonical, "utf8").digest("hex"),
     documents: Object.freeze([...input.documents]),
+  });
+}
+export type DnaPopulationRaceIndexR2AppendPlan = Readonly<{
+  newDocuments: readonly DnaPopulationRaceIndexDocument[];
+  newIdentities: readonly DnaPopulationRaceIndexCompactIdentity[];
+}>;
+
+export function createDnaPopulationRaceIndexR2AppendPlan(input: {
+  batch: DnaPopulationRaceIndexWriteBatch;
+  existingIdentities: readonly DnaPopulationRaceIndexCompactIdentity[];
+}): DnaPopulationRaceIndexR2AppendPlan {
+  const existing = new Map<string, string>();
+  for (const identity of input.existingIdentities) {
+    if (
+      typeof identity.sourceRaceId !== "string" ||
+      identity.sourceRaceId.trim() !== identity.sourceRaceId ||
+      identity.sourceRaceId.length < 1 ||
+      CONTROL_PATTERN.test(identity.sourceRaceId) ||
+      !SHA_256_PATTERN.test(identity.rawEvidenceSha256) ||
+      existing.has(identity.sourceRaceId)
+    ) {
+      generationError("existing compact race identity is invalid");
+    }
+    existing.set(identity.sourceRaceId, identity.rawEvidenceSha256);
+  }
+
+  const latest = new Map<string, DnaPopulationRaceIndexDocument>();
+  for (const document of input.batch.documents) {
+    validateDocument(
+      document,
+      input.batch.afterRequestOrdinal,
+      input.batch.nextRequestOrdinal,
+    );
+    const prior = latest.get(document.sourceRaceId);
+    if (prior !== undefined) {
+      if (prior.rawEvidenceSha256 !== document.rawEvidenceSha256) {
+        generationError("race evidence drifted within one immutable batch");
+      }
+      if (document.requestOrdinal > prior.requestOrdinal) {
+        latest.set(document.sourceRaceId, document);
+      }
+      continue;
+    }
+    latest.set(document.sourceRaceId, document);
+  }
+
+  const newDocuments: DnaPopulationRaceIndexDocument[] = [];
+  const newIdentities: DnaPopulationRaceIndexCompactIdentity[] = [];
+  for (const document of latest.values()) {
+    const retained = existing.get(document.sourceRaceId);
+    if (retained !== undefined) {
+      if (retained !== document.rawEvidenceSha256) {
+        generationError("race evidence drifted from durable compact identity");
+      }
+      continue;
+    }
+    newDocuments.push(document);
+    newIdentities.push(
+      Object.freeze({
+        sourceRaceId: document.sourceRaceId,
+        rawEvidenceSha256: document.rawEvidenceSha256,
+      }),
+    );
+  }
+
+  return Object.freeze({
+    newDocuments: Object.freeze(newDocuments),
+    newIdentities: Object.freeze(newIdentities),
   });
 }

@@ -62,6 +62,13 @@ function isolation(overrides: Record<string, unknown> = {}) {
     all_force_rls_enabled: true,
     runtime_can_access_tables: false,
     runtime_can_begin: true,
+    runtime_can_legacy_append: false,
+    runtime_can_read_legacy: true,
+    runtime_can_register_compaction: true,
+    runtime_can_finalize_compaction: true,
+    runtime_can_read_r2_manifests: true,
+    runtime_can_register_identities: true,
+    runtime_can_lookup_identities: true,
     runtime_can_append: true,
     runtime_can_publish: true,
     runtime_can_read: true,
@@ -95,6 +102,13 @@ function checkpointRow(overrides: Record<string, unknown> = {}) {
     canonical_document_observation_count: "0",
     unique_race_count: 0,
     unique_entrant_core_count: 0,
+    storage_layout: "r2_chunked_v1",
+    r2_chunk_count: 0,
+    r2_identity_chunk_count: 0,
+    r2_compacted_race_count: 0,
+    r2_last_source_race_id: null,
+    compacted_at: new Date("2026-09-24T02:59:00.000Z"),
+    legacy_storage_retired_at: new Date("2026-09-24T02:59:30.000Z"),
     updated_at: new Date("2026-09-24T03:00:00.000Z"),
     completed_at: null,
     published_at: null,
@@ -172,9 +186,26 @@ describe("Neon DNA population race index generation", () => {
       ],
     ]);
     await expect(
-      test.repository.appendBatch(ownerId, {
+      test.repository.appendR2Batch(ownerId, {
         workerId,
         batch,
+        newIdentities: [
+          {
+            sourceRaceId: "race-1",
+            rawEvidenceSha256: "3".repeat(64),
+          },
+        ],
+        chunk: {
+          version: 1,
+          generationId,
+          chunkOrdinal: 1,
+          objectKey: "private/population/1.json",
+          bodySha256: "4".repeat(64),
+          byteLength: 256,
+          rowCount: 1,
+          firstSourceRaceId: "race-1",
+          lastSourceRaceId: "race-1",
+        },
         writtenAt: "2026-09-24T03:01:00.000Z",
       }),
     ).resolves.toMatchObject({
@@ -183,6 +214,14 @@ describe("Neon DNA population race index generation", () => {
       uniqueRaceCount: 1,
     });
     expect(test.query.mock.calls[3]?.[1]?.[2]).toBe(JSON.stringify(batch));
+    expect(test.query.mock.calls[3]?.[1]?.[3]).toBe(
+      JSON.stringify([
+        {
+          sourceRaceId: "race-1",
+          rawEvidenceSha256: "3".repeat(64),
+        },
+      ]),
+    );
   });
 
   it("publishes only through the owner-scoped function and reads repeatably", async () => {
