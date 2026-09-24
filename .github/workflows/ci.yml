@@ -315,6 +315,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql
       - name: Run population race index storage-negative cutover smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.smoke.sql
+      - name: Apply published population manifest read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.up.sql
+      - name: Run published population manifest read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.smoke.sql
+      - name: Reverse published population manifest read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.down.sql
+      - name: Verify published population manifest read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.removal.sql
       - name: Reverse population race index storage-negative cutover migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.down.sql
       - name: Verify population race index storage-negative cutover removal

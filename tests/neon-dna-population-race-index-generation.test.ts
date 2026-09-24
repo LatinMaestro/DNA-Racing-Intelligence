@@ -67,6 +67,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_register_compaction: true,
     runtime_can_finalize_compaction: true,
     runtime_can_read_r2_manifests: true,
+    runtime_can_read_published_r2_manifests: true,
     runtime_can_register_identities: true,
     runtime_can_lookup_identities: true,
     runtime_can_append: true,
@@ -222,6 +223,48 @@ describe("Neon DNA population race index generation", () => {
         },
       ]),
     );
+  });
+
+  it("lists published R2 manifests through the separate published read contract", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          chunk_ordinal: 1,
+          object_key: "private/population/published-1.json",
+          body_sha256: "4".repeat(64),
+          byte_length: 256,
+          row_count: 1,
+          first_source_race_id: "race-1",
+          last_source_race_id: "race-1",
+          registered_at: new Date("2026-09-24T03:01:00.000Z"),
+          identity_registered_at: new Date("2026-09-24T03:02:00.000Z"),
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.listPublishedR2ChunkManifests(ownerId, {
+        generationId,
+        afterChunkOrdinal: 0,
+        limit: 100,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        generationId,
+        chunkOrdinal: 1,
+        rowCount: 1,
+        identityRegisteredAt: "2026-09-24T03:02:00.000Z",
+      }),
+    ]);
+    expect(
+      test.events.some((event) =>
+        event.includes(
+          "read_dna_population_race_index_published_r2_chunk_manifests",
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("publishes only through the owner-scoped function and reads repeatably", async () => {

@@ -43,6 +43,12 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0115_dna_population_race_index_storage_negative_cutover.up.sql",
     );
+    expect(workflow).toContain(
+      "0116_dna_population_race_index_published_manifest_read.up.sql",
+    );
+    expect(workflow).toContain(
+      "read_dna_population_race_index_published_r2_chunk_manifests",
+    );
     expect(workflow).not.toContain(
       "database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql",
     );

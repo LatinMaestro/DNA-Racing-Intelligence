@@ -202,6 +202,12 @@ jobs:
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql
           fi
+          published_manifest_read_installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --command "SELECT to_regprocedure('dna.read_dna_population_race_index_published_r2_chunk_manifests(uuid,text,integer,integer)') IS NOT NULL")"
+          if [[ "${published_manifest_read_installed}" != "t" ]]; then
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+              --file database/migrations/0116_dna_population_race_index_published_manifest_read.up.sql
+          fi
       - name: Prove population index migrations on private Preview
         shell: bash
         run: |
@@ -224,6 +230,7 @@ jobs:
                OR to_regprocedure('dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.retire_dna_population_race_index_storage_negative_legacy(uuid,text,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)') IS NULL
+               OR to_regprocedure('dna.read_dna_population_race_index_published_r2_chunk_manifests(uuid,text,integer,integer)') IS NULL
                OR to_regprocedure('dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb)') IS NULL
                OR to_regprocedure('dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)') IS NULL THEN
@@ -276,6 +283,11 @@ jobs:
                OR NOT has_function_privilege(
                  'dna_app_runtime',
                  'dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)',
+                 'EXECUTE'
+               )
+               OR NOT has_function_privilege(
+                 'dna_app_runtime',
+                 'dna.read_dna_population_race_index_published_r2_chunk_manifests(uuid,text,integer,integer)',
                  'EXECUTE'
                ) THEN
               RAISE EXCEPTION 'population R2 connected privilege proof failed';
