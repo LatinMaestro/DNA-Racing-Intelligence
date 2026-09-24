@@ -31,6 +31,19 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0112_dna_population_race_index_generation.smoke.sql",
     );
+    expect(workflow).toContain(
+      "0113_dna_population_race_index_r2_compaction.up.sql",
+    );
+    expect(workflow).toContain(
+      "0113_dna_population_race_index_r2_compaction.smoke.sql",
+    );
+    expect(workflow).toContain(
+      "tests/hosted-preview-connected-population-r2-compaction-command.test.ts",
+    );
+    expect(workflow).toContain(
+      "retire_dna_population_race_index_legacy_storage",
+    );
+    expect(workflow).toContain("legacy Neon payload rows now 0");
     expect(workflow).toContain("--set skip_runtime_role=1");
     expect(workflow).toContain("neon@6.0.0 connection-string");
     expect(workflow).toContain('"/projects/${NEON_PROJECT_ID}/endpoints"');
@@ -49,14 +62,15 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain(
-      "terminal_status: ${{ steps.advance.outputs.status }}",
+      "terminal_status: ${{ steps.terminal.outputs.status }}",
     );
     expect(workflow).toContain("deadline_epoch");
-    expect(workflow).toContain("+ 1200");
+    expect(workflow.match(/\+ 1200/gu)?.length).toBeGreaterThanOrEqual(2);
     expect(workflow).toContain('status}" == "complete"');
     expect(workflow).toContain('status}" == "held"');
     expect(workflow).toContain("provider_capacity_[a-z0-9_]+");
     expect(workflow).toContain("held safely at the free-capacity guard");
+    expect(workflow).toContain('id: terminal');
     expect(workflow).toContain('echo "status=${status}" >> "${GITHUB_OUTPUT}"');
     expect(workflow).toContain(
       "Main changed between durable population-index slices",
