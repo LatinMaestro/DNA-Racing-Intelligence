@@ -339,6 +339,7 @@ export function dnaOpenLabPrivateDailyRefreshCommandFromEnvironment(
             exactCodeHeadSha,
             refreshCycleId,
             budgetWindowId,
+            projectionHorizon: "billing_window",
             plannedR2UsagePerRefresh:
               DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
             plannedNeonUsagePerRefresh:

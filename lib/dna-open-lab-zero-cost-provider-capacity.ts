@@ -72,6 +72,9 @@ export type DnaOpenLabProviderCapacityProjection = Readonly<{
   preserveLastGood: true;
 }>;
 
+export type DnaOpenLabProviderCapacityProjectionHorizon =
+  "billing_window" | "single_refresh";
+
 function capacityError(message: string): never {
   throw new Error(`DNA Open Lab provider capacity: ${message}`);
 }
@@ -148,11 +151,13 @@ function headroom(projected: number, budget: number): number {
 }
 
 /**
- * Projects the complete remaining daily cadence before commissioning. Inputs
- * must come from dated provider measurements and conservative per-refresh
- * upper bounds. This function performs no provider work.
+ * Projects either the complete remaining daily cadence or one independently
+ * remeasured bounded continuation. Inputs must come from dated provider
+ * measurements and conservative per-refresh upper bounds. This function
+ * performs no provider work.
  */
 export function projectDnaOpenLabZeroCostProviderCapacity(input: {
+  projectionHorizon: DnaOpenLabProviderCapacityProjectionHorizon;
   r2StorageClass: string;
   measuredAt: string;
   billingWindowStartAt: string;
@@ -197,14 +202,26 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
   ) {
     capacityError("Neon measurement must fall within the billing window");
   }
-  const r2RemainingRefreshes = Math.ceil(
-    (Date.parse(billingWindowEndAt) - Date.parse(measuredAt)) /
-      DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS,
-  );
-  const neonRemainingRefreshes = Math.ceil(
-    (Date.parse(neonBillingWindowEndAt) - Date.parse(neonMeasuredAt)) /
-      DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS,
-  );
+  if (
+    input.projectionHorizon !== "billing_window" &&
+    input.projectionHorizon !== "single_refresh"
+  ) {
+    capacityError("projection horizon is invalid");
+  }
+  const r2RemainingRefreshes =
+    input.projectionHorizon === "single_refresh"
+      ? 1
+      : Math.ceil(
+          (Date.parse(billingWindowEndAt) - Date.parse(measuredAt)) /
+            DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS,
+        );
+  const neonRemainingRefreshes =
+    input.projectionHorizon === "single_refresh"
+      ? 1
+      : Math.ceil(
+          (Date.parse(neonBillingWindowEndAt) - Date.parse(neonMeasuredAt)) /
+            DNA_OPEN_LAB_TARGET_REFRESH_INTERVAL_MILLISECONDS,
+        );
   if (
     r2RemainingRefreshes > DNA_OPEN_LAB_MAX_PROJECTED_DAILY_REFRESHES ||
     neonRemainingRefreshes > DNA_OPEN_LAB_MAX_PROJECTED_DAILY_REFRESHES

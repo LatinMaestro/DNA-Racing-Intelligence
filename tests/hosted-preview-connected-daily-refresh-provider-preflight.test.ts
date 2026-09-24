@@ -72,6 +72,7 @@ describeConnected("hosted Preview daily-refresh provider preflight", () => {
           "dna-open-lab-preview-capacity-window/v1",
           billingMonth,
         ),
+        projectionHorizon: "billing_window",
         plannedR2UsagePerRefresh: {
           storageBytes: 1_000_000,
           classAOperations: 100,

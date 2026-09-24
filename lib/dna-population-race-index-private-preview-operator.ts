@@ -13,6 +13,7 @@ import {
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
   type DnaOpenLabProviderCapacityPreflight,
 } from "./dna-open-lab-provider-capacity-preflight";
+import type { DnaOpenLabProviderCapacityBlockerId } from "./dna-open-lab-zero-cost-provider-capacity";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 
 export const DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION =
@@ -62,6 +63,7 @@ export type DnaPopulationRaceIndexPrivatePreviewReceipt = Readonly<{
   uniqueRaceCount: number;
   uniqueEntrantCoreCount: number;
   preflightSha256: string | null;
+  providerCapacityBlockerIds: readonly DnaOpenLabProviderCapacityBlockerId[];
   persistentWriteArmed: true;
   previewOnly: true;
   dnaProviderRequestCount: 0;
@@ -109,9 +111,13 @@ function safeReceipt(input: {
   uniqueRaceCount: number;
   uniqueEntrantCoreCount: number;
   preflightSha256: string | null;
+  providerCapacityBlockerIds?: readonly DnaOpenLabProviderCapacityBlockerId[];
 }): DnaPopulationRaceIndexPrivatePreviewReceipt {
   return Object.freeze({
     ...input,
+    providerCapacityBlockerIds: Object.freeze([
+      ...(input.providerCapacityBlockerIds ?? []),
+    ]),
     persistentWriteArmed: true as const,
     previewOnly: true as const,
     dnaProviderRequestCount: 0 as const,
@@ -235,6 +241,7 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         exactCodeHeadSha,
         refreshCycleId,
         budgetWindowId,
+        projectionHorizon: "single_refresh",
         plannedR2UsagePerRefresh:
           DNA_POPULATION_RACE_INDEX_PREVIEW_PLANNED_R2_USAGE,
         plannedNeonUsagePerRefresh:
@@ -252,6 +259,7 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
           uniqueRaceCount: existing?.uniqueRaceCount ?? 0,
           uniqueEntrantCoreCount: existing?.uniqueEntrantCoreCount ?? 0,
           preflightSha256: null,
+          providerCapacityBlockerIds: preflight.blockerIds,
         });
       }
 

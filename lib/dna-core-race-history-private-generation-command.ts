@@ -370,6 +370,7 @@ export function dnaCoreRaceHistoryPrivateGenerationCommandFromEnvironment(
         exactCodeHeadSha,
         refreshCycleId,
         budgetWindowId,
+        projectionHorizon: "single_refresh",
         plannedR2UsagePerRefresh:
           DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_R2_USAGE,
         plannedNeonUsagePerRefresh:
