@@ -47,6 +47,7 @@ function chunks(value: string): AsyncIterable<Uint8Array> {
 function fixture(overrides?: {
   privateBucket?: boolean;
   corruptRace?: boolean;
+  baselineIdentityOmission?: boolean;
 }) {
   const prefix = sha256(`dna-open-lab-owner\u0000${ownerId}`);
   const baselineRace = Object.freeze<DnaRaceDocument>({
@@ -141,6 +142,9 @@ function fixture(overrides?: {
   }
 
   const observedAt = "2026-09-02T00:00:00.000Z";
+  const baselineIdentityOmissionCount = overrides?.baselineIdentityOmission
+    ? 1
+    : 0;
   const receipt = {
     family: "finished_races" as const,
     requestOrdinal: 1,
@@ -148,8 +152,8 @@ function fixture(overrides?: {
     contentSha256: "d".repeat(64),
     byteLength: 100,
     evidenceObjectKey: "private/baseline/000001.json",
-    omittedIdentityObservationCount: 0 as const,
-    quarantineBound: false,
+    omittedIdentityObservationCount: baselineIdentityOmissionCount as 0 | 1,
+    quarantineBound: baselineIdentityOmissionCount === 1,
   };
   const history: DnaOpenLabCombinedFinishedHistory = Object.freeze({
     refreshCycleId: "e".repeat(64),
@@ -199,7 +203,7 @@ function fixture(overrides?: {
     baselineAuthority: {
       logicalRequestCount: 1,
       retainedR2Bytes: 100,
-      omittedIdentityObservationCount: 0,
+      omittedIdentityObservationCount: baselineIdentityOmissionCount,
       completionSha256,
     },
     baseline: {
@@ -209,7 +213,7 @@ function fixture(overrides?: {
         nextRequestOrdinal: 2,
         logicalRequestCount: 1,
         retainedR2Bytes: 100,
-        omittedIdentityObservationCount: 0,
+        omittedIdentityObservationCount: baselineIdentityOmissionCount,
         completionSha256,
       }),
       loadReceipts: async () => [receipt],
@@ -219,7 +223,10 @@ function fixture(overrides?: {
         endpoint: "races.finished",
         request: {},
         response: {
-          result: [baselineRace, baselineRace],
+          result:
+            baselineIdentityOmissionCount === 1
+              ? [{ rid: null }, baselineRace, baselineRace]
+              : [baselineRace, baselineRace],
           httpStatus: 200,
           rateLimit: {
             limit: null,
@@ -341,6 +348,40 @@ describe("combined DNA finished-history performance evidence", () => {
       }),
       expect.objectContaining({ sourceRaceId: "202", mode: "car" }),
     ]);
+  });
+
+  it("reconciles the one immutable P5 identity omission without admitting it to the population", async () => {
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      fixture({ baselineIdentityOmission: true }),
+    );
+
+    expect(assessment.quarantinedIdentityObservationCount).toBe(1);
+    expect(assessment.uniqueRaceCount).toBe(2);
+    expect(assessment.duplicateRaceEvidenceCount).toBe(1);
+  });
+
+  it("fails closed when baseline identity omissions exceed immutable authority", async () => {
+    const input = fixture();
+    const readEvidence = input.baseline.readEvidence;
+
+    await expect(
+      assessDnaOpenLabCombinedHistoryPerformanceEvidence({
+        ...input,
+        baseline: {
+          ...input.baseline,
+          readEvidence: async () => {
+            const evidence = await readEvidence();
+            return {
+              ...evidence,
+              response: {
+                ...evidence.response,
+                result: [{ rid: null }],
+              },
+            };
+          },
+        },
+      }),
+    ).rejects.toThrow("identity omissions exceed baseline authority");
   });
 
   it("fails closed when the evidence bucket is not private", async () => {
