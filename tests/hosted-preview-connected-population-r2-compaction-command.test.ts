@@ -169,7 +169,8 @@ describeConnected("hosted Preview population R2 compaction command", () => {
             ...args: Parameters<typeof rawRepository.registerCompactionChunk>
           ) {
             operatorBoundary = "neon-register";
-            const result = await rawRepository.registerCompactionChunk(...args);
+            const result =
+              await rawRepository.registerCompactionChunk(...args);
             operatorBoundary = "after-neon-register";
             return result;
           },
@@ -184,7 +185,9 @@ describeConnected("hosted Preview population R2 compaction command", () => {
         });
         const capacityPreflight = Object.freeze({
           ...rawCapacityPreflight,
-          async inspect(...args: Parameters<typeof rawCapacityPreflight.inspect>) {
+          async inspect(
+            ...args: Parameters<typeof rawCapacityPreflight.inspect>
+          ) {
             operatorBoundary = "capacity-preflight";
             const result = await rawCapacityPreflight.inspect(...args);
             operatorBoundary = "after-capacity-preflight";
