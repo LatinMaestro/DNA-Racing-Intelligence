@@ -30,12 +30,48 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Measure current population capacity without writes
         run: npx vitest run --no-file-parallelism tests/temporary-population-capacity-diagnostic.test.ts
-      - name: Inspect sanitized Preview relation sizes without writes
-        shell: bash
+      - name: Install PostgreSQL client
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
-          psql "${DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
+      - name: Acquire masked short-lived Preview read binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(name) || !/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("Preview runtime identity is invalid.");
+          }
+          process.stdout.write(`${name}\t${endpoint}`);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api             "/projects/${NEON_PROJECT_ID}/endpoints"             --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 || !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("Preview branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          read_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}"             --project-id "${NEON_PROJECT_ID}"             --role-name neondb_owner             --database-name "${database_name}"             --no-color 2>/dev/null)"
+          if [[ ! "${read_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "Preview read binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${read_url}"
+          echo "DNA_DIAGNOSTIC_DATABASE_URL=${read_url}" >> "${GITHUB_ENV}"
+      - name: Inspect sanitized Preview storage without writes
+        shell: bash
+        run: |
+          psql "${DNA_DIAGNOSTIC_DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
             SELECT 'DNA_PREVIEW_RELATION_SIZE=' ||
                    json_build_object(
                      'schema', schemaname,
@@ -49,7 +85,7 @@ jobs:
             ORDER BY pg_total_relation_size(relid) DESC
             LIMIT 20;
           "
-          psql "${DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
+          psql "${DNA_DIAGNOSTIC_DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
             SELECT 'DNA_POPULATION_INDEX_SHAPE=' ||
                    json_build_object(
                      'rowCount', count(*),
@@ -65,3 +101,17 @@ jobs:
                    )::text
             FROM dna.dna_population_race_index_race r;
           "
+          psql "${DNA_DIAGNOSTIC_DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
+            SELECT 'DNA_POPULATION_INDEX_INDEX=' ||
+                   json_build_object(
+                     'index', indexrelname,
+                     'bytes', pg_relation_size(indexrelid)
+                   )::text
+            FROM pg_stat_user_indexes
+            WHERE schemaname = 'dna'
+              AND relname = 'dna_population_race_index_race'
+            ORDER BY pg_relation_size(indexrelid) DESC;
+          "
+      - name: Remove diagnostic database binding
+        if: always()
+        run: echo "DNA_DIAGNOSTIC_DATABASE_URL=" >> "${GITHUB_ENV}"
