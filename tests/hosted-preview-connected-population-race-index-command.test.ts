@@ -19,8 +19,6 @@ const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
 
-class SafeConnectedCommandError extends Error {}
-
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
   if (
@@ -136,14 +134,10 @@ describeConnected("hosted Preview population race index command", () => {
           ),
           maximumReceiptCount: receiptBound(),
         });
-        if (receipt.status === "held") {
-          throw new SafeConnectedCommandError(
-            `population race index held: ${receipt.reason ?? "unknown"}`,
-          );
-        }
         const report = Object.freeze({
           version: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
           status: receipt.status,
+          reason: receipt.reason,
           exactCodeHeadSha: receipt.exactCodeHeadSha,
           beforeRequestOrdinal: receipt.beforeRequestOrdinal,
           afterRequestOrdinal: receipt.afterRequestOrdinal,
@@ -172,11 +166,15 @@ describeConnected("hosted Preview population race index command", () => {
             report.beforeRequestOrdinal,
           );
         }
+        if (report.status === "held") {
+          expect(report.reason).toMatch(/^provider_capacity_[a-z0-9_]+$/u);
+          expect(report.processedReceiptCount).toBe(0);
+          expect(report.afterRequestOrdinal).toBe(report.beforeRequestOrdinal);
+        }
         console.log(
           `DNA_POPULATION_RACE_INDEX_PROGRESS=${JSON.stringify(report)}`,
         );
-      } catch (error) {
-        if (error instanceof SafeConnectedCommandError) throw error;
+      } catch {
         throw new Error("DNA population race index private Preview failed");
       }
     },
