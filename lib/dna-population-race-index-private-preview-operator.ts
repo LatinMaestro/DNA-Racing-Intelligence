@@ -25,6 +25,8 @@ export const DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION =
   "dna-population-race-index-private-preview/v1" as const;
 export const DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_INTENT =
   "advance_private_preview_population_race_index" as const;
+export const DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_WORKER_ID =
+  "population-race-index-preview-worker" as const;
 
 export const DNA_POPULATION_RACE_INDEX_P5_AUTHORITY = Object.freeze({
   logicalRequestCount: 17_464,
