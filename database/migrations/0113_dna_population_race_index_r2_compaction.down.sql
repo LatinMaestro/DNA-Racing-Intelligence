@@ -38,6 +38,7 @@ ALTER TABLE dna.dna_population_race_index_generation
   DROP CONSTRAINT IF EXISTS dna_population_race_index_generation_generation_key_key,
   DROP COLUMN IF EXISTS legacy_storage_retired_at,
   DROP COLUMN IF EXISTS compacted_at,
+  DROP COLUMN IF EXISTS r2_last_source_race_id,
   DROP COLUMN IF EXISTS r2_compacted_race_count,
   DROP COLUMN IF EXISTS r2_chunk_count,
   DROP COLUMN IF EXISTS storage_layout,
