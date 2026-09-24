@@ -20,6 +20,13 @@ const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
 
+type DiagnosticStage =
+  | "environment"
+  | "capacity-source"
+  | "repository-composition"
+  | "operator-execution"
+  | "receipt-validation";
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
   if (
@@ -38,6 +45,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
   it(
     "moves one bounded unique legacy race chunk to private R2 without DNA requests",
     async () => {
+      let diagnosticStage: DiagnosticStage = "environment";
       try {
         const exactCodeHeadSha =
           requiredEnvironment("GITHUB_SHA").toLowerCase();
@@ -57,6 +65,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           throw new Error("only R2 Standard storage is allowed");
         }
 
+        diagnosticStage = "capacity-source";
         const capacitySource =
           cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment({
             authorizedOwnerId: ownerId,
@@ -73,6 +82,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           throw new Error("provider capacity measurement is unavailable");
         }
 
+        diagnosticStage = "repository-composition";
         const packet = DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET;
         const ledger = createNeonDnaOpenLabP5FirstBackfillLedger({
           databaseUrl,
@@ -112,6 +122,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           }),
         });
 
+        diagnosticStage = "operator-execution";
         const receipt = await operator.execute({
           operatorVersion:
             DNA_POPULATION_RACE_INDEX_R2_COMPACTION_OPERATOR_VERSION,
@@ -125,6 +136,8 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           ),
           maximumRows: 4_000,
         });
+
+        diagnosticStage = "receipt-validation";
         const report = Object.freeze({
           status: receipt.status,
           reason: receipt.reason,
@@ -167,6 +180,11 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           `DNA_POPULATION_R2_COMPACTION_PROGRESS=${JSON.stringify(report)}`,
         );
       } catch {
+        console.log(
+          `DNA_POPULATION_R2_COMPACTION_FAILURE=${JSON.stringify({
+            stage: diagnosticStage,
+          })}`,
+        );
         throw new Error("DNA population R2 compaction private Preview failed");
       }
     },
