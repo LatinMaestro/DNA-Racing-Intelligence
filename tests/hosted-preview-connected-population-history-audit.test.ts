@@ -198,14 +198,15 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       const manifests = [];
       let afterChunkOrdinal = 0;
       while (manifests.length < populationIndex.r2ChunkCount) {
-        const page = await populationIndexRepository.listPublishedR2ChunkManifests(
-          ownerId,
-          {
-            generationId: baselineState.completionSha256,
-            afterChunkOrdinal,
-            limit: 100,
-          },
-        );
+        const page =
+          await populationIndexRepository.listPublishedR2ChunkManifests(
+            ownerId,
+            {
+              generationId: baselineState.completionSha256,
+              afterChunkOrdinal,
+              limit: 100,
+            },
+          );
         if (page.length === 0) {
           throw new Error("published compact P5 manifests are incomplete");
         }

@@ -654,7 +654,9 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
         request.limit < 1 ||
         request.limit > 100
       ) {
-        throw new Error("published population R2 manifest read bounds are invalid");
+        throw new Error(
+          "published population R2 manifest read bounds are invalid",
+        );
       }
       const generationId = sha256(request.generationId, "generationId");
       return transaction({
