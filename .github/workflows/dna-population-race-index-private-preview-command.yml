@@ -35,10 +35,10 @@ jobs:
   exact-main-bounded-private-preview-index:
     name: Exact-main bounded private Preview population index
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     environment: preview
     outputs:
-      terminal_status: ${{ steps.advance.outputs.status }}
+      terminal_status: ${{ steps.terminal.outputs.status }}
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -48,6 +48,7 @@ jobs:
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ github.event_name == 'schedule' && '100' || inputs.maximum_receipts }}
       DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND: "1"
+      DNA_POPULATION_R2_COMPACTION_PRIVATE_PREVIEW_COMMAND: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
@@ -177,7 +178,7 @@ jobs:
           fi
           echo "::add-mask::${migration_url}"
           echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
-      - name: Apply population index migration only when absent
+      - name: Apply population index migrations only when absent
         shell: bash
         run: |
           installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
@@ -186,15 +187,100 @@ jobs:
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0112_dna_population_race_index_generation.up.sql
           fi
-      - name: Prove population index migration on private Preview
-        run: >-
-          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1
-          --set skip_runtime_role=1 --file
-          database/migrations/0112_dna_population_race_index_generation.smoke.sql
+          compact_installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --command "SELECT to_regprocedure('dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)') IS NOT NULL")"
+          if [[ "${compact_installed}" != "t" ]]; then
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+              --file database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+          fi
+      - name: Prove population index migrations on private Preview
+        shell: bash
+        run: |
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 --file \
+            database/migrations/0112_dna_population_race_index_generation.smoke.sql
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 --file \
+            database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+      - name: Compact legacy Neon race payload into R2
+        id: compact
+        shell: bash
+        run: |
+          deadline_epoch="$(( $(date +%s) + 1200 ))"
+          status=""
+          chunk_number=0
+          while (( $(date +%s) < deadline_epoch )); do
+            chunk_number="$(( chunk_number + 1 ))"
+            echo "Starting bounded R2 population compaction chunk ${chunk_number}."
+            output_file="$(mktemp)"
+            DNA_POPULATION_R2_COMPACTION_ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+              npx vitest run --no-file-parallelism \
+                tests/hosted-preview-connected-population-r2-compaction-command.test.ts \
+              | tee "${output_file}"
+            progress_json="$(sed -n 's/^.*DNA_POPULATION_R2_COMPACTION_PROGRESS=//p' "${output_file}" | tail -n 1)"
+            rm -f "${output_file}"
+            status="$(PROGRESS_JSON="${progress_json}" node --input-type=module <<'NODE'
+          const progress = JSON.parse(process.env.PROGRESS_JSON ?? "");
+          if (!["advanced", "complete", "held"].includes(progress.status)) {
+            throw new Error("The R2 compaction emitted an invalid progress status.");
+          }
+          if (progress.status === "advanced" &&
+              !(progress.afterCompactedRaceCount > progress.beforeCompactedRaceCount)) {
+            throw new Error("The R2 compaction did not advance its durable count.");
+          }
+          if (progress.status === "complete" &&
+              (progress.afterCompactedRaceCount !== progress.uniqueRaceCount ||
+               progress.storageLayout !== "r2_chunked_v1")) {
+            throw new Error("The R2 compaction completion proof is inconsistent.");
+          }
+          if (progress.status === "held" &&
+              progress.afterCompactedRaceCount !== progress.beforeCompactedRaceCount) {
+            throw new Error("The R2 compaction capacity hold changed durable counts.");
+          }
+          process.stdout.write(progress.status);
+          NODE
+            )"
+            if [[ "${status}" == "complete" || "${status}" == "held" ]]; then
+              break
+            fi
+            git fetch --quiet --no-tags origin main
+            if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+              echo "Main changed during R2 population compaction."
+              exit 1
+            fi
+          done
+          if [[ ! "${status}" =~ ^(advanced|complete|held)$ ]]; then
+            echo "The R2 compaction did not emit a terminal status."
+            exit 1
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+      - name: Retire verified legacy Neon population payload
+        if: steps.compact.outputs.status == 'complete'
+        shell: bash
+        run: |
+          proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -AtF '|' --set ON_ERROR_STOP=1 \
+            --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_legacy_storage(clock_timestamp())")"
+          IFS='|' read -r generations identities manifest_rows legacy_rows <<< "${proof}"
+          if [[ ! "${generations}" =~ ^[0-9]+$ ]] || \
+             [[ ! "${identities}" =~ ^[0-9]+$ ]] || \
+             [[ "${identities}" != "${manifest_rows}" ]] || \
+             [[ "${identities}" != "${legacy_rows}" ]]; then
+            echo "The legacy retirement equivalence proof is invalid."
+            exit 1
+          fi
+          remaining="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --command "SELECT count(*) FROM dna.dna_population_race_index_race")"
+          if [[ "${remaining}" != "0" ]]; then
+            echo "Legacy Neon race payload remains after verified retirement."
+            exit 1
+          fi
+          echo "Verified R2 cutover: ${identities} unique canonical races; legacy Neon payload rows now 0."
       - name: Remove migration binding from subsequent steps
+        if: always()
         shell: bash
         run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
       - name: Advance bounded immutable P5 slices for at most 20 minutes
+        if: steps.compact.outputs.status == 'complete'
         id: advance
         shell: bash
         run: |
@@ -247,6 +333,24 @@ jobs:
           done
           if [[ ! "${status}" =~ ^(advanced|complete|held)$ ]]; then
             echo "The population index did not emit a terminal status."
+            exit 1
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+      - name: Select continuation status
+        id: terminal
+        if: always()
+        shell: bash
+        env:
+          COMPACTION_STATUS: ${{ steps.compact.outputs.status }}
+          ADVANCE_STATUS: ${{ steps.advance.outputs.status }}
+        run: |
+          if [[ "${COMPACTION_STATUS}" != "complete" ]]; then
+            status="${COMPACTION_STATUS}"
+          else
+            status="${ADVANCE_STATUS}"
+          fi
+          if [[ ! "${status}" =~ ^(advanced|complete|held)$ ]]; then
+            echo "The population continuation status is unavailable."
             exit 1
           fi
           echo "status=${status}" >> "${GITHUB_OUTPUT}"
