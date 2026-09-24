@@ -259,6 +259,7 @@ describeConnected("hosted Preview population race index command", () => {
           processedReceiptCount: receipt.processedReceiptCount,
           uniqueRaceCount: receipt.uniqueRaceCount,
           uniqueEntrantCoreCount: receipt.uniqueEntrantCoreCount,
+          providerCapacityBlockerIds: receipt.providerCapacityBlockerIds,
           persistentWriteArmed: receipt.persistentWriteArmed,
           previewOnly: receipt.previewOnly,
           dnaProviderRequestCount: receipt.dnaProviderRequestCount,
@@ -284,6 +285,7 @@ describeConnected("hosted Preview population race index command", () => {
           expect(report.reason).toMatch(/^provider_capacity_[a-z0-9_]+$/u);
           expect(report.processedReceiptCount).toBe(0);
           expect(report.afterRequestOrdinal).toBe(report.beforeRequestOrdinal);
+          expect(report.providerCapacityBlockerIds.length).toBeGreaterThan(0);
         }
         console.log(
           `DNA_POPULATION_RACE_INDEX_PROGRESS=${JSON.stringify(report)}`,
