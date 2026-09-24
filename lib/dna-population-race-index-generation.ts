@@ -1,0 +1,255 @@
+import { createHash } from "node:crypto";
+
+import type {
+  DnaPopulationRaceIndexDocument,
+  DnaPopulationRaceIndexReceiptBatch,
+} from "./dna-population-race-index-checkpoint";
+
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
+const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
+
+export const DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_WRITE = 100;
+export const DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENTS_PER_WRITE = 5_000;
+export const DNA_POPULATION_RACE_INDEX_MAXIMUM_WRITE_BYTES = 8 * 1024 * 1024;
+
+export type DnaPopulationRaceIndexAuthority = Readonly<{
+  version: 1;
+  generationId: string;
+  baselineCompletionSha256: string;
+  baselineLogicalRequestCount: number;
+  baselineRetainedR2Bytes: number;
+  baselineOmittedIdentityObservationCount: number;
+}>;
+
+export type DnaPopulationRaceIndexCheckpoint = DnaPopulationRaceIndexAuthority &
+  Readonly<{
+    state: "staging" | "complete" | "published";
+    lastRequestOrdinal: number;
+    processedReceiptCount: number;
+    processedReceiptBytes: number;
+    processedIdentityOmissionCount: number;
+    finishedRaceReceiptCount: number;
+    canonicalDocumentObservationCount: number;
+    uniqueRaceCount: number;
+    uniqueEntrantCoreCount: number;
+    updatedAt: string;
+    completedAt: string | null;
+    publishedAt: string | null;
+  }>;
+
+export type DnaPopulationRaceIndexWriteBatch = Readonly<{
+  version: 1;
+  generationId: string;
+  batchSha256: string;
+  afterRequestOrdinal: number;
+  nextRequestOrdinal: number;
+  processedReceiptCount: number;
+  processedReceiptBytes: number;
+  processedIdentityOmissionCount: number;
+  finishedRaceReceiptCount: number;
+  canonicalDocumentObservationCount: number;
+  documents: readonly DnaPopulationRaceIndexDocument[];
+  complete: boolean;
+}>;
+
+export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
+  begin: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      authority: DnaPopulationRaceIndexAuthority;
+      startedAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  appendBatch: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      batch: DnaPopulationRaceIndexWriteBatch;
+      writtenAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  publish: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      publishedAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  load: (
+    ownerId: string,
+    generationId: string,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint | null>;
+}>;
+
+function generationError(message: string): never {
+  throw new Error(`DNA population race index generation: ${message}`);
+}
+
+function nonNegativeInteger(value: unknown, field: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    generationError(`${field} is invalid`);
+  }
+  return Number(value);
+}
+
+function positiveInteger(value: unknown, field: string): number {
+  const parsed = nonNegativeInteger(value, field);
+  if (parsed < 1) generationError(`${field} is invalid`);
+  return parsed;
+}
+
+function sha256(value: unknown, field: string): string {
+  if (typeof value !== "string" || !SHA_256_PATTERN.test(value)) {
+    generationError(`${field} is invalid`);
+  }
+  return value;
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value === "boolean")
+    return JSON.stringify(value);
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) generationError("canonical value is invalid");
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => canonicalJson(entry)).join(",")}]`;
+  }
+  if (typeof value !== "object") generationError("canonical value is invalid");
+  return `{${Object.entries(value as Record<string, unknown>)
+    .filter(([, entry]) => entry !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+    .join(",")}}`;
+}
+
+function validateDocument(
+  document: DnaPopulationRaceIndexDocument,
+  afterRequestOrdinal: number,
+  nextRequestOrdinal: number,
+): void {
+  const requestOrdinal = positiveInteger(
+    document.requestOrdinal,
+    "document.requestOrdinal",
+  );
+  if (
+    requestOrdinal <= afterRequestOrdinal ||
+    requestOrdinal >= nextRequestOrdinal ||
+    (document.endpoint !== "races.finished" &&
+      document.endpoint !== "races.docs") ||
+    typeof document.observedAt !== "string" ||
+    Number.isNaN(new Date(document.observedAt).getTime()) ||
+    typeof document.sourceRaceId !== "string" ||
+    document.sourceRaceId.trim() !== document.sourceRaceId ||
+    document.sourceRaceId === "" ||
+    CONTROL_PATTERN.test(document.sourceRaceId) ||
+    document.canonical.sourceType !== "race_document" ||
+    document.canonical.sourceRaceId !== document.sourceRaceId
+  ) {
+    generationError("document authority is invalid");
+  }
+  sha256(document.rawEvidenceSha256, "document.rawEvidenceSha256");
+}
+
+export function createDnaPopulationRaceIndexAuthority(input: {
+  baselineCompletionSha256: string;
+  baselineLogicalRequestCount: number;
+  baselineRetainedR2Bytes: number;
+  baselineOmittedIdentityObservationCount: number;
+}): DnaPopulationRaceIndexAuthority {
+  const completionSha256 = sha256(
+    input.baselineCompletionSha256,
+    "baselineCompletionSha256",
+  );
+  return Object.freeze({
+    version: 1,
+    generationId: completionSha256,
+    baselineCompletionSha256: completionSha256,
+    baselineLogicalRequestCount: positiveInteger(
+      input.baselineLogicalRequestCount,
+      "baselineLogicalRequestCount",
+    ),
+    baselineRetainedR2Bytes: positiveInteger(
+      input.baselineRetainedR2Bytes,
+      "baselineRetainedR2Bytes",
+    ),
+    baselineOmittedIdentityObservationCount: nonNegativeInteger(
+      input.baselineOmittedIdentityObservationCount,
+      "baselineOmittedIdentityObservationCount",
+    ),
+  });
+}
+
+export function createDnaPopulationRaceIndexWriteBatch(
+  input: DnaPopulationRaceIndexReceiptBatch,
+): DnaPopulationRaceIndexWriteBatch {
+  const generationId = sha256(
+    input.baselineCompletionSha256,
+    "baselineCompletionSha256",
+  );
+  const afterRequestOrdinal = nonNegativeInteger(
+    input.afterRequestOrdinal,
+    "afterRequestOrdinal",
+  );
+  const nextRequestOrdinal = positiveInteger(
+    input.nextRequestOrdinal,
+    "nextRequestOrdinal",
+  );
+  const processedReceiptCount = positiveInteger(
+    input.processedReceiptCount,
+    "processedReceiptCount",
+  );
+  if (
+    processedReceiptCount >
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_WRITE ||
+    nextRequestOrdinal !== afterRequestOrdinal + processedReceiptCount + 1 ||
+    input.documents.length >
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_DOCUMENTS_PER_WRITE ||
+    input.canonicalDocumentObservationCount !== input.documents.length
+  ) {
+    generationError("batch bounds are invalid");
+  }
+  for (const document of input.documents) {
+    validateDocument(document, afterRequestOrdinal, nextRequestOrdinal);
+  }
+  const batchWithoutSha = {
+    version: 1 as const,
+    generationId,
+    afterRequestOrdinal,
+    nextRequestOrdinal,
+    processedReceiptCount,
+    processedReceiptBytes: positiveInteger(
+      input.processedReceiptBytes,
+      "processedReceiptBytes",
+    ),
+    processedIdentityOmissionCount: nonNegativeInteger(
+      input.processedIdentityOmissionCount,
+      "processedIdentityOmissionCount",
+    ),
+    finishedRaceReceiptCount: nonNegativeInteger(
+      input.finishedRaceReceiptCount,
+      "finishedRaceReceiptCount",
+    ),
+    canonicalDocumentObservationCount: nonNegativeInteger(
+      input.canonicalDocumentObservationCount,
+      "canonicalDocumentObservationCount",
+    ),
+    documents: input.documents,
+    complete: input.complete,
+  };
+  const canonical = canonicalJson(batchWithoutSha);
+  if (
+    Buffer.byteLength(canonical, "utf8") >
+    DNA_POPULATION_RACE_INDEX_MAXIMUM_WRITE_BYTES
+  ) {
+    generationError("batch payload is too large");
+  }
+  return Object.freeze({
+    ...batchWithoutSha,
+    batchSha256: createHash("sha256").update(canonical, "utf8").digest("hex"),
+    documents: Object.freeze([...input.documents]),
+  });
+}

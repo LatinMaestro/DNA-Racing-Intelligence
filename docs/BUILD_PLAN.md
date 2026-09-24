@@ -683,6 +683,18 @@ Valid but pricing-unclassified actions are counted against both paid-operation
 guards until Cloudflare documents their class. This conservative double count
 cannot increase refresh authority and never publishes the action name.
 
+The immutable P5 population race index now has a restart-safe persistence
+boundary in migration `0112`. One owner-isolated generation is pinned to the
+exact P5 completion digest, request count, retained-byte total and approved
+identity-omission total. Each function-only serializable append stores no more
+than 100 contiguous receipt ordinals together with its compact canonical race
+and entrant index before advancing the checkpoint. Exact replay is idempotent;
+gaps, counter drift, cross-owner access, changed race identity or mode, and
+premature completion fail closed. Publication can move the owner-local pointer
+only after every baseline ordinal, byte and omission reconciles exactly. The
+reader-to-writer Preview continuation and connected bounded slices remain the
+next dependency; no hosted write path imports this repository yet.
+
 After owner-approved persistent API sync:
 
 - backfill sufficient historical API evidence plus current Vault/Core/Splice state;

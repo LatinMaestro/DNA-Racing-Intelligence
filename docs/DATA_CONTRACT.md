@@ -179,6 +179,14 @@ exact response coverage. The environment/runtime command and first complete
 private result generation remain required before this evidence can replace the
 current held Pro League performance read.
 
+The population race-document authority uses an independent compact generation.
+Its identity is the immutable P5 completion digest, while its checkpoint binds
+the baseline request count, retained R2 bytes and approved identity omission.
+Each owner-scoped append records a replay receipt plus deduplicated race and
+entrant indexes in the same serializable transaction as ordinal advancement.
+The runtime has function-only access. Partial generations are not active, and
+publication requires exact reconciliation of all immutable baseline totals.
+
 ### Cores
 
 - identity/basic Core data;

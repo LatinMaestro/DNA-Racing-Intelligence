@@ -264,6 +264,15 @@ population Core. Checkpoints advance one page at a time and close only after
 retaining an explicit empty page; a short non-empty page remains resumable work.
 The observed provider cap is 50 rows per page.
 
+Population race-index reconstruction is separately checkpointed before that
+enrichment universe is calculated. A generation is identified by the immutable
+P5 completion digest. Bounded writes atomically persist one contiguous receipt
+slice, its canonical all-mode race/entrant indexes and the next ordinal. The
+generation remains staging until the accumulated request, byte and approved
+identity-omission totals exactly equal P5; only then may the last-good pointer
+advance. A stopped runner resumes from the stored ordinal and never rescans a
+completed slice as new work.
+
 Private raw page observations use create-if-absent R2 keys derived from hashed
 owner and Core identities plus cycle, attempt and page. Invalid rows receive a
 separate immutable quarantine receipt, while conflicting duplicate result
