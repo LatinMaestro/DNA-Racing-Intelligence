@@ -564,8 +564,7 @@ jobs:
     needs: exact-main-bounded-private-preview-index
     if: >-
       ${{ needs['exact-main-bounded-private-preview-index'].result == 'success' &&
-          (needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'advanced' ||
-           needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'held') }}
+          needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'advanced' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -576,16 +575,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Wait before bounded continuation
         shell: bash
-        env:
-          TERMINAL_STATUS: ${{ needs['exact-main-bounded-private-preview-index'].outputs.terminal_status }}
         run: |
-          if [[ "${TERMINAL_STATUS}" == "held" ]]; then
-            sleep_seconds=300
-          else
-            sleep_seconds=60
-          fi
-          echo "Waiting ${sleep_seconds} seconds before the next bounded private Preview attempt."
-          sleep "${sleep_seconds}"
+          echo "Waiting 60 seconds before the next bounded private Preview attempt."
+          sleep 60
       - name: Requeue only unchanged main without a competing run
         shell: bash
         env:
