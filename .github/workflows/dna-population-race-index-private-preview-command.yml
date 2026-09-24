@@ -362,21 +362,40 @@ jobs:
         shell: bash
         run: |
           generation_id="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
-            --set owner_id="${DNA_DATABASE_OWNER_ID}" \
-            --command "SELECT generation_id FROM dna.dna_population_race_index_generation WHERE owner_id = :'owner_id'::uuid")"
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" --file=- <<'SQL'
+          SELECT generation_id
+          FROM dna.dna_population_race_index_generation
+          WHERE owner_id = :'owner_id'::uuid;
+          SQL
+          )"
           if [[ ! "${generation_id}" =~ ^[a-f0-9]{64}$ ]]; then
             echo "The population generation authority is unavailable."
             exit 1
           fi
           retired="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
             --set owner_id="${DNA_DATABASE_OWNER_ID}" \
-            --set generation_id="${generation_id}" \
-            --command "SELECT legacy_storage_retired_at IS NOT NULL FROM dna.dna_population_race_index_generation WHERE owner_id = :'owner_id'::uuid AND generation_id = :'generation_id'")"
+            --set generation_id="${generation_id}" --file=- <<'SQL'
+          SELECT legacy_storage_retired_at IS NOT NULL
+          FROM dna.dna_population_race_index_generation
+          WHERE owner_id = :'owner_id'::uuid
+            AND generation_id = :'generation_id';
+          SQL
+          )"
           if [[ "${retired}" == "f" ]]; then
             proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -AtF '|' --set ON_ERROR_STOP=1 \
               --set owner_id="${DNA_DATABASE_OWNER_ID}" \
-              --set generation_id="${generation_id}" \
-              --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_storage_negative_legacy(:'owner_id'::uuid, :'generation_id', clock_timestamp())")"
+              --set generation_id="${generation_id}" --file=- <<'SQL'
+          SELECT generation_count,
+                 compact_identity_count,
+                 r2_manifest_row_count,
+                 legacy_race_count
+          FROM dna.retire_dna_population_race_index_storage_negative_legacy(
+            :'owner_id'::uuid,
+            :'generation_id',
+            clock_timestamp()
+          );
+          SQL
+            )"
             IFS='|' read -r generations identities manifest_rows legacy_rows <<< "${proof}"
             if [[ "${generations}" != "1" ]] || [[ "${identities}" != "0" ]] || \
                [[ ! "${manifest_rows}" =~ ^[1-9][0-9]*$ ]] || \
