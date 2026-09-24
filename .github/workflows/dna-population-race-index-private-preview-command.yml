@@ -2,7 +2,7 @@ name: DNA population race index bounded private Preview command
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       expected_main_sha:
@@ -25,6 +25,7 @@ on:
         type: boolean
 
 permissions:
+  actions: write
   contents: read
 
 concurrency:
@@ -37,6 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: preview
+    outputs:
+      terminal_status: ${{ steps.advance.outputs.status }}
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -193,10 +196,12 @@ jobs:
         shell: bash
         run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
       - name: Advance bounded immutable P5 slices for at most 20 minutes
+        id: advance
         shell: bash
         run: |
           deadline_epoch="$(( $(date +%s) + 1200 ))"
           slice_number=0
+          status=""
           while (( $(date +%s) < deadline_epoch )); do
             slice_number="$(( slice_number + 1 ))"
             echo "Starting durable population-index slice ${slice_number}."
@@ -241,6 +246,11 @@ jobs:
               exit 1
             fi
           done
+          if [[ ! "${status}" =~ ^(advanced|complete|held)$ ]]; then
+            echo "The population index did not emit a terminal status."
+            exit 1
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
@@ -250,3 +260,63 @@ jobs:
             echo "Main changed during the private Preview population index command."
             exit 1
           fi
+
+  requeue-private-preview-index:
+    name: Requeue unfinished private Preview population index
+    needs: exact-main-bounded-private-preview-index
+    if: >-
+      ${{ needs['exact-main-bounded-private-preview-index'].result == 'success' &&
+          (needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'advanced' ||
+           needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'held') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Wait before bounded continuation
+        shell: bash
+        env:
+          TERMINAL_STATUS: ${{ needs['exact-main-bounded-private-preview-index'].outputs.terminal_status }}
+        run: |
+          if [[ "${TERMINAL_STATUS}" == "held" ]]; then
+            sleep_seconds=300
+          else
+            sleep_seconds=60
+          fi
+          echo "Waiting ${sleep_seconds} seconds before the next bounded private Preview attempt."
+          sleep "${sleep_seconds}"
+      - name: Requeue only unchanged main without a competing run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed before continuation; the next exact-main run must restart the chain."
+            exit 0
+          fi
+
+          active_other_count="$(gh api \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/runs?per_page=20" \
+            --jq '[.workflow_runs[] | select(.id != (env.GITHUB_RUN_ID | tonumber) and .status != "completed")] | length')"
+          if [[ ! "${active_other_count}" =~ ^[0-9]+$ ]]; then
+            echo "The competing-run proof was invalid."
+            exit 1
+          fi
+          if (( active_other_count > 0 )); then
+            echo "Another population-index run is already active; no duplicate continuation was dispatched."
+            exit 0
+          fi
+
+          jq -n --arg sha "${GITHUB_SHA}" '{
+            ref: "main",
+            inputs: {
+              expected_main_sha: $sha,
+              maximum_receipts: "100",
+              execute_bounded_private_preview_index: "true"
+            }
+          }' | gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/dispatches" \
+            --input -
+          echo "Dispatched the next exact-main bounded private Preview attempt."
