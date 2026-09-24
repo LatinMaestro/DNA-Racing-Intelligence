@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createDnaPopulationRaceIndexAuthority,
+  createDnaPopulationRaceIndexR2AppendPlan,
   createDnaPopulationRaceIndexWriteBatch,
 } from "../lib/dna-population-race-index-generation";
 
@@ -100,4 +101,64 @@ describe("DNA population race index generation", () => {
       }),
     ).toThrow("document authority is invalid");
   });
+  it("deduplicates exact durable races before creating an R2 append", () => {
+    const batch = createDnaPopulationRaceIndexWriteBatch(receiptBatch());
+    expect(
+      createDnaPopulationRaceIndexR2AppendPlan({
+        batch,
+        existingIdentities: [
+          {
+            sourceRaceId: "race-1",
+            rawEvidenceSha256: "b".repeat(64),
+          },
+        ],
+      }),
+    ).toEqual({
+      newDocuments: [],
+      newIdentities: [],
+    });
+  });
+
+  it("fails closed instead of storing a second canonical copy when a race hash drifts", () => {
+    const batch = createDnaPopulationRaceIndexWriteBatch(receiptBatch());
+    expect(() =>
+      createDnaPopulationRaceIndexR2AppendPlan({
+        batch,
+        existingIdentities: [
+          {
+            sourceRaceId: "race-1",
+            rawEvidenceSha256: "c".repeat(64),
+          },
+        ],
+      }),
+    ).toThrow("race evidence drifted from durable compact identity");
+  });
+
+  it("keeps one exact copy when an immutable batch repeats the same race", () => {
+    const base = receiptBatch();
+    const duplicate = base.documents[0]!;
+    const batch = createDnaPopulationRaceIndexWriteBatch({
+      ...base,
+      canonicalDocumentObservationCount: 2,
+      documents: [
+        duplicate,
+        {
+          ...duplicate,
+          requestOrdinal: 1,
+        },
+      ],
+    });
+    const plan = createDnaPopulationRaceIndexR2AppendPlan({
+      batch,
+      existingIdentities: [],
+    });
+    expect(plan.newDocuments).toHaveLength(1);
+    expect(plan.newIdentities).toEqual([
+      {
+        sourceRaceId: "race-1",
+        rawEvidenceSha256: "b".repeat(64),
+      },
+    ]);
+  });
+
 });
