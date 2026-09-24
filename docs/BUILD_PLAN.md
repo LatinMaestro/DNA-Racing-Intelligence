@@ -698,8 +698,17 @@ evidence read or persistent write, it measures current R2 and Neon capacity and
 fails closed below the existing zero-cost floors. One invocation reads and
 atomically appends at most 100 immutable receipts, uses no DNA API request,
 preserves the active last-good pointer while staging, and publishes only after
-the exact P5 totals reconcile. The first connected protected Preview slice and
-its durable progress proof remain the next dependency.
+the exact P5 totals reconcile. Protected Preview indexing subsequently advanced
+the staging generation to receipt 6,324 before the measured Neon storage ceiling
+held further writes. The broad mode secondary index has no commissioned reader
+while this generation is staging and duplicates owner/generation/race identity
+already retained by the primary key. Migration `0113` removes only that unused
+index, preserving every race row, canonical value, receipt, checkpoint, owner
+boundary and last-good pointer. The protected Preview command applies and proves
+that reversible relief before remeasuring capacity and attempting another slice.
+This creates bounded zero-cost headroom; it is not the durable final storage
+shape. R2-backed canonical chunks plus compact Neon manifests, aggregates and
+publication pointers remain required before the population generation completes.
 
 After owner-approved persistent API sync:
 

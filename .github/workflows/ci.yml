@@ -303,6 +303,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.up.sql
       - name: Run population race index generation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.smoke.sql
+      - name: Apply population race index storage relief migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_storage_relief.up.sql
+      - name: Run population race index storage relief smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_storage_relief.smoke.sql
+      - name: Reverse population race index storage relief migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_storage_relief.down.sql
+      - name: Verify population race index storage relief removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_storage_relief.removal.sql
       - name: Reverse population race index generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.down.sql
       - name: Verify population race index generation removal

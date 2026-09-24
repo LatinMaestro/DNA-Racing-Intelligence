@@ -31,6 +31,12 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0112_dna_population_race_index_generation.smoke.sql",
     );
+    expect(workflow).toContain(
+      "0113_dna_population_race_index_storage_relief.up.sql",
+    );
+    expect(workflow).toContain(
+      "0113_dna_population_race_index_storage_relief.smoke.sql",
+    );
     expect(workflow).toContain("--set skip_runtime_role=1");
     expect(workflow).toContain("neon@6.0.0 connection-string");
     expect(workflow).toContain('"/projects/${NEON_PROJECT_ID}/endpoints"');

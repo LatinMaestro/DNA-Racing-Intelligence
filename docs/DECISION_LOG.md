@@ -2786,3 +2786,18 @@ After the private Pro League milestone, continue in this order:
 - Host the eventual minute trigger separately from the daily current-state
   schedule. Prove it first in protected private Preview after reconciliation
   completes. Production activation remains a separate owner-gated action.
+
+## 2026-09-24 — Relieve population-index staging storage without weakening authority
+
+- Connected capacity evidence identified Neon storage, rather than R2 storage or
+  compute, as the active population-reconciliation blocker. The staging race
+  table's broad mode index has no runtime reader and duplicates the
+  owner/generation/race identity already retained by its primary key.
+- Migration `0113` removes only that unused secondary index. It does not delete
+  a race, canonical value, receipt, checkpoint or active pointer; reversal
+  restores the exact index definition. The protected Preview command applies
+  and smokes the migration before capacity is remeasured or another slice runs.
+- Treat the recovered space as bounded commissioning headroom, not the final
+  solution. The complete durable shape remains private R2 canonical/index
+  chunks with compact owner-scoped Neon manifests, checkpoints, aggregates and
+  publication pointers. Paid use remains disabled and Production unchanged.
