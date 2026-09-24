@@ -1,6 +1,8 @@
 name: DNA population race index bounded private Preview command
 
 on:
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       expected_main_sha:
@@ -42,7 +44,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
-      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ inputs.maximum_receipts }}
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ github.event_name == 'schedule' && '100' || inputs.maximum_receipts }}
       DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
@@ -51,20 +53,25 @@ jobs:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
-      - name: Require exact main and explicit private Preview write arm
+      - name: Require current main and authorized private Preview trigger
         shell: bash
         run: |
           if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
             echo "This bounded private Preview index may only run from main."
             exit 1
           fi
-          if [[ "${{ inputs.execute_bounded_private_preview_index }}" != "true" ]]; then
-            echo "The bounded private Preview index was not explicitly armed."
-            exit 1
-          fi
-          if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
-             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
-            echo "The expected main commit does not match the dispatched commit."
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.execute_bounded_private_preview_index }}" != "true" ]]; then
+              echo "The bounded private Preview index was not explicitly armed."
+              exit 1
+            fi
+            if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
+               [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+              echo "The expected main commit does not match the dispatched commit."
+              exit 1
+            fi
+          elif [[ "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            echo "The private Preview index trigger is not authorized."
             exit 1
           fi
       - name: Checkout exact head
@@ -185,13 +192,43 @@ jobs:
       - name: Remove migration binding from subsequent steps
         shell: bash
         run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
-      - name: Fix canonical slice timestamp
+      - name: Advance bounded immutable P5 slices for at most 20 minutes
         shell: bash
-        run: echo "DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "${GITHUB_ENV}"
-      - name: Advance one bounded immutable P5 slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-population-race-index-command.test.ts
+        run: |
+          deadline_epoch="$(( $(date +%s) + 1200 ))"
+          slice_number=0
+          while (( $(date +%s) < deadline_epoch )); do
+            slice_number="$(( slice_number + 1 ))"
+            echo "Starting durable population-index slice ${slice_number}."
+            output_file="$(mktemp)"
+            DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+              npx vitest run --no-file-parallelism \
+                tests/hosted-preview-connected-population-race-index-command.test.ts \
+              | tee "${output_file}"
+            progress_json="$(sed -n 's/^.*DNA_POPULATION_RACE_INDEX_PROGRESS=//p' "${output_file}" | tail -n 1)"
+            rm -f "${output_file}"
+            status="$(PROGRESS_JSON="${progress_json}" node --input-type=module <<'NODE'
+          const progress = JSON.parse(process.env.PROGRESS_JSON ?? "");
+          if (progress.status !== "advanced" && progress.status !== "complete") {
+            throw new Error("The population index emitted an invalid progress status.");
+          }
+          if (progress.status === "advanced" &&
+              !(progress.afterRequestOrdinal > progress.beforeRequestOrdinal)) {
+            throw new Error("The population index did not advance its durable checkpoint.");
+          }
+          process.stdout.write(progress.status);
+          NODE
+            )"
+            if [[ "${status}" == "complete" ]]; then
+              echo "The immutable P5 population index is complete."
+              break
+            fi
+            git fetch --quiet --no-tags origin main
+            if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+              echo "Main changed between durable population-index slices."
+              exit 1
+            fi
+          done
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
