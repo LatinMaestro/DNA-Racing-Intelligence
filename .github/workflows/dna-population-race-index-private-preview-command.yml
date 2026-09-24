@@ -179,7 +179,8 @@ jobs:
           fi
       - name: Prove population index migration on private Preview
         run: >-
-          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1
+          --set skip_runtime_role=1 --file
           database/migrations/0112_dna_population_race_index_generation.smoke.sql
       - name: Remove migration binding from subsequent steps
         shell: bash
