@@ -21,6 +21,36 @@ const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
 
+type DiagnosticStage =
+  | "environment"
+  | "capacity-source"
+  | "repository-composition"
+  | "operator-execution"
+  | "receipt-validation";
+
+type OperatorBoundary =
+  | "not-started"
+  | "baseline-load"
+  | "after-baseline-load"
+  | "receipt-ledger-read"
+  | "after-receipt-ledger-read"
+  | "evidence-read"
+  | "after-evidence-read"
+  | "generation-load"
+  | "after-generation-load"
+  | "generation-begin"
+  | "after-generation-begin"
+  | "capacity-preflight"
+  | "after-capacity-preflight"
+  | "identity-lookup"
+  | "after-identity-lookup"
+  | "r2-write"
+  | "after-r2-write"
+  | "neon-append"
+  | "after-neon-append"
+  | "publish"
+  | "after-publish";
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
   if (
@@ -47,6 +77,8 @@ describeConnected("hosted Preview population race index command", () => {
   it(
     "advances one zero-cost, owner-isolated immutable P5 slice without DNA requests",
     async () => {
+      let diagnosticStage: DiagnosticStage = "environment";
+      let operatorBoundary: OperatorBoundary = "not-started";
       try {
         const exactCodeHeadSha =
           requiredEnvironment("GITHUB_SHA").toLowerCase();
@@ -66,6 +98,7 @@ describeConnected("hosted Preview population race index command", () => {
           throw new Error("only R2 Standard storage is allowed");
         }
 
+        diagnosticStage = "capacity-source";
         const capacitySource =
           cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment({
             authorizedOwnerId: ownerId,
@@ -82,8 +115,9 @@ describeConnected("hosted Preview population race index command", () => {
           throw new Error("provider capacity measurement is unavailable");
         }
 
+        diagnosticStage = "repository-composition";
         const packet = DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET;
-        const ledger = createNeonDnaOpenLabP5FirstBackfillLedger({
+        const rawLedger = createNeonDnaOpenLabP5FirstBackfillLedger({
           databaseUrl,
           databaseOwnerId,
           ownerId,
@@ -102,32 +136,105 @@ describeConnected("hosted Preview population race index command", () => {
           storage,
           approvalPacket: packet,
         });
-        const repository = createNeonDnaPopulationRaceIndexGenerationRepository(
-          {
+        const rawRepository =
+          createNeonDnaPopulationRaceIndexGenerationRepository({
             databaseUrl,
             databaseOwnerId,
             ownerId,
             runtimeRole: RUNTIME_ROLE,
-          },
-        );
+          });
+        const rawChunkStore = createDnaPopulationRaceIndexR2ChunkStore({
+          ownerId,
+          bucketName,
+          storage,
+        });
+        const rawCapacityPreflight = createDnaOpenLabProviderCapacityPreflight({
+          configuredOwnerId: ownerId,
+          measurementSource: capacitySource,
+        });
         const operator = createDnaPopulationRaceIndexPrivatePreviewOperator({
           configuredOwnerId: ownerId,
           baseline: {
-            load: ledger.load.bind(ledger),
-            loadReceipts: ledger.loadReceipts.bind(ledger),
-            readEvidence: evidence.read,
+            async load(...args: Parameters<typeof rawLedger.load>) {
+              operatorBoundary = "baseline-load";
+              const result = await rawLedger.load(...args);
+              operatorBoundary = "after-baseline-load";
+              return result;
+            },
+            async loadReceipts(
+              ...args: Parameters<typeof rawLedger.loadReceipts>
+            ) {
+              operatorBoundary = "receipt-ledger-read";
+              const result = await rawLedger.loadReceipts(...args);
+              operatorBoundary = "after-receipt-ledger-read";
+              return result;
+            },
+            async readEvidence(...args: Parameters<typeof evidence.read>) {
+              operatorBoundary = "evidence-read";
+              const result = await evidence.read(...args);
+              operatorBoundary = "after-evidence-read";
+              return result;
+            },
           },
-          repository,
-          chunkStore: createDnaPopulationRaceIndexR2ChunkStore({
-            ownerId,
-            bucketName,
-            storage,
+          repository: Object.freeze({
+            ...rawRepository,
+            async load(...args: Parameters<typeof rawRepository.load>) {
+              operatorBoundary = "generation-load";
+              const result = await rawRepository.load(...args);
+              operatorBoundary = "after-generation-load";
+              return result;
+            },
+            async begin(...args: Parameters<typeof rawRepository.begin>) {
+              operatorBoundary = "generation-begin";
+              const result = await rawRepository.begin(...args);
+              operatorBoundary = "after-generation-begin";
+              return result;
+            },
+            async lookupIdentities(
+              ...args: Parameters<typeof rawRepository.lookupIdentities>
+            ) {
+              operatorBoundary = "identity-lookup";
+              const result = await rawRepository.lookupIdentities(...args);
+              operatorBoundary = "after-identity-lookup";
+              return result;
+            },
+            async appendR2Batch(
+              ...args: Parameters<typeof rawRepository.appendR2Batch>
+            ) {
+              operatorBoundary = "neon-append";
+              const result = await rawRepository.appendR2Batch(...args);
+              operatorBoundary = "after-neon-append";
+              return result;
+            },
+            async publish(...args: Parameters<typeof rawRepository.publish>) {
+              operatorBoundary = "publish";
+              const result = await rawRepository.publish(...args);
+              operatorBoundary = "after-publish";
+              return result;
+            },
           }),
-          capacityPreflight: createDnaOpenLabProviderCapacityPreflight({
-            configuredOwnerId: ownerId,
-            measurementSource: capacitySource,
+          chunkStore: Object.freeze({
+            ...rawChunkStore,
+            async write(...args: Parameters<typeof rawChunkStore.write>) {
+              operatorBoundary = "r2-write";
+              const result = await rawChunkStore.write(...args);
+              operatorBoundary = "after-r2-write";
+              return result;
+            },
+          }),
+          capacityPreflight: Object.freeze({
+            ...rawCapacityPreflight,
+            async inspect(
+              ...args: Parameters<typeof rawCapacityPreflight.inspect>
+            ) {
+              operatorBoundary = "capacity-preflight";
+              const result = await rawCapacityPreflight.inspect(...args);
+              operatorBoundary = "after-capacity-preflight";
+              return result;
+            },
           }),
         });
+        diagnosticStage = "operator-execution";
         const receipt = await operator.execute({
           operatorVersion:
             DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
@@ -141,6 +248,7 @@ describeConnected("hosted Preview population race index command", () => {
           ),
           maximumReceiptCount: receiptBound(),
         });
+        diagnosticStage = "receipt-validation";
         const report = Object.freeze({
           version: DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
           status: receipt.status,
@@ -182,6 +290,12 @@ describeConnected("hosted Preview population race index command", () => {
           `DNA_POPULATION_RACE_INDEX_PROGRESS=${JSON.stringify(report)}`,
         );
       } catch {
+        console.log(
+          `DNA_POPULATION_RACE_INDEX_FAILURE=${JSON.stringify({
+            stage: diagnosticStage,
+            boundary: operatorBoundary,
+          })}`,
+        );
         throw new Error("DNA population race index private Preview failed");
       }
     },
