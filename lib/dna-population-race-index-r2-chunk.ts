@@ -8,8 +8,7 @@ const JSON_CONTENT_TYPE = "application/json";
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
-export const DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES =
-  8 * 1024 * 1024;
+export const DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES = 8 * 1024 * 1024;
 export const DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS = 5_000;
 
 export type DnaPopulationRaceIndexR2ChunkStoragePort = Pick<
@@ -40,10 +39,12 @@ function chunkError(message: string): never {
 }
 
 function canonicalJson(value: unknown): string {
-  if (value === null || typeof value === "boolean") return JSON.stringify(value);
+  if (value === null || typeof value === "boolean")
+    return JSON.stringify(value);
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) chunkError("body contains a non-finite number");
+    if (!Number.isFinite(value))
+      chunkError("body contains a non-finite number");
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
@@ -80,7 +81,11 @@ function generationId(value: string): string {
   return normalized;
 }
 
-function positiveInteger(value: number, field: string, maximum: number): number {
+function positiveInteger(
+  value: number,
+  field: string,
+  maximum: number,
+): number {
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     chunkError(`${field} is invalid`);
   }
@@ -288,7 +293,9 @@ export function createDnaPopulationRaceIndexR2ChunkStore(input: {
       });
       let parsed: unknown;
       try {
-        parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+        parsed = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+        );
       } catch {
         chunkError("stored chunk is not valid UTF-8 JSON");
       }

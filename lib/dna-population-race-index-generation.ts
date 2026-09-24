@@ -67,10 +67,10 @@ export type DnaPopulationRaceIndexCompactIdentity = Readonly<{
 
 export type DnaPopulationRaceIndexR2ChunkManifest =
   DnaPopulationRaceIndexR2ChunkReceipt &
-  Readonly<{
-    registeredAt: string;
-    identityRegisteredAt: string | null;
-  }>;
+    Readonly<{
+      registeredAt: string;
+      identityRegisteredAt: string | null;
+    }>;
 
 export type DnaPopulationRaceIndexLegacyChunk = Readonly<{
   documents: readonly DnaPopulationRaceIndexDocument[];
@@ -398,4 +398,3 @@ export function createDnaPopulationRaceIndexR2AppendPlan(input: {
     newIdentities: Object.freeze(newIdentities),
   });
 }
-

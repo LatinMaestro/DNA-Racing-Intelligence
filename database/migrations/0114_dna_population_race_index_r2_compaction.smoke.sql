@@ -232,13 +232,17 @@ SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
 
 DO $retire$
 DECLARE
+  v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
+  v_generation constant text := repeat('1', 64);
   v_retired record;
 BEGIN
   SELECT * INTO v_retired
   FROM dna.retire_dna_population_race_index_legacy_storage(
+    v_owner,
+    v_generation,
     '2026-09-24 10:03:00+00'
   );
-  IF v_retired.compact_identity_count <> 2
+  IF v_retired.compact_identity_count <> 0
      OR v_retired.r2_manifest_row_count <> 2
      OR v_retired.legacy_race_count <> 2 THEN
     RAISE EXCEPTION 'legacy retirement counts disagree';
@@ -258,7 +262,7 @@ SET LOCAL ROLE dna_app_runtime;
 \endif
 SET LOCAL app.owner_id = '91130000-0000-4000-8000-000000000001';
 
-DO $append$
+DO $identity_backfill$
 DECLARE
   v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
   v_generation constant text := repeat('1', 64);
@@ -267,13 +271,53 @@ DECLARE
   v_count integer;
 BEGIN
   SELECT count(*) INTO v_count
+  FROM dna.read_dna_population_race_index_r2_chunk_manifests(
+    v_owner, v_generation, 0, 1
+  );
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'R2 identity backfill manifest was unavailable';
+  END IF;
+
+  SELECT * INTO v_result
+  FROM dna.register_dna_population_race_index_compact_identity_chunk(
+    v_owner,
+    v_worker,
+    v_generation,
+    1,
+    jsonb_build_array(
+      jsonb_build_object(
+        'sourceRaceId', 'race-1',
+        'rawEvidenceSha256', repeat('a', 64)
+      ),
+      jsonb_build_object(
+        'sourceRaceId', 'race-2',
+        'rawEvidenceSha256', repeat('b', 64)
+      )
+    ),
+    '2026-09-24 10:03:30+00'
+  );
+  IF v_result.r2_identity_chunk_count <> 1 THEN
+    RAISE EXCEPTION 'R2 identity backfill checkpoint did not advance';
+  END IF;
+
+  SELECT count(*) INTO v_count
   FROM dna.lookup_dna_population_race_index_compact_identities(
     v_owner, v_generation, jsonb_build_array('race-1', 'race-2')
   );
   IF v_count <> 2 THEN
-    RAISE EXCEPTION 'compact identity lookup lost a canonical race';
+    RAISE EXCEPTION 'compact identity backfill lost a canonical race';
   END IF;
+END
+$identity_backfill$;
 
+DO $append$
+DECLARE
+  v_owner constant uuid := '91130000-0000-4000-8000-000000000001';
+  v_generation constant text := repeat('1', 64);
+  v_worker constant text := 'synthetic-population-r2-worker';
+  v_result dna.dna_population_race_index_generation%ROWTYPE;
+  v_count integer;
+BEGIN
   SELECT * INTO v_result
   FROM dna.append_dna_population_race_index_r2_batch(
     v_owner,

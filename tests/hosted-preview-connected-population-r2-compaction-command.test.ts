@@ -87,12 +87,14 @@ describeConnected("hosted Preview population R2 compaction command", () => {
           accessKeyId,
           secretAccessKey,
         });
-        const repository = createNeonDnaPopulationRaceIndexGenerationRepository({
-          databaseUrl,
-          databaseOwnerId,
-          ownerId,
-          runtimeRole: RUNTIME_ROLE,
-        });
+        const repository = createNeonDnaPopulationRaceIndexGenerationRepository(
+          {
+            databaseUrl,
+            databaseOwnerId,
+            ownerId,
+            runtimeRole: RUNTIME_ROLE,
+          },
+        );
         const operator = createDnaPopulationRaceIndexR2CompactionOperator({
           configuredOwnerId: ownerId,
           baseline: {

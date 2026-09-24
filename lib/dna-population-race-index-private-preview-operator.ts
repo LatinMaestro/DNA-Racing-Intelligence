@@ -338,7 +338,9 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         }
         const writeBatch = createDnaPopulationRaceIndexWriteBatch(batch);
         const sourceRaceIds = Object.freeze([
-          ...new Set(writeBatch.documents.map((document) => document.sourceRaceId)),
+          ...new Set(
+            writeBatch.documents.map((document) => document.sourceRaceId),
+          ),
         ]);
         const existingIdentities = await input.repository.lookupIdentities(
           ownerId,

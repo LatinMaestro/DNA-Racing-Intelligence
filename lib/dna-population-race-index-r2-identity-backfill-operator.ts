@@ -1,9 +1,7 @@
 import type { DnaPopulationRaceIndexBaselineReadPort } from "./dna-population-race-index-checkpoint";
 import type { DnaPopulationRaceIndexGenerationRepository } from "./dna-population-race-index-generation";
 import type { DnaPopulationRaceIndexR2ChunkReceipt } from "./dna-population-race-index-r2-chunk";
-import {
-  DNA_POPULATION_RACE_INDEX_P5_AUTHORITY,
-} from "./dna-population-race-index-private-preview-operator";
+import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
 import {
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
@@ -85,14 +83,16 @@ function timestamp(value: string): string {
   return value;
 }
 
-function receipt(input: Omit<
-  DnaPopulationRaceIndexR2IdentityBackfillReceipt,
-  | "persistentWriteArmed"
-  | "previewOnly"
-  | "dnaProviderRequestCount"
-  | "paidUsageAllowed"
-  | "preserveLastGood"
->): DnaPopulationRaceIndexR2IdentityBackfillReceipt {
+function receipt(
+  input: Omit<
+    DnaPopulationRaceIndexR2IdentityBackfillReceipt,
+    | "persistentWriteArmed"
+    | "previewOnly"
+    | "dnaProviderRequestCount"
+    | "paidUsageAllowed"
+    | "preserveLastGood"
+  >,
+): DnaPopulationRaceIndexR2IdentityBackfillReceipt {
   return Object.freeze({
     ...input,
     providerCapacityBlockerIds: Object.freeze([
@@ -112,9 +112,7 @@ export function createDnaPopulationRaceIndexR2IdentityBackfillOperator(input: {
   repository: DnaPopulationRaceIndexGenerationRepository;
   capacityPreflight: DnaOpenLabProviderCapacityPreflight;
   chunkStore: Readonly<{
-    read: (
-      receipt: DnaPopulationRaceIndexR2ChunkReceipt,
-    ) => Promise<
+    read: (receipt: DnaPopulationRaceIndexR2ChunkReceipt) => Promise<
       readonly Readonly<{
         sourceRaceId: string;
         rawEvidenceSha256: string;
@@ -126,7 +124,10 @@ export function createDnaPopulationRaceIndexR2IdentityBackfillOperator(input: {
     invocation: DnaPopulationRaceIndexR2IdentityBackfillInvocation,
   ) => Promise<DnaPopulationRaceIndexR2IdentityBackfillReceipt>;
 }> {
-  const configuredOwnerId = identity(input.configuredOwnerId, "configured owner");
+  const configuredOwnerId = identity(
+    input.configuredOwnerId,
+    "configured owner",
+  );
 
   return Object.freeze({
     async execute(invocation) {
@@ -261,7 +262,9 @@ export function createDnaPopulationRaceIndexR2IdentityBackfillOperator(input: {
         checkpoint.r2IdentityChunkCount !== beforeIdentityChunkCount + 1 ||
         checkpoint.r2IdentityChunkCount > checkpoint.r2ChunkCount
       ) {
-        backfillError("identity backfill checkpoint did not advance exactly once");
+        backfillError(
+          "identity backfill checkpoint did not advance exactly once",
+        );
       }
 
       return receipt({

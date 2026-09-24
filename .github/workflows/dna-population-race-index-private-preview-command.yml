@@ -49,6 +49,7 @@ jobs:
       DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ github.event_name == 'schedule' && '100' || inputs.maximum_receipts }}
       DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND: "1"
       DNA_POPULATION_R2_COMPACTION_PRIVATE_PREVIEW_COMMAND: "1"
+      DNA_POPULATION_R2_IDENTITY_BACKFILL_PRIVATE_PREVIEW_COMMAND: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
@@ -259,17 +260,35 @@ jobs:
           fi
           echo "status=${status}" >> "${GITHUB_OUTPUT}"
       - name: Retire verified legacy Neon population payload
+        id: retire
         if: steps.compact.outputs.status == 'complete'
         shell: bash
         run: |
-          proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -AtF '|' --set ON_ERROR_STOP=1 \
-            --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_legacy_storage(clock_timestamp())")"
-          IFS='|' read -r generations identities manifest_rows legacy_rows <<< "${proof}"
-          if [[ ! "${generations}" =~ ^[0-9]+$ ]] || \
-             [[ ! "${identities}" =~ ^[0-9]+$ ]] || \
-             [[ "${identities}" != "${manifest_rows}" ]] || \
-             [[ "${identities}" != "${legacy_rows}" ]]; then
-            echo "The legacy retirement equivalence proof is invalid."
+          generation_id="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" \
+            --command "SELECT generation_id FROM dna.dna_population_race_index_generation WHERE owner_id = :'owner_id'::uuid")"
+          if [[ ! "${generation_id}" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "The population generation authority is unavailable."
+            exit 1
+          fi
+          retired="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" \
+            --set generation_id="${generation_id}" \
+            --command "SELECT legacy_storage_retired_at IS NOT NULL FROM dna.dna_population_race_index_generation WHERE owner_id = :'owner_id'::uuid AND generation_id = :'generation_id'")"
+          if [[ "${retired}" == "f" ]]; then
+            proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -AtF '|' --set ON_ERROR_STOP=1 \
+              --set owner_id="${DNA_DATABASE_OWNER_ID}" \
+              --set generation_id="${generation_id}" \
+              --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_legacy_storage(:'owner_id'::uuid, :'generation_id', clock_timestamp())")"
+            IFS='|' read -r generations identities manifest_rows legacy_rows <<< "${proof}"
+            if [[ "${generations}" != "1" ]] || [[ "${identities}" != "0" ]] || \
+               [[ ! "${manifest_rows}" =~ ^[1-9][0-9]*$ ]] || \
+               [[ "${manifest_rows}" != "${legacy_rows}" ]]; then
+              echo "The legacy retirement equivalence proof is invalid."
+              exit 1
+            fi
+          elif [[ "${retired}" != "t" ]]; then
+            echo "The legacy retirement state is invalid."
             exit 1
           fi
           remaining="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
@@ -278,13 +297,66 @@ jobs:
             echo "Legacy Neon race payload remains after verified retirement."
             exit 1
           fi
-          echo "Verified R2 cutover: ${identities} unique canonical races; legacy Neon payload rows now 0."
+          echo "Verified R2 cutover; legacy Neon payload rows are 0."
+          echo "status=complete" >> "${GITHUB_OUTPUT}"
       - name: Remove migration binding from subsequent steps
         if: always()
         shell: bash
         run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
+      - name: Rebuild compact identities from verified R2 chunks
+        id: identity
+        if: steps.retire.outputs.status == 'complete'
+        shell: bash
+        run: |
+          deadline_epoch="$(( $(date +%s) + 1200 ))"
+          status=""
+          chunk_number=0
+          while (( $(date +%s) < deadline_epoch )); do
+            chunk_number="$(( chunk_number + 1 ))"
+            echo "Starting bounded R2 identity chunk ${chunk_number}."
+            output_file="$(mktemp)"
+            DNA_POPULATION_R2_IDENTITY_BACKFILL_ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+              npx vitest run --no-file-parallelism \
+                tests/hosted-preview-connected-population-r2-identity-backfill-command.test.ts \
+              | tee "${output_file}"
+            progress_json="$(sed -n 's/^.*DNA_POPULATION_R2_IDENTITY_BACKFILL_PROGRESS=//p' "${output_file}" | tail -n 1)"
+            rm -f "${output_file}"
+            status="$(PROGRESS_JSON="${progress_json}" node --input-type=module <<'NODE'
+          const progress = JSON.parse(process.env.PROGRESS_JSON ?? "");
+          if (!["advanced", "complete", "held"].includes(progress.status)) {
+            throw new Error("The R2 identity backfill emitted an invalid status.");
+          }
+          if (progress.status === "advanced" &&
+              progress.afterIdentityChunkCount !== progress.beforeIdentityChunkCount + 1) {
+            throw new Error("The R2 identity checkpoint did not advance exactly once.");
+          }
+          if (progress.status === "complete" &&
+              progress.afterIdentityChunkCount !== progress.r2ChunkCount) {
+            throw new Error("The R2 identity completion proof is inconsistent.");
+          }
+          if (progress.status === "held" &&
+              progress.afterIdentityChunkCount !== progress.beforeIdentityChunkCount) {
+            throw new Error("The R2 identity capacity hold changed durable counts.");
+          }
+          process.stdout.write(progress.status);
+          NODE
+            )"
+            if [[ "${status}" == "complete" || "${status}" == "held" ]]; then
+              break
+            fi
+            git fetch --quiet --no-tags origin main
+            if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+              echo "Main changed during R2 identity backfill."
+              exit 1
+            fi
+          done
+          if [[ ! "${status}" =~ ^(advanced|complete|held)$ ]]; then
+            echo "The R2 identity backfill did not emit a terminal status."
+            exit 1
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
       - name: Advance bounded immutable P5 slices for at most 20 minutes
-        if: steps.compact.outputs.status == 'complete'
+        if: steps.identity.outputs.status == 'complete'
         id: advance
         shell: bash
         run: |
@@ -346,10 +418,13 @@ jobs:
         shell: bash
         env:
           COMPACTION_STATUS: ${{ steps.compact.outputs.status }}
+          IDENTITY_STATUS: ${{ steps.identity.outputs.status }}
           ADVANCE_STATUS: ${{ steps.advance.outputs.status }}
         run: |
           if [[ "${COMPACTION_STATUS}" != "complete" ]]; then
             status="${COMPACTION_STATUS}"
+          elif [[ "${IDENTITY_STATUS}" != "complete" ]]; then
+            status="${IDENTITY_STATUS}"
           else
             status="${ADVANCE_STATUS}"
           fi

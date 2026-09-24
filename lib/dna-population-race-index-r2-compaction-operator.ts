@@ -1,6 +1,4 @@
-import {
-  DNA_POPULATION_RACE_INDEX_P5_AUTHORITY,
-} from "./dna-population-race-index-private-preview-operator";
+import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
 import type {
   DnaPopulationRaceIndexBaselineReadPort,
   DnaPopulationRaceIndexDocument,
@@ -93,14 +91,16 @@ function timestamp(value: string): string {
   return value;
 }
 
-function safeReceipt(input: Omit<
-  DnaPopulationRaceIndexR2CompactionReceipt,
-  | "persistentWriteArmed"
-  | "previewOnly"
-  | "dnaProviderRequestCount"
-  | "paidUsageAllowed"
-  | "preserveLastGood"
->): DnaPopulationRaceIndexR2CompactionReceipt {
+function safeReceipt(
+  input: Omit<
+    DnaPopulationRaceIndexR2CompactionReceipt,
+    | "persistentWriteArmed"
+    | "previewOnly"
+    | "dnaProviderRequestCount"
+    | "paidUsageAllowed"
+    | "preserveLastGood"
+  >,
+): DnaPopulationRaceIndexR2CompactionReceipt {
   return Object.freeze({
     ...input,
     providerCapacityBlockerIds: Object.freeze([
@@ -147,7 +147,10 @@ export function createDnaPopulationRaceIndexR2CompactionOperator(input: {
     invocation: DnaPopulationRaceIndexR2CompactionInvocation,
   ) => Promise<DnaPopulationRaceIndexR2CompactionReceipt>;
 }> {
-  const configuredOwnerId = identity(input.configuredOwnerId, "configured owner");
+  const configuredOwnerId = identity(
+    input.configuredOwnerId,
+    "configured owner",
+  );
 
   return Object.freeze({
     async execute(invocation) {
@@ -299,7 +302,9 @@ export function createDnaPopulationRaceIndexR2CompactionOperator(input: {
 
       return safeReceipt({
         status:
-          checkpoint.storageLayout === "r2_chunked_v1" ? "complete" : "advanced",
+          checkpoint.storageLayout === "r2_chunked_v1"
+            ? "complete"
+            : "advanced",
         reason: null,
         exactCodeHeadSha,
         generationId,

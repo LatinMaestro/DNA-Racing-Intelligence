@@ -513,18 +513,25 @@ BEGIN
     AND generation.generation_id = p_generation_id::character(64)
     AND generation.storage_layout = 'r2_chunked_v1'
     AND generation.legacy_storage_retired_at IS NOT NULL
-    AND generation.r2_identity_chunk_count = generation.r2_chunk_count
+    AND p_after_chunk_ordinal = generation.r2_identity_chunk_count
+    AND generation.r2_identity_chunk_count <= generation.r2_chunk_count
     AND NOT EXISTS (
       SELECT 1
       FROM dna.dna_population_race_index_r2_chunk chunk
       WHERE chunk.generation_key = generation.generation_key
+        AND chunk.chunk_ordinal <= generation.r2_identity_chunk_count
         AND chunk.identity_registered_at IS NULL
     )
     AND (
       SELECT count(*)
       FROM dna.dna_population_race_index_compact_identity identity
       WHERE identity.generation_key = generation.generation_key
-    ) = generation.unique_race_count;
+    ) = (
+      SELECT COALESCE(sum(chunk.row_count), 0)
+      FROM dna.dna_population_race_index_r2_chunk chunk
+      WHERE chunk.generation_key = generation.generation_key
+        AND chunk.identity_registered_at IS NOT NULL
+    );
   IF NOT FOUND THEN
     RAISE EXCEPTION 'population R2 manifest authority is unavailable';
   END IF;

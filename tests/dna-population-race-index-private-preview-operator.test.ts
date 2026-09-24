@@ -116,6 +116,7 @@ function checkpoint(
     uniqueEntrantCoreCount: 0,
     storageLayout: "r2_chunked_v1",
     r2ChunkCount: 0,
+    r2IdentityChunkCount: 0,
     r2CompactedRaceCount: 0,
     r2LastSourceRaceId: null,
     compactedAt: attemptedAt,
@@ -132,6 +133,8 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
   const readLegacyChunk = vi.fn(async () => ({ documents: [] }));
   const registerCompactionChunk = vi.fn(async () => checkpoint());
   const finalizeCompaction = vi.fn(async () => checkpoint());
+  const listR2ChunkManifests = vi.fn(async () => []);
+  const registerCompactIdentityChunk = vi.fn(async () => checkpoint());
   const lookupIdentities = vi.fn(async () => []);
   const appendR2Batch = vi.fn(async () =>
     checkpoint({
@@ -156,6 +159,8 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
       readLegacyChunk,
       registerCompactionChunk,
       finalizeCompaction,
+      listR2ChunkManifests,
+      registerCompactIdentityChunk,
       lookupIdentities,
       appendR2Batch,
       publish,
@@ -242,7 +247,6 @@ describe("DNA population race index private Preview operator", () => {
       persistentWriteArmed: true,
       previewOnly: true,
       dnaProviderRequestCount: 0,
-      providerWritePerformed: false,
       paidUsageAllowed: false,
       preserveLastGood: true,
       providerWritePerformed: true,

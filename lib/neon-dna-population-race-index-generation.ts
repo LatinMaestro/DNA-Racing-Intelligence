@@ -6,6 +6,7 @@ import type {
   DnaPopulationRaceIndexR2ChunkManifest,
   DnaPopulationRaceIndexWriteBatch,
 } from "./dna-population-race-index-generation";
+import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -314,10 +315,19 @@ function verifyIsolation(
     !bool(row.runtime_can_begin, "runtime_can_begin") ||
     bool(row.runtime_can_legacy_append, "runtime_can_legacy_append") ||
     !bool(row.runtime_can_read_legacy, "runtime_can_read_legacy") ||
-    !bool(row.runtime_can_register_compaction, "runtime_can_register_compaction") ||
-    !bool(row.runtime_can_finalize_compaction, "runtime_can_finalize_compaction") ||
+    !bool(
+      row.runtime_can_register_compaction,
+      "runtime_can_register_compaction",
+    ) ||
+    !bool(
+      row.runtime_can_finalize_compaction,
+      "runtime_can_finalize_compaction",
+    ) ||
     !bool(row.runtime_can_read_r2_manifests, "runtime_can_read_r2_manifests") ||
-    !bool(row.runtime_can_register_identities, "runtime_can_register_identities") ||
+    !bool(
+      row.runtime_can_register_identities,
+      "runtime_can_register_identities",
+    ) ||
     !bool(row.runtime_can_lookup_identities, "runtime_can_lookup_identities") ||
     !bool(row.runtime_can_append, "runtime_can_append") ||
     !bool(row.runtime_can_publish, "runtime_can_publish") ||
@@ -344,7 +354,9 @@ function verifyIsolation(
   }
 }
 
-function compactIdentity(value: unknown): DnaPopulationRaceIndexCompactIdentity {
+function compactIdentity(
+  value: unknown,
+): DnaPopulationRaceIndexCompactIdentity {
   const row = record(value, "compact identity");
   return Object.freeze({
     sourceRaceId: text(row.source_race_id ?? row.sourceRaceId, "sourceRaceId"),
@@ -355,7 +367,9 @@ function compactIdentity(value: unknown): DnaPopulationRaceIndexCompactIdentity 
   });
 }
 
-function r2ChunkManifest(value: unknown): DnaPopulationRaceIndexR2ChunkManifest {
+function r2ChunkManifest(
+  value: unknown,
+): DnaPopulationRaceIndexR2ChunkManifest {
   const row = record(value, "population R2 chunk manifest");
   const chunkOrdinal = count(row.chunk_ordinal, "chunkOrdinal");
   if (chunkOrdinal < 1) {
@@ -379,7 +393,7 @@ function r2ChunkManifest(value: unknown): DnaPopulationRaceIndexR2ChunkManifest 
   });
 }
 
-function legacyDocument(value: unknown) {
+function legacyDocument(value: unknown): DnaPopulationRaceIndexDocument {
   const row = record(value, "legacy population race");
   const canonical = record(row.canonical, "legacy population race canonical");
   const endpoint = text(row.endpoint, "legacy endpoint");
@@ -398,8 +412,13 @@ function legacyDocument(value: unknown) {
     endpoint,
     observedAt: timestamp(row.observed_at, "legacy observedAt"),
     sourceRaceId,
-    rawEvidenceSha256: sha256(row.raw_evidence_sha256, "legacy rawEvidenceSha256"),
-    canonical: Object.freeze({ ...canonical }),
+    rawEvidenceSha256: sha256(
+      row.raw_evidence_sha256,
+      "legacy rawEvidenceSha256",
+    ),
+    canonical: Object.freeze({
+      ...canonical,
+    }) as DnaPopulationRaceIndexDocument["canonical"],
   });
 }
 
@@ -508,7 +527,11 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
     },
 
     async readLegacyChunk(requestOwnerId, request) {
-      if (!Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 5_000) {
+      if (
+        !Number.isSafeInteger(request.limit) ||
+        request.limit < 1 ||
+        request.limit > 5_000
+      ) {
         throw new Error("legacy population race read limit is invalid");
       }
       return transaction({
@@ -652,7 +675,10 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
       const sourceRaceIds = request.sourceRaceIds.map((value) =>
         text(value, "sourceRaceId"),
       );
-      if (sourceRaceIds.length > 5_000 || new Set(sourceRaceIds).size !== sourceRaceIds.length) {
+      if (
+        sourceRaceIds.length > 5_000 ||
+        new Set(sourceRaceIds).size !== sourceRaceIds.length
+      ) {
         throw new Error("population race identity lookup is invalid");
       }
       if (sourceRaceIds.length === 0) return Object.freeze([]);

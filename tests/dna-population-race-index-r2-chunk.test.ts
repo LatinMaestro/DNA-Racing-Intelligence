@@ -36,8 +36,11 @@ function storage(status: "created" | "existing" = "created") {
     return { status };
   });
   const headObject = vi.fn(async () =>
-    head === undefined ? { status: "missing" as const } : { status: "ready" as const, ...head },
+    head === undefined
+      ? { status: "missing" as const }
+      : { status: "ready" as const, ...head },
   );
+  const getObject = vi.fn(async () => ({ status: "missing" as const }));
   return {
     putObjectIfAbsent,
     headObject,
@@ -49,6 +52,7 @@ function storage(status: "created" | "existing" = "created") {
       })),
       putObjectIfAbsent,
       headObject,
+      getObject,
     },
   };
 }

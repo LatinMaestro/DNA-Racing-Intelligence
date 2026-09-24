@@ -10,6 +10,7 @@ import {
   DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_INTENT,
   DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION,
 } from "@/lib/dna-population-race-index-private-preview-operator";
+import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
 

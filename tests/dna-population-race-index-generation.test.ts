@@ -160,5 +160,4 @@ describe("DNA population race index generation", () => {
       },
     ]);
   });
-
 });

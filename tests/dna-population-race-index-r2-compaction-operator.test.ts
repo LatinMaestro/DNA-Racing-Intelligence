@@ -36,6 +36,7 @@ function checkpoint(
     uniqueEntrantCoreCount: 0,
     storageLayout: "legacy_neon_v1",
     r2ChunkCount: 0,
+    r2IdentityChunkCount: 0,
     r2CompactedRaceCount: 0,
     r2LastSourceRaceId: null,
     compactedAt: null,
