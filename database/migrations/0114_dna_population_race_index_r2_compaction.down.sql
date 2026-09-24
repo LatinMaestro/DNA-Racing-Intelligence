@@ -21,9 +21,11 @@ GRANT EXECUTE ON FUNCTION
   dna.append_dna_population_race_index_batch(uuid,text,jsonb,timestamp with time zone)
 TO dna_app_runtime;
 
-DROP FUNCTION IF EXISTS dna.retire_dna_population_race_index_legacy_storage(timestamp with time zone);
+DROP FUNCTION IF EXISTS dna.retire_dna_population_race_index_legacy_storage(uuid,text,timestamp with time zone);
 DROP FUNCTION IF EXISTS dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone);
 DROP FUNCTION IF EXISTS dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb);
+DROP FUNCTION IF EXISTS dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone);
+DROP FUNCTION IF EXISTS dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer);
 DROP FUNCTION IF EXISTS dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone);
 DROP FUNCTION IF EXISTS dna.register_dna_population_race_index_r2_compaction_chunk(uuid,text,text,jsonb,jsonb,timestamp with time zone);
 DROP FUNCTION IF EXISTS dna.read_dna_population_race_index_legacy_chunk(uuid,text,text,integer);
