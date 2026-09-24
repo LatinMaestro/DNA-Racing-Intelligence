@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   adaptDnaRaceDocument,
   adaptDnaRaceDocumentPopulationInventory,
+  DnaRaceDocumentAdaptationProcessingError,
   dnaOpenLabRawEvidenceSha256,
   type CanonicalRaceDocumentMetadata,
 } from "./dna-open-lab-v1-adapters";
@@ -486,6 +487,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let duplicateRaceEvidenceCount = 0;
   let conflictingRaceEvidenceCount = 0;
   let baselineFinishedRaceReceiptCount = 0;
+  let baselineIdentityOmissionObservationCount = 0;
   let quarantinedIdentityObservationCount =
     baselineState.omittedIdentityObservationCount;
   const adaptDocument =
@@ -497,8 +499,32 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     raw: DnaRaceDocument,
     observedAt: string,
     endpoint: "races.finished" | "races.docs",
+    source: "baseline" | "incremental",
   ): void {
-    const adapted = adaptDocument({ raw, observedAt, endpoint });
+    const adapted = (() => {
+      try {
+        return adaptDocument({ raw, observedAt, endpoint });
+      } catch (error) {
+        if (
+          source === "baseline" &&
+          error instanceof DnaRaceDocumentAdaptationProcessingError &&
+          error.diagnostic === "race_document_adaptation_identity_unavailable"
+        ) {
+          baselineIdentityOmissionObservationCount += 1;
+          if (
+            baselineIdentityOmissionObservationCount >
+            baselineState.omittedIdentityObservationCount
+          ) {
+            historyError(
+              "immutable P5 identity omissions exceed baseline authority",
+            );
+          }
+          return null;
+        }
+        throw error;
+      }
+    })();
+    if (adapted === null) return;
     const sourceRaceId = raceId(raw);
     const digest = dnaOpenLabRawEvidenceSha256(raw);
     if (
@@ -537,7 +563,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       start,
       start + BASELINE_EVIDENCE_READ_CONCURRENCY,
     );
-    for (const _receipt of receiptBatch) {
+    for (let index = 0; index < receiptBatch.length; index += 1) {
       reserveClassBOperations(2);
     }
     const evidenceBatch = await Promise.all(
@@ -560,9 +586,17 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         evidence.response.result,
         "P5 Race response",
       )) {
-        acceptDocument(raw, evidence.observedAt, evidence.endpoint);
+        acceptDocument(raw, evidence.observedAt, evidence.endpoint, "baseline");
       }
     }
+  }
+  if (
+    baselineIdentityOmissionObservationCount !==
+    baselineState.omittedIdentityObservationCount
+  ) {
+    historyError(
+      "immutable P5 identity omissions do not reconcile to baseline authority",
+    );
   }
 
   let incrementalWindowCount = 0;
@@ -737,7 +771,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
             "incremental Race document checksum or identity disagrees",
           );
         }
-        acceptDocument(raw, receipt.windowEndAt, "races.docs");
+        acceptDocument(raw, receipt.windowEndAt, "races.docs", "incremental");
       }
     }
   }
