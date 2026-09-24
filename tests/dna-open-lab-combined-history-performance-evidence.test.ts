@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { assessDnaOpenLabCombinedHistoryPerformanceEvidence } from "../lib/dna-open-lab-combined-history-performance-evidence";
 import {
+  adaptDnaRaceDocumentPopulationInventory,
   dnaOpenLabRawEvidenceSha256,
   type CanonicalRaceDocumentMetadata,
 } from "../lib/dna-open-lab-v1-adapters";
@@ -326,6 +327,58 @@ describe("combined DNA finished-history performance evidence", () => {
       expect.objectContaining({ sourceRaceId: "202" }),
     ]);
     expect(assessment).not.toHaveProperty("raceDocuments");
+  });
+
+  it("uses a compact published P5 baseline while preserving incremental population authority", async () => {
+    const input = fixture();
+    const observedAt = "2026-09-02T00:00:00.000Z";
+    const raw = Object.freeze<DnaRaceDocument>({
+      rid: 101,
+      rvmode: "bike",
+      format: "sprint",
+      track: "source-track-value",
+    });
+    const adapted = adaptDnaRaceDocumentPopulationInventory({
+      raw,
+      observedAt,
+      endpoint: "races.finished",
+    });
+    const documents: CanonicalRaceDocumentMetadata[] = [];
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence({
+      ...input,
+      baselineIndex: {
+        documents: Object.freeze([
+          Object.freeze({
+            requestOrdinal: 1,
+            endpoint: "races.finished" as const,
+            observedAt,
+            sourceRaceId: adapted.canonical.sourceRaceId,
+            rawEvidenceSha256: adapted.rawEvidenceSha256,
+            canonical: adapted.canonical,
+          }),
+        ]),
+        baselineReceiptCount: 1,
+        baselineFinishedRaceReceiptCount: 1,
+        baselineIdentityOmissionObservationCount: 0,
+        r2ClassBOperationsUsed: 2,
+      },
+      canonicalPurpose: "population_inventory",
+      onCanonicalRaceDocument: (document) => documents.push(document),
+    });
+
+    expect(assessment.baselineReceiptCount).toBe(1);
+    expect(assessment.baselineFinishedRaceReceiptCount).toBe(1);
+    expect(assessment.r2ClassBOperationsUsed).toBe(8);
+    expect(assessment.uniqueRaceCount).toBe(2);
+    expect(assessment.conflictingRaceEvidenceCount).toBe(0);
+    expect(documents).toEqual([
+      expect.objectContaining({
+        sourceRaceId: "101",
+        mode: "bike",
+        entrantCoreIds: ["501", "502"],
+      }),
+      expect.objectContaining({ sourceRaceId: "202", mode: "car" }),
+    ]);
   });
 
   it("uses the population-inventory purpose without weakening essential Race authority", async () => {
