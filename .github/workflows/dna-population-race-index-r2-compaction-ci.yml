@@ -1,0 +1,81 @@
+name: DNA population race index R2 compaction migration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
+      - .github/workflows/dna-population-race-index-r2-compaction-ci.yml
+      - .github/workflows/ci.yml
+  push:
+    branches:
+      - main
+    paths:
+      - database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
+      - database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
+      - .github/workflows/dna-population-race-index-r2-compaction-ci.yml
+      - .github/workflows/ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dna_population_r2_compaction_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dna_population_r2_compaction_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: dna_population_r2_compaction_ci
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply authoritative CI migration baseline through 0112
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t migrations < <(
+            grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
+              awk '!seen[$0]++'
+          )
+          if [[ "${#migrations[@]}" -lt 2 ]] || [[ "${migrations[-1]}" != "database/migrations/0113_dna_population_race_index_r2_compaction.up.sql" ]]; then
+            echo "Authoritative CI migration list does not end at 0113."
+            exit 1
+          fi
+          unset 'migrations[-1]'
+          if [[ "${migrations[-1]}" != "database/migrations/0112_dna_population_race_index_generation.up.sql" ]]; then
+            echo "Authoritative CI migration baseline does not end at 0112."
+            exit 1
+          fi
+          for migration in "${migrations[@]}"; do
+            psql --set ON_ERROR_STOP=1 --file "$migration" >/dev/null
+          done
+      - name: Apply population race index R2 compaction migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+      - name: Run population race index R2 compaction smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+      - name: Reverse population race index R2 compaction migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
+      - name: Verify population race index R2 compaction reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
