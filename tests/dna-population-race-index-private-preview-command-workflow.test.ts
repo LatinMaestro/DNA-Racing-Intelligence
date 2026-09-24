@@ -65,6 +65,10 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "retire_dna_population_race_index_storage_negative_legacy",
     );
+    expect(workflow).toContain("--file=- <<'SQL'");
+    expect(workflow).not.toMatch(
+      /--command[^\n]*:'(?:owner_id|generation_id)'/u,
+    );
     expect(workflow).toContain("legacy Neon payload rows are 0");
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-r2-identity-backfill-command.test.ts",
