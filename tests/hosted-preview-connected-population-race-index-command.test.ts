@@ -271,7 +271,6 @@ describeConnected("hosted Preview population race index command", () => {
           persistentWriteArmed: true,
           previewOnly: true,
           dnaProviderRequestCount: 0,
-          providerWritePerformed: false,
           paidUsageAllowed: false,
           preserveLastGood: true,
         });
