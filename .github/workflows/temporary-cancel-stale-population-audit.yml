@@ -1,13 +1,43 @@
-name: TEMPORARY stale population audit cancellation retained for audit trail
+name: TEMPORARY cancel superseded population history audit
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - temporary/kick-population-preview-2026-09-25-do-not-merge
+    paths:
+      - ".github/workflows/temporary-cancel-stale-population-audit.yml"
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
-  retained-only:
+  cancel-superseded-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - run: echo "Temporary cancellation workflow is disabled; do not merge this branch."
+      - name: Cancel only the superseded slow audit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_RUN_ID: "36067982847"
+          TARGET_HEAD_SHA: "8a38f934da240cb566ad8265a8d229d0b32e48ad"
+          EXPECTED_MAIN_SHA: "8a38f934da240cb566ad8265a8d229d0b32e48ad"
+        run: |
+          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          target_head="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${TARGET_RUN_ID}" --jq '.head_sha')"
+          target_status="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${TARGET_RUN_ID}" --jq '.status')"
+          if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
+            echo "Main changed; refusing cancellation."
+            exit 1
+          fi
+          if [[ "${target_head}" != "${TARGET_HEAD_SHA}" ]]; then
+            echo "Target audit head is not the expected superseded main."
+            exit 1
+          fi
+          if [[ "${target_status}" == "completed" ]]; then
+            echo "Target audit already completed; nothing to cancel."
+            exit 0
+          fi
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/runs/${TARGET_RUN_ID}/cancel"
+          echo "Cancelled superseded slow population-history audit."
