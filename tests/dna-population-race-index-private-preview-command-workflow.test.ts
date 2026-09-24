@@ -112,9 +112,9 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain("requeue-private-preview-index:");
     expect(workflow).toContain("result == 'success'");
     expect(workflow).toContain("outputs.terminal_status == 'advanced'");
-    expect(workflow).toContain("outputs.terminal_status == 'held'");
-    expect(workflow).toContain("sleep_seconds=300");
-    expect(workflow).toContain("sleep_seconds=60");
+    expect(workflow).not.toContain("outputs.terminal_status == 'held'");
+    expect(workflow).not.toContain("sleep_seconds=300");
+    expect(workflow).toContain("sleep 60");
     expect(workflow).toContain('.status != \\"completed\\"');
     expect(workflow).toContain("no duplicate continuation was dispatched");
     expect(workflow).toContain("Main changed before continuation");
