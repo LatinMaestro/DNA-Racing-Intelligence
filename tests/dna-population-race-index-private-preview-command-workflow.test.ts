@@ -32,10 +32,16 @@ describe("DNA population race index private Preview command workflow", () => {
       "0112_dna_population_race_index_generation.smoke.sql",
     );
     expect(workflow).toContain(
-      "0113_dna_population_race_index_r2_compaction.up.sql",
+      "0113_dna_population_race_index_storage_relief.up.sql",
     );
     expect(workflow).toContain(
-      "0113_dna_population_race_index_r2_compaction.smoke.sql",
+      "0113_dna_population_race_index_storage_relief.smoke.sql",
+    );
+    expect(workflow).toContain(
+      "0114_dna_population_race_index_r2_compaction.up.sql",
+    );
+    expect(workflow).toContain(
+      "0114_dna_population_race_index_r2_compaction.smoke.sql",
     );
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-r2-compaction-command.test.ts",
