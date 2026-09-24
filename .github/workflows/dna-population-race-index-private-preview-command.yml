@@ -1,6 +1,8 @@
 name: DNA population race index bounded private Preview command
 
 on:
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       expected_main_sha:
@@ -42,7 +44,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
-      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ inputs.maximum_receipts }}
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ github.event_name == 'schedule' && '100' || inputs.maximum_receipts }}
       DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
@@ -58,13 +60,18 @@ jobs:
             echo "This bounded private Preview index may only run from main."
             exit 1
           fi
-          if [[ "${{ inputs.execute_bounded_private_preview_index }}" != "true" ]]; then
-            echo "The bounded private Preview index was not explicitly armed."
-            exit 1
-          fi
-          if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
-             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
-            echo "The expected main commit does not match the dispatched commit."
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.execute_bounded_private_preview_index }}" != "true" ]]; then
+              echo "The bounded private Preview index was not explicitly armed."
+              exit 1
+            fi
+            if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
+               [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+              echo "The expected main commit does not match the dispatched commit."
+              exit 1
+            fi
+          elif [[ "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            echo "Unsupported population index trigger."
             exit 1
           fi
       - name: Checkout exact head
@@ -185,13 +192,55 @@ jobs:
       - name: Remove migration binding from subsequent steps
         shell: bash
         run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
-      - name: Fix canonical slice timestamp
+      - name: Advance bounded immutable P5 slices continuously
         shell: bash
-        run: echo "DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "${GITHUB_ENV}"
-      - name: Advance one bounded immutable P5 slice
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-population-race-index-command.test.ts
+        run: |
+          set -euo pipefail
+          started_at="$(date +%s)"
+          maximum_runtime_seconds=1500
+          maximum_slices=12
+          completed=0
+
+          for ((slice=1; slice<=maximum_slices; slice+=1)); do
+            elapsed="$(( $(date +%s) - started_at ))"
+            if (( elapsed >= maximum_runtime_seconds )); then
+              echo "Bounded continuation runtime reached after ${completed} successful slices."
+              break
+            fi
+
+            export DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+            log_file="$(mktemp)"
+            NO_COLOR=1 npx vitest run --no-file-parallelism \
+              tests/hosted-preview-connected-population-race-index-command.test.ts \
+              2>&1 | tee "${log_file}"
+
+            report_line="$(grep -F 'DNA_POPULATION_RACE_INDEX_PROGRESS=' "${log_file}" | tail -n 1 || true)"
+            rm -f "${log_file}"
+            if [[ -z "${report_line}" ]]; then
+              echo "The bounded slice did not emit a sanitized progress receipt."
+              exit 1
+            fi
+            report_json="${report_line#*DNA_POPULATION_RACE_INDEX_PROGRESS=}"
+            status="$(REPORT_JSON="${report_json}" node --input-type=module <<'NODE'
+          const report = JSON.parse(process.env.REPORT_JSON);
+          if (!["advanced", "complete"].includes(report.status)) {
+            throw new Error("Unexpected population index status.");
+          }
+          process.stdout.write(report.status);
+          NODE
+            )"
+            completed="$((completed + 1))"
+
+            if [[ "${status}" == "complete" ]]; then
+              echo "Population race index is complete; stopping scheduled continuation."
+              break
+            fi
+          done
+
+          if (( completed < 1 )); then
+            echo "No bounded population index slice completed."
+            exit 1
+          fi
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
