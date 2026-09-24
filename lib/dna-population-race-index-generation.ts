@@ -64,6 +64,13 @@ export type DnaPopulationRaceIndexCompactIdentity = Readonly<{
   rawEvidenceSha256: string;
 }>;
 
+export type DnaPopulationRaceIndexR2ChunkManifest =
+  DnaPopulationRaceIndexR2ChunkReceipt &
+  Readonly<{
+    registeredAt: string;
+    identityRegisteredAt: string | null;
+  }>;
+
 export type DnaPopulationRaceIndexLegacyChunk = Readonly<{
   documents: readonly DnaPopulationRaceIndexDocument[];
 }>;
@@ -101,6 +108,24 @@ export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
       workerId: string;
       generationId: string;
       compactedAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  listR2ChunkManifests: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      afterChunkOrdinal: number;
+      limit: number;
+    }>,
+  ) => Promise<readonly DnaPopulationRaceIndexR2ChunkManifest[]>;
+  registerCompactIdentityChunk: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      chunkOrdinal: number;
+      identities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      registeredAt: string;
     }>,
   ) => Promise<DnaPopulationRaceIndexCheckpoint>;
   lookupIdentities: (
