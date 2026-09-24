@@ -4,11 +4,12 @@ import {
   type DnaOpenLabNeonUsage,
   type DnaOpenLabProviderCapacityBlockerId,
   type DnaOpenLabProviderCapacityProjection,
+  type DnaOpenLabProviderCapacityProjectionHorizon,
 } from "./dna-open-lab-zero-cost-provider-capacity";
 import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy";
 
 export const DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION =
-  "dna-open-lab-provider-capacity-preflight/v1" as const;
+  "dna-open-lab-provider-capacity-preflight/v2" as const;
 export const DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT =
   "inspect_private_daily_refresh_capacity" as const;
 export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS =
@@ -102,6 +103,7 @@ export type DnaOpenLabProviderCapacityPreflightInvocation = Readonly<{
   exactCodeHeadSha: string;
   refreshCycleId: string;
   budgetWindowId: string;
+  projectionHorizon: DnaOpenLabProviderCapacityProjectionHorizon;
   plannedR2UsagePerRefresh: DnaOpenLabR2Usage;
   plannedNeonUsagePerRefresh: DnaOpenLabNeonUsage;
 }>;
@@ -249,6 +251,7 @@ function invocationPlan(input: {
   exactCodeHeadSha: string;
   refreshCycleId: string;
   budgetWindowId: string;
+  projectionHorizon: DnaOpenLabProviderCapacityProjectionHorizon;
   plannedR2UsagePerRefresh: DnaOpenLabR2Usage;
   plannedNeonUsagePerRefresh: DnaOpenLabNeonUsage;
 }) {
@@ -258,6 +261,7 @@ function invocationPlan(input: {
     exactCodeHeadSha: input.exactCodeHeadSha,
     refreshCycleId: input.refreshCycleId,
     budgetWindowId: input.budgetWindowId,
+    projectionHorizon: input.projectionHorizon,
     plannedR2UsagePerRefresh: input.plannedR2UsagePerRefresh,
     plannedNeonUsagePerRefresh: input.plannedNeonUsagePerRefresh,
   });
@@ -369,6 +373,7 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
       try {
         projection = projectDnaOpenLabZeroCostProviderCapacity({
           ...measurement,
+          projectionHorizon: invocation.projectionHorizon,
           plannedR2UsagePerRefresh: invocation.plannedR2UsagePerRefresh,
           plannedNeonUsagePerRefresh: invocation.plannedNeonUsagePerRefresh,
         });
@@ -384,6 +389,7 @@ export function createDnaOpenLabProviderCapacityPreflight(input: {
         exactCodeHeadSha,
         refreshCycleId,
         budgetWindowId,
+        projectionHorizon: invocation.projectionHorizon,
         plannedR2UsagePerRefresh: invocation.plannedR2UsagePerRefresh,
         plannedNeonUsagePerRefresh: invocation.plannedNeonUsagePerRefresh,
       });

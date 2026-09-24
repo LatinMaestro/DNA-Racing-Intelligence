@@ -324,6 +324,7 @@ export function createDnaOpenLabPrivateDailyRefreshOperator(input: {
           exactCodeHeadSha: invocation.exactCodeHeadSha,
           refreshCycleId: invocation.refreshCycleId,
           budgetWindowId: invocation.budgetWindowId,
+          projectionHorizon: "billing_window",
           plannedR2UsagePerRefresh: invocation.plannedR2Usage,
           plannedNeonUsagePerRefresh: invocation.plannedNeonUsage,
         });

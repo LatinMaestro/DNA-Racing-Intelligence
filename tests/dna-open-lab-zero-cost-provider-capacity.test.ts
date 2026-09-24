@@ -12,6 +12,7 @@ import {
 } from "@/lib/dna-open-lab-zero-cost-refresh-policy";
 
 const safe = {
+  projectionHorizon: "billing_window",
   r2StorageClass: "Standard",
   measuredAt: "2026-09-09T00:00:00.000Z",
   billingWindowStartAt: "2026-09-01T00:00:00.000Z",
@@ -81,6 +82,33 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
     });
     expect(result.r2Headroom.storageBytes).toBeGreaterThan(0);
     expect(result.neonHeadroom.storageBytes).toBeGreaterThan(0);
+  });
+
+  it("projects exactly one fail-closed write for a bounded continuation", () => {
+    const result = projectDnaOpenLabZeroCostProviderCapacity({
+      ...safe,
+      projectionHorizon: "single_refresh",
+      currentNeonUsage: {
+        storageBytes: 490_000_000,
+        computeMilliCuHours: 75_000,
+      },
+      plannedNeonUsagePerRefresh: {
+        storageBytes: 8_000_000,
+        computeMilliCuHours: 1_000,
+      },
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      r2RemainingRefreshes: 1,
+      neonRemainingRefreshes: 1,
+      maximumSafeR2RemainingRefreshes: 1,
+      maximumSafeNeonRemainingRefreshes: 1,
+      projectedNeonUsage: {
+        storageBytes: 498_000_000,
+        computeMilliCuHours: 76_000,
+      },
+    });
   });
 
   it("fails closed when the R2 storage class is not Standard", () => {

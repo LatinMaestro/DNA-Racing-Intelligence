@@ -156,7 +156,11 @@ function capacity(status: "ready" | "held" = "ready") {
   const inspect = vi.fn(async () =>
     status === "ready"
       ? { status: "ready", preflightSha256: "e".repeat(64) }
-      : { status: "held", reason: "capacity_blocked" },
+      : {
+          status: "held",
+          reason: "capacity_blocked",
+          blockerIds: ["neon_storage_budget_exhausted"],
+        },
   );
   return {
     inspect,
@@ -204,6 +208,9 @@ describe("DNA population race index private Preview operator", () => {
       preserveLastGood: true,
     });
     expect(gate.inspect).toHaveBeenCalledOnce();
+    expect(gate.inspect).toHaveBeenCalledWith(
+      expect.objectContaining({ projectionHorizon: "single_refresh" }),
+    );
     expect(store.begin).toHaveBeenCalledOnce();
     expect(store.appendBatch).toHaveBeenCalledOnce();
     expect(store.publish).not.toHaveBeenCalled();
@@ -224,6 +231,7 @@ describe("DNA population race index private Preview operator", () => {
     await expect(operator.execute(invocation())).resolves.toMatchObject({
       status: "held",
       reason: "provider_capacity_capacity_blocked",
+      providerCapacityBlockerIds: ["neon_storage_budget_exhausted"],
       processedReceiptCount: 0,
     });
     expect(source.loadReceipts).not.toHaveBeenCalled();

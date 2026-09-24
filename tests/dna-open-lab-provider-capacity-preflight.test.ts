@@ -33,12 +33,13 @@ const measurement: DnaOpenLabProviderCapacityMeasurement = Object.freeze({
 
 const invocation: DnaOpenLabProviderCapacityPreflightInvocation = Object.freeze(
   {
-    preflightVersion: "dna-open-lab-provider-capacity-preflight/v1",
+    preflightVersion: "dna-open-lab-provider-capacity-preflight/v2",
     intent: "inspect_private_daily_refresh_capacity",
     authenticatedOwnerId: ownerId,
     exactCodeHeadSha: "a".repeat(64),
     refreshCycleId: "b".repeat(64),
     budgetWindowId: "c".repeat(64),
+    projectionHorizon: "billing_window",
     plannedR2UsagePerRefresh: {
       storageBytes: 1_000_000,
       classAOperations: 100,
@@ -143,6 +144,10 @@ describe("DNA Open Lab provider capacity preflight", () => {
       gate.value.inspect({ ...invocation, exactCodeHeadSha: "d".repeat(64) }),
       gate.value.inspect({ ...invocation, refreshCycleId: "e".repeat(64) }),
       gate.value.inspect({ ...invocation, budgetWindowId: "f".repeat(64) }),
+      gate.value.inspect({
+        ...invocation,
+        projectionHorizon: "single_refresh",
+      }),
       gate.value.inspect({
         ...invocation,
         plannedNeonUsagePerRefresh: {
