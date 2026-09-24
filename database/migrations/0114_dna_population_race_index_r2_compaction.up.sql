@@ -6,6 +6,8 @@ ALTER TABLE dna.dna_population_race_index_generation
   ADD COLUMN generation_key bigint GENERATED ALWAYS AS IDENTITY,
   ADD COLUMN storage_layout text,
   ADD COLUMN r2_chunk_count integer NOT NULL DEFAULT 0 CHECK (r2_chunk_count >= 0),
+  ADD COLUMN r2_identity_chunk_count integer NOT NULL DEFAULT 0
+    CHECK (r2_identity_chunk_count >= 0),
   ADD COLUMN r2_compacted_race_count integer NOT NULL DEFAULT 0
     CHECK (r2_compacted_race_count >= 0),
   ADD COLUMN r2_last_source_race_id text CHECK (
@@ -511,6 +513,7 @@ BEGIN
     AND generation.generation_id = p_generation_id::character(64)
     AND generation.storage_layout = 'r2_chunked_v1'
     AND generation.legacy_storage_retired_at IS NOT NULL
+    AND generation.r2_identity_chunk_count = generation.r2_chunk_count
     AND NOT EXISTS (
       SELECT 1
       FROM dna.dna_population_race_index_r2_chunk chunk
@@ -601,6 +604,10 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'population compact identity chunk is unavailable';
   END IF;
+  IF p_chunk_ordinal <> v_generation.r2_identity_chunk_count + 1
+     AND v_chunk.identity_registered_at IS NULL THEN
+    RAISE EXCEPTION 'population compact identity chunk ordinal is not contiguous';
+  END IF;
 
   IF jsonb_array_length(p_identities) <> v_chunk.row_count
      OR EXISTS (
@@ -677,7 +684,8 @@ BEGIN
     AND chunk.chunk_ordinal = p_chunk_ordinal;
 
   UPDATE dna.dna_population_race_index_generation generation
-  SET updated_at = GREATEST(generation.updated_at, p_registered_at)
+  SET r2_identity_chunk_count = generation.r2_identity_chunk_count + 1,
+      updated_at = GREATEST(generation.updated_at, p_registered_at)
   WHERE generation.owner_id = p_owner_id
     AND generation.generation_id = p_generation_id::character(64)
   RETURNING * INTO v_generation;
@@ -920,6 +928,7 @@ BEGIN
   IF NOT FOUND OR v_generation.worker_id <> p_worker_id
      OR v_generation.storage_layout <> 'r2_chunked_v1'
      OR v_generation.legacy_storage_retired_at IS NULL
+     OR v_generation.r2_identity_chunk_count <> v_generation.r2_chunk_count
      OR EXISTS (
        SELECT 1
        FROM dna.dna_population_race_index_r2_chunk chunk
@@ -992,11 +1001,12 @@ BEGIN
     END IF;
     INSERT INTO dna.dna_population_race_index_r2_chunk (
       generation_key, chunk_ordinal, object_key, body_sha256, byte_length,
-      row_count, first_source_race_id, last_source_race_id, registered_at
+      row_count, first_source_race_id, last_source_race_id, registered_at,
+      identity_registered_at
     ) VALUES (
       v_generation.generation_key, v_chunk_ordinal, v_chunk_key,
       v_chunk_sha::character(64), v_chunk_bytes, v_chunk_rows,
-      v_chunk_first, v_chunk_last, p_written_at
+      v_chunk_first, v_chunk_last, p_written_at, p_written_at
     );
   END IF;
 
@@ -1023,6 +1033,8 @@ BEGIN
       generation.canonical_document_observation_count + v_documents,
     unique_race_count = generation.unique_race_count + v_new_count,
     r2_chunk_count = generation.r2_chunk_count +
+      CASE WHEN v_new_count > 0 THEN 1 ELSE 0 END,
+    r2_identity_chunk_count = generation.r2_identity_chunk_count +
       CASE WHEN v_new_count > 0 THEN 1 ELSE 0 END,
     r2_compacted_race_count = generation.r2_compacted_race_count + v_new_count,
     state = CASE WHEN v_complete THEN 'complete' ELSE 'staging' END,
