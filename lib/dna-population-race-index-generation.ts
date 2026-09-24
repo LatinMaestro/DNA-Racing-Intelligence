@@ -4,6 +4,7 @@ import type {
   DnaPopulationRaceIndexDocument,
   DnaPopulationRaceIndexReceiptBatch,
 } from "./dna-population-race-index-checkpoint";
+import type { DnaPopulationRaceIndexR2ChunkReceipt } from "./dna-population-race-index-r2-chunk";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -32,6 +33,11 @@ export type DnaPopulationRaceIndexCheckpoint = DnaPopulationRaceIndexAuthority &
     canonicalDocumentObservationCount: number;
     uniqueRaceCount: number;
     uniqueEntrantCoreCount: number;
+    storageLayout: "legacy_neon_v1" | "r2_chunked_v1";
+    r2ChunkCount: number;
+    r2CompactedRaceCount: number;
+    compactedAt: string | null;
+    legacyStorageRetiredAt: string | null;
     updatedAt: string;
     completedAt: string | null;
     publishedAt: string | null;
@@ -52,6 +58,15 @@ export type DnaPopulationRaceIndexWriteBatch = Readonly<{
   complete: boolean;
 }>;
 
+export type DnaPopulationRaceIndexCompactIdentity = Readonly<{
+  sourceRaceId: string;
+  rawEvidenceSha256: string;
+}>;
+
+export type DnaPopulationRaceIndexLegacyChunk = Readonly<{
+  documents: readonly DnaPopulationRaceIndexDocument[];
+}>;
+
 export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
   begin: (
     ownerId: string,
@@ -61,11 +76,46 @@ export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
       startedAt: string;
     }>,
   ) => Promise<DnaPopulationRaceIndexCheckpoint>;
-  appendBatch: (
+  readLegacyChunk: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      afterSourceRaceId: string | null;
+      limit: number;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexLegacyChunk>;
+  registerCompactionChunk: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      receipt: DnaPopulationRaceIndexR2ChunkReceipt;
+      identities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      registeredAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  finalizeCompaction: (
+    ownerId: string,
+    request: Readonly<{
+      workerId: string;
+      generationId: string;
+      compactedAt: string;
+    }>,
+  ) => Promise<DnaPopulationRaceIndexCheckpoint>;
+  lookupIdentities: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      sourceRaceIds: readonly string[];
+    }>,
+  ) => Promise<readonly DnaPopulationRaceIndexCompactIdentity[]>;
+  appendR2Batch: (
     ownerId: string,
     request: Readonly<{
       workerId: string;
       batch: DnaPopulationRaceIndexWriteBatch;
+      newIdentities: readonly DnaPopulationRaceIndexCompactIdentity[];
+      chunk: DnaPopulationRaceIndexR2ChunkReceipt | null;
       writtenAt: string;
     }>,
   ) => Promise<DnaPopulationRaceIndexCheckpoint>;
