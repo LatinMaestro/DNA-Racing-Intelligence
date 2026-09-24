@@ -198,7 +198,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       const manifests = [];
       let afterChunkOrdinal = 0;
       while (manifests.length < populationIndex.r2ChunkCount) {
-        const page = await populationIndexRepository.listR2ChunkManifests(
+        const page = await populationIndexRepository.listPublishedR2ChunkManifests(
           ownerId,
           {
             generationId: baselineState.completionSha256,
