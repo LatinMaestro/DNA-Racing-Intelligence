@@ -187,11 +187,13 @@ jobs:
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0112_dna_population_race_index_generation.up.sql
           fi
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --file database/migrations/0113_dna_population_race_index_storage_relief.up.sql
           compact_installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
             --command "SELECT to_regprocedure('dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)') IS NOT NULL")"
           if [[ "${compact_installed}" != "t" ]]; then
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
-              --file database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+              --file database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
           fi
       - name: Prove population index migrations on private Preview
         shell: bash
@@ -200,8 +202,10 @@ jobs:
             --set skip_runtime_role=1 --file \
             database/migrations/0112_dna_population_race_index_generation.smoke.sql
           psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --file database/migrations/0113_dna_population_race_index_storage_relief.smoke.sql
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
             --set skip_runtime_role=1 --file \
-            database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+            database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
       - name: Compact legacy Neon race payload into R2
         id: compact
         shell: bash
