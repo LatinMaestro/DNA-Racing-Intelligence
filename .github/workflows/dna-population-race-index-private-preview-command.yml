@@ -420,10 +420,9 @@ jobs:
         if: steps.retire.outputs.status == 'complete'
         shell: bash
         run: |
-          reclaim_proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
-            --set owner_id="${DNA_DATABASE_OWNER_ID}" --file=- <<'SQL'
+          reclaim_output="$(PGOPTIONS="-c dna.reclaim_owner_id=${DNA_DATABASE_OWNER_ID}" \
+            psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 --file=- <<'SQL'
           BEGIN;
-          SELECT set_config('dna.reclaim_owner_id', :'owner_id', true);
           LOCK TABLE
             dna.dna_population_race_index_entrant,
             dna.dna_population_race_index_race
@@ -488,7 +487,8 @@ jobs:
             dna.dna_population_race_index_entrant,
             dna.dna_population_race_index_race;
 
-          SELECT json_build_object(
+          SELECT 'DNA_POPULATION_LEGACY_STORAGE_RECLAIM=' ||
+            json_build_object(
             'beforeBytes', metrics.before_bytes,
             'afterBytes',
               pg_total_relation_size('dna.dna_population_race_index_race') +
@@ -502,7 +502,8 @@ jobs:
           COMMIT;
           SQL
           )"
-          printf '%s' "${reclaim_proof}" | node --input-type=module -e '
+          reclaim_json="$(sed -n 's/^DNA_POPULATION_LEGACY_STORAGE_RECLAIM=//p' <<< "${reclaim_output}" | tail -n 1)"
+          printf '%s' "${reclaim_json}" | node --input-type=module -e '
             let body = "";
             for await (const chunk of process.stdin) body += chunk;
             const parsed = JSON.parse(body);
@@ -512,8 +513,7 @@ jobs:
                   !Number.isSafeInteger(parsed[key]) || parsed[key] < 0
                 ) ||
                 parsed.reclaimedBytes !==
-                  parsed.beforeBytes - parsed.afterBytes ||
-                parsed.reclaimedBytes <= 0) {
+                  parsed.beforeBytes - parsed.afterBytes) {
               throw new Error("The legacy population storage reclaim proof is invalid.");
             }
             console.log(

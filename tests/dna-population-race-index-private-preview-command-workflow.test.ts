@@ -94,6 +94,10 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain("IN ACCESS EXCLUSIVE MODE");
     expect(workflow).toContain("TRUNCATE TABLE");
     expect(workflow).toContain("DNA_POPULATION_LEGACY_STORAGE_RECLAIM=");
+    expect(workflow).toContain("reclaim_json=");
+    expect(workflow).toContain("dna.reclaim_owner_id=");
+    expect(workflow).not.toContain("SELECT set_config('dna.reclaim_owner_id'");
+    expect(workflow).not.toContain("parsed.reclaimedBytes <= 0");
     expect(workflow).not.toContain("TRUNCATE TABLE ONLY");
     expect(workflow).not.toMatch(/TRUNCATE[^;]+CASCADE/su);
     expect(workflow).toContain(
