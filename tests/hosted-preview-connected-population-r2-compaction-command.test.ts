@@ -43,6 +43,24 @@ function requiredEnvironment(name: string): string {
 
 function connectedFailureId(error: unknown): string {
   if (!(error instanceof Error)) return "unexpected_failure";
+  if (error.message.includes("Cloudflare R2 evidence write failed")) {
+    return "r2_provider_write";
+  }
+  if (error.message.includes("Cloudflare R2 evidence inspection failed")) {
+    return "r2_provider_inspection";
+  }
+  if (error.message.includes("Cloudflare R2 evidence checksum")) {
+    return "r2_provider_checksum";
+  }
+  if (
+    error.message.includes("Cloudflare R2 evidence body length") ||
+    error.message.includes("Cloudflare R2 evidence write exceeds")
+  ) {
+    return "r2_provider_body_bound";
+  }
+  if (error.message.includes("Cloudflare R2 privacy verification failed")) {
+    return "r2_bucket_privacy_verification";
+  }
   if (error.message.includes("bounded byte capacity")) {
     return "r2_chunk_byte_bound";
   }
@@ -56,8 +74,50 @@ function connectedFailureId(error: unknown): string {
   if (error.message.includes("population race index isolation")) {
     return "neon_runtime_isolation";
   }
+  if (error.message.includes("DNA population race index R2 chunk")) {
+    return "r2_chunk_validation";
+  }
+  if (
+    error.message.includes("population race index") ||
+    error.message.includes("population R2") ||
+    error.message.includes("legacy population")
+  ) {
+    return "neon_compaction_state";
+  }
+  if (
+    error.message.includes("P5 first-backfill") ||
+    error.message.includes("immutable P5 baseline")
+  ) {
+    return "p5_baseline_authority";
+  }
+  if (
+    error.message.includes("provider preflight") ||
+    error.message.includes("Provider capacity")
+  ) {
+    return "provider_capacity_preflight";
+  }
   return "unexpected_failure";
 }
+
+describe("population R2 compaction connected failure classifier", () => {
+  it.each([
+    ["Cloudflare R2 evidence write failed.", "r2_provider_write"],
+    ["Cloudflare R2 evidence inspection failed.", "r2_provider_inspection"],
+    [
+      "Cloudflare R2 privacy verification failed.",
+      "r2_bucket_privacy_verification",
+    ],
+    [
+      "DNA population race index R2 chunk: document authority is invalid",
+      "r2_chunk_validation",
+    ],
+    ["population race index state is invalid", "neon_compaction_state"],
+    ["P5 first-backfill ledger state exceeds", "p5_baseline_authority"],
+    ["Provider capacity response is invalid.", "provider_capacity_preflight"],
+  ])("maps %s to %s", (message, failureId) => {
+    expect(connectedFailureId(new Error(message))).toBe(failureId);
+  });
+});
 
 describeConnected("hosted Preview population R2 compaction command", () => {
   it(
