@@ -13,17 +13,30 @@ function required(name: string): string {
   return value;
 }
 
+async function jsonGet(url: string, token: string): Promise<{ status: number; body: any | null }> {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  let body: any | null = null;
+  try { body = await response.json(); } catch {}
+  return { status: response.status, body };
+}
+
 describe("temporary population capacity diagnostic", () => {
-  it("prints only sanitized current usage and the population-index projection", async () => {
+  it("prints only sanitized current usage and paid-plan eligibility signals", async () => {
     const ownerId = required("AUTHORIZED_CLERK_USER_ID");
+    const neonApiKey = required("NEON_API_KEY");
+    const neonProjectId = required("NEON_PROJECT_ID");
     const source = cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment({
       authorizedOwnerId: ownerId,
       cloudflareAccountId: required("CLOUDFLARE_ACCOUNT_ID"),
       cloudflareAnalyticsApiToken: required("CLOUDFLARE_ANALYTICS_API_TOKEN"),
       r2BucketName: required("DNA_R2_BUCKET_NAME"),
       r2StorageClass: required("DNA_R2_STORAGE_CLASS"),
-      neonApiKey: required("NEON_API_KEY"),
-      neonProjectId: required("NEON_PROJECT_ID"),
+      neonApiKey,
+      neonProjectId,
     });
     if (source.status !== "ready") throw new Error("source unavailable");
 
@@ -41,6 +54,47 @@ describe("temporary population capacity diagnostic", () => {
       currentNeonUsage: measurement.currentNeonUsage,
       plannedNeonUsagePerRefresh: DNA_POPULATION_RACE_INDEX_PREVIEW_PLANNED_NEON_USAGE,
     });
+
+    const projectResponse = await jsonGet(
+      `https://console.neon.tech/api/v2/projects/${encodeURIComponent(neonProjectId)}`,
+      neonApiKey,
+    );
+    const project = projectResponse.body?.project ?? null;
+    const organizationId =
+      typeof project?.org_id === "string"
+        ? project.org_id
+        : typeof project?.owner_id === "string" && project.owner_id.startsWith("org-")
+          ? project.owner_id
+          : null;
+
+    let organizationPlan: string | null = null;
+    let spendingLimitCents: number | null | "unavailable" = "unavailable";
+    let spendingLimitLookupStatus: number | null = null;
+    if (organizationId !== null) {
+      const orgResponse = await jsonGet(
+        `https://console.neon.tech/api/v2/organizations/${encodeURIComponent(organizationId)}`,
+        neonApiKey,
+      );
+      if (orgResponse.status === 200 && typeof orgResponse.body?.organization?.plan === "string") {
+        organizationPlan = orgResponse.body.organization.plan;
+      } else if (orgResponse.status === 200 && typeof orgResponse.body?.plan === "string") {
+        organizationPlan = orgResponse.body.plan;
+      }
+
+      const limitResponse = await jsonGet(
+        `https://console.neon.tech/api/v2/organizations/${encodeURIComponent(organizationId)}/billing/spending_limit`,
+        neonApiKey,
+      );
+      spendingLimitLookupStatus = limitResponse.status;
+      if (limitResponse.status === 200) {
+        const value =
+          limitResponse.body?.spending_limit_cents ??
+          limitResponse.body?.spending_limit?.spending_limit_cents ??
+          null;
+        spendingLimitCents =
+          value === null || (Number.isSafeInteger(value) && value >= 0) ? value : "unavailable";
+      }
+    }
 
     console.log("DNA_POPULATION_CAPACITY_DIAGNOSTIC=" + JSON.stringify({
       measuredAt: measurement.measuredAt,
@@ -60,10 +114,14 @@ describe("temporary population capacity diagnostic", () => {
       neonBudgets: projection.neonBudgets,
       r2FreeAllowances: projection.r2FreeAllowances,
       neonFreeAllowances: projection.neonFreeAllowances,
+      organizationPlan,
+      spendingLimitCents,
+      spendingLimitLookupStatus,
       paidUsageAllowed: projection.paidUsageAllowed,
       preserveLastGood: projection.preserveLastGood,
     }));
 
     expect(measurement.evidenceSource).toBe("provider_api");
+    expect(projectResponse.status).toBe(200);
   }, 30_000);
 });
