@@ -8,6 +8,13 @@ ALTER TABLE dna.dna_population_race_index_generation
   ADD COLUMN r2_chunk_count integer NOT NULL DEFAULT 0 CHECK (r2_chunk_count >= 0),
   ADD COLUMN r2_compacted_race_count integer NOT NULL DEFAULT 0
     CHECK (r2_compacted_race_count >= 0),
+  ADD COLUMN r2_last_source_race_id text CHECK (
+    r2_last_source_race_id IS NULL
+    OR (
+      length(r2_last_source_race_id) BETWEEN 1 AND 512
+      AND r2_last_source_race_id !~ '[[:cntrl:]]'
+    )
+  ),
   ADD COLUMN compacted_at timestamptz,
   ADD COLUMN legacy_storage_retired_at timestamptz;
 
@@ -357,6 +364,7 @@ BEGIN
   UPDATE dna.dna_population_race_index_generation generation SET
     r2_chunk_count = generation.r2_chunk_count + 1,
     r2_compacted_race_count = generation.r2_compacted_race_count + v_row_count,
+    r2_last_source_race_id = v_last,
     updated_at = p_registered_at
   WHERE generation.owner_id = p_owner_id
     AND generation.generation_id = p_generation_id::character(64)
