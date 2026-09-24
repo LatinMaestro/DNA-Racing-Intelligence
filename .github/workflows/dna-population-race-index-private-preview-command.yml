@@ -25,7 +25,6 @@ on:
         type: boolean
 
 permissions:
-  actions: write
   contents: read
 
 concurrency:
@@ -270,6 +269,9 @@ jobs:
            needs['exact-main-bounded-private-preview-index'].outputs.terminal_status == 'held') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
@@ -299,7 +301,7 @@ jobs:
 
           active_other_count="$(gh api \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/runs?per_page=20" \
-            --jq '[.workflow_runs[] | select(.id != (env.GITHUB_RUN_ID | tonumber) and .status != "completed")] | length')"
+            --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID} and .status != \"completed\")] | length")"
           if [[ ! "${active_other_count}" =~ ^[0-9]+$ ]]; then
             echo "The competing-run proof was invalid."
             exit 1
