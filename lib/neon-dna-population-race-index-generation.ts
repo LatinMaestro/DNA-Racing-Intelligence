@@ -264,6 +264,11 @@ function parseCheckpoint(row: DbRow): DnaPopulationRaceIndexCheckpoint {
       row.r2_compacted_race_count,
       "r2CompactedRaceCount",
     ),
+    r2LastSourceRaceId:
+      row.r2_last_source_race_id === null ||
+      row.r2_last_source_race_id === undefined
+        ? null
+        : text(row.r2_last_source_race_id, "r2LastSourceRaceId"),
     compactedAt: optionalTimestamp(row.compacted_at, "compactedAt"),
     legacyStorageRetiredAt: optionalTimestamp(
       row.legacy_storage_retired_at,
