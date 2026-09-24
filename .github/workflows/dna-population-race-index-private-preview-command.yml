@@ -209,18 +209,30 @@ jobs:
             rm -f "${output_file}"
             status="$(PROGRESS_JSON="${progress_json}" node --input-type=module <<'NODE'
           const progress = JSON.parse(process.env.PROGRESS_JSON ?? "");
-          if (progress.status !== "advanced" && progress.status !== "complete") {
+          if (progress.status !== "advanced" &&
+              progress.status !== "complete" &&
+              progress.status !== "held") {
             throw new Error("The population index emitted an invalid progress status.");
           }
           if (progress.status === "advanced" &&
               !(progress.afterRequestOrdinal > progress.beforeRequestOrdinal)) {
             throw new Error("The population index did not advance its durable checkpoint.");
           }
+          if (progress.status === "held" &&
+              (!/^provider_capacity_[a-z0-9_]+$/.test(progress.reason ?? "") ||
+               progress.processedReceiptCount !== 0 ||
+               progress.afterRequestOrdinal !== progress.beforeRequestOrdinal)) {
+            throw new Error("The population index emitted an invalid capacity hold.");
+          }
           process.stdout.write(progress.status);
           NODE
             )"
             if [[ "${status}" == "complete" ]]; then
               echo "The immutable P5 population index is complete."
+              break
+            fi
+            if [[ "${status}" == "held" ]]; then
+              echo "The immutable P5 population index held safely at the free-capacity guard; a later schedule will retry."
               break
             fi
             git fetch --quiet --no-tags origin main
