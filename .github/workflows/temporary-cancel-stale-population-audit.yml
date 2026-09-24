@@ -1,41 +1,13 @@
-name: TEMPORARY cancel stale population history audit
+name: TEMPORARY stale population audit cancellation retained for audit trail
 
 on:
-  push:
-    branches:
-      - temporary/kick-population-preview-2026-09-25-do-not-merge
+  workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
-  cancel-stale-audit:
+  retained-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - name: Cancel only stale old-main audit
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          STALE_RUN_ID: "36066746646"
-          STALE_HEAD_SHA: "704eb411d2f1cd790898b50c6c59492369a93d7c"
-          CURRENT_MAIN_SHA: "8a38f934da240cb566ad8265a8d229d0b32e48ad"
-        run: |
-          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
-          stale_head="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${STALE_RUN_ID}" --jq '.head_sha')"
-          stale_status="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${STALE_RUN_ID}" --jq '.status')"
-          if [[ "${current_main}" != "${CURRENT_MAIN_SHA}" ]]; then
-            echo "Current main changed; refusing stale-run cancellation."
-            exit 1
-          fi
-          if [[ "${stale_head}" != "${STALE_HEAD_SHA}" ]]; then
-            echo "Target run is not the expected stale audit."
-            exit 1
-          fi
-          if [[ "${stale_status}" == "completed" ]]; then
-            echo "Stale audit already completed; nothing to cancel."
-            exit 0
-          fi
-          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/runs/${STALE_RUN_ID}/cancel"
-          echo "Cancelled stale old-main population audit."
+      - run: echo "Temporary cancellation workflow is disabled; do not merge this branch."
