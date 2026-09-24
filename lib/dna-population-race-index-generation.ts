@@ -36,6 +36,7 @@ export type DnaPopulationRaceIndexCheckpoint = DnaPopulationRaceIndexAuthority &
     storageLayout: "legacy_neon_v1" | "r2_chunked_v1";
     r2ChunkCount: number;
     r2CompactedRaceCount: number;
+    r2LastSourceRaceId: string | null;
     compactedAt: string | null;
     legacyStorageRetiredAt: string | null;
     updatedAt: string;
