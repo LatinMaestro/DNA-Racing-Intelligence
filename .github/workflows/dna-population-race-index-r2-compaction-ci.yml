@@ -5,20 +5,20 @@ on:
     branches:
       - main
     paths:
-      - database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.down.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.removal.sql
       - .github/workflows/dna-population-race-index-r2-compaction-ci.yml
       - .github/workflows/ci.yml
   push:
     branches:
       - main
     paths:
-      - database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
-      - database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.down.sql
+      - database/migrations/0114_dna_population_race_index_r2_compaction.removal.sql
       - .github/workflows/dna-population-race-index-r2-compaction-ci.yml
       - .github/workflows/ci.yml
 
@@ -51,7 +51,7 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Apply authoritative CI migration baseline through 0112
+      - name: Apply authoritative CI migration baseline through 0113
         shell: bash
         run: |
           set -euo pipefail
@@ -59,23 +59,23 @@ jobs:
             grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
               awk '!seen[$0]++'
           )
-          if [[ "${#migrations[@]}" -lt 2 ]] || [[ "${migrations[-1]}" != "database/migrations/0113_dna_population_race_index_r2_compaction.up.sql" ]]; then
-            echo "Authoritative CI migration list does not end at 0113."
+          if [[ "${#migrations[@]}" -lt 2 ]] || [[ "${migrations[-1]}" != "database/migrations/0114_dna_population_race_index_r2_compaction.up.sql" ]]; then
+            echo "Authoritative CI migration list does not end at 0114."
             exit 1
           fi
           unset 'migrations[-1]'
-          if [[ "${migrations[-1]}" != "database/migrations/0112_dna_population_race_index_generation.up.sql" ]]; then
-            echo "Authoritative CI migration baseline does not end at 0112."
+          if [[ "${migrations[-1]}" != "database/migrations/0113_dna_population_race_index_storage_relief.up.sql" ]]; then
+            echo "Authoritative CI migration baseline does not end at 0114."
             exit 1
           fi
           for migration in "${migrations[@]}"; do
             psql --set ON_ERROR_STOP=1 --file "$migration" >/dev/null
           done
       - name: Apply population race index R2 compaction migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.up.sql
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
       - name: Run population race index R2 compaction smoke test
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.smoke.sql
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
       - name: Reverse population race index R2 compaction migration
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.down.sql
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.down.sql
       - name: Verify population race index R2 compaction reversal
-        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0113_dna_population_race_index_r2_compaction.removal.sql
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.removal.sql
