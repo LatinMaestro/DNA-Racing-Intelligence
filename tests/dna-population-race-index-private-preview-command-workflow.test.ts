@@ -86,6 +86,14 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain('echo "::add-mask::${migration_url}"');
     expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
     expect(workflow).toContain(
+      "Measure aggregate private Preview population storage",
+    );
+    expect(workflow).toContain("DNA_POPULATION_STORAGE_METRICS=");
+    expect(workflow).toContain("pg_database_size(current_database())");
+    expect(workflow).toContain(
+      "pg_total_relation_size('dna.dna_population_race_index_compact_identity')",
+    );
+    expect(workflow).toContain(
       "Remove migration binding from subsequent steps",
     );
     expect(workflow).toContain(
