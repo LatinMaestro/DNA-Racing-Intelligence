@@ -361,7 +361,15 @@ BEGIN
        OR v_canonical ->> 'sourceType' <> 'race_document'
        OR v_canonical ->> 'sourceRaceId' IS DISTINCT FROM v_race_id
        OR (v_mode IS NOT NULL AND v_mode NOT IN ('bike', 'car', 'horse'))
-       OR (v_entrants IS NOT NULL AND jsonb_typeof(v_entrants) <> 'array') THEN
+       OR (v_entrants IS NOT NULL AND jsonb_typeof(v_entrants) <> 'array')
+       OR (
+         v_entrants IS NOT NULL
+         AND EXISTS (
+           SELECT 1
+           FROM jsonb_array_elements(v_entrants) entrant(value)
+           WHERE jsonb_typeof(entrant.value) <> 'string'
+         )
+       ) THEN
       RAISE EXCEPTION 'population race index document authority is invalid';
     END IF;
     SELECT stored.* INTO v_existing_race

@@ -97,6 +97,45 @@ BEGIN
     '2026-09-24 03:01:00+00'
   );
 
+  BEGIN
+    PERFORM * FROM dna.append_dna_population_race_index_batch(
+      v_owner,
+      'synthetic-population-index-worker',
+      jsonb_build_object(
+        'version', 1,
+        'generationId', v_generation,
+        'batchSha256', repeat('6', 64),
+        'afterRequestOrdinal', 1,
+        'nextRequestOrdinal', 3,
+        'processedReceiptCount', 1,
+        'processedReceiptBytes', 20,
+        'processedIdentityOmissionCount', 0,
+        'finishedRaceReceiptCount', 1,
+        'canonicalDocumentObservationCount', 1,
+        'documents', jsonb_build_array(jsonb_build_object(
+          'requestOrdinal', 2,
+          'endpoint', 'races.docs',
+          'observedAt', '2026-09-02T00:01:00.000Z',
+          'sourceRaceId', 'race-invalid-entrant',
+          'rawEvidenceSha256', repeat('7', 64),
+          'canonical', jsonb_build_object(
+            'sourceType', 'race_document',
+            'sourceRaceId', 'race-invalid-entrant',
+            'mode', 'horse',
+            'entrantCoreIds', jsonb_build_array(jsonb_build_object('id', 'core-3'))
+          )
+        )),
+        'complete', true
+      ),
+      '2026-09-24 03:01:30+00'
+    );
+    RAISE EXCEPTION 'non-string entrant identity was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%document authority is invalid%' THEN
+      RAISE;
+    END IF;
+  END;
+
   SELECT * INTO v_result FROM dna.append_dna_population_race_index_batch(
     v_owner,
     'synthetic-population-index-worker',
