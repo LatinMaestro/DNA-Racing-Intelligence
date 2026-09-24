@@ -119,6 +119,14 @@ export type DnaPopulationRaceIndexGenerationRepository = Readonly<{
       limit: number;
     }>,
   ) => Promise<readonly DnaPopulationRaceIndexR2ChunkManifest[]>;
+  listPublishedR2ChunkManifests: (
+    ownerId: string,
+    request: Readonly<{
+      generationId: string;
+      afterChunkOrdinal: number;
+      limit: number;
+    }>,
+  ) => Promise<readonly DnaPopulationRaceIndexR2ChunkManifest[]>;
   registerCompactIdentityChunk: (
     ownerId: string,
     request: Readonly<{
