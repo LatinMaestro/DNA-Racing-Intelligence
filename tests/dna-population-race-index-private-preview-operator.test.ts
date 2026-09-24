@@ -114,6 +114,12 @@ function checkpoint(
     canonicalDocumentObservationCount: 0,
     uniqueRaceCount: 0,
     uniqueEntrantCoreCount: 0,
+    storageLayout: "r2_chunked_v1",
+    r2ChunkCount: 0,
+    r2CompactedRaceCount: 0,
+    r2LastSourceRaceId: null,
+    compactedAt: attemptedAt,
+    legacyStorageRetiredAt: attemptedAt,
     updatedAt: attemptedAt,
     completedAt: null,
     publishedAt: null,
@@ -123,7 +129,11 @@ function checkpoint(
 
 function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
   const begin = vi.fn(async () => checkpoint());
-  const appendBatch = vi.fn(async () =>
+  const readLegacyChunk = vi.fn(async () => ({ documents: [] }));
+  const registerCompactionChunk = vi.fn(async () => checkpoint());
+  const finalizeCompaction = vi.fn(async () => checkpoint());
+  const lookupIdentities = vi.fn(async () => []);
+  const appendR2Batch = vi.fn(async () =>
     checkpoint({
       lastRequestOrdinal: 2,
       processedReceiptCount: 2,
@@ -132,6 +142,8 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
       canonicalDocumentObservationCount: 1,
       uniqueRaceCount: 1,
       uniqueEntrantCoreCount: 2,
+      r2ChunkCount: 1,
+      r2CompactedRaceCount: 1,
     }),
   );
   const publish = vi.fn(async () =>
@@ -141,12 +153,20 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
   return {
     value: {
       begin,
-      appendBatch,
+      readLegacyChunk,
+      registerCompactionChunk,
+      finalizeCompaction,
+      lookupIdentities,
+      appendR2Batch,
       publish,
       load,
     } satisfies DnaPopulationRaceIndexGenerationRepository,
     begin,
-    appendBatch,
+    readLegacyChunk,
+    registerCompactionChunk,
+    finalizeCompaction,
+    lookupIdentities,
+    appendR2Batch,
     publish,
     load,
   };
@@ -166,6 +186,24 @@ function capacity(status: "ready" | "held" = "ready") {
     inspect,
     value: { inspect } as unknown as DnaOpenLabProviderCapacityPreflight,
   };
+}
+
+function chunkStore() {
+  const write = vi.fn(async () => ({
+    receipt: {
+      version: 1 as const,
+      generationId: completionSha256,
+      chunkOrdinal: 1,
+      objectKey: "private/population/1.json",
+      bodySha256: "f".repeat(64),
+      byteLength: 256,
+      rowCount: 1,
+      firstSourceRaceId: "101",
+      lastSourceRaceId: "101",
+    },
+    storageStatus: "created" as const,
+  }));
+  return { write, value: { write } };
 }
 
 function invocation() {
@@ -191,6 +229,7 @@ describe("DNA population race index private Preview operator", () => {
       baseline: source.value,
       repository: store.value,
       capacityPreflight: gate.value,
+      chunkStore: chunkStore().value,
     });
 
     await expect(operator.execute(invocation())).resolves.toMatchObject({
@@ -206,13 +245,14 @@ describe("DNA population race index private Preview operator", () => {
       providerWritePerformed: false,
       paidUsageAllowed: false,
       preserveLastGood: true,
+      providerWritePerformed: true,
     });
     expect(gate.inspect).toHaveBeenCalledOnce();
     expect(gate.inspect).toHaveBeenCalledWith(
       expect.objectContaining({ projectionHorizon: "single_refresh" }),
     );
     expect(store.begin).toHaveBeenCalledOnce();
-    expect(store.appendBatch).toHaveBeenCalledOnce();
+    expect(store.appendR2Batch).toHaveBeenCalledOnce();
     expect(store.publish).not.toHaveBeenCalled();
     expect(source.readEvidence).toHaveBeenCalledOnce();
   });
@@ -237,7 +277,7 @@ describe("DNA population race index private Preview operator", () => {
     expect(source.loadReceipts).not.toHaveBeenCalled();
     expect(source.readEvidence).not.toHaveBeenCalled();
     expect(store.begin).not.toHaveBeenCalled();
-    expect(store.appendBatch).not.toHaveBeenCalled();
+    expect(store.appendR2Batch).not.toHaveBeenCalled();
   });
 
   it("returns complete without capacity measurement or writes for an active generation", async () => {
@@ -265,7 +305,7 @@ describe("DNA population race index private Preview operator", () => {
     });
     expect(gate.inspect).not.toHaveBeenCalled();
     expect(store.begin).not.toHaveBeenCalled();
-    expect(store.appendBatch).not.toHaveBeenCalled();
+    expect(store.appendR2Batch).not.toHaveBeenCalled();
   });
 
   it("rejects missing write authority, owner drift and oversized batches", async () => {
