@@ -169,8 +169,7 @@ describeConnected("hosted Preview population R2 compaction command", () => {
             ...args: Parameters<typeof rawRepository.registerCompactionChunk>
           ) {
             operatorBoundary = "neon-register";
-            const result =
-              await rawRepository.registerCompactionChunk(...args);
+            const result = await rawRepository.registerCompactionChunk(...args);
             operatorBoundary = "after-neon-register";
             return result;
           },
