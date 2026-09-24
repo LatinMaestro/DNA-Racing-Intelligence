@@ -60,11 +60,26 @@ function requiredEnvironment(name: string): string {
 
 function connectedFailureId(error: unknown): string {
   if (!(error instanceof Error)) return "unexpected_failure";
+  const registrations: readonly Readonly<[string, string]>[] = [
+    ["registration is invalid", "neon_registration_invalid"],
+    ["receipt is invalid", "neon_receipt_invalid"],
+    ["receipt counters are invalid", "neon_receipt_counters_invalid"],
+    ["receipt bounds are invalid", "neon_receipt_bounds_invalid"],
+    ["claim is unavailable", "neon_claim_unavailable"],
+    ["replay conflicts", "neon_replay_conflict"],
+    ["chunk ordinal is not contiguous", "neon_chunk_ordinal"],
+    ["race ranges overlap", "neon_race_range_overlap"],
+    ["identity is invalid", "neon_identity_invalid"],
+    ["duplicate race identities", "neon_duplicate_identity"],
+    ["identity range disagrees", "neon_identity_range"],
+    ["identity disagrees with legacy authority", "neon_identity_authority"],
+    ["storage-negative chunk retirement count", "neon_chunk_retirement_count"],
+  ];
+  for (const [fragment, failureId] of registrations) {
+    if (error.message.includes(fragment)) return failureId;
+  }
   if (error.message.includes("bounded byte capacity")) {
     return "r2_chunk_byte_bound";
-  }
-  if (error.message.includes("storage-negative chunk retirement count")) {
-    return "neon_chunk_retirement_count";
   }
   if (error.message.includes("stored chunk")) return "r2_chunk_replay";
   if (error.message.includes("population race R2 compaction registration")) {
