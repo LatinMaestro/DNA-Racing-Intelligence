@@ -150,6 +150,62 @@ function sortedUniqueDocuments(
   return Object.freeze(sorted);
 }
 
+function chunkBody(input: {
+  generationId: string;
+  chunkOrdinal: number;
+  documents: readonly DnaPopulationRaceIndexDocument[];
+}): Readonly<{ canonical: string; body: Uint8Array }> {
+  const canonical = canonicalJson({
+    version: 1,
+    source: "dna_open_lab",
+    sourceVersion: "population-race-index-r2-v1",
+    generationId: input.generationId,
+    chunkOrdinal: input.chunkOrdinal,
+    documents: input.documents,
+  });
+  return Object.freeze({
+    canonical,
+    body: new TextEncoder().encode(canonical),
+  });
+}
+
+export function fitDnaPopulationRaceIndexR2ChunkDocuments(input: {
+  generationId: string;
+  chunkOrdinal: number;
+  documents: readonly DnaPopulationRaceIndexDocument[];
+}): readonly DnaPopulationRaceIndexDocument[] {
+  const generation = generationId(input.generationId);
+  const chunkOrdinal = positiveInteger(
+    input.chunkOrdinal,
+    "chunkOrdinal",
+    1_000_000,
+  );
+  const documents = sortedUniqueDocuments(input.documents);
+  let lower = 1;
+  let upper = documents.length;
+  let fittingCount = 0;
+
+  while (lower <= upper) {
+    const candidateCount = Math.floor((lower + upper) / 2);
+    const { body } = chunkBody({
+      generationId: generation,
+      chunkOrdinal,
+      documents: documents.slice(0, candidateCount),
+    });
+    if (body.byteLength <= DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES) {
+      fittingCount = candidateCount;
+      lower = candidateCount + 1;
+    } else {
+      upper = candidateCount - 1;
+    }
+  }
+
+  if (fittingCount < 1) {
+    chunkError("one document exceeds the bounded byte capacity");
+  }
+  return Object.freeze(documents.slice(0, fittingCount));
+}
+
 async function collectExactBody(input: {
   body: AsyncIterable<Uint8Array>;
   byteLength: number;
@@ -341,15 +397,11 @@ export function createDnaPopulationRaceIndexR2ChunkStore(input: {
       const documents = sortedUniqueDocuments(request.documents);
       const firstSourceRaceId = documents[0]!.sourceRaceId;
       const lastSourceRaceId = documents.at(-1)!.sourceRaceId;
-      const canonical = canonicalJson({
-        version: 1,
-        source: "dna_open_lab",
-        sourceVersion: "population-race-index-r2-v1",
+      const { canonical, body } = chunkBody({
         generationId: generation,
         chunkOrdinal,
         documents,
       });
-      const body = new TextEncoder().encode(canonical);
       if (
         body.byteLength < 1 ||
         body.byteLength > DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES

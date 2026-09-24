@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createDnaPopulationRaceIndexR2ChunkStore } from "../lib/dna-population-race-index-r2-chunk";
+import {
+  createDnaPopulationRaceIndexR2ChunkStore,
+  fitDnaPopulationRaceIndexR2ChunkDocuments,
+} from "../lib/dna-population-race-index-r2-chunk";
 
 function document(sourceRaceId: string, rawEvidenceSha256 = "a".repeat(64)) {
   return Object.freeze({
@@ -119,5 +122,29 @@ describe("DNA population race index R2 chunk store", () => {
         documents: [document("race-3")],
       }),
     ).resolves.toMatchObject({ storageStatus: "existing" });
+  });
+
+  it("fits the largest ordered prefix below the immutable byte ceiling", () => {
+    const large = (sourceRaceId: string) =>
+      Object.freeze({
+        ...document(sourceRaceId),
+        canonical: Object.freeze({
+          sourceType: "race_document" as const,
+          sourceRaceId,
+          mode: "bike" as const,
+          payload: "x".repeat(3_000_000),
+        }),
+      });
+
+    const fitted = fitDnaPopulationRaceIndexR2ChunkDocuments({
+      generationId: "b".repeat(64),
+      chunkOrdinal: 1,
+      documents: [large("race-3"), large("race-1"), large("race-2")],
+    });
+
+    expect(fitted.map((entry) => entry.sourceRaceId)).toEqual([
+      "race-1",
+      "race-2",
+    ]);
   });
 });
