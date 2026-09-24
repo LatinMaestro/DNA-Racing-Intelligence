@@ -49,3 +49,19 @@ jobs:
             ORDER BY pg_total_relation_size(relid) DESC
             LIMIT 20;
           "
+          psql "${DATABASE_URL}" -X -At --set ON_ERROR_STOP=1 --command "
+            SELECT 'DNA_POPULATION_INDEX_SHAPE=' ||
+                   json_build_object(
+                     'rowCount', count(*),
+                     'modeNullCount', count(*) FILTER (WHERE mode IS NULL),
+                     'bikeCount', count(*) FILTER (WHERE mode = 'bike'),
+                     'carCount', count(*) FILTER (WHERE mode = 'car'),
+                     'horseCount', count(*) FILTER (WHERE mode = 'horse'),
+                     'avgRaceIdChars', round(avg(length(source_race_id))::numeric, 2),
+                     'avgCanonicalBytes', round(avg(pg_column_size(canonical))::numeric, 2),
+                     'avgRaceIdBytes', round(avg(pg_column_size(source_race_id))::numeric, 2),
+                     'avgShaBytes', round(avg(pg_column_size(raw_evidence_sha256))::numeric, 2),
+                     'avgRowBytes', round(avg(pg_column_size(r))::numeric, 2)
+                   )::text
+            FROM dna.dna_population_race_index_race r;
+          "
