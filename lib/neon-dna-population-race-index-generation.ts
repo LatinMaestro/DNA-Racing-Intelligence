@@ -3,6 +3,7 @@ import type {
   DnaPopulationRaceIndexCheckpoint,
   DnaPopulationRaceIndexCompactIdentity,
   DnaPopulationRaceIndexGenerationRepository,
+  DnaPopulationRaceIndexR2ChunkManifest,
   DnaPopulationRaceIndexWriteBatch,
 } from "./dna-population-race-index-generation";
 import {
@@ -45,6 +46,12 @@ SELECT owner.id::text AS database_owner_id,
     'dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)',
     'EXECUTE') AS runtime_can_finalize_compaction,
   has_function_privilege(session_user,
+    'dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)',
+    'EXECUTE') AS runtime_can_read_r2_manifests,
+  has_function_privilege(session_user,
+    'dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)',
+    'EXECUTE') AS runtime_can_register_identities,
+  has_function_privilege(session_user,
     'dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb)',
     'EXECUTE') AS runtime_can_lookup_identities,
   has_function_privilege(session_user,
@@ -83,7 +90,7 @@ JOIN pg_catalog.pg_class relation ON relation.oid = target.oid
 JOIN pg_catalog.pg_roles role ON role.rolname = session_user
 WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 GROUP BY owner.id, owner.clerk_user_id, role.rolsuper, role.rolbypassrls,
-  role.rolcreaterole, role.rolcreatedb`
+  role.rolcreaterole, role.rolcreatedb`;
 
 function record(value: unknown, field: string): DbRow {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -305,6 +312,8 @@ function verifyIsolation(
     !bool(row.runtime_can_read_legacy, "runtime_can_read_legacy") ||
     !bool(row.runtime_can_register_compaction, "runtime_can_register_compaction") ||
     !bool(row.runtime_can_finalize_compaction, "runtime_can_finalize_compaction") ||
+    !bool(row.runtime_can_read_r2_manifests, "runtime_can_read_r2_manifests") ||
+    !bool(row.runtime_can_register_identities, "runtime_can_register_identities") ||
     !bool(row.runtime_can_lookup_identities, "runtime_can_lookup_identities") ||
     !bool(row.runtime_can_append, "runtime_can_append") ||
     !bool(row.runtime_can_publish, "runtime_can_publish") ||
@@ -338,6 +347,30 @@ function compactIdentity(value: unknown): DnaPopulationRaceIndexCompactIdentity 
     rawEvidenceSha256: sha256(
       row.raw_evidence_sha256 ?? row.rawEvidenceSha256,
       "rawEvidenceSha256",
+    ),
+  });
+}
+
+function r2ChunkManifest(value: unknown): DnaPopulationRaceIndexR2ChunkManifest {
+  const row = record(value, "population R2 chunk manifest");
+  const chunkOrdinal = count(row.chunk_ordinal, "chunkOrdinal");
+  if (chunkOrdinal < 1) {
+    throw new Error("population R2 chunk ordinal is invalid");
+  }
+  return Object.freeze({
+    version: 1 as const,
+    generationId: "",
+    chunkOrdinal,
+    objectKey: text(row.object_key, "objectKey"),
+    bodySha256: sha256(row.body_sha256, "bodySha256"),
+    byteLength: count(row.byte_length, "byteLength"),
+    rowCount: count(row.row_count, "rowCount"),
+    firstSourceRaceId: text(row.first_source_race_id, "firstSourceRaceId"),
+    lastSourceRaceId: text(row.last_source_race_id, "lastSourceRaceId"),
+    registeredAt: timestamp(row.registered_at, "registeredAt"),
+    identityRegisteredAt: optionalTimestamp(
+      row.identity_registered_at,
+      "identityRegisteredAt",
     ),
   });
 }
@@ -537,6 +570,74 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
                 ],
               ),
               "population race R2 compaction finalization",
+            ),
+          );
+        },
+      });
+    },
+
+    async listR2ChunkManifests(requestOwnerId, request) {
+      if (
+        !Number.isSafeInteger(request.afterChunkOrdinal) ||
+        request.afterChunkOrdinal < 0 ||
+        !Number.isSafeInteger(request.limit) ||
+        request.limit < 1 ||
+        request.limit > 100
+      ) {
+        throw new Error("population R2 manifest read bounds are invalid");
+      }
+      const generationId = sha256(request.generationId, "generationId");
+      return transaction({
+        ownerId: requestOwnerId,
+        readOnly: true,
+        async run(client) {
+          const result = await client.query(
+            "SELECT * FROM dna.read_dna_population_race_index_r2_chunk_manifests($1::uuid,$2::text,$3::integer,$4::integer)",
+            [
+              databaseOwnerId,
+              generationId,
+              request.afterChunkOrdinal,
+              request.limit,
+            ],
+          );
+          return Object.freeze(
+            result.rows.map((row) =>
+              Object.freeze({
+                ...r2ChunkManifest(row),
+                generationId,
+              }),
+            ),
+          );
+        },
+      });
+    },
+
+    async registerCompactIdentityChunk(requestOwnerId, request) {
+      const identities = validateIdentities(request.identities);
+      if (
+        !Number.isSafeInteger(request.chunkOrdinal) ||
+        request.chunkOrdinal < 1
+      ) {
+        throw new Error("population compact identity chunk ordinal is invalid");
+      }
+      return transaction({
+        ownerId: requestOwnerId,
+        readOnly: false,
+        async run(client) {
+          return parseCheckpoint(
+            oneRow(
+              await client.query(
+                "SELECT * FROM dna.register_dna_population_race_index_compact_identity_chunk($1::uuid,$2::text,$3::text,$4::integer,$5::jsonb,$6::timestamptz)",
+                [
+                  databaseOwnerId,
+                  workerId(request.workerId),
+                  sha256(request.generationId, "generationId"),
+                  request.chunkOrdinal,
+                  JSON.stringify(identities),
+                  timestamp(request.registeredAt, "registeredAt"),
+                ],
+              ),
+              "population compact identity registration",
             ),
           );
         },
