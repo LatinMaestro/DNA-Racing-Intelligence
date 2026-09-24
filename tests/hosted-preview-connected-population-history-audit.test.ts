@@ -176,18 +176,24 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       if (
         populationIndex === null ||
         populationIndex.state !== "published" ||
-        populationIndex.lastRequestOrdinal !== baselineState.logicalRequestCount ||
-        populationIndex.processedReceiptCount !== baselineState.logicalRequestCount ||
-        populationIndex.processedReceiptBytes !== baselineState.retainedR2Bytes ||
+        populationIndex.lastRequestOrdinal !==
+          baselineState.logicalRequestCount ||
+        populationIndex.processedReceiptCount !==
+          baselineState.logicalRequestCount ||
+        populationIndex.processedReceiptBytes !==
+          baselineState.retainedR2Bytes ||
         populationIndex.processedIdentityOmissionCount !==
           baselineState.omittedIdentityObservationCount ||
         populationIndex.storageLayout !== "r2_chunked_v1" ||
         populationIndex.r2ChunkCount < 1 ||
         populationIndex.r2IdentityChunkCount !== populationIndex.r2ChunkCount ||
-        populationIndex.r2CompactedRaceCount !== populationIndex.uniqueRaceCount ||
+        populationIndex.r2CompactedRaceCount !==
+          populationIndex.uniqueRaceCount ||
         populationIndex.legacyStorageRetiredAt === null
       ) {
-        throw new Error("published compact P5 population authority is unavailable");
+        throw new Error(
+          "published compact P5 population authority is unavailable",
+        );
       }
       const manifests = [];
       let afterChunkOrdinal = 0;
@@ -208,9 +214,10 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       }
       if (
         manifests.length !== populationIndex.r2ChunkCount ||
-        manifests.some((manifest, index) =>
-          manifest.chunkOrdinal !== index + 1 ||
-          manifest.identityRegisteredAt === null
+        manifests.some(
+          (manifest, index) =>
+            manifest.chunkOrdinal !== index + 1 ||
+            manifest.identityRegisteredAt === null,
         ) ||
         manifests.reduce((sum, manifest) => sum + manifest.rowCount, 0) !==
           populationIndex.uniqueRaceCount
@@ -237,8 +244,8 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       }
       if (
         compactDocuments.length !== populationIndex.uniqueRaceCount ||
-        new Set(compactDocuments.map(({ sourceRaceId }) => sourceRaceId)).size !==
-          populationIndex.uniqueRaceCount
+        new Set(compactDocuments.map(({ sourceRaceId }) => sourceRaceId))
+          .size !== populationIndex.uniqueRaceCount
       ) {
         throw new Error("published compact P5 Race documents do not reconcile");
       }

@@ -495,13 +495,18 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   );
   const baselineReceipts =
     input.baselineIndex === undefined
-      ? await loadBaselineReceipts({ source: input.baseline, state: baselineState })
+      ? await loadBaselineReceipts({
+          source: input.baseline,
+          state: baselineState,
+        })
       : Object.freeze([] as DnaOpenLabP5FirstBackfillDurableReceipt[]);
   if (
     input.baselineIndex !== undefined &&
-    (input.baselineIndex.baselineReceiptCount !== baselineState.logicalRequestCount ||
+    (input.baselineIndex.baselineReceiptCount !==
+      baselineState.logicalRequestCount ||
       input.baselineIndex.baselineFinishedRaceReceiptCount < 0 ||
-      input.baselineIndex.baselineFinishedRaceReceiptCount > baselineState.logicalRequestCount ||
+      input.baselineIndex.baselineFinishedRaceReceiptCount >
+        baselineState.logicalRequestCount ||
       input.baselineIndex.baselineIdentityOmissionObservationCount !==
         baselineState.omittedIdentityObservationCount)
   ) {
@@ -631,7 +636,9 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         document.canonical.sourceRaceId !== document.sourceRaceId ||
         seenCompactRaceIds.has(document.sourceRaceId)
       ) {
-        historyError("compact baseline contains invalid or duplicate Race identity");
+        historyError(
+          "compact baseline contains invalid or duplicate Race identity",
+        );
       }
       seenCompactRaceIds.add(document.sourceRaceId);
       acceptCanonicalDocument(
@@ -684,7 +691,12 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
           continue;
         }
         for (const raw of documents) {
-          acceptDocument(raw, evidence.observedAt, evidence.endpoint, "baseline");
+          acceptDocument(
+            raw,
+            evidence.observedAt,
+            evidence.endpoint,
+            "baseline",
+          );
         }
       }
     }

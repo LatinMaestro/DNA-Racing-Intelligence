@@ -344,27 +344,29 @@ describe("combined DNA finished-history performance evidence", () => {
       endpoint: "races.finished",
     });
     const documents: CanonicalRaceDocumentMetadata[] = [];
-    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence({
-      ...input,
-      baselineIndex: {
-        documents: Object.freeze([
-          Object.freeze({
-            requestOrdinal: 1,
-            endpoint: "races.finished" as const,
-            observedAt,
-            sourceRaceId: adapted.canonical.sourceRaceId,
-            rawEvidenceSha256: adapted.rawEvidenceSha256,
-            canonical: adapted.canonical,
-          }),
-        ]),
-        baselineReceiptCount: 1,
-        baselineFinishedRaceReceiptCount: 1,
-        baselineIdentityOmissionObservationCount: 0,
-        r2ClassBOperationsUsed: 2,
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...input,
+        baselineIndex: {
+          documents: Object.freeze([
+            Object.freeze({
+              requestOrdinal: 1,
+              endpoint: "races.finished" as const,
+              observedAt,
+              sourceRaceId: adapted.canonical.sourceRaceId,
+              rawEvidenceSha256: adapted.rawEvidenceSha256,
+              canonical: adapted.canonical,
+            }),
+          ]),
+          baselineReceiptCount: 1,
+          baselineFinishedRaceReceiptCount: 1,
+          baselineIdentityOmissionObservationCount: 0,
+          r2ClassBOperationsUsed: 2,
+        },
+        canonicalPurpose: "population_inventory",
+        onCanonicalRaceDocument: (document) => documents.push(document),
       },
-      canonicalPurpose: "population_inventory",
-      onCanonicalRaceDocument: (document) => documents.push(document),
-    });
+    );
 
     expect(assessment.baselineReceiptCount).toBe(1);
     expect(assessment.baselineFinishedRaceReceiptCount).toBe(1);
