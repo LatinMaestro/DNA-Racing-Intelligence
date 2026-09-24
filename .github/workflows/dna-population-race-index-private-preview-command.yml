@@ -196,6 +196,12 @@ jobs:
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
           fi
+          storage_negative_installed="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --command "SELECT to_regprocedure('dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)') IS NOT NULL")"
+          if [[ "${storage_negative_installed}" != "t" ]]; then
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+              --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql
+          fi
       - name: Prove population index migrations on private Preview
         shell: bash
         run: |
@@ -215,6 +221,8 @@ jobs:
                OR to_regprocedure('dna.read_dna_population_race_index_legacy_chunk(uuid,text,text,integer)') IS NULL
                OR to_regprocedure('dna.register_dna_population_race_index_r2_compaction_chunk(uuid,text,text,jsonb,jsonb,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)') IS NULL
+               OR to_regprocedure('dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)') IS NULL
+               OR to_regprocedure('dna.retire_dna_population_race_index_storage_negative_legacy(uuid,text,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)') IS NULL
                OR to_regprocedure('dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)') IS NULL
                OR to_regprocedure('dna.lookup_dna_population_race_index_compact_identities(uuid,text,jsonb)') IS NULL
@@ -263,6 +271,11 @@ jobs:
                OR NOT has_function_privilege(
                  'dna_app_runtime',
                  'dna.append_dna_population_race_index_r2_batch(uuid,text,jsonb,jsonb,jsonb,timestamp with time zone)',
+                 'EXECUTE'
+               )
+               OR NOT has_function_privilege(
+                 'dna_app_runtime',
+                 'dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)',
                  'EXECUTE'
                ) THEN
               RAISE EXCEPTION 'population R2 connected privilege proof failed';
@@ -363,11 +376,11 @@ jobs:
             proof="$(psql "${DNA_MIGRATION_DATABASE_URL}" -AtF '|' --set ON_ERROR_STOP=1 \
               --set owner_id="${DNA_DATABASE_OWNER_ID}" \
               --set generation_id="${generation_id}" \
-              --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_legacy_storage(:'owner_id'::uuid, :'generation_id', clock_timestamp())")"
+              --command "SELECT generation_count, compact_identity_count, r2_manifest_row_count, legacy_race_count FROM dna.retire_dna_population_race_index_storage_negative_legacy(:'owner_id'::uuid, :'generation_id', clock_timestamp())")"
             IFS='|' read -r generations identities manifest_rows legacy_rows <<< "${proof}"
             if [[ "${generations}" != "1" ]] || [[ "${identities}" != "0" ]] || \
                [[ ! "${manifest_rows}" =~ ^[1-9][0-9]*$ ]] || \
-               [[ "${manifest_rows}" != "${legacy_rows}" ]]; then
+               [[ "${legacy_rows}" != "0" ]]; then
               echo "The legacy retirement equivalence proof is invalid."
               exit 1
             fi

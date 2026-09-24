@@ -16,7 +16,7 @@ import {
 import type { DnaOpenLabProviderCapacityBlockerId } from "./dna-open-lab-zero-cost-provider-capacity";
 
 export const DNA_POPULATION_RACE_INDEX_R2_COMPACTION_OPERATOR_VERSION =
-  "dna-population-race-index-r2-compaction/v1" as const;
+  "dna-population-race-index-r2-compaction/v2" as const;
 export const DNA_POPULATION_RACE_INDEX_R2_COMPACTION_INTENT =
   "compact_private_preview_population_race_index_to_r2" as const;
 
@@ -29,9 +29,27 @@ export const DNA_POPULATION_RACE_INDEX_R2_COMPACTION_PLANNED_R2_USAGE =
 
 export const DNA_POPULATION_RACE_INDEX_R2_COMPACTION_PLANNED_NEON_USAGE =
   Object.freeze({
-    storageBytes: 1024 * 1024,
+    // The manifest registration and matching legacy-row retirement are one
+    // transaction. The operation is storage-negative even though the generic
+    // capacity projection cannot express a negative storage delta.
+    storageBytes: 0,
     computeMilliCuHours: 1_000,
   });
+
+function isStorageReliefEligible(
+  preflight: Readonly<{
+    status: "ready" | "held";
+    reason?: string;
+    blockerIds?: readonly DnaOpenLabProviderCapacityBlockerId[];
+  }>,
+): boolean {
+  return (
+    preflight.status === "held" &&
+    preflight.reason === "capacity_blocked" &&
+    preflight.blockerIds?.length === 1 &&
+    preflight.blockerIds[0] === "neon_storage_budget_exhausted"
+  );
+}
 
 export type DnaPopulationRaceIndexR2CompactionInvocation = Readonly<{
   operatorVersion: typeof DNA_POPULATION_RACE_INDEX_R2_COMPACTION_OPERATOR_VERSION;
@@ -235,7 +253,7 @@ export function createDnaPopulationRaceIndexR2CompactionOperator(input: {
         plannedNeonUsagePerRefresh:
           DNA_POPULATION_RACE_INDEX_R2_COMPACTION_PLANNED_NEON_USAGE,
       });
-      if (preflight.status !== "ready") {
+      if (preflight.status !== "ready" && !isStorageReliefEligible(preflight)) {
         return safeReceipt({
           status: "held",
           reason: `provider_capacity_${preflight.reason}`,
