@@ -11,7 +11,7 @@ BEGIN
        'EXECUTE'
      )
      OR has_function_privilege(
-       'PUBLIC',
+       'dna_app_runtime',
        'dna.retire_dna_population_race_index_chunk_rows()',
        'EXECUTE'
      ) THEN
