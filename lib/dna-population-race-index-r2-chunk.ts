@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
+import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
 const JSON_CONTENT_TYPE = "application/json";
@@ -14,7 +15,8 @@ export const DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS = 5_000;
 export type DnaPopulationRaceIndexR2ChunkStoragePort = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "putObjectIfAbsent" | "headObject"
->;
+> &
+  Pick<PrivateDatasetEvidenceObjectReadableStoragePort, "getObject">;
 
 export type DnaPopulationRaceIndexR2ChunkReceipt = Readonly<{
   version: 1;
@@ -143,6 +145,53 @@ function sortedUniqueDocuments(
   return Object.freeze(sorted);
 }
 
+async function collectExactBody(input: {
+  body: AsyncIterable<Uint8Array>;
+  byteLength: number;
+  checksumSha256: string;
+}): Promise<Uint8Array> {
+  if (
+    !Number.isSafeInteger(input.byteLength) ||
+    input.byteLength < 1 ||
+    input.byteLength > DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES
+  ) {
+    chunkError("stored chunk byte length is invalid");
+  }
+  const output = new Uint8Array(input.byteLength);
+  const digest = createHash("sha256");
+  let offset = 0;
+  for await (const chunk of input.body) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > input.byteLength
+    ) {
+      chunkError("stored chunk body is invalid");
+    }
+    output.set(chunk, offset);
+    digest.update(chunk);
+    offset += chunk.byteLength;
+  }
+  if (
+    offset !== input.byteLength ||
+    digest.digest("hex") !== input.checksumSha256
+  ) {
+    chunkError("stored chunk body checksum disagrees");
+  }
+  return output;
+}
+
+function exactReceiptMetadata(receipt: DnaPopulationRaceIndexR2ChunkReceipt) {
+  return Object.freeze({
+    "dna-source": "dna_open_lab",
+    "dna-version": "population-race-index-r2-v1",
+    "dna-generation": receipt.generationId,
+    "dna-chunk": String(receipt.chunkOrdinal),
+    "dna-rows": String(receipt.rowCount),
+    "dna-first-race": receipt.firstSourceRaceId,
+    "dna-last-race": receipt.lastSourceRaceId,
+  });
+}
+
 export function createDnaPopulationRaceIndexR2ChunkStore(input: {
   ownerId: string;
   bucketName: string;
@@ -153,6 +202,9 @@ export function createDnaPopulationRaceIndexR2ChunkStore(input: {
     chunkOrdinal: number;
     documents: readonly DnaPopulationRaceIndexDocument[];
   }) => Promise<DnaPopulationRaceIndexR2ChunkWrite>;
+  read: (
+    receipt: DnaPopulationRaceIndexR2ChunkReceipt,
+  ) => Promise<readonly DnaPopulationRaceIndexDocument[]>;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
@@ -167,6 +219,111 @@ export function createDnaPopulationRaceIndexR2ChunkStore(input: {
   }
 
   return Object.freeze({
+    async read(receipt) {
+      const generation = generationId(receipt.generationId);
+      const chunkOrdinal = positiveInteger(
+        receipt.chunkOrdinal,
+        "chunkOrdinal",
+        1_000_000,
+      );
+      const rowCount = positiveInteger(
+        receipt.rowCount,
+        "rowCount",
+        DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
+      );
+      const objectKey = safeText(receipt.objectKey, "objectKey", 2048);
+      if (
+        !SHA_256_PATTERN.test(receipt.bodySha256) ||
+        !Number.isSafeInteger(receipt.byteLength) ||
+        receipt.byteLength < 1 ||
+        receipt.byteLength > DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES
+      ) {
+        chunkError("chunk receipt is invalid");
+      }
+      const expected = Object.freeze({
+        ...receipt,
+        generationId: generation,
+        chunkOrdinal,
+        rowCount,
+        objectKey,
+        firstSourceRaceId: safeText(
+          receipt.firstSourceRaceId,
+          "firstSourceRaceId",
+          512,
+        ),
+        lastSourceRaceId: safeText(
+          receipt.lastSourceRaceId,
+          "lastSourceRaceId",
+          512,
+        ),
+      });
+      await privateStorage();
+      const head = await input.storage.headObject({
+        bucketName,
+        key: objectKey,
+      });
+      const metadata = exactReceiptMetadata(expected);
+      if (
+        head.status !== "ready" ||
+        head.contentType !== JSON_CONTENT_TYPE ||
+        head.byteLength !== expected.byteLength ||
+        head.checksumSha256 !== expected.bodySha256 ||
+        Object.entries(metadata).some(
+          ([key, value]) => head.metadata[key] !== value,
+        )
+      ) {
+        chunkError("stored chunk head conflicts with its receipt");
+      }
+      const object = await input.storage.getObject({
+        bucketName,
+        key: objectKey,
+      });
+      if (object.status !== "ready") {
+        chunkError("stored chunk body is unavailable");
+      }
+      const bytes = await collectExactBody({
+        body: object.body,
+        byteLength: expected.byteLength,
+        checksumSha256: expected.bodySha256,
+      });
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      } catch {
+        chunkError("stored chunk is not valid UTF-8 JSON");
+      }
+      if (
+        parsed === null ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+      ) {
+        chunkError("stored chunk envelope is invalid");
+      }
+      const envelope = parsed as Record<string, unknown>;
+      if (
+        envelope.version !== 1 ||
+        envelope.source !== "dna_open_lab" ||
+        envelope.sourceVersion !== "population-race-index-r2-v1" ||
+        envelope.generationId !== generation ||
+        envelope.chunkOrdinal !== chunkOrdinal ||
+        !Array.isArray(envelope.documents) ||
+        envelope.documents.length !== rowCount ||
+        canonicalJson(envelope) !== new TextDecoder().decode(bytes)
+      ) {
+        chunkError("stored chunk envelope conflicts with its receipt");
+      }
+      const documents = sortedUniqueDocuments(
+        envelope.documents as DnaPopulationRaceIndexDocument[],
+      );
+      if (
+        documents[0]?.sourceRaceId !== expected.firstSourceRaceId ||
+        documents.at(-1)?.sourceRaceId !== expected.lastSourceRaceId
+      ) {
+        chunkError("stored chunk race range conflicts with its receipt");
+      }
+      return documents;
+    },
+
     async write(request) {
       const generation = generationId(request.generationId);
       const chunkOrdinal = positiveInteger(
