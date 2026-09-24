@@ -7,7 +7,10 @@ import type {
   DnaPopulationRaceIndexCompactIdentity,
   DnaPopulationRaceIndexGenerationRepository,
 } from "./dna-population-race-index-generation";
-import type { DnaPopulationRaceIndexR2ChunkWrite } from "./dna-population-race-index-r2-chunk";
+import {
+  fitDnaPopulationRaceIndexR2ChunkDocuments,
+  type DnaPopulationRaceIndexR2ChunkWrite,
+} from "./dna-population-race-index-r2-chunk";
 import {
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
@@ -298,16 +301,21 @@ export function createDnaPopulationRaceIndexR2CompactionOperator(input: {
         });
       }
 
-      const stored = await input.chunkStore.write({
+      const documents = fitDnaPopulationRaceIndexR2ChunkDocuments({
         generationId,
         chunkOrdinal: checkpoint.r2ChunkCount + 1,
         documents: legacy.documents,
+      });
+      const stored = await input.chunkStore.write({
+        generationId,
+        chunkOrdinal: checkpoint.r2ChunkCount + 1,
+        documents,
       });
       checkpoint = await input.repository.registerCompactionChunk(ownerId, {
         workerId: invocation.workerId,
         generationId,
         receipt: stored.receipt,
-        identities: compactIdentities(legacy.documents),
+        identities: compactIdentities(documents),
         registeredAt: attemptedAt,
       });
       if (checkpoint.r2CompactedRaceCount === checkpoint.uniqueRaceCount) {

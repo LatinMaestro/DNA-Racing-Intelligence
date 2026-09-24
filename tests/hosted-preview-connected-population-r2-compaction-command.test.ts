@@ -41,6 +41,24 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
+function connectedFailureId(error: unknown): string {
+  if (!(error instanceof Error)) return "unexpected_failure";
+  if (error.message.includes("bounded byte capacity")) {
+    return "r2_chunk_byte_bound";
+  }
+  if (error.message.includes("storage-negative chunk retirement count")) {
+    return "neon_chunk_retirement_count";
+  }
+  if (error.message.includes("stored chunk")) return "r2_chunk_replay";
+  if (error.message.includes("population race R2 compaction registration")) {
+    return "neon_chunk_registration";
+  }
+  if (error.message.includes("population race index isolation")) {
+    return "neon_runtime_isolation";
+  }
+  return "unexpected_failure";
+}
+
 describeConnected("hosted Preview population R2 compaction command", () => {
   it(
     "moves one bounded unique legacy race chunk to private R2 without DNA requests",
@@ -179,11 +197,14 @@ describeConnected("hosted Preview population R2 compaction command", () => {
         console.log(
           `DNA_POPULATION_R2_COMPACTION_PROGRESS=${JSON.stringify(report)}`,
         );
-      } catch {
+      } catch (error) {
         console.log(
           `DNA_POPULATION_R2_COMPACTION_FAILURE=${JSON.stringify({
             stage: diagnosticStage,
           })}`,
+        );
+        console.error(
+          `DNA_POPULATION_R2_COMPACTION_FAILURE_ID=${connectedFailureId(error)}`,
         );
         throw new Error("DNA population R2 compaction private Preview failed");
       }
