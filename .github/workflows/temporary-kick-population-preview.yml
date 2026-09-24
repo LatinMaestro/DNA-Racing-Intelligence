@@ -1,13 +1,47 @@
-name: TEMPORARY population Preview kick retained for audit trail
+name: TEMPORARY kick protected Preview population index
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - temporary/kick-population-preview-2026-09-25-do-not-merge
+    paths:
+      - ".github/workflows/temporary-kick-population-preview.yml"
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
-  retained-only:
+  dispatch-current-main:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - run: echo "Temporary dispatcher is disabled; do not merge this branch."
+      - name: Dispatch only exact unchanged main with no competing population run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 0c829b546635d6b73a0094acf845045543516120
+        run: |
+          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
+            echo "Main changed; refusing population dispatch."
+            exit 1
+          fi
+          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/runs?per_page=20"             --jq "[.workflow_runs[] | select(.head_sha == \"${EXPECTED_MAIN_SHA}\" and .status != \"completed\")] | length")"
+          if [[ ! "${active_count}" =~ ^[0-9]+$ ]]; then
+            echo "Competing-run proof was invalid."
+            exit 1
+          fi
+          if (( active_count > 0 )); then
+            echo "An exact-head population run is already active."
+            exit 0
+          fi
+          jq -n --arg sha "${EXPECTED_MAIN_SHA}" '{
+            ref: "main",
+            inputs: {
+              expected_main_sha: $sha,
+              maximum_receipts: "100",
+              execute_bounded_private_preview_index: "true"
+            }
+          }' | gh api --method POST             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-race-index-private-preview-command.yml/dispatches"             --input -
+          echo "Dispatched exact-main protected Preview population command."
