@@ -18,7 +18,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 704eb411d2f1cd790898b50c6c59492369a93d7c
+          EXPECTED_MAIN_SHA: 8a38f934da240cb566ad8265a8d229d0b32e48ad
         run: |
           current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
           if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
@@ -26,7 +26,7 @@ jobs:
             exit 1
           fi
 
-          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/runs?per_page=20"             --jq '[.workflow_runs[] | select(.status != "completed")] | length')"
+          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/runs?per_page=20"             --jq "[.workflow_runs[] | select(.head_sha == \"${EXPECTED_MAIN_SHA}\" and .status != \"completed\")] | length")"
           if [[ ! "${active_count}" =~ ^[0-9]+$ ]]; then
             echo "Competing-audit proof was invalid."
             exit 1
