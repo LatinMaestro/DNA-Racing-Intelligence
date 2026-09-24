@@ -299,6 +299,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.up.sql
       - name: Run daily refresh lineage smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.smoke.sql
+      - name: Apply population race index generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.up.sql
+      - name: Run population race index generation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.smoke.sql
+      - name: Reverse population race index generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.down.sql
+      - name: Verify population race index generation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0112_dna_population_race_index_generation.removal.sql
       - name: Reverse daily refresh lineage migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0111_dna_open_lab_daily_refresh_monotonic_lineage.down.sql
       - name: Verify daily refresh lineage removal
