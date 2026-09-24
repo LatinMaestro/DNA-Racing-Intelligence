@@ -10,7 +10,7 @@ describe("DNA population race index private Preview command workflow", () => {
     const workflow = await readFile(workflowPath, "utf8");
 
     expect(workflow).toContain("schedule:");
-    expect(workflow).toContain('cron: "*/5 * * * *"');
+    expect(workflow).toContain('cron: "23 * * * *"');
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("expected_main_sha:");
     expect(workflow).toContain("execute_bounded_private_preview_index:");
@@ -47,16 +47,34 @@ describe("DNA population race index private Preview command workflow", () => {
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
     expect(workflow).toContain("cancel-in-progress: false");
+    expect(workflow).toContain("actions: write");
+    expect(workflow).toContain(
+      "terminal_status: ${{ steps.advance.outputs.status }}",
+    );
     expect(workflow).toContain("deadline_epoch");
     expect(workflow).toContain("+ 1200");
     expect(workflow).toContain('status}" == "complete"');
     expect(workflow).toContain('status}" == "held"');
     expect(workflow).toContain("provider_capacity_[a-z0-9_]+");
     expect(workflow).toContain("held safely at the free-capacity guard");
+    expect(workflow).toContain('echo "status=${status}" >> "${GITHUB_OUTPUT}"');
     expect(workflow).toContain(
       "Main changed between durable population-index slices",
     );
     expect(workflow).toContain("if: always()");
+    expect(workflow).toContain("requeue-private-preview-index:");
+    expect(workflow).toContain("result == 'success'");
+    expect(workflow).toContain("outputs.terminal_status == 'advanced'");
+    expect(workflow).toContain("outputs.terminal_status == 'held'");
+    expect(workflow).toContain("sleep_seconds=300");
+    expect(workflow).toContain("sleep_seconds=60");
+    expect(workflow).toContain('.status != \\"completed\\"');
+    expect(workflow).toContain("no duplicate continuation was dispatched");
+    expect(workflow).toContain("Main changed before continuation");
+    expect(workflow).toContain(
+      "dna-population-race-index-private-preview-command.yml/dispatches",
+    );
+    expect(workflow).toContain("execute_bounded_private_preview_index");
     expect(workflow).not.toMatch(/\b(push|pull_request):/u);
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY|VERCEL|production/iu);
   });
