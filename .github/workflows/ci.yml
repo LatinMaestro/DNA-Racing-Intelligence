@@ -311,6 +311,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.up.sql
       - name: Run population race index R2 compaction smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql
+      - name: Apply population race index storage-negative cutover migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql
+      - name: Run population race index storage-negative cutover smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.smoke.sql
+      - name: Reverse population race index storage-negative cutover migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.down.sql
+      - name: Verify population race index storage-negative cutover removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.removal.sql
       - name: Reverse population race index R2 compaction migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0114_dna_population_race_index_r2_compaction.down.sql
       - name: Verify population race index R2 compaction removal

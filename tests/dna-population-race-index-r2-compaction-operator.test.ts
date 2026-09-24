@@ -129,14 +129,19 @@ function repository() {
   };
 }
 
-function capacity(status: "ready" | "held" = "ready") {
+function capacity(
+  status: "ready" | "held" = "ready",
+  blockerIds: readonly (
+    "neon_storage_budget_exhausted" | "r2_storage_class_not_standard"
+  )[] = ["neon_storage_budget_exhausted"],
+) {
   const inspect = vi.fn(async () =>
     status === "ready"
       ? { status: "ready", preflightSha256: "d".repeat(64) }
       : {
           status: "held",
           reason: "capacity_blocked",
-          blockerIds: ["neon_storage_budget_exhausted"],
+          blockerIds,
         },
   );
   return {
@@ -205,9 +210,47 @@ describe("DNA population race index R2 compaction operator", () => {
     expect(store.finalizeCompaction).toHaveBeenCalledOnce();
   });
 
-  it("holds before any R2 or Neon write when zero-cost capacity is closed", async () => {
+  it("continues when Neon storage is the only blocker because each chunk is storage-negative", async () => {
     const store = repository();
     const gate = capacity("held");
+    const chunkWrite = vi.fn(async () => ({
+      receipt: {
+        version: 1 as const,
+        generationId,
+        chunkOrdinal: 1,
+        objectKey: "private/population/chunk-1.json",
+        bodySha256: "f".repeat(64),
+        byteLength: 512,
+        rowCount: 2,
+        firstSourceRaceId: "race-1",
+        lastSourceRaceId: "race-2",
+      },
+      storageStatus: "created" as const,
+    }));
+    const operator = createDnaPopulationRaceIndexR2CompactionOperator({
+      configuredOwnerId: ownerId,
+      baseline: baseline(),
+      repository: store.value,
+      capacityPreflight: gate.value,
+      chunkStore: { write: chunkWrite },
+    });
+
+    await expect(operator.execute(invocation())).resolves.toMatchObject({
+      status: "complete",
+      afterCompactedRaceCount: 2,
+      r2ObjectCreated: true,
+      providerCapacityBlockerIds: [],
+    });
+    expect(store.readLegacyChunk).toHaveBeenCalledOnce();
+    expect(chunkWrite).toHaveBeenCalledOnce();
+  });
+
+  it("still holds before writes when any non-storage blocker is present", async () => {
+    const store = repository();
+    const gate = capacity("held", [
+      "neon_storage_budget_exhausted",
+      "r2_storage_class_not_standard",
+    ]);
     const chunkWrite = vi.fn();
     const operator = createDnaPopulationRaceIndexR2CompactionOperator({
       configuredOwnerId: ownerId,
@@ -221,7 +264,10 @@ describe("DNA population race index R2 compaction operator", () => {
       status: "held",
       afterCompactedRaceCount: 0,
       r2ObjectCreated: false,
-      providerCapacityBlockerIds: ["neon_storage_budget_exhausted"],
+      providerCapacityBlockerIds: [
+        "neon_storage_budget_exhausted",
+        "r2_storage_class_not_standard",
+      ],
     });
     expect(store.readLegacyChunk).not.toHaveBeenCalled();
     expect(chunkWrite).not.toHaveBeenCalled();

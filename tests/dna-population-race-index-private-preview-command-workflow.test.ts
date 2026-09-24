@@ -40,6 +40,9 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain(
       "0114_dna_population_race_index_r2_compaction.up.sql",
     );
+    expect(workflow).toContain(
+      "0115_dna_population_race_index_storage_negative_cutover.up.sql",
+    );
     expect(workflow).not.toContain(
       "database/migrations/0114_dna_population_race_index_r2_compaction.smoke.sql",
     );
@@ -60,7 +63,7 @@ describe("DNA population race index private Preview command workflow", () => {
       "tests/hosted-preview-connected-population-r2-compaction-command.test.ts",
     );
     expect(workflow).toContain(
-      "retire_dna_population_race_index_legacy_storage",
+      "retire_dna_population_race_index_storage_negative_legacy",
     );
     expect(workflow).toContain("legacy Neon payload rows are 0");
     expect(workflow).toContain(

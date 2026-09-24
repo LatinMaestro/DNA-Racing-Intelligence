@@ -44,7 +44,7 @@ SELECT owner.id::text AS database_owner_id,
     'dna.register_dna_population_race_index_r2_compaction_chunk(uuid,text,text,jsonb,jsonb,timestamp with time zone)',
     'EXECUTE') AS runtime_can_register_compaction,
   has_function_privilege(session_user,
-    'dna.finalize_dna_population_race_index_r2_compaction(uuid,text,text,timestamp with time zone)',
+    'dna.finalize_dna_population_race_index_storage_negative_cutover(uuid,text,text,timestamp with time zone)',
     'EXECUTE') AS runtime_can_finalize_compaction,
   has_function_privilege(session_user,
     'dna.read_dna_population_race_index_r2_chunk_manifests(uuid,text,integer,integer)',
@@ -588,7 +588,7 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
           return parseCheckpoint(
             oneRow(
               await client.query(
-                "SELECT * FROM dna.finalize_dna_population_race_index_r2_compaction($1::uuid,$2::text,$3::text,$4::timestamptz)",
+                "SELECT * FROM dna.finalize_dna_population_race_index_storage_negative_cutover($1::uuid,$2::text,$3::text,$4::timestamptz)",
                 [
                   databaseOwnerId,
                   workerId(request.workerId),

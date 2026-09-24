@@ -2801,3 +2801,21 @@ After the private Pro League milestone, continue in this order:
   solution. The complete durable shape remains private R2 canonical/index
   chunks with compact owner-scoped Neon manifests, checkpoints, aggregates and
   publication pointers. Paid use remains disabled and Production unchanged.
+
+## 2026-09-24 — Make the verified R2 cutover storage-negative per chunk
+
+- A whole-generation cutover still required Neon to retain every legacy race
+  while building the complete R2 manifest set, so the free-storage guard held
+  before the first chunk. Migration `0115` makes each manifest insertion and
+  retirement of its exact source-ID range one database transaction.
+- The existing registration function first proves every source identity and
+  evidence hash against the legacy authority. An `AFTER INSERT` trigger then
+  deletes exactly the registered ordered range and rejects the transaction
+  unless the deleted count equals the immutable R2 receipt count. A failed R2
+  write never reaches Neon; a failed proof rolls back both manifest and delete;
+  replay of the deterministic R2 object remains idempotent.
+- Finalization now requires zero legacy rows, exact manifest/checkpoint totals,
+  contiguous ordinals and non-overlapping ranges. Only an otherwise-clean
+  preflight blocked solely by Neon storage may run this storage-negative relief
+  operation. R2, compute, measurement and billing guards remain fail-closed;
+  paid use remains disabled and Production is unchanged.
