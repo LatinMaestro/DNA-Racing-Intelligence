@@ -57,13 +57,8 @@ jobs:
             grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
               awk '!seen[$0]++'
           )
-          if [[ "${#migrations[@]}" -lt 3 ]] || [[ "${migrations[-1]}" != "database/migrations/0113_dna_population_race_index_r2_compaction.up.sql" ]]; then
-            echo "Authoritative CI migration list does not end at 0113."
-            exit 1
-          fi
-          unset 'migrations[-1]'
-          if [[ "${migrations[-1]}" != "database/migrations/0112_dna_population_race_index_generation.up.sql" ]]; then
-            echo "Authoritative CI migration predecessor is not 0112."
+          if [[ "${#migrations[@]}" -lt 2 ]] || [[ "${migrations[-1]}" != "database/migrations/0112_dna_population_race_index_generation.up.sql" ]]; then
+            echo "Authoritative CI migration list does not end at 0112."
             exit 1
           fi
           unset 'migrations[-1]'
