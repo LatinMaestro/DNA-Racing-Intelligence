@@ -415,6 +415,60 @@ jobs:
           fi
           echo "Verified R2 cutover; legacy Neon payload rows are 0."
           echo "status=complete" >> "${GITHUB_OUTPUT}"
+      - name: Measure aggregate private Preview population storage
+        shell: bash
+        run: |
+          storage_metrics="$(psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1 <<'SQL'
+          SELECT json_build_object(
+            'databaseBytes', pg_database_size(current_database()),
+            'dnaTableBytes', (
+              SELECT COALESCE(sum(pg_total_relation_size(class.oid)), 0)
+              FROM pg_class class
+              INNER JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+              WHERE namespace.nspname = 'dna' AND class.relkind IN ('r', 'p')
+            ),
+            'compactIdentityHeapBytes',
+              pg_table_size('dna.dna_population_race_index_compact_identity'),
+            'compactIdentityIndexBytes',
+              pg_indexes_size('dna.dna_population_race_index_compact_identity'),
+            'compactIdentityTotalBytes',
+              pg_total_relation_size('dna.dna_population_race_index_compact_identity'),
+            'r2ChunkTotalBytes',
+              pg_total_relation_size('dna.dna_population_race_index_r2_chunk'),
+            'batchReceiptTotalBytes',
+              pg_total_relation_size('dna.dna_population_race_index_batch_receipt'),
+            'legacyRaceTotalBytes',
+              pg_total_relation_size('dna.dna_population_race_index_race'),
+            'entrantTotalBytes',
+              pg_total_relation_size('dna.dna_population_race_index_entrant')
+          )::text;
+          SQL
+          )"
+          printf '%s' "${storage_metrics}" | node --input-type=module -e '
+            let body = "";
+            for await (const chunk of process.stdin) body += chunk;
+            const parsed = JSON.parse(body);
+            const keys = [
+              "databaseBytes",
+              "dnaTableBytes",
+              "compactIdentityHeapBytes",
+              "compactIdentityIndexBytes",
+              "compactIdentityTotalBytes",
+              "r2ChunkTotalBytes",
+              "batchReceiptTotalBytes",
+              "legacyRaceTotalBytes",
+              "entrantTotalBytes",
+            ];
+            if (Object.keys(parsed).length !== keys.length ||
+                keys.some((key) =>
+                  !Number.isSafeInteger(parsed[key]) || parsed[key] < 0
+                )) {
+              throw new Error("The aggregate population storage metrics are invalid.");
+            }
+            console.log(
+              "DNA_POPULATION_STORAGE_METRICS=" + JSON.stringify(parsed),
+            );
+          '
       - name: Remove migration binding from subsequent steps
         if: always()
         shell: bash
