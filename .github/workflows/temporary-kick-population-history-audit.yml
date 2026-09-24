@@ -1,13 +1,46 @@
-name: TEMPORARY optimized population history audit kick retained for audit trail
+name: TEMPORARY kick optimized population history audit
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - temporary/kick-population-preview-2026-09-25-do-not-merge
+    paths:
+      - ".github/workflows/temporary-kick-population-history-audit.yml"
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
-  retained-only:
+  dispatch-current-main-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - run: echo "Temporary audit dispatcher is disabled; do not merge this branch."
+      - name: Dispatch optimized audit only on exact unchanged main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: b66dda7e981707e9817f16c75d52f13259f732a1
+        run: |
+          current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
+            echo "Main changed; refusing audit dispatch."
+            exit 1
+          fi
+          active_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/runs?per_page=20"             --jq "[.workflow_runs[] | select(.head_sha == \"${EXPECTED_MAIN_SHA}\" and .status != \"completed\")] | length")"
+          if [[ ! "${active_count}" =~ ^[0-9]+$ ]]; then
+            echo "Competing-audit proof was invalid."
+            exit 1
+          fi
+          if (( active_count > 0 )); then
+            echo "An exact-head population-history audit is already active."
+            exit 0
+          fi
+          jq -n --arg sha "${EXPECTED_MAIN_SHA}" '{
+            ref: "main",
+            inputs: {
+              expected_main_sha: $sha,
+              execute_read_only_audit: "true"
+            }
+          }' | gh api --method POST             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-population-history-read-only-audit.yml/dispatches"             --input -
+          echo "Dispatched optimized exact-main population history audit."
