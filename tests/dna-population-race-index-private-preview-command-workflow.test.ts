@@ -27,6 +27,9 @@ describe("DNA population race index private Preview command workflow", () => {
       "0112_dna_population_race_index_generation.smoke.sql",
     );
     expect(workflow).toContain("neon@6.0.0 connection-string");
+    expect(workflow).toContain('"/projects/${NEON_PROJECT_ID}/endpoints"');
+    expect(workflow).toContain("DNA_RUNTIME_ENDPOINT_ID");
+    expect(workflow).toContain('connection-string "${branch_id}"');
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain('echo "::add-mask::${migration_url}"');
     expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');

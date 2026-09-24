@@ -127,16 +127,37 @@ jobs:
       - name: Acquire masked short-lived Preview migration binding
         shell: bash
         run: |
-          database_name="$(node --input-type=module <<'NODE'
+          runtime_identity="$(node --input-type=module <<'NODE'
           const parsed = new URL(process.env.DATABASE_URL);
           const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
           if (!/^[a-zA-Z0-9_]{1,63}$/.test(name)) {
             throw new Error("The private Preview database name is invalid.");
           }
-          process.stdout.write(name);
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("The private Preview endpoint identity is invalid.");
+          }
+          process.stdout.write(`${name}\t${endpoint}`);
           NODE
           )"
-          migration_url="$(npx --yes neon@6.0.0 connection-string \
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api \
+            "/projects/${NEON_PROJECT_ID}/endpoints" \
+            --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("The runtime Preview branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}" \
             --project-id "${NEON_PROJECT_ID}" \
             --role-name neondb_owner \
             --database-name "${database_name}" \
