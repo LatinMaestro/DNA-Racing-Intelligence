@@ -15,7 +15,7 @@ BEGIN
          AND table_name = 'dna_population_race_index_generation'
          AND column_name IN (
            'generation_key', 'storage_layout', 'r2_chunk_count',
-           'r2_compacted_race_count', 'compacted_at',
+           'r2_compacted_race_count', 'r2_last_source_race_id', 'compacted_at',
            'legacy_storage_retired_at'
          )
      )
