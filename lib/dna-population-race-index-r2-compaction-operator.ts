@@ -1,7 +1,10 @@
 import {
   DNA_POPULATION_RACE_INDEX_P5_AUTHORITY,
 } from "./dna-population-race-index-private-preview-operator";
-import type { DnaPopulationRaceIndexBaselineReadPort } from "./dna-population-race-index-checkpoint";
+import type {
+  DnaPopulationRaceIndexBaselineReadPort,
+  DnaPopulationRaceIndexDocument,
+} from "./dna-population-race-index-checkpoint";
 import type {
   DnaPopulationRaceIndexCompactIdentity,
   DnaPopulationRaceIndexGenerationRepository,
@@ -136,11 +139,7 @@ export function createDnaPopulationRaceIndexR2CompactionOperator(input: {
     write: (request: {
       generationId: string;
       chunkOrdinal: number;
-      documents: Parameters<
-        DnaPopulationRaceIndexGenerationRepository["registerCompactionChunk"]
-      >[1] extends never
-        ? never
-        : readonly any[];
+      documents: readonly DnaPopulationRaceIndexDocument[];
     }) => Promise<DnaPopulationRaceIndexR2ChunkWrite>;
   }>;
 }): Readonly<{
