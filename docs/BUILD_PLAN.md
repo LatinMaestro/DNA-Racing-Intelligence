@@ -692,8 +692,14 @@ and entrant index before advancing the checkpoint. Exact replay is idempotent;
 gaps, counter drift, cross-owner access, changed race identity or mode, and
 premature completion fail closed. Publication can move the owner-local pointer
 only after every baseline ordinal, byte and omission reconciles exactly. The
-reader-to-writer Preview continuation and connected bounded slices remain the
-next dependency; no hosted write path imports this repository yet.
+reader-to-writer Preview continuation now composes that repository behind an
+exact-main, explicitly armed, private-Preview-only command. Before any R2
+evidence read or persistent write, it measures current R2 and Neon capacity and
+fails closed below the existing zero-cost floors. One invocation reads and
+atomically appends at most 100 immutable receipts, uses no DNA API request,
+preserves the active last-good pointer while staging, and publishes only after
+the exact P5 totals reconcile. The first connected protected Preview slice and
+its durable progress proof remain the next dependency.
 
 After owner-approved persistent API sync:
 

@@ -271,7 +271,11 @@ slice, its canonical all-mode race/entrant indexes and the next ordinal. The
 generation remains staging until the accumulated request, byte and approved
 identity-omission totals exactly equal P5; only then may the last-good pointer
 advance. A stopped runner resumes from the stored ordinal and never rescans a
-completed slice as new work.
+completed slice as new work. The protected Preview continuation is manual and
+exact-main, requires an explicit persistent-write arm, measures current R2 and
+Neon capacity before work, and advances no more than 100 receipts per run. It
+uses zero DNA API calls and publishes nothing until the complete immutable P5
+generation reconciles.
 
 Private raw page observations use create-if-absent R2 keys derived from hashed
 owner and Core identities plus cycle, attempt and page. Invalid rows receive a

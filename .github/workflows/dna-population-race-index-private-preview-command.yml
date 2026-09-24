@@ -1,0 +1,155 @@
+name: DNA population race index bounded private Preview command
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to advance
+        required: true
+        type: string
+      maximum_receipts:
+        description: Maximum immutable P5 receipts in this bounded slice
+        required: true
+        default: "100"
+        type: choice
+        options:
+          - "25"
+          - "50"
+          - "100"
+      execute_bounded_private_preview_index:
+        description: Confirm bounded persistent writes to private Preview only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-race-index-bounded-private-preview
+  cancel-in-progress: false
+
+jobs:
+  exact-main-bounded-private-preview-index:
+    name: Exact-main bounded private Preview population index
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: preview
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS: ${{ inputs.maximum_receipts }}
+      DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_COMMAND: "1"
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main and explicit private Preview write arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This bounded private Preview index may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_bounded_private_preview_index }}" != "true" ]]; then
+            echo "The bounded private Preview index was not explicitly armed."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+            echo "The expected main commit does not match the dispatched commit."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The population index head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid private Preview settings: " + invalid.join(", "));
+          }
+          if (!/^(?:25|50|100)$/.test(process.env.DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS)) {
+            throw new Error("The receipt bound is invalid.");
+          }
+          if (process.env.DNA_R2_STORAGE_CLASS !== "Standard") {
+            throw new Error("Only R2 Standard storage is allowed.");
+          }
+          console.log("Validated private Preview settings without printing values.");
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Apply population index migration only when absent
+        shell: bash
+        run: |
+          installed="$(psql "${DATABASE_URL}" -At --set ON_ERROR_STOP=1 \
+            --command "SELECT to_regprocedure('dna.read_dna_population_race_index_generation(uuid,text)') IS NOT NULL")"
+          if [[ "${installed}" != "t" ]]; then
+            psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
+              --file database/migrations/0112_dna_population_race_index_generation.up.sql
+          fi
+      - name: Prove population index migration on private Preview
+        run: >-
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file
+          database/migrations/0112_dna_population_race_index_generation.smoke.sql
+      - name: Fix canonical slice timestamp
+        shell: bash
+        run: echo "DNA_POPULATION_RACE_INDEX_ATTEMPTED_AT=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "${GITHUB_ENV}"
+      - name: Advance one bounded immutable P5 slice
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-race-index-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the private Preview population index command."
+            exit 1
+          fi
