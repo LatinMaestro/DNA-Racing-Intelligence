@@ -1,0 +1,41 @@
+name: TEMPORARY format published manifest read
+
+on:
+  push:
+    branches:
+      - agent/published-population-manifest-read
+    paths:
+      - ".github/workflows/temporary-format-published-manifest-read.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-remove-self:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/published-population-manifest-read
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Format only reported files
+        run: >-
+          npx prettier --write
+          lib/neon-dna-population-race-index-generation.ts
+          tests/hosted-preview-connected-population-history-audit.test.ts
+          tests/neon-dna-population-race-index-generation.test.ts
+      - name: Remove this one-shot workflow and commit formatting
+        shell: bash
+        run: |
+          rm .github/workflows/temporary-format-published-manifest-read.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             lib/neon-dna-population-race-index-generation.ts             tests/hosted-preview-connected-population-history-audit.test.ts             tests/neon-dna-population-race-index-generation.test.ts
+          git add -u .github/workflows/temporary-format-published-manifest-read.yml
+          git commit -m "Format published population manifest read"
+          git push origin HEAD:agent/published-population-manifest-read
