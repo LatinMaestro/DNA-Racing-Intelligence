@@ -1,5 +1,6 @@
 import {
   createDnaPopulationRaceIndexAuthority,
+  createDnaPopulationRaceIndexR2AppendPlan,
   createDnaPopulationRaceIndexWriteBatch,
   DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_WRITE,
   type DnaPopulationRaceIndexGenerationRepository,
@@ -14,6 +15,10 @@ import {
   type DnaOpenLabProviderCapacityPreflight,
 } from "./dna-open-lab-provider-capacity-preflight";
 import type { DnaOpenLabProviderCapacityBlockerId } from "./dna-open-lab-zero-cost-provider-capacity";
+import type {
+  DnaPopulationRaceIndexR2ChunkReceipt,
+  DnaPopulationRaceIndexR2ChunkWrite,
+} from "./dna-population-race-index-r2-chunk";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 
 export const DNA_POPULATION_RACE_INDEX_PRIVATE_PREVIEW_OPERATOR_VERSION =
@@ -29,9 +34,9 @@ export const DNA_POPULATION_RACE_INDEX_P5_AUTHORITY = Object.freeze({
 
 export const DNA_POPULATION_RACE_INDEX_PREVIEW_PLANNED_R2_USAGE = Object.freeze(
   {
-    storageBytes: 0,
-    classAOperations: 0,
-    classBOperations: DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_WRITE + 1,
+    storageBytes: 8 * 1024 * 1024,
+    classAOperations: 1,
+    classBOperations: DNA_POPULATION_RACE_INDEX_MAXIMUM_RECEIPTS_PER_WRITE + 2,
   },
 );
 
@@ -67,7 +72,7 @@ export type DnaPopulationRaceIndexPrivatePreviewReceipt = Readonly<{
   persistentWriteArmed: true;
   previewOnly: true;
   dnaProviderRequestCount: 0;
-  providerWritePerformed: false;
+  providerWritePerformed: boolean;
   paidUsageAllowed: false;
   preserveLastGood: true;
 }>;
@@ -112,6 +117,7 @@ function safeReceipt(input: {
   uniqueEntrantCoreCount: number;
   preflightSha256: string | null;
   providerCapacityBlockerIds?: readonly DnaOpenLabProviderCapacityBlockerId[];
+  providerWritePerformed?: boolean;
 }): DnaPopulationRaceIndexPrivatePreviewReceipt {
   return Object.freeze({
     ...input,
@@ -121,7 +127,7 @@ function safeReceipt(input: {
     persistentWriteArmed: true as const,
     previewOnly: true as const,
     dnaProviderRequestCount: 0 as const,
-    providerWritePerformed: false as const,
+    providerWritePerformed: input.providerWritePerformed ?? false,
     paidUsageAllowed: false as const,
     preserveLastGood: true as const,
   });
@@ -138,6 +144,13 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
   baseline: DnaPopulationRaceIndexBaselineReadPort;
   repository: DnaPopulationRaceIndexGenerationRepository;
   capacityPreflight: DnaOpenLabProviderCapacityPreflight;
+  chunkStore: Readonly<{
+    write: (request: {
+      generationId: string;
+      chunkOrdinal: number;
+      documents: readonly import("./dna-population-race-index-checkpoint").DnaPopulationRaceIndexDocument[];
+    }) => Promise<DnaPopulationRaceIndexR2ChunkWrite>;
+  }>;
 }): Readonly<{
   execute: (
     invocation: DnaPopulationRaceIndexPrivatePreviewInvocation,
@@ -223,6 +236,38 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         });
       }
 
+      if (existing?.storageLayout === "legacy_neon_v1") {
+        return safeReceipt({
+          status: "held",
+          reason: "population_r2_compaction_required",
+          exactCodeHeadSha,
+          generationId: authority.generationId,
+          beforeRequestOrdinal: existing.lastRequestOrdinal,
+          afterRequestOrdinal: existing.lastRequestOrdinal,
+          processedReceiptCount: 0,
+          uniqueRaceCount: existing.uniqueRaceCount,
+          uniqueEntrantCoreCount: existing.uniqueEntrantCoreCount,
+          preflightSha256: null,
+        });
+      }
+      if (
+        existing?.storageLayout === "r2_chunked_v1" &&
+        existing.legacyStorageRetiredAt === null
+      ) {
+        return safeReceipt({
+          status: "held",
+          reason: "population_legacy_storage_not_retired",
+          exactCodeHeadSha,
+          generationId: authority.generationId,
+          beforeRequestOrdinal: existing.lastRequestOrdinal,
+          afterRequestOrdinal: existing.lastRequestOrdinal,
+          processedReceiptCount: 0,
+          uniqueRaceCount: existing.uniqueRaceCount,
+          uniqueEntrantCoreCount: existing.uniqueEntrantCoreCount,
+          preflightSha256: null,
+        });
+      }
+
       const beforeRequestOrdinal = existing?.lastRequestOrdinal ?? 0;
       const refreshCycleId = dnaOpenLabRawEvidenceSha256({
         domain: "dna-population-race-index-preview-cycle/v1",
@@ -290,9 +335,37 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         if (batch.processedReceiptCount < 1) {
           operatorError("staging generation produced an empty receipt slice");
         }
-        checkpoint = await input.repository.appendBatch(ownerId, {
+        const writeBatch = createDnaPopulationRaceIndexWriteBatch(batch);
+        const sourceRaceIds = Object.freeze([
+          ...new Set(writeBatch.documents.map((document) => document.sourceRaceId)),
+        ]);
+        const existingIdentities = await input.repository.lookupIdentities(
+          ownerId,
+          {
+            generationId: authority.generationId,
+            sourceRaceIds,
+          },
+        );
+        const plan = createDnaPopulationRaceIndexR2AppendPlan({
+          batch: writeBatch,
+          existingIdentities,
+        });
+        let chunk: DnaPopulationRaceIndexR2ChunkReceipt | null = null;
+        let providerWritePerformed = false;
+        if (plan.newDocuments.length > 0) {
+          const stored = await input.chunkStore.write({
+            generationId: authority.generationId,
+            chunkOrdinal: checkpoint.r2ChunkCount + 1,
+            documents: plan.newDocuments,
+          });
+          chunk = stored.receipt;
+          providerWritePerformed = stored.storageStatus === "created";
+        }
+        checkpoint = await input.repository.appendR2Batch(ownerId, {
           workerId: invocation.workerId,
-          batch: createDnaPopulationRaceIndexWriteBatch(batch),
+          batch: writeBatch,
+          newIdentities: plan.newIdentities,
+          chunk,
           writtenAt: attemptedAt,
         });
         if (checkpoint.state === "complete") {
@@ -316,6 +389,10 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         uniqueRaceCount: checkpoint.uniqueRaceCount,
         uniqueEntrantCoreCount: checkpoint.uniqueEntrantCoreCount,
         preflightSha256: preflight.preflightSha256,
+        providerWritePerformed:
+          typeof providerWritePerformed === "boolean"
+            ? providerWritePerformed
+            : false,
       });
     },
   });
