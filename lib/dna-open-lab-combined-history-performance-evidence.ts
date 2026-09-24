@@ -12,6 +12,7 @@ import type {
   DnaOpenLabP5FirstBackfillEvidenceWriter,
 } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import type { DnaRaceDocument } from "./dna-open-lab-v1-client";
+import { DNA_FINISHED_RACE_WINDOW_LIMIT } from "./dna-open-lab-finished-race-window-crawler";
 import type {
   DnaOpenLabP5FirstBackfillDurableReceipt,
   DnaOpenLabP5FirstBackfillLedger,
@@ -582,10 +583,17 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       ) {
         historyError("P5 finished-race receipt has an unexpected endpoint");
       }
-      for (const raw of raceDocuments(
+      const documents = raceDocuments(
         evidence.response.result,
         "P5 Race response",
-      )) {
+      );
+      if (
+        evidence.endpoint === "races.finished" &&
+        documents.length === DNA_FINISHED_RACE_WINDOW_LIMIT
+      ) {
+        continue;
+      }
+      for (const raw of documents) {
         acceptDocument(raw, evidence.observedAt, evidence.endpoint, "baseline");
       }
     }
