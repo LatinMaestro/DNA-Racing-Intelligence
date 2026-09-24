@@ -266,6 +266,7 @@ describe("DNA population race index private Preview operator", () => {
       baseline: source.value,
       repository: store.value,
       capacityPreflight: gate.value,
+      chunkStore: chunkStore().value,
     });
 
     await expect(operator.execute(invocation())).resolves.toMatchObject({
@@ -296,6 +297,7 @@ describe("DNA population race index private Preview operator", () => {
       baseline: source.value,
       repository: store.value,
       capacityPreflight: gate.value,
+      chunkStore: chunkStore().value,
     });
 
     await expect(operator.execute(invocation())).resolves.toMatchObject({
@@ -317,6 +319,7 @@ describe("DNA population race index private Preview operator", () => {
       baseline: source.value,
       repository: store.value,
       capacityPreflight: gate.value,
+      chunkStore: chunkStore().value,
     });
 
     await expect(
