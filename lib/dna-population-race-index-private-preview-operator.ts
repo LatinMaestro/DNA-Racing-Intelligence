@@ -308,6 +308,7 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         });
       }
 
+      let providerWritePerformed = false;
       let checkpoint =
         existing ??
         (await input.repository.begin(ownerId, {
@@ -351,7 +352,7 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
           existingIdentities,
         });
         let chunk: DnaPopulationRaceIndexR2ChunkReceipt | null = null;
-        let providerWritePerformed = false;
+        providerWritePerformed = false;
         if (plan.newDocuments.length > 0) {
           const stored = await input.chunkStore.write({
             generationId: authority.generationId,
@@ -389,10 +390,7 @@ export function createDnaPopulationRaceIndexPrivatePreviewOperator(input: {
         uniqueRaceCount: checkpoint.uniqueRaceCount,
         uniqueEntrantCoreCount: checkpoint.uniqueEntrantCoreCount,
         preflightSha256: preflight.preflightSha256,
-        providerWritePerformed:
-          typeof providerWritePerformed === "boolean"
-            ? providerWritePerformed
-            : false,
+        providerWritePerformed,
       });
     },
   });
