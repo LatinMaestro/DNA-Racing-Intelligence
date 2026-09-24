@@ -50,6 +50,9 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain("deadline_epoch");
     expect(workflow).toContain("+ 1200");
     expect(workflow).toContain('status}" == "complete"');
+    expect(workflow).toContain('status}" == "held"');
+    expect(workflow).toContain("provider_capacity_[a-z0-9_]+");
+    expect(workflow).toContain("held safely at the free-capacity guard");
     expect(workflow).toContain(
       "Main changed between durable population-index slices",
     );
