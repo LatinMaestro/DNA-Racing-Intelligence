@@ -340,7 +340,7 @@ function request(input: {
     budgetWindowId,
     evaluatedAt,
     attemptedAt: input.runAttemptedAt ?? attemptedAt,
-    loadServingOwnedCores: vi.fn(async () => input.rows ?? ownedCores()),
+    loadServingCores: vi.fn(async () => input.rows ?? ownedCores()),
     acquisitionRepository: input.repository,
     budgetRepository: input.budgetRepository,
     client: input.client,
