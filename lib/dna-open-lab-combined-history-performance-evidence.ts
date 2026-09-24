@@ -11,6 +11,7 @@ import type {
   DnaOpenLabP5FirstBackfillEvidenceDocument,
   DnaOpenLabP5FirstBackfillEvidenceWriter,
 } from "./dna-open-lab-p5-first-backfill-r2-evidence";
+import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
 import type { DnaRaceDocument } from "./dna-open-lab-v1-client";
 import { DNA_FINISHED_RACE_WINDOW_LIMIT } from "./dna-open-lab-finished-race-window-crawler";
 import type {
@@ -58,6 +59,14 @@ export type DnaOpenLabP5FinishedHistoryAuthority = Readonly<{
 export type DnaOpenLabHistoryReadBudgetAuthorization = Readonly<{
   maximumClassBOperations: number;
   paidUsageAllowed: false;
+}>;
+
+export type DnaOpenLabCompactPopulationBaseline = Readonly<{
+  documents: readonly DnaPopulationRaceIndexDocument[];
+  baselineReceiptCount: number;
+  baselineFinishedRaceReceiptCount: number;
+  baselineIdentityOmissionObservationCount: number;
+  r2ClassBOperationsUsed: number;
 }>;
 
 export type DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment = Readonly<{
@@ -439,6 +448,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   bucketName: string;
   baselineAuthority: DnaOpenLabP5FinishedHistoryAuthority;
   baseline: DnaOpenLabP5FinishedHistoryReadPort;
+  baselineIndex?: DnaOpenLabCompactPopulationBaseline;
   history: DnaOpenLabCombinedFinishedHistory;
   storage: ReadableObjectStorage;
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
@@ -457,7 +467,13 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   ) {
     historyError("read budget is not bounded to the zero-cost policy");
   }
-  let r2ClassBOperationsUsed = 0;
+  let r2ClassBOperationsUsed = nonNegativeInteger(
+    input.baselineIndex?.r2ClassBOperationsUsed ?? 0,
+    "baseline index r2ClassBOperationsUsed",
+  );
+  if (r2ClassBOperationsUsed > maximumClassBOperations) {
+    historyError("compact baseline exceeds the read budget");
+  }
   function reserveClassBOperations(count: number): void {
     if (r2ClassBOperationsUsed + count > maximumClassBOperations) {
       historyError("read budget is exhausted before provider access");
@@ -477,14 +493,33 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     await input.baseline.load(),
     input.baselineAuthority,
   );
-  const baselineReceipts = await loadBaselineReceipts({
-    source: input.baseline,
-    state: baselineState,
-  });
+  const baselineReceipts =
+    input.baselineIndex === undefined
+      ? await loadBaselineReceipts({
+          source: input.baseline,
+          state: baselineState,
+        })
+      : Object.freeze([] as DnaOpenLabP5FirstBackfillDurableReceipt[]);
+  if (
+    input.baselineIndex !== undefined &&
+    (input.baselineIndex.baselineReceiptCount !==
+      baselineState.logicalRequestCount ||
+      input.baselineIndex.baselineFinishedRaceReceiptCount < 0 ||
+      input.baselineIndex.baselineFinishedRaceReceiptCount >
+        baselineState.logicalRequestCount ||
+      input.baselineIndex.baselineIdentityOmissionObservationCount !==
+        baselineState.omittedIdentityObservationCount)
+  ) {
+    historyError("compact baseline authority disagrees with immutable P5");
+  }
 
   const endpointEvidence = new Map<string, string>();
   const raceIds = new Set<string>();
   const preferredDocuments = new Map<string, DnaRaceDocument>();
+  const compactCanonicalDocuments = new Map<
+    string,
+    CanonicalRaceDocumentMetadata
+  >();
   let duplicateRaceEvidenceCount = 0;
   let conflictingRaceEvidenceCount = 0;
   let baselineFinishedRaceReceiptCount = 0;
@@ -495,6 +530,40 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     input.canonicalPurpose === "population_inventory"
       ? adaptDnaRaceDocumentPopulationInventory
       : adaptDnaRaceDocument;
+
+  function acceptCanonicalDocument(
+    canonical: CanonicalRaceDocumentMetadata,
+    digest: string,
+    endpoint: "races.finished" | "races.docs",
+  ): void {
+    if (
+      canonical.sourceType !== "race_document" ||
+      canonical.sourceRaceId.trim() === "" ||
+      !SHA_256_PATTERN.test(digest)
+    ) {
+      historyError("canonical Race document authority is invalid");
+    }
+    const sourceRaceId = canonical.sourceRaceId;
+    const evidenceKey = `${endpoint}\u0000${sourceRaceId}`;
+    const previous = endpointEvidence.get(evidenceKey);
+    if (previous === digest) {
+      duplicateRaceEvidenceCount += 1;
+      return;
+    }
+    if (previous !== undefined) {
+      conflictingRaceEvidenceCount += 1;
+      return;
+    }
+    endpointEvidence.set(evidenceKey, digest);
+    raceIds.add(sourceRaceId);
+    if (
+      endpoint === "races.docs" ||
+      (!preferredDocuments.has(sourceRaceId) &&
+        !compactCanonicalDocuments.has(sourceRaceId))
+    ) {
+      compactCanonicalDocuments.set(sourceRaceId, canonical);
+    }
+  }
 
   function acceptDocument(
     raw: DnaRaceDocument,
@@ -546,55 +615,89 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     }
     endpointEvidence.set(evidenceKey, digest);
     raceIds.add(sourceRaceId);
-    if (endpoint === "races.docs" || !preferredDocuments.has(sourceRaceId)) {
+    if (
+      endpoint === "races.docs" ||
+      (!preferredDocuments.has(sourceRaceId) &&
+        !compactCanonicalDocuments.has(sourceRaceId))
+    ) {
       preferredDocuments.set(sourceRaceId, raw);
+      compactCanonicalDocuments.delete(sourceRaceId);
     }
   }
 
-  const baselineFinishedRaceReceipts = baselineReceipts.filter(
-    (receipt) => receipt.family === "finished_races",
-  );
-  baselineFinishedRaceReceiptCount = baselineFinishedRaceReceipts.length;
-  for (
-    let start = 0;
-    start < baselineFinishedRaceReceipts.length;
-    start += BASELINE_EVIDENCE_READ_CONCURRENCY
-  ) {
-    const receiptBatch = baselineFinishedRaceReceipts.slice(
-      start,
-      start + BASELINE_EVIDENCE_READ_CONCURRENCY,
-    );
-    for (let index = 0; index < receiptBatch.length; index += 1) {
-      reserveClassBOperations(2);
-    }
-    const evidenceBatch = await Promise.all(
-      receiptBatch.map((receipt) =>
-        input.baseline.readEvidence(receipt.requestOrdinal, receipt),
-      ),
-    );
-    for (const [index, receipt] of receiptBatch.entries()) {
-      const evidence = validateBaselineEvidence({
-        receipt,
-        evidence: evidenceBatch[index] ?? null,
-      });
+  if (input.baselineIndex !== undefined) {
+    baselineFinishedRaceReceiptCount =
+      input.baselineIndex.baselineFinishedRaceReceiptCount;
+    baselineIdentityOmissionObservationCount =
+      input.baselineIndex.baselineIdentityOmissionObservationCount;
+    const seenCompactRaceIds = new Set<string>();
+    for (const document of input.baselineIndex.documents) {
       if (
-        evidence.endpoint !== "races.finished" &&
-        evidence.endpoint !== "races.docs"
+        document.canonical.sourceRaceId !== document.sourceRaceId ||
+        seenCompactRaceIds.has(document.sourceRaceId)
       ) {
-        historyError("P5 finished-race receipt has an unexpected endpoint");
+        historyError(
+          "compact baseline contains invalid or duplicate Race identity",
+        );
       }
-      const documents = raceDocuments(
-        evidence.response.result,
-        "P5 Race response",
+      seenCompactRaceIds.add(document.sourceRaceId);
+      acceptCanonicalDocument(
+        document.canonical,
+        document.rawEvidenceSha256,
+        document.endpoint,
       );
-      if (
-        evidence.endpoint === "races.finished" &&
-        documents.length === DNA_FINISHED_RACE_WINDOW_LIMIT
-      ) {
-        continue;
+    }
+  } else {
+    const baselineFinishedRaceReceipts = baselineReceipts.filter(
+      (receipt) => receipt.family === "finished_races",
+    );
+    baselineFinishedRaceReceiptCount = baselineFinishedRaceReceipts.length;
+    for (
+      let start = 0;
+      start < baselineFinishedRaceReceipts.length;
+      start += BASELINE_EVIDENCE_READ_CONCURRENCY
+    ) {
+      const receiptBatch = baselineFinishedRaceReceipts.slice(
+        start,
+        start + BASELINE_EVIDENCE_READ_CONCURRENCY,
+      );
+      for (let index = 0; index < receiptBatch.length; index += 1) {
+        reserveClassBOperations(2);
       }
-      for (const raw of documents) {
-        acceptDocument(raw, evidence.observedAt, evidence.endpoint, "baseline");
+      const evidenceBatch = await Promise.all(
+        receiptBatch.map((receipt) =>
+          input.baseline.readEvidence(receipt.requestOrdinal, receipt),
+        ),
+      );
+      for (const [index, receipt] of receiptBatch.entries()) {
+        const evidence = validateBaselineEvidence({
+          receipt,
+          evidence: evidenceBatch[index] ?? null,
+        });
+        if (
+          evidence.endpoint !== "races.finished" &&
+          evidence.endpoint !== "races.docs"
+        ) {
+          historyError("P5 finished-race receipt has an unexpected endpoint");
+        }
+        const documents = raceDocuments(
+          evidence.response.result,
+          "P5 Race response",
+        );
+        if (
+          evidence.endpoint === "races.finished" &&
+          documents.length === DNA_FINISHED_RACE_WINDOW_LIMIT
+        ) {
+          continue;
+        }
+        for (const raw of documents) {
+          acceptDocument(
+            raw,
+            evidence.observedAt,
+            evidence.endpoint,
+            "baseline",
+          );
+        }
       }
     }
   }
@@ -795,22 +898,26 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let bikeRaceCount = 0;
   let bikeRaceWithFormatCount = 0;
   let bikeRaceWithTrackSourceValueCount = 0;
-  for (const raw of preferredDocuments.values()) {
-    const adapted = adaptDocument({
-      raw,
-      observedAt: "2000-01-01T00:00:00.000Z",
-      endpoint: "races.docs",
-    });
-    input.onCanonicalRaceDocument?.(adapted.canonical);
-    if (adapted.canonical.mode !== "bike") continue;
+  for (const sourceRaceId of raceIds) {
+    const raw = preferredDocuments.get(sourceRaceId);
+    const canonical =
+      raw === undefined
+        ? compactCanonicalDocuments.get(sourceRaceId)
+        : adaptDocument({
+            raw,
+            observedAt: "2000-01-01T00:00:00.000Z",
+            endpoint: "races.docs",
+          }).canonical;
+    if (canonical === undefined) {
+      historyError("preferred Race document is unavailable");
+    }
+    input.onCanonicalRaceDocument?.(canonical);
+    if (canonical.mode !== "bike") continue;
     bikeRaceCount += 1;
-    if (
-      adapted.canonical.format !== undefined &&
-      adapted.canonical.format !== null
-    ) {
+    if (canonical.format !== undefined && canonical.format !== null) {
       bikeRaceWithFormatCount += 1;
     }
-    if (adapted.canonical.trackSourceValue !== undefined) {
+    if (canonical.trackSourceValue !== undefined) {
       bikeRaceWithTrackSourceValueCount += 1;
     }
   }
@@ -819,7 +926,8 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     authority: "complete_serving_generation_combined_finished_history",
     refreshCycleId: input.history.refreshCycleId,
     currentStateGenerationId: input.history.currentStateGenerationId,
-    baselineReceiptCount: baselineReceipts.length,
+    baselineReceiptCount:
+      input.baselineIndex?.baselineReceiptCount ?? baselineReceipts.length,
     baselineFinishedRaceReceiptCount,
     incrementalWindowCount,
     incrementalDocumentReferenceCount,

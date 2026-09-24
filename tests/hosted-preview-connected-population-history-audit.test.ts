@@ -9,9 +9,11 @@ import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
 import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "@/lib/dna-open-lab-zero-cost-refresh-policy";
 import { planDnaPopulationHistoryAcquisition } from "@/lib/dna-population-history-acquisition-plan";
+import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonActiveDnaCoreRaceHistoryGenerationReadRepository } from "@/lib/neon-active-dna-core-race-history-generation";
 import { createNeonDnaCoreRaceHistoryAcquisitionRepository } from "@/lib/neon-dna-core-race-history-acquisition";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
 import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const connected = process.env.DNA_POPULATION_HISTORY_READ_ONLY_AUDIT === "1";
@@ -160,6 +162,102 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         storage,
         approvalPacket: packet,
       });
+      const populationIndexRepository =
+        createNeonDnaPopulationRaceIndexGenerationRepository({
+          databaseUrl,
+          databaseOwnerId,
+          ownerId,
+          runtimeRole: RUNTIME_ROLE,
+        });
+      const populationIndex = await populationIndexRepository.load(
+        ownerId,
+        baselineState.completionSha256,
+      );
+      if (
+        populationIndex === null ||
+        populationIndex.state !== "published" ||
+        populationIndex.lastRequestOrdinal !==
+          baselineState.logicalRequestCount ||
+        populationIndex.processedReceiptCount !==
+          baselineState.logicalRequestCount ||
+        populationIndex.processedReceiptBytes !==
+          baselineState.retainedR2Bytes ||
+        populationIndex.processedIdentityOmissionCount !==
+          baselineState.omittedIdentityObservationCount ||
+        populationIndex.storageLayout !== "r2_chunked_v1" ||
+        populationIndex.r2ChunkCount < 1 ||
+        populationIndex.r2IdentityChunkCount !== populationIndex.r2ChunkCount ||
+        populationIndex.r2CompactedRaceCount !==
+          populationIndex.uniqueRaceCount ||
+        populationIndex.legacyStorageRetiredAt === null
+      ) {
+        throw new Error(
+          "published compact P5 population authority is unavailable",
+        );
+      }
+      const manifests = [];
+      let afterChunkOrdinal = 0;
+      while (manifests.length < populationIndex.r2ChunkCount) {
+        const page = await populationIndexRepository.listR2ChunkManifests(
+          ownerId,
+          {
+            generationId: baselineState.completionSha256,
+            afterChunkOrdinal,
+            limit: 100,
+          },
+        );
+        if (page.length === 0) {
+          throw new Error("published compact P5 manifests are incomplete");
+        }
+        manifests.push(...page);
+        afterChunkOrdinal = page.at(-1)!.chunkOrdinal;
+      }
+      if (
+        manifests.length !== populationIndex.r2ChunkCount ||
+        manifests.some(
+          (manifest, index) =>
+            manifest.chunkOrdinal !== index + 1 ||
+            manifest.identityRegisteredAt === null,
+        ) ||
+        manifests.reduce((sum, manifest) => sum + manifest.rowCount, 0) !==
+          populationIndex.uniqueRaceCount
+      ) {
+        throw new Error("published compact P5 manifests do not reconcile");
+      }
+      const chunkStore = createDnaPopulationRaceIndexR2ChunkStore({
+        ownerId,
+        bucketName,
+        storage,
+      });
+      const compactDocuments = [];
+      const CHUNK_READ_CONCURRENCY = 16;
+      for (
+        let start = 0;
+        start < manifests.length;
+        start += CHUNK_READ_CONCURRENCY
+      ) {
+        const batch = manifests.slice(start, start + CHUNK_READ_CONCURRENCY);
+        const documents = await Promise.all(
+          batch.map((manifest) => chunkStore.read(manifest)),
+        );
+        for (const chunk of documents) compactDocuments.push(...chunk);
+      }
+      if (
+        compactDocuments.length !== populationIndex.uniqueRaceCount ||
+        new Set(compactDocuments.map(({ sourceRaceId }) => sourceRaceId))
+          .size !== populationIndex.uniqueRaceCount
+      ) {
+        throw new Error("published compact P5 Race documents do not reconcile");
+      }
+      const compactBaselineClassBOperations = manifests.length * 2;
+      if (
+        !Number.isSafeInteger(compactBaselineClassBOperations) ||
+        compactBaselineClassBOperations < 1 ||
+        compactBaselineClassBOperations >
+          MAXIMUM_HISTORY_AUTHORITY_CLASS_B_OPERATIONS
+      ) {
+        throw new Error("compact P5 read budget is invalid");
+      }
       const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
       const historyAssessment =
         await assessDnaOpenLabCombinedHistoryPerformanceEvidence({
@@ -176,6 +274,15 @@ describeConnected("hosted Preview all-mode population history audit", () => {
             load: ledger.load.bind(ledger),
             loadReceipts: ledger.loadReceipts.bind(ledger),
             readEvidence: evidence.read,
+          },
+          baselineIndex: {
+            documents: Object.freeze(compactDocuments),
+            baselineReceiptCount: populationIndex.processedReceiptCount,
+            baselineFinishedRaceReceiptCount:
+              populationIndex.finishedRaceReceiptCount,
+            baselineIdentityOmissionObservationCount:
+              populationIndex.processedIdentityOmissionCount,
+            r2ClassBOperationsUsed: compactBaselineClassBOperations,
           },
           history,
           storage,
