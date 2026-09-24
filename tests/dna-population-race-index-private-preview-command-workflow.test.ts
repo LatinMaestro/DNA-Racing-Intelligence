@@ -86,6 +86,19 @@ describe("DNA population race index private Preview command workflow", () => {
     expect(workflow).toContain('echo "::add-mask::${migration_url}"');
     expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
     expect(workflow).toContain(
+      "Reclaim verified-empty legacy population storage",
+    );
+    expect(workflow).toContain(
+      "verified-empty legacy population storage reclaim denied",
+    );
+    expect(workflow).toContain("IN ACCESS EXCLUSIVE MODE");
+    expect(workflow).toContain("TRUNCATE TABLE");
+    expect(workflow).toContain(
+      "DNA_POPULATION_LEGACY_STORAGE_RECLAIM=",
+    );
+    expect(workflow).not.toContain("TRUNCATE TABLE ONLY");
+    expect(workflow).not.toMatch(/TRUNCATE[^;]+CASCADE/su);
+    expect(workflow).toContain(
       "Measure aggregate private Preview population storage",
     );
     expect(workflow).toContain("DNA_POPULATION_STORAGE_METRICS=");
