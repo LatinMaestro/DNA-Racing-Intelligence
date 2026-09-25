@@ -299,6 +299,7 @@ describe("combined DNA finished-history performance evidence", () => {
       baselineFinishedRaceReceiptCount: 1,
       incrementalWindowCount: 1,
       incrementalDocumentReferenceCount: 2,
+      incrementalMaximumRaceDocumentBytes: 111,
       quarantinedIdentityObservationCount: 0,
       r2ClassBOperationsUsed: 8,
       uniqueRaceCount: 2,
