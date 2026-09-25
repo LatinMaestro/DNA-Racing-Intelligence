@@ -489,8 +489,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
               measurement.maximumCompactEntrantAuthorityBytes,
             verifiedIncrementalMaximumCompactEntrantAuthorityBytes:
               historyAssessment.incrementalMaximumCompactEntrantAuthorityBytes,
-            currentR2StorageBytes:
-              measurement.capacity.currentR2StorageBytes,
+            currentR2StorageBytes: measurement.capacity.currentR2StorageBytes,
             currentR2ClassAOperations:
               measurement.capacity.currentR2ClassAOperations,
             currentR2ClassBOperations:
