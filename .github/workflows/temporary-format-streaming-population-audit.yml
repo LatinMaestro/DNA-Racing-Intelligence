@@ -1,0 +1,46 @@
+name: TEMPORARY format streaming population audit
+
+on:
+  push:
+    branches:
+      - agent/stream-compact-population-audit
+    paths:
+      - ".github/workflows/temporary-format-streaming-population-audit.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-remove-self:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/stream-compact-population-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Format streaming audit files
+        run: >-
+          npx prettier --write
+          lib/dna-open-lab-combined-history-performance-evidence.ts
+          lib/dna-population-history-acquisition-accumulator.ts
+          tests/dna-population-history-acquisition-accumulator.test.ts
+          tests/hosted-preview-connected-population-history-audit.test.ts
+      - name: Remove this one-shot workflow and commit formatting
+        shell: bash
+        run: |
+          rm .github/workflows/temporary-format-streaming-population-audit.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             lib/dna-open-lab-combined-history-performance-evidence.ts             lib/dna-population-history-acquisition-accumulator.ts             tests/dna-population-history-acquisition-accumulator.test.ts             tests/hosted-preview-connected-population-history-audit.test.ts
+          git add -u .github/workflows/temporary-format-streaming-population-audit.yml
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git commit -m "Format streaming population audit"
+          git push origin HEAD:agent/stream-compact-population-audit
