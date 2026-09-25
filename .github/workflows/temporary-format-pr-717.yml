@@ -1,0 +1,40 @@
+name: TEMPORARY format PR 717
+
+on:
+  push:
+    branches:
+      - agent/population-entrant-hydration-measurement
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/population-entrant-hydration-measurement
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: >-
+          npx prettier --write
+          lib/dna-population-entrant-hydration-read-only-measurement.ts
+          lib/dna-population-history-acquisition-plan.ts
+          tests/hosted-preview-connected-population-history-audit.test.ts
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             lib/dna-population-entrant-hydration-read-only-measurement.ts             lib/dna-population-history-acquisition-plan.ts             tests/hosted-preview-connected-population-history-audit.test.ts
+          git commit -m "TEMPORARY format PR 717"
+          git push origin HEAD:agent/population-entrant-hydration-measurement
