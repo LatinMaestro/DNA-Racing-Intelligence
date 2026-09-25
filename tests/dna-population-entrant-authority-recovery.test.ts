@@ -41,9 +41,7 @@ function manifest(
   rowCount: number,
 ): DnaPopulationEntrantAuthorityChunkManifest {
   const bodySha256 = String(chunkOrdinal).repeat(64).slice(0, 64);
-  const recordSetSha256 = String(chunkOrdinal + 2)
-    .repeat(64)
-    .slice(0, 64);
+  const recordSetSha256 = String(chunkOrdinal + 2).repeat(64).slice(0, 64);
   const raceSetSha256 = String(chunkOrdinal + 4).repeat(64).slice(0, 64);
   return Object.freeze({
     version: 1,
