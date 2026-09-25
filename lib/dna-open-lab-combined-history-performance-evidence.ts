@@ -837,14 +837,10 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
               ) !== quarantine.evidenceLocatorSha256 ||
               metadata(quarantineHead.metadata, "dna-raw-sha256") !==
                 quarantine.rawEvidenceSha256 ||
-              metadata(
-                quarantineHead.metadata,
-                "dna-canonical-publishable",
-              ) !== "false" ||
-              metadata(
-                quarantineHead.metadata,
-                "dna-last-good-publishable",
-              ) !== "false"
+              metadata(quarantineHead.metadata, "dna-canonical-publishable") !==
+                "false" ||
+              metadata(quarantineHead.metadata, "dna-last-good-publishable") !==
+                "false"
             ) {
               historyError("incremental quarantine object is inconsistent");
             }
@@ -940,12 +936,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         );
         for (const raw of verifiedRaceBatch) {
           incrementalDocumentReferenceCount += 1;
-          acceptDocument(
-            raw,
-            receipt.windowEndAt,
-            "races.docs",
-            "incremental",
-          );
+          acceptDocument(raw, receipt.windowEndAt, "races.docs", "incremental");
         }
       }
     }
