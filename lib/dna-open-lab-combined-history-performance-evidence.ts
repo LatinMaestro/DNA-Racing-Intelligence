@@ -62,7 +62,10 @@ export type DnaOpenLabHistoryReadBudgetAuthorization = Readonly<{
 }>;
 
 export type DnaOpenLabCompactPopulationBaseline = Readonly<{
-  documents: readonly DnaPopulationRaceIndexDocument[];
+  documents?: readonly DnaPopulationRaceIndexDocument[];
+  scanDocuments?: (
+    accept: (document: DnaPopulationRaceIndexDocument) => void,
+  ) => Promise<void>;
   baselineReceiptCount: number;
   baselineFinishedRaceReceiptCount: number;
   baselineIdentityOmissionObservationCount: number;
@@ -630,22 +633,34 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       input.baselineIndex.baselineFinishedRaceReceiptCount;
     baselineIdentityOmissionObservationCount =
       input.baselineIndex.baselineIdentityOmissionObservationCount;
-    const seenCompactRaceIds = new Set<string>();
-    for (const document of input.baselineIndex.documents) {
+    const hasDocuments = input.baselineIndex.documents !== undefined;
+    const hasScanner = input.baselineIndex.scanDocuments !== undefined;
+    if (hasDocuments === hasScanner) {
+      historyError("compact baseline must provide exactly one document source");
+    }
+    const acceptCompactDocument = (
+      document: DnaPopulationRaceIndexDocument,
+    ): void => {
       if (
         document.canonical.sourceRaceId !== document.sourceRaceId ||
-        seenCompactRaceIds.has(document.sourceRaceId)
+        raceIds.has(document.sourceRaceId)
       ) {
         historyError(
           "compact baseline contains invalid or duplicate Race identity",
         );
       }
-      seenCompactRaceIds.add(document.sourceRaceId);
       acceptCanonicalDocument(
         document.canonical,
         document.rawEvidenceSha256,
         document.endpoint,
       );
+    };
+    if (input.baselineIndex.documents !== undefined) {
+      for (const document of input.baselineIndex.documents) {
+        acceptCompactDocument(document);
+      }
+    } else {
+      await input.baselineIndex.scanDocuments!(acceptCompactDocument);
     }
   } else {
     const baselineFinishedRaceReceipts = baselineReceipts.filter(
