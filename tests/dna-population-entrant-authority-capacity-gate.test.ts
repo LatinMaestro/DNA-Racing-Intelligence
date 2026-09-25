@@ -21,6 +21,8 @@ const authority: DnaPopulationEntrantAuthorityCheckpointAuthority =
 const sizingAuthority: DnaPopulationEntrantAuthoritySizingAuthority =
   Object.freeze({
     version: 1,
+    unresolvedRaceCount: 1_135_198,
+    unresolvedRaceSetSha256: generationId,
     measuredMaximumCompactEntrantAuthorityBytes: 257,
     verifiedIncrementalMaximumCompactEntrantAuthorityBytes: 902,
   });
@@ -204,6 +206,31 @@ describe("DNA population entrant authority capacity gate", () => {
       }),
     ).rejects.toThrow("audited authority binding is invalid");
     expect(test.fixture!.measure).not.toHaveBeenCalled();
+  });
+
+  it("rejects sizing authority bound to a different unresolved Race set before provider access", async () => {
+    const test = gate({
+      sizing: {
+        ...sizingAuthority,
+        unresolvedRaceSetSha256: "b".repeat(64),
+      },
+    });
+
+    await expect(
+      test.value.assertFreshCurrentCapacity(authority),
+    ).rejects.toThrow("sizing authority disagrees with audited authority");
+    expect(test.fixture!.measure).not.toHaveBeenCalled();
+  });
+
+  it("rejects sizing authority below the accepted historical compact-size floor", () => {
+    expect(() =>
+      gate({
+        sizing: {
+          ...sizingAuthority,
+          verifiedIncrementalMaximumCompactEntrantAuthorityBytes: 901,
+        },
+      }),
+    ).toThrow("verified compact entrant sizing authority regressed");
   });
 
   it("rejects malformed sizing authority at composition time", () => {
