@@ -1,4 +1,5 @@
 name: TEMPORARY observe main CI after 722 — DO NOT MERGE
+# retrigger exact-main verification
 
 on:
   push:
