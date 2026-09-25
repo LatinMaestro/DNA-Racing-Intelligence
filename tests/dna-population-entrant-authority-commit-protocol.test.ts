@@ -95,7 +95,9 @@ function harness(input?: {
     return input?.checkpoint ?? emptyCheckpoint();
   });
   const listChunkManifests = vi.fn(
-    async (): Promise<readonly DnaPopulationEntrantAuthorityChunkManifest[]> => {
+    async (): Promise<
+      readonly DnaPopulationEntrantAuthorityChunkManifest[]
+    > => {
       events.push("manifest-list");
       return Object.freeze([]);
     },
@@ -107,20 +109,22 @@ function harness(input?: {
       ? input.registerChunk(registerCalls)
       : afterCheckpoint();
   });
-  const capacityGate: DnaPopulationEntrantAuthorityCapacityGate = Object.freeze({
-    assertFreshCurrentCapacity: vi.fn(async () => {
-      events.push("capacity");
-      return Object.freeze({
-        version: 1 as const,
-        generationId,
-        unresolvedRaceCount: 3,
-        unresolvedRaceSetSha256: generationId,
-        observedAt: "2026-09-25T06:01:00.000Z",
-        capacityAllowed: true as const,
-        paidUsageAllowed: false as const,
-      });
-    }),
-  });
+  const capacityGate: DnaPopulationEntrantAuthorityCapacityGate = Object.freeze(
+    {
+      assertFreshCurrentCapacity: vi.fn(async () => {
+        events.push("capacity");
+        return Object.freeze({
+          version: 1 as const,
+          generationId,
+          unresolvedRaceCount: 3,
+          unresolvedRaceSetSha256: generationId,
+          observedAt: "2026-09-25T06:01:00.000Z",
+          capacityAllowed: true as const,
+          paidUsageAllowed: false as const,
+        });
+      }),
+    },
+  );
   const r2Store: DnaPopulationEntrantAuthorityR2CommitPort = Object.freeze({
     read: vi.fn(async () => {
       throw new Error("unexpected recovery R2 read");
@@ -130,7 +134,8 @@ function harness(input?: {
       events.push("r2-write");
       return Object.freeze({
         receipt: receipt(),
-        storageStatus: writeCalls === 1 ? ("created" as const) : ("existing" as const),
+        storageStatus:
+          writeCalls === 1 ? ("created" as const) : ("existing" as const),
       });
     }),
   });
@@ -212,7 +217,9 @@ describe("DNA population entrant authority commit protocol", () => {
 
   it("fails closed before R2 when fresh capacity approval drifts", async () => {
     const test = harness();
-    vi.mocked(test.capacityGate.assertFreshCurrentCapacity).mockResolvedValueOnce(
+    vi.mocked(
+      test.capacityGate.assertFreshCurrentCapacity,
+    ).mockResolvedValueOnce(
       Object.freeze({
         version: 1,
         generationId,
@@ -247,7 +254,9 @@ describe("DNA population entrant authority commit protocol", () => {
         lastSourceRaceId: "race-2",
       }),
     });
-    vi.mocked(test.checkpointRepository.listChunkManifests).mockResolvedValueOnce(
+    vi.mocked(
+      test.checkpointRepository.listChunkManifests,
+    ).mockResolvedValueOnce(
       Object.freeze([
         Object.freeze({
           ...receipt(),
@@ -282,9 +291,7 @@ describe("DNA population entrant authority commit protocol", () => {
         registeredAt: "2026-09-25T06:02:00.000Z",
       }),
     ).rejects.toThrow("does not advance the recovered Race boundary");
-    expect(
-      test.capacityGate.assertFreshCurrentCapacity,
-    ).not.toHaveBeenCalled();
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
