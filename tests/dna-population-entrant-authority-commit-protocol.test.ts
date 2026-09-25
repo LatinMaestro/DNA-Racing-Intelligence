@@ -360,7 +360,9 @@ describe("DNA population entrant authority commit protocol", () => {
       firstSourceRaceId: "race-1",
       lastSourceRaceId: "race-1",
     });
-    vi.mocked(test.checkpointRepository.listChunkManifests).mockResolvedValueOnce(
+    vi.mocked(
+      test.checkpointRepository.listChunkManifests,
+    ).mockResolvedValueOnce(
       Object.freeze([
         Object.freeze({
           ...completedReceipt,
