@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   collect: vi.fn(),
+  loadLineage: vi.fn(),
   materialize: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock("@/lib/dna-core-race-history-generation-materializer", async () => ({
   ...(await vi.importActual(
     "@/lib/dna-core-race-history-generation-materializer",
   )),
+  loadCompleteDnaCoreRaceHistoryLineage: mocks.loadLineage,
   materializeAndPublishLatestDnaCoreRaceHistory: mocks.materialize,
 }));
 
@@ -125,6 +127,7 @@ describe("DNA Core race history private generation operator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.collect.mockResolvedValue({ kind: "page_recorded" });
+    mocks.loadLineage.mockImplementation(async ({ latest }) => [latest]);
     mocks.materialize.mockResolvedValue({
       kind: "published",
       generation: { generationId: "generation-1" },
@@ -285,7 +288,7 @@ describe("DNA Core race history private generation operator", () => {
       stored: {
         cycle: {
           ...completeStep().stored.cycle,
-          completion: { pageReceiptCount: 501 },
+          completion: { pageReceiptCount: 501, acceptedResultCount: 0 },
         },
       },
     });
@@ -474,8 +477,61 @@ describe("DNA Core race history private generation operator", () => {
     expect(mocks.materialize).not.toHaveBeenCalled();
   });
 
-  it("holds a successor cycle before reserving reads until lineage is supported", async () => {
+  it("preaccounts and publishes a verified successor lineage", async () => {
+    const latest = completeStep("b".repeat(64));
+    mocks.collect.mockResolvedValue(latest);
+    mocks.loadLineage.mockResolvedValue([
+      {
+        cycle: {
+          ...latest.stored.cycle,
+          cycleId: "b".repeat(64),
+          previousCompletedCycleId: null,
+          completion: { pageReceiptCount: 250, acceptedResultCount: 100 },
+        },
+      },
+      latest.stored,
+    ]);
+    const persistence = repositories();
+    const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
+      configuredOwnerId: ownerId,
+      sources: sources(),
+      repositories: persistence,
+    });
+    await expect(
+      operator.execute({
+        ...invocation,
+        maximumRetainedEvidenceClassBOperations: 4_000,
+      }),
+    ).resolves.toMatchObject({
+      kind: "generation",
+      result: { kind: "published" },
+    });
+    expect(persistence.budget.reserve).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        plannedUsage: {
+          storageBytes: 0,
+          classAOperations: 0,
+          classBOperations: 2_000,
+        },
+      }),
+    );
+    expect(persistence.budget.reserve).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        plannedUsage: {
+          storageBytes: 0,
+          classAOperations: 0,
+          classBOperations: 1_000,
+        },
+      }),
+    );
+    expect(mocks.materialize).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves last-good when complete successor lineage is unavailable", async () => {
     mocks.collect.mockResolvedValue(completeStep("b".repeat(64)));
+    mocks.loadLineage.mockResolvedValue(null);
     const persistence = repositories();
     const operator = createDnaCoreRaceHistoryPrivateGenerationOperator({
       configuredOwnerId: ownerId,

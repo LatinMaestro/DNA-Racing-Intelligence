@@ -4,6 +4,7 @@ import {
   DNA_CORE_RACE_HISTORY_MATERIALIZER_MAXIMUM_PAGES,
   DNA_CORE_RACE_HISTORY_PAGE_READ_CLASS_B_OPERATION_CEILING,
   DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
+  loadCompleteDnaCoreRaceHistoryLineage,
   materializeAndPublishLatestDnaCoreRaceHistory,
   type DnaCoreRaceHistoryGenerationMaterializerResult,
 } from "./dna-core-race-history-generation-materializer";
@@ -368,7 +369,15 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
       if (step.kind !== "collection_complete") {
         return Object.freeze({ kind: "collection" as const, step });
       }
-      if (step.stored.cycle.previousCompletedCycleId !== null) {
+      const completion = step.stored.cycle.completion;
+      if (completion === null) {
+        operatorError("complete collection has no completion authority");
+      }
+      const lineage = await loadCompleteDnaCoreRaceHistoryLineage({
+        repository: input.repositories.acquisition,
+        latest: step.stored,
+      });
+      if (lineage === null) {
         return Object.freeze({
           kind: "generation" as const,
           result: Object.freeze({
@@ -377,13 +386,28 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
           }),
         });
       }
-
-      const completion = step.stored.cycle.completion;
-      if (completion === null) {
-        operatorError("complete collection has no completion authority");
+      const lineagePageReceiptCount = lineage.reduce((sum, stored) => {
+        const count = stored.cycle.completion?.pageReceiptCount;
+        if (!Number.isSafeInteger(count) || Number(count) < 1) {
+          operatorError("lineage page receipt count is invalid");
+        }
+        return sum + Number(count);
+      }, 0);
+      const lineageAcceptedResultCount = lineage.reduce((sum, stored) => {
+        const count = stored.cycle.completion?.acceptedResultCount;
+        if (!Number.isSafeInteger(count) || Number(count) < 0) {
+          operatorError("lineage accepted result count is invalid");
+        }
+        return sum + Number(count);
+      }, 0);
+      if (
+        !Number.isSafeInteger(lineagePageReceiptCount) ||
+        !Number.isSafeInteger(lineageAcceptedResultCount)
+      ) {
+        operatorError("lineage aggregate count exceeds the safe range");
       }
       const requiredClassBOperations = requiredRetainedEvidenceClassBOperations(
-        completion.pageReceiptCount,
+        lineagePageReceiptCount,
         maximumClassBOperations,
       );
       const chunkMaximum =
@@ -455,7 +479,7 @@ export function createDnaCoreRaceHistoryPrivateGenerationOperator(input: {
       // read or write; storage and Class A are charged at the maximum object
       // size even when a replay finds an existing immutable batch.
       const raceDocumentBatchCount = Math.ceil(
-        completion.acceptedResultCount /
+        lineageAcceptedResultCount /
           DNA_CORE_RACE_HISTORY_RACE_DOCUMENT_BATCH_SIZE,
       );
       const maximumCacheBatchesPerChunk = Math.min(
