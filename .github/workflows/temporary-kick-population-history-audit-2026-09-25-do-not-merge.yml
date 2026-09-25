@@ -1,4 +1,4 @@
-name: TEMPORARY kick population history audit — DO NOT MERGE
+name: TEMPORARY verify and measure compact entrant authority — DO NOT MERGE
 
 on:
   push:
@@ -8,29 +8,132 @@ on:
 permissions:
   contents: read
   actions: write
+  issues: write
 
 jobs:
-  dispatch-exact-main-audit:
+  verify-audit-measure:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
+      REPO: LatinMaestro/DNA-Racing-Intelligence
     steps:
       - name: Require unchanged exact main
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
         run: |
-          actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
+          actual="$(gh api repos/$REPO/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale audit dispatch."
+            echo "Main moved; refusing stale verification."
             exit 1
           fi
-      - name: Dispatch exact-main read-only audit
+
+      - name: Independently verify exact-main CI
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
         run: |
-          gh workflow run dna-population-history-read-only-audit.yml \
-            --repo LatinMaestro/DNA-Racing-Intelligence \
-            --ref main \
-            -f expected_main_sha="$EXPECTED_MAIN_SHA" \
-            -f execute_read_only_audit=true
-          echo "Dispatched exact-main read-only population history audit."
+          run_id=""
+          for attempt in $(seq 1 90); do
+            run_id="$(gh run list               --repo "$REPO"               --branch main               --commit "$EXPECTED_MAIN_SHA"               --event push               --limit 30               --json databaseId,name,headSha               --jq '.[] | select(.name == "CI" and .headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$run_id" ]]; then break; fi
+            sleep 10
+          done
+          if [[ -z "$run_id" ]]; then
+            echo "Exact-main CI run was not found."
+            exit 1
+          fi
+          gh run watch "$run_id" --repo "$REPO" --exit-status
+          echo "MAIN_CI_RUN_ID=$run_id" >> "$GITHUB_ENV"
+
+      - name: Dispatch exact-main population audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run dna-population-history-read-only-audit.yml             --repo "$REPO"             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f execute_read_only_audit=true
+
+      - name: Wait for audit and extract sanitized authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=""
+          for attempt in $(seq 1 90); do
+            run_id="$(gh run list               --repo "$REPO"               --workflow dna-population-history-read-only-audit.yml               --branch main               --event workflow_dispatch               --limit 30               --json databaseId,headSha,status               --jq '.[] | select(.headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$run_id" ]]; then break; fi
+            sleep 10
+          done
+          if [[ -z "$run_id" ]]; then
+            echo "Exact-main population audit run was not found."
+            exit 1
+          fi
+          gh run watch "$run_id" --repo "$REPO" --exit-status
+          report="$(gh run view "$run_id" --repo "$REPO" --log             | grep 'DNA_POPULATION_HISTORY_AUDIT='             | tail -n 1             | sed 's/^.*DNA_POPULATION_HISTORY_AUDIT=//')"
+          if [[ -z "$report" ]]; then
+            echo "Sanitized population audit report was not found."
+            exit 1
+          fi
+          node -e '
+            const r=JSON.parse(process.argv[1]);
+            if (r.exactCodeHeadSha !== process.env.EXPECTED_MAIN_SHA) process.exit(2);
+            const count=r.population?.unresolvedRaceCount;
+            const sha=r.population?.unresolvedRaceSetSha256;
+            if (!Number.isSafeInteger(count) || count < 1 || !/^[a-f0-9]{64}$/.test(sha ?? "")) process.exit(3);
+            process.stdout.write(String(count)+"\n"+sha);
+          ' "$report" > /tmp/audit-binding
+          {
+            echo "AUDIT_RUN_ID=$run_id"
+            echo "UNRESOLVED_RACE_COUNT=$(sed -n '1p' /tmp/audit-binding)"
+            echo "UNRESOLVED_RACE_SHA256=$(sed -n '2p' /tmp/audit-binding)"
+          } >> "$GITHUB_ENV"
+          printf '%s' "$report" > /tmp/audit-report.json
+
+      - name: Dispatch one-request compact entrant measurement
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run dna-population-entrant-hydration-read-only-measurement.yml             --repo "$REPO"             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f expected_unresolved_race_count="$UNRESOLVED_RACE_COUNT"             -f expected_unresolved_race_sha256="$UNRESOLVED_RACE_SHA256"             -f execute_read_only_measurement=true
+
+      - name: Wait for measurement and publish sanitized evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=""
+          for attempt in $(seq 1 90); do
+            run_id="$(gh run list               --repo "$REPO"               --workflow dna-population-entrant-hydration-read-only-measurement.yml               --branch main               --event workflow_dispatch               --limit 30               --json databaseId,headSha,status               --jq '.[] | select(.headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$run_id" ]]; then break; fi
+            sleep 10
+          done
+          if [[ -z "$run_id" ]]; then
+            echo "Exact-main entrant measurement run was not found."
+            exit 1
+          fi
+          gh run watch "$run_id" --repo "$REPO" --exit-status
+          report="$(gh run view "$run_id" --repo "$REPO" --log             | grep 'DNA_POPULATION_ENTRANT_HYDRATION_MEASUREMENT='             | tail -n 1             | sed 's/^.*DNA_POPULATION_ENTRANT_HYDRATION_MEASUREMENT=//')"
+          if [[ -z "$report" ]]; then
+            echo "Sanitized entrant measurement report was not found."
+            exit 1
+          fi
+          node -e '
+            const r=JSON.parse(process.argv[1]);
+            if (r.authority?.unresolvedRaceCount !== Number(process.env.UNRESOLVED_RACE_COUNT)) process.exit(2);
+            if (r.authority?.unresolvedRaceSetSha256 !== process.env.UNRESOLVED_RACE_SHA256) process.exit(3);
+            if (r.providerRequestCount !== 1 || r.persistentWritePerformed !== false || r.providerWritePerformed !== false || r.paidUsageAllowed !== false || r.persistentCollectionAllowed !== false) process.exit(4);
+          ' "$report"
+          audit="$(cat /tmp/audit-report.json)"
+          gh issue comment 120             --repo "$REPO"             --body "## Compact entrant authority exact-main evidence
+
+Main: \`$EXPECTED_MAIN_SHA\`
+Independent main CI: \`$MAIN_CI_RUN_ID\`
+Population audit: \`$AUDIT_RUN_ID\`
+Connected one-request measurement: \`$run_id\`
+
+### Sanitized population audit
+\`\`\`json
+$audit
+\`\`\`
+
+### Sanitized compact entrant measurement
+\`\`\`json
+$report
+\`\`\`
+
+No persistence was authorized by this temporary observer. The helper branch remains **DO NOT MERGE**."
