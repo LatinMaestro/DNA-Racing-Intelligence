@@ -797,11 +797,10 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         start < value.identityConflictQuarantineObjects.length;
         start += INCREMENTAL_EVIDENCE_READ_CONCURRENCY
       ) {
-        const quarantineBatch =
-          value.identityConflictQuarantineObjects.slice(
-            start,
-            start + INCREMENTAL_EVIDENCE_READ_CONCURRENCY,
-          );
+        const quarantineBatch = value.identityConflictQuarantineObjects.slice(
+          start,
+          start + INCREMENTAL_EVIDENCE_READ_CONCURRENCY,
+        );
         for (let index = 0; index < quarantineBatch.length; index += 1) {
           reserveClassBOperations(2);
         }
