@@ -6,7 +6,8 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
 const MODES = Object.freeze(["bike", "car", "horse"] as const);
-export const DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT = 20 as const;
+export const DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT =
+  20 as const;
 
 export type DnaPopulationHistoryAcquisitionCohort = Readonly<{
   ordinal: number;

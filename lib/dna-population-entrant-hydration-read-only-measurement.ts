@@ -8,16 +8,10 @@ import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "./dna-open-lab-request-budget";
-import {
-  dnaOpenLabRawEvidenceCanonicalJson,
-} from "./dna-open-lab-v1-adapters";
+import { dnaOpenLabRawEvidenceCanonicalJson } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
-import {
-  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
-} from "./dna-open-lab-zero-cost-provider-capacity";
-import {
-  DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
-} from "./dna-open-lab-zero-cost-refresh-policy";
+import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "./dna-open-lab-zero-cost-provider-capacity";
+import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -174,7 +168,8 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
       DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations ||
     currentR2ClassBOperations >=
       DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations ||
-    currentNeonStorageBytes >= DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
+    currentNeonStorageBytes >=
+      DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
     currentNeonComputeMilliCuHours >=
       DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
   ) {
@@ -250,8 +245,7 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
     capacity: Object.freeze({
       currentR2StorageBytes,
       r2StorageHeadroomBytes:
-        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes -
-        currentR2StorageBytes,
+        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes - currentR2StorageBytes,
       currentNeonStorageBytes,
       neonStorageHeadroomBytes:
         DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes -

@@ -410,9 +410,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         "1"
       ) {
         const expectedUnresolvedRaceCount = Number(
-          requiredEnvironment(
-            "DNA_POPULATION_UNRESOLVED_RACE_EXPECTED_COUNT",
-          ),
+          requiredEnvironment("DNA_POPULATION_UNRESOLVED_RACE_EXPECTED_COUNT"),
         );
         const expectedUnresolvedRaceSetSha256 = requiredEnvironment(
           "DNA_POPULATION_UNRESOLVED_RACE_EXPECTED_SHA256",
@@ -439,21 +437,18 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         // has reproduced the exact audited unresolved Race count/hash and
         // current provider capacity has been refreshed.
         const dnaApiKey = requiredEnvironment("DNA_OPEN_LAB_API_KEY_1");
-        const measurement =
-          await measureDnaPopulationEntrantHydrationReadOnly({
-            plan,
-            expectedUnresolvedRaceCount,
-            expectedUnresolvedRaceSetSha256,
-            providerCapacity: measurementProviderCapacity,
-            client: createDnaOpenLabV1Client({ apiKey: dnaApiKey }),
-            requestBudget: createDnaOpenLabRequestBudget({
-              initialRequestsPerMinute:
-                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-              maximumRequestsPerMinute:
-                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-            }),
-            observedAt: new Date().toISOString(),
-          });
+        const measurement = await measureDnaPopulationEntrantHydrationReadOnly({
+          plan,
+          expectedUnresolvedRaceCount,
+          expectedUnresolvedRaceSetSha256,
+          providerCapacity: measurementProviderCapacity,
+          client: createDnaOpenLabV1Client({ apiKey: dnaApiKey }),
+          requestBudget: createDnaOpenLabRequestBudget({
+            initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+            maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+          }),
+          observedAt: new Date().toISOString(),
+        });
         const serializedMeasurement = JSON.stringify(measurement);
         for (const secret of [
           ownerId,
@@ -470,9 +465,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         }
         expect(measurement.providerRequestCount).toBe(1);
         expect(measurement.authority.selectedRaceCount).toBeGreaterThan(0);
-        expect(measurement.authority.selectedRaceCount).toBeLessThanOrEqual(
-          20,
-        );
+        expect(measurement.authority.selectedRaceCount).toBeLessThanOrEqual(20);
         expect(measurement.persistentWritePerformed).toBe(false);
         expect(measurement.providerWritePerformed).toBe(false);
         expect(measurement.paidUsageAllowed).toBe(false);
