@@ -288,7 +288,7 @@ describe("DNA Core race history private generation operator", () => {
       stored: {
         cycle: {
           ...completeStep().stored.cycle,
-          completion: { pageReceiptCount: 501 },
+          completion: { pageReceiptCount: 501, acceptedResultCount: 0 },
         },
       },
     });
