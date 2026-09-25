@@ -81,6 +81,7 @@ export type DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment = Readonly<{
   baselineFinishedRaceReceiptCount: number;
   incrementalWindowCount: number;
   incrementalDocumentReferenceCount: number;
+  incrementalMaximumRaceDocumentBytes: number;
   quarantinedIdentityObservationCount: number;
   r2ClassBOperationsUsed: number;
   uniqueRaceCount: number;
@@ -728,6 +729,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
 
   let incrementalWindowCount = 0;
   let incrementalDocumentReferenceCount = 0;
+  let incrementalMaximumRaceDocumentBytes = 0;
   for (const cycle of input.history.cycles) {
     for (const receipt of cycle.receipts) {
       incrementalWindowCount += 1;
@@ -931,12 +933,24 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
                 "incremental Race document checksum or identity disagrees",
               );
             }
-            return raw;
+            return Object.freeze({
+              raw,
+              byteLength: raceHead.byteLength,
+            });
           }),
         );
-        for (const raw of verifiedRaceBatch) {
+        for (const verified of verifiedRaceBatch) {
           incrementalDocumentReferenceCount += 1;
-          acceptDocument(raw, receipt.windowEndAt, "races.docs", "incremental");
+          incrementalMaximumRaceDocumentBytes = Math.max(
+            incrementalMaximumRaceDocumentBytes,
+            verified.byteLength,
+          );
+          acceptDocument(
+            verified.raw,
+            receipt.windowEndAt,
+            "races.docs",
+            "incremental",
+          );
         }
       }
     }
@@ -986,6 +1000,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     baselineFinishedRaceReceiptCount,
     incrementalWindowCount,
     incrementalDocumentReferenceCount,
+    incrementalMaximumRaceDocumentBytes,
     quarantinedIdentityObservationCount,
     r2ClassBOperationsUsed,
     uniqueRaceCount: raceIds.size,
