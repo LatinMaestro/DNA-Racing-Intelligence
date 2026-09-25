@@ -235,6 +235,11 @@ function validateReceipt(
 function parseCheckpoint(
   value: unknown,
   expectedDatabaseOwnerId: string,
+  expectedAuthority: Readonly<{
+    generationId: string;
+    unresolvedRaceCount?: number;
+    unresolvedRaceSetSha256?: string;
+  }>,
 ): DnaPopulationEntrantAuthorityCheckpoint {
   const row = record(value, "population entrant checkpoint");
   const checkpoint = Object.freeze({
@@ -273,6 +278,12 @@ function parseCheckpoint(
     databaseOwnerId !== expectedDatabaseOwnerId ||
     checkpoint.version !== 1 ||
     checkpoint.generationId !== checkpoint.unresolvedRaceSetSha256 ||
+    checkpoint.generationId !== expectedAuthority.generationId ||
+    (expectedAuthority.unresolvedRaceCount !== undefined &&
+      checkpoint.unresolvedRaceCount !== expectedAuthority.unresolvedRaceCount) ||
+    (expectedAuthority.unresolvedRaceSetSha256 !== undefined &&
+      checkpoint.unresolvedRaceSetSha256 !==
+        expectedAuthority.unresolvedRaceSetSha256) ||
     checkpoint.persistedRaceCount > checkpoint.unresolvedRaceCount ||
     (!empty && !populated) ||
     new Date(checkpoint.updatedAt).getTime() <
@@ -446,6 +457,7 @@ export function createNeonDnaPopulationEntrantAuthorityCheckpointRepository(
               "population entrant checkpoint begin",
             ),
             databaseOwnerId,
+            authority,
           );
         },
       });
@@ -478,6 +490,7 @@ export function createNeonDnaPopulationEntrantAuthorityCheckpointRepository(
               "population entrant chunk registration",
             ),
             databaseOwnerId,
+            { generationId },
           );
         },
       });
@@ -498,6 +511,7 @@ export function createNeonDnaPopulationEntrantAuthorityCheckpointRepository(
               "population entrant checkpoint read",
             ),
             databaseOwnerId,
+            { generationId },
           );
         },
       });
