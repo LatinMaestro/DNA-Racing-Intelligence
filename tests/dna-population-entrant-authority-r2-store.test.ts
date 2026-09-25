@@ -29,6 +29,7 @@ function oneChunk(body: Uint8Array): AsyncIterable<Uint8Array> {
 function storage(input?: {
   status?: "created" | "existing";
   privateBucket?: boolean;
+  conflictingHead?: boolean;
 }) {
   let storedBody: Uint8Array | null = null;
   let head: Readonly<{
@@ -47,7 +48,9 @@ function storage(input?: {
     head = Object.freeze({
       contentType: request.contentType,
       byteLength: request.byteLength,
-      checksumSha256: request.checksumSha256,
+      checksumSha256: input?.conflictingHead
+        ? "f".repeat(64)
+        : request.checksumSha256,
       metadata: request.metadata,
     });
     return Object.freeze({ status: input?.status ?? ("created" as const) });
@@ -150,6 +153,23 @@ describe("population entrant authority R2 chunk store", () => {
         records: [record("3")],
       }),
     ).resolves.toMatchObject({ storageStatus: "existing" });
+  });
+
+  it("rejects create-only replay when an existing immutable object conflicts", async () => {
+    const target = storage({ status: "existing", conflictingHead: true });
+    const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.port,
+    });
+
+    await expect(
+      store.write({
+        generationId: "b".repeat(64),
+        chunkOrdinal: 4,
+        records: [record("4")],
+      }),
+    ).rejects.toThrow("stored chunk head conflicts with its receipt");
   });
 
   it("rejects object-key drift before reading another R2 object", async () => {
