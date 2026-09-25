@@ -299,6 +299,7 @@ describe("combined DNA finished-history performance evidence", () => {
       baselineFinishedRaceReceiptCount: 1,
       incrementalWindowCount: 1,
       incrementalDocumentReferenceCount: 2,
+      incrementalMaximumRaceDocumentBytes: 111,
       quarantinedIdentityObservationCount: 0,
       r2ClassBOperationsUsed: 8,
       uniqueRaceCount: 2,
@@ -548,6 +549,7 @@ describe("combined DNA finished-history performance evidence", () => {
     );
 
     expect(assessment.incrementalDocumentReferenceCount).toBe(2);
+    expect(assessment.incrementalMaximumRaceDocumentBytes).toBeGreaterThan(0);
     expect(maximumActiveRaceHeads).toBe(2);
     expect(acceptedRaceIds).toEqual(["101", "202"]);
   });
