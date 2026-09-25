@@ -1,4 +1,4 @@
-name: TEMPORARY kick compact entrant population audit — DO NOT MERGE
+name: TEMPORARY kick compact entrant measurement — DO NOT MERGE
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   actions: write
 
 jobs:
-  dispatch-exact-main-audit:
+  dispatch-exact-main-measurement:
     runs-on: ubuntu-latest
     steps:
       - name: Require unchanged exact main
@@ -20,13 +20,12 @@ jobs:
         run: |
           actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale audit dispatch."
+            echo "Main moved; refusing stale measurement dispatch."
             exit 1
           fi
-      - name: Dispatch exact-main read-only audit
+      - name: Dispatch exact-main read-only entrant measurement
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
         run: |
-          gh workflow run dna-population-history-read-only-audit.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f execute_read_only_audit=true
-          echo "Dispatched exact-main read-only population history audit."
+          gh workflow run dna-population-entrant-hydration-read-only-measurement.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha=05267da2d07d32a31acc425021766872c734f77a             -f expected_unresolved_race_count=1135198             -f expected_unresolved_race_sha256=d4b4fc81f26e1e5747d155f57f38aaf90e9579213b8ffb10800b3b7623db45cc             -f execute_read_only_measurement=true
+          echo "Dispatched exact-main compact entrant measurement."
