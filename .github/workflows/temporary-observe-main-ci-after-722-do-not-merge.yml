@@ -1,0 +1,60 @@
+name: TEMPORARY observe main CI after 722 — DO NOT MERGE
+
+on:
+  push:
+    branches:
+      - temporary/observe-main-ci-after-722-do-not-merge
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require unchanged exact main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: e983abc7a24b5468afbd3363242d81fdb9b03577
+        run: |
+          actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
+          if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "Main moved; refusing stale verification."
+            exit 1
+          fi
+      - name: Find and verify main CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: e983abc7a24b5468afbd3363242d81fdb9b03577
+        run: |
+          run_id=""
+          for attempt in $(seq 1 60); do
+            run_id="$(gh run list               --repo LatinMaestro/DNA-Racing-Intelligence               --branch main               --commit "$EXPECTED_MAIN_SHA"               --event push               --limit 20               --json databaseId,name,headSha               --jq '.[] | select(.name == "CI" and .headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          if [[ -z "$run_id" ]]; then
+            echo "No exact-main CI run found."
+            exit 1
+          fi
+          echo "MAIN_CI_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          gh run watch "$run_id"             --repo LatinMaestro/DNA-Racing-Intelligence             --exit-status
+      - name: Record verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: e983abc7a24b5468afbd3363242d81fdb9b03577
+        run: |
+          conclusion="$(gh run view "$MAIN_CI_RUN_ID"             --repo LatinMaestro/DNA-Racing-Intelligence             --json conclusion             --jq .conclusion)"
+          if [[ "$conclusion" != "success" ]]; then
+            echo "Main CI was not successful."
+            exit 1
+          fi
+          gh issue comment 120             --repo LatinMaestro/DNA-Racing-Intelligence             --body "## Independent main verification after #722
+
+Main \`$EXPECTED_MAIN_SHA\` independently passed push-triggered CI run \`$MAIN_CI_RUN_ID\`.
+
+The temporary observer branch remains **DO NOT MERGE**."
