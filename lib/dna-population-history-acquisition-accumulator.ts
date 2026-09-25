@@ -120,9 +120,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
         persistedPerformanceCoreIds,
         "persisted performance",
       );
-      const populationIds = [...population].sort(
-        (left, right) => left - right,
-      );
+      const populationIds = [...population].sort((left, right) => left - right);
       const persistedPopulationIds = populationIds.filter((coreId) =>
         persisted.has(coreId),
       );
@@ -131,9 +129,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
       );
       const incompleteAuthority =
         raceWithUnknownModeCount > 0 ||
-        MODES.some(
-          (mode) => raceWithoutEntrantAuthorityByMode[mode] > 0,
-        );
+        MODES.some((mode) => raceWithoutEntrantAuthorityByMode[mode] > 0);
       const status = incompleteAuthority
         ? ("held_incomplete_race_authority" as const)
         : missingPerformanceCoreIds.length === 0
@@ -159,10 +155,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
                 return Object.freeze({
                   ordinal,
                   coreIds,
-                  coreSetSha256: coreSetSha256(
-                    `cohort:${ordinal}`,
-                    coreIds,
-                  ),
+                  coreSetSha256: coreSetSha256(`cohort:${ordinal}`, coreIds),
                 });
               },
             );
