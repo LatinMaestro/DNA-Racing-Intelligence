@@ -9,6 +9,7 @@ import {
 import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
 import {
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES,
+  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
 } from "./dna-population-race-index-r2-chunk";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
@@ -147,7 +148,11 @@ function chunkReceipt(
       "byteLength",
       DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES,
     ),
-    rowCount: positiveInteger(input.rowCount, "rowCount", 5_000),
+    rowCount: positiveInteger(
+      input.rowCount,
+      "rowCount",
+      DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
+    ),
     firstSourceRaceId: safeText(
       input.firstSourceRaceId,
       "firstSourceRaceId",
@@ -248,15 +253,19 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
     async write(request) {
       const chunk = buildDnaPopulationEntrantAuthorityChunk(request);
       const key = objectKey(ownerId, chunk.receipt);
-      const metadata = exactMetadata(chunk.receipt);
+      const receipt = chunkReceipt({
+        ...chunk.receipt,
+        objectKey: key,
+      });
+      const metadata = exactMetadata(receipt);
       await privateStorage();
       const stored = await input.storage.putObjectIfAbsent({
         bucketName,
         key,
         body: oneChunk(chunk.body),
         contentType: JSON_CONTENT_TYPE,
-        byteLength: chunk.receipt.byteLength,
-        checksumSha256: chunk.receipt.bodySha256,
+        byteLength: receipt.byteLength,
+        checksumSha256: receipt.bodySha256,
         metadata,
       });
       if (stored.status !== "created" && stored.status !== "existing") {
@@ -264,11 +273,11 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
       }
       exactHead(
         await input.storage.headObject({ bucketName, key }),
-        chunk.receipt,
+        receipt,
       );
       return Object.freeze({
         receipt: Object.freeze({
-          ...chunk.receipt,
+          ...receipt,
           objectKey: key,
         }),
         storageStatus: stored.status,
