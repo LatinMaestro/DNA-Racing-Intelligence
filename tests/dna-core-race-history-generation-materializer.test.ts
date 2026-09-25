@@ -551,13 +551,18 @@ describe("DNA Core result retained-evidence generation materializer", () => {
       async ({ cycleId }) =>
         cycleId === predecessor.complete.cycleId
           ? [{ revision: "root-core", checkpoint: predecessor.checkpoint }]
-          : [{ revision: "successor-core", checkpoint: test.authority.checkpoint }],
+          : [
+              {
+                revision: "successor-core",
+                checkpoint: test.authority.checkpoint,
+              },
+            ],
     );
     test.readMaterializationPage.mockImplementation(
       async ({ cycle, pageNumber }) =>
         cycle.cycleId === predecessor.complete.cycleId
-          ? predecessor.pages.get(pageNumber) ?? null
-          : test.authority.pages.get(pageNumber) ?? null,
+          ? (predecessor.pages.get(pageNumber) ?? null)
+          : (test.authority.pages.get(pageNumber) ?? null),
     );
 
     await expect(

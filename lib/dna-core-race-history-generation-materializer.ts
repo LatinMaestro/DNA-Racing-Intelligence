@@ -380,8 +380,7 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
             page.attemptNumber !== authority.cycle.attemptNumber ||
             page.coreId !== checkpoint.coreId ||
             page.pageNumber !== pageNumber ||
-            page.terminal !==
-              (pageNumber === checkpoint.terminalPageNumber) ||
+            page.terminal !== (pageNumber === checkpoint.terminalPageNumber) ||
             receipt.cycleId !== page.cycleId ||
             receipt.attemptNumber !== page.attemptNumber ||
             receipt.coreId !== page.coreId ||
