@@ -108,7 +108,12 @@ describe("population entrant hydration read-only measurement", () => {
     });
     expect(measurement.canonicalResponseBytes).toBeGreaterThan(0);
     expect(measurement.maximumCanonicalRaceBytes).toBeGreaterThan(0);
+    expect(measurement.maximumCompactEntrantAuthorityBytes).toBeGreaterThan(0);
+    expect(measurement.maximumCompactEntrantAuthorityBytes).toBeLessThan(
+      measurement.maximumCanonicalRaceBytes,
+    );
     expect(measurement.projectedR2PayloadBytesCeiling).toBeGreaterThan(0);
+    expect(measurement.projectedCompactEntrantAuthorityBytesCeiling).toBeGreaterThan(0);
   });
 
   it("holds before provider access when the audit binding disagrees", async () => {
