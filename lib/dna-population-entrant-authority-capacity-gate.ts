@@ -13,6 +13,9 @@ import { projectDnaOpenLabZeroCostProviderCapacity } from "./dna-open-lab-zero-c
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
+export const DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR =
+  902 as const;
+
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE =
   Object.freeze({
     storageBytes: 8 * 1024 * 1024,
@@ -28,6 +31,8 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE =
 
 export type DnaPopulationEntrantAuthoritySizingAuthority = Readonly<{
   version: 1;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
   measuredMaximumCompactEntrantAuthorityBytes: number;
   verifiedIncrementalMaximumCompactEntrantAuthorityBytes: number;
 }>;
@@ -81,16 +86,31 @@ function validateSizingAuthority(
   if (value.version !== 1) {
     capacityError("sizing authority is invalid");
   }
+  const verifiedIncrementalMaximumCompactEntrantAuthorityBytes = positive(
+    value.verifiedIncrementalMaximumCompactEntrantAuthorityBytes,
+    "verified incremental compact entrant authority bytes",
+  );
+  if (
+    verifiedIncrementalMaximumCompactEntrantAuthorityBytes <
+    DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR
+  ) {
+    capacityError("verified compact entrant sizing authority regressed");
+  }
   return Object.freeze({
     version: 1 as const,
+    unresolvedRaceCount: positive(
+      value.unresolvedRaceCount,
+      "sizing unresolvedRaceCount",
+    ),
+    unresolvedRaceSetSha256: sha256(
+      value.unresolvedRaceSetSha256,
+      "sizing unresolvedRaceSetSha256",
+    ),
     measuredMaximumCompactEntrantAuthorityBytes: positive(
       value.measuredMaximumCompactEntrantAuthorityBytes,
       "measured compact entrant authority bytes",
     ),
-    verifiedIncrementalMaximumCompactEntrantAuthorityBytes: positive(
-      value.verifiedIncrementalMaximumCompactEntrantAuthorityBytes,
-      "verified incremental compact entrant authority bytes",
-    ),
+    verifiedIncrementalMaximumCompactEntrantAuthorityBytes,
   });
 }
 
@@ -182,6 +202,13 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   return Object.freeze({
     async assertFreshCurrentCapacity(requestedAuthority) {
       const authority = validateAuthority(requestedAuthority);
+      if (
+        sizingAuthority.unresolvedRaceCount !== authority.unresolvedRaceCount ||
+        sizingAuthority.unresolvedRaceSetSha256 !==
+          authority.unresolvedRaceSetSha256
+      ) {
+        capacityError("sizing authority disagrees with audited authority");
+      }
       if (input.measurementSource.status !== "ready") {
         capacityError("current provider measurement is unavailable");
       }
