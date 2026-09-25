@@ -15,6 +15,9 @@ BEGIN
      ) IS NULL
      OR to_regprocedure(
        'dna.read_dna_population_entrant_authority_chunk_manifests(uuid,text,integer,integer)'
+     ) IS NULL
+     OR to_regprocedure(
+       'dna.reject_dna_population_entrant_authority_chunk_mutation()'
      ) IS NULL THEN
     RAISE EXCEPTION 'population entrant authority checkpoint schema contract is invalid';
   END IF;
@@ -47,6 +50,11 @@ BEGIN
      OR NOT has_function_privilege(
        'dna_app_runtime',
        'dna.read_dna_population_entrant_authority_chunk_manifests(uuid,text,integer,integer)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'dna_app_runtime',
+       'dna.reject_dna_population_entrant_authority_chunk_mutation()',
        'EXECUTE'
      ) THEN
     RAISE EXCEPTION 'population entrant authority runtime contract is invalid';
@@ -403,11 +411,62 @@ $isolation$;
 
 RESET ROLE;
 
-UPDATE dna.dna_population_entrant_authority_chunk
-SET first_source_race_id = 'race-2'
-WHERE owner_id = '91170000-0000-4000-8000-000000000001'
-  AND generation_id = repeat('a', 64)::character(64)
-  AND chunk_ordinal = 2;
+DO $immutability$
+BEGIN
+  BEGIN
+    UPDATE dna.dna_population_entrant_authority_chunk
+    SET body_sha256 = repeat('e', 64)::character(64)
+    WHERE owner_id = '91170000-0000-4000-8000-000000000001'
+      AND generation_id = repeat('a', 64)::character(64)
+      AND chunk_ordinal = 2;
+    RAISE EXCEPTION 'privileged entrant authority manifest update was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%chunk manifests are immutable%' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    DELETE FROM dna.dna_population_entrant_authority_chunk
+    WHERE owner_id = '91170000-0000-4000-8000-000000000001'
+      AND generation_id = repeat('a', 64)::character(64)
+      AND chunk_ordinal = 2;
+    RAISE EXCEPTION 'privileged entrant authority manifest deletion was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%chunk manifests are immutable%' THEN
+      RAISE;
+    END IF;
+  END;
+END
+$immutability$;
+
+INSERT INTO dna.dna_population_entrant_authority_chunk (
+  owner_id,
+  generation_id,
+  chunk_ordinal,
+  object_key,
+  body_sha256,
+  byte_length,
+  row_count,
+  first_source_race_id,
+  last_source_race_id,
+  race_set_sha256,
+  record_set_sha256,
+  registered_at
+) VALUES (
+  '91170000-0000-4000-8000-000000000001',
+  repeat('a', 64)::character(64),
+  3,
+  'private/entrant/rogue-chunk-3.json',
+  repeat('e', 64)::character(64),
+  128,
+  1,
+  'race-4',
+  'race-4',
+  repeat('f', 64)::character(64),
+  repeat('0', 64)::character(64),
+  '2026-09-25 06:02:30+00'
+);
 
 SET LOCAL ROLE dna_app_runtime;
 SET LOCAL app.owner_id = '91170000-0000-4000-8000-000000000001';

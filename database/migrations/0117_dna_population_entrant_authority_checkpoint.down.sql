@@ -19,4 +19,7 @@ DROP FUNCTION IF EXISTS
 DROP TABLE IF EXISTS dna.dna_population_entrant_authority_chunk;
 DROP TABLE IF EXISTS dna.dna_population_entrant_authority_generation;
 
+DROP FUNCTION IF EXISTS
+  dna.reject_dna_population_entrant_authority_chunk_mutation();
+
 COMMIT;

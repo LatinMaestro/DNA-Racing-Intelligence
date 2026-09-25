@@ -13,6 +13,9 @@ BEGIN
      ) IS NOT NULL
      OR to_regprocedure(
        'dna.read_dna_population_entrant_authority_chunk_manifests(uuid,text,integer,integer)'
+     ) IS NOT NULL
+     OR to_regprocedure(
+       'dna.reject_dna_population_entrant_authority_chunk_mutation()'
      ) IS NOT NULL THEN
     RAISE EXCEPTION 'population entrant authority checkpoint remains after reversal';
   END IF;

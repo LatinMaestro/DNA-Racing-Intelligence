@@ -70,6 +70,21 @@ CREATE TABLE dna.dna_population_entrant_authority_chunk (
   CHECK ((first_source_race_id COLLATE "C") <= (last_source_race_id COLLATE "C"))
 );
 
+CREATE FUNCTION dna.reject_dna_population_entrant_authority_chunk_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, pg_temp
+AS $function$
+BEGIN
+  RAISE EXCEPTION 'population entrant authority chunk manifests are immutable';
+END
+$function$;
+
+CREATE TRIGGER dna_population_entrant_authority_chunk_immutable
+BEFORE UPDATE OR DELETE ON dna.dna_population_entrant_authority_chunk
+FOR EACH ROW
+EXECUTE FUNCTION dna.reject_dna_population_entrant_authority_chunk_mutation();
+
 ALTER TABLE dna.dna_population_entrant_authority_generation
   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dna.dna_population_entrant_authority_generation
@@ -587,6 +602,10 @@ REVOKE ALL ON FUNCTION
   dna.read_dna_population_entrant_authority_generation(uuid,text),
   dna.read_dna_population_entrant_authority_chunk_manifests(uuid,text,integer,integer)
 FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION
+  dna.reject_dna_population_entrant_authority_chunk_mutation()
+FROM PUBLIC, dna_app_runtime;
 
 GRANT EXECUTE ON FUNCTION
   dna.begin_dna_population_entrant_authority_generation(uuid,jsonb,timestamp with time zone),
