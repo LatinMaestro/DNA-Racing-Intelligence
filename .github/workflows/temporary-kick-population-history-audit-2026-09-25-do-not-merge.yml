@@ -1,0 +1,36 @@
+name: TEMPORARY kick population history audit — DO NOT MERGE
+
+on:
+  push:
+    branches:
+      - temporary/kick-population-history-audit-2026-09-25-do-not-merge
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-exact-main-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require unchanged exact main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 063ce7d593201dd748258d860ecc60052ed57cdb
+        run: |
+          actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
+          if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "Main moved; refusing stale audit dispatch."
+            exit 1
+          fi
+      - name: Dispatch exact-main read-only audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 063ce7d593201dd748258d860ecc60052ed57cdb
+        run: |
+          gh workflow run dna-population-history-read-only-audit.yml \
+            --repo LatinMaestro/DNA-Racing-Intelligence \
+            --ref main \
+            -f expected_main_sha="$EXPECTED_MAIN_SHA" \
+            -f execute_read_only_audit=true
+          echo "Dispatched exact-main read-only population history audit."
