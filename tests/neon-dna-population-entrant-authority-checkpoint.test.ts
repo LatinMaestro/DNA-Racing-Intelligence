@@ -140,7 +140,13 @@ describe("Neon DNA population entrant authority checkpoint", () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
       [isolation()],
-      [checkpointRow({ chunk_count: 0, persisted_race_count: "0", last_source_race_id: null })],
+      [
+        checkpointRow({
+          chunk_count: 0,
+          persisted_race_count: "0",
+          last_source_race_id: null,
+        }),
+      ],
     ]);
 
     await expect(
@@ -160,9 +166,7 @@ describe("Neon DNA population entrant authority checkpoint", () => {
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
     expect(
       test.events.some((event) =>
-        event.includes(
-          "dna.begin_dna_population_entrant_authority_generation",
-        ),
+        event.includes("dna.begin_dna_population_entrant_authority_generation"),
       ),
     ).toBe(true);
   });

@@ -182,10 +182,7 @@ function validateAuthority(
     value.unresolvedRaceCount,
     "unresolvedRaceCount",
   );
-  if (
-    value.version !== 1 ||
-    generationId !== unresolvedRaceSetSha256
-  ) {
+  if (value.version !== 1 || generationId !== unresolvedRaceSetSha256) {
     throw new Error("population entrant checkpoint authority is invalid");
   }
   return Object.freeze({
@@ -254,8 +251,7 @@ function parseCheckpoint(
     chunkCount: count(row.chunk_count, "chunkCount"),
     persistedRaceCount: count(row.persisted_race_count, "persistedRaceCount"),
     lastSourceRaceId:
-      row.last_source_race_id === null ||
-      row.last_source_race_id === undefined
+      row.last_source_race_id === null || row.last_source_race_id === undefined
         ? null
         : boundedText(row.last_source_race_id, "lastSourceRaceId", 512),
     startedAt: timestamp(row.started_at, "startedAt"),
@@ -390,13 +386,15 @@ export function createNeonDnaPopulationEntrantAuthorityCheckpointRepository(
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 
-  async function transaction<T>(request: Readonly<{
-    ownerId: string;
-    readOnly: boolean;
-    run: (
-      client: Awaited<ReturnType<typeof sessionFactory>>["client"],
-    ) => Promise<T>;
-  }>): Promise<T> {
+  async function transaction<T>(
+    request: Readonly<{
+      ownerId: string;
+      readOnly: boolean;
+      run: (
+        client: Awaited<ReturnType<typeof sessionFactory>>["client"],
+      ) => Promise<T>;
+    }>,
+  ): Promise<T> {
     if (ownerId(request.ownerId) !== configuredOwnerId) {
       throw new Error("population entrant checkpoint owner access denied");
     }
