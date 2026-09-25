@@ -192,7 +192,9 @@ describe("Neon DNA population entrant authority checkpoint", () => {
 
     expect(test.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE");
     const registration = test.events.find((event) =>
-      event.includes("dna.register_dna_population_entrant_authority_chunk"),
+      event.startsWith(
+        "SELECT * FROM dna.register_dna_population_entrant_authority_chunk",
+      ),
     );
     expect(registration).toContain(receipt.objectKey);
     expect(registration).toContain(receipt.recordSetSha256);
