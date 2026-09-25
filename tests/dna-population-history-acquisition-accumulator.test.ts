@@ -51,6 +51,8 @@ describe("DNA population history acquisition accumulator", () => {
         car: 0,
         horse: 0,
       },
+      unresolvedRaceCount: 1,
+      unresolvedRaceSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
     });
     expect(() => accumulator.finalize()).toThrow(
       "DNA population history accumulator is finalized.",

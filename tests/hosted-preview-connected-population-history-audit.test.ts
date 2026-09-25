@@ -339,6 +339,8 @@ describeConnected("hosted Preview all-mode population history audit", () => {
           raceWithoutEntrantAuthorityByMode:
             plan.raceWithoutEntrantAuthorityByMode,
           raceWithUnknownModeCount: plan.raceWithUnknownModeCount,
+          unresolvedRaceCount: plan.unresolvedRaceCount,
+          unresolvedRaceSetSha256: plan.unresolvedRaceSetSha256,
           coreCountByMode: plan.populationCoreCountByMode,
           globalCoreCount: plan.populationCoreCount,
           populationCoreSetSha256: plan.populationCoreSetSha256,

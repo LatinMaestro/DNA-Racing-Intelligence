@@ -63,6 +63,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
   const population = new Set<number>();
   const raceCountByMode = modeCounts();
   const raceWithoutEntrantAuthorityByMode = modeCounts();
+  const unresolvedRaceIds = new Set<string>();
   let raceWithUnknownModeCount = 0;
   let finalized = false;
 
@@ -85,6 +86,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
       const mode = document.mode;
       if (mode === undefined || !MODES.includes(mode)) {
         raceWithUnknownModeCount += 1;
+        unresolvedRaceIds.add(document.sourceRaceId);
         return;
       }
       raceCountByMode[mode] += 1;
@@ -93,6 +95,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
         document.entrantCoreIds.length === 0
       ) {
         raceWithoutEntrantAuthorityByMode[mode] += 1;
+        unresolvedRaceIds.add(document.sourceRaceId);
         return;
       }
 
@@ -101,6 +104,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
         const coreId = numericCoreId(value);
         if (coreId === null || raceEntrants.has(coreId)) {
           raceWithoutEntrantAuthorityByMode[mode] += 1;
+          unresolvedRaceIds.add(document.sourceRaceId);
           return;
         }
         raceEntrants.add(coreId);
@@ -119,6 +123,9 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
       const persisted = normalizedCoreIds(
         persistedPerformanceCoreIds,
         "persisted performance",
+      );
+      const unresolvedRaceIdsSorted = [...unresolvedRaceIds].sort(
+        (left, right) => (left < right ? -1 : left > right ? 1 : 0),
       );
       const populationIds = [...population].sort((left, right) => left - right);
       const persistedPopulationIds = populationIds.filter((coreId) =>
@@ -168,6 +175,16 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
           ...raceWithoutEntrantAuthorityByMode,
         }),
         raceWithUnknownModeCount,
+        unresolvedRaceCount: unresolvedRaceIdsSorted.length,
+        unresolvedRaceSetSha256:
+          unresolvedRaceIdsSorted.length === 0
+            ? null
+            : sha256([
+                "dna_open_lab",
+                "population_history",
+                "unresolved_races",
+                ...unresolvedRaceIdsSorted,
+              ]),
         populationCoreCountByMode: Object.freeze({
           bike: populationByMode.bike.size,
           car: populationByMode.car.size,
