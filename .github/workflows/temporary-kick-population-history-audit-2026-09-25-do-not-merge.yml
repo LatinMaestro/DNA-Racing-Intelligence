@@ -1,4 +1,4 @@
-name: TEMPORARY kick population entrant hydration measurement — DO NOT MERGE
+name: TEMPORARY verify main and audit Race size — DO NOT MERGE
 
 on:
   push:
@@ -8,25 +8,79 @@ on:
 permissions:
   contents: read
   actions: write
+  issues: write
 
 jobs:
-  dispatch-exact-main-measurement:
+  verify-and-audit:
     runs-on: ubuntu-latest
     steps:
       - name: Require unchanged exact main
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: d81785b68ed824d354c243cf7a8292b6e5ea36da
+          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
         run: |
           actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale measurement dispatch."
+            echo "Main moved; refusing stale verification."
             exit 1
           fi
-      - name: Dispatch exact-main read-only entrant hydration measurement
+
+      - name: Verify push-triggered CI on exact main
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: d81785b68ed824d354c243cf7a8292b6e5ea36da
+          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
         run: |
-          gh workflow run dna-population-entrant-hydration-read-only-measurement.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f expected_unresolved_race_count=1135198             -f expected_unresolved_race_sha256=d4b4fc81f26e1e5747d155f57f38aaf90e9579213b8ffb10800b3b7623db45cc             -f execute_read_only_measurement=true
-          echo "Dispatched exact-main read-only population entrant hydration measurement."
+          run_id=""
+          for attempt in $(seq 1 90); do
+            run_id="$(gh run list               --repo LatinMaestro/DNA-Racing-Intelligence               --branch main               --commit "$EXPECTED_MAIN_SHA"               --event push               --limit 30               --json databaseId,name,headSha               --jq '.[] | select(.name == "CI" and .headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$run_id" ]]; then break; fi
+            sleep 10
+          done
+          if [[ -z "$run_id" ]]; then
+            echo "No exact-main CI run found."
+            exit 1
+          fi
+          echo "MAIN_CI_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          gh run watch "$run_id"             --repo LatinMaestro/DNA-Racing-Intelligence             --exit-status
+
+      - name: Dispatch exact-main read-only population audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
+        run: |
+          gh workflow run dna-population-history-read-only-audit.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f execute_read_only_audit=true
+
+      - name: Wait for exact-main audit and publish sanitized report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 72948d7faacef0ee0e85f8b5e56d8fe255211921
+        run: |
+          audit_run_id=""
+          for attempt in $(seq 1 90); do
+            audit_run_id="$(gh run list               --repo LatinMaestro/DNA-Racing-Intelligence               --workflow dna-population-history-read-only-audit.yml               --branch main               --event workflow_dispatch               --limit 30               --json databaseId,headSha               --jq '.[] | select(.headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            if [[ -n "$audit_run_id" ]]; then break; fi
+            sleep 10
+          done
+          if [[ -z "$audit_run_id" ]]; then
+            echo "No exact-main audit run found."
+            exit 1
+          fi
+          echo "AUDIT_RUN_ID=$audit_run_id" >> "$GITHUB_ENV"
+          gh run watch "$audit_run_id"             --repo LatinMaestro/DNA-Racing-Intelligence             --exit-status
+          report="$(gh run view "$audit_run_id"             --repo LatinMaestro/DNA-Racing-Intelligence             --log             | grep 'DNA_POPULATION_HISTORY_AUDIT='             | tail -n 1             | sed 's/^.*DNA_POPULATION_HISTORY_AUDIT=//')"
+          if [[ -z "$report" ]]; then
+            echo "Sanitized audit report was not found."
+            exit 1
+          fi
+          node -e 'const r=JSON.parse(process.argv[1]); if (r.exactCodeHeadSha !== process.env.EXPECTED_MAIN_SHA) process.exit(1);' "$report"
+          gh issue comment 120             --repo LatinMaestro/DNA-Racing-Intelligence             --body "## Exact-main Race size authority after #718
+
+Main: \`$EXPECTED_MAIN_SHA\`
+Independent main CI: \`$MAIN_CI_RUN_ID\`
+Read-only audit: \`$audit_run_id\`
+
+\`\`\`json
+$report
+\`\`\`
+
+Temporary observer branch only; **DO NOT MERGE**."
