@@ -22,6 +22,8 @@ export type DnaPopulationHistoryAcquisitionPlan = Readonly<{
   raceCountByMode: Readonly<Record<RaceMode, number>>;
   raceWithoutEntrantAuthorityByMode: Readonly<Record<RaceMode, number>>;
   raceWithUnknownModeCount: number;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string | null;
   populationCoreCountByMode: Readonly<Record<RaceMode, number>>;
   populationCoreCount: number;
   persistedPerformanceCoreCount: number;
@@ -108,6 +110,7 @@ export function planDnaPopulationHistoryAcquisition(input: {
   const population = new Set<number>();
   const raceCountByMode = modeCounts();
   const raceWithoutEntrantAuthorityByMode = modeCounts();
+  const unresolvedRaceIds = new Set<string>();
   let raceWithUnknownModeCount = 0;
 
   for (const document of input.raceDocuments) {
@@ -123,10 +126,12 @@ export function planDnaPopulationHistoryAcquisition(input: {
     const mode = document.mode;
     if (mode === undefined) {
       raceWithUnknownModeCount += 1;
+      unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
     if (!MODES.includes(mode)) {
       raceWithUnknownModeCount += 1;
+      unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
 
@@ -136,6 +141,7 @@ export function planDnaPopulationHistoryAcquisition(input: {
       document.entrantCoreIds.length === 0
     ) {
       raceWithoutEntrantAuthorityByMode[mode] += 1;
+      unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
 
@@ -151,6 +157,7 @@ export function planDnaPopulationHistoryAcquisition(input: {
     }
     if (!valid) {
       raceWithoutEntrantAuthorityByMode[mode] += 1;
+      unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
 
@@ -160,6 +167,9 @@ export function planDnaPopulationHistoryAcquisition(input: {
     }
   }
 
+  const unresolvedRaceIdsSorted = [...unresolvedRaceIds].sort((left, right) =>
+    left < right ? -1 : left > right ? 1 : 0,
+  );
   const populationIds = [...population].sort((left, right) => left - right);
   const persistedPopulationIds = populationIds.filter((coreId) =>
     persisted.has(coreId),
@@ -210,6 +220,16 @@ export function planDnaPopulationHistoryAcquisition(input: {
       ...raceWithoutEntrantAuthorityByMode,
     }),
     raceWithUnknownModeCount,
+    unresolvedRaceCount: unresolvedRaceIdsSorted.length,
+    unresolvedRaceSetSha256:
+      unresolvedRaceIdsSorted.length === 0
+        ? null
+        : sha256([
+            "dna_open_lab",
+            "population_history",
+            "unresolved_races",
+            ...unresolvedRaceIdsSorted,
+          ]),
     populationCoreCountByMode: Object.freeze({
       bike: populationByMode.bike.size,
       car: populationByMode.car.size,
