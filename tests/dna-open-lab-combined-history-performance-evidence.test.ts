@@ -548,6 +548,7 @@ describe("combined DNA finished-history performance evidence", () => {
     );
 
     expect(assessment.incrementalDocumentReferenceCount).toBe(2);
+    expect(assessment.incrementalMaximumRaceDocumentBytes).toBeGreaterThan(0);
     expect(maximumActiveRaceHeads).toBe(2);
     expect(acceptedRaceIds).toEqual(["101", "202"]);
   });
