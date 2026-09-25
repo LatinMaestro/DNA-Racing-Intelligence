@@ -1,4 +1,4 @@
-name: TEMPORARY kick compact entrant measurement — DO NOT MERGE
+name: TEMPORARY kick compact entrant capacity proof — DO NOT MERGE
 
 on:
   push:
@@ -16,16 +16,16 @@ jobs:
       - name: Require unchanged exact main
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
+          EXPECTED_MAIN_SHA: 244967c246e9827845291d9c1dc58d754b5bde78
         run: |
           actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale measurement dispatch."
+            echo "Main moved; refusing stale capacity proof dispatch."
             exit 1
           fi
       - name: Dispatch exact-main read-only entrant measurement
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run dna-population-entrant-hydration-read-only-measurement.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha=05267da2d07d32a31acc425021766872c734f77a             -f expected_unresolved_race_count=1135198             -f expected_unresolved_race_sha256=d4b4fc81f26e1e5747d155f57f38aaf90e9579213b8ffb10800b3b7623db45cc             -f execute_read_only_measurement=true
-          echo "Dispatched exact-main compact entrant measurement."
+          gh workflow run dna-population-entrant-hydration-read-only-measurement.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha=244967c246e9827845291d9c1dc58d754b5bde78             -f expected_unresolved_race_count=1135198             -f expected_unresolved_race_sha256=d4b4fc81f26e1e5747d155f57f38aaf90e9579213b8ffb10800b3b7623db45cc             -f execute_read_only_measurement=true
+          echo "Dispatched exact-main compact entrant capacity proof."
