@@ -73,9 +73,7 @@ function gate(input?: {
   source?: DnaOpenLabProviderCapacityMeasurementSource;
   sizing?: DnaPopulationEntrantAuthoritySizingAuthority;
 }) {
-  const fixture = input?.source
-    ? null
-    : readySource();
+  const fixture = input?.source ? null : readySource();
   return {
     fixture,
     value: createDnaPopulationEntrantAuthorityCapacityGate({
@@ -241,6 +239,8 @@ describe("DNA population entrant authority capacity gate", () => {
           verifiedIncrementalMaximumCompactEntrantAuthorityBytes: 0,
         },
       }),
-    ).toThrow("verified incremental compact entrant authority bytes is invalid");
+    ).toThrow(
+      "verified incremental compact entrant authority bytes is invalid",
+    );
   });
 });
