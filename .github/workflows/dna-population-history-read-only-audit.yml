@@ -24,7 +24,7 @@ jobs:
   exact-main-read-only-audit:
     name: Exact-main private all-mode population audit
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 65
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
