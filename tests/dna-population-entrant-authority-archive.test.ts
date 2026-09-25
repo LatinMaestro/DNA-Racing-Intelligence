@@ -39,10 +39,7 @@ describe("population entrant authority archive", () => {
     const chunk1 = buildDnaPopulationEntrantAuthorityChunk({
       generationId,
       chunkOrdinal: 1,
-      records: [
-        record("2", "car", ["202"]),
-        record("1", "bike", ["101"]),
-      ],
+      records: [record("2", "car", ["202"]), record("1", "bike", ["101"])],
     });
     const chunk2 = buildDnaPopulationEntrantAuthorityChunk({
       generationId,

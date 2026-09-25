@@ -69,11 +69,7 @@ function positive(
   field: string,
   maximum = Number.MAX_SAFE_INTEGER,
 ): number {
-  if (
-    !Number.isSafeInteger(value) ||
-    value < 1 ||
-    value > maximum
-  ) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     archiveError(`${field} is invalid`);
   }
   return value;
@@ -134,9 +130,7 @@ function exactChunkReplay(input: {
 }): DnaPopulationEntrantAuthorityReplay {
   const raceIds = input.records
     .map((record) => record.sourceRaceId)
-    .sort((left, right) =>
-      left < right ? -1 : left > right ? 1 : 0,
-    );
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
   return replayDnaPopulationEntrantAuthority({
     records: input.records,
     expectedUnresolvedRaceCount: raceIds.length,
@@ -228,10 +222,7 @@ export function decodeDnaPopulationEntrantAuthorityChunk(input: {
     "byteLength",
     DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES,
   );
-  const expectedBodySha256 = sha256(
-    input.receipt.bodySha256,
-    "bodySha256",
-  );
+  const expectedBodySha256 = sha256(input.receipt.bodySha256, "bodySha256");
   const expectedRaceSetSha256 = sha256(
     input.receipt.raceSetSha256,
     "raceSetSha256",
@@ -256,11 +247,7 @@ export function decodeDnaPopulationEntrantAuthorityChunk(input: {
   } catch {
     archiveError("stored chunk body is not valid JSON");
   }
-  if (
-    parsed === null ||
-    typeof parsed !== "object" ||
-    Array.isArray(parsed)
-  ) {
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     archiveError("stored chunk envelope is invalid");
   }
   const envelope = parsed as Record<string, unknown>;
@@ -355,9 +342,7 @@ export function replayDnaPopulationEntrantAuthorityArchive(input: {
     archiveError("complete archive contains duplicate Race authority");
   }
   const archiveRecordSetSha256 = sha256Text(
-    input.chunks
-      .map((chunk) => chunk.receipt.recordSetSha256)
-      .join("\n"),
+    input.chunks.map((chunk) => chunk.receipt.recordSetSha256).join("\n"),
   );
 
   return Object.freeze({
@@ -366,8 +351,7 @@ export function replayDnaPopulationEntrantAuthorityArchive(input: {
     rowCount: records.length,
     archiveRecordSetSha256,
     replay,
-    replayIntegrityStatus:
-      "proven_compact_population_archive_replay" as const,
+    replayIntegrityStatus: "proven_compact_population_archive_replay" as const,
     persistentWriteAllowed: false as const,
     paidUsageAllowed: false as const,
   });
