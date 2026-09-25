@@ -11,6 +11,7 @@ import type {
   DnaOpenLabP5FirstBackfillEvidenceDocument,
   DnaOpenLabP5FirstBackfillEvidenceWriter,
 } from "./dna-open-lab-p5-first-backfill-r2-evidence";
+import { dnaPopulationEntrantAuthorityRecordBytes } from "./dna-population-entrant-authority-record";
 import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
 import type { DnaRaceDocument } from "./dna-open-lab-v1-client";
 import { DNA_FINISHED_RACE_WINDOW_LIMIT } from "./dna-open-lab-finished-race-window-crawler";
@@ -82,6 +83,7 @@ export type DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment = Readonly<{
   incrementalWindowCount: number;
   incrementalDocumentReferenceCount: number;
   incrementalMaximumRaceDocumentBytes: number;
+  incrementalMaximumCompactEntrantAuthorityBytes: number;
   quarantinedIdentityObservationCount: number;
   r2ClassBOperationsUsed: number;
   uniqueRaceCount: number;
@@ -531,6 +533,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let baselineIdentityOmissionObservationCount = 0;
   let quarantinedIdentityObservationCount =
     baselineState.omittedIdentityObservationCount;
+  let incrementalMaximumCompactEntrantAuthorityBytes = 0;
   const adaptDocument =
     input.canonicalPurpose === "population_inventory"
       ? adaptDnaRaceDocumentPopulationInventory
@@ -607,6 +610,12 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       adapted.rawEvidenceSha256 !== digest
     ) {
       historyError("canonical Race document identity drifted");
+    }
+    if (source === "incremental" && endpoint === "races.docs") {
+      incrementalMaximumCompactEntrantAuthorityBytes = Math.max(
+        incrementalMaximumCompactEntrantAuthorityBytes,
+        dnaPopulationEntrantAuthorityRecordBytes(adapted),
+      );
     }
     const evidenceKey = `${endpoint}\u0000${sourceRaceId}`;
     const previous = endpointEvidence.get(evidenceKey);
@@ -943,6 +952,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
           incrementalDocumentReferenceCount += 1;
           incrementalMaximumRaceDocumentBytes = Math.max(
             incrementalMaximumRaceDocumentBytes,
+    incrementalMaximumCompactEntrantAuthorityBytes,
             verified.byteLength,
           );
           acceptDocument(
