@@ -1,4 +1,4 @@
-name: TEMPORARY observe population history audit — DO NOT MERGE
+name: TEMPORARY observe exact-main CI — DO NOT MERGE
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   issues: write
 
 jobs:
-  observe-exact-main-audit:
+  observe-exact-main-ci:
     runs-on: ubuntu-latest
     steps:
       - name: Require unchanged exact main
@@ -21,46 +21,40 @@ jobs:
         run: |
           actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale audit observation."
+            echo "Main moved; refusing stale CI observation."
             exit 1
           fi
-      - name: Find and wait for exact-main audit
+      - name: Find and wait for exact-main CI
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_MAIN_SHA: 0268fcb72e363a5050075f748cb3b438f2fc1f1f
         run: |
           run_id=""
           for attempt in $(seq 1 60); do
-            run_id="$(gh run list               --repo LatinMaestro/DNA-Racing-Intelligence               --workflow dna-population-history-read-only-audit.yml               --branch main               --event workflow_dispatch               --limit 20               --json databaseId,headSha               --jq '.[] | select(.headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
+            run_id="$(gh run list               --repo LatinMaestro/DNA-Racing-Intelligence               --branch main               --commit "$EXPECTED_MAIN_SHA"               --event push               --limit 20               --json databaseId,name,headSha               --jq '.[] | select(.name == "CI" and .headSha == env.EXPECTED_MAIN_SHA) | .databaseId'               | head -n 1)"
             if [[ -n "$run_id" ]]; then
               break
             fi
             sleep 10
           done
           if [[ -z "$run_id" ]]; then
-            echo "No exact-main audit run found."
+            echo "No exact-main CI run found."
             exit 1
           fi
-          echo "AUDIT_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          echo "MAIN_CI_RUN_ID=$run_id" >> "$GITHUB_ENV"
           gh run watch "$run_id"             --repo LatinMaestro/DNA-Racing-Intelligence             --exit-status
-      - name: Publish sanitized audit evidence to issue 120
+      - name: Record independent main verification
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_MAIN_SHA: 0268fcb72e363a5050075f748cb3b438f2fc1f1f
         run: |
-          report="$(gh run view "$AUDIT_RUN_ID"             --repo LatinMaestro/DNA-Racing-Intelligence             --log             | grep 'DNA_POPULATION_HISTORY_AUDIT='             | tail -n 1             | sed 's/^.*DNA_POPULATION_HISTORY_AUDIT=//')"
-          if [[ -z "$report" ]]; then
-            echo "Sanitized audit report was not found."
+          conclusion="$(gh run view "$MAIN_CI_RUN_ID"             --repo LatinMaestro/DNA-Racing-Intelligence             --json conclusion             --jq .conclusion)"
+          if [[ "$conclusion" != "success" ]]; then
+            echo "Exact-main CI was not successful."
             exit 1
           fi
-          node -e 'const r=JSON.parse(process.argv[1]); if (r.exactCodeHeadSha !== process.env.EXPECTED_MAIN_SHA) process.exit(1);' "$report"
-          gh issue comment 120             --repo LatinMaestro/DNA-Racing-Intelligence             --body "## Exact-main population audit after #716
+          gh issue comment 120             --repo LatinMaestro/DNA-Racing-Intelligence             --body "## Independent main verification after #716
 
-Run: \`$AUDIT_RUN_ID\`
-Main: \`$EXPECTED_MAIN_SHA\`
+Main \`$EXPECTED_MAIN_SHA\` independently passed push-triggered CI run \`$MAIN_CI_RUN_ID\`.
 
-\`\`\`json
-$report
-\`\`\`
-
-This comment was emitted by the temporary read-only observer branch. The helper remains **DO NOT MERGE**."
+This evidence was recorded by the temporary observer branch, which remains **DO NOT MERGE**."
