@@ -319,6 +319,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.up.sql
       - name: Run published population manifest read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.smoke.sql
+      - name: Apply population entrant authority checkpoint migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0117_dna_population_entrant_authority_checkpoint.up.sql
+      - name: Run population entrant authority checkpoint smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0117_dna_population_entrant_authority_checkpoint.smoke.sql
+      - name: Reverse population entrant authority checkpoint migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0117_dna_population_entrant_authority_checkpoint.down.sql
+      - name: Verify population entrant authority checkpoint removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0117_dna_population_entrant_authority_checkpoint.removal.sql
       - name: Reverse published population manifest read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0116_dna_population_race_index_published_manifest_read.down.sql
       - name: Verify published population manifest read removal
