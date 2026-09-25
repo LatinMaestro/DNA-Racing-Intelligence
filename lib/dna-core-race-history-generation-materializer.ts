@@ -111,7 +111,7 @@ async function loadCompletedAttempt(
     : null;
 }
 
-async function loadCompleteLineage(input: {
+export async function loadCompleteDnaCoreRaceHistoryLineage(input: {
   repository: DnaCoreRaceHistoryAcquisitionRepository;
   latest: StoredDnaCoreRaceHistoryAcquisitionCycle;
 }): Promise<readonly StoredDnaCoreRaceHistoryAcquisitionCycle[] | null> {
@@ -206,7 +206,7 @@ export async function materializeAndPublishLatestDnaCoreRaceHistory(input: {
       reason: "no_complete_cycle" as const,
     });
   }
-  const lineage = await loadCompleteLineage({
+  const lineage = await loadCompleteDnaCoreRaceHistoryLineage({
     repository: input.acquisitionRepository,
     latest,
   });
