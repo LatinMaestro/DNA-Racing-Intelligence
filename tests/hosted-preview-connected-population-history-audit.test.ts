@@ -7,6 +7,7 @@ import { DNA_FINISHED_RACE_INCREMENTAL_BASELINE_CUTOFF_AT } from "@/lib/dna-open
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaPopulationHistoryAcquisitionAccumulator } from "@/lib/dna-population-history-acquisition-accumulator";
+import { projectDnaPopulationEntrantAuthorityChunkArchive } from "@/lib/dna-population-entrant-authority-chunk-projection";
 import { measureDnaPopulationEntrantHydrationReadOnly } from "@/lib/dna-population-entrant-hydration-read-only-measurement";
 import {
   createDnaOpenLabRequestBudget,
@@ -478,6 +479,33 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         expect(measurement.persistentCollectionAllowed).toBe(false);
         console.log(
           `DNA_POPULATION_ENTRANT_HYDRATION_MEASUREMENT=${serializedMeasurement}`,
+        );
+
+        const compactProjection =
+          projectDnaPopulationEntrantAuthorityChunkArchive({
+            unresolvedRaceCount: expectedUnresolvedRaceCount,
+            unresolvedRaceSetSha256: expectedUnresolvedRaceSetSha256,
+            measuredMaximumCompactEntrantAuthorityBytes:
+              measurement.maximumCompactEntrantAuthorityBytes,
+            verifiedIncrementalMaximumCompactEntrantAuthorityBytes:
+              historyAssessment.incrementalMaximumCompactEntrantAuthorityBytes,
+            currentR2StorageBytes: measurement.capacity.currentR2StorageBytes,
+            currentR2ClassAOperations:
+              measurement.capacity.currentR2ClassAOperations,
+            currentR2ClassBOperations:
+              measurement.capacity.currentR2ClassBOperations,
+            currentNeonStorageBytes:
+              measurement.capacity.currentNeonStorageBytes,
+          });
+        expect(compactProjection.persistentWriteAllowed).toBe(false);
+        expect(compactProjection.paidUsageAllowed).toBe(false);
+        expect(compactProjection.replayIntegrityStatus).toBe(
+          "held_unproven_compact_replay",
+        );
+        console.log(
+          `DNA_POPULATION_ENTRANT_AUTHORITY_CHUNK_PROJECTION=${JSON.stringify(
+            compactProjection,
+          )}`,
         );
       }
     },

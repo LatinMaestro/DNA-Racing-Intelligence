@@ -113,6 +113,12 @@ describe("population entrant hydration read-only measurement", () => {
     expect(
       measurement.projectedCompactEntrantAuthorityBytesCeiling,
     ).toBeGreaterThan(0);
+    expect(measurement.capacity).toMatchObject({
+      currentR2ClassAOperations: 10,
+      r2ClassAHeadroomOperations: 799_990,
+      currentR2ClassBOperations: 20,
+      r2ClassBHeadroomOperations: 7_999_980,
+    });
   });
 
   it("holds before provider access when the audit binding disagrees", async () => {
