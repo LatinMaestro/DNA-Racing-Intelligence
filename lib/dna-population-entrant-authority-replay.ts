@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 
-import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
-import { dnaOpenLabRawEvidenceCanonicalJson } from "./dna-open-lab-v1-adapters";
+import {
+  dnaOpenLabRawEvidenceCanonicalJson,
+  type CanonicalRaceDocumentMetadata,
+} from "./dna-open-lab-v1-adapters";
 import {
   dnaPopulationEntrantAuthorityRecord,
   type DnaPopulationEntrantAuthorityRecord,
@@ -125,7 +127,10 @@ export function replayDnaPopulationEntrantAuthority(input: {
 
   const byRaceId = new Map<
     string,
-    Readonly<{ record: DnaPopulationEntrantAuthorityRecord; canonical: string }>
+    Readonly<{
+      record: DnaPopulationEntrantAuthorityRecord;
+      canonical: string;
+    }>
   >();
   let exactReplayDuplicateCount = 0;
 
