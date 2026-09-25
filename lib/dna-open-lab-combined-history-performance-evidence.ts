@@ -28,6 +28,7 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
 const RECEIPT_PAGE_SIZE = 500;
 const BASELINE_EVIDENCE_READ_CONCURRENCY = 64;
+const INCREMENTAL_EVIDENCE_READ_CONCURRENCY = 64;
 
 type ReadableObjectStorage = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
@@ -791,113 +792,152 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
       ) {
         historyError("incremental manifest contents disagree with publication");
       }
-      for (const quarantine of value.identityConflictQuarantineObjects) {
-        reserveClassBOperations(2);
-        const expectedKey = [
-          "dna-open-lab",
-          "v1",
-          prefix,
-          "races",
-          "quarantine",
-          "unresolved-identity",
-          `${quarantine.evidenceLocatorSha256}.json`,
-        ].join("/");
-        if (quarantine.objectKey !== expectedKey) {
-          historyError("incremental quarantine object key is invalid");
+      for (
+        let start = 0;
+        start < value.identityConflictQuarantineObjects.length;
+        start += INCREMENTAL_EVIDENCE_READ_CONCURRENCY
+      ) {
+        const quarantineBatch = value.identityConflictQuarantineObjects.slice(
+          start,
+          start + INCREMENTAL_EVIDENCE_READ_CONCURRENCY,
+        );
+        for (let index = 0; index < quarantineBatch.length; index += 1) {
+          reserveClassBOperations(2);
         }
-        const quarantineHead = await input.storage.headObject({
-          bucketName,
-          key: quarantine.objectKey,
-        });
-        if (
-          quarantineHead.status !== "ready" ||
-          quarantineHead.contentType !== JSON_CONTENT_TYPE ||
-          quarantineHead.byteLength !== quarantine.byteLength ||
-          quarantineHead.checksumSha256 !== quarantine.bodySha256 ||
-          metadata(quarantineHead.metadata, "dna-owner-sha256") !== prefix ||
-          metadata(quarantineHead.metadata, "dna-authority") !==
-            "unresolved_source_identity" ||
-          metadata(quarantineHead.metadata, "dna-evidence-locator-sha256") !==
-            quarantine.evidenceLocatorSha256 ||
-          metadata(quarantineHead.metadata, "dna-raw-sha256") !==
-            quarantine.rawEvidenceSha256 ||
-          metadata(quarantineHead.metadata, "dna-canonical-publishable") !==
-            "false" ||
-          metadata(quarantineHead.metadata, "dna-last-good-publishable") !==
-            "false"
-        ) {
-          historyError("incremental quarantine object is inconsistent");
-        }
-        const quarantineBytes = await exactObjectBody({
-          storage: input.storage,
-          bucketName,
-          key: quarantine.objectKey,
-          byteLength: quarantine.byteLength,
-        });
-        if (
-          sha256Text(
-            new TextDecoder("utf-8", { fatal: true }).decode(quarantineBytes),
-          ) !== quarantine.bodySha256
-        ) {
-          historyError("incremental quarantine object checksum disagrees");
-        }
-        quarantinedIdentityObservationCount += 1;
+        await Promise.all(
+          quarantineBatch.map(async (quarantine) => {
+            const expectedKey = [
+              "dna-open-lab",
+              "v1",
+              prefix,
+              "races",
+              "quarantine",
+              "unresolved-identity",
+              `${quarantine.evidenceLocatorSha256}.json`,
+            ].join("/");
+            if (quarantine.objectKey !== expectedKey) {
+              historyError("incremental quarantine object key is invalid");
+            }
+            const quarantineHead = await input.storage.headObject({
+              bucketName,
+              key: quarantine.objectKey,
+            });
+            if (
+              quarantineHead.status !== "ready" ||
+              quarantineHead.contentType !== JSON_CONTENT_TYPE ||
+              quarantineHead.byteLength !== quarantine.byteLength ||
+              quarantineHead.checksumSha256 !== quarantine.bodySha256 ||
+              metadata(quarantineHead.metadata, "dna-owner-sha256") !==
+                prefix ||
+              metadata(quarantineHead.metadata, "dna-authority") !==
+                "unresolved_source_identity" ||
+              metadata(
+                quarantineHead.metadata,
+                "dna-evidence-locator-sha256",
+              ) !== quarantine.evidenceLocatorSha256 ||
+              metadata(quarantineHead.metadata, "dna-raw-sha256") !==
+                quarantine.rawEvidenceSha256 ||
+              metadata(quarantineHead.metadata, "dna-canonical-publishable") !==
+                "false" ||
+              metadata(quarantineHead.metadata, "dna-last-good-publishable") !==
+                "false"
+            ) {
+              historyError("incremental quarantine object is inconsistent");
+            }
+            const quarantineBytes = await exactObjectBody({
+              storage: input.storage,
+              bucketName,
+              key: quarantine.objectKey,
+              byteLength: quarantine.byteLength,
+            });
+            if (
+              sha256Text(
+                new TextDecoder("utf-8", { fatal: true }).decode(
+                  quarantineBytes,
+                ),
+              ) !== quarantine.bodySha256
+            ) {
+              historyError("incremental quarantine object checksum disagrees");
+            }
+          }),
+        );
+        quarantinedIdentityObservationCount += quarantineBatch.length;
       }
-      for (const reference of value.raceDocumentObjects) {
-        incrementalDocumentReferenceCount += 1;
-        reserveClassBOperations(2);
-        const expectedKey = [
-          "dna-open-lab",
-          "v1",
-          prefix,
-          "races",
-          "docs",
-          raceIdentityHash(reference.sourceRaceId),
-          `${reference.rawEvidenceSha256}.json`,
-        ].join("/");
-        if (reference.objectKey !== expectedKey) {
-          historyError("incremental Race document object key is invalid");
+
+      for (
+        let start = 0;
+        start < value.raceDocumentObjects.length;
+        start += INCREMENTAL_EVIDENCE_READ_CONCURRENCY
+      ) {
+        const referenceBatch = value.raceDocumentObjects.slice(
+          start,
+          start + INCREMENTAL_EVIDENCE_READ_CONCURRENCY,
+        );
+        for (let index = 0; index < referenceBatch.length; index += 1) {
+          reserveClassBOperations(2);
         }
-        const raceHead = await input.storage.headObject({
-          bucketName,
-          key: reference.objectKey,
-        });
-        if (
-          raceHead.status !== "ready" ||
-          raceHead.contentType !== JSON_CONTENT_TYPE ||
-          raceHead.byteLength < 1 ||
-          raceHead.byteLength > MAXIMUM_OBJECT_BYTES ||
-          raceHead.checksumSha256 !== reference.rawEvidenceSha256 ||
-          metadata(raceHead.metadata, "dna-source") !== "dna_open_lab" ||
-          metadata(raceHead.metadata, "dna-version") !== "v1" ||
-          metadata(raceHead.metadata, "dna-endpoint") !== "races.docs" ||
-          metadata(raceHead.metadata, "dna-owner-sha256") !== prefix ||
-          metadata(raceHead.metadata, "dna-race-id-sha256") !==
-            raceIdentityHash(reference.sourceRaceId) ||
-          metadata(raceHead.metadata, "dna-raw-sha256") !==
-            reference.rawEvidenceSha256
-        ) {
-          historyError("incremental Race document conflicts with its manifest");
+        const verifiedRaceBatch = await Promise.all(
+          referenceBatch.map(async (reference) => {
+            const expectedKey = [
+              "dna-open-lab",
+              "v1",
+              prefix,
+              "races",
+              "docs",
+              raceIdentityHash(reference.sourceRaceId),
+              `${reference.rawEvidenceSha256}.json`,
+            ].join("/");
+            if (reference.objectKey !== expectedKey) {
+              historyError("incremental Race document object key is invalid");
+            }
+            const raceHead = await input.storage.headObject({
+              bucketName,
+              key: reference.objectKey,
+            });
+            if (
+              raceHead.status !== "ready" ||
+              raceHead.contentType !== JSON_CONTENT_TYPE ||
+              raceHead.byteLength < 1 ||
+              raceHead.byteLength > MAXIMUM_OBJECT_BYTES ||
+              raceHead.checksumSha256 !== reference.rawEvidenceSha256 ||
+              metadata(raceHead.metadata, "dna-source") !== "dna_open_lab" ||
+              metadata(raceHead.metadata, "dna-version") !== "v1" ||
+              metadata(raceHead.metadata, "dna-endpoint") !== "races.docs" ||
+              metadata(raceHead.metadata, "dna-owner-sha256") !== prefix ||
+              metadata(raceHead.metadata, "dna-race-id-sha256") !==
+                raceIdentityHash(reference.sourceRaceId) ||
+              metadata(raceHead.metadata, "dna-raw-sha256") !==
+                reference.rawEvidenceSha256
+            ) {
+              historyError(
+                "incremental Race document conflicts with its manifest",
+              );
+            }
+            const raceBytes = await exactObjectBody({
+              storage: input.storage,
+              bucketName,
+              key: reference.objectKey,
+              byteLength: raceHead.byteLength,
+            });
+            const raw = record(
+              parsedJson(raceBytes),
+              "incremental Race document",
+            ) as DnaRaceDocument;
+            if (
+              sha256Text(canonicalJson(raw)) !== reference.rawEvidenceSha256 ||
+              raceId(raw) !== reference.sourceRaceId
+            ) {
+              historyError(
+                "incremental Race document checksum or identity disagrees",
+              );
+            }
+            return raw;
+          }),
+        );
+        for (const raw of verifiedRaceBatch) {
+          incrementalDocumentReferenceCount += 1;
+          acceptDocument(raw, receipt.windowEndAt, "races.docs", "incremental");
         }
-        const raceBytes = await exactObjectBody({
-          storage: input.storage,
-          bucketName,
-          key: reference.objectKey,
-          byteLength: raceHead.byteLength,
-        });
-        const raw = record(
-          parsedJson(raceBytes),
-          "incremental Race document",
-        ) as DnaRaceDocument;
-        if (
-          sha256Text(canonicalJson(raw)) !== reference.rawEvidenceSha256 ||
-          raceId(raw) !== reference.sourceRaceId
-        ) {
-          historyError(
-            "incremental Race document checksum or identity disagrees",
-          );
-        }
-        acceptDocument(raw, receipt.windowEndAt, "races.docs", "incremental");
       }
     }
   }
