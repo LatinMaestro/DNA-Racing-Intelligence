@@ -158,11 +158,7 @@ function chunkReceipt(
       "firstSourceRaceId",
       512,
     ),
-    lastSourceRaceId: safeText(
-      input.lastSourceRaceId,
-      "lastSourceRaceId",
-      512,
-    ),
+    lastSourceRaceId: safeText(input.lastSourceRaceId, "lastSourceRaceId", 512),
     raceSetSha256: sha256(input.raceSetSha256, "raceSetSha256"),
     recordSetSha256: sha256(input.recordSetSha256, "recordSetSha256"),
   });
@@ -271,10 +267,7 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
       if (stored.status !== "created" && stored.status !== "existing") {
         storageError("R2 write returned an invalid status");
       }
-      exactHead(
-        await input.storage.headObject({ bucketName, key }),
-        receipt,
-      );
+      exactHead(await input.storage.headObject({ bucketName, key }), receipt);
       return Object.freeze({
         receipt: Object.freeze({
           ...receipt,

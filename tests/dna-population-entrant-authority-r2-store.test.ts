@@ -31,23 +31,19 @@ function storage(input?: {
   privateBucket?: boolean;
 }) {
   let storedBody: Uint8Array | null = null;
-  let head:
-    | Readonly<{
-        contentType: string;
-        byteLength: number;
-        checksumSha256: string;
-        metadata: Readonly<Record<string, string>>;
-      }>
-    | null = null;
+  let head: Readonly<{
+    contentType: string;
+    byteLength: number;
+    checksumSha256: string;
+    metadata: Readonly<Record<string, string>>;
+  }> | null = null;
 
   const putObjectIfAbsent = vi.fn(async (request) => {
     const parts: Uint8Array[] = [];
     for await (const part of request.body) {
       parts.push(part);
     }
-    storedBody = Uint8Array.from(
-      parts.flatMap((part) => Array.from(part)),
-    );
+    storedBody = Uint8Array.from(parts.flatMap((part) => Array.from(part)));
     head = Object.freeze({
       contentType: request.contentType,
       byteLength: request.byteLength,
