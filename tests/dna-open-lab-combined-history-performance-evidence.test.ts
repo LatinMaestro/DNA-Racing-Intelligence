@@ -512,6 +512,46 @@ describe("combined DNA finished-history performance evidence", () => {
     ).rejects.toThrow("read budget is exhausted before provider access");
   });
 
+  it("reads incremental Race evidence concurrently while preserving deterministic acceptance order", async () => {
+    const input = fixture();
+    const headObject = input.storage.headObject;
+    let activeRaceHeads = 0;
+    let maximumActiveRaceHeads = 0;
+    const acceptedRaceIds: string[] = [];
+
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...input,
+        storage: {
+          ...input.storage,
+          headObject: async (query: { bucketName: string; key: string }) => {
+            if (!query.key.includes("/races/docs/")) {
+              return headObject(query);
+            }
+            activeRaceHeads += 1;
+            maximumActiveRaceHeads = Math.max(
+              maximumActiveRaceHeads,
+              activeRaceHeads,
+            );
+            try {
+              await new Promise((resolve) => setTimeout(resolve, 5));
+              return await headObject(query);
+            } finally {
+              activeRaceHeads -= 1;
+            }
+          },
+        },
+        onCanonicalRaceDocument: (document) => {
+          acceptedRaceIds.push(document.sourceRaceId);
+        },
+      },
+    );
+
+    expect(assessment.incrementalDocumentReferenceCount).toBe(2);
+    expect(maximumActiveRaceHeads).toBe(2);
+    expect(acceptedRaceIds).toEqual(["101", "202"]);
+  });
+
   it("bounds baseline evidence concurrency while preserving receipt order", async () => {
     const input = fixture();
     const receiptCount = 128;
