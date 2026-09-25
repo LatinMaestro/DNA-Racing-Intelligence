@@ -82,7 +82,8 @@ describe("population entrant authority archive", () => {
       records: [record("1", "bike", ["101"])],
     });
     const tampered = new Uint8Array(chunk.body);
-    tampered[tampered.length - 2] ^= 1;
+    const tamperIndex = tampered.length - 2;
+    tampered[tamperIndex] = (tampered[tamperIndex] ?? 0) ^ 1;
 
     expect(() =>
       decodeDnaPopulationEntrantAuthorityChunk({
