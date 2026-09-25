@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { RaceMode } from "@/domain/import-contract";
 import { DNA_CORE_RACE_HISTORY_MAXIMUM_CORES } from "./dna-core-race-history-acquisition-cycle";
-import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
+import {
+  DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT,
+  type DnaPopulationHistoryAcquisitionPlan,
+} from "./dna-population-history-acquisition-plan";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
@@ -185,6 +188,12 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
                 "unresolved_races",
                 ...unresolvedRaceIdsSorted,
               ]),
+        unresolvedRaceMeasurementSampleIds: Object.freeze(
+          unresolvedRaceIdsSorted.slice(
+            0,
+            DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT,
+          ),
+        ),
         populationCoreCountByMode: Object.freeze({
           bike: populationByMode.bike.size,
           car: populationByMode.car.size,

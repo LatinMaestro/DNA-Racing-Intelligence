@@ -6,6 +6,8 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
 const MODES = Object.freeze(["bike", "car", "horse"] as const);
+export const DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT =
+  20 as const;
 
 export type DnaPopulationHistoryAcquisitionCohort = Readonly<{
   ordinal: number;
@@ -24,6 +26,7 @@ export type DnaPopulationHistoryAcquisitionPlan = Readonly<{
   raceWithUnknownModeCount: number;
   unresolvedRaceCount: number;
   unresolvedRaceSetSha256: string | null;
+  unresolvedRaceMeasurementSampleIds: readonly string[];
   populationCoreCountByMode: Readonly<Record<RaceMode, number>>;
   populationCoreCount: number;
   persistedPerformanceCoreCount: number;
@@ -230,6 +233,12 @@ export function planDnaPopulationHistoryAcquisition(input: {
             "unresolved_races",
             ...unresolvedRaceIdsSorted,
           ]),
+    unresolvedRaceMeasurementSampleIds: Object.freeze(
+      unresolvedRaceIdsSorted.slice(
+        0,
+        DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT,
+      ),
+    ),
     populationCoreCountByMode: Object.freeze({
       bike: populationByMode.bike.size,
       car: populationByMode.car.size,
