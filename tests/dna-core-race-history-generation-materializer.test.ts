@@ -180,6 +180,7 @@ function completedAuthority(
     ],
   ]);
   const repository = {
+    loadAttempt: vi.fn(async () => null),
     loadLatestComplete: vi.fn(async () => ({ revision: "1", cycle: complete })),
     loadCores: vi.fn(async () => [{ revision: "2", checkpoint }]),
   } as unknown as DnaCoreRaceHistoryAcquisitionRepository;
@@ -535,7 +536,54 @@ describe("DNA Core result retained-evidence generation materializer", () => {
     expect(test.generation.repository.begin).not.toHaveBeenCalled();
   });
 
-  it("preserves last-good instead of publishing a successor without complete lineage", async () => {
+  it("publishes a successor only after replaying its complete predecessor lineage", async () => {
+    const predecessor = completedAuthority(["race-0"]);
+    const test = request(["race-1"], {
+      previousCompletedCycleId: predecessor.complete.cycleId,
+    });
+    vi.mocked(test.authority.repository.loadAttempt).mockImplementation(
+      async ({ cycleId, attemptNumber }) =>
+        cycleId === predecessor.complete.cycleId && attemptNumber === 1
+          ? { revision: "root", cycle: predecessor.complete }
+          : null,
+    );
+    vi.mocked(test.authority.repository.loadCores).mockImplementation(
+      async ({ cycleId }) =>
+        cycleId === predecessor.complete.cycleId
+          ? [{ revision: "root-core", checkpoint: predecessor.checkpoint }]
+          : [{ revision: "successor-core", checkpoint: test.authority.checkpoint }],
+    );
+    test.readMaterializationPage.mockImplementation(
+      async ({ cycle, pageNumber }) =>
+        cycle.cycleId === predecessor.complete.cycleId
+          ? predecessor.pages.get(pageNumber) ?? null
+          : test.authority.pages.get(pageNumber) ?? null,
+    );
+
+    await expect(
+      materializeAndPublishLatestDnaCoreRaceHistory({
+        ...test.input,
+        retainedEvidenceReadBudget: {
+          maximumClassBOperations: 16,
+          paidUsageAllowed: false,
+        },
+      }),
+    ).resolves.toMatchObject({
+      kind: "published",
+      generation: {
+        observationCount: 2,
+        inputCycleCount: 2,
+        inputPageCount: 4,
+      },
+    });
+    expect(test.authority.repository.loadAttempt).toHaveBeenCalledWith({
+      cycleId: predecessor.complete.cycleId,
+      attemptNumber: 1,
+    });
+    expect(test.generation.rows).toHaveLength(2);
+  });
+
+  it("preserves last-good when a successor predecessor is unavailable", async () => {
     const test = request(["race-1"], {
       previousCompletedCycleId: "b".repeat(64),
     });
