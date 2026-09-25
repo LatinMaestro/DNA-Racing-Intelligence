@@ -1,4 +1,4 @@
-name: TEMPORARY report compact entrant workflow status — DO NOT MERGE
+name: TEMPORARY kick compact entrant population audit — DO NOT MERGE
 
 on:
   push:
@@ -7,45 +7,26 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  issues: write
+  actions: write
 
 jobs:
-  report-status:
+  dispatch-exact-main-audit:
     runs-on: ubuntu-latest
-    env:
-      EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
-      REPO: LatinMaestro/DNA-Racing-Intelligence
     steps:
-      - name: Report exact-main workflow status
+      - name: Require unchanged exact main
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
         run: |
-          actual="$(gh api repos/$REPO/commits/main --jq .sha)"
+          actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
-            echo "Main moved; refusing stale status report."
+            echo "Main moved; refusing stale audit dispatch."
             exit 1
           fi
-          ci="$(gh run list --repo "$REPO" --branch main --commit "$EXPECTED_MAIN_SHA" --limit 30 --json databaseId,name,status,conclusion,headSha,event --jq '[.[] | select(.name=="CI" and .headSha==env.EXPECTED_MAIN_SHA)]')"
-          audit="$(gh run list --repo "$REPO" --workflow dna-population-history-read-only-audit.yml --branch main --limit 30 --json databaseId,name,status,conclusion,headSha,event --jq '[.[] | select(.headSha==env.EXPECTED_MAIN_SHA)]')"
-          measurement="$(gh run list --repo "$REPO" --workflow dna-population-entrant-hydration-read-only-measurement.yml --branch main --limit 30 --json databaseId,name,status,conclusion,headSha,event --jq '[.[] | select(.headSha==env.EXPECTED_MAIN_SHA)]')"
-          gh issue comment 120 --repo "$REPO" --body "## Temporary exact-main workflow status
-
-Main: \`$EXPECTED_MAIN_SHA\`
-
-CI:
-\`\`\`json
-$ci
-\`\`\`
-
-Population audit:
-\`\`\`json
-$audit
-\`\`\`
-
-Entrant measurement:
-\`\`\`json
-$measurement
-\`\`\`
-
-Status probe only; no workflow was dispatched and no provider request was made. Helper branch remains **DO NOT MERGE**."
+      - name: Dispatch exact-main read-only audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: 05267da2d07d32a31acc425021766872c734f77a
+        run: |
+          gh workflow run dna-population-history-read-only-audit.yml             --repo LatinMaestro/DNA-Racing-Intelligence             --ref main             -f expected_main_sha="$EXPECTED_MAIN_SHA"             -f execute_read_only_audit=true
+          echo "Dispatched exact-main read-only population history audit."
