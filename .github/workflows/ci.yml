@@ -29,7 +29,15 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: Temporary entrant checkpoint formatter diagnostic
+        run: |
+          npx prettier --write \
+            lib/neon-dna-population-entrant-authority-checkpoint.ts \
+            tests/neon-dna-population-entrant-authority-checkpoint.test.ts
+          git diff -- \
+            lib/neon-dna-population-entrant-authority-checkpoint.ts \
+            tests/neon-dna-population-entrant-authority-checkpoint.test.ts
+          exit 1
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
