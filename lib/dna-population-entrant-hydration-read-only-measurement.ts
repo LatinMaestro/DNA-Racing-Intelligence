@@ -33,6 +33,10 @@ export type DnaPopulationEntrantHydrationReadOnlyMeasurement = Readonly<{
   capacity: Readonly<{
     currentR2StorageBytes: number;
     r2StorageHeadroomBytes: number;
+    currentR2ClassAOperations: number;
+    r2ClassAHeadroomOperations: number;
+    currentR2ClassBOperations: number;
+    r2ClassBHeadroomOperations: number;
     currentNeonStorageBytes: number;
     neonStorageHeadroomBytes: number;
     currentNeonComputeMilliCuHours: number;
@@ -269,6 +273,14 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
       currentR2StorageBytes,
       r2StorageHeadroomBytes:
         DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes - currentR2StorageBytes,
+      currentR2ClassAOperations,
+      r2ClassAHeadroomOperations:
+        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations -
+        currentR2ClassAOperations,
+      currentR2ClassBOperations,
+      r2ClassBHeadroomOperations:
+        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations -
+        currentR2ClassBOperations,
       currentNeonStorageBytes,
       neonStorageHeadroomBytes:
         DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes -
