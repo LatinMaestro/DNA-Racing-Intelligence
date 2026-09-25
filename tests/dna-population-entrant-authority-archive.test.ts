@@ -5,6 +5,7 @@ import {
   buildDnaPopulationEntrantAuthorityChunk,
   decodeDnaPopulationEntrantAuthorityChunk,
   replayDnaPopulationEntrantAuthorityArchive,
+  type DnaPopulationEntrantAuthorityChunkReceipt,
 } from "@/lib/dna-population-entrant-authority-archive";
 import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
 
@@ -73,6 +74,25 @@ describe("population entrant authority archive", () => {
     );
     expect(replay.persistentWriteAllowed).toBe(false);
     expect(replay.paidUsageAllowed).toBe(false);
+  });
+
+  it("fails closed on receipt version drift", () => {
+    const chunk = buildDnaPopulationEntrantAuthorityChunk({
+      generationId: "d".repeat(64),
+      chunkOrdinal: 1,
+      records: [record("1", "bike", ["101"])],
+    });
+    const receipt = {
+      ...chunk.receipt,
+      version: 2,
+    } as unknown as DnaPopulationEntrantAuthorityChunkReceipt;
+
+    expect(() =>
+      decodeDnaPopulationEntrantAuthorityChunk({
+        receipt,
+        body: chunk.body,
+      }),
+    ).toThrow("receipt version is invalid");
   });
 
   it("fails closed on body tampering", () => {
