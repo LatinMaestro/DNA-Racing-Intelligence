@@ -230,7 +230,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         bucketName,
         storage,
       });
-      const CHUNK_READ_CONCURRENCY = 16;
+      const CHUNK_READ_CONCURRENCY = 24;
       const compactBaselineClassBOperations = manifests.length * 2;
       if (
         !Number.isSafeInteger(compactBaselineClassBOperations) ||
@@ -261,6 +261,7 @@ describeConnected("hosted Preview all-mode population history audit", () => {
           baselineIndex: {
             scanDocuments: async (accept) => {
               let scannedRaceCount = 0;
+              let scannedChunkCount = 0;
               for (
                 let start = 0;
                 start < manifests.length;
@@ -278,7 +279,16 @@ describeConnected("hosted Preview all-mode population history audit", () => {
                     accept(document);
                     scannedRaceCount += 1;
                   }
+                  scannedChunkCount += 1;
                 }
+                console.log(
+                  `DNA_POPULATION_HISTORY_AUDIT_PROGRESS=${JSON.stringify({
+                    scannedChunkCount,
+                    totalChunkCount: manifests.length,
+                    scannedRaceCount,
+                    totalRaceCount: populationIndex.uniqueRaceCount,
+                  })}`,
+                );
               }
               if (scannedRaceCount !== populationIndex.uniqueRaceCount) {
                 throw new Error(
@@ -386,6 +396,6 @@ describeConnected("hosted Preview all-mode population history audit", () => {
       });
       console.log(`DNA_POPULATION_HISTORY_AUDIT=${serialized}`);
     },
-    30 * 60_000,
+    55 * 60_000,
   );
 });
