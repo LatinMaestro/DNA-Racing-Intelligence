@@ -101,13 +101,15 @@ function harness(input?: {
         .slice(0, request.limit),
   );
   const r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort = Object.freeze({
-    read: vi.fn(async (receipt) =>
-      (input?.storedOverride ?? stored)(
-        manifests.find(
-          (value) => value.chunkOrdinal === receipt.chunkOrdinal,
-        ) ?? receipt,
-      ),
-    ),
+    read: vi.fn(async (receipt) => {
+      const matching = manifests.find(
+        (value) => value.chunkOrdinal === receipt.chunkOrdinal,
+      );
+      if (matching === undefined) {
+        throw new Error("missing synthetic manifest");
+      }
+      return (input?.storedOverride ?? stored)(matching);
+    }),
   });
   return { listChunkManifests, r2Store, read };
 }
