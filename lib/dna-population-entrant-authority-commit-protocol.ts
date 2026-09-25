@@ -3,6 +3,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
+import { buildDnaPopulationEntrantAuthorityChunk } from "./dna-population-entrant-authority-archive";
 import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
 import {
   recoverDnaPopulationEntrantAuthority,
@@ -167,14 +168,25 @@ function validateWriteReceipt(input: {
   receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt;
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   chunkOrdinal: number;
-  recordCount: number;
+  records: readonly DnaPopulationEntrantAuthorityRecord[];
   resumeAfterSourceRaceId: string | null;
 }): void {
+  const expected = buildDnaPopulationEntrantAuthorityChunk({
+    generationId: input.authority.generationId,
+    chunkOrdinal: input.chunkOrdinal,
+    records: input.records,
+  }).receipt;
   if (
-    input.receipt.version !== 1 ||
-    input.receipt.generationId !== input.authority.generationId ||
-    input.receipt.chunkOrdinal !== input.chunkOrdinal ||
-    input.receipt.rowCount !== input.recordCount ||
+    input.receipt.version !== expected.version ||
+    input.receipt.generationId !== expected.generationId ||
+    input.receipt.chunkOrdinal !== expected.chunkOrdinal ||
+    input.receipt.bodySha256 !== expected.bodySha256 ||
+    input.receipt.byteLength !== expected.byteLength ||
+    input.receipt.rowCount !== expected.rowCount ||
+    input.receipt.firstSourceRaceId !== expected.firstSourceRaceId ||
+    input.receipt.lastSourceRaceId !== expected.lastSourceRaceId ||
+    input.receipt.raceSetSha256 !== expected.raceSetSha256 ||
+    input.receipt.recordSetSha256 !== expected.recordSetSha256 ||
     (input.resumeAfterSourceRaceId !== null &&
       input.receipt.firstSourceRaceId <= input.resumeAfterSourceRaceId)
   ) {
@@ -271,7 +283,7 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     receipt: stored.receipt,
     authority,
     chunkOrdinal: recovery.nextChunkOrdinal,
-    recordCount: input.records.length,
+    records: input.records,
     resumeAfterSourceRaceId: recovery.resumeAfterSourceRaceId,
   });
 
