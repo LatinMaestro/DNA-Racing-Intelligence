@@ -7,6 +7,12 @@ import { DNA_FINISHED_RACE_INCREMENTAL_BASELINE_CUTOFF_AT } from "@/lib/dna-open
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaPopulationHistoryAcquisitionAccumulator } from "@/lib/dna-population-history-acquisition-accumulator";
+import { measureDnaPopulationEntrantHydrationReadOnly } from "@/lib/dna-population-entrant-hydration-read-only-measurement";
+import {
+  createDnaOpenLabRequestBudget,
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+} from "@/lib/dna-open-lab-request-budget";
+import { createDnaOpenLabV1Client } from "@/lib/dna-open-lab-v1-client";
 import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "@/lib/dna-open-lab-zero-cost-refresh-policy";
 import type { DnaPopulationRaceIndexR2ChunkManifest } from "@/lib/dna-population-race-index-generation";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
@@ -19,6 +25,7 @@ import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-op
 const connected = process.env.DNA_POPULATION_HISTORY_READ_ONLY_AUDIT === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAXIMUM_HISTORY_AUTHORITY_CLASS_B_OPERATIONS = 100_000;
 const RUNTIME_ROLE = "dna_app_runtime";
 
@@ -397,6 +404,76 @@ describeConnected("hosted Preview all-mode population history audit", () => {
         paidUsageAllowed: false,
       });
       console.log(`DNA_POPULATION_HISTORY_AUDIT=${serialized}`);
+
+      if (
+        process.env.DNA_POPULATION_ENTRANT_HYDRATION_READ_ONLY_MEASUREMENT ===
+        "1"
+      ) {
+        const expectedUnresolvedRaceCount = Number(
+          requiredEnvironment(
+            "DNA_POPULATION_UNRESOLVED_RACE_EXPECTED_COUNT",
+          ),
+        );
+        const expectedUnresolvedRaceSetSha256 = requiredEnvironment(
+          "DNA_POPULATION_UNRESOLVED_RACE_EXPECTED_SHA256",
+        ).toLowerCase();
+        if (
+          !Number.isSafeInteger(expectedUnresolvedRaceCount) ||
+          expectedUnresolvedRaceCount < 1 ||
+          !SHA_256_PATTERN.test(expectedUnresolvedRaceSetSha256) ||
+          plan.unresolvedRaceCount !== expectedUnresolvedRaceCount ||
+          plan.unresolvedRaceSetSha256 !== expectedUnresolvedRaceSetSha256
+        ) {
+          throw new Error(
+            "population entrant hydration audit binding is unavailable",
+          );
+        }
+
+        // Read the DNA credential only after the complete population authority
+        // has reproduced the exact audited unresolved Race count/hash.
+        const dnaApiKey = requiredEnvironment("DNA_OPEN_LAB_API_KEY_1");
+        const measurement =
+          await measureDnaPopulationEntrantHydrationReadOnly({
+            plan,
+            expectedUnresolvedRaceCount,
+            expectedUnresolvedRaceSetSha256,
+            providerCapacity,
+            client: createDnaOpenLabV1Client({ apiKey: dnaApiKey }),
+            requestBudget: createDnaOpenLabRequestBudget({
+              initialRequestsPerMinute:
+                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              maximumRequestsPerMinute:
+                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+            }),
+            observedAt: new Date().toISOString(),
+          });
+        const serializedMeasurement = JSON.stringify(measurement);
+        for (const secret of [
+          ownerId,
+          databaseUrl,
+          databaseOwnerId,
+          accountId,
+          apiToken,
+          accessKeyId,
+          secretAccessKey,
+          bucketName,
+          dnaApiKey,
+        ]) {
+          expect(serializedMeasurement).not.toContain(secret);
+        }
+        expect(measurement.providerRequestCount).toBe(1);
+        expect(measurement.authority.selectedRaceCount).toBeGreaterThan(0);
+        expect(measurement.authority.selectedRaceCount).toBeLessThanOrEqual(
+          20,
+        );
+        expect(measurement.persistentWritePerformed).toBe(false);
+        expect(measurement.providerWritePerformed).toBe(false);
+        expect(measurement.paidUsageAllowed).toBe(false);
+        expect(measurement.persistentCollectionAllowed).toBe(false);
+        console.log(
+          `DNA_POPULATION_ENTRANT_HYDRATION_MEASUREMENT=${serializedMeasurement}`,
+        );
+      }
     },
     55 * 60_000,
   );
