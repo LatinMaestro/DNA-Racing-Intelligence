@@ -117,7 +117,7 @@ describe("population entrant hydration read-only measurement", () => {
       currentR2ClassAOperations: 10,
       r2ClassAHeadroomOperations: 799_990,
       currentR2ClassBOperations: 20,
-      r2ClassBHeadroomOperations: 9_999_980,
+      r2ClassBHeadroomOperations: 7_999_980,
     });
   });
 
