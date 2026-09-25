@@ -53,9 +53,29 @@ describe("DNA population history acquisition accumulator", () => {
       },
       unresolvedRaceCount: 1,
       unresolvedRaceSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      unresolvedRaceMeasurementSampleIds: ["race-1"],
     });
     expect(() => accumulator.finalize()).toThrow(
       "DNA population history accumulator is finalized.",
     );
+  });
+
+  it("selects the unresolved Race measurement sample deterministically", () => {
+    const accumulator = createDnaPopulationHistoryAcquisitionAccumulator();
+    for (const sourceRaceId of ["race-20", "race-3", "race-10"]) {
+      accumulator.accept(
+        Object.freeze({
+          sourceType: "race_document" as const,
+          sourceRaceId,
+          mode: "bike" as const,
+        }),
+      );
+    }
+
+    expect(accumulator.finalize().unresolvedRaceMeasurementSampleIds).toEqual([
+      "race-10",
+      "race-20",
+      "race-3",
+    ]);
   });
 });
