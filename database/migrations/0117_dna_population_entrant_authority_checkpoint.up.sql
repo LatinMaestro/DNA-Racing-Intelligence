@@ -22,6 +22,7 @@ CREATE TABLE dna.dna_population_entrant_authority_generation (
   started_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (owner_id, generation_id),
+  CHECK (generation_id = unresolved_race_set_sha256),
   CHECK (persisted_race_count <= unresolved_race_count),
   CHECK (
     (
@@ -200,6 +201,11 @@ DECLARE
   v_last text;
   v_race_set_sha text;
   v_record_set_sha text;
+  v_manifest_chunk_count bigint;
+  v_manifest_row_count bigint;
+  v_min_ordinal integer;
+  v_max_ordinal integer;
+  v_manifest_last text;
 BEGIN
   IF dna.current_owner_id() IS NULL
      OR p_owner_id <> dna.current_owner_id()
@@ -264,6 +270,66 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'population entrant authority generation is unavailable';
+  END IF;
+
+  SELECT
+    count(*),
+    COALESCE(sum(chunk.row_count), 0),
+    min(chunk.chunk_ordinal),
+    max(chunk.chunk_ordinal)
+  INTO
+    v_manifest_chunk_count,
+    v_manifest_row_count,
+    v_min_ordinal,
+    v_max_ordinal
+  FROM dna.dna_population_entrant_authority_chunk chunk
+  WHERE chunk.owner_id = p_owner_id
+    AND chunk.generation_id = p_generation_id::character(64);
+
+  SELECT chunk.last_source_race_id INTO v_manifest_last
+  FROM dna.dna_population_entrant_authority_chunk chunk
+  WHERE chunk.owner_id = p_owner_id
+    AND chunk.generation_id = p_generation_id::character(64)
+  ORDER BY chunk.chunk_ordinal DESC
+  LIMIT 1;
+
+  IF v_manifest_chunk_count <> v_generation.chunk_count
+     OR v_manifest_row_count <> v_generation.persisted_race_count
+     OR (
+       v_generation.chunk_count = 0
+       AND (
+         v_min_ordinal IS NOT NULL
+         OR v_max_ordinal IS NOT NULL
+         OR v_manifest_last IS NOT NULL
+         OR v_generation.last_source_race_id IS NOT NULL
+       )
+     )
+     OR (
+       v_generation.chunk_count > 0
+       AND (
+         v_min_ordinal <> 1
+         OR v_max_ordinal <> v_generation.chunk_count
+         OR v_manifest_last IS DISTINCT FROM v_generation.last_source_race_id
+       )
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (
+         SELECT
+           chunk.chunk_ordinal,
+           chunk.first_source_race_id,
+           lag(chunk.last_source_race_id) OVER (
+             ORDER BY chunk.chunk_ordinal
+           ) AS previous_last
+         FROM dna.dna_population_entrant_authority_chunk chunk
+         WHERE chunk.owner_id = p_owner_id
+           AND chunk.generation_id = p_generation_id::character(64)
+       ) ordered
+       WHERE ordered.previous_last IS NOT NULL
+         AND (ordered.first_source_race_id COLLATE "C") <=
+             (ordered.previous_last COLLATE "C")
+     ) THEN
+    RAISE EXCEPTION 'population entrant authority checkpoint is inconsistent';
   END IF;
 
   SELECT stored.* INTO v_existing
@@ -421,6 +487,23 @@ BEGIN
          OR v_max_ordinal <> v_generation.chunk_count
          OR v_last IS DISTINCT FROM v_generation.last_source_race_id
        )
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (
+         SELECT
+           chunk.chunk_ordinal,
+           chunk.first_source_race_id,
+           lag(chunk.last_source_race_id) OVER (
+             ORDER BY chunk.chunk_ordinal
+           ) AS previous_last
+         FROM dna.dna_population_entrant_authority_chunk chunk
+         WHERE chunk.owner_id = p_owner_id
+           AND chunk.generation_id = p_generation_id::character(64)
+       ) ordered
+       WHERE ordered.previous_last IS NOT NULL
+         AND (ordered.first_source_race_id COLLATE "C") <=
+             (ordered.previous_last COLLATE "C")
      ) THEN
     RAISE EXCEPTION 'population entrant authority checkpoint is inconsistent';
   END IF;
