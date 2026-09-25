@@ -403,4 +403,62 @@ $isolation$;
 
 RESET ROLE;
 
+UPDATE dna.dna_population_entrant_authority_chunk
+SET first_source_race_id = 'race-2'
+WHERE owner_id = '91170000-0000-4000-8000-000000000001'
+  AND generation_id = repeat('a', 64)::character(64)
+  AND chunk_ordinal = 2;
+
+SET LOCAL ROLE dna_app_runtime;
+SET LOCAL app.owner_id = '91170000-0000-4000-8000-000000000001';
+
+DO $tamper$
+DECLARE
+  v_owner constant uuid := '91170000-0000-4000-8000-000000000001';
+  v_generation constant text := repeat('a', 64);
+BEGIN
+  BEGIN
+    PERFORM *
+    FROM dna.read_dna_population_entrant_authority_generation(
+      v_owner,
+      v_generation
+    );
+    RAISE EXCEPTION 'tampered entrant authority checkpoint remained readable';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%checkpoint is inconsistent%' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    PERFORM *
+    FROM dna.register_dna_population_entrant_authority_chunk(
+      v_owner,
+      v_generation,
+      jsonb_build_object(
+        'version', 1,
+        'generationId', v_generation,
+        'chunkOrdinal', 3,
+        'objectKey', 'private/entrant/chunk-after-tamper.json',
+        'bodySha256', repeat('2', 64),
+        'byteLength', 256,
+        'rowCount', 1,
+        'firstSourceRaceId', 'race-4',
+        'lastSourceRaceId', 'race-4',
+        'raceSetSha256', repeat('3', 64),
+        'recordSetSha256', repeat('4', 64)
+      ),
+      '2026-09-25 06:03:00+00'
+    );
+    RAISE EXCEPTION 'tampered entrant authority checkpoint accepted an append';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%checkpoint is inconsistent%' THEN
+      RAISE;
+    END IF;
+  END;
+END
+$tamper$;
+
+RESET ROLE;
+
 ROLLBACK;
