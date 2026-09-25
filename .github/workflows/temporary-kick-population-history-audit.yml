@@ -20,7 +20,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: 0c829b546635d6b73a0094acf845045543516120
+          EXPECTED_MAIN_SHA: 2cc8ee18c8b148d08f293199df57de462635467a
         run: |
           current_main="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
           if [[ "${current_main}" != "${EXPECTED_MAIN_SHA}" ]]; then
