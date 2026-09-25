@@ -5,6 +5,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
+import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
 import {
   commitDnaPopulationEntrantAuthorityChunk,
   type DnaPopulationEntrantAuthorityCapacityGate,
@@ -65,18 +66,13 @@ function afterCheckpoint(): DnaPopulationEntrantAuthorityCheckpoint {
 
 function receipt() {
   return Object.freeze({
-    version: 1 as const,
-    generationId,
-    chunkOrdinal: 1,
+    ...buildDnaPopulationEntrantAuthorityChunk({
+      generationId,
+      chunkOrdinal: 1,
+      records,
+    }).receipt,
     objectKey:
       "dna-open-lab/v1/private/population-entrant-authority/chunks/1.json",
-    bodySha256: "d".repeat(64),
-    byteLength: 500,
-    rowCount: 2,
-    firstSourceRaceId: "race-1",
-    lastSourceRaceId: "race-2",
-    raceSetSha256: "e".repeat(64),
-    recordSetSha256: "f".repeat(64),
   });
 }
 
@@ -300,6 +296,32 @@ describe("DNA population entrant authority commit protocol", () => {
     vi.mocked(test.r2Store.write).mockResolvedValueOnce(
       Object.freeze({
         receipt: Object.freeze({ ...receipt(), chunkOrdinal: 2 }),
+        storageStatus: "created",
+      }),
+    );
+
+    await expect(
+      commitDnaPopulationEntrantAuthorityChunk({
+        ownerId: "private-owner",
+        authority,
+        records,
+        capacityGate: test.capacityGate,
+        checkpointRepository: test.checkpointRepository,
+        r2Store: test.r2Store,
+        registeredAt: "2026-09-25T06:02:00.000Z",
+      }),
+    ).rejects.toThrow("R2 receipt disagrees with prepared chunk");
+    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+  });
+
+  it("fails closed if the R2 receipt does not represent the exact prepared records", async () => {
+    const test = harness();
+    vi.mocked(test.r2Store.write).mockResolvedValueOnce(
+      Object.freeze({
+        receipt: Object.freeze({
+          ...receipt(),
+          bodySha256: "0".repeat(64),
+        }),
         storageStatus: "created",
       }),
     );
