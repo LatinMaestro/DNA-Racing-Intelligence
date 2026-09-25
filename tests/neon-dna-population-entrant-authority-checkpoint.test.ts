@@ -293,6 +293,47 @@ describe("Neon DNA population entrant authority checkpoint", () => {
     expect(test.events.at(-1)).toBe("close");
   });
 
+  it("rejects a checkpoint row from a different requested generation", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        checkpointRow({
+          generation_id: "b".repeat(64),
+          unresolved_race_set_sha256: "b".repeat(64),
+        }),
+      ],
+    ]);
+
+    await expect(
+      test.repository.read(ownerId, { generationId }),
+    ).rejects.toThrow("checkpoint authority drifted");
+    expect(test.events).toContain("ROLLBACK");
+  });
+
+  it("rejects a begin result that drifts from the requested audited count", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        checkpointRow({
+          unresolved_race_count: "4",
+          chunk_count: 0,
+          persisted_race_count: "0",
+          last_source_race_id: null,
+        }),
+      ],
+    ]);
+
+    await expect(
+      test.repository.begin(ownerId, {
+        authority,
+        startedAt: "2026-09-25T06:00:00.000Z",
+      }),
+    ).rejects.toThrow("checkpoint authority drifted");
+    expect(test.events).toContain("ROLLBACK");
+  });
+
   it("rejects structurally inconsistent checkpoint counters", async () => {
     const test = harness([
       [{ owner_scope: databaseOwnerId }],
