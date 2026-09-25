@@ -5,7 +5,9 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
-import type { DnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
+import type {
+  DnaPopulationEntrantAuthorityChunk,
+} from "@/lib/dna-population-entrant-authority-archive";
 import {
   recoverDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityR2RecoveryPort,
