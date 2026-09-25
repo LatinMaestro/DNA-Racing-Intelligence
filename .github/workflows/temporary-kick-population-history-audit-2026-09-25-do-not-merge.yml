@@ -16,7 +16,7 @@ jobs:
       - name: Require unchanged exact main
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: c8b66a9ce02f1f26bcb8b4350c47c00931826350
+          EXPECTED_MAIN_SHA: 0268fcb72e363a5050075f748cb3b438f2fc1f1f
         run: |
           actual="$(gh api repos/LatinMaestro/DNA-Racing-Intelligence/commits/main --jq .sha)"
           if [[ "$actual" != "$EXPECTED_MAIN_SHA" ]]; then
@@ -26,7 +26,7 @@ jobs:
       - name: Dispatch exact-main read-only audit
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: c8b66a9ce02f1f26bcb8b4350c47c00931826350
+          EXPECTED_MAIN_SHA: 0268fcb72e363a5050075f748cb3b438f2fc1f1f
         run: |
           gh workflow run dna-population-history-read-only-audit.yml \
             --repo LatinMaestro/DNA-Racing-Intelligence \
