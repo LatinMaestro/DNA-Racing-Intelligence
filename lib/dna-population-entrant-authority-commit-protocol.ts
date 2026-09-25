@@ -109,13 +109,17 @@ function validateCapacityApproval(input: {
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   approval: DnaPopulationEntrantAuthorityCapacityApproval;
 }): string {
-  const observedAt = timestamp(input.approval.observedAt, "capacity observedAt");
+  const observedAt = timestamp(
+    input.approval.observedAt,
+    "capacity observedAt",
+  );
   if (
     input.approval.version !== 1 ||
     input.approval.capacityAllowed !== true ||
     input.approval.paidUsageAllowed !== false ||
     input.approval.generationId !== input.authority.generationId ||
-    input.approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
+    input.approval.unresolvedRaceCount !==
+      input.authority.unresolvedRaceCount ||
     input.approval.unresolvedRaceSetSha256 !==
       input.authority.unresolvedRaceSetSha256
   ) {
@@ -132,8 +136,7 @@ function validatePreparedRecords(input: {
 }): void {
   if (
     input.records.length < 1 ||
-    input.records.length >
-      input.unresolvedRaceCount - input.persistedRaceCount
+    input.records.length > input.unresolvedRaceCount - input.persistedRaceCount
   ) {
     commitError("prepared chunk row count is invalid");
   }
@@ -197,7 +200,9 @@ function validateCheckpointAdvance(input: {
     new Date(input.after.updatedAt).getTime() <
       new Date(input.before.updatedAt).getTime()
   ) {
-    commitError("checkpoint did not advance exactly to the immutable R2 receipt");
+    commitError(
+      "checkpoint did not advance exactly to the immutable R2 receipt",
+    );
   }
 }
 
@@ -247,7 +252,8 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     resumeAfterSourceRaceId: recovery.resumeAfterSourceRaceId,
   });
 
-  const approval = await input.capacityGate.assertFreshCurrentCapacity(authority);
+  const approval =
+    await input.capacityGate.assertFreshCurrentCapacity(authority);
   const capacityObservedAt = validateCapacityApproval({ authority, approval });
 
   const stored = await input.r2Store.write({
@@ -255,7 +261,10 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     chunkOrdinal: recovery.nextChunkOrdinal,
     records: input.records,
   });
-  if (stored.storageStatus !== "created" && stored.storageStatus !== "existing") {
+  if (
+    stored.storageStatus !== "created" &&
+    stored.storageStatus !== "existing"
+  ) {
     commitError("immutable R2 write returned an invalid status");
   }
   validateWriteReceipt({
