@@ -8,6 +8,29 @@ describe("population entrant hydration chunk projection", () => {
       unresolvedRaceCount: 1_135_198,
       unresolvedRaceSetSha256: "a".repeat(64),
       measuredMaximumCanonicalRaceBytes: 5_031,
+      verifiedIncrementalMaximumRaceDocumentBytes: 11_795,
+      currentR2StorageBytes: 1_500_631_079,
+      currentR2ClassAOperations: 100_000,
+      currentR2ClassBOperations: 100_000,
+      currentNeonStorageBytes: 408_821_760,
+    });
+
+    expect(projection.authority.maximumRaceDocumentBytes).toBe(11_795);
+    expect(projection.chunk.projectedChunkCount).toBeLessThan(2_000);
+    expect(projection.provider.minimumRaceDocRequestCount).toBe(56_760);
+    expect(projection.projected.r2ClassAOperations).toBeLessThan(4_000);
+    expect(projection.projected.r2ClassBOperations).toBeLessThan(8_000);
+    expect(projection.allowed).toBe(false);
+    expect(projection.blockerIds).toContain("r2_storage_budget_exhausted");
+    expect(projection.persistentWriteAllowed).toBe(false);
+    expect(projection.paidUsageAllowed).toBe(false);
+  });
+
+  it("would fit the sample-only ceiling but still never authorizes writes", () => {
+    const projection = projectDnaPopulationEntrantHydrationChunkArchive({
+      unresolvedRaceCount: 1_135_198,
+      unresolvedRaceSetSha256: "b".repeat(64),
+      measuredMaximumCanonicalRaceBytes: 5_031,
       verifiedIncrementalMaximumRaceDocumentBytes: 5_000,
       currentR2StorageBytes: 1_500_631_079,
       currentR2ClassAOperations: 100_000,
@@ -16,29 +39,9 @@ describe("population entrant hydration chunk projection", () => {
     });
 
     expect(projection.authority.maximumRaceDocumentBytes).toBe(5_031);
-    expect(projection.chunk.projectedChunkCount).toBeLessThan(1_000);
-    expect(projection.provider.minimumRaceDocRequestCount).toBe(56_760);
-    expect(projection.projected.r2ClassAOperations).toBeLessThan(2_000);
-    expect(projection.projected.r2ClassBOperations).toBeLessThan(4_000);
+    expect(projection.allowed).toBe(true);
+    expect(projection.blockerIds).toEqual([]);
     expect(projection.persistentWriteAllowed).toBe(false);
-    expect(projection.paidUsageAllowed).toBe(false);
-  });
-
-  it("uses the larger durable size authority and holds when storage would exceed zero-cost capacity", () => {
-    const projection = projectDnaPopulationEntrantHydrationChunkArchive({
-      unresolvedRaceCount: 1_135_198,
-      unresolvedRaceSetSha256: "b".repeat(64),
-      measuredMaximumCanonicalRaceBytes: 5_031,
-      verifiedIncrementalMaximumRaceDocumentBytes: 7_000,
-      currentR2StorageBytes: 1_500_631_079,
-      currentR2ClassAOperations: 100_000,
-      currentR2ClassBOperations: 100_000,
-      currentNeonStorageBytes: 408_821_760,
-    });
-
-    expect(projection.authority.maximumRaceDocumentBytes).toBe(7_000);
-    expect(projection.allowed).toBe(false);
-    expect(projection.blockerIds).toContain("r2_storage_budget_exhausted");
   });
 
   it("rejects malformed authority before projection", () => {
