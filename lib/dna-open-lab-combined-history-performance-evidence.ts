@@ -952,7 +952,6 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
           incrementalDocumentReferenceCount += 1;
           incrementalMaximumRaceDocumentBytes = Math.max(
             incrementalMaximumRaceDocumentBytes,
-    incrementalMaximumCompactEntrantAuthorityBytes,
             verified.byteLength,
           );
           acceptDocument(
@@ -1011,6 +1010,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     incrementalWindowCount,
     incrementalDocumentReferenceCount,
     incrementalMaximumRaceDocumentBytes,
+    incrementalMaximumCompactEntrantAuthorityBytes,
     quarantinedIdentityObservationCount,
     r2ClassBOperationsUsed,
     uniqueRaceCount: raceIds.size,
