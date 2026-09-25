@@ -75,22 +75,34 @@ jobs:
             grep -oE 'database/migrations/[0-9]{4}_[^ ]+\.up\.sql' .github/workflows/ci.yml |
               awk '!seen[$0]++'
           )
-          if [[ "${#migrations[@]}" -lt 3 ]] || [[ "${migrations[-1]}" != "database/migrations/0116_dna_population_race_index_published_manifest_read.up.sql" ]]; then
-            echo "Authoritative CI migration list does not end at 0116."
+          migration_0114="database/migrations/0114_dna_population_race_index_r2_compaction.up.sql"
+          migration_0115="database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql"
+          migration_0116="database/migrations/0116_dna_population_race_index_published_manifest_read.up.sql"
+          index_0114=-1
+          index_0115=-1
+          index_0116=-1
+          for index in "${!migrations[@]}"; do
+            case "${migrations[$index]}" in
+              "$migration_0114") index_0114=$index ;;
+              "$migration_0115") index_0115=$index ;;
+              "$migration_0116") index_0116=$index ;;
+            esac
+          done
+          if (( index_0114 < 0 || index_0115 < 0 || index_0116 < 0 )); then
+            echo "Authoritative CI migration list is missing one or more of 0114, 0115, or 0116."
             exit 1
           fi
-          unset 'migrations[-1]'
-          if [[ "${migrations[-1]}" != "database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql" ]]; then
-            echo "Authoritative CI migration predecessor is not 0115."
+          if (( index_0115 != index_0114 + 1 )); then
+            echo "Authoritative CI migration predecessor to 0115 is not 0114."
             exit 1
           fi
-          unset 'migrations[-1]'
-          if [[ "${migrations[-1]}" != "database/migrations/0114_dna_population_race_index_r2_compaction.up.sql" ]]; then
-            echo "Authoritative CI migration baseline does not end at 0114."
+          if (( index_0116 != index_0115 + 1 )); then
+            echo "Authoritative CI migration predecessor to 0116 is not 0115."
             exit 1
           fi
-          for migration in "${migrations[@]}"; do
-            psql --set ON_ERROR_STOP=1 --file "$migration" >/dev/null
+          baseline_count=$((index_0114 + 1))
+          for (( index = 0; index < baseline_count; index++ )); do
+            psql --set ON_ERROR_STOP=1 --file "${migrations[$index]}" >/dev/null
           done
       - name: Apply population race index storage-negative cutover migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0115_dna_population_race_index_storage_negative_cutover.up.sql
