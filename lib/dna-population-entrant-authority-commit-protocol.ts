@@ -3,9 +3,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
-import {
-  buildDnaPopulationEntrantAuthorityChunk,
-} from "./dna-population-entrant-authority-archive";
+import { buildDnaPopulationEntrantAuthorityChunk } from "./dna-population-entrant-authority-archive";
 import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
 import {
   recoverDnaPopulationEntrantAuthority,
