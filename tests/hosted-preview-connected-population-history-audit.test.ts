@@ -341,6 +341,8 @@ describeConnected("hosted Preview all-mode population history audit", () => {
             historyAssessment.incrementalDocumentReferenceCount,
           incrementalMaximumRaceDocumentBytes:
             historyAssessment.incrementalMaximumRaceDocumentBytes,
+          incrementalMaximumCompactEntrantAuthorityBytes:
+            historyAssessment.incrementalMaximumCompactEntrantAuthorityBytes,
           latestFinishedRaceCutoff,
           uniqueRaceCount: historyAssessment.uniqueRaceCount,
           r2ClassBOperationsUsed: historyAssessment.r2ClassBOperationsUsed,

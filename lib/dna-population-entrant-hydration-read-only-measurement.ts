@@ -1,3 +1,4 @@
+import { dnaPopulationEntrantAuthorityRecordBytes } from "./dna-population-entrant-authority-record";
 import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
 import {
   hydrateDnaRaceDocuments,
@@ -25,7 +26,9 @@ export type DnaPopulationEntrantHydrationReadOnlyMeasurement = Readonly<{
   returnedRowCount: number;
   canonicalResponseBytes: number;
   maximumCanonicalRaceBytes: number;
+  maximumCompactEntrantAuthorityBytes: number;
   projectedR2PayloadBytesCeiling: number;
+  projectedCompactEntrantAuthorityBytesCeiling: number;
   projectedR2PayloadFitsZeroCostStorageBudget: boolean;
   capacity: Readonly<{
     currentR2StorageBytes: number;
@@ -217,6 +220,18 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
     measurementError("bounded provider measurement did not reconcile");
   }
 
+  const maximumCompactEntrantAuthorityBytes = Math.max(
+    ...hydration.documents.map((evidence) =>
+      dnaPopulationEntrantAuthorityRecordBytes(evidence),
+    ),
+  );
+  if (
+    !Number.isSafeInteger(maximumCompactEntrantAuthorityBytes) ||
+    maximumCompactEntrantAuthorityBytes < 1
+  ) {
+    measurementError("compact entrant authority measurement is invalid");
+  }
+
   const projectedR2PayloadBytesCeiling = safeMultiply(
     maximumCanonicalRaceBytes,
     expectedUnresolvedRaceCount,
@@ -226,6 +241,12 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
     currentR2StorageBytes,
     projectedR2PayloadBytesCeiling,
     "projected R2 storage",
+  );
+
+  const projectedCompactEntrantAuthorityBytesCeiling = safeMultiply(
+    maximumCompactEntrantAuthorityBytes,
+    expectedUnresolvedRaceCount,
+    "projected compact entrant authority byte ceiling",
   );
 
   return Object.freeze({
@@ -238,7 +259,9 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
     returnedRowCount: hydration.documents.length,
     canonicalResponseBytes,
     maximumCanonicalRaceBytes,
+    maximumCompactEntrantAuthorityBytes,
     projectedR2PayloadBytesCeiling,
+    projectedCompactEntrantAuthorityBytesCeiling,
     projectedR2PayloadFitsZeroCostStorageBudget:
       projectedR2StorageBytesIncludingCurrentUsage <=
       DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes,
