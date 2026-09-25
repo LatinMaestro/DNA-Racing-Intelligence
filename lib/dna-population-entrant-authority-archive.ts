@@ -206,6 +206,9 @@ export function decodeDnaPopulationEntrantAuthorityChunk(input: {
   receipt: DnaPopulationEntrantAuthorityChunkReceipt;
   body: Uint8Array;
 }): DnaPopulationEntrantAuthorityChunk {
+  if (input.receipt.version !== 1) {
+    archiveError("receipt version is invalid");
+  }
   const generationId = sha256(input.receipt.generationId, "generationId");
   const chunkOrdinal = positive(
     input.receipt.chunkOrdinal,
