@@ -429,15 +429,22 @@ describeConnected("hosted Preview all-mode population history audit", () => {
           );
         }
 
+        // Re-measure provider capacity after the audit's R2 reads so the
+        // one connected DNA request is gated by current zero-cost headroom.
+        const measurementProviderCapacity = await capacitySource.measure({
+          ownerId,
+        });
+
         // Read the DNA credential only after the complete population authority
-        // has reproduced the exact audited unresolved Race count/hash.
+        // has reproduced the exact audited unresolved Race count/hash and
+        // current provider capacity has been refreshed.
         const dnaApiKey = requiredEnvironment("DNA_OPEN_LAB_API_KEY_1");
         const measurement =
           await measureDnaPopulationEntrantHydrationReadOnly({
             plan,
             expectedUnresolvedRaceCount,
             expectedUnresolvedRaceSetSha256,
-            providerCapacity,
+            providerCapacity: measurementProviderCapacity,
             client: createDnaOpenLabV1Client({ apiKey: dnaApiKey }),
             requestBudget: createDnaOpenLabRequestBudget({
               initialRequestsPerMinute:
