@@ -1,9 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import {
-  replayDnaPopulationEntrantAuthority,
-} from "@/lib/dna-population-entrant-authority-replay";
+import { replayDnaPopulationEntrantAuthority } from "@/lib/dna-population-entrant-authority-replay";
 import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
 
 function setHash(raceIds: readonly string[]): string {

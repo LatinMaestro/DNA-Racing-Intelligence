@@ -75,8 +75,7 @@ function canonicalDocument(
     ...(record.entrantCoreIdsEvidenceStatus === undefined
       ? {}
       : {
-          entrantCoreIdsEvidenceStatus:
-            record.entrantCoreIdsEvidenceStatus,
+          entrantCoreIdsEvidenceStatus: record.entrantCoreIdsEvidenceStatus,
         }),
   });
 }
@@ -181,7 +180,8 @@ export function replayDnaPopulationEntrantAuthority(input: {
     exactReplayDuplicateCount,
     recordSetSha256,
     canonicalDocuments,
-    replayIntegrityStatus: "proven_compact_population_authority_replay" as const,
+    replayIntegrityStatus:
+      "proven_compact_population_authority_replay" as const,
     providerReadRequired: false as const,
     persistentWriteAllowed: false as const,
     paidUsageAllowed: false as const,
