@@ -5,9 +5,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
-import {
-  buildDnaPopulationEntrantAuthorityChunk,
-} from "@/lib/dna-population-entrant-authority-archive";
+import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
 import {
   commitDnaPopulationEntrantAuthorityChunk,
   type DnaPopulationEntrantAuthorityCapacityGate,
