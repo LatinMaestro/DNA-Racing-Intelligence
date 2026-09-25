@@ -280,7 +280,8 @@ function parseCheckpoint(
     checkpoint.generationId !== checkpoint.unresolvedRaceSetSha256 ||
     checkpoint.generationId !== expectedAuthority.generationId ||
     (expectedAuthority.unresolvedRaceCount !== undefined &&
-      checkpoint.unresolvedRaceCount !== expectedAuthority.unresolvedRaceCount) ||
+      checkpoint.unresolvedRaceCount !==
+        expectedAuthority.unresolvedRaceCount) ||
     (expectedAuthority.unresolvedRaceSetSha256 !== undefined &&
       checkpoint.unresolvedRaceSetSha256 !==
         expectedAuthority.unresolvedRaceSetSha256) ||
