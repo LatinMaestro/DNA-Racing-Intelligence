@@ -119,9 +119,7 @@ function response(
   });
 }
 
-function rawHydratedDocument(
-  sourceRaceId: DnaRaceIdentifier,
-): DnaRaceDocument {
+function rawHydratedDocument(sourceRaceId: DnaRaceIdentifier): DnaRaceDocument {
   const numeric = Number(String(sourceRaceId).replace(/\D/gu, "")) || 1;
   return Object.freeze({
     rid: sourceRaceId,
@@ -215,8 +213,7 @@ function harness(input: {
         return Object.freeze(
           manifests
             .filter(
-              (manifest) =>
-                manifest.chunkOrdinal > request.afterChunkOrdinal,
+              (manifest) => manifest.chunkOrdinal > request.afterChunkOrdinal,
             )
             .slice(0, request.limit),
         );
@@ -293,23 +290,25 @@ function harness(input: {
     }),
   });
 
-  const capacityGate: DnaPopulationEntrantAuthorityCapacityGate = Object.freeze({
-    assertFreshCurrentCapacity: vi.fn(async () => {
-      events.push("capacity");
-      if (input.capacityFailure) {
-        throw new Error("private capacity detail");
-      }
-      return Object.freeze({
-        version: 1 as const,
-        generationId: input.authority.generationId,
-        unresolvedRaceCount: input.authority.unresolvedRaceCount,
-        unresolvedRaceSetSha256: input.authority.unresolvedRaceSetSha256,
-        observedAt: "2026-09-26T01:01:30.000Z",
-        capacityAllowed: true as const,
-        paidUsageAllowed: false as const,
-      });
-    }),
-  });
+  const capacityGate: DnaPopulationEntrantAuthorityCapacityGate = Object.freeze(
+    {
+      assertFreshCurrentCapacity: vi.fn(async () => {
+        events.push("capacity");
+        if (input.capacityFailure) {
+          throw new Error("private capacity detail");
+        }
+        return Object.freeze({
+          version: 1 as const,
+          generationId: input.authority.generationId,
+          unresolvedRaceCount: input.authority.unresolvedRaceCount,
+          unresolvedRaceSetSha256: input.authority.unresolvedRaceSetSha256,
+          observedAt: "2026-09-26T01:01:30.000Z",
+          capacityAllowed: true as const,
+          paidUsageAllowed: false as const,
+        });
+      }),
+    },
+  );
 
   const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
     raceDocs: vi.fn(async (raceIds) => {
