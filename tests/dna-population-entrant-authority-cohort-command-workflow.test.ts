@@ -6,7 +6,7 @@ const workflowPath =
   ".github/workflows/dna-population-entrant-authority-cohort-command.yml";
 
 describe("DNA population entrant authority cohort commissioning workflow", () => {
-  it("is dispatch-only, exact-main, single-cohort, Preview-only and fail-closed", async () => {
+  it("is dispatch-only, exact-main, first-cohort-only, Preview-only and fail-closed", async () => {
     const workflow = await readFile(workflowPath, "utf8");
 
     expect(workflow).toContain("workflow_dispatch:");
@@ -17,7 +17,10 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     expect(workflow).toContain("expected_unresolved_race_set_sha256:");
     expect(workflow).toContain("readiness_capacity_observed_at:");
     expect(workflow).toContain("readiness_receipt_sha256:");
-    expect(workflow).toContain("execute_one_private_preview_entrant_cohort:");
+    expect(workflow).toContain("execute_first_private_preview_entrant_cohort:");
+    expect(workflow).not.toContain(
+      "execute_one_private_preview_entrant_cohort:",
+    );
     expect(workflow).toContain("default: false");
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
     expect(workflow).toContain(
@@ -43,6 +46,9 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
       "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_RECEIPT_SHA256",
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
+    expect(workflow).toContain(
+      "group: dna-population-entrant-authority-first-cohort",
+    );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-entrant-authority-cohort-command.test.ts",

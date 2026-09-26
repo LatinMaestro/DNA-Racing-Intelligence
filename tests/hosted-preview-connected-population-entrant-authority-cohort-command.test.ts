@@ -75,10 +75,10 @@ function connectedFailureId(error: unknown): string {
 }
 
 describeConnected(
-  "hosted Preview population entrant authority single-cohort commissioning",
+  "hosted Preview population entrant authority first-cohort commissioning",
   () => {
     it(
-      "preflights, prepares and commits exactly one bounded private Preview cohort",
+      "preflights, prepares and commits only the first bounded private Preview cohort",
       async () => {
         let stage: DiagnosticStage = "environment";
         try {
@@ -159,6 +159,10 @@ describeConnected(
           expect(session.prepared).toMatchObject({
             status: "prepared_uncommitted",
             exactCodeHeadSha,
+            recoveredRaceCount: 0,
+            chunkOrdinal: 1,
+            checkpointChunkCountBeforePreparation: 0,
+            checkpointRaceCountBeforePreparation: 0,
             persistentWriteArmed: true,
             previewOnly: true,
             entrantChunkPersistentWritePerformed: false,
@@ -178,12 +182,11 @@ describeConnected(
           expect(receipt).toMatchObject({
             status: "committed",
             exactCodeHeadSha,
-            chunkOrdinal: session.prepared.chunkOrdinal,
+            chunkOrdinal: 1,
+            checkpointRaceCountBefore: 0,
             rowCount: session.prepared.selectedRaceCount,
             resolvedRaceCount: session.prepared.resolvedRaceCount,
             quarantinedRaceCount: session.prepared.quarantinedRaceCount,
-            checkpointRaceCountBefore:
-              session.prepared.checkpointRaceCountBeforePreparation,
             persistentWriteArmed: true,
             previewOnly: true,
             providerRequestPerformed: false,
@@ -192,9 +195,11 @@ describeConnected(
             paidUsageAllowed: false,
             preserveLastGood: true,
           });
-          expect(receipt.checkpointRaceCountAfter).toBe(
-            receipt.checkpointRaceCountBefore + receipt.rowCount,
+          expect(receipt.chunkOrdinal).toBe(session.prepared.chunkOrdinal);
+          expect(receipt.checkpointRaceCountBefore).toBe(
+            session.prepared.checkpointRaceCountBeforePreparation,
           );
+          expect(receipt.checkpointRaceCountAfter).toBe(receipt.rowCount);
 
           const report = Object.freeze({
             status: receipt.status,

@@ -1,4 +1,4 @@
-name: DNA population entrant authority single-cohort commissioning
+name: DNA population entrant authority first-cohort commissioning
 
 on:
   workflow_dispatch:
@@ -27,8 +27,8 @@ on:
         description: SHA-256 of the exact successful read-only readiness receipt
         required: true
         type: string
-      execute_one_private_preview_entrant_cohort:
-        description: Confirm exactly one persistent private Preview entrant cohort
+      execute_first_private_preview_entrant_cohort:
+        description: Confirm the first persistent private Preview entrant cohort for this generation
         required: true
         default: false
         type: boolean
@@ -37,12 +37,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: dna-population-entrant-authority-single-cohort
+  group: dna-population-entrant-authority-first-cohort
   cancel-in-progress: false
 
 jobs:
-  exact-main-single-private-preview-cohort:
-    name: Exact-main single private Preview entrant cohort
+  exact-main-first-private-preview-cohort:
+    name: Exact-main first private Preview entrant cohort
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: preview
@@ -68,15 +68,15 @@ jobs:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
-      - name: Require exact main dispatch and explicit one-cohort write arm
+      - name: Require exact main dispatch and explicit first-cohort write arm
         shell: bash
         run: |
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "This entrant commissioning workflow may only run from main."
             exit 1
           fi
-          if [[ "${{ inputs.execute_one_private_preview_entrant_cohort }}" != "true" ]]; then
-            echo "The private Preview entrant cohort was not explicitly armed."
+          if [[ "${{ inputs.execute_first_private_preview_entrant_cohort }}" != "true" ]]; then
+            echo "The first private Preview entrant cohort was not explicitly armed."
             exit 1
           fi
           if [[ "${{ inputs.expected_main_sha }}" != "$GITHUB_SHA" ]]; then
@@ -182,9 +182,9 @@ jobs:
           ) {
             throw new Error("The cohort observation time must be a canonical past UTC timestamp.");
           }
-          console.log("Validated the single-cohort private Preview configuration without printing private values.");
+          console.log("Validated the first-cohort private Preview configuration without printing private values.");
           NODE
-      - name: Execute exactly one guarded private Preview entrant cohort
+      - name: Execute the guarded first private Preview entrant cohort
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-population-entrant-authority-cohort-command.test.ts
