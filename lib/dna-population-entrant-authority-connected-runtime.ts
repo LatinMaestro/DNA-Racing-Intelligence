@@ -230,6 +230,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         const page = await listBinding.list({
           prefix: request.prefix,
           limit: request.limit,
+          include: ["httpMetadata", "customMetadata"] as const,
         });
         return Object.freeze({
           objects: Object.freeze(
