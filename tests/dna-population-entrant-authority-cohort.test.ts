@@ -7,6 +7,7 @@ import {
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
   prepareDnaPopulationEntrantAuthorityCohort,
+  type DnaPopulationEntrantAuthorityCohortR2Port,
   type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "@/lib/dna-population-entrant-authority-cohort";
 import type {
@@ -14,10 +15,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
-import type {
-  DnaPopulationEntrantAuthorityCapacityGate,
-  DnaPopulationEntrantAuthorityR2CommitPort,
-} from "@/lib/dna-population-entrant-authority-commit-protocol";
+import type { DnaPopulationEntrantAuthorityCapacityGate } from "@/lib/dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
 import type { DnaPopulationEntrantAuthorityR2ChunkReceipt } from "@/lib/dna-population-entrant-authority-r2-store";
 import {
@@ -93,10 +91,11 @@ function emptyCheckpoint(
 
 function compactRecord(
   sourceRaceId: string,
+  observedAt = STARTED_AT,
 ): DnaPopulationEntrantAuthorityRecord {
   return Object.freeze({
     sourceRaceId,
-    observedAt: STARTED_AT,
+    observedAt,
     rawEvidenceSha256: "a".repeat(64),
     mode: "bike" as const,
     entrantCoreIds: Object.freeze(["1"]),
@@ -180,6 +179,8 @@ function harness(input: {
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   checkpoint?: DnaPopulationEntrantAuthorityCheckpoint;
   priorChunks?: readonly PriorChunk[];
+  pendingChunk?: PriorChunk;
+  pendingFailure?: boolean;
   failFirstRegistration?: boolean;
   capacityFailure?: boolean;
   provider?: (
@@ -191,6 +192,12 @@ function harness(input: {
   const storedByOrdinal = new Map<number, PriorChunk>();
   for (const entry of input.priorChunks ?? []) {
     storedByOrdinal.set(entry.receipt.chunkOrdinal, entry);
+  }
+  if (input.pendingChunk !== undefined) {
+    storedByOrdinal.set(
+      input.pendingChunk.receipt.chunkOrdinal,
+      input.pendingChunk,
+    );
   }
   const manifests: DnaPopulationEntrantAuthorityChunkManifest[] = (
     input.priorChunks ?? []
@@ -251,7 +258,7 @@ function harness(input: {
     ),
   });
 
-  const r2Store: DnaPopulationEntrantAuthorityR2CommitPort = Object.freeze({
+  const r2Store: DnaPopulationEntrantAuthorityCohortR2Port = Object.freeze({
     read: vi.fn(async (receipt) => {
       events.push("r2-read");
       const stored = storedByOrdinal.get(receipt.chunkOrdinal);
@@ -262,6 +269,19 @@ function harness(input: {
         throw new Error("private synthetic R2 read detail");
       }
       return stored.chunk;
+    }),
+    findPending: vi.fn(async (request) => {
+      events.push("pending-find");
+      if (input.pendingFailure) {
+        throw new Error("private pending discovery detail");
+      }
+      const stored = storedByOrdinal.get(request.chunkOrdinal);
+      return stored === undefined
+        ? null
+        : Object.freeze({
+            receipt: stored.receipt,
+            chunk: stored.chunk,
+          });
     }),
     write: vi.fn(async (request) => {
       events.push("r2-write");
@@ -380,6 +400,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       status: "prepared_uncommitted",
       selectedRaceCount: 45,
       providerRequestCount: 3,
+      preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
       aggregateRequestsPerMinute: 30,
@@ -477,6 +498,103 @@ describe("DNA population entrant authority cohort bridge", () => {
       chunkOrdinal: 2,
       selectedRaceCount: 3,
     });
+  });
+
+  it("recovers the exact pending R2 cohort after process loss without DNA hydration", async () => {
+    const raceDocuments = unresolvedRaceDocuments(3);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const pending = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [
+        compactRecord(raceId(1), OBSERVED_AT),
+        compactRecord(raceId(2), OBSERVED_AT),
+        compactRecord(raceId(3), OBSERVED_AT),
+      ],
+    });
+    const test = harness({ authority, pendingChunk: pending });
+
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
+
+    expect(prepared.summary).toMatchObject({
+      preparationSource: "pending_r2_recovery",
+      providerRequestCount: 0,
+      providerRequestPerformed: false,
+      selectedRaceCount: 3,
+      chunkOrdinal: 1,
+      cohortObservedAt: OBSERVED_AT,
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.events).toEqual(["checkpoint-read", "pending-find"]);
+
+    const committed = await prepared.commit({
+      registeredAt: REGISTERED_AT,
+    });
+
+    expect(committed).toMatchObject({
+      storageStatus: "existing",
+      checkpointRaceCountBefore: 0,
+      checkpointRaceCountAfter: 3,
+      authorityComplete: true,
+    });
+    expect(test.providerCalls).toHaveLength(0);
+  });
+
+  it("fails closed when a pending R2 cohort does not match the audited next Race slice", async () => {
+    const raceDocuments = unresolvedRaceDocuments(3);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const pending = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [
+        compactRecord(raceId(1), OBSERVED_AT),
+        compactRecord(raceId(3), OBSERVED_AT),
+      ],
+    });
+    const test = harness({ authority, pendingChunk: pending });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "pending_recovery_mismatch",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes pending discovery failure before DNA hydration", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({ authority, pendingFailure: true });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "pending_recovery_unavailable",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(String(error)).not.toContain("private pending discovery detail");
+    expect(test.providerCalls).toHaveLength(0);
   });
 
   it("rejects recovered content with the right boundary but the wrong Race set", async () => {
