@@ -13,6 +13,10 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandSession,
   type DnaPopulationEntrantAuthorityCohortCommandInvocation,
 } from "./dna-population-entrant-authority-cohort-command";
+import {
+  createDnaPopulationEntrantAuthorityFirstCohortVerifier,
+  type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt,
+} from "./dna-population-entrant-authority-first-cohort-verification";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-live-audit-source";
 import {
   createDnaPopulationEntrantAuthorityReadinessInspector,
@@ -63,6 +67,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       status: "ready";
       exactCodeHeadSha: string;
       inspectReadiness: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
+      inspectFirstCohortVerification: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -339,6 +344,14 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       authoritySource,
       capacityGate,
     });
+    const firstCohortVerification =
+      createDnaPopulationEntrantAuthorityFirstCohortVerifier({
+        ownerId: config.ownerId,
+        exactCodeHeadSha: config.exactCodeHeadSha,
+        authoritySource,
+        checkpointRepository,
+        r2Store,
+      });
 
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
@@ -358,6 +371,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       status: "ready" as const,
       exactCodeHeadSha: config.exactCodeHeadSha,
       inspectReadiness: readiness.inspect,
+      inspectFirstCohortVerification: firstCohortVerification.inspect,
       execute: command.execute,
     });
   } catch {
