@@ -81,7 +81,6 @@ describe("population entrant authority record", () => {
     ).not.toHaveProperty("entrantCoreIds");
   });
 
-
   it("creates a compact quarantine outcome without inventing authority", () => {
     expect(
       dnaPopulationEntrantAuthorityQuarantineRecord({
