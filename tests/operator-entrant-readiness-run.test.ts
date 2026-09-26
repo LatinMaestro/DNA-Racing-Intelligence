@@ -220,6 +220,37 @@ describeConnected(
           throw new Error("operator manifest diagnostic failed");
         }
 
+        let previousLast: string | null = null;
+        for (const manifest of manifests) {
+          if (
+            previousLast !== null &&
+            manifest.firstSourceRaceId <= previousLast
+          ) {
+            const utf8Comparison = Buffer.from(
+              manifest.firstSourceRaceId,
+              "utf8",
+            ).compare(Buffer.from(previousLast, "utf8"));
+            console.log(
+              "DNA_POPULATION_ENTRANT_AUTHORITY_MANIFEST_ORDER_DIAGNOSTIC=" +
+                JSON.stringify({
+                  failingChunkOrdinal: manifest.chunkOrdinal,
+                  javascriptOrdersAfterPrevious: false,
+                  utf8COrdersAfterPrevious: utf8Comparison > 0,
+                  firstIsAscii: /^[\\x20-\\x7e]+$/u.test(
+                    manifest.firstSourceRaceId,
+                  ),
+                  previousLastIsAscii: /^[\\x20-\\x7e]+$/u.test(
+                    previousLast,
+                  ),
+                  firstLength: manifest.firstSourceRaceId.length,
+                  previousLastLength: previousLast.length,
+                }),
+            );
+            break;
+          }
+          previousLast = manifest.lastSourceRaceId;
+        }
+
         const bucketName = requiredEnvironment("DNA_R2_BUCKET_NAME");
         const storage = createCloudflareR2DatasetEvidencePort({
           accountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
