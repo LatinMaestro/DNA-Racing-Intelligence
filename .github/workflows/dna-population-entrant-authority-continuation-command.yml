@@ -1,0 +1,235 @@
+name: DNA population entrant authority single-next-cohort continuation
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to continue
+        required: true
+        type: string
+      cohort_observed_at:
+        description: Canonical UTC observation timestamp for this one next cohort
+        required: true
+        type: string
+      expected_unresolved_race_count:
+        description: Exact unresolved Race count from continuation readiness
+        required: true
+        type: string
+      expected_unresolved_race_set_sha256:
+        description: Exact unresolved Race set SHA-256 from continuation readiness
+        required: true
+        type: string
+      expected_recovered_chunk_count:
+        description: Exact recovered chunk count from continuation readiness
+        required: true
+        type: string
+      expected_recovered_race_count:
+        description: Exact recovered Race count from continuation readiness
+        required: true
+        type: string
+      expected_next_chunk_ordinal:
+        description: Exact next chunk ordinal from continuation readiness
+        required: true
+        type: string
+      expected_checkpoint_updated_at:
+        description: Exact checkpoint update timestamp from continuation readiness
+        required: true
+        type: string
+      continuation_capacity_observed_at:
+        description: Capacity observation timestamp from continuation readiness
+        required: true
+        type: string
+      durable_boundary_sha256:
+        description: Durable boundary SHA-256 from continuation readiness
+        required: true
+        type: string
+      execute_one_next_private_preview_entrant_cohort:
+        description: Confirm exactly one next persistent private Preview entrant cohort
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-entrant-authority-single-next-cohort
+  cancel-in-progress: false
+
+jobs:
+  exact-main-one-next-private-preview-cohort:
+    name: Exact-main one next private Preview entrant cohort
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: preview
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND: "1"
+      DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT: ${{ inputs.cohort_observed_at }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256: ${{ inputs.expected_unresolved_race_set_sha256 }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_CHUNK_COUNT: ${{ inputs.expected_recovered_chunk_count }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_RACE_COUNT: ${{ inputs.expected_recovered_race_count }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_NEXT_CHUNK_ORDINAL: ${{ inputs.expected_next_chunk_ordinal }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_CHECKPOINT_UPDATED_AT: ${{ inputs.expected_checkpoint_updated_at }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_CAPACITY_OBSERVED_AT: ${{ inputs.continuation_capacity_observed_at }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_DURABLE_BOUNDARY_SHA256: ${{ inputs.durable_boundary_sha256 }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit single-next-cohort write arm
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This entrant continuation workflow may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_one_next_private_preview_entrant_cohort }}" != "true" ]]; then
+            echo "The next private Preview entrant cohort was not explicitly armed."
+            exit 1
+          fi
+          if [[ "${{ inputs.expected_main_sha }}" != "$GITHUB_SHA" ]]; then
+            echo "The supplied continuation commit does not match the dispatch head."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]] || \
+             [[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]]; then
+            echo "The entrant continuation head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded private Preview continuation configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_OPEN_LAB_API_KEY_1",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_CHUNK_COUNT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_RACE_COUNT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_NEXT_CHUNK_ORDINAL",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_CHECKPOINT_UPDATED_AT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_CAPACITY_OBSERVED_AT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_DURABLE_BOUNDARY_SHA256",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid entrant continuation settings: " + invalid.join(", "));
+          }
+          if (process.env.DNA_R2_STORAGE_CLASS !== "Standard") {
+            throw new Error("Only R2 Standard storage is allowed.");
+          }
+          if (
+            !/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA ?? "") ||
+            process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA !== process.env.GITHUB_SHA
+          ) {
+            throw new Error("The exact main commit binding is invalid.");
+          }
+          const positiveInteger = (name) => {
+            const value = process.env[name];
+            if (!/^[1-9]\d*$/.test(value ?? "")) {
+              throw new Error("A continuation integer binding is invalid.");
+            }
+            const parsed = Number(value);
+            if (!Number.isSafeInteger(parsed) || parsed < 1) {
+              throw new Error("A continuation integer binding is invalid.");
+            }
+            return parsed;
+          };
+          const unresolved = positiveInteger(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+          );
+          const recoveredChunks = positiveInteger(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_CHUNK_COUNT",
+          );
+          const recoveredRaces = positiveInteger(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_RECOVERED_RACE_COUNT",
+          );
+          const nextChunk = positiveInteger(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_NEXT_CHUNK_ORDINAL",
+          );
+          if (nextChunk !== recoveredChunks + 1 || recoveredRaces >= unresolved) {
+            throw new Error("The continuation boundary counters are invalid.");
+          }
+          for (const name of [
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_DURABLE_BOUNDARY_SHA256",
+          ]) {
+            if (!/^[a-f0-9]{64}$/.test(process.env[name] ?? "")) {
+              throw new Error("A continuation SHA-256 binding is invalid.");
+            }
+          }
+          const canonicalPast = (name) => {
+            const value = process.env[name];
+            const parsed = new Date(value);
+            if (
+              Number.isNaN(parsed.getTime()) ||
+              parsed.toISOString() !== value ||
+              parsed.getTime() > Date.now()
+            ) {
+              throw new Error("A continuation timestamp binding is invalid.");
+            }
+          };
+          canonicalPast(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_CHECKPOINT_UPDATED_AT",
+          );
+          canonicalPast(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_CAPACITY_OBSERVED_AT",
+          );
+          canonicalPast("DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT");
+          console.log("Validated the single-next-cohort private Preview configuration without printing private values.");
+          NODE
+      - name: Execute one guarded next private Preview entrant cohort
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-entrant-authority-continuation-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]]; then
+            echo "Main changed during the entrant continuation workflow."
+            exit 1
+          fi
