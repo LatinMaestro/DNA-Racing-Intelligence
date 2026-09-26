@@ -16,7 +16,10 @@ import type {
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "@/lib/dna-population-entrant-authority-commit-protocol";
-import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
+import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
+  type DnaPopulationEntrantAuthorityRecord,
+} from "@/lib/dna-population-entrant-authority-record";
 import type { DnaPopulationEntrantAuthorityR2ChunkReceipt } from "@/lib/dna-population-entrant-authority-r2-store";
 import {
   planDnaPopulationHistoryAcquisition,
@@ -399,6 +402,8 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(prepared.summary).toMatchObject({
       status: "prepared_uncommitted",
       selectedRaceCount: 45,
+      resolvedRaceCount: 45,
+      quarantinedRaceCount: 0,
       providerRequestCount: 3,
       preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
@@ -421,6 +426,8 @@ describe("DNA population entrant authority cohort bridge", () => {
       status: "committed",
       chunkOrdinal: 1,
       rowCount: 45,
+      resolvedRaceCount: 45,
+      quarantinedRaceCount: 0,
       storageStatus: "created",
       checkpointRaceCountBefore: 0,
       checkpointRaceCountAfter: 45,
@@ -455,6 +462,8 @@ describe("DNA population entrant authority cohort bridge", () => {
 
     expect(DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES).toBe(5_000);
     expect(prepared.summary.selectedRaceCount).toBe(5_000);
+    expect(prepared.summary.resolvedRaceCount).toBe(5_000);
+    expect(prepared.summary.quarantinedRaceCount).toBe(0);
     expect(prepared.summary.providerRequestCount).toBe(250);
     expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
     expect(test.providerCalls).toHaveLength(250);
@@ -527,6 +536,8 @@ describe("DNA population entrant authority cohort bridge", () => {
       providerRequestCount: 0,
       providerRequestPerformed: false,
       selectedRaceCount: 3,
+      resolvedRaceCount: 3,
+      quarantinedRaceCount: 0,
       chunkOrdinal: 1,
       cohortObservedAt: OBSERVED_AT,
     });
@@ -541,7 +552,58 @@ describe("DNA population entrant authority cohort bridge", () => {
       storageStatus: "existing",
       checkpointRaceCountBefore: 0,
       checkpointRaceCountAfter: 3,
+      resolvedRaceCount: 3,
+      quarantinedRaceCount: 0,
       authorityComplete: true,
+    });
+    expect(test.providerCalls).toHaveLength(0);
+  });
+
+  it("recovers quarantined pending R2 outcomes without a second DNA hydration", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const pending = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [
+        compactRecord(raceId(1), OBSERVED_AT),
+        dnaPopulationEntrantAuthorityQuarantineRecord({
+          sourceRaceId: raceId(2),
+          observedAt: OBSERVED_AT,
+          quarantineReason: "provider_document_missing",
+        }),
+      ],
+    });
+    const test = harness({ authority, pendingChunk: pending });
+
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
+
+    expect(prepared.summary).toMatchObject({
+      preparationSource: "pending_r2_recovery",
+      selectedRaceCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      providerRequestCount: 0,
+      providerRequestPerformed: false,
+    });
+    expect(test.providerCalls).toHaveLength(0);
+
+    const committed = await prepared.commit({
+      registeredAt: REGISTERED_AT,
+    });
+    expect(committed).toMatchObject({
+      rowCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      checkpointRaceCountAfter: 2,
+      authorityComplete: true,
+      storageStatus: "existing",
     });
     expect(test.providerCalls).toHaveLength(0);
   });
@@ -691,13 +753,52 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
-  it("sanitizes strict hydration coverage failure and performs no persistence", async () => {
+  it("quarantines one isolated missing Race and advances the full audited checkpoint", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
     const test = harness({
       authority,
       provider: (raceIds) => [rawHydratedDocument(raceIds[0]!)],
+    });
+
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
+
+    expect(prepared.summary).toMatchObject({
+      selectedRaceCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      providerRequestCount: 1,
+      preparationSource: "provider_hydration",
+    });
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+
+    const committed = await prepared.commit({
+      registeredAt: REGISTERED_AT,
+    });
+
+    expect(committed).toMatchObject({
+      rowCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      checkpointRaceCountBefore: 0,
+      checkpointRaceCountAfter: 2,
+      authorityComplete: true,
+    });
+  });
+
+  it("fails closed instead of mass-quarantining an empty multi-Race provider batch", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({
+      authority,
+      provider: () => [],
     });
 
     const error = await prepare({
@@ -711,7 +812,6 @@ describe("DNA population entrant authority cohort bridge", () => {
       diagnostic: "hydration_unavailable",
       message: "Population entrant cohort processing is unavailable",
     });
-    expect(String(error)).not.toContain(raceId(2));
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
     expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
