@@ -39,6 +39,8 @@ export type DnaPopulationEntrantAuthorityArchiveReplay = Readonly<{
   rowCount: number;
   archiveRecordSetSha256: string;
   replay: DnaPopulationEntrantAuthorityReplay;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
   replayIntegrityStatus: "proven_compact_population_archive_replay";
   persistentWriteAllowed: false;
   paidUsageAllowed: false;
@@ -153,7 +155,7 @@ export function buildDnaPopulationEntrantAuthorityChunk(input: {
   const replay = exactChunkReplay({ records });
   if (
     replay.exactReplayDuplicateCount !== 0 ||
-    replay.canonicalDocuments.length !== records.length
+    replay.resolvedRaceCount + replay.quarantinedRaceCount !== records.length
   ) {
     archiveError("chunk contains duplicate Race authority");
   }
@@ -354,6 +356,8 @@ export function replayDnaPopulationEntrantAuthorityArchive(input: {
     rowCount: records.length,
     archiveRecordSetSha256,
     replay,
+    resolvedRaceCount: replay.resolvedRaceCount,
+    quarantinedRaceCount: replay.quarantinedRaceCount,
     replayIntegrityStatus: "proven_compact_population_archive_replay" as const,
     persistentWriteAllowed: false as const,
     paidUsageAllowed: false as const,
