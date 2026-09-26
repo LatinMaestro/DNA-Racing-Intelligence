@@ -494,7 +494,7 @@ function pendingObservedAt(
   pending: DnaPopulationEntrantAuthorityR2PendingChunk,
 ): string {
   const observed = new Set(
-    pending.chunk.records.map((record) => canonicalTimestamp(record.observedAt)),
+    pending.chunk.records.map((record) =>\n      canonicalTimestamp(record.observedAt),\n    ),
   );
   if (observed.size !== 1) {
     cohortError("pending_recovery_mismatch");
@@ -617,10 +617,7 @@ function preparedCohort(input: {
       }
 
       if (
-        !sameCheckpoint(
-          committed.checkpointBefore,
-          input.recovery.checkpoint,
-        )
+        !sameCheckpoint(committed.checkpointBefore, input.recovery.checkpoint)
       ) {
         cohortError("commit_unavailable");
       }
