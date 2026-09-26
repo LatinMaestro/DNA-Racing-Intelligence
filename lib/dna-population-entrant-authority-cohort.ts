@@ -701,13 +701,15 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   }
 
   if (pending !== null) {
+    const expectedPendingRaceCount = Math.min(
+      DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
+      bound.authority.unresolvedRaceCount - recoveredRaceCount,
+    );
     if (
       !sameReceipt(pending.receipt, pending.chunk.receipt) ||
       pending.receipt.generationId !== bound.authority.generationId ||
       pending.receipt.chunkOrdinal !== recovery.nextChunkOrdinal ||
-      pending.receipt.rowCount < 1 ||
-      pending.receipt.rowCount >
-        DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES
+      pending.receipt.rowCount !== expectedPendingRaceCount
     ) {
       cohortError("pending_recovery_mismatch");
     }
@@ -736,7 +738,12 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
     } catch {
       cohortError("pending_recovery_mismatch");
     }
-    const recoveredObservedAt = pendingObservedAt(pending);
+    let recoveredObservedAt: string;
+    try {
+      recoveredObservedAt = pendingObservedAt(pending);
+    } catch {
+      cohortError("pending_recovery_mismatch");
+    }
     if (Date.parse(recoveredObservedAt) < Date.parse(checkpointUpdatedAt)) {
       cohortError("pending_recovery_mismatch");
     }
