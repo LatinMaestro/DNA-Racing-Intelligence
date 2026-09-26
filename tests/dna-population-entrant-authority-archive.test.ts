@@ -7,7 +7,10 @@ import {
   replayDnaPopulationEntrantAuthorityArchive,
   type DnaPopulationEntrantAuthorityChunkReceipt,
 } from "@/lib/dna-population-entrant-authority-archive";
-import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
+import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
+  type DnaPopulationEntrantAuthorityRecord,
+} from "@/lib/dna-population-entrant-authority-record";
 
 function raceSetSha256(raceIds: readonly string[]): string {
   return createHash("sha256")
@@ -74,6 +77,48 @@ describe("population entrant authority archive", () => {
     );
     expect(replay.persistentWriteAllowed).toBe(false);
     expect(replay.paidUsageAllowed).toBe(false);
+  });
+
+
+  it("round-trips quarantine outcomes while preserving exact Race coverage", () => {
+    const generationId = "e".repeat(64);
+    const chunk = buildDnaPopulationEntrantAuthorityChunk({
+      generationId,
+      chunkOrdinal: 1,
+      records: [
+        record("1", "bike", ["101"]),
+        dnaPopulationEntrantAuthorityQuarantineRecord({
+          sourceRaceId: "2",
+          observedAt: "2026-09-25T00:00:00.000Z",
+          quarantineReason: "provider_document_missing",
+        }),
+      ],
+    });
+
+    const decoded = decodeDnaPopulationEntrantAuthorityChunk({
+      receipt: chunk.receipt,
+      body: chunk.body,
+    });
+    expect(decoded.records).toHaveLength(2);
+
+    const replay = replayDnaPopulationEntrantAuthorityArchive({
+      generationId,
+      expectedUnresolvedRaceCount: 2,
+      expectedUnresolvedRaceSetSha256: raceSetSha256(["1", "2"]),
+      chunks: [decoded],
+    });
+
+    expect(replay.rowCount).toBe(2);
+    expect(replay.resolvedRaceCount).toBe(1);
+    expect(replay.quarantinedRaceCount).toBe(1);
+    expect(replay.replay.canonicalDocuments).toEqual([
+      {
+        sourceType: "race_document",
+        sourceRaceId: "1",
+        mode: "bike",
+        entrantCoreIds: ["101"],
+      },
+    ]);
   });
 
   it("fails closed on receipt version drift", () => {
