@@ -124,6 +124,9 @@ function harness(input?: {
   baselineCount?: number;
   classBOperations?: number;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
+  chunks?: Readonly<
+    Record<number, readonly DnaPopulationRaceIndexDocument[]>
+  >;
 }) {
   const manifests =
     input?.manifests ??
@@ -131,10 +134,14 @@ function harness(input?: {
       manifest({ ordinal: 1, first: "race-1", last: "race-2", rows: 2 }),
       manifest({ ordinal: 2, first: "race-3", last: "race-3", rows: 1 }),
     ]);
-  const chunks = Object.freeze({
-    1: Object.freeze([document("race-1", 1), document("race-2", 2)]),
-    2: Object.freeze([document("race-3", 3)]),
-  });
+  const chunks: Readonly<
+    Record<number, readonly DnaPopulationRaceIndexDocument[]>
+  > =
+    input?.chunks ??
+    Object.freeze({
+      1: Object.freeze([document("race-1", 1), document("race-2", 2)]),
+      2: Object.freeze([document("race-3", 3)]),
+    });
 
   return {
     capacitySource: Object.freeze({
@@ -205,7 +212,7 @@ function harness(input?: {
     },
     chunkStore: {
       read: vi.fn(async (receipt: DnaPopulationRaceIndexR2ChunkReceipt) => {
-        const value = chunks[receipt.chunkOrdinal as 1 | 2];
+        const value = chunks[receipt.chunkOrdinal];
         if (value === undefined) throw new Error("missing synthetic chunk");
         return value;
       }),
@@ -262,6 +269,55 @@ describe("population entrant live audit source", () => {
       unresolvedRaceCount: 3,
     });
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {
+    const target = harness({
+      manifests: Object.freeze([
+        manifest({ ordinal: 1, first: "race-2", last: "race-3", rows: 2 }),
+        manifest({ ordinal: 2, first: "race-1", last: "race-1", rows: 1 }),
+      ]),
+      chunks: Object.freeze({
+        1: Object.freeze([document("race-2", 1), document("race-3", 2)]),
+        2: Object.freeze([document("race-1", 3)]),
+      }),
+    });
+
+    const result = await source(target).load({
+      ownerId: OWNER,
+      exactCodeHeadSha: HEAD,
+    });
+
+    expect(result.raceDocuments.map((entry) => entry.sourceRaceId)).toEqual([
+      "race-2",
+      "race-3",
+      "race-1",
+    ]);
+    expect(result.authority).toMatchObject({
+      version: 1,
+      unresolvedRaceCount: 3,
+    });
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+  });
+
+  it("still rejects a duplicate Race identity across append-ordered chunks", async () => {
+    const target = harness({
+      manifests: Object.freeze([
+        manifest({ ordinal: 1, first: "race-1", last: "race-2", rows: 2 }),
+        manifest({ ordinal: 2, first: "race-2", last: "race-2", rows: 1 }),
+      ]),
+      chunks: Object.freeze({
+        1: Object.freeze([document("race-1", 1), document("race-2", 2)]),
+        2: Object.freeze([document("race-2", 3)]),
+      }),
+    });
+
+    await expect(
+      source(target).load({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      }),
+    ).rejects.toThrow("published Race identity is duplicated across chunks");
   });
 
   it("includes serving incremental Race documents in the exact authority", async () => {
