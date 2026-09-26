@@ -4,13 +4,11 @@ import type {
 } from "./dna-population-entrant-authority-checkpoint";
 import {
   prepareDnaPopulationEntrantAuthorityCohort,
+  type DnaPopulationEntrantAuthorityCohortR2Port,
   type DnaPopulationEntrantAuthorityCommittedCohortSummary,
   type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "./dna-population-entrant-authority-cohort";
-import type {
-  DnaPopulationEntrantAuthorityCapacityGate,
-  DnaPopulationEntrantAuthorityR2CommitPort,
-} from "./dna-population-entrant-authority-commit-protocol";
+import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
@@ -55,6 +53,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     chunkOrdinal: number;
     selectedRaceCount: number;
     providerRequestCount: number;
+    preparationSource: "provider_hydration" | "pending_r2_recovery";
     cohortSha256: string;
     selectedRaceSetSha256: string;
     preparedBodySha256: string;
@@ -62,7 +61,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     aggregateRequestsPerMinute: 30;
     persistentWriteArmed: true;
     previewOnly: true;
-    providerRequestPerformed: true;
+    providerRequestPerformed: boolean;
     persistentWritePerformed: false;
     providerWritePerformed: false;
     paidUsageAllowed: false;
@@ -126,7 +125,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandRuntime = Readonly<{
     DnaPopulationEntrantAuthorityCheckpointRepository,
     "read" | "listChunkManifests" | "registerChunk"
   >;
-  r2Store: DnaPopulationEntrantAuthorityR2CommitPort;
+  r2Store: DnaPopulationEntrantAuthorityCohortR2Port;
 }>;
 
 type CohortPreparer = (
@@ -309,15 +308,25 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       } catch {
         commandError("cohort_unavailable");
       }
+      const providerHydration =
+        prepared.summary.preparationSource === "provider_hydration";
+      const pendingRecovery =
+        prepared.summary.preparationSource === "pending_r2_recovery";
       if (
         prepared.summary.status !== "prepared_uncommitted" ||
-        prepared.summary.cohortObservedAt !== cohortObservedAt ||
         prepared.summary.aggregateRequestsPerMinute !== 30 ||
-        prepared.summary.providerRequestPerformed !== true ||
         prepared.summary.persistentWritePerformed !== false ||
         prepared.summary.providerWritePerformed !== false ||
         prepared.summary.paidUsageAllowed !== false ||
-        !sameAuthority(prepared.summary.authority, audit.authority)
+        !sameAuthority(prepared.summary.authority, audit.authority) ||
+        (!providerHydration && !pendingRecovery) ||
+        (providerHydration &&
+          (prepared.summary.cohortObservedAt !== cohortObservedAt ||
+            prepared.summary.providerRequestPerformed !== true ||
+            prepared.summary.providerRequestCount < 1)) ||
+        (pendingRecovery &&
+          (prepared.summary.providerRequestPerformed !== false ||
+            prepared.summary.providerRequestCount !== 0))
       ) {
         commandError("cohort_unavailable");
       }
@@ -325,11 +334,12 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       const preparedReceipt = Object.freeze({
         status: "prepared_uncommitted" as const,
         exactCodeHeadSha: requestedHead,
-        cohortObservedAt,
+        cohortObservedAt: prepared.summary.cohortObservedAt,
         recoveredRaceCount: prepared.summary.recoveredRaceCount,
         chunkOrdinal: prepared.summary.chunkOrdinal,
         selectedRaceCount: prepared.summary.selectedRaceCount,
         providerRequestCount: prepared.summary.providerRequestCount,
+        preparationSource: prepared.summary.preparationSource,
         cohortSha256: prepared.summary.cohortSha256,
         selectedRaceSetSha256: prepared.summary.selectedRaceSetSha256,
         preparedBodySha256: prepared.summary.preparedBodySha256,
@@ -337,7 +347,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         aggregateRequestsPerMinute: 30 as const,
         persistentWriteArmed: true as const,
         previewOnly: true as const,
-        providerRequestPerformed: true as const,
+        providerRequestPerformed: prepared.summary.providerRequestPerformed,
         persistentWritePerformed: false as const,
         providerWritePerformed: false as const,
         paidUsageAllowed: false as const,
@@ -350,7 +360,10 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         prepared: preparedReceipt,
         async commit() {
           if (accepted !== null) return accepted;
-          const registeredAt = executionTimestamp(now, cohortObservedAt);
+          const registeredAt = executionTimestamp(
+            now,
+            prepared.summary.cohortObservedAt,
+          );
           let result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
           try {
             result = await prepared.commit({ registeredAt });
@@ -362,7 +375,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           }
           accepted = committedReceipt({
             exactCodeHeadSha: requestedHead,
-            cohortObservedAt,
+            cohortObservedAt: prepared.summary.cohortObservedAt,
             result,
           });
           return accepted;

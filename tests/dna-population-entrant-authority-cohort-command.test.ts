@@ -103,6 +103,7 @@ function prepared(
       chunkOrdinal: 1,
       selectedRaceCount: 1,
       providerRequestCount: 1,
+      preparationSource: "provider_hydration" as const,
       cohortSha256: "b".repeat(64),
       selectedRaceSetSha256: "c".repeat(64),
       preparedBodySha256: "d".repeat(64),
@@ -130,6 +131,7 @@ function runtime(): DnaPopulationEntrantAuthorityCohortCommandRuntime {
     },
     r2Store: {
       read: vi.fn(),
+      findPending: vi.fn(),
       write: vi.fn(),
     },
   }) as unknown as DnaPopulationEntrantAuthorityCohortCommandRuntime;
@@ -217,6 +219,46 @@ describe("DNA population entrant authority cohort command", () => {
     expect(JSON.stringify(session.prepared)).not.toContain(OWNER);
     expect(JSON.stringify(session.prepared)).not.toContain("race-1");
     expect(exactPrepared.commit).not.toHaveBeenCalled();
+  });
+
+  it("accepts a recovered pending cohort with its stored observation time and zero new provider requests", async () => {
+    const liveAudit = audit();
+    const recoveredObservedAt = "2026-09-26T05:55:00.000Z";
+    const basePrepared = prepared(liveAudit);
+    const recoveredPrepared: DnaPopulationEntrantAuthorityPreparedCohort =
+      Object.freeze({
+        ...basePrepared,
+        summary: Object.freeze({
+          ...basePrepared.summary,
+          preparationSource: "pending_r2_recovery" as const,
+          cohortObservedAt: recoveredObservedAt,
+          providerRequestCount: 0,
+          providerRequestPerformed: false,
+        }),
+      });
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: runtime(),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer: vi.fn(async () => recoveredPrepared),
+    });
+
+    const session = await command.execute(invocation);
+
+    expect(session.prepared).toMatchObject({
+      preparationSource: "pending_r2_recovery",
+      cohortObservedAt: recoveredObservedAt,
+      providerRequestCount: 0,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+    });
+    const receipt = await session.commit();
+    expect(receipt.cohortObservedAt).toBe(recoveredObservedAt);
+    expect(recoveredPrepared.commit).toHaveBeenCalledWith({
+      registeredAt: FIRST_COMMIT_AT,
+    });
   });
 
   it("retries an interrupted commit on the same prepared cohort without preparing or hydrating again", async () => {
