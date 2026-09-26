@@ -91,8 +91,7 @@ describeConnected(
         expect(handoff).toMatchObject({
           exactCodeHeadSha,
           expectedUnresolvedRaceCount: receipt.unresolvedRaceCount,
-          expectedUnresolvedRaceSetSha256:
-            receipt.unresolvedRaceSetSha256,
+          expectedUnresolvedRaceSetSha256: receipt.unresolvedRaceSetSha256,
           readinessCapacityObservedAt: receipt.capacityObservedAt,
         });
 
