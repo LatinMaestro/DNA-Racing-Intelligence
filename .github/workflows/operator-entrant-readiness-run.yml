@@ -48,7 +48,7 @@ jobs:
             echo "Main moved before the read-only readiness run."
             exit 1
           fi
-          mapfile -t changed < <(git diff --name-only origin/main...HEAD | sort)
+          mapfile -t changed < <(git diff --name-only origin/main HEAD | sort)
           expected=(
             ".github/workflows/operator-entrant-readiness-run.yml"
             "tests/operator-entrant-readiness-run.test.ts"
