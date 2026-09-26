@@ -9,9 +9,7 @@ import {
   DnaRaceDocumentHydrationError,
   DNA_RACE_DOCUMENT_BATCH_LIMIT,
 } from "./dna-open-lab-race-document-hydrator";
-import type {
-  DnaPopulationEntrantAuthorityQuarantineReason,
-} from "./dna-population-entrant-authority-record";
+import type { DnaPopulationEntrantAuthorityQuarantineReason } from "./dna-population-entrant-authority-record";
 import type {
   DnaOpenLabClient,
   DnaRaceDocument,
@@ -133,10 +131,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
     string,
     DnaRaceDocumentQuarantineHydrationOutcome
   >();
-  const requestBatches = batches(
-    input.raceIds,
-    DNA_RACE_DOCUMENT_BATCH_LIMIT,
-  );
+  const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
 
   for (const batch of requestBatches) {
     const batchKeys = batch.map(raceKey);
@@ -257,9 +252,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
 
     if (
       batchKeys.length > 1 &&
-      batchKeys.every(
-        (key) => outcomesByKey.get(key)?.status === "quarantined",
-      )
+      batchKeys.every((key) => outcomesByKey.get(key)?.status === "quarantined")
     ) {
       hydrationError(
         "invalid_response",
