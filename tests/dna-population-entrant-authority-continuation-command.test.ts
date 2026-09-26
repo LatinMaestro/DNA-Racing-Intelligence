@@ -28,23 +28,25 @@ const CHECKPOINT_UPDATED_AT = "2026-09-27T00:02:00.000Z";
 const BOUNDARY = "b".repeat(64);
 
 function audit() {
-  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze([
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-1",
-      mode: "bike" as const,
-    }),
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-2",
-      mode: "bike" as const,
-    }),
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-3",
-      mode: "bike" as const,
-    }),
-  ]);
+  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze(
+    [
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-1",
+        mode: "bike" as const,
+      }),
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-2",
+        mode: "bike" as const,
+      }),
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-3",
+        mode: "bike" as const,
+      }),
+    ],
+  );
   const plan: DnaPopulationHistoryAcquisitionPlan =
     planDnaPopulationHistoryAcquisition({ raceDocuments });
   if (plan.unresolvedRaceSetSha256 === null) {
@@ -73,8 +75,7 @@ function readiness(
     status: "ready_for_continuation",
     exactCodeHeadSha: HEAD,
     unresolvedRaceCount: LIVE_AUDIT.authority.unresolvedRaceCount,
-    unresolvedRaceSetSha256:
-      LIVE_AUDIT.authority.unresolvedRaceSetSha256,
+    unresolvedRaceSetSha256: LIVE_AUDIT.authority.unresolvedRaceSetSha256,
     recoveredChunkCount: 1,
     recoveredRaceCount: 2,
     nextChunkOrdinal: 2,
@@ -94,7 +95,8 @@ function invocation(
   overrides: Partial<DnaPopulationEntrantAuthorityContinuationCommandInvocation> = {},
 ): DnaPopulationEntrantAuthorityContinuationCommandInvocation {
   return Object.freeze({
-    commandVersion: DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_VERSION,
+    commandVersion:
+      DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_VERSION,
     intent: DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_INTENT,
     allowPersistentWrite: true,
     exactCodeHeadSha: HEAD,
@@ -157,7 +159,9 @@ function committed() {
 }
 
 function prepared(
-  overrides: Partial<DnaPopulationEntrantAuthorityPreparedCohort["summary"]> = {},
+  overrides: Partial<
+    DnaPopulationEntrantAuthorityPreparedCohort["summary"]
+  > = {},
 ): DnaPopulationEntrantAuthorityPreparedCohort {
   return Object.freeze({
     summary: Object.freeze({
@@ -218,9 +222,7 @@ function command(input?: {
     continuationReadinessSource,
     authoritySource,
     runtime: runtime(),
-    now:
-      input?.now ??
-      (() => new Date("2026-09-27T00:04:30.000Z")),
+    now: input?.now ?? (() => new Date("2026-09-27T00:04:30.000Z")),
     cohortPreparer,
   });
   return {
@@ -372,10 +374,7 @@ describe("population entrant single-next-cohort continuation command", () => {
     const test = command({
       cohortPreparer,
       now: (() => {
-        const values = [
-          "2026-09-27T00:04:30.000Z",
-          "2026-09-27T00:05:00.000Z",
-        ];
+        const values = ["2026-09-27T00:04:30.000Z", "2026-09-27T00:05:00.000Z"];
         let index = 0;
         return () => new Date(values[Math.min(index++, 1)]!);
       })(),
