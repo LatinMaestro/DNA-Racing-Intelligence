@@ -96,7 +96,9 @@ function exactTimestamp(value: string): string {
 
 function sameReceipt(
   manifest: DnaPopulationEntrantAuthorityChunkManifest,
-  stored: Awaited<ReturnType<DnaPopulationEntrantAuthorityR2RecoveryPort["read"]>>,
+  stored: Awaited<
+    ReturnType<DnaPopulationEntrantAuthorityR2RecoveryPort["read"]>
+  >,
 ): boolean {
   const receipt = stored.receipt;
   return (
@@ -170,8 +172,7 @@ export function createDnaPopulationEntrantAuthorityFirstCohortVerifier(input: {
           recovery.manifests.length !== 1 ||
           recovery.checkpoint.chunkCount !== 1 ||
           recovery.nextChunkOrdinal !== 2 ||
-          recovery.recoveredRaceCount !==
-            recovery.checkpoint.persistedRaceCount
+          recovery.recoveredRaceCount !== recovery.checkpoint.persistedRaceCount
         ) {
           unavailable();
         }
