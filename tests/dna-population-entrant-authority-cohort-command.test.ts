@@ -73,6 +73,8 @@ function committed(
     authority,
     chunkOrdinal: 1,
     rowCount: 1,
+    resolvedRaceCount: 1,
+    quarantinedRaceCount: 0,
     bodySha256: "d".repeat(64),
     raceSetSha256: "c".repeat(64),
     recordSetSha256: "e".repeat(64),
@@ -102,6 +104,8 @@ function prepared(
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
       selectedRaceCount: 1,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 0,
       providerRequestCount: 1,
       preparationSource: "provider_hydration" as const,
       cohortSha256: "b".repeat(64),
@@ -208,6 +212,8 @@ describe("DNA population entrant authority cohort command", () => {
       exactCodeHeadSha: HEAD,
       cohortObservedAt: OBSERVED_AT,
       selectedRaceCount: 1,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 0,
       providerRequestCount: 1,
       persistentWriteArmed: true,
       previewOnly: true,
@@ -219,6 +225,53 @@ describe("DNA population entrant authority cohort command", () => {
     expect(JSON.stringify(session.prepared)).not.toContain(OWNER);
     expect(JSON.stringify(session.prepared)).not.toContain("race-1");
     expect(exactPrepared.commit).not.toHaveBeenCalled();
+  });
+
+  it("exposes quarantine counts without Race identities", async () => {
+    const liveAudit = audit();
+    const basePrepared = prepared(liveAudit);
+    const quarantinedPrepared: DnaPopulationEntrantAuthorityPreparedCohort =
+      Object.freeze({
+        ...basePrepared,
+        summary: Object.freeze({
+          ...basePrepared.summary,
+          resolvedRaceCount: 0,
+          quarantinedRaceCount: 1,
+        }),
+        commit: vi.fn(async () =>
+          Object.freeze({
+            ...committed(liveAudit.authority),
+            resolvedRaceCount: 0,
+            quarantinedRaceCount: 1,
+          }),
+        ),
+      });
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: runtime(),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer: vi.fn(async () => quarantinedPrepared),
+    });
+
+    const session = await command.execute(invocation);
+
+    expect(session.prepared).toMatchObject({
+      selectedRaceCount: 1,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 1,
+    });
+    expect(JSON.stringify(session.prepared)).not.toContain("race-1");
+
+    const receipt = await session.commit();
+    expect(receipt).toMatchObject({
+      rowCount: 1,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 1,
+      checkpointRaceCountAfter: 1,
+    });
+    expect(JSON.stringify(receipt)).not.toContain("race-1");
   });
 
   it("accepts a recovered pending cohort with its stored observation time and zero new provider requests", async () => {
@@ -295,6 +348,8 @@ describe("DNA population entrant authority cohort command", () => {
       storageStatus: "existing",
       checkpointRaceCountBefore: 0,
       checkpointRaceCountAfter: 1,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 0,
       providerRequestPerformed: false,
       persistentWritePerformed: true,
       paidUsageAllowed: false,
