@@ -225,8 +225,7 @@ function preflightCapacityObservedAt(input: {
     approval.paidUsageAllowed !== false ||
     approval.generationId !== input.authority.generationId ||
     approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
-    approval.unresolvedRaceSetSha256 !==
-      input.authority.unresolvedRaceSetSha256
+    approval.unresolvedRaceSetSha256 !== input.authority.unresolvedRaceSetSha256
   ) {
     commandError("preflight_unavailable");
   }
@@ -458,8 +457,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         preparationSource: prepared.summary.preparationSource,
         preflightCapacityObservedAt: capacityObservedAt,
         checkpointInitializationCompleted: true as const,
-        checkpointChunkCountBeforePreparation:
-          initializedCheckpoint.chunkCount,
+        checkpointChunkCountBeforePreparation: initializedCheckpoint.chunkCount,
         checkpointRaceCountBeforePreparation:
           initializedCheckpoint.persistedRaceCount,
         cohortSha256: prepared.summary.cohortSha256,
