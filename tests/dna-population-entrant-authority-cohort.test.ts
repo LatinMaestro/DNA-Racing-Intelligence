@@ -554,7 +554,11 @@ describe("DNA population entrant authority cohort bridge", () => {
       diagnostic: "recovered_boundary_mismatch",
       message: "Population entrant cohort processing is unavailable",
     });
-    expect(test.events).toEqual(["checkpoint-read"]);
+    expect(test.events).toEqual([
+      "checkpoint-read",
+      "manifest-list",
+      "r2-read",
+    ]);
     expect(test.providerCalls).toHaveLength(0);
     expect(test.r2Store.findPending).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
