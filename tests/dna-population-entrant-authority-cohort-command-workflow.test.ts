@@ -19,12 +19,12 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
       expect(workflow).toContain("expected_unresolved_race_set_sha256:");
       expect(workflow).toContain("readiness_capacity_observed_at:");
       expect(workflow).toContain("readiness_receipt_sha256:");
-        expect(workflow).toContain(
-          "execute_first_private_preview_entrant_cohort:",
-        );
-        expect(workflow).not.toContain(
-          "execute_one_private_preview_entrant_cohort:",
-        );
+      expect(workflow).toContain(
+        "execute_first_private_preview_entrant_cohort:",
+      );
+      expect(workflow).not.toContain(
+        "execute_one_private_preview_entrant_cohort:",
+      );
       expect(workflow).toContain("default: false");
       expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
       expect(workflow).toContain(
