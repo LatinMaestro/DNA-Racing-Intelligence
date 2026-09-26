@@ -36,13 +36,15 @@ const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
   });
 
 function audit(): DnaPopulationEntrantAuthorityLiveAudit {
-  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze([
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-1",
-      mode: "bike" as const,
-    }),
-  ]);
+  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze(
+    [
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-1",
+        mode: "bike" as const,
+      }),
+    ],
+  );
   const plan: DnaPopulationHistoryAcquisitionPlan =
     planDnaPopulationHistoryAcquisition({ raceDocuments });
   if (plan.unresolvedRaceSetSha256 === null) {
@@ -235,7 +237,9 @@ describe("DNA population entrant authority cohort command", () => {
     });
     const session = await command.execute(invocation);
 
-    const firstError = await session.commit().catch((caught: unknown) => caught);
+    const firstError = await session
+      .commit()
+      .catch((caught: unknown) => caught);
     expect(firstError).toMatchObject({
       diagnostic: "cohort_unavailable",
       message: "Population entrant commissioning command is unavailable",
@@ -342,7 +346,9 @@ describe("DNA population entrant authority cohort command", () => {
     const authorityError = await authorityCommand
       .execute(invocation)
       .catch((caught: unknown) => caught);
-    expect(authorityError).toMatchObject({ diagnostic: "authority_unavailable" });
+    expect(authorityError).toMatchObject({
+      diagnostic: "authority_unavailable",
+    });
     expect(String(authorityError)).not.toContain("private-secret");
 
     const liveAudit = audit();
