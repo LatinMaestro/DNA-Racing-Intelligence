@@ -1,7 +1,5 @@
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
-import type {
-  DnaPopulationEntrantAuthorityLiveAuditSource,
-} from "./dna-population-entrant-authority-cohort-command";
+import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -62,7 +60,9 @@ export function createDnaPopulationEntrantAuthorityReadinessInspector(input: {
   exactCodeHeadSha: string;
   authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
   capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
-}): Readonly<{ inspect: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt> }> {
+}): Readonly<{
+  inspect: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
+}> {
   const ownerId = identity(input.ownerId);
   const exactCodeHeadSha = exactHead(input.exactCodeHeadSha);
 
