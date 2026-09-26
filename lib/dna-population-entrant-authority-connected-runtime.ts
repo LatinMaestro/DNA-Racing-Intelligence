@@ -18,6 +18,11 @@ import {
   type DnaPopulationEntrantAuthorityContinuationReadinessReceipt,
 } from "./dna-population-entrant-authority-continuation-readiness";
 import {
+  createDnaPopulationEntrantAuthorityContinuationCommand,
+  type DnaPopulationEntrantAuthorityContinuationCommandInvocation,
+  type DnaPopulationEntrantAuthorityContinuationCommandSession,
+} from "./dna-population-entrant-authority-continuation-command";
+import {
   createDnaPopulationEntrantAuthorityFirstCohortVerifier,
   type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt,
 } from "./dna-population-entrant-authority-first-cohort-verification";
@@ -76,6 +81,9 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
+      executeContinuation: (
+        invocation: DnaPopulationEntrantAuthorityContinuationCommandInvocation,
+      ) => Promise<DnaPopulationEntrantAuthorityContinuationCommandSession>;
     }>;
 
 export const unavailableDnaPopulationEntrantAuthorityConnectedRuntime: DnaPopulationEntrantAuthorityConnectedRuntime =
@@ -380,6 +388,21 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       }),
       ...(input.now === undefined ? {} : { now: input.now }),
     });
+    const continuationCommand =
+      createDnaPopulationEntrantAuthorityContinuationCommand({
+        configuredOwnerId: config.ownerId,
+        runtimeCodeHeadSha: config.exactCodeHeadSha,
+        authoritySource,
+        continuationReadiness,
+        runtime: Object.freeze({
+          client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+          requestBudget: createDnaOpenLabRequestBudget(),
+          capacityGate,
+          checkpointRepository,
+          r2Store,
+        }),
+        ...(input.now === undefined ? {} : { now: input.now }),
+      });
 
     return Object.freeze({
       status: "ready" as const,
@@ -388,6 +411,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectFirstCohortVerification: firstCohortVerification.inspect,
       inspectContinuationReadiness: continuationReadiness.inspect,
       execute: command.execute,
+      executeContinuation: continuationCommand.executeContinuation,
     });
   } catch {
     return unavailableDnaPopulationEntrantAuthorityConnectedRuntime;

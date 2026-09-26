@@ -37,7 +37,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dna-population-entrant-authority-first-cohort
+  group: dna-population-entrant-authority-cohort-persistence
   cancel-in-progress: false
 
 jobs:
