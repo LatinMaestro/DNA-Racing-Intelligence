@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { DnaPopulationEntrantAuthorityCapacityGate } from "@/lib/dna-population-entrant-authority-commit-protocol";
 import {
   createDnaPopulationEntrantAuthorityReadinessInspector,
   DnaPopulationEntrantAuthorityReadinessError,
@@ -30,7 +31,9 @@ function authoritySource(events: string[] = []) {
 
 function capacityGate(events: string[] = []) {
   return Object.freeze({
-    assertFreshCurrentCapacity: vi.fn(async () => {
+    assertFreshCurrentCapacity: vi.fn<
+      DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+    >(async () => {
       events.push("capacity");
       return Object.freeze({
         version: 1 as const,
