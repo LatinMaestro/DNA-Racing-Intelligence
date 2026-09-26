@@ -159,6 +159,24 @@ describe("DNA race document quarantine hydrator", () => {
     });
   });
 
+  it("fails closed when every Race in a multi-Race batch remains unresolved", async () => {
+    const target = clientWith((raceIds) =>
+      raceIds.map((rid) => ({ rid, rvmode: "bike" })),
+    );
+
+    await expect(
+      hydrateDnaRaceDocumentsWithQuarantine({
+        raceIds: [1, 2],
+        client: target.client,
+        requestBudget: createDnaOpenLabRequestBudget(),
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      kind: "invalid_response",
+      message: "race-doc batch entrant authority is systemically unavailable",
+    });
+  });
+
   it("fails closed on unexpected or duplicate returned identities", async () => {
     await expect(
       hydrateDnaRaceDocumentsWithQuarantine({
