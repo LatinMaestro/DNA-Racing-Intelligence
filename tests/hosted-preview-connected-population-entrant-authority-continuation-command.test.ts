@@ -68,9 +68,7 @@ function exactTimestamp(name: string): string {
 }
 
 function connectedFailureId(error: unknown): string {
-  if (
-    error instanceof DnaPopulationEntrantAuthorityContinuationCommandError
-  ) {
+  if (error instanceof DnaPopulationEntrantAuthorityContinuationCommandError) {
     return error.diagnostic;
   }
   return "unexpected_failure";
@@ -169,7 +167,8 @@ describeConnected(
           const session = await runtime.executeContinuation({
             commandVersion:
               DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_VERSION,
-            intent: DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_INTENT,
+            intent:
+              DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_INTENT,
             allowPersistentWrite: true,
             exactCodeHeadSha,
             cohortObservedAt,
