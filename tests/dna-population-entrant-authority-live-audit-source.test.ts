@@ -283,7 +283,9 @@ describe("population entrant live audit source", () => {
       "race-4",
     ]);
     expect(result.authority.unresolvedRaceCount).toBe(4);
-    expect(target.historySource.readServingFinishedHistory).toHaveBeenCalledWith({
+    expect(
+      target.historySource.readServingFinishedHistory,
+    ).toHaveBeenCalledWith({
       ownerId: OWNER,
     });
   });
