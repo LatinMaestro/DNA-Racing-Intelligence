@@ -14,6 +14,11 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandInvocation,
 } from "./dna-population-entrant-authority-cohort-command";
 import {
+  createDnaPopulationEntrantAuthorityContinuationCommand,
+  type DnaPopulationEntrantAuthorityContinuationCommandInvocation,
+  type DnaPopulationEntrantAuthorityContinuationCommandSession,
+} from "./dna-population-entrant-authority-continuation-command";
+import {
   createDnaPopulationEntrantAuthorityContinuationReadinessInspector,
   type DnaPopulationEntrantAuthorityContinuationReadinessReceipt,
 } from "./dna-population-entrant-authority-continuation-readiness";
@@ -73,6 +78,9 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectReadiness: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
       inspectFirstCohortVerification: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
       inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
+      executeContinuation: (
+        invocation: DnaPopulationEntrantAuthorityContinuationCommandInvocation,
+      ) => Promise<DnaPopulationEntrantAuthorityContinuationCommandSession>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -367,6 +375,22 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         r2Store,
       });
 
+    const continuationCommand =
+      createDnaPopulationEntrantAuthorityContinuationCommand({
+        configuredOwnerId: config.ownerId,
+        runtimeCodeHeadSha: config.exactCodeHeadSha,
+        continuationReadinessSource: continuationReadiness,
+        authoritySource,
+        runtime: Object.freeze({
+          client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+          requestBudget: createDnaOpenLabRequestBudget(),
+          capacityGate,
+          checkpointRepository,
+          r2Store,
+        }),
+        ...(input.now === undefined ? {} : { now: input.now }),
+      });
+
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
       runtimeCodeHeadSha: config.exactCodeHeadSha,
@@ -387,6 +411,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectReadiness: readiness.inspect,
       inspectFirstCohortVerification: firstCohortVerification.inspect,
       inspectContinuationReadiness: continuationReadiness.inspect,
+      executeContinuation: continuationCommand.execute,
       execute: command.execute,
     });
   } catch {
