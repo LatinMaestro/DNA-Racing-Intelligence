@@ -1,4 +1,5 @@
 import type {
+  DnaPopulationEntrantAuthorityCheckpoint,
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
@@ -56,6 +57,10 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     quarantinedRaceCount: number;
     providerRequestCount: number;
     preparationSource: "provider_hydration" | "pending_r2_recovery";
+    preflightCapacityObservedAt: string;
+    checkpointInitializationCompleted: true;
+    checkpointChunkCountBeforePreparation: number;
+    checkpointRaceCountBeforePreparation: number;
     cohortSha256: string;
     selectedRaceSetSha256: string;
     preparedBodySha256: string;
@@ -64,7 +69,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     persistentWriteArmed: true;
     previewOnly: true;
     providerRequestPerformed: boolean;
-    persistentWritePerformed: false;
+    entrantChunkPersistentWritePerformed: false;
     providerWritePerformed: false;
     paidUsageAllowed: false;
     preserveLastGood: true;
@@ -107,6 +112,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "invalid_observation_time"
   | "authority_unavailable"
   | "authority_head_mismatch"
+  | "preflight_unavailable"
   | "cohort_unavailable";
 
 export class DnaPopulationEntrantAuthorityCohortCommandError extends Error {
@@ -127,7 +133,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandRuntime = Readonly<{
   capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
   checkpointRepository: Pick<
     DnaPopulationEntrantAuthorityCheckpointRepository,
-    "read" | "listChunkManifests" | "registerChunk"
+    "begin" | "read" | "listChunkManifests" | "registerChunk"
   >;
   r2Store: DnaPopulationEntrantAuthorityCohortR2Port;
 }>;
@@ -204,6 +210,67 @@ function sameAuthority(
   );
 }
 
+function preflightCapacityObservedAt(input: {
+  authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
+  approval: Awaited<
+    ReturnType<
+      DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+    >
+  >;
+}): string {
+  const approval = input.approval;
+  if (
+    approval.version !== 1 ||
+    approval.capacityAllowed !== true ||
+    approval.paidUsageAllowed !== false ||
+    approval.generationId !== input.authority.generationId ||
+    approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
+    approval.unresolvedRaceSetSha256 !== input.authority.unresolvedRaceSetSha256
+  ) {
+    commandError("preflight_unavailable");
+  }
+  const parsed = new Date(approval.observedAt);
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString() !== approval.observedAt
+  ) {
+    commandError("preflight_unavailable");
+  }
+  return parsed.toISOString();
+}
+
+function validateInitializedCheckpoint(input: {
+  checkpoint: DnaPopulationEntrantAuthorityCheckpoint;
+  authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
+}): DnaPopulationEntrantAuthorityCheckpoint {
+  const checkpoint = input.checkpoint;
+  const empty =
+    checkpoint.chunkCount === 0 &&
+    checkpoint.persistedRaceCount === 0 &&
+    checkpoint.lastSourceRaceId === null;
+  const populated =
+    checkpoint.chunkCount > 0 &&
+    checkpoint.persistedRaceCount > 0 &&
+    checkpoint.lastSourceRaceId !== null;
+  const startedAt = Date.parse(checkpoint.startedAt);
+  const updatedAt = Date.parse(checkpoint.updatedAt);
+  if (
+    !sameAuthority(checkpoint, input.authority) ||
+    !Number.isSafeInteger(checkpoint.chunkCount) ||
+    checkpoint.chunkCount < 0 ||
+    !Number.isSafeInteger(checkpoint.persistedRaceCount) ||
+    checkpoint.persistedRaceCount < 0 ||
+    checkpoint.persistedRaceCount > input.authority.unresolvedRaceCount ||
+    (!empty && !populated) ||
+    Number.isNaN(startedAt) ||
+    Number.isNaN(updatedAt) ||
+    updatedAt < startedAt
+  ) {
+    commandError("preflight_unavailable");
+  }
+  return checkpoint;
+}
+
 function committedReceipt(input: {
   exactCodeHeadSha: string;
   cohortObservedAt: string;
@@ -277,7 +344,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       }
 
       const cohortObservedAt = exactTimestamp(invocation.cohortObservedAt);
-      executionTimestamp(now, cohortObservedAt);
+      const preflightStartedAt = executionTimestamp(now, cohortObservedAt);
 
       let audit: DnaPopulationEntrantAuthorityLiveAudit;
       try {
@@ -295,6 +362,39 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           requestedHead
       ) {
         commandError("authority_head_mismatch");
+      }
+
+      let approval: Awaited<
+        ReturnType<
+          DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+        >
+      >;
+      try {
+        approval = await input.runtime.capacityGate.assertFreshCurrentCapacity(
+          audit.authority,
+        );
+      } catch {
+        commandError("preflight_unavailable");
+      }
+      const capacityObservedAt = preflightCapacityObservedAt({
+        authority: audit.authority,
+        approval,
+      });
+
+      let initializedCheckpoint: DnaPopulationEntrantAuthorityCheckpoint;
+      try {
+        initializedCheckpoint = validateInitializedCheckpoint({
+          checkpoint: await input.runtime.checkpointRepository.begin(ownerId, {
+            authority: audit.authority,
+            startedAt: preflightStartedAt,
+          }),
+          authority: audit.authority,
+        });
+      } catch (error) {
+        if (error instanceof DnaPopulationEntrantAuthorityCohortCommandError) {
+          throw error;
+        }
+        commandError("preflight_unavailable");
       }
 
       let prepared: DnaPopulationEntrantAuthorityPreparedCohort;
@@ -328,6 +428,10 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         prepared.summary.providerWritePerformed !== false ||
         prepared.summary.paidUsageAllowed !== false ||
         !sameAuthority(prepared.summary.authority, audit.authority) ||
+        prepared.summary.recoveredRaceCount !==
+          initializedCheckpoint.persistedRaceCount ||
+        prepared.summary.chunkOrdinal !==
+          initializedCheckpoint.chunkCount + 1 ||
         (!providerHydration && !pendingRecovery) ||
         (providerHydration &&
           (prepared.summary.cohortObservedAt !== cohortObservedAt ||
@@ -351,6 +455,11 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         quarantinedRaceCount: prepared.summary.quarantinedRaceCount,
         providerRequestCount: prepared.summary.providerRequestCount,
         preparationSource: prepared.summary.preparationSource,
+        preflightCapacityObservedAt: capacityObservedAt,
+        checkpointInitializationCompleted: true as const,
+        checkpointChunkCountBeforePreparation: initializedCheckpoint.chunkCount,
+        checkpointRaceCountBeforePreparation:
+          initializedCheckpoint.persistedRaceCount,
         cohortSha256: prepared.summary.cohortSha256,
         selectedRaceSetSha256: prepared.summary.selectedRaceSetSha256,
         preparedBodySha256: prepared.summary.preparedBodySha256,
@@ -359,7 +468,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         persistentWriteArmed: true as const,
         previewOnly: true as const,
         providerRequestPerformed: prepared.summary.providerRequestPerformed,
-        persistentWritePerformed: false as const,
+        entrantChunkPersistentWritePerformed: false as const,
         providerWritePerformed: false as const,
         paidUsageAllowed: false as const,
         preserveLastGood: true as const,

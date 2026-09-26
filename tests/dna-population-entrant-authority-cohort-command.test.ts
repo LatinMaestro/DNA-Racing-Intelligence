@@ -123,12 +123,38 @@ function prepared(
   });
 }
 
-function runtime(): DnaPopulationEntrantAuthorityCohortCommandRuntime {
+function runtime(
+  events: string[] = [],
+): DnaPopulationEntrantAuthorityCohortCommandRuntime {
   return Object.freeze({
     client: { raceDocs: vi.fn() },
     requestBudget: createDnaOpenLabRequestBudget(),
-    capacityGate: { assertFreshCurrentCapacity: vi.fn() },
+    capacityGate: {
+      assertFreshCurrentCapacity: vi.fn(async (authority) => {
+        events.push("capacity");
+        return Object.freeze({
+          version: 1 as const,
+          generationId: authority.generationId,
+          unresolvedRaceCount: authority.unresolvedRaceCount,
+          unresolvedRaceSetSha256: authority.unresolvedRaceSetSha256,
+          observedAt: "2026-09-26T06:04:00.000Z",
+          capacityAllowed: true as const,
+          paidUsageAllowed: false as const,
+        });
+      }),
+    },
     checkpointRepository: {
+      begin: vi.fn(async (_ownerId, request) => {
+        events.push("begin");
+        return Object.freeze({
+          ...request.authority,
+          chunkCount: 0,
+          persistedRaceCount: 0,
+          lastSourceRaceId: null,
+          startedAt: request.startedAt,
+          updatedAt: request.startedAt,
+        });
+      }),
       read: vi.fn(),
       listChunkManifests: vi.fn(),
       registerChunk: vi.fn(),
@@ -215,16 +241,135 @@ describe("DNA population entrant authority cohort command", () => {
       resolvedRaceCount: 1,
       quarantinedRaceCount: 0,
       providerRequestCount: 1,
+      preflightCapacityObservedAt: "2026-09-26T06:04:00.000Z",
+      checkpointInitializationCompleted: true,
+      checkpointChunkCountBeforePreparation: 0,
+      checkpointRaceCountBeforePreparation: 0,
       persistentWriteArmed: true,
       previewOnly: true,
       providerRequestPerformed: true,
-      persistentWritePerformed: false,
+      entrantChunkPersistentWritePerformed: false,
       paidUsageAllowed: false,
       preserveLastGood: true,
     });
     expect(JSON.stringify(session.prepared)).not.toContain(OWNER);
     expect(JSON.stringify(session.prepared)).not.toContain("race-1");
     expect(exactPrepared.commit).not.toHaveBeenCalled();
+  });
+
+  it("proves fresh capacity and checkpoint initialization before cohort preparation", async () => {
+    const liveAudit = audit();
+    const events: string[] = [];
+    const commandRuntime = runtime(events);
+    const load = vi.fn(async () => {
+      events.push("authority");
+      return liveAudit;
+    });
+    const cohortPreparer = vi.fn(async () => {
+      events.push("prepare");
+      return prepared(liveAudit);
+    });
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load },
+      runtime: commandRuntime,
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer,
+    });
+
+    const session = await command.execute(invocation);
+
+    expect(events).toEqual(["authority", "capacity", "begin", "prepare"]);
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).toHaveBeenCalledWith(liveAudit.authority);
+    expect(commandRuntime.checkpointRepository.begin).toHaveBeenCalledWith(
+      OWNER,
+      {
+        authority: liveAudit.authority,
+        startedAt: FIRST_COMMIT_AT,
+      },
+    );
+    expect(session.prepared).toMatchObject({
+      preflightCapacityObservedAt: "2026-09-26T06:04:00.000Z",
+      checkpointInitializationCompleted: true,
+      checkpointChunkCountBeforePreparation: 0,
+      checkpointRaceCountBeforePreparation: 0,
+      entrantChunkPersistentWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+  });
+
+  it("fails closed before initialization or provider preparation when capacity preflight fails", async () => {
+    const liveAudit = audit();
+    const baseRuntime = runtime();
+    const begin = vi.fn();
+    const cohortPreparer = vi.fn();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: Object.freeze({
+        ...baseRuntime,
+        capacityGate: Object.freeze({
+          assertFreshCurrentCapacity: vi.fn(async () => {
+            throw new Error("provider-capacity-secret");
+          }),
+        }),
+        checkpointRepository: Object.freeze({
+          ...baseRuntime.checkpointRepository,
+          begin,
+        }),
+      }),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer,
+    });
+
+    const error = await command
+      .execute(invocation)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "preflight_unavailable",
+      message: "Population entrant commissioning command is unavailable",
+    });
+    expect(String(error)).not.toContain("provider-capacity-secret");
+    expect(begin).not.toHaveBeenCalled();
+    expect(cohortPreparer).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before provider preparation when checkpoint initialization fails", async () => {
+    const liveAudit = audit();
+    const baseRuntime = runtime();
+    const cohortPreparer = vi.fn();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: Object.freeze({
+        ...baseRuntime,
+        checkpointRepository: Object.freeze({
+          ...baseRuntime.checkpointRepository,
+          begin: vi.fn(async () => {
+            throw new Error("private-neon-generation-secret");
+          }),
+        }),
+      }),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer,
+    });
+
+    const error = await command
+      .execute(invocation)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "preflight_unavailable",
+      message: "Population entrant commissioning command is unavailable",
+    });
+    expect(String(error)).not.toContain("private-neon-generation-secret");
+    expect(cohortPreparer).not.toHaveBeenCalled();
   });
 
   it("exposes quarantine counts without Race identities", async () => {
@@ -305,7 +450,7 @@ describe("DNA population entrant authority cohort command", () => {
       cohortObservedAt: recoveredObservedAt,
       providerRequestCount: 0,
       providerRequestPerformed: false,
-      persistentWritePerformed: false,
+      entrantChunkPersistentWritePerformed: false,
     });
     const receipt = await session.commit();
     expect(receipt.cohortObservedAt).toBe(recoveredObservedAt);
