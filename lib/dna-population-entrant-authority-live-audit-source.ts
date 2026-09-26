@@ -1,16 +1,10 @@
-import type {
-  DnaPopulationEntrantAuthorityCheckpointAuthority,
-} from "./dna-population-entrant-authority-checkpoint";
-import type {
-  DnaPopulationEntrantAuthorityLiveAuditSource,
-} from "./dna-population-entrant-authority-cohort-command";
+import type { DnaPopulationEntrantAuthorityCheckpointAuthority } from "./dna-population-entrant-authority-checkpoint";
+import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
 } from "./dna-population-history-acquisition-plan";
-import {
-  DNA_POPULATION_RACE_INDEX_P5_AUTHORITY,
-} from "./dna-population-race-index-private-preview-operator";
+import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
 import type {
   DnaPopulationRaceIndexGenerationRepository,
   DnaPopulationRaceIndexR2ChunkManifest,
@@ -103,8 +97,7 @@ function validateManifestSequence(input: {
       manifest.identityRegisteredAt === null ||
       !Number.isSafeInteger(manifest.rowCount) ||
       manifest.rowCount < 1 ||
-      (previousLast !== null &&
-        manifest.firstSourceRaceId <= previousLast)
+      (previousLast !== null && manifest.firstSourceRaceId <= previousLast)
     ) {
       auditError("published manifest sequence is invalid");
     }
@@ -160,10 +153,7 @@ async function readPublishedRaceDocuments(input: {
     start < input.manifests.length;
     start += CHUNK_READ_CONCURRENCY
   ) {
-    const batch = input.manifests.slice(
-      start,
-      start + CHUNK_READ_CONCURRENCY,
-    );
+    const batch = input.manifests.slice(start, start + CHUNK_READ_CONCURRENCY);
     const chunks = await Promise.all(
       batch.map((manifest) => input.chunkStore.read(manifest)),
     );
@@ -274,8 +264,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           baseline.omittedIdentityObservationCount ||
         populationIndex.storageLayout !== "r2_chunked_v1" ||
         populationIndex.r2ChunkCount < 1 ||
-        populationIndex.r2IdentityChunkCount !==
-          populationIndex.r2ChunkCount ||
+        populationIndex.r2IdentityChunkCount !== populationIndex.r2ChunkCount ||
         populationIndex.r2CompactedRaceCount !==
           populationIndex.uniqueRaceCount ||
         populationIndex.legacyStorageRetiredAt === null
@@ -286,15 +275,14 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       const manifests: DnaPopulationRaceIndexR2ChunkManifest[] = [];
       let afterChunkOrdinal = 0;
       while (manifests.length < populationIndex.r2ChunkCount) {
-        const page =
-          await input.populationIndex.listPublishedR2ChunkManifests(
-            configuredOwnerId,
-            {
-              generationId: baseline.completionSha256,
-              afterChunkOrdinal,
-              limit: MANIFEST_PAGE_LIMIT,
-            },
-          );
+        const page = await input.populationIndex.listPublishedR2ChunkManifests(
+          configuredOwnerId,
+          {
+            generationId: baseline.completionSha256,
+            afterChunkOrdinal,
+            limit: MANIFEST_PAGE_LIMIT,
+          },
+        );
         if (
           page.length < 1 ||
           page.length > MANIFEST_PAGE_LIMIT ||
