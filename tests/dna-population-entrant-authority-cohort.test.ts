@@ -449,6 +449,49 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
+  it("fails closed when recovered content has the right boundary but the wrong Race set", async () => {
+    const raceDocuments = unresolvedRaceDocuments(5);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const previous = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [
+        compactRecord(raceId(1)),
+        compactRecord("race-0002x"),
+        compactRecord(raceId(3)),
+      ],
+    });
+    const checkpoint = Object.freeze({
+      ...authority,
+      chunkCount: 1,
+      persistedRaceCount: 3,
+      lastSourceRaceId: raceId(3),
+      startedAt: STARTED_AT,
+      updatedAt: STARTED_AT,
+    });
+    const test = harness({
+      authority,
+      checkpoint,
+      priorChunks: [previous],
+    });
+
+    const error = await run({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "recovered_boundary_mismatch",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+  });
+
   it("fails closed when the recovered boundary is not the exact audited prefix", async () => {
     const raceDocuments = unresolvedRaceDocuments(5);
     const plan = planFor(raceDocuments);
