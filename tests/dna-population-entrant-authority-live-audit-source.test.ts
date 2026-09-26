@@ -328,7 +328,7 @@ describe("population entrant live audit source", () => {
         manifest({
           ordinal: 1,
           first: "race-1",
-          last: "race-x",
+          last: "race-2x",
           rows: 2,
         }),
         manifest({ ordinal: 2, first: "race-3", last: "race-3", rows: 1 }),
