@@ -184,12 +184,9 @@ describeConnected(
             exactCodeHeadSha,
             chunkOrdinal: 1,
             checkpointRaceCountBefore: 0,
-            chunkOrdinal: session.prepared.chunkOrdinal,
             rowCount: session.prepared.selectedRaceCount,
             resolvedRaceCount: session.prepared.resolvedRaceCount,
             quarantinedRaceCount: session.prepared.quarantinedRaceCount,
-            checkpointRaceCountBefore:
-              session.prepared.checkpointRaceCountBeforePreparation,
             persistentWriteArmed: true,
             previewOnly: true,
             providerRequestPerformed: false,
@@ -198,9 +195,11 @@ describeConnected(
             paidUsageAllowed: false,
             preserveLastGood: true,
           });
-          expect(receipt.checkpointRaceCountAfter).toBe(
-            receipt.checkpointRaceCountBefore + receipt.rowCount,
+          expect(receipt.chunkOrdinal).toBe(session.prepared.chunkOrdinal);
+          expect(receipt.checkpointRaceCountBefore).toBe(
+            session.prepared.checkpointRaceCountBeforePreparation,
           );
+          expect(receipt.checkpointRaceCountAfter).toBe(receipt.rowCount);
 
           const report = Object.freeze({
             status: receipt.status,
