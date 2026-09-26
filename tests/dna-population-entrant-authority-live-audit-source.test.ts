@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment } from "@/lib/dna-open-lab-combined-history-performance-evidence";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
 import type { DnaPopulationRaceIndexDocument } from "@/lib/dna-population-race-index-checkpoint";
 import type {
   DnaPopulationRaceIndexCheckpoint,
   DnaPopulationRaceIndexR2ChunkManifest,
 } from "@/lib/dna-population-race-index-generation";
+import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
 
 const OWNER = "private-owner";
 const HEAD = "a".repeat(40);
@@ -51,9 +53,7 @@ function manifest(input: {
   });
 }
 
-function checkpoint(
-  overrides: Partial<DnaPopulationRaceIndexCheckpoint> = {},
-): DnaPopulationRaceIndexCheckpoint {
+function checkpoint(): DnaPopulationRaceIndexCheckpoint {
   return Object.freeze({
     version: 1,
     generationId: COMPLETION,
@@ -80,7 +80,42 @@ function checkpoint(
     updatedAt: OBSERVED_AT,
     completedAt: OBSERVED_AT,
     publishedAt: OBSERVED_AT,
-    ...overrides,
+  });
+}
+
+function assessment(
+  uniqueRaceCount: number,
+): DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment {
+  return Object.freeze({
+    authority: "complete_serving_generation_combined_finished_history",
+    refreshCycleId: "refresh-1",
+    currentStateGenerationId: "current-1",
+    baselineReceiptCount: 17_464,
+    baselineFinishedRaceReceiptCount: 17_369,
+    incrementalWindowCount: uniqueRaceCount > 3 ? 1 : 0,
+    incrementalDocumentReferenceCount: Math.max(0, uniqueRaceCount - 3),
+    incrementalMaximumRaceDocumentBytes: uniqueRaceCount > 3 ? 100 : 0,
+    incrementalMaximumCompactEntrantAuthorityBytes:
+      uniqueRaceCount > 3 ? 200 : 0,
+    quarantinedIdentityObservationCount: 1,
+    r2ClassBOperationsUsed: 4,
+    uniqueRaceCount,
+    duplicateRaceEvidenceCount: 0,
+    conflictingRaceEvidenceCount: 0,
+    bikeRaceCount: 3,
+    bikeRaceWithFormatCount: 0,
+    bikeRaceWithTrackSourceValueCount: 0,
+    exactTypeAndDistanceElapsedObservationCount: 0,
+    performanceSelectionStatus:
+      "held_without_exact_format_elapsed_time_evidence",
+    unavailableAuthorities: Object.freeze([
+      "authoritative_exact_distance",
+      "authoritative_elapsed_time",
+      "authoritative_finish_position",
+    ]),
+    rawEvidenceExposed: false,
+    persistentWritePerformed: false,
+    paidUsageAllowed: false,
   });
 }
 
@@ -88,7 +123,6 @@ function harness(input?: {
   baselineCount?: number;
   classBOperations?: number;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
-  chunks?: Readonly<Record<number, readonly DnaPopulationRaceIndexDocument[]>>;
 }) {
   const manifests =
     input?.manifests ??
@@ -96,12 +130,10 @@ function harness(input?: {
       manifest({ ordinal: 1, first: "race-1", last: "race-2", rows: 2 }),
       manifest({ ordinal: 2, first: "race-3", last: "race-3", rows: 1 }),
     ]);
-  const chunks =
-    input?.chunks ??
-    Object.freeze({
-      1: Object.freeze([document("race-1", 1), document("race-2", 2)]),
-      2: Object.freeze([document("race-3", 3)]),
-    });
+  const chunks = Object.freeze({
+    1: Object.freeze([document("race-1", 1), document("race-2", 2)]),
+    2: Object.freeze([document("race-3", 3)]),
+  });
 
   return {
     capacitySource: Object.freeze({
@@ -140,6 +172,21 @@ function harness(input?: {
           completionSha256: COMPLETION,
         }),
       ),
+      loadReceipts: vi.fn(async () => Object.freeze([])),
+      readEvidence: vi.fn(async () => null),
+    },
+    historySource: {
+      readServingFinishedHistory: vi.fn(async () =>
+        Object.freeze({
+          refreshCycleId: "refresh-1",
+          currentStateGenerationId: "current-1",
+          selectedCycleId: "cycle-1",
+          cycles: Object.freeze([]),
+          receiptCount: 0,
+          documentCount: 0,
+          manifestByteLength: 0,
+        }),
+      ),
     },
     populationIndex: {
       load: vi.fn(async () => checkpoint()),
@@ -157,100 +204,117 @@ function harness(input?: {
     },
     chunkStore: {
       read: vi.fn(async (receipt: DnaPopulationRaceIndexR2ChunkManifest) => {
-        const value = chunks[receipt.chunkOrdinal];
+        const value = chunks[receipt.chunkOrdinal as 1 | 2];
         if (value === undefined) throw new Error("missing synthetic chunk");
         return value;
       }),
     },
+    storage: {
+      readBucketPrivacy: vi.fn(),
+      headObject: vi.fn(),
+      getObject: vi.fn(),
+    },
   };
 }
 
-describe("population entrant live audit source", () => {
-  it("rebuilds the exact unresolved authority from published compact P5 Race documents", async () => {
-    const target = harness();
-    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
-      configuredOwnerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      baseline: target.baseline,
-      populationIndex: target.populationIndex,
-      chunkStore: target.chunkStore,
-      capacitySource: target.capacitySource,
-    });
+function source(
+  target: ReturnType<typeof harness>,
+  extras: readonly CanonicalRaceDocumentMetadata[] = [],
+) {
+  return createDnaPopulationEntrantAuthorityLiveAuditSource({
+    configuredOwnerId: OWNER,
+    exactCodeHeadSha: HEAD,
+    bucketName: "private-preview",
+    baseline: target.baseline,
+    historySource: target.historySource,
+    populationIndex: target.populationIndex,
+    chunkStore: target.chunkStore,
+    storage: target.storage as never,
+    capacitySource: target.capacitySource,
+    assessCombinedHistory: async (input) => {
+      await input.baselineIndex!.scanDocuments!((entry) => {
+        input.onCanonicalRaceDocument?.(entry.canonical);
+      });
+      for (const entry of extras) {
+        input.onCanonicalRaceDocument?.(entry);
+      }
+      return assessment(3 + extras.length);
+    },
+  });
+}
 
-    const result = await source.load({
+describe("population entrant live audit source", () => {
+  it("rebuilds the exact unresolved authority from the compact baseline", async () => {
+    const target = harness();
+    const result = await source(target).load({
       ownerId: OWNER,
       exactCodeHeadSha: HEAD,
     });
 
-    expect(result.exactCodeHeadSha).toBe(HEAD);
     expect(result.raceDocuments.map((entry) => entry.sourceRaceId)).toEqual([
       "race-1",
       "race-2",
       "race-3",
     ]);
-    expect(result.plan).toMatchObject({
-      status: "held_incomplete_race_authority",
-      unresolvedRaceCount: 3,
-    });
-    expect(result.authority).toEqual({
+    expect(result.authority).toMatchObject({
       version: 1,
-      generationId: result.plan.unresolvedRaceSetSha256,
       unresolvedRaceCount: 3,
-      unresolvedRaceSetSha256: result.plan.unresolvedRaceSetSha256,
     });
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects owner or exact-head drift before durable reads", async () => {
+  it("includes serving incremental Race documents in the exact authority", async () => {
     const target = harness();
-    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
-      configuredOwnerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      baseline: target.baseline,
-      populationIndex: target.populationIndex,
-      chunkStore: target.chunkStore,
-      capacitySource: target.capacitySource,
+    const incremental = Object.freeze({
+      sourceType: "race_document" as const,
+      sourceRaceId: "race-4",
+      mode: "car" as const,
     });
 
+    const result = await source(target, [incremental]).load({
+      ownerId: OWNER,
+      exactCodeHeadSha: HEAD,
+    });
+
+    expect(result.raceDocuments.map((entry) => entry.sourceRaceId)).toEqual([
+      "race-1",
+      "race-2",
+      "race-3",
+      "race-4",
+    ]);
+    expect(result.authority.unresolvedRaceCount).toBe(4);
+    expect(target.historySource.readServingFinishedHistory).toHaveBeenCalledWith({
+      ownerId: OWNER,
+    });
+  });
+
+  it("rejects owner or exact-head drift before durable reads", async () => {
+    const target = harness();
+    const live = source(target);
+
     await expect(
-      source.load({ ownerId: "other-owner", exactCodeHeadSha: HEAD }),
+      live.load({ ownerId: "other-owner", exactCodeHeadSha: HEAD }),
     ).rejects.toThrow("request binding is invalid");
     await expect(
-      source.load({ ownerId: OWNER, exactCodeHeadSha: "f".repeat(40) }),
+      live.load({ ownerId: OWNER, exactCodeHeadSha: "f".repeat(40) }),
     ).rejects.toThrow("request binding is invalid");
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
   it("fails closed before durable reads when zero-cost R2 read headroom is unavailable", async () => {
     const target = harness({ classBOperations: 9_950_001 });
-    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
-      configuredOwnerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      baseline: target.baseline,
-      populationIndex: target.populationIndex,
-      chunkStore: target.chunkStore,
-      capacitySource: target.capacitySource,
-    });
 
     await expect(
-      source.load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+      source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
     ).rejects.toThrow("published Race audit read budget is unavailable");
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
   it("fails closed when immutable P5 baseline totals drift", async () => {
     const target = harness({ baselineCount: 17_463 });
-    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
-      configuredOwnerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      baseline: target.baseline,
-      populationIndex: target.populationIndex,
-      chunkStore: target.chunkStore,
-      capacitySource: target.capacitySource,
-    });
 
     await expect(
-      source.load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+      source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
     ).rejects.toThrow("immutable P5 baseline authority is unavailable");
     expect(target.populationIndex.load).not.toHaveBeenCalled();
   });
@@ -267,17 +331,9 @@ describe("population entrant live audit source", () => {
         manifest({ ordinal: 2, first: "race-3", last: "race-3", rows: 1 }),
       ]),
     });
-    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
-      configuredOwnerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      baseline: target.baseline,
-      populationIndex: target.populationIndex,
-      chunkStore: target.chunkStore,
-      capacitySource: target.capacitySource,
-    });
 
     await expect(
-      source.load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+      source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
     ).rejects.toThrow("published chunk disagrees with its manifest");
   });
 });
