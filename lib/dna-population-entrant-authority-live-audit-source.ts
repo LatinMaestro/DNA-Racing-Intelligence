@@ -107,15 +107,13 @@ function validateManifestSequence(input: {
     auditError("published manifest count is invalid");
   }
   let rowCount = 0;
-  let previousLast: string | null = null;
   for (const [index, manifest] of input.manifests.entries()) {
     if (
       manifest.version !== 1 ||
       manifest.chunkOrdinal !== index + 1 ||
       manifest.identityRegisteredAt === null ||
       !Number.isSafeInteger(manifest.rowCount) ||
-      manifest.rowCount < 1 ||
-      (previousLast !== null && manifest.firstSourceRaceId <= previousLast)
+      manifest.rowCount < 1
     ) {
       auditError("published manifest sequence is invalid");
     }
@@ -123,7 +121,6 @@ function validateManifestSequence(input: {
     if (!Number.isSafeInteger(rowCount)) {
       auditError("published manifest row count is invalid");
     }
-    previousLast = manifest.lastSourceRaceId;
   }
   if (rowCount !== input.expectedRaceCount) {
     auditError("published manifest rows do not reconcile");
@@ -133,8 +130,8 @@ function validateManifestSequence(input: {
 function validateChunkDocuments(input: {
   manifest: DnaPopulationRaceIndexR2ChunkManifest;
   documents: readonly DnaPopulationRaceIndexDocument[];
-  previousLast: string | null;
-}): string {
+  seenRaceIds: Set<string>;
+}): void {
   if (
     input.documents.length !== input.manifest.rowCount ||
     input.documents[0]?.sourceRaceId !== input.manifest.firstSourceRaceId ||
@@ -142,7 +139,7 @@ function validateChunkDocuments(input: {
   ) {
     auditError("published chunk disagrees with its manifest");
   }
-  let last = input.previousLast;
+  let last: string | null = null;
   for (const document of input.documents) {
     if (
       document.canonical.sourceType !== "race_document" ||
@@ -154,9 +151,12 @@ function validateChunkDocuments(input: {
     ) {
       auditError("published Race document sequence is invalid");
     }
+    if (input.seenRaceIds.has(document.sourceRaceId)) {
+      auditError("published Race identity is duplicated across chunks");
+    }
+    input.seenRaceIds.add(document.sourceRaceId);
     last = document.sourceRaceId;
   }
-  return last ?? auditError("published chunk is empty");
 }
 
 function entrantAuthority(
@@ -293,7 +293,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       });
 
       const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
-      let previousLast: string | null = null;
+      const seenRaceIds = new Set<string>();
       const baselineR2ClassBOperations = manifests.length * 2;
       if (
         !Number.isSafeInteger(baselineR2ClassBOperations) ||
@@ -334,10 +334,10 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
                 batch.map((manifest) => input.chunkStore.read(manifest)),
               );
               for (const [index, documents] of chunks.entries()) {
-                previousLast = validateChunkDocuments({
+                validateChunkDocuments({
                   manifest: batch[index]!,
                   documents,
-                  previousLast,
+                  seenRaceIds,
                 });
                 for (const document of documents) {
                   accept(document);
@@ -345,7 +345,10 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
                 }
               }
             }
-            if (scannedRaceCount !== populationIndex.uniqueRaceCount) {
+            if (
+              scannedRaceCount !== populationIndex.uniqueRaceCount ||
+              seenRaceIds.size !== populationIndex.uniqueRaceCount
+            ) {
               auditError("published Race documents do not reconcile");
             }
           },
