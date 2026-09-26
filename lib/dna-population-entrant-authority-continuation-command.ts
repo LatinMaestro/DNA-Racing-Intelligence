@@ -560,9 +560,18 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
         commandError("continuation_readiness_unavailable");
       }
       const current = currentBoundary(readiness);
+      const currentCapacityObservedAt = Date.parse(current.capacityObservedAt);
+      const checkedAtMilliseconds = Date.parse(checkedAt);
+      if (
+        currentCapacityObservedAt > checkedAtMilliseconds ||
+        checkedAtMilliseconds - currentCapacityObservedAt >
+          DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS
+      ) {
+        commandError("continuation_readiness_unavailable");
+      }
       if (
         !sameDurableBoundary(expectedBoundary, current) ||
-        Date.parse(current.capacityObservedAt) <
+        currentCapacityObservedAt <
           Date.parse(expectedBoundary.capacityObservedAt)
       ) {
         commandError("continuation_boundary_mismatch");
