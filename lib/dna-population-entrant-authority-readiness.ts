@@ -36,7 +36,8 @@ function identity(value: string): string {
     value.length < 1 ||
     value.length > 512 ||
     CONTROL_PATTERN.test(value)
-  ) unavailable();
+  )
+    unavailable();
   return value;
 }
 
@@ -80,7 +81,8 @@ export function createDnaPopulationEntrantAuthorityReadinessInspector(input: {
           !Number.isSafeInteger(authority.unresolvedRaceCount) ||
           authority.unresolvedRaceCount < 1 ||
           authority.generationId !== authority.unresolvedRaceSetSha256
-        ) unavailable();
+        )
+          unavailable();
 
         const approval =
           await input.capacityGate.assertFreshCurrentCapacity(authority);
@@ -91,7 +93,8 @@ export function createDnaPopulationEntrantAuthorityReadinessInspector(input: {
           approval.generationId !== authority.generationId ||
           approval.unresolvedRaceCount !== authority.unresolvedRaceCount ||
           approval.unresolvedRaceSetSha256 !== authority.unresolvedRaceSetSha256
-        ) unavailable();
+        )
+          unavailable();
 
         return Object.freeze({
           status: "ready" as const,
