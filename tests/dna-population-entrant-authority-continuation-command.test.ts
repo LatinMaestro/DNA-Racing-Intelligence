@@ -261,6 +261,22 @@ describe("population entrant single-next-cohort continuation command", () => {
     expect(test.cohortPreparer).not.toHaveBeenCalled();
   });
 
+  it("rejects future current capacity evidence before authority reload or provider preparation", async () => {
+    const test = command({
+      readinessReceipt: readiness({
+        capacityObservedAt: "2026-09-27T00:04:30.001Z",
+      }),
+    });
+
+    await expect(test.value.execute(invocation())).rejects.toMatchObject({
+      diagnostic: "continuation_readiness_unavailable",
+    });
+
+    expect(test.events).toEqual(["readiness"]);
+    expect(test.authoritySource.load).not.toHaveBeenCalled();
+    expect(test.cohortPreparer).not.toHaveBeenCalled();
+  });
+
   it("rejects durable boundary drift before authority reload or provider preparation", async () => {
     const test = command({
       readinessReceipt: readiness({
