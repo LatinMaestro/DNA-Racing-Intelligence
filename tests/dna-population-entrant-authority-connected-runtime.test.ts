@@ -71,7 +71,7 @@ describe("population entrant connected runtime", () => {
   it("fails closed for missing or non-Standard configuration", () => {
     expect(
       dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-        environment: environment({ databaseUrl: undefined }),
+        environment: environment({ databaseUrl: "" }),
       }),
     ).toEqual({ status: "not_configured" });
 
