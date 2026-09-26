@@ -86,6 +86,7 @@ describe("population entrant connected runtime", () => {
       throw new Error("synthetic runtime unavailable");
     }
     expect(runtime.inspectContinuationReadiness).toEqual(expect.any(Function));
+    expect(runtime.executeContinuation).toEqual(expect.any(Function));
     expect(fetcher).not.toHaveBeenCalled();
     expect(JSON.stringify(runtime)).toBe(
       JSON.stringify({ status: "ready", exactCodeHeadSha: HEAD }),

@@ -47,7 +47,7 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
     expect(workflow).toContain(
-      "group: dna-population-entrant-authority-first-cohort",
+      "group: dna-population-entrant-authority-cohort-persistence",
     );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain(
