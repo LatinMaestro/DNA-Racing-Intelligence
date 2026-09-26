@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
 
 const connected =
-  process.env.DNA_POPULATION_ENTRANT_AUTHORITY_FIRST_COHORT_VERIFICATION === "1";
+  process.env.DNA_POPULATION_ENTRANT_AUTHORITY_FIRST_COHORT_VERIFICATION ===
+  "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
@@ -67,7 +68,9 @@ describeConnected(
             }),
           });
         if (runtime.status !== "ready") {
-          throw new Error("entrant first-cohort verification runtime unavailable");
+          throw new Error(
+            "entrant first-cohort verification runtime unavailable",
+          );
         }
 
         const receipt = await runtime.inspectFirstCohortVerification();
