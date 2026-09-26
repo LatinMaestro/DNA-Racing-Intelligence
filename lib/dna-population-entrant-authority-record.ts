@@ -98,13 +98,10 @@ function entrantIds(values: readonly string[]): readonly string[] {
   return Object.freeze(normalized);
 }
 
-
 function quarantineReason(
   value: DnaPopulationEntrantAuthorityQuarantineReason,
 ): DnaPopulationEntrantAuthorityQuarantineReason {
-  if (
-    !DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS.includes(value)
-  ) {
+  if (!DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS.includes(value)) {
     authorityError("quarantine reason is invalid");
   }
   return value;
