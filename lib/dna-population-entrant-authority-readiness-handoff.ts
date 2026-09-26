@@ -21,8 +21,7 @@ export type DnaPopulationEntrantAuthorityReadinessHandoff = Readonly<{
 }>;
 
 export type DnaPopulationEntrantAuthorityReadinessHandoffDiagnostic =
-  | "invalid"
-  | "stale";
+  "invalid" | "stale";
 
 export class DnaPopulationEntrantAuthorityReadinessHandoffError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityReadinessHandoffDiagnostic;
@@ -99,9 +98,7 @@ function canonicalReceipt(input: {
   });
 }
 
-function receiptSha256(
-  receipt: ReturnType<typeof canonicalReceipt>,
-): string {
+function receiptSha256(receipt: ReturnType<typeof canonicalReceipt>): string {
   return createHash("sha256")
     .update(
       `${DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_HANDOFF_VERSION}\u0000${JSON.stringify(
