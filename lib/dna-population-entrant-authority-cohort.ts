@@ -16,7 +16,9 @@ import {
   type DnaPopulationEntrantAuthorityR2CommitPort,
 } from "./dna-population-entrant-authority-commit-protocol";
 import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
   dnaPopulationEntrantAuthorityRecord,
+  isDnaPopulationEntrantAuthorityQuarantineRecord,
   type DnaPopulationEntrantAuthorityRecord,
 } from "./dna-population-entrant-authority-record";
 import {
@@ -29,10 +31,8 @@ import {
   type DnaPopulationHistoryAcquisitionPlan,
 } from "./dna-population-history-acquisition-plan";
 import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
-import {
-  DNA_RACE_DOCUMENT_BATCH_LIMIT,
-  hydrateDnaRaceDocuments,
-} from "./dna-open-lab-race-document-hydrator";
+import { DNA_RACE_DOCUMENT_BATCH_LIMIT } from "./dna-open-lab-race-document-hydrator";
+import { hydrateDnaRaceDocumentsWithQuarantine } from "./dna-open-lab-race-document-quarantine-hydrator";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
@@ -81,6 +81,8 @@ export type DnaPopulationEntrantAuthorityPreparedCohortSummary = Readonly<{
   recoveredRaceCount: number;
   chunkOrdinal: number;
   selectedRaceCount: number;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
   providerRequestCount: number;
   preparationSource: "provider_hydration" | "pending_r2_recovery";
   cohortSha256: string;
@@ -101,6 +103,8 @@ export type DnaPopulationEntrantAuthorityCommittedCohortSummary = Readonly<{
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   chunkOrdinal: number;
   rowCount: number;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
   bodySha256: string;
   raceSetSha256: string;
   recordSetSha256: string;
@@ -543,6 +547,10 @@ function preparedCohort(input: {
   }
 
   const exactRecords = Object.freeze([...prepared.records]);
+  const quarantinedRaceCount = exactRecords.filter((record) =>
+    isDnaPopulationEntrantAuthorityQuarantineRecord(record),
+  ).length;
+  const resolvedRaceCount = exactRecords.length - quarantinedRaceCount;
   const expectedReceipt = Object.freeze({ ...prepared.receipt });
   const checkpointUpdatedAt = canonicalTimestamp(
     input.recovery.checkpoint.updatedAt,
@@ -555,6 +563,8 @@ function preparedCohort(input: {
       recoveredRaceCount: input.recovery.recoveredRaceCount,
       chunkOrdinal: input.recovery.nextChunkOrdinal,
       selectedRaceCount: input.raceIds.length,
+      resolvedRaceCount,
+      quarantinedRaceCount,
       providerRequestCount: input.providerRequestCount,
       preparationSource: input.preparationSource,
       cohortSha256: cohortSha256({
@@ -633,6 +643,8 @@ function preparedCohort(input: {
         authority: input.authority,
         chunkOrdinal: expectedReceipt.chunkOrdinal,
         rowCount: expectedReceipt.rowCount,
+        resolvedRaceCount,
+        quarantinedRaceCount,
         bodySha256: expectedReceipt.bodySha256,
         raceSetSha256: expectedReceipt.raceSetSha256,
         recordSetSha256: expectedReceipt.recordSetSha256,
@@ -786,9 +798,11 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
 
   validateRequestBudget(input.requestBudget);
 
-  let hydration: Awaited<ReturnType<typeof hydrateDnaRaceDocuments>>;
+  let hydration: Awaited<
+    ReturnType<typeof hydrateDnaRaceDocumentsWithQuarantine>
+  >;
   try {
-    hydration = await hydrateDnaRaceDocuments({
+    hydration = await hydrateDnaRaceDocumentsWithQuarantine({
       raceIds,
       client: input.client,
       requestBudget: input.requestBudget,
@@ -801,18 +815,24 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   validateRequestBudget(input.requestBudget);
   if (
     hydration.requestedRaceCount !== raceIds.length ||
-    hydration.documents.length !== raceIds.length ||
+    hydration.outcomes.length !== raceIds.length ||
     hydration.batchCount !== expectedBatchCount ||
-    hydration.documents.some(
-      (evidence, index) =>
+    hydration.resolvedRaceCount + hydration.quarantinedRaceCount !==
+      raceIds.length ||
+    hydration.outcomes.some((outcome, index) => {
+      if (outcome.sourceRaceId !== raceIds[index]) return true;
+      if (outcome.status === "quarantined") return false;
+      const evidence = outcome.evidence;
+      return (
         evidence.source !== "dna_open_lab" ||
         evidence.sourceVersion !== "v1" ||
         evidence.scope !== "races" ||
         evidence.endpoint !== "races.docs" ||
         evidence.canonical.sourceType !== "race_document" ||
         evidence.canonical.sourceRaceId !== raceIds[index] ||
-        evidence.entityKey !== "race:" + raceIds[index],
-    )
+        evidence.entityKey !== "race:" + raceIds[index]
+      );
+    })
   ) {
     cohortError("hydration_coverage_mismatch");
   }
@@ -820,8 +840,17 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   let records: readonly DnaPopulationEntrantAuthorityRecord[];
   try {
     records = Object.freeze(
-      hydration.documents.map((evidence) =>
-        dnaPopulationEntrantAuthorityRecord(evidence),
+      hydration.outcomes.map((outcome) =>
+        outcome.status === "resolved"
+          ? dnaPopulationEntrantAuthorityRecord(outcome.evidence)
+          : dnaPopulationEntrantAuthorityQuarantineRecord({
+              sourceRaceId: outcome.sourceRaceId,
+              observedAt: outcome.observedAt,
+              quarantineReason: outcome.quarantineReason,
+              ...(outcome.sourceEvidenceSha256 === undefined
+                ? {}
+                : { sourceEvidenceSha256: outcome.sourceEvidenceSha256 }),
+            }),
       ),
     );
   } catch {

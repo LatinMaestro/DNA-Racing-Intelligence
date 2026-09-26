@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
   dnaPopulationEntrantAuthorityRecord,
   dnaPopulationEntrantAuthorityRecordBytes,
 } from "@/lib/dna-population-entrant-authority-record";
@@ -78,6 +79,34 @@ describe("population entrant authority record", () => {
         }),
       ),
     ).not.toHaveProperty("entrantCoreIds");
+  });
+
+  it("creates a compact quarantine outcome without inventing authority", () => {
+    expect(
+      dnaPopulationEntrantAuthorityQuarantineRecord({
+        sourceRaceId: "77",
+        observedAt: "2026-09-25T10:00:00+10:00",
+        quarantineReason: "provider_document_missing",
+      }),
+    ).toEqual({
+      sourceRaceId: "77",
+      observedAt: "2026-09-25T00:00:00.000Z",
+      quarantineReason: "provider_document_missing",
+    });
+
+    expect(
+      dnaPopulationEntrantAuthorityQuarantineRecord({
+        sourceRaceId: "78",
+        observedAt: "2026-09-25T00:00:00.000Z",
+        quarantineReason: "entrant_authority_unresolved",
+        sourceEvidenceSha256: "b".repeat(64),
+      }),
+    ).toEqual({
+      sourceRaceId: "78",
+      observedAt: "2026-09-25T00:00:00.000Z",
+      quarantineReason: "entrant_authority_unresolved",
+      sourceEvidenceSha256: "b".repeat(64),
+    });
   });
 
   it("fails closed on contradictory or duplicate entrant authority", () => {
