@@ -254,12 +254,13 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         ownerId: config.ownerId,
         runtimeRole: config.runtimeRole,
       });
-    const publicationRepository =
-      createNeonDnaOpenLabSyncPublicationRepository({
+    const publicationRepository = createNeonDnaOpenLabSyncPublicationRepository(
+      {
         databaseUrl: config.databaseUrl,
         databaseOwnerId: config.databaseOwnerId,
         runtimeRole: config.runtimeRole,
-      });
+      },
+    );
     const baselineEvidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
       ownerId: config.ownerId,
       bucketName: config.bucketName,
