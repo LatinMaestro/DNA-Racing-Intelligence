@@ -21,9 +21,9 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION =
-  "dna-population-entrant-authority-cohort-command/v3" as const;
+  "dna-population-entrant-authority-cohort-command/v4" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT =
-  "prepare_single_private_preview_unresolved_race_cohort" as const;
+  "commission_first_private_preview_unresolved_race_cohort" as const;
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -131,6 +131,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "authority_head_mismatch"
   | "authority_binding_mismatch"
   | "preflight_unavailable"
+  | "generation_already_commissioned"
   | "cohort_unavailable";
 
 export class DnaPopulationEntrantAuthorityCohortCommandError extends Error {
@@ -505,6 +506,13 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         }
         commandError("preflight_unavailable");
       }
+      if (
+        initializedCheckpoint.chunkCount !== 0 ||
+        initializedCheckpoint.persistedRaceCount !== 0 ||
+        initializedCheckpoint.lastSourceRaceId !== null
+      ) {
+        commandError("generation_already_commissioned");
+      }
 
       let prepared: DnaPopulationEntrantAuthorityPreparedCohort;
       try {
@@ -537,8 +545,10 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         prepared.summary.providerWritePerformed !== false ||
         prepared.summary.paidUsageAllowed !== false ||
         !sameAuthority(prepared.summary.authority, audit.authority) ||
+        prepared.summary.recoveredRaceCount !== 0 ||
         prepared.summary.recoveredRaceCount !==
           initializedCheckpoint.persistedRaceCount ||
+        prepared.summary.chunkOrdinal !== 1 ||
         prepared.summary.chunkOrdinal !==
           initializedCheckpoint.chunkCount + 1 ||
         (!providerHydration && !pendingRecovery) ||
@@ -604,6 +614,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           }
           if (
             !sameAuthority(result.authority, audit.authority) ||
+            result.chunkOrdinal !== 1 ||
+            result.checkpointRaceCountBefore !== 0 ||
+            result.checkpointRaceCountAfter !== result.rowCount ||
             result.resolvedRaceCount + result.quarantinedRaceCount !==
               result.rowCount
           ) {
