@@ -91,7 +91,9 @@ function emptyCheckpoint(
   });
 }
 
-function compactRecord(sourceRaceId: string): DnaPopulationEntrantAuthorityRecord {
+function compactRecord(
+  sourceRaceId: string,
+): DnaPopulationEntrantAuthorityRecord {
   return Object.freeze({
     sourceRaceId,
     observedAt: STARTED_AT,
@@ -125,9 +127,7 @@ function response(
   });
 }
 
-function rawHydratedDocument(
-  sourceRaceId: DnaRaceIdentifier,
-): DnaRaceDocument {
+function rawHydratedDocument(sourceRaceId: DnaRaceIdentifier): DnaRaceDocument {
   const numeric = Number(String(sourceRaceId).replace(/\D/gu, "")) || 1;
   return Object.freeze({
     rid: sourceRaceId,
@@ -185,8 +185,7 @@ function harness(input: {
   const manifests: DnaPopulationEntrantAuthorityChunkManifest[] = (
     input.priorChunks ?? []
   ).map((entry) => entry.manifest);
-  let checkpoint =
-    input.checkpoint ?? emptyCheckpoint(input.authority);
+  let checkpoint = input.checkpoint ?? emptyCheckpoint(input.authority);
   let registrationCalls = 0;
   let writeCalls = 0;
 
@@ -204,8 +203,7 @@ function harness(input: {
         return Object.freeze(
           manifests
             .filter(
-              (manifest) =>
-                manifest.chunkOrdinal > request.afterChunkOrdinal,
+              (manifest) => manifest.chunkOrdinal > request.afterChunkOrdinal,
             )
             .slice(0, request.limit),
         );
@@ -341,8 +339,7 @@ async function run(input: {
     raceDocuments: input.raceDocuments,
     authority,
     client: input.test.client,
-    requestBudget:
-      input.requestBudget ?? createDnaOpenLabRequestBudget(),
+    requestBudget: input.requestBudget ?? createDnaOpenLabRequestBudget(),
     capacityGate: input.test.capacityGate,
     checkpointRepository: input.test.checkpointRepository,
     r2Store: input.test.r2Store,
@@ -419,10 +416,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     const previous = priorChunk({
       authority,
       chunkOrdinal: 1,
-      records: [
-        compactRecord(raceId(1)),
-        compactRecord(raceId(2)),
-      ],
+      records: [compactRecord(raceId(1)), compactRecord(raceId(2))],
     });
     const checkpoint = Object.freeze({
       ...authority,
@@ -440,9 +434,7 @@ describe("DNA population entrant authority cohort bridge", () => {
 
     const result = await run({ raceDocuments, plan, authority, test });
 
-    expect(test.providerCalls).toEqual([
-      [raceId(3), raceId(4), raceId(5)],
-    ]);
+    expect(test.providerCalls).toEqual([[raceId(3), raceId(4), raceId(5)]]);
     expect(result).toMatchObject({
       chunkOrdinal: 2,
       selectedRaceCount: 3,
@@ -464,10 +456,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     const previous = priorChunk({
       authority,
       chunkOrdinal: 1,
-      records: [
-        compactRecord(raceId(1)),
-        compactRecord(raceId(3)),
-      ],
+      records: [compactRecord(raceId(1)), compactRecord(raceId(3))],
     });
     const checkpoint = Object.freeze({
       ...authority,
