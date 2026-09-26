@@ -80,44 +80,42 @@ export type DnaPopulationEntrantAuthorityContinuationCommandPreparedReceipt =
     preserveLastGood: true;
   }>;
 
-export type DnaPopulationEntrantAuthorityContinuationCommandReceipt =
-  Readonly<{
-    status: "committed";
-    exactCodeHeadSha: string;
-    cohortObservedAt: string;
-    unresolvedRaceCount: number;
-    unresolvedRaceSetSha256: string;
-    recoveredChunkCountBefore: number;
-    chunkOrdinal: number;
-    rowCount: number;
-    resolvedRaceCount: number;
-    quarantinedRaceCount: number;
-    bodySha256: string;
-    raceSetSha256: string;
-    recordSetSha256: string;
-    checkpointRaceCountBefore: number;
-    checkpointRaceCountAfter: number;
-    authorityComplete: boolean;
-    storageStatus: "created" | "existing";
-    continuationCapacityObservedAt: string;
-    boundaryCapacityObservedAt: string;
-    commitCapacityObservedAt: string;
-    checkpointUpdatedAtBefore: string;
-    durableBoundarySha256: string;
-    persistentWriteArmed: true;
-    previewOnly: true;
-    providerRequestPerformed: false;
-    persistentWritePerformed: true;
-    providerWritePerformed: false;
-    paidUsageAllowed: false;
-    preserveLastGood: true;
-  }>;
+export type DnaPopulationEntrantAuthorityContinuationCommandReceipt = Readonly<{
+  status: "committed";
+  exactCodeHeadSha: string;
+  cohortObservedAt: string;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
+  recoveredChunkCountBefore: number;
+  chunkOrdinal: number;
+  rowCount: number;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
+  bodySha256: string;
+  raceSetSha256: string;
+  recordSetSha256: string;
+  checkpointRaceCountBefore: number;
+  checkpointRaceCountAfter: number;
+  authorityComplete: boolean;
+  storageStatus: "created" | "existing";
+  continuationCapacityObservedAt: string;
+  boundaryCapacityObservedAt: string;
+  commitCapacityObservedAt: string;
+  checkpointUpdatedAtBefore: string;
+  durableBoundarySha256: string;
+  persistentWriteArmed: true;
+  previewOnly: true;
+  providerRequestPerformed: false;
+  persistentWritePerformed: true;
+  providerWritePerformed: false;
+  paidUsageAllowed: false;
+  preserveLastGood: true;
+}>;
 
-export type DnaPopulationEntrantAuthorityContinuationCommandSession =
-  Readonly<{
-    prepared: DnaPopulationEntrantAuthorityContinuationCommandPreparedReceipt;
-    commit: () => Promise<DnaPopulationEntrantAuthorityContinuationCommandReceipt>;
-  }>;
+export type DnaPopulationEntrantAuthorityContinuationCommandSession = Readonly<{
+  prepared: DnaPopulationEntrantAuthorityContinuationCommandPreparedReceipt;
+  commit: () => Promise<DnaPopulationEntrantAuthorityContinuationCommandReceipt>;
+}>;
 
 export type DnaPopulationEntrantAuthorityContinuationCommandDiagnostic =
   | "invalid_configuration"
@@ -145,17 +143,16 @@ export class DnaPopulationEntrantAuthorityContinuationCommandError extends Error
   }
 }
 
-export type DnaPopulationEntrantAuthorityContinuationCommandRuntime =
-  Readonly<{
-    client: Pick<DnaOpenLabClient, "raceDocs">;
-    requestBudget: DnaOpenLabRequestBudget;
-    capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
-    checkpointRepository: Pick<
-      DnaPopulationEntrantAuthorityCheckpointRepository,
-      "read" | "listChunkManifests" | "registerChunk"
-    >;
-    r2Store: DnaPopulationEntrantAuthorityCohortR2Port;
-  }>;
+export type DnaPopulationEntrantAuthorityContinuationCommandRuntime = Readonly<{
+  client: Pick<DnaOpenLabClient, "raceDocs">;
+  requestBudget: DnaOpenLabRequestBudget;
+  capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
+  checkpointRepository: Pick<
+    DnaPopulationEntrantAuthorityCheckpointRepository,
+    "read" | "listChunkManifests" | "registerChunk"
+  >;
+  r2Store: DnaPopulationEntrantAuthorityCohortR2Port;
+}>;
 
 type ContinuationReadinessSource = Readonly<{
   inspect: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
@@ -199,9 +196,7 @@ function identity(value: string): string {
 function exactHead(
   value: string,
   diagnostic:
-    | "invalid_configuration"
-    | "exact_head_mismatch"
-    | "authority_head_mismatch",
+    "invalid_configuration" | "exact_head_mismatch" | "authority_head_mismatch",
 ): string {
   if (typeof value !== "string") commandError(diagnostic);
   const normalized = value.trim().toLowerCase();
@@ -669,7 +664,10 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
         prepared: receipt,
         async commit() {
           if (accepted !== null) return accepted;
-          const registeredAt = executionTimestamp(now, summary.cohortObservedAt);
+          const registeredAt = executionTimestamp(
+            now,
+            summary.cohortObservedAt,
+          );
           let result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
           try {
             result = await prepared.commit({ registeredAt });
