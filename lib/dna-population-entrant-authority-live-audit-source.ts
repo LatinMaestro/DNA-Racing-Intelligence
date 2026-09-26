@@ -248,7 +248,8 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         populationIndex.state !== "published" ||
         populationIndex.generationId !== baseline.completionSha256 ||
         populationIndex.lastRequestOrdinal !== baseline.logicalRequestCount ||
-        populationIndex.processedReceiptCount !== baseline.logicalRequestCount ||
+        populationIndex.processedReceiptCount !==
+          baseline.logicalRequestCount ||
         populationIndex.processedReceiptBytes !== baseline.retainedR2Bytes ||
         populationIndex.processedIdentityOmissionCount !==
           baseline.omittedIdentityObservationCount ||
