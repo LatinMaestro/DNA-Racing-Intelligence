@@ -16,11 +16,12 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION =
-  "dna-population-entrant-authority-cohort-command/v1" as const;
+  "dna-population-entrant-authority-cohort-command/v2" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT =
   "prepare_single_private_preview_unresolved_race_cohort" as const;
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export type DnaPopulationEntrantAuthorityLiveAudit = Readonly<{
@@ -43,6 +44,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandInvocation = Readonly<{
   allowPersistentWrite: true;
   exactCodeHeadSha: string;
   cohortObservedAt: string;
+  expectedUnresolvedRaceCount: number;
+  expectedUnresolvedRaceSetSha256: string;
 }>;
 
 export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
@@ -110,8 +113,10 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "not_explicitly_armed"
   | "exact_head_mismatch"
   | "invalid_observation_time"
+  | "invalid_authority_binding"
   | "authority_unavailable"
   | "authority_head_mismatch"
+  | "authority_binding_mismatch"
   | "preflight_unavailable"
   | "cohort_unavailable";
 
@@ -208,6 +213,35 @@ function sameAuthority(
     left.unresolvedRaceCount === right.unresolvedRaceCount &&
     left.unresolvedRaceSetSha256 === right.unresolvedRaceSetSha256
   );
+}
+
+function expectedAuthorityBinding(input: {
+  expectedUnresolvedRaceCount: number;
+  expectedUnresolvedRaceSetSha256: string;
+}): Readonly<{
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
+}> {
+  if (
+    !Number.isSafeInteger(input.expectedUnresolvedRaceCount) ||
+    input.expectedUnresolvedRaceCount < 1 ||
+    typeof input.expectedUnresolvedRaceSetSha256 !== "string"
+  ) {
+    commandError("invalid_authority_binding");
+  }
+  const unresolvedRaceSetSha256 = input.expectedUnresolvedRaceSetSha256
+    .trim()
+    .toLowerCase();
+  if (
+    unresolvedRaceSetSha256 !== input.expectedUnresolvedRaceSetSha256 ||
+    !SHA_256_PATTERN.test(unresolvedRaceSetSha256)
+  ) {
+    commandError("invalid_authority_binding");
+  }
+  return Object.freeze({
+    unresolvedRaceCount: input.expectedUnresolvedRaceCount,
+    unresolvedRaceSetSha256,
+  });
 }
 
 function preflightCapacityObservedAt(input: {
@@ -344,6 +378,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       }
 
       const cohortObservedAt = exactTimestamp(invocation.cohortObservedAt);
+      const expectedAuthority = expectedAuthorityBinding(invocation);
       const preflightStartedAt = executionTimestamp(now, cohortObservedAt);
 
       let audit: DnaPopulationEntrantAuthorityLiveAudit;
@@ -362,6 +397,17 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           requestedHead
       ) {
         commandError("authority_head_mismatch");
+      }
+      if (
+        audit.authority.version !== 1 ||
+        audit.authority.generationId !==
+          expectedAuthority.unresolvedRaceSetSha256 ||
+        audit.authority.unresolvedRaceCount !==
+          expectedAuthority.unresolvedRaceCount ||
+        audit.authority.unresolvedRaceSetSha256 !==
+          expectedAuthority.unresolvedRaceSetSha256
+      ) {
+        commandError("authority_binding_mismatch");
       }
 
       let approval: Awaited<

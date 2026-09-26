@@ -11,6 +11,14 @@ on:
         description: Canonical UTC observation timestamp for this one cohort
         required: true
         type: string
+      expected_unresolved_race_count:
+        description: Exact audited unresolved Race count expected for this commissioning event
+        required: true
+        type: string
+      expected_unresolved_race_set_sha256:
+        description: Exact audited unresolved Race set SHA-256 expected for this commissioning event
+        required: true
+        type: string
       execute_one_private_preview_entrant_cohort:
         description: Confirm exactly one persistent private Preview entrant cohort
         required: true
@@ -41,6 +49,8 @@ jobs:
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND: "1"
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT: ${{ inputs.cohort_observed_at }}
       DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256: ${{ inputs.expected_unresolved_race_set_sha256 }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
@@ -95,6 +105,8 @@ jobs:
             "DNA_OPEN_LAB_API_KEY_1",
             "DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT",
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
             "DNA_R2_ACCESS_KEY_ID",
             "DNA_R2_BUCKET_NAME",
             "DNA_R2_SECRET_ACCESS_KEY",
@@ -117,6 +129,21 @@ jobs:
             process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA !== process.env.GITHUB_SHA
           ) {
             throw new Error("The exact main commit binding is invalid.");
+          }
+          const expectedRaceCountText =
+            process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT;
+          const expectedRaceCount = Number(expectedRaceCountText);
+          if (
+            !/^[1-9]\d*$/.test(expectedRaceCountText) ||
+            !Number.isSafeInteger(expectedRaceCount) ||
+            expectedRaceCount < 1
+          ) {
+            throw new Error("The expected unresolved Race count is invalid.");
+          }
+          const expectedRaceSetSha256 =
+            process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256;
+          if (!/^[a-f0-9]{64}$/.test(expectedRaceSetSha256)) {
+            throw new Error("The expected unresolved Race set authority is invalid.");
           }
           const observedAt =
             process.env.DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT;

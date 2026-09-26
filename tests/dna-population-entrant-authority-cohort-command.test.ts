@@ -26,15 +26,6 @@ const FIRST_COMMIT_AT = "2026-09-26T06:05:00.000Z";
 const SECOND_COMMIT_AT = "2026-09-26T06:06:00.000Z";
 const OWNER = "private-owner";
 
-const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
-  Object.freeze({
-    commandVersion: DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION,
-    intent: DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT,
-    allowPersistentWrite: true,
-    exactCodeHeadSha: HEAD,
-    cohortObservedAt: OBSERVED_AT,
-  });
-
 function audit(): DnaPopulationEntrantAuthorityLiveAudit {
   const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze(
     [
@@ -62,6 +53,20 @@ function audit(): DnaPopulationEntrantAuthorityLiveAudit {
     }),
   });
 }
+
+const SYNTHETIC_AUTHORITY = audit().authority;
+
+const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
+  Object.freeze({
+    commandVersion: DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION,
+    intent: DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT,
+    allowPersistentWrite: true,
+    exactCodeHeadSha: HEAD,
+    cohortObservedAt: OBSERVED_AT,
+    expectedUnresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
+    expectedUnresolvedRaceSetSha256:
+      SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
+  });
 
 function committed(
   authority: DnaPopulationEntrantAuthorityLiveAudit["authority"],
@@ -213,6 +218,70 @@ describe("DNA population entrant authority cohort command", () => {
       }),
     ).rejects.toMatchObject({ diagnostic: "invalid_observation_time" });
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed expected authority binding before authority access", async () => {
+    const load = vi.fn(async () => audit());
+    const commandRuntime = runtime();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load },
+      runtime: commandRuntime,
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer: vi.fn(),
+    });
+
+    await expect(
+      command.execute({
+        ...invocation,
+        expectedUnresolvedRaceCount: 0,
+      }),
+    ).rejects.toMatchObject({ diagnostic: "invalid_authority_binding" });
+    await expect(
+      command.execute({
+        ...invocation,
+        expectedUnresolvedRaceSetSha256: "NOT-A-SHA",
+      }),
+    ).rejects.toMatchObject({ diagnostic: "invalid_authority_binding" });
+
+    expect(load).not.toHaveBeenCalled();
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).not.toHaveBeenCalled();
+    expect(commandRuntime.checkpointRepository.begin).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on live authority drift before capacity, initialization or hydration", async () => {
+    const liveAudit = audit();
+    const driftedAudit: DnaPopulationEntrantAuthorityLiveAudit = Object.freeze({
+      ...liveAudit,
+      authority: Object.freeze({
+        ...liveAudit.authority,
+        unresolvedRaceCount: liveAudit.authority.unresolvedRaceCount + 1,
+      }),
+    });
+    const commandRuntime = runtime();
+    const cohortPreparer = vi.fn();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => driftedAudit) },
+      runtime: commandRuntime,
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer,
+    });
+
+    await expect(command.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "authority_binding_mismatch",
+      message: "Population entrant commissioning command is unavailable",
+    });
+
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).not.toHaveBeenCalled();
+    expect(commandRuntime.checkpointRepository.begin).not.toHaveBeenCalled();
+    expect(cohortPreparer).not.toHaveBeenCalled();
   });
 
   it("loads exact-head authority once, prepares read-only evidence and exposes only sanitized summary data", async () => {
