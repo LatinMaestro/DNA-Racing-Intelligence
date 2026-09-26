@@ -88,6 +88,7 @@ function checkpoint(
 
 function harness(input?: {
   baselineCount?: number;
+  classBOperations?: number;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
   chunks?: Readonly<Record<number, readonly DnaPopulationRaceIndexDocument[]>>;
 }) {
@@ -105,6 +106,30 @@ function harness(input?: {
     });
 
   return {
+    capacitySource: Object.freeze({
+      status: "ready" as const,
+      measure: vi.fn(async () =>
+        Object.freeze({
+          evidenceSource: "provider_api" as const,
+          r2StorageClass: "Standard",
+          measuredAt: "2026-09-26T00:00:00.000Z",
+          billingWindowStartAt: "2026-09-01T00:00:00.000Z",
+          billingWindowEndAt: "2026-10-01T00:00:00.000Z",
+          currentR2Usage: Object.freeze({
+            storageBytes: 1_000,
+            classAOperations: 1_000,
+            classBOperations: input?.classBOperations ?? 1_000,
+          }),
+          neonMeasuredAt: "2026-09-26T00:00:00.000Z",
+          neonBillingWindowStartAt: "2026-09-01T00:00:00.000Z",
+          neonBillingWindowEndAt: "2026-10-01T00:00:00.000Z",
+          currentNeonUsage: Object.freeze({
+            storageBytes: 1_000,
+            computeMilliCuHours: 1_000,
+          }),
+        }),
+      ),
+    }),
     baseline: {
       load: vi.fn(async () =>
         Object.freeze({
@@ -153,6 +178,7 @@ describe("population entrant live audit source", () => {
       baseline: target.baseline,
       populationIndex: target.populationIndex,
       chunkStore: target.chunkStore,
+      capacitySource: target.capacitySource,
     });
 
     const result = await source.load({
@@ -187,6 +213,7 @@ describe("population entrant live audit source", () => {
       baseline: target.baseline,
       populationIndex: target.populationIndex,
       chunkStore: target.chunkStore,
+      capacitySource: target.capacitySource,
     });
 
     await expect(
@@ -198,6 +225,24 @@ describe("population entrant live audit source", () => {
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
+
+  it("fails closed before durable reads when zero-cost R2 read headroom is unavailable", async () => {
+    const target = harness({ classBOperations: 9_950_001 });
+    const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
+      configuredOwnerId: OWNER,
+      exactCodeHeadSha: HEAD,
+      baseline: target.baseline,
+      populationIndex: target.populationIndex,
+      chunkStore: target.chunkStore,
+      capacitySource: target.capacitySource,
+    });
+
+    await expect(
+      source.load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+    ).rejects.toThrow("published Race audit read budget is unavailable");
+    expect(target.baseline.load).not.toHaveBeenCalled();
+  });
+
   it("fails closed when immutable P5 baseline totals drift", async () => {
     const target = harness({ baselineCount: 17_463 });
     const source = createDnaPopulationEntrantAuthorityLiveAuditSource({
@@ -206,6 +251,7 @@ describe("population entrant live audit source", () => {
       baseline: target.baseline,
       populationIndex: target.populationIndex,
       chunkStore: target.chunkStore,
+      capacitySource: target.capacitySource,
     });
 
     await expect(
@@ -232,6 +278,7 @@ describe("population entrant live audit source", () => {
       baseline: target.baseline,
       populationIndex: target.populationIndex,
       chunkStore: target.chunkStore,
+      capacitySource: target.capacitySource,
     });
 
     await expect(
