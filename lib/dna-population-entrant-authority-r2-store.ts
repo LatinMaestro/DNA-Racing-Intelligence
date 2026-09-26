@@ -18,12 +18,29 @@ const JSON_CONTENT_TYPE = "application/json";
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const SOURCE_VERSION = "population-entrant-authority-r2-v1";
+const PENDING_DISCOVERY_LIMIT = 2 as const;
+
+export type DnaPopulationEntrantAuthorityR2ListedObject = Readonly<{
+  key: string;
+}>;
 
 export type DnaPopulationEntrantAuthorityR2StoragePort = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "putObjectIfAbsent" | "headObject"
 > &
-  Pick<PrivateDatasetEvidenceObjectReadableStoragePort, "getObject">;
+  Pick<PrivateDatasetEvidenceObjectReadableStoragePort, "getObject"> &
+  Readonly<{
+    listObjects: (input: {
+      bucketName: string;
+      prefix: string;
+      limit: typeof PENDING_DISCOVERY_LIMIT;
+    }) => Promise<
+      Readonly<{
+        objects: readonly DnaPopulationEntrantAuthorityR2ListedObject[];
+        truncated: boolean;
+      }>
+    >;
+  }>;
 
 export type DnaPopulationEntrantAuthorityR2ChunkReceipt =
   DnaPopulationEntrantAuthorityChunkReceipt &
@@ -34,6 +51,11 @@ export type DnaPopulationEntrantAuthorityR2ChunkReceipt =
 export type DnaPopulationEntrantAuthorityR2ChunkWrite = Readonly<{
   receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt;
   storageStatus: "created" | "existing";
+}>;
+
+export type DnaPopulationEntrantAuthorityR2PendingChunk = Readonly<{
+  receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt;
+  chunk: DnaPopulationEntrantAuthorityChunk;
 }>;
 
 function storageError(message: string): never {
@@ -78,20 +100,32 @@ function ownerPrefix(ownerId: string): string {
     .digest("hex");
 }
 
+function chunkObjectPrefix(input: {
+  ownerId: string;
+  generationId: string;
+  chunkOrdinal: number;
+}): string {
+  return [
+    "dna-open-lab",
+    "v1",
+    ownerPrefix(input.ownerId),
+    "population-entrant-authority",
+    "generations",
+    input.generationId,
+    "chunks",
+    `${String(input.chunkOrdinal).padStart(6, "0")}-`,
+  ].join("/");
+}
+
 function objectKey(
   ownerId: string,
   receipt: DnaPopulationEntrantAuthorityChunkReceipt,
 ): string {
-  return [
-    "dna-open-lab",
-    "v1",
-    ownerPrefix(ownerId),
-    "population-entrant-authority",
-    "generations",
-    receipt.generationId,
-    "chunks",
-    `${String(receipt.chunkOrdinal).padStart(6, "0")}-${receipt.bodySha256}.json`,
-  ].join("/");
+  return `${chunkObjectPrefix({
+    ownerId,
+    generationId: receipt.generationId,
+    chunkOrdinal: receipt.chunkOrdinal,
+  })}${receipt.bodySha256}.json`;
 }
 
 function exactMetadata(
@@ -164,20 +198,42 @@ function chunkReceipt(
   });
 }
 
+type ReadyHead = Extract<
+  Awaited<ReturnType<PrivateDatasetEvidenceObjectStoragePort["headObject"]>>,
+  { status: "ready" }
+>;
+
+function readyHead(
+  value: Awaited<
+    ReturnType<PrivateDatasetEvidenceObjectStoragePort["headObject"]>
+  >,
+): ReadyHead {
+  if (
+    value.status !== "ready" ||
+    value.contentType !== JSON_CONTENT_TYPE ||
+    !Number.isSafeInteger(value.byteLength) ||
+    value.byteLength < 1 ||
+    value.byteLength > DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES ||
+    !SHA_256_PATTERN.test(value.checksumSha256)
+  ) {
+    storageError("stored chunk head is invalid");
+  }
+  return value;
+}
+
 function exactHead(
   value: Awaited<
     ReturnType<PrivateDatasetEvidenceObjectStoragePort["headObject"]>
   >,
   receipt: DnaPopulationEntrantAuthorityChunkReceipt,
 ): void {
+  const head = readyHead(value);
   const metadata = exactMetadata(receipt);
   if (
-    value.status !== "ready" ||
-    value.contentType !== JSON_CONTENT_TYPE ||
-    value.byteLength !== receipt.byteLength ||
-    value.checksumSha256 !== receipt.bodySha256 ||
+    head.byteLength !== receipt.byteLength ||
+    head.checksumSha256 !== receipt.bodySha256 ||
     Object.entries(metadata).some(
-      ([key, expected]) => value.metadata[key] !== expected,
+      ([key, expected]) => head.metadata[key] !== expected,
     )
   ) {
     storageError("stored chunk head conflicts with its receipt");
@@ -212,13 +268,32 @@ async function collectExactBody(input: {
   return output;
 }
 
+function pendingRecords(body: Uint8Array): readonly DnaPopulationEntrantAuthorityRecord[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));
+  } catch {
+    storageError("pending chunk body is not valid canonical JSON");
+  }
+  if (
+    parsed === null ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    !Array.isArray((parsed as Record<string, unknown>).records)
+  ) {
+    storageError("pending chunk envelope is invalid");
+  }
+  return (parsed as { records: DnaPopulationEntrantAuthorityRecord[] }).records;
+}
+
 /**
  * Stores and re-opens immutable compact population entrant-authority chunks in
  * a private R2 bucket. The object key is owner-derived and content-addressed.
  *
- * This adapter is not a collection loop and performs no provider access. A
- * caller must separately satisfy the audited unresolved-Race binding, capacity,
- * checkpoint and write-arming gates before invoking write in a connected flow.
+ * The bounded pending lookup exists only to recover an R2-first interruption:
+ * it searches the exact owner/generation/chunk-ordinal prefix with limit 2,
+ * refuses ambiguity, and fully rebuilds the immutable body before records are
+ * exposed. It performs no provider access and no persistence.
  */
 export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
   ownerId: string;
@@ -233,6 +308,10 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
   read: (
     receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt,
   ) => Promise<DnaPopulationEntrantAuthorityChunk>;
+  findPending: (request: {
+    generationId: string;
+    chunkOrdinal: number;
+  }) => Promise<DnaPopulationEntrantAuthorityR2PendingChunk | null>;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
@@ -307,6 +386,97 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
         checksumSha256: receipt.bodySha256,
       });
       return decodeDnaPopulationEntrantAuthorityChunk({ receipt, body });
+    },
+
+    async findPending(request) {
+      const generationId = sha256(request.generationId, "generationId");
+      const chunkOrdinal = positiveInteger(
+        request.chunkOrdinal,
+        "chunkOrdinal",
+        1_000_000,
+      );
+      const prefix = chunkObjectPrefix({
+        ownerId,
+        generationId,
+        chunkOrdinal,
+      });
+      await privateStorage();
+
+      let page: Awaited<
+        ReturnType<DnaPopulationEntrantAuthorityR2StoragePort["listObjects"]>
+      >;
+      try {
+        page = await input.storage.listObjects({
+          bucketName,
+          prefix,
+          limit: PENDING_DISCOVERY_LIMIT,
+        });
+      } catch {
+        storageError("pending chunk discovery failed");
+      }
+      if (
+        page === null ||
+        typeof page !== "object" ||
+        !Array.isArray(page.objects) ||
+        typeof page.truncated !== "boolean" ||
+        page.objects.length > PENDING_DISCOVERY_LIMIT
+      ) {
+        storageError("pending chunk discovery response is invalid");
+      }
+      if (page.truncated || page.objects.length > 1) {
+        storageError("pending chunk discovery is ambiguous");
+      }
+      if (page.objects.length === 0) return null;
+
+      const listedKey = safeText(page.objects[0]!.key, "listed object key", 2_048);
+      if (!listedKey.startsWith(prefix)) {
+        storageError("pending chunk escaped its deterministic prefix");
+      }
+      const suffix = listedKey.slice(prefix.length);
+      const match = /^([a-f0-9]{64})\.json$/u.exec(suffix);
+      if (match === null) {
+        storageError("pending chunk object key is invalid");
+      }
+
+      const head = readyHead(
+        await input.storage.headObject({ bucketName, key: listedKey }),
+      );
+      if (head.checksumSha256 !== match[1]) {
+        storageError("pending chunk key conflicts with stored checksum");
+      }
+      const object = await input.storage.getObject({
+        bucketName,
+        key: listedKey,
+      });
+      if (object.status !== "ready") {
+        storageError("pending chunk body is unavailable");
+      }
+      const body = await collectExactBody({
+        body: object.body,
+        byteLength: head.byteLength,
+        checksumSha256: head.checksumSha256,
+      });
+      const rebuilt = buildDnaPopulationEntrantAuthorityChunk({
+        generationId,
+        chunkOrdinal,
+        records: pendingRecords(body),
+      });
+      const expectedObjectKey = objectKey(ownerId, rebuilt.receipt);
+      if (expectedObjectKey !== listedKey) {
+        storageError("pending chunk body conflicts with its object key");
+      }
+      exactHead(head, rebuilt.receipt);
+      const chunk = decodeDnaPopulationEntrantAuthorityChunk({
+        receipt: rebuilt.receipt,
+        body,
+      });
+      return Object.freeze({
+        receipt: Object.freeze({
+          ...rebuilt.receipt,
+          objectKey: listedKey,
+        }),
+        chunk,
+      });
     },
   });
 }
