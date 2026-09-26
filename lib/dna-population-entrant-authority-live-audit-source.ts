@@ -1,25 +1,32 @@
+import {
+  assessDnaOpenLabCombinedHistoryPerformanceEvidence,
+  type DnaOpenLabP5FinishedHistoryReadPort,
+} from "./dna-open-lab-combined-history-performance-evidence";
 import type { DnaPopulationEntrantAuthorityCheckpointAuthority } from "./dna-population-entrant-authority-checkpoint";
 import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
 } from "./dna-population-history-acquisition-plan";
-import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
+import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
 import type {
   DnaPopulationRaceIndexGenerationRepository,
   DnaPopulationRaceIndexR2ChunkManifest,
 } from "./dna-population-race-index-generation";
-import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index-checkpoint";
+import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
 import type { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
-import type { DnaOpenLabP5FirstBackfillStatusReadRepository } from "./neon-dna-open-lab-p5-first-backfill-ledger";
-import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabProviderCapacityMeasurementSource } from "./dna-open-lab-provider-capacity-preflight";
+import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
+import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
+import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
+import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
 const CHUNK_READ_CONCURRENCY = 24 as const;
+
 export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
   100_000 as const;
 
@@ -32,6 +39,17 @@ type PopulationChunkReadStore = Pick<
   ReturnType<typeof createDnaPopulationRaceIndexR2ChunkStore>,
   "read"
 >;
+
+type FinishedHistorySource = Pick<
+  NeonDnaOpenLabSyncPublicationRepository,
+  "readServingFinishedHistory"
+>;
+
+type ReadableEvidenceStorage = Pick<
+  PrivateDatasetEvidenceObjectStoragePort,
+  "readBucketPrivacy" | "headObject"
+> &
+  Pick<PrivateDatasetEvidenceObjectReadableStoragePort, "getObject">;
 
 function auditError(message: string): never {
   throw new Error(`Population entrant live audit: ${message}`);
@@ -141,36 +159,6 @@ function validateChunkDocuments(input: {
   return last ?? auditError("published chunk is empty");
 }
 
-async function readPublishedRaceDocuments(input: {
-  manifests: readonly DnaPopulationRaceIndexR2ChunkManifest[];
-  chunkStore: PopulationChunkReadStore;
-}): Promise<readonly CanonicalRaceDocumentMetadata[]> {
-  const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
-  let previousLast: string | null = null;
-
-  for (
-    let start = 0;
-    start < input.manifests.length;
-    start += CHUNK_READ_CONCURRENCY
-  ) {
-    const batch = input.manifests.slice(start, start + CHUNK_READ_CONCURRENCY);
-    const chunks = await Promise.all(
-      batch.map((manifest) => input.chunkStore.read(manifest)),
-    );
-    for (const [index, documents] of chunks.entries()) {
-      const manifest = batch[index]!;
-      previousLast = validateChunkDocuments({
-        manifest,
-        documents,
-        previousLast,
-      });
-      raceDocuments.push(...documents.map((document) => document.canonical));
-    }
-  }
-
-  return Object.freeze(raceDocuments);
-}
-
 function entrantAuthority(
   plan: DnaPopulationHistoryAcquisitionPlan,
 ): DnaPopulationEntrantAuthorityCheckpointAuthority {
@@ -189,24 +177,27 @@ function entrantAuthority(
   });
 }
 
-/**
- * Rebuilds the exact unresolved-Race authority from the published compact P5
- * population Race index. This source performs only Neon/R2 reads. It makes no
- * DNA provider request and performs no persistent write.
- */
 export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   configuredOwnerId: string;
   exactCodeHeadSha: string;
-  baseline: DnaOpenLabP5FirstBackfillStatusReadRepository;
+  bucketName: string;
+  baseline: DnaOpenLabP5FinishedHistoryReadPort;
+  historySource: FinishedHistorySource;
   populationIndex: PopulationIndexReadRepository;
   chunkStore: PopulationChunkReadStore;
+  storage: ReadableEvidenceStorage;
   capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
+  assessCombinedHistory?: typeof assessDnaOpenLabCombinedHistoryPerformanceEvidence;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
   const configuredOwnerId = identity(
     input.configuredOwnerId,
     "configuredOwnerId",
   );
   const configuredHead = exactHead(input.exactCodeHeadSha);
+  const bucketName = identity(input.bucketName, "bucketName");
+  const assessCombinedHistory =
+    input.assessCombinedHistory ??
+    assessDnaOpenLabCombinedHistoryPerformanceEvidence;
 
   return Object.freeze({
     async load(request) {
@@ -257,8 +248,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         populationIndex.state !== "published" ||
         populationIndex.generationId !== baseline.completionSha256 ||
         populationIndex.lastRequestOrdinal !== baseline.logicalRequestCount ||
-        populationIndex.processedReceiptCount !==
-          baseline.logicalRequestCount ||
+        populationIndex.processedReceiptCount !== baseline.logicalRequestCount ||
         populationIndex.processedReceiptBytes !== baseline.retainedR2Bytes ||
         populationIndex.processedIdentityOmissionCount !==
           baseline.omittedIdentityObservationCount ||
@@ -267,6 +257,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         populationIndex.r2IdentityChunkCount !== populationIndex.r2ChunkCount ||
         populationIndex.r2CompactedRaceCount !==
           populationIndex.uniqueRaceCount ||
+        populationIndex.r2LastSourceRaceId === null ||
         populationIndex.legacyStorageRetiredAt === null
       ) {
         auditError("published compact P5 population authority is unavailable");
@@ -300,21 +291,103 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         expectedRaceCount: populationIndex.uniqueRaceCount,
       });
 
-      const raceDocuments = await readPublishedRaceDocuments({
-        manifests,
-        chunkStore: input.chunkStore,
-      });
-      if (raceDocuments.length !== populationIndex.uniqueRaceCount) {
-        auditError("published Race documents do not reconcile");
+      const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
+      let previousLast: string | null = null;
+      const baselineR2ClassBOperations = manifests.length * 2;
+      if (
+        !Number.isSafeInteger(baselineR2ClassBOperations) ||
+        baselineR2ClassBOperations < 1 ||
+        baselineR2ClassBOperations >
+          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
+      ) {
+        auditError("compact P5 read budget is invalid");
       }
 
-      const plan = planDnaPopulationHistoryAcquisition({ raceDocuments });
+      const history = await input.historySource.readServingFinishedHistory({
+        ownerId: configuredOwnerId,
+      });
+      const assessment = await assessCombinedHistory({
+        ownerId: configuredOwnerId,
+        bucketName,
+        baselineAuthority: Object.freeze({
+          logicalRequestCount: baseline.logicalRequestCount,
+          retainedR2Bytes: baseline.retainedR2Bytes,
+          omittedIdentityObservationCount:
+            baseline.omittedIdentityObservationCount,
+          completionSha256: baseline.completionSha256,
+        }),
+        baseline: input.baseline,
+        baselineIndex: Object.freeze({
+          scanDocuments: async (accept) => {
+            let scannedRaceCount = 0;
+            for (
+              let start = 0;
+              start < manifests.length;
+              start += CHUNK_READ_CONCURRENCY
+            ) {
+              const batch = manifests.slice(
+                start,
+                start + CHUNK_READ_CONCURRENCY,
+              );
+              const chunks = await Promise.all(
+                batch.map((manifest) => input.chunkStore.read(manifest)),
+              );
+              for (const [index, documents] of chunks.entries()) {
+                previousLast = validateChunkDocuments({
+                  manifest: batch[index]!,
+                  documents,
+                  previousLast,
+                });
+                for (const document of documents) {
+                  accept(document);
+                  scannedRaceCount += 1;
+                }
+              }
+            }
+            if (scannedRaceCount !== populationIndex.uniqueRaceCount) {
+              auditError("published Race documents do not reconcile");
+            }
+          },
+          baselineReceiptCount: populationIndex.processedReceiptCount,
+          baselineFinishedRaceReceiptCount:
+            populationIndex.finishedRaceReceiptCount,
+          baselineIdentityOmissionObservationCount:
+            populationIndex.processedIdentityOmissionCount,
+          r2ClassBOperationsUsed: baselineR2ClassBOperations,
+        }),
+        history,
+        storage: input.storage,
+        readBudget: Object.freeze({
+          maximumClassBOperations:
+            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+          paidUsageAllowed: false as const,
+        }),
+        canonicalPurpose: "population_inventory",
+        onCanonicalRaceDocument: (document) => {
+          raceDocuments.push(document);
+        },
+      });
+
+      if (
+        assessment.authority !==
+          "complete_serving_generation_combined_finished_history" ||
+        assessment.uniqueRaceCount !== raceDocuments.length ||
+        assessment.conflictingRaceEvidenceCount !== 0 ||
+        assessment.persistentWritePerformed !== false ||
+        assessment.paidUsageAllowed !== false
+      ) {
+        auditError("combined Race authority did not reconcile");
+      }
+
+      const plan = planDnaPopulationHistoryAcquisition({
+        raceDocuments: Object.freeze(raceDocuments),
+      });
       const authority = entrantAuthority(plan);
 
       return Object.freeze({
         exactCodeHeadSha: configuredHead,
         plan,
-        raceDocuments,
+        raceDocuments: Object.freeze(raceDocuments),
         authority,
       });
     },
