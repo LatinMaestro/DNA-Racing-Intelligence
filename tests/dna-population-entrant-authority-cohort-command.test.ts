@@ -57,22 +57,21 @@ function audit(): DnaPopulationEntrantAuthorityLiveAudit {
 }
 
 const SYNTHETIC_AUTHORITY = audit().authority;
-const SYNTHETIC_HANDOFF =
-  createDnaPopulationEntrantAuthorityReadinessHandoff(
-    Object.freeze({
-      status: "ready" as const,
-      exactCodeHeadSha: HEAD,
-      unresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
-      unresolvedRaceSetSha256: SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
-      capacityObservedAt: READINESS_AT,
-      previewOnly: true as const,
-      dnaEntrantHydrationPerformed: false as const,
-      checkpointInitializationPerformed: false as const,
-      entrantChunkPersistentWritePerformed: false as const,
-      providerWritePerformed: false as const,
-      paidUsageAllowed: false as const,
-    }),
-  );
+const SYNTHETIC_HANDOFF = createDnaPopulationEntrantAuthorityReadinessHandoff(
+  Object.freeze({
+    status: "ready" as const,
+    exactCodeHeadSha: HEAD,
+    unresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
+    unresolvedRaceSetSha256: SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
+    capacityObservedAt: READINESS_AT,
+    previewOnly: true as const,
+    dnaEntrantHydrationPerformed: false as const,
+    checkpointInitializationPerformed: false as const,
+    entrantChunkPersistentWritePerformed: false as const,
+    providerWritePerformed: false as const,
+    paidUsageAllowed: false as const,
+  }),
+);
 
 const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
   Object.freeze({
@@ -84,8 +83,7 @@ const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
     expectedUnresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
     expectedUnresolvedRaceSetSha256:
       SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
-    readinessCapacityObservedAt:
-      SYNTHETIC_HANDOFF.readinessCapacityObservedAt,
+    readinessCapacityObservedAt: SYNTHETIC_HANDOFF.readinessCapacityObservedAt,
     readinessReceiptSha256: SYNTHETIC_HANDOFF.readinessReceiptSha256,
   });
 
