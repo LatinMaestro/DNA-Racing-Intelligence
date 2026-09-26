@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment,
-} from "@/lib/dna-population-entrant-authority-connected-runtime";
+import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT,
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION,
@@ -64,7 +62,8 @@ describeConnected(
       async () => {
         let stage: DiagnosticStage = "environment";
         try {
-          const exactCodeHeadSha = requiredEnvironment("GITHUB_SHA").toLowerCase();
+          const exactCodeHeadSha =
+            requiredEnvironment("GITHUB_SHA").toLowerCase();
           const expectedMainSha = requiredEnvironment(
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA",
           ).toLowerCase();
@@ -93,9 +92,7 @@ describeConnected(
                 cloudflareAccountId: requiredEnvironment(
                   "CLOUDFLARE_ACCOUNT_ID",
                 ),
-                cloudflareApiToken: requiredEnvironment(
-                  "CLOUDFLARE_API_TOKEN",
-                ),
+                cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
                 cloudflareAnalyticsApiToken: requiredEnvironment(
                   "CLOUDFLARE_ANALYTICS_API_TOKEN",
                 ),
