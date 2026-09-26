@@ -12,22 +12,21 @@ import {
 import { createDnaPopulationEntrantAuthorityReadinessHandoff } from "@/lib/dna-population-entrant-authority-readiness-handoff";
 
 const HEAD = "a".repeat(40);
-const CONNECTED_HANDOFF =
-  createDnaPopulationEntrantAuthorityReadinessHandoff(
-    Object.freeze({
-      status: "ready" as const,
-      exactCodeHeadSha: HEAD,
-      unresolvedRaceCount: 1,
-      unresolvedRaceSetSha256: "c".repeat(64),
-      capacityObservedAt: "2026-09-26T08:00:30.000Z",
-      previewOnly: true as const,
-      dnaEntrantHydrationPerformed: false as const,
-      checkpointInitializationPerformed: false as const,
-      entrantChunkPersistentWritePerformed: false as const,
-      providerWritePerformed: false as const,
-      paidUsageAllowed: false as const,
-    }),
-  );
+const CONNECTED_HANDOFF = createDnaPopulationEntrantAuthorityReadinessHandoff(
+  Object.freeze({
+    status: "ready" as const,
+    exactCodeHeadSha: HEAD,
+    unresolvedRaceCount: 1,
+    unresolvedRaceSetSha256: "c".repeat(64),
+    capacityObservedAt: "2026-09-26T08:00:30.000Z",
+    previewOnly: true as const,
+    dnaEntrantHydrationPerformed: false as const,
+    checkpointInitializationPerformed: false as const,
+    entrantChunkPersistentWritePerformed: false as const,
+    providerWritePerformed: false as const,
+    paidUsageAllowed: false as const,
+  }),
+);
 
 function environment(
   overrides: Partial<DnaPopulationEntrantAuthorityConnectedEnvironment> = {},
@@ -63,8 +62,7 @@ function invocation(
     cohortObservedAt: "2026-09-26T08:00:00.000Z",
     expectedUnresolvedRaceCount: 1,
     expectedUnresolvedRaceSetSha256: "c".repeat(64),
-    readinessCapacityObservedAt:
-      CONNECTED_HANDOFF.readinessCapacityObservedAt,
+    readinessCapacityObservedAt: CONNECTED_HANDOFF.readinessCapacityObservedAt,
     readinessReceiptSha256: CONNECTED_HANDOFF.readinessReceiptSha256,
     ...overrides,
   });
