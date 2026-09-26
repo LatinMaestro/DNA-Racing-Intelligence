@@ -13,9 +13,7 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
     expect(workflow).toContain("expected_main_sha:");
     expect(workflow).toContain("cohort_observed_at:");
-    expect(workflow).toContain(
-      "execute_one_private_preview_entrant_cohort:",
-    );
+    expect(workflow).toContain("execute_one_private_preview_entrant_cohort:");
     expect(workflow).toContain("default: false");
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
     expect(workflow).toContain(
@@ -26,7 +24,7 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     );
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain(
-      "DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND: \"1\"",
+      'DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND: "1"',
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
     expect(workflow).toContain("cancel-in-progress: false");
