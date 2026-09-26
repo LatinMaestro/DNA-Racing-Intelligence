@@ -317,11 +317,13 @@ function bindAuditedAuthority(input: {
     cohortError("invalid_audited_authority");
   }
 
-  const unresolvedRaceIds = deriveDnaPopulationEntrantAuthorityUnresolvedRaceIds(input.raceDocuments);
+  const unresolvedRaceIds =
+    deriveDnaPopulationEntrantAuthorityUnresolvedRaceIds(input.raceDocuments);
   if (unresolvedRaceIds.length < 1) {
     cohortError("audited_authority_mismatch");
   }
-  const unresolvedRaceSetSha256 = dnaPopulationEntrantAuthorityRaceSetSha256(unresolvedRaceIds);
+  const unresolvedRaceSetSha256 =
+    dnaPopulationEntrantAuthorityRaceSetSha256(unresolvedRaceIds);
   const expectedSample = unresolvedRaceIds.slice(
     0,
     DNA_POPULATION_UNRESOLVED_RACE_MEASUREMENT_SAMPLE_LIMIT,
@@ -392,7 +394,8 @@ function validateRecoveredManifest(input: {
     expectedRaceIds.length !== input.manifest.rowCount ||
     input.manifest.firstSourceRaceId !== expectedRaceIds[0] ||
     input.manifest.lastSourceRaceId !== expectedRaceIds.at(-1) ||
-    input.manifest.raceSetSha256 !== dnaPopulationEntrantAuthorityRaceSetSha256(expectedRaceIds)
+    input.manifest.raceSetSha256 !==
+      dnaPopulationEntrantAuthorityRaceSetSha256(expectedRaceIds)
   ) {
     cohortError("recovered_boundary_mismatch");
   }
@@ -490,7 +493,8 @@ function validatePreparedChunk(input: {
     input.receipt.rowCount !== input.raceIds.length ||
     input.receipt.firstSourceRaceId !== input.raceIds[0] ||
     input.receipt.lastSourceRaceId !== input.raceIds.at(-1) ||
-    input.receipt.raceSetSha256 !== dnaPopulationEntrantAuthorityRaceSetSha256(input.raceIds)
+    input.receipt.raceSetSha256 !==
+      dnaPopulationEntrantAuthorityRaceSetSha256(input.raceIds)
   ) {
     cohortError("prepared_chunk_invalid");
   }
@@ -574,7 +578,9 @@ function preparedCohort(input: {
         chunkOrdinal: input.recovery.nextChunkOrdinal,
         raceIds: input.raceIds,
       }),
-      selectedRaceSetSha256: dnaPopulationEntrantAuthorityRaceSetSha256(input.raceIds),
+      selectedRaceSetSha256: dnaPopulationEntrantAuthorityRaceSetSha256(
+        input.raceIds,
+      ),
       preparedBodySha256: expectedReceipt.bodySha256,
       preparedRecordSetSha256: expectedReceipt.recordSetSha256,
       cohortObservedAt: input.cohortObservedAt,
