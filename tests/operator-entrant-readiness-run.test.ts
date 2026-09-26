@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
 import { createDnaPopulationEntrantAuthorityReadinessHandoff } from "@/lib/dna-population-entrant-authority-readiness-handoff";
+import { DnaOpenLabProviderCapacityMeasurementError } from "@/lib/dna-open-lab-provider-capacity-preflight";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_OPERATOR_READINESS === "1";
@@ -36,12 +38,51 @@ describeConnected(
           throw new Error("exact main commit is unavailable");
         }
 
+        const ownerId = requiredEnvironment("AUTHORIZED_CLERK_USER_ID");
+        const capacitySource =
+          cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment({
+            authorizedOwnerId: ownerId,
+            cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
+            cloudflareAnalyticsApiToken: requiredEnvironment(
+              "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            ),
+            r2BucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
+            r2StorageClass: requiredEnvironment("DNA_R2_STORAGE_CLASS"),
+            neonApiKey: requiredEnvironment("NEON_API_KEY"),
+            neonProjectId: requiredEnvironment("NEON_PROJECT_ID"),
+          });
+        if (capacitySource.status !== "ready") {
+          throw new Error("operator capacity source is not configured");
+        }
+        try {
+          const measurement = await capacitySource.measure({ ownerId });
+          console.log(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_CAPACITY_STAGE=" +
+              JSON.stringify({
+                status: "ready",
+                measuredAt: measurement.measuredAt,
+                neonMeasuredAt: measurement.neonMeasuredAt,
+              }),
+          );
+        } catch (error) {
+          const failureId =
+            error instanceof DnaOpenLabProviderCapacityMeasurementError
+              ? error.failureId
+              : "unexpected_measurement_failure";
+          console.log(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_CAPACITY_STAGE=" +
+              JSON.stringify({
+                status: "failed",
+                failureId,
+              }),
+          );
+          throw new Error("operator capacity diagnostic failed");
+        }
+
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
             environment: Object.freeze({
-              authorizedOwnerId: requiredEnvironment(
-                "AUTHORIZED_CLERK_USER_ID",
-              ),
+              authorizedOwnerId: ownerId,
               exactCodeHeadSha,
               databaseUrl: requiredEnvironment("DATABASE_URL"),
               databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
