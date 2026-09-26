@@ -16,12 +16,14 @@ import {
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-live-audit-source";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-population-entrant-authority-r2-store";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-open-lab-p5-first-backfill-approval";
+import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "./neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "./neon-dna-population-entrant-authority-checkpoint";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "./neon-dna-population-race-index-generation";
+import { createNeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/u;
 const OWNER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
@@ -252,6 +254,18 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         ownerId: config.ownerId,
         runtimeRole: config.runtimeRole,
       });
+    const publicationRepository =
+      createNeonDnaOpenLabSyncPublicationRepository({
+        databaseUrl: config.databaseUrl,
+        databaseOwnerId: config.databaseOwnerId,
+        runtimeRole: config.runtimeRole,
+      });
+    const baselineEvidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
+      ownerId: config.ownerId,
+      bucketName: config.bucketName,
+      storage,
+      approvalPacket: DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+    });
     const populationChunkStore = createDnaPopulationRaceIndexR2ChunkStore({
       ownerId: config.ownerId,
       bucketName: config.bucketName,
@@ -260,9 +274,16 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
     const authoritySource = createDnaPopulationEntrantAuthorityLiveAuditSource({
       configuredOwnerId: config.ownerId,
       exactCodeHeadSha: config.exactCodeHeadSha,
-      baseline,
+      bucketName: config.bucketName,
+      baseline: Object.freeze({
+        load: baseline.load,
+        loadReceipts: baseline.loadReceipts,
+        readEvidence: baselineEvidence.read,
+      }),
+      historySource: publicationRepository,
       populationIndex,
       chunkStore: populationChunkStore,
+      storage,
       capacitySource,
     });
 
