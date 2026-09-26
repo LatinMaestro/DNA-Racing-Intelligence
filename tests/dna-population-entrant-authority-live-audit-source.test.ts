@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createDnaPopulationEntrantAuthorityLiveAuditSource,
-} from "@/lib/dna-population-entrant-authority-live-audit-source";
+import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
 import type { DnaPopulationRaceIndexDocument } from "@/lib/dna-population-race-index-checkpoint";
 import type {
   DnaPopulationRaceIndexCheckpoint,
@@ -152,9 +150,7 @@ function harness(input?: {
         ) =>
           Object.freeze(
             manifests
-              .filter(
-                (entry) => entry.chunkOrdinal > request.afterChunkOrdinal,
-              )
+              .filter((entry) => entry.chunkOrdinal > request.afterChunkOrdinal)
               .slice(0, request.limit),
           ),
       ),
@@ -224,7 +220,6 @@ describe("population entrant live audit source", () => {
     ).rejects.toThrow("request binding is invalid");
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
-
 
   it("fails closed before durable reads when zero-cost R2 read headroom is unavailable", async () => {
     const target = harness({ classBOperations: 9_950_001 });
