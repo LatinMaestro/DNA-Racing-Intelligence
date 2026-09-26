@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
+import { createDnaPopulationEntrantAuthorityReadinessHandoff } from "@/lib/dna-population-entrant-authority-readiness-handoff";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_READINESS === "1";
@@ -85,9 +86,23 @@ describeConnected(
         expect(receipt.unresolvedRaceCount).toBeGreaterThan(0);
         expect(receipt.unresolvedRaceSetSha256).toMatch(/^[a-f0-9]{64}$/u);
 
+        const handoff =
+          createDnaPopulationEntrantAuthorityReadinessHandoff(receipt);
+        expect(handoff).toMatchObject({
+          exactCodeHeadSha,
+          expectedUnresolvedRaceCount: receipt.unresolvedRaceCount,
+          expectedUnresolvedRaceSetSha256:
+            receipt.unresolvedRaceSetSha256,
+          readinessCapacityObservedAt: receipt.capacityObservedAt,
+        });
+
         console.log(
           "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS=" +
             JSON.stringify(receipt),
+        );
+        console.log(
+          "DNA_POPULATION_ENTRANT_AUTHORITY_COMMISSIONING_HANDOFF=" +
+            JSON.stringify(handoff),
         );
       },
       30 * 60_000,
