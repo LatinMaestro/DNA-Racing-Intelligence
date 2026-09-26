@@ -19,6 +19,14 @@ on:
         description: Exact audited unresolved Race set SHA-256 expected for this commissioning event
         required: true
         type: string
+      readiness_capacity_observed_at:
+        description: Capacity observation timestamp from the successful read-only readiness receipt
+        required: true
+        type: string
+      readiness_receipt_sha256:
+        description: SHA-256 of the exact successful read-only readiness receipt
+        required: true
+        type: string
       execute_one_private_preview_entrant_cohort:
         description: Confirm exactly one persistent private Preview entrant cohort
         required: true
@@ -51,6 +59,8 @@ jobs:
       DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
       DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256: ${{ inputs.expected_unresolved_race_set_sha256 }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_CAPACITY_OBSERVED_AT: ${{ inputs.readiness_capacity_observed_at }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_RECEIPT_SHA256: ${{ inputs.readiness_receipt_sha256 }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
@@ -107,6 +117,8 @@ jobs:
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA",
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_CAPACITY_OBSERVED_AT",
+            "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_RECEIPT_SHA256",
             "DNA_R2_ACCESS_KEY_ID",
             "DNA_R2_BUCKET_NAME",
             "DNA_R2_SECRET_ACCESS_KEY",
@@ -144,6 +156,21 @@ jobs:
             process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256;
           if (!/^[a-f0-9]{64}$/.test(expectedRaceSetSha256)) {
             throw new Error("The expected unresolved Race set authority is invalid.");
+          }
+          const readinessCapacityObservedAt =
+            process.env.DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_CAPACITY_OBSERVED_AT;
+          const readinessCapacityObserved = new Date(readinessCapacityObservedAt);
+          if (
+            Number.isNaN(readinessCapacityObserved.getTime()) ||
+            readinessCapacityObserved.toISOString() !== readinessCapacityObservedAt ||
+            readinessCapacityObserved.getTime() > Date.now()
+          ) {
+            throw new Error("The readiness capacity observation time is invalid.");
+          }
+          const readinessReceiptSha256 =
+            process.env.DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_RECEIPT_SHA256;
+          if (!/^[a-f0-9]{64}$/.test(readinessReceiptSha256)) {
+            throw new Error("The readiness receipt SHA-256 is invalid.");
           }
           const observedAt =
             process.env.DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT;

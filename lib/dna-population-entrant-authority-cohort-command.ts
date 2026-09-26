@@ -10,13 +10,18 @@ import {
   type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "./dna-population-entrant-authority-cohort";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_HANDOFF_VERSION,
+  DnaPopulationEntrantAuthorityReadinessHandoffError,
+  validateDnaPopulationEntrantAuthorityReadinessHandoff,
+} from "./dna-population-entrant-authority-readiness-handoff";
 import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_VERSION =
-  "dna-population-entrant-authority-cohort-command/v2" as const;
+  "dna-population-entrant-authority-cohort-command/v3" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND_INTENT =
   "prepare_single_private_preview_unresolved_race_cohort" as const;
 
@@ -46,6 +51,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandInvocation = Readonly<{
   cohortObservedAt: string;
   expectedUnresolvedRaceCount: number;
   expectedUnresolvedRaceSetSha256: string;
+  readinessCapacityObservedAt: string;
+  readinessReceiptSha256: string;
 }>;
 
 export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
@@ -60,6 +67,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     quarantinedRaceCount: number;
     providerRequestCount: number;
     preparationSource: "provider_hydration" | "pending_r2_recovery";
+    readinessCapacityObservedAt: string;
+    readinessReceiptSha256: string;
     preflightCapacityObservedAt: string;
     checkpointInitializationCompleted: true;
     checkpointChunkCountBeforePreparation: number;
@@ -93,6 +102,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandReceipt = Readonly<{
   checkpointRaceCountAfter: number;
   authorityComplete: boolean;
   storageStatus: "created" | "existing";
+  readinessCapacityObservedAt: string;
+  readinessReceiptSha256: string;
   capacityObservedAt: string;
   persistentWriteArmed: true;
   previewOnly: true;
@@ -114,6 +125,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "exact_head_mismatch"
   | "invalid_observation_time"
   | "invalid_authority_binding"
+  | "invalid_readiness_handoff"
+  | "stale_readiness_handoff"
   | "authority_unavailable"
   | "authority_head_mismatch"
   | "authority_binding_mismatch"
@@ -244,6 +257,41 @@ function expectedAuthorityBinding(input: {
   });
 }
 
+function readinessHandoffBinding(input: {
+  invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation;
+  requestedHead: string;
+  checkedAt: string;
+}) {
+  try {
+    const handoff = validateDnaPopulationEntrantAuthorityReadinessHandoff({
+      handoff: Object.freeze({
+        version: DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_HANDOFF_VERSION,
+        exactCodeHeadSha: input.requestedHead,
+        expectedUnresolvedRaceCount:
+          input.invocation.expectedUnresolvedRaceCount,
+        expectedUnresolvedRaceSetSha256:
+          input.invocation.expectedUnresolvedRaceSetSha256,
+        readinessCapacityObservedAt:
+          input.invocation.readinessCapacityObservedAt,
+        readinessReceiptSha256: input.invocation.readinessReceiptSha256,
+      }),
+      checkedAt: input.checkedAt,
+    });
+    if (handoff.exactCodeHeadSha !== input.requestedHead) {
+      commandError("invalid_readiness_handoff");
+    }
+    return handoff;
+  } catch (error) {
+    if (
+      error instanceof DnaPopulationEntrantAuthorityReadinessHandoffError &&
+      error.diagnostic === "stale"
+    ) {
+      commandError("stale_readiness_handoff");
+    }
+    commandError("invalid_readiness_handoff");
+  }
+}
+
 function preflightCapacityObservedAt(input: {
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   approval: Awaited<
@@ -308,12 +356,16 @@ function validateInitializedCheckpoint(input: {
 function committedReceipt(input: {
   exactCodeHeadSha: string;
   cohortObservedAt: string;
+  readinessCapacityObservedAt: string;
+  readinessReceiptSha256: string;
   result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
 }): DnaPopulationEntrantAuthorityCohortCommandReceipt {
   return Object.freeze({
     status: "committed" as const,
     exactCodeHeadSha: input.exactCodeHeadSha,
     cohortObservedAt: input.cohortObservedAt,
+    readinessCapacityObservedAt: input.readinessCapacityObservedAt,
+    readinessReceiptSha256: input.readinessReceiptSha256,
     chunkOrdinal: input.result.chunkOrdinal,
     rowCount: input.result.rowCount,
     resolvedRaceCount: input.result.resolvedRaceCount,
@@ -380,6 +432,11 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       const cohortObservedAt = exactTimestamp(invocation.cohortObservedAt);
       const expectedAuthority = expectedAuthorityBinding(invocation);
       const preflightStartedAt = executionTimestamp(now, cohortObservedAt);
+      const readinessHandoff = readinessHandoffBinding({
+        invocation,
+        requestedHead,
+        checkedAt: preflightStartedAt,
+      });
 
       let audit: DnaPopulationEntrantAuthorityLiveAudit;
       try {
@@ -426,6 +483,12 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         authority: audit.authority,
         approval,
       });
+      if (
+        Date.parse(capacityObservedAt) <
+        Date.parse(readinessHandoff.readinessCapacityObservedAt)
+      ) {
+        commandError("preflight_unavailable");
+      }
 
       let initializedCheckpoint: DnaPopulationEntrantAuthorityCheckpoint;
       try {
@@ -501,6 +564,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         quarantinedRaceCount: prepared.summary.quarantinedRaceCount,
         providerRequestCount: prepared.summary.providerRequestCount,
         preparationSource: prepared.summary.preparationSource,
+        readinessCapacityObservedAt:
+          readinessHandoff.readinessCapacityObservedAt,
+        readinessReceiptSha256: readinessHandoff.readinessReceiptSha256,
         preflightCapacityObservedAt: capacityObservedAt,
         checkpointInitializationCompleted: true as const,
         checkpointChunkCountBeforePreparation: initializedCheckpoint.chunkCount,
@@ -546,6 +612,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           accepted = committedReceipt({
             exactCodeHeadSha: requestedHead,
             cohortObservedAt: prepared.summary.cohortObservedAt,
+            readinessCapacityObservedAt:
+              readinessHandoff.readinessCapacityObservedAt,
+            readinessReceiptSha256: readinessHandoff.readinessReceiptSha256,
             result,
           });
           return accepted;

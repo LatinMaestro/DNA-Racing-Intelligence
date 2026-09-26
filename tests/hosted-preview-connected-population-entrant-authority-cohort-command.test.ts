@@ -102,6 +102,12 @@ describeConnected(
           const expectedUnresolvedRaceSetSha256 = sha256(
             "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
           );
+          const readinessCapacityObservedAt = exactTimestamp(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_CAPACITY_OBSERVED_AT",
+          );
+          const readinessReceiptSha256 = sha256(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_READINESS_RECEIPT_SHA256",
+          );
 
           stage = "runtime-composition";
           const runtime =
@@ -147,6 +153,8 @@ describeConnected(
             cohortObservedAt,
             expectedUnresolvedRaceCount,
             expectedUnresolvedRaceSetSha256,
+            readinessCapacityObservedAt,
+            readinessReceiptSha256,
           });
           expect(session.prepared).toMatchObject({
             status: "prepared_uncommitted",
@@ -202,6 +210,9 @@ describeConnected(
             checkpointRaceCountAfter: receipt.checkpointRaceCountAfter,
             authorityComplete: receipt.authorityComplete,
             storageStatus: receipt.storageStatus,
+            readinessCapacityObservedAt:
+              session.prepared.readinessCapacityObservedAt,
+            readinessReceiptSha256: session.prepared.readinessReceiptSha256,
             preflightCapacityObservedAt:
               session.prepared.preflightCapacityObservedAt,
             commitCapacityObservedAt: receipt.capacityObservedAt,
