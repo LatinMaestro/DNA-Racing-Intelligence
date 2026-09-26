@@ -7,6 +7,7 @@ import type {
   DnaPopulationRaceIndexCheckpoint,
   DnaPopulationRaceIndexR2ChunkManifest,
 } from "@/lib/dna-population-race-index-generation";
+import type { DnaPopulationRaceIndexR2ChunkReceipt } from "@/lib/dna-population-race-index-r2-chunk";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
 
 const OWNER = "private-owner";
@@ -112,7 +113,7 @@ function assessment(
       "authoritative_exact_distance",
       "authoritative_elapsed_time",
       "authoritative_finish_position",
-    ]),
+    ] as const),
     rawEvidenceExposed: false,
     persistentWritePerformed: false,
     paidUsageAllowed: false,
@@ -203,7 +204,7 @@ function harness(input?: {
       ),
     },
     chunkStore: {
-      read: vi.fn(async (receipt: DnaPopulationRaceIndexR2ChunkManifest) => {
+      read: vi.fn(async (receipt: DnaPopulationRaceIndexR2ChunkReceipt) => {
         const value = chunks[receipt.chunkOrdinal as 1 | 2];
         if (value === undefined) throw new Error("missing synthetic chunk");
         return value;
