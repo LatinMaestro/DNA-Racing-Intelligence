@@ -482,26 +482,27 @@ describe("DNA population entrant authority cohort command", () => {
     const liveAudit = audit();
     const baseRuntime = runtime();
     const cohortPreparer = vi.fn();
+    const commandRuntime = Object.freeze({
+      ...baseRuntime,
+      checkpointRepository: Object.freeze({
+        ...baseRuntime.checkpointRepository,
+        begin: vi.fn(async (_ownerId, request) =>
+          Object.freeze({
+            ...request.authority,
+            chunkCount: 1,
+            persistedRaceCount: 1,
+            lastSourceRaceId: "race-1",
+            startedAt: request.startedAt,
+            updatedAt: request.startedAt,
+          }),
+        ),
+      }),
+    });
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: OWNER,
       runtimeCodeHeadSha: HEAD,
       authoritySource: { load: vi.fn(async () => liveAudit) },
-      runtime: Object.freeze({
-        ...baseRuntime,
-        checkpointRepository: Object.freeze({
-          ...baseRuntime.checkpointRepository,
-          begin: vi.fn(async (_ownerId, request) =>
-            Object.freeze({
-              ...request.authority,
-              chunkCount: 1,
-              persistedRaceCount: 1,
-              lastSourceRaceId: "race-1",
-              startedAt: request.startedAt,
-              updatedAt: request.startedAt,
-            }),
-          ),
-        }),
-      }),
+      runtime: commandRuntime,
       now: () => new Date(FIRST_COMMIT_AT),
       cohortPreparer,
     });
@@ -511,6 +512,10 @@ describe("DNA population entrant authority cohort command", () => {
       message: "Population entrant commissioning command is unavailable",
     });
 
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).toHaveBeenCalledWith(liveAudit.authority);
+    expect(commandRuntime.checkpointRepository.begin).toHaveBeenCalledOnce();
     expect(cohortPreparer).not.toHaveBeenCalled();
   });
 
@@ -688,6 +693,32 @@ describe("DNA population entrant authority cohort command", () => {
     });
     expect(commit).toHaveBeenNthCalledWith(2, {
       registeredAt: SECOND_COMMIT_AT,
+    });
+  });
+
+  it("fails closed if a prepared first cohort reports non-first checkpoint progression at commit", async () => {
+    const liveAudit = audit();
+    const commit = vi.fn(async () =>
+      Object.freeze({
+        ...committed(liveAudit.authority),
+        chunkOrdinal: 2,
+        checkpointRaceCountBefore: 1,
+        checkpointRaceCountAfter: 2,
+      }),
+    );
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: runtime(),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer: vi.fn(async () => prepared(liveAudit, commit)),
+    });
+    const session = await command.execute(invocation);
+
+    await expect(session.commit()).rejects.toMatchObject({
+      diagnostic: "cohort_unavailable",
+      message: "Population entrant commissioning command is unavailable",
     });
   });
 
