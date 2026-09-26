@@ -512,6 +512,12 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
           checkpointRepository: input.runtime.checkpointRepository,
           r2Store: input.runtime.r2Store,
           cohortObservedAt,
+          expectedRecoveryBoundary: Object.freeze({
+            recoveredChunkCount: boundary.recoveredChunkCount,
+            recoveredRaceCount: boundary.recoveredRaceCount,
+            nextChunkOrdinal: boundary.nextChunkOrdinal,
+            checkpointUpdatedAt: boundary.checkpointUpdatedAt,
+          }),
         });
       } catch {
         commandError("cohort_unavailable");
