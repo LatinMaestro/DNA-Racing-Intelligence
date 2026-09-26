@@ -29,7 +29,22 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: Run format check and emit exact continuation-command formatter diff on failure
+        shell: bash
+        run: |
+          if ! npm run format; then
+            npx prettier --write \
+              lib/dna-population-entrant-authority-continuation-command.ts \
+              tests/dna-population-entrant-authority-continuation-command-workflow.test.ts \
+              tests/dna-population-entrant-authority-continuation-command.test.ts \
+              tests/hosted-preview-connected-population-entrant-authority-continuation-command.test.ts
+            git diff -- \
+              lib/dna-population-entrant-authority-continuation-command.ts \
+              tests/dna-population-entrant-authority-continuation-command-workflow.test.ts \
+              tests/dna-population-entrant-authority-continuation-command.test.ts \
+              tests/hosted-preview-connected-population-entrant-authority-continuation-command.test.ts
+            exit 1
+          fi
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
