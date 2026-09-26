@@ -83,9 +83,7 @@ describeConnected(
         });
         expect(receipt.recoveredChunkCount).toBeGreaterThanOrEqual(1);
         expect(receipt.recoveredRaceCount).toBeGreaterThanOrEqual(1);
-        expect(receipt.nextChunkOrdinal).toBe(
-          receipt.recoveredChunkCount + 1,
-        );
+        expect(receipt.nextChunkOrdinal).toBe(receipt.recoveredChunkCount + 1);
         expect(receipt.recoveredRaceCount).toBeLessThan(
           receipt.unresolvedRaceCount,
         );
