@@ -189,7 +189,9 @@ export function replayDnaPopulationEntrantAuthority(input: {
     ordered.map((entry) => entry.canonical).join("\n"),
   );
   const resolved = ordered.filter(
-    (entry): entry is typeof entry & {
+    (
+      entry,
+    ): entry is typeof entry & {
       record: DnaPopulationEntrantAuthorityResolvedRecord;
     } => !isDnaPopulationEntrantAuthorityQuarantineRecord(entry.record),
   );
