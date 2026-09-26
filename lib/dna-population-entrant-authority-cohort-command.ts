@@ -371,10 +371,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         >
       >;
       try {
-        approval =
-          await input.runtime.capacityGate.assertFreshCurrentCapacity(
-            audit.authority,
-          );
+        approval = await input.runtime.capacityGate.assertFreshCurrentCapacity(
+          audit.authority,
+        );
       } catch {
         commandError("preflight_unavailable");
       }
@@ -432,7 +431,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         !sameAuthority(prepared.summary.authority, audit.authority) ||
         prepared.summary.recoveredRaceCount !==
           initializedCheckpoint.persistedRaceCount ||
-        prepared.summary.chunkOrdinal !== initializedCheckpoint.chunkCount + 1 ||
+        prepared.summary.chunkOrdinal !==
+          initializedCheckpoint.chunkCount + 1 ||
         (!providerHydration && !pendingRecovery) ||
         (providerHydration &&
           (prepared.summary.cohortObservedAt !== cohortObservedAt ||
@@ -458,7 +458,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         preparationSource: prepared.summary.preparationSource,
         preflightCapacityObservedAt: capacityObservedAt,
         checkpointInitializationCompleted: true as const,
-        checkpointChunkCountBeforePreparation: initializedCheckpoint.chunkCount,
+        checkpointChunkCountBeforePreparation:
+          initializedCheckpoint.chunkCount,
         checkpointRaceCountBeforePreparation:
           initializedCheckpoint.persistedRaceCount,
         cohortSha256: prepared.summary.cohortSha256,
