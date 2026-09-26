@@ -95,7 +95,7 @@ describe("DNA race document quarantine hydrator", () => {
   it("quarantines one returned Race whose document cannot be adapted", async () => {
     const target = clientWith(() => [
       { rid: 1, rvmode: "bike", hids: [101] },
-      { rid: 2, rvmode: "bike", hids: ["invalid" as never] },
+      { rid: 2, non_json_value: undefined },
     ]);
 
     const result = await hydrateDnaRaceDocumentsWithQuarantine({
