@@ -5,9 +5,9 @@ import {
   type DnaPopulationEntrantAuthorityChunk,
 } from "@/lib/dna-population-entrant-authority-archive";
 import {
-  hydrateAndCommitDnaPopulationEntrantAuthorityCohort,
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
-  type DnaPopulationEntrantAuthorityCohortResult,
+  prepareDnaPopulationEntrantAuthorityCohort,
+  type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "@/lib/dna-population-entrant-authority-cohort";
 import type {
   DnaPopulationEntrantAuthorityCheckpoint,
@@ -97,15 +97,7 @@ function compactRecord(
   return Object.freeze({
     sourceRaceId,
     observedAt: STARTED_AT,
-    rawEvidenceSha256: sourceRaceId
-      .split("")
-      .reduce(
-        (value, character) =>
-          ((value * 33 + character.charCodeAt(0)) >>> 0) % 16,
-        1,
-      )
-      .toString(16)
-      .repeat(64),
+    rawEvidenceSha256: "a".repeat(64),
     mode: "bike" as const,
     entrantCoreIds: Object.freeze(["1"]),
   });
@@ -136,6 +128,24 @@ function rawHydratedDocument(sourceRaceId: DnaRaceIdentifier): DnaRaceDocument {
   }) as DnaRaceDocument;
 }
 
+function immediateRequestBudget(): DnaOpenLabRequestBudget {
+  return Object.freeze({
+    async execute<T>(
+      request: () => Promise<DnaOpenLabResponse<T>>,
+    ): Promise<DnaOpenLabResponse<T>> {
+      return request();
+    },
+    observeRateLimit: () => undefined,
+    reduceEffectiveRequestsPerMinute: () => undefined,
+    snapshot: () =>
+      Object.freeze({
+        effectiveRequestsPerMinute: 30,
+        requestsInCurrentWindow: 0,
+        blockedUntilMilliseconds: null,
+      }),
+  });
+}
+
 type PriorChunk = Readonly<{
   chunk: DnaPopulationEntrantAuthorityChunk;
   receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt;
@@ -146,7 +156,6 @@ function priorChunk(input: {
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
   chunkOrdinal: number;
   records: readonly DnaPopulationEntrantAuthorityRecord[];
-  registeredAt?: string;
 }): PriorChunk {
   const chunk = buildDnaPopulationEntrantAuthorityChunk({
     generationId: input.authority.generationId,
@@ -155,14 +164,14 @@ function priorChunk(input: {
   });
   const receipt = Object.freeze({
     ...chunk.receipt,
-    objectKey: `synthetic/chunks/${String(input.chunkOrdinal)}/${chunk.receipt.bodySha256}.json`,
+    objectKey: `synthetic/${String(input.chunkOrdinal)}/${chunk.receipt.bodySha256}.json`,
   });
   return Object.freeze({
     chunk,
     receipt,
     manifest: Object.freeze({
       ...receipt,
-      registeredAt: input.registeredAt ?? STARTED_AT,
+      registeredAt: STARTED_AT,
     }),
   });
 }
@@ -172,6 +181,7 @@ function harness(input: {
   checkpoint?: DnaPopulationEntrantAuthorityCheckpoint;
   priorChunks?: readonly PriorChunk[];
   failFirstRegistration?: boolean;
+  capacityFailure?: boolean;
   provider?: (
     raceIds: readonly DnaRaceIdentifier[],
   ) => readonly DnaRaceDocument[];
@@ -222,11 +232,12 @@ function harness(input: {
         if (input.failFirstRegistration && registrationCalls === 1) {
           throw new Error("private synthetic registration detail");
         }
-        const manifest = Object.freeze({
-          ...request.receipt,
-          registeredAt: request.registeredAt,
-        });
-        manifests.push(manifest);
+        manifests.push(
+          Object.freeze({
+            ...request.receipt,
+            registeredAt: request.registeredAt,
+          }),
+        );
         checkpoint = Object.freeze({
           ...checkpoint,
           chunkCount: checkpoint.chunkCount + 1,
@@ -283,6 +294,9 @@ function harness(input: {
     {
       assertFreshCurrentCapacity: vi.fn(async () => {
         events.push("capacity");
+        if (input.capacityFailure) {
+          throw new Error("private capacity detail");
+        }
         return Object.freeze({
           version: 1 as const,
           generationId: input.authority.generationId,
@@ -300,12 +314,12 @@ function harness(input: {
     raceDocs: vi.fn(async (raceIds) => {
       events.push("dna");
       providerCalls.push([...raceIds]);
-      const documents =
+      return response(
         input.provider?.(raceIds) ??
-        [...raceIds]
-          .reverse()
-          .map((sourceRaceId) => rawHydratedDocument(sourceRaceId));
-      return response(documents);
+          [...raceIds]
+            .reverse()
+            .map((sourceRaceId) => rawHydratedDocument(sourceRaceId)),
+      );
     }),
   });
 
@@ -322,75 +336,88 @@ function harness(input: {
   };
 }
 
-async function run(input: {
+async function prepare(input: {
   raceDocuments: readonly CanonicalRaceDocumentMetadata[];
+  test: ReturnType<typeof harness>;
   plan?: DnaPopulationHistoryAcquisitionPlan;
   authority?: DnaPopulationEntrantAuthorityCheckpointAuthority;
-  test: ReturnType<typeof harness>;
   requestBudget?: DnaOpenLabRequestBudget;
-  cohortObservedAt?: string;
-  registeredAt?: string;
-}): Promise<DnaPopulationEntrantAuthorityCohortResult> {
+}): Promise<DnaPopulationEntrantAuthorityPreparedCohort> {
   const plan = input.plan ?? planFor(input.raceDocuments);
   const authority = input.authority ?? authorityFor(plan);
-  return hydrateAndCommitDnaPopulationEntrantAuthorityCohort({
+  return prepareDnaPopulationEntrantAuthorityCohort({
     ownerId: "private-owner",
     plan,
     raceDocuments: input.raceDocuments,
     authority,
     client: input.test.client,
-    requestBudget: input.requestBudget ?? createDnaOpenLabRequestBudget(),
+    requestBudget: input.requestBudget ?? immediateRequestBudget(),
     capacityGate: input.test.capacityGate,
     checkpointRepository: input.test.checkpointRepository,
     r2Store: input.test.r2Store,
-    cohortObservedAt: input.cohortObservedAt ?? OBSERVED_AT,
-    registeredAt: input.registeredAt ?? REGISTERED_AT,
+    cohortObservedAt: OBSERVED_AT,
   });
 }
 
 describe("DNA population entrant authority cohort bridge", () => {
-  it("rederives authority, hydrates exact coverage in 20-ID batches and commits R2 first", async () => {
+  it("prepares exact strict hydration then commits through capacity, R2 and Neon", async () => {
     const raceDocuments = unresolvedRaceDocuments(45);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
     const test = harness({ authority });
 
-    const result = await run({ raceDocuments, plan, authority, test });
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
 
     expect(test.providerCalls.map((batch) => batch.length)).toEqual([
       20, 20, 5,
     ]);
-    expect(result).toMatchObject({
-      chunkOrdinal: 1,
+    expect(prepared.summary).toMatchObject({
+      status: "prepared_uncommitted",
       selectedRaceCount: 45,
       providerRequestCount: 3,
+      recoveredRaceCount: 0,
+      chunkOrdinal: 1,
+      aggregateRequestsPerMinute: 30,
+      providerRequestPerformed: true,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+    expect(JSON.stringify(prepared.summary)).not.toContain(raceId(1));
+
+    const committed = await prepared.commit({
+      registeredAt: REGISTERED_AT,
+    });
+
+    expect(committed).toMatchObject({
+      status: "committed",
+      chunkOrdinal: 1,
+      rowCount: 45,
+      storageStatus: "created",
       checkpointRaceCountBefore: 0,
       checkpointRaceCountAfter: 45,
       authorityComplete: true,
-      storageStatus: "created",
-      cohortObservedAt: OBSERVED_AT,
-      providerRequestPerformed: true,
+      providerRequestPerformed: false,
       persistentWritePerformed: true,
       providerWritePerformed: false,
       paidUsageAllowed: false,
     });
-    expect(result.cohortSha256).toMatch(/^[a-f0-9]{64}$/u);
-    expect(result.preparedBodySha256).toMatch(/^[a-f0-9]{64}$/u);
-    expect(result.preparedRecordSetSha256).toMatch(/^[a-f0-9]{64}$/u);
-    expect(test.events).toEqual([
-      "checkpoint-read",
-      "dna",
-      "dna",
-      "dna",
+    expect(test.events.slice(-4)).toEqual([
       "checkpoint-read",
       "capacity",
       "r2-write",
       "manifest-register",
     ]);
-    expect(JSON.stringify(result)).not.toContain("race-0001");
   });
 
-  it("caps one deterministic cohort at 30 provider requests and 600 Races", async () => {
+  it("selects the 5,000-row capacity-projected chunk while the shared budget remains 30/min", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
     );
@@ -398,18 +425,23 @@ describe("DNA population entrant authority cohort bridge", () => {
     const authority = authorityFor(plan);
     const test = harness({ authority });
 
-    const result = await run({ raceDocuments, plan, authority, test });
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
 
-    expect(DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES).toBe(600);
-    expect(result.selectedRaceCount).toBe(600);
-    expect(result.providerRequestCount).toBe(30);
-    expect(test.providerCalls).toHaveLength(30);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES).toBe(5_000);
+    expect(prepared.summary.selectedRaceCount).toBe(5_000);
+    expect(prepared.summary.providerRequestCount).toBe(250);
+    expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
+    expect(test.providerCalls).toHaveLength(250);
     expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
-    expect(result.checkpointRaceCountAfter).toBe(600);
-    expect(result.authorityComplete).toBe(false);
+    expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
-  it("resumes from the exact recovered sorted boundary", async () => {
+  it("resumes exactly after a recovered audited prefix", async () => {
     const raceDocuments = unresolvedRaceDocuments(5);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
@@ -432,24 +464,22 @@ describe("DNA population entrant authority cohort bridge", () => {
       priorChunks: [previous],
     });
 
-    const result = await run({ raceDocuments, plan, authority, test });
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
 
     expect(test.providerCalls).toEqual([[raceId(3), raceId(4), raceId(5)]]);
-    expect(result).toMatchObject({
+    expect(prepared.summary).toMatchObject({
+      recoveredRaceCount: 2,
       chunkOrdinal: 2,
       selectedRaceCount: 3,
-      checkpointRaceCountBefore: 2,
-      checkpointRaceCountAfter: 5,
-      authorityComplete: true,
     });
-    expect(test.events.slice(0, 3)).toEqual([
-      "checkpoint-read",
-      "manifest-list",
-      "r2-read",
-    ]);
   });
 
-  it("fails closed when recovered content has the right boundary but the wrong Race set", async () => {
+  it("rejects recovered content with the right boundary but the wrong Race set", async () => {
     const raceDocuments = unresolvedRaceDocuments(5);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
@@ -476,7 +506,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       priorChunks: [previous],
     });
 
-    const error = await run({
+    const error = await prepare({
       raceDocuments,
       plan,
       authority,
@@ -484,46 +514,6 @@ describe("DNA population entrant authority cohort bridge", () => {
     }).catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({
-      diagnostic: "recovered_boundary_mismatch",
-      message: "Population entrant cohort processing is unavailable",
-    });
-    expect(test.providerCalls).toHaveLength(0);
-    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
-    expect(test.r2Store.write).not.toHaveBeenCalled();
-  });
-
-  it("fails closed when the recovered boundary is not the exact audited prefix", async () => {
-    const raceDocuments = unresolvedRaceDocuments(5);
-    const plan = planFor(raceDocuments);
-    const authority = authorityFor(plan);
-    const previous = priorChunk({
-      authority,
-      chunkOrdinal: 1,
-      records: [compactRecord(raceId(1)), compactRecord(raceId(3))],
-    });
-    const checkpoint = Object.freeze({
-      ...authority,
-      chunkCount: 1,
-      persistedRaceCount: 2,
-      lastSourceRaceId: raceId(3),
-      startedAt: STARTED_AT,
-      updatedAt: STARTED_AT,
-    });
-    const test = harness({
-      authority,
-      checkpoint,
-      priorChunks: [previous],
-    });
-
-    const error = await run({
-      raceDocuments,
-      plan,
-      authority,
-      test,
-    }).catch((caught: unknown) => caught);
-
-    expect(error).toMatchObject({
-      name: "DnaPopulationEntrantAuthorityCohortError",
       diagnostic: "recovered_boundary_mismatch",
       message: "Population entrant cohort processing is unavailable",
     });
@@ -541,7 +531,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     });
     const test = harness({ authority });
 
-    const error = await run({
+    const error = await prepare({
       raceDocuments,
       plan: driftedPlan,
       authority,
@@ -565,7 +555,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       provider: (raceIds) => [rawHydratedDocument(raceIds[0]!)],
     });
 
-    const error = await run({
+    const error = await prepare({
       raceDocuments,
       plan,
       authority,
@@ -592,7 +582,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       maximumRequestsPerMinute: 31,
     });
 
-    const error = await run({
+    const error = await prepare({
       raceDocuments,
       plan,
       authority,
@@ -607,7 +597,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
-  it("replays an interrupted R2-first cohort with the exact same prepared body", async () => {
+  it("replays an interrupted commit from the same prepared cohort without rehydrating DNA", async () => {
     const raceDocuments = unresolvedRaceDocuments(3);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
@@ -615,13 +605,17 @@ describe("DNA population entrant authority cohort bridge", () => {
       authority,
       failFirstRegistration: true,
     });
-
-    const firstError = await run({
+    const prepared = await prepare({
       raceDocuments,
       plan,
       authority,
       test,
-    }).catch((caught: unknown) => caught);
+    });
+    expect(test.providerCalls).toHaveLength(1);
+
+    const firstError = await prepared
+      .commit({ registeredAt: REGISTERED_AT })
+      .catch((caught: unknown) => caught);
 
     expect(firstError).toMatchObject({
       diagnostic: "commit_unavailable",
@@ -633,11 +627,8 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.getCheckpoint().persistedRaceCount).toBe(0);
     expect(test.getStoredChunkCount()).toBe(1);
 
-    const replay = await run({
-      raceDocuments,
-      plan,
-      authority,
-      test,
+    const replay = await prepared.commit({
+      registeredAt: REGISTERED_AT,
     });
 
     expect(replay.storageStatus).toBe("existing");
@@ -645,6 +636,34 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(replay.checkpointRaceCountAfter).toBe(3);
     expect(test.getWriteCalls()).toBe(2);
     expect(test.getStoredChunkCount()).toBe(1);
-    expect(test.providerCalls).toHaveLength(2);
+    expect(test.providerCalls).toHaveLength(1);
+    expect(test.capacityGate.assertFreshCurrentCapacity).toHaveBeenCalledTimes(
+      2,
+    );
+  });
+
+  it("sanitizes fresh-capacity failure before any persistent write", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({ authority, capacityFailure: true });
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
+
+    const error = await prepared
+      .commit({ registeredAt: REGISTERED_AT })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "commit_unavailable",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(String(error)).not.toContain("private capacity detail");
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
   });
 });
