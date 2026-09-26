@@ -199,8 +199,14 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       }
 
       const cohortObservedAt = exactTimestamp(invocation.cohortObservedAt);
-      const executionAt = now();
+      let executionAt: Date;
+      try {
+        executionAt = now();
+      } catch {
+        commandError("invalid_observation_time");
+      }
       if (
+        !(executionAt instanceof Date) ||
         Number.isNaN(executionAt.getTime()) ||
         Date.parse(cohortObservedAt) > executionAt.getTime()
       ) {
@@ -215,6 +221,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           exactCodeHeadSha: requestedHead,
         });
       } catch {
+        commandError("authority_unavailable");
+      }
+      if (audit === null || typeof audit !== "object") {
         commandError("authority_unavailable");
       }
       if (
