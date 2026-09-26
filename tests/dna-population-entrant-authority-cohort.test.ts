@@ -546,6 +546,33 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.providerCalls).toHaveLength(0);
   });
 
+  it("rejects a short pending prefix when the deterministic next cohort should be larger", async () => {
+    const raceDocuments = unresolvedRaceDocuments(
+      DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
+    );
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const pending = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [compactRecord(raceId(1), OBSERVED_AT)],
+    });
+    const test = harness({ authority, pendingChunk: pending });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "pending_recovery_mismatch",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+  });
+
   it("fails closed when a pending R2 cohort does not match the audited next Race slice", async () => {
     const raceDocuments = unresolvedRaceDocuments(3);
     const plan = planFor(raceDocuments);
