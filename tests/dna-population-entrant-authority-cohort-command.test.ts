@@ -12,6 +12,7 @@ import type {
   DnaPopulationEntrantAuthorityCommittedCohortSummary,
   DnaPopulationEntrantAuthorityPreparedCohort,
 } from "@/lib/dna-population-entrant-authority-cohort";
+import { createDnaPopulationEntrantAuthorityReadinessHandoff } from "@/lib/dna-population-entrant-authority-readiness-handoff";
 import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
@@ -22,6 +23,7 @@ import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapte
 const HEAD = "a".repeat(40);
 const OTHER_HEAD = "b".repeat(40);
 const OBSERVED_AT = "2026-09-26T06:00:00.000Z";
+const READINESS_AT = "2026-09-26T06:01:00.000Z";
 const FIRST_COMMIT_AT = "2026-09-26T06:05:00.000Z";
 const SECOND_COMMIT_AT = "2026-09-26T06:06:00.000Z";
 const OWNER = "private-owner";
@@ -55,6 +57,22 @@ function audit(): DnaPopulationEntrantAuthorityLiveAudit {
 }
 
 const SYNTHETIC_AUTHORITY = audit().authority;
+const SYNTHETIC_HANDOFF =
+  createDnaPopulationEntrantAuthorityReadinessHandoff(
+    Object.freeze({
+      status: "ready" as const,
+      exactCodeHeadSha: HEAD,
+      unresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
+      unresolvedRaceSetSha256: SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
+      capacityObservedAt: READINESS_AT,
+      previewOnly: true as const,
+      dnaEntrantHydrationPerformed: false as const,
+      checkpointInitializationPerformed: false as const,
+      entrantChunkPersistentWritePerformed: false as const,
+      providerWritePerformed: false as const,
+      paidUsageAllowed: false as const,
+    }),
+  );
 
 const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
   Object.freeze({
@@ -66,6 +84,9 @@ const invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation =
     expectedUnresolvedRaceCount: SYNTHETIC_AUTHORITY.unresolvedRaceCount,
     expectedUnresolvedRaceSetSha256:
       SYNTHETIC_AUTHORITY.unresolvedRaceSetSha256,
+    readinessCapacityObservedAt:
+      SYNTHETIC_HANDOFF.readinessCapacityObservedAt,
+    readinessReceiptSha256: SYNTHETIC_HANDOFF.readinessReceiptSha256,
   });
 
 function committed(
@@ -252,6 +273,55 @@ describe("DNA population entrant authority cohort command", () => {
     expect(commandRuntime.checkpointRepository.begin).not.toHaveBeenCalled();
   });
 
+  it("rejects tampered readiness evidence before authority access", async () => {
+    const load = vi.fn(async () => audit());
+    const commandRuntime = runtime();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load },
+      runtime: commandRuntime,
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer: vi.fn(),
+    });
+
+    await expect(
+      command.execute({
+        ...invocation,
+        readinessReceiptSha256: "f".repeat(64),
+      }),
+    ).rejects.toMatchObject({ diagnostic: "invalid_readiness_handoff" });
+
+    expect(load).not.toHaveBeenCalled();
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).not.toHaveBeenCalled();
+    expect(commandRuntime.checkpointRepository.begin).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale readiness evidence before authority access", async () => {
+    const load = vi.fn(async () => audit());
+    const commandRuntime = runtime();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load },
+      runtime: commandRuntime,
+      now: () => new Date("2026-09-26T06:06:00.001Z"),
+      cohortPreparer: vi.fn(),
+    });
+
+    await expect(command.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "stale_readiness_handoff",
+    });
+
+    expect(load).not.toHaveBeenCalled();
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).not.toHaveBeenCalled();
+    expect(commandRuntime.checkpointRepository.begin).not.toHaveBeenCalled();
+  });
+
   it("fails closed on live authority drift before capacity, initialization or hydration", async () => {
     const liveAudit = audit();
     const driftedAudit: DnaPopulationEntrantAuthorityLiveAudit = Object.freeze({
@@ -310,6 +380,8 @@ describe("DNA population entrant authority cohort command", () => {
       resolvedRaceCount: 1,
       quarantinedRaceCount: 0,
       providerRequestCount: 1,
+      readinessCapacityObservedAt: READINESS_AT,
+      readinessReceiptSha256: SYNTHETIC_HANDOFF.readinessReceiptSha256,
       preflightCapacityObservedAt: "2026-09-26T06:04:00.000Z",
       checkpointInitializationCompleted: true,
       checkpointChunkCountBeforePreparation: 0,
