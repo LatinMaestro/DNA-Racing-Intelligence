@@ -109,7 +109,9 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
 export class DnaPopulationEntrantAuthorityCohortCommandError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityCohortCommandDiagnostic;
 
-  constructor(diagnostic: DnaPopulationEntrantAuthorityCohortCommandDiagnostic) {
+  constructor(
+    diagnostic: DnaPopulationEntrantAuthorityCohortCommandDiagnostic,
+  ) {
     super("Population entrant commissioning command is unavailable");
     this.name = "DnaPopulationEntrantAuthorityCohortCommandError";
     this.diagnostic = diagnostic;
@@ -153,9 +155,7 @@ function identity(value: string): string {
 function exactHead(
   value: string,
   diagnostic:
-    | "invalid_configuration"
-    | "exact_head_mismatch"
-    | "authority_head_mismatch",
+    "invalid_configuration" | "exact_head_mismatch" | "authority_head_mismatch",
 ): string {
   if (typeof value !== "string") commandError(diagnostic);
   const normalized = value.trim().toLowerCase();
@@ -322,8 +322,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         commandError("cohort_unavailable");
       }
 
-      const preparedReceipt =
-        Object.freeze({
+      const preparedReceipt = Object.freeze({
           status: "prepared_uncommitted" as const,
           exactCodeHeadSha: requestedHead,
           cohortObservedAt,
@@ -343,7 +342,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           providerWritePerformed: false as const,
           paidUsageAllowed: false as const,
           preserveLastGood: true as const,
-        }) satisfies DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt;
+      }) satisfies DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt;
 
       let accepted: DnaPopulationEntrantAuthorityCohortCommandReceipt | null =
         null;
