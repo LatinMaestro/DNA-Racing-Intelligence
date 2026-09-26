@@ -268,7 +268,9 @@ async function collectExactBody(input: {
   return output;
 }
 
-function pendingRecords(body: Uint8Array): readonly DnaPopulationEntrantAuthorityRecord[] {
+function pendingRecords(
+  body: Uint8Array,
+): readonly DnaPopulationEntrantAuthorityRecord[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));
@@ -428,7 +430,11 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
       }
       if (page.objects.length === 0) return null;
 
-      const listedKey = safeText(page.objects[0]!.key, "listed object key", 2_048);
+      const listedKey = safeText(
+        page.objects[0]!.key,
+        "listed object key",
+        2_048,
+      );
       if (!listedKey.startsWith(prefix)) {
         storageError("pending chunk escaped its deterministic prefix");
       }
