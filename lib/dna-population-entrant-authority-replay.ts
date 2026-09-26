@@ -5,8 +5,11 @@ import {
   type CanonicalRaceDocumentMetadata,
 } from "./dna-open-lab-v1-adapters";
 import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
   dnaPopulationEntrantAuthorityRecord,
+  isDnaPopulationEntrantAuthorityQuarantineRecord,
   type DnaPopulationEntrantAuthorityRecord,
+  type DnaPopulationEntrantAuthorityResolvedRecord,
 } from "./dna-population-entrant-authority-record";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -20,6 +23,9 @@ export type DnaPopulationEntrantAuthorityReplay = Readonly<{
   }>;
   exactReplayDuplicateCount: number;
   recordSetSha256: string;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
+  quarantinedRaceSetSha256: string | null;
   canonicalDocuments: readonly CanonicalRaceDocumentMetadata[];
   replayIntegrityStatus: "proven_compact_population_authority_replay";
   providerReadRequired: false;
@@ -62,7 +68,7 @@ function expectedHash(value: string): string {
 }
 
 function canonicalDocument(
-  record: DnaPopulationEntrantAuthorityRecord,
+  record: DnaPopulationEntrantAuthorityResolvedRecord,
 ): CanonicalRaceDocumentMetadata {
   return Object.freeze({
     sourceType: "race_document" as const,
@@ -85,6 +91,17 @@ function canonicalDocument(
 function normalizedRecord(
   record: DnaPopulationEntrantAuthorityRecord,
 ): DnaPopulationEntrantAuthorityRecord {
+  if (isDnaPopulationEntrantAuthorityQuarantineRecord(record)) {
+    return dnaPopulationEntrantAuthorityQuarantineRecord({
+      sourceRaceId: record.sourceRaceId,
+      observedAt: record.observedAt,
+      quarantineReason: record.quarantineReason,
+      ...(record.sourceEvidenceSha256 === undefined
+        ? {}
+        : { sourceEvidenceSha256: record.sourceEvidenceSha256 }),
+    });
+  }
+
   const canonical = canonicalDocument(record);
   return dnaPopulationEntrantAuthorityRecord(
     Object.freeze({
@@ -171,8 +188,18 @@ export function replayDnaPopulationEntrantAuthority(input: {
   const recordSetSha256 = sha256Text(
     ordered.map((entry) => entry.canonical).join("\n"),
   );
+  const resolved = ordered.filter(
+    (entry): entry is typeof entry & {
+      record: DnaPopulationEntrantAuthorityResolvedRecord;
+    } => !isDnaPopulationEntrantAuthorityQuarantineRecord(entry.record),
+  );
+  const quarantinedRaceIds = ordered
+    .filter((entry) =>
+      isDnaPopulationEntrantAuthorityQuarantineRecord(entry.record),
+    )
+    .map((entry) => entry.record.sourceRaceId);
   const canonicalDocuments = Object.freeze(
-    ordered.map((entry) => canonicalDocument(entry.record)),
+    resolved.map((entry) => canonicalDocument(entry.record)),
   );
 
   return Object.freeze({
@@ -184,6 +211,12 @@ export function replayDnaPopulationEntrantAuthority(input: {
     }),
     exactReplayDuplicateCount,
     recordSetSha256,
+    resolvedRaceCount: resolved.length,
+    quarantinedRaceCount: quarantinedRaceIds.length,
+    quarantinedRaceSetSha256:
+      quarantinedRaceIds.length === 0
+        ? null
+        : unresolvedRaceSetSha256(quarantinedRaceIds),
     canonicalDocuments,
     replayIntegrityStatus:
       "proven_compact_population_authority_replay" as const,
