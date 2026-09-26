@@ -110,7 +110,7 @@ describe("population entrant readiness handoff", () => {
       createDnaPopulationEntrantAuthorityReadinessHandoff(
         receipt({
           checkpointInitializationPerformed: true,
-        } as Partial<DnaPopulationEntrantAuthorityReadinessReceipt>),
+        } as unknown as Partial<DnaPopulationEntrantAuthorityReadinessReceipt>),
       ),
     ).toThrow(DnaPopulationEntrantAuthorityReadinessHandoffError);
   });
