@@ -105,8 +105,7 @@ function configured(
     environment.databaseOwnerId?.trim().toLowerCase() ?? "";
   const runtimeRole = environment.runtimeRole?.trim() ?? "";
   const dnaApiKey = secret(environment.dnaOpenLabApiKey);
-  const accountId =
-    environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
+  const accountId = environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
   const apiToken = secret(environment.cloudflareApiToken);
   const analyticsApiToken = secret(environment.cloudflareAnalyticsApiToken);
   const bucketName = environment.r2BucketName?.trim() ?? "";
@@ -175,13 +174,11 @@ function capacityEnvironment(
  * no persistent write. Missing or malformed configuration fails closed as
  * not_configured.
  */
-export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(
-  input: {
-    environment: DnaPopulationEntrantAuthorityConnectedEnvironment;
-    now?: () => Date;
-    fetch?: typeof globalThis.fetch;
-  },
-): DnaPopulationEntrantAuthorityConnectedRuntime {
+export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(input: {
+  environment: DnaPopulationEntrantAuthorityConnectedEnvironment;
+  now?: () => Date;
+  fetch?: typeof globalThis.fetch;
+}): DnaPopulationEntrantAuthorityConnectedRuntime {
   const config = configured(input.environment);
   if (config === null) {
     return unavailableDnaPopulationEntrantAuthorityConnectedRuntime;
