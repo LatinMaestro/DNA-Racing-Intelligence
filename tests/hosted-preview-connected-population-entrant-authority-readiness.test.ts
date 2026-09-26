@@ -51,9 +51,7 @@ describeConnected(
               databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
               runtimeRole: RUNTIME_ROLE,
               dnaOpenLabApiKey: requiredEnvironment("DNA_OPEN_LAB_API_KEY_1"),
-              cloudflareAccountId: requiredEnvironment(
-                "CLOUDFLARE_ACCOUNT_ID",
-              ),
+              cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
               cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
               cloudflareAnalyticsApiToken: requiredEnvironment(
                 "CLOUDFLARE_ANALYTICS_API_TOKEN",
