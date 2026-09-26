@@ -80,7 +80,6 @@ describe("population entrant authority replay", () => {
     expect(replay.paidUsageAllowed).toBe(false);
   });
 
-
   it("keeps quarantined Races in exact authority while excluding fabricated entrant documents", () => {
     const records: readonly DnaPopulationEntrantAuthorityRecord[] = [
       record({ raceId: "10", mode: "bike", entrants: ["101"] }),
