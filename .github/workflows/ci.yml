@@ -29,7 +29,20 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: Run format check and emit exact first-cohort-verification formatter diff on failure
+        shell: bash
+        run: |
+          if ! npm run format; then
+            npx prettier --write \
+              lib/dna-population-entrant-authority-cohort.ts \
+              lib/dna-population-entrant-authority-first-cohort-verification.ts \
+              tests/hosted-preview-connected-population-entrant-authority-first-cohort-verification.test.ts
+            git diff -- \
+              lib/dna-population-entrant-authority-cohort.ts \
+              lib/dna-population-entrant-authority-first-cohort-verification.ts \
+              tests/hosted-preview-connected-population-entrant-authority-first-cohort-verification.test.ts
+            exit 1
+          fi
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
