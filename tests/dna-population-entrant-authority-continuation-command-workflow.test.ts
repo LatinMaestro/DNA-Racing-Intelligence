@@ -26,9 +26,7 @@ describe("DNA population entrant authority single-next-cohort continuation workf
     );
     expect(workflow).toContain("default: false");
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
-    expect(workflow).toContain(
-      'inputs.expected_main_sha }}" != "$GITHUB_SHA',
-    );
+    expect(workflow).toContain('inputs.expected_main_sha }}" != "$GITHUB_SHA');
     expect(workflow).toContain(
       '"$(git rev-parse origin/main)" != "$GITHUB_SHA"',
     );
