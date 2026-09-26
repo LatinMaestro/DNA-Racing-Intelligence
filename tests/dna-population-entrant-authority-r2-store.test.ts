@@ -30,8 +30,12 @@ function storage(input?: {
   status?: "created" | "existing";
   privateBucket?: boolean;
   conflictingHead?: boolean;
+  ambiguousPending?: boolean;
+  truncatedPending?: boolean;
+  escapedPending?: boolean;
 }) {
   let storedBody: Uint8Array | null = null;
+  let storedKey: string | null = null;
   let head: Readonly<{
     contentType: string;
     byteLength: number;
@@ -45,6 +49,7 @@ function storage(input?: {
       parts.push(part);
     }
     storedBody = Uint8Array.from(parts.flatMap((part) => Array.from(part)));
+    storedKey = request.key;
     head = Object.freeze({
       contentType: request.contentType,
       byteLength: request.byteLength,
@@ -68,6 +73,23 @@ function storage(input?: {
           body: oneChunk(storedBody),
         }),
   );
+  const listObjects = vi.fn(async (request) => {
+    const objects: { key: string }[] = [];
+    if (storedKey !== null && storedKey.startsWith(request.prefix)) {
+      objects.push({
+        key: input?.escapedPending ? "escaped/private.json" : storedKey,
+      });
+      if (input?.ambiguousPending) {
+        objects.push({
+          key: `${request.prefix}${"f".repeat(64)}.json`,
+        });
+      }
+    }
+    return Object.freeze({
+      objects: Object.freeze(objects),
+      truncated: input?.truncatedPending === true,
+    });
+  });
   const port: DnaPopulationEntrantAuthorityR2StoragePort = {
     readBucketPrivacy: vi.fn(async () =>
       Object.freeze({
@@ -79,6 +101,7 @@ function storage(input?: {
     putObjectIfAbsent,
     headObject,
     getObject,
+    listObjects,
   };
 
   return {
@@ -86,11 +109,22 @@ function storage(input?: {
     putObjectIfAbsent,
     headObject,
     getObject,
+    listObjects,
     corruptBody() {
       if (storedBody === null) throw new Error("body is unavailable");
       const corrupted = new Uint8Array(storedBody);
       corrupted[0] = (corrupted[0] ?? 0) ^ 1;
       storedBody = corrupted;
+    },
+    corruptMetadata() {
+      if (head === null) throw new Error("head is unavailable");
+      head = Object.freeze({
+        ...head,
+        metadata: Object.freeze({
+          ...head.metadata,
+          "dna-record-set": "0".repeat(64),
+        }),
+      });
     },
   };
 }
@@ -138,6 +172,147 @@ describe("population entrant authority R2 chunk store", () => {
     expect(target.getObject).toHaveBeenCalledOnce();
   });
 
+  it("discovers and fully re-opens one unmanifested content-addressed chunk by ordinal", async () => {
+    const target = storage();
+    const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.port,
+    });
+    const written = await store.write({
+      generationId: "b".repeat(64),
+      chunkOrdinal: 7,
+      records: [record("7"), record("8", "horse")],
+    });
+
+    const pending = await store.findPending({
+      generationId: "b".repeat(64),
+      chunkOrdinal: 7,
+    });
+
+    expect(pending?.receipt).toEqual(written.receipt);
+    expect(pending?.chunk.records.map((entry) => entry.sourceRaceId)).toEqual([
+      "7",
+      "8",
+    ]);
+    expect(target.listObjects).toHaveBeenCalledOnce();
+    expect(target.listObjects).toHaveBeenCalledWith({
+      bucketName: "private-preview",
+      prefix: expect.stringContaining(
+        "/population-entrant-authority/generations/",
+      ),
+      limit: 2,
+    });
+    const prefix = target.listObjects.mock.calls[0]?.[0].prefix;
+    expect(prefix).not.toContain("private-owner");
+  });
+
+  it("returns null when the exact next chunk ordinal has no R2 residue", async () => {
+    const target = storage();
+    const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.port,
+    });
+
+    await expect(
+      store.findPending({
+        generationId: "c".repeat(64),
+        chunkOrdinal: 1,
+      }),
+    ).resolves.toBeNull();
+    expect(target.headObject).not.toHaveBeenCalled();
+    expect(target.getObject).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when pending discovery is ambiguous or truncated", async () => {
+    for (const target of [
+      storage({ ambiguousPending: true }),
+      storage({ truncatedPending: true }),
+    ]) {
+      const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+        ownerId: "private-owner",
+        bucketName: "private-preview",
+        storage: target.port,
+      });
+      await store.write({
+        generationId: "d".repeat(64),
+        chunkOrdinal: 2,
+        records: [record("2")],
+      });
+
+      await expect(
+        store.findPending({
+          generationId: "d".repeat(64),
+          chunkOrdinal: 2,
+        }),
+      ).rejects.toThrow("pending chunk discovery is ambiguous");
+    }
+  });
+
+  it("fails closed when a listed pending object escapes the deterministic prefix", async () => {
+    const target = storage({ escapedPending: true });
+    const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.port,
+    });
+    await store.write({
+      generationId: "e".repeat(64),
+      chunkOrdinal: 3,
+      records: [record("3")],
+    });
+
+    await expect(
+      store.findPending({
+        generationId: "e".repeat(64),
+        chunkOrdinal: 3,
+      }),
+    ).rejects.toThrow("pending chunk escaped its deterministic prefix");
+  });
+
+  it("rejects pending recovery when immutable metadata or body integrity drifts", async () => {
+    const metadataTarget = storage();
+    const metadataStore = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: metadataTarget.port,
+    });
+    await metadataStore.write({
+      generationId: "f".repeat(64),
+      chunkOrdinal: 4,
+      records: [record("4")],
+    });
+    metadataTarget.corruptMetadata();
+
+    await expect(
+      metadataStore.findPending({
+        generationId: "f".repeat(64),
+        chunkOrdinal: 4,
+      }),
+    ).rejects.toThrow("stored chunk head conflicts with its receipt");
+
+    const bodyTarget = storage();
+    const bodyStore = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: bodyTarget.port,
+    });
+    await bodyStore.write({
+      generationId: "1".repeat(64),
+      chunkOrdinal: 5,
+      records: [record("5")],
+    });
+    bodyTarget.corruptBody();
+
+    await expect(
+      bodyStore.findPending({
+        generationId: "1".repeat(64),
+        chunkOrdinal: 5,
+      }),
+    ).rejects.toThrow("stored chunk body checksum disagrees");
+  });
+
   it("accepts exact create-only replay when the immutable head agrees", async () => {
     const target = storage({ status: "existing" });
     const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
@@ -148,7 +323,7 @@ describe("population entrant authority R2 chunk store", () => {
 
     await expect(
       store.write({
-        generationId: "b".repeat(64),
+        generationId: "2".repeat(64),
         chunkOrdinal: 3,
         records: [record("3")],
       }),
@@ -165,7 +340,7 @@ describe("population entrant authority R2 chunk store", () => {
 
     await expect(
       store.write({
-        generationId: "b".repeat(64),
+        generationId: "3".repeat(64),
         chunkOrdinal: 4,
         records: [record("4")],
       }),
@@ -180,7 +355,7 @@ describe("population entrant authority R2 chunk store", () => {
       storage: target.port,
     });
     const written = await store.write({
-      generationId: "c".repeat(64),
+      generationId: "4".repeat(64),
       chunkOrdinal: 1,
       records: [record("1")],
     });
@@ -196,7 +371,7 @@ describe("population entrant authority R2 chunk store", () => {
     expect(target.getObject).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-private bucket before any chunk write", async () => {
+  it("rejects a non-private bucket before any chunk write or discovery", async () => {
     const target = storage({ privateBucket: false });
     const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
       ownerId: "private-owner",
@@ -206,12 +381,19 @@ describe("population entrant authority R2 chunk store", () => {
 
     await expect(
       store.write({
-        generationId: "d".repeat(64),
+        generationId: "5".repeat(64),
         chunkOrdinal: 1,
         records: [record("1")],
       }),
     ).rejects.toThrow("R2 bucket is not private");
+    await expect(
+      store.findPending({
+        generationId: "5".repeat(64),
+        chunkOrdinal: 1,
+      }),
+    ).rejects.toThrow("R2 bucket is not private");
     expect(target.putObjectIfAbsent).not.toHaveBeenCalled();
+    expect(target.listObjects).not.toHaveBeenCalled();
   });
 
   it("fails closed when a stored body no longer matches its receipt", async () => {
@@ -222,7 +404,7 @@ describe("population entrant authority R2 chunk store", () => {
       storage: target.port,
     });
     const written = await store.write({
-      generationId: "e".repeat(64),
+      generationId: "6".repeat(64),
       chunkOrdinal: 1,
       records: [record("1")],
     });
