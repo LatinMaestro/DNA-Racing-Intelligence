@@ -248,7 +248,7 @@ describe("DNA population entrant authority cohort command", () => {
       persistentWriteArmed: true,
       previewOnly: true,
       providerRequestPerformed: true,
-      persistentWritePerformed: false,
+      entrantChunkPersistentWritePerformed: false,
       paidUsageAllowed: false,
       preserveLastGood: true,
     });
@@ -296,7 +296,7 @@ describe("DNA population entrant authority cohort command", () => {
       checkpointInitializationCompleted: true,
       checkpointChunkCountBeforePreparation: 0,
       checkpointRaceCountBeforePreparation: 0,
-      persistentWritePerformed: false,
+      entrantChunkPersistentWritePerformed: false,
       paidUsageAllowed: false,
     });
   });
@@ -450,7 +450,7 @@ describe("DNA population entrant authority cohort command", () => {
       cohortObservedAt: recoveredObservedAt,
       providerRequestCount: 0,
       providerRequestPerformed: false,
-      persistentWritePerformed: false,
+      entrantChunkPersistentWritePerformed: false,
     });
     const receipt = await session.commit();
     expect(receipt.cohortObservedAt).toBe(recoveredObservedAt);
