@@ -19,11 +19,15 @@ import type { DnaPopulationRaceIndexDocument } from "./dna-population-race-index
 import type { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
 import type { DnaOpenLabP5FirstBackfillStatusReadRepository } from "./neon-dna-open-lab-p5-first-backfill-ledger";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
+import type { DnaOpenLabProviderCapacityMeasurementSource } from "./dna-open-lab-provider-capacity-preflight";
+import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
 const CHUNK_READ_CONCURRENCY = 24 as const;
+export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
+  100_000 as const;
 
 type PopulationIndexReadRepository = Pick<
   DnaPopulationRaceIndexGenerationRepository,
@@ -58,6 +62,14 @@ function exactHead(value: string): string {
     auditError("exactCodeHeadSha is invalid");
   }
   return normalized;
+}
+
+function safeAdd(left: number, right: number): number {
+  const value = left + right;
+  if (!Number.isSafeInteger(value) || value < 0) {
+    auditError("provider capacity accounting is invalid");
+  }
+  return value;
 }
 
 function sameRequest(input: {
@@ -198,6 +210,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   baseline: DnaOpenLabP5FirstBackfillStatusReadRepository;
   populationIndex: PopulationIndexReadRepository;
   chunkStore: PopulationChunkReadStore;
+  capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
   const configuredOwnerId = identity(
     input.configuredOwnerId,
@@ -213,6 +226,22 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         requestedOwnerId: request.ownerId,
         requestedHead: request.exactCodeHeadSha,
       });
+
+      if (input.capacitySource.status !== "ready") {
+        auditError("provider capacity measurement is unavailable");
+      }
+      const capacity = await input.capacitySource.measure({
+        ownerId: configuredOwnerId,
+      });
+      if (
+        capacity.r2StorageClass !== "Standard" ||
+        safeAdd(
+          capacity.currentR2Usage.classBOperations,
+          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+        ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+      ) {
+        auditError("published Race audit read budget is unavailable");
+      }
 
       const baseline = await input.baseline.load();
       if (
