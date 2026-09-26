@@ -1,17 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
-import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
+import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
+import {
+  createDnaPopulationEntrantAuthorityCapacityGate,
+  DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR,
+} from "@/lib/dna-population-entrant-authority-capacity-gate";
+import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
+import { createDnaPopulationEntrantAuthorityReadinessInspector } from "@/lib/dna-population-entrant-authority-readiness";
 import {
   DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
 } from "@/lib/dna-population-entrant-authority-live-audit-source";
 import { createDnaPopulationEntrantAuthorityReadinessHandoff } from "@/lib/dna-population-entrant-authority-readiness-handoff";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
 import { DnaOpenLabProviderCapacityMeasurementError } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "@/lib/dna-open-lab-zero-cost-refresh-policy";
 import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "@/lib/dna-population-race-index-private-preview-operator";
+import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
+import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_OPERATOR_READINESS === "1";
@@ -211,36 +220,101 @@ describeConnected(
           throw new Error("operator manifest diagnostic failed");
         }
 
-        const runtime =
-          dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-            environment: Object.freeze({
-              authorizedOwnerId: ownerId,
-              exactCodeHeadSha,
-              databaseUrl,
-              databaseOwnerId,
-              runtimeRole: RUNTIME_ROLE,
-              dnaOpenLabApiKey: requiredEnvironment("DNA_OPEN_LAB_API_KEY_1"),
-              cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
-              cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
-              cloudflareAnalyticsApiToken: requiredEnvironment(
-                "CLOUDFLARE_ANALYTICS_API_TOKEN",
-              ),
-              r2BucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
-              r2StorageClass: requiredEnvironment("DNA_R2_STORAGE_CLASS"),
-              r2AccessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
-              r2SecretAccessKey: requiredEnvironment(
-                "DNA_R2_SECRET_ACCESS_KEY",
-              ),
-              neonApiKey: requiredEnvironment("NEON_API_KEY"),
-              neonProjectId: requiredEnvironment("NEON_PROJECT_ID"),
-            }),
+        const bucketName = requiredEnvironment("DNA_R2_BUCKET_NAME");
+        const storage = createCloudflareR2DatasetEvidencePort({
+          accountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
+          apiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
+          accessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
+          secretAccessKey: requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY"),
+        });
+        const baselineEvidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
+          ownerId,
+          bucketName,
+          storage,
+          approvalPacket: DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+        });
+        const publicationRepository =
+          createNeonDnaOpenLabSyncPublicationRepository({
+            databaseUrl,
+            databaseOwnerId,
+            runtimeRole: RUNTIME_ROLE,
           });
-        if (runtime.status !== "ready") {
-          throw new Error("entrant readiness runtime is unavailable");
-        }
-        expect(runtime.exactCodeHeadSha).toBe(exactCodeHeadSha);
+        const populationChunkStore = createDnaPopulationRaceIndexR2ChunkStore({
+          ownerId,
+          bucketName,
+          storage,
+        });
+        const authoritySource =
+          createDnaPopulationEntrantAuthorityLiveAuditSource({
+            configuredOwnerId: ownerId,
+            exactCodeHeadSha,
+            bucketName,
+            baseline: Object.freeze({
+              load: baseline.load,
+              loadReceipts: baseline.loadReceipts,
+              readEvidence: baselineEvidence.read,
+            }),
+            historySource: publicationRepository,
+            populationIndex: populationIndexRepository,
+            chunkStore: populationChunkStore,
+            storage,
+            capacitySource,
+          });
 
-        const receipt = await runtime.inspectReadiness();
+        let liveAudit;
+        try {
+          liveAudit = await authoritySource.load({
+            ownerId,
+            exactCodeHeadSha,
+          });
+          console.log(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_LIVE_AUDIT_STAGE=" +
+              JSON.stringify({
+                status: "ready",
+                unresolvedRaceCount: liveAudit.authority.unresolvedRaceCount,
+                unresolvedRaceSetSha256:
+                  liveAudit.authority.unresolvedRaceSetSha256,
+              }),
+          );
+        } catch (error) {
+          const prefix = "Population entrant live audit: ";
+          const reason =
+            error instanceof Error && error.message.startsWith(prefix)
+              ? error.message.slice(prefix.length)
+              : "underlying_read_failure";
+          console.log(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_LIVE_AUDIT_STAGE=" +
+              JSON.stringify({
+                status: "failed",
+                reason,
+              }),
+          );
+          throw new Error("operator live audit diagnostic failed");
+        }
+
+        const capacityGate = createDnaPopulationEntrantAuthorityCapacityGate({
+          ownerId,
+          measurementSource: capacitySource,
+          sizingAuthority: Object.freeze({
+            version: 1 as const,
+            unresolvedRaceCount: liveAudit.authority.unresolvedRaceCount,
+            unresolvedRaceSetSha256:
+              liveAudit.authority.unresolvedRaceSetSha256,
+            measuredMaximumCompactEntrantAuthorityBytes:
+              DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR,
+            verifiedIncrementalMaximumCompactEntrantAuthorityBytes:
+              DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR,
+          }),
+        });
+        const readiness = createDnaPopulationEntrantAuthorityReadinessInspector({
+          ownerId,
+          exactCodeHeadSha,
+          authoritySource: Object.freeze({
+            load: async () => liveAudit,
+          }),
+          capacityGate,
+        });
+        const receipt = await readiness.inspect();
         expect(receipt).toMatchObject({
           status: "ready",
           exactCodeHeadSha,
