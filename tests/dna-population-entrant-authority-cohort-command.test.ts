@@ -478,6 +478,42 @@ describe("DNA population entrant authority cohort command", () => {
     expect(cohortPreparer).not.toHaveBeenCalled();
   });
 
+  it("rejects a second commissioning dispatch before cohort preparation once the generation has a registered first chunk", async () => {
+    const liveAudit = audit();
+    const baseRuntime = runtime();
+    const cohortPreparer = vi.fn();
+    const command = createDnaPopulationEntrantAuthorityCohortCommand({
+      configuredOwnerId: OWNER,
+      runtimeCodeHeadSha: HEAD,
+      authoritySource: { load: vi.fn(async () => liveAudit) },
+      runtime: Object.freeze({
+        ...baseRuntime,
+        checkpointRepository: Object.freeze({
+          ...baseRuntime.checkpointRepository,
+          begin: vi.fn(async (_ownerId, request) =>
+            Object.freeze({
+              ...request.authority,
+              chunkCount: 1,
+              persistedRaceCount: 1,
+              lastSourceRaceId: "race-1",
+              startedAt: request.startedAt,
+              updatedAt: request.startedAt,
+            }),
+          ),
+        }),
+      }),
+      now: () => new Date(FIRST_COMMIT_AT),
+      cohortPreparer,
+    });
+
+    await expect(command.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "generation_already_commissioned",
+      message: "Population entrant commissioning command is unavailable",
+    });
+
+    expect(cohortPreparer).not.toHaveBeenCalled();
+  });
+
   it("fails closed before provider preparation when checkpoint initialization fails", async () => {
     const liveAudit = audit();
     const baseRuntime = runtime();
@@ -587,12 +623,19 @@ describe("DNA population entrant authority cohort command", () => {
     expect(session.prepared).toMatchObject({
       preparationSource: "pending_r2_recovery",
       cohortObservedAt: recoveredObservedAt,
+      recoveredRaceCount: 0,
+      chunkOrdinal: 1,
       providerRequestCount: 0,
       providerRequestPerformed: false,
       entrantChunkPersistentWritePerformed: false,
     });
     const receipt = await session.commit();
-    expect(receipt.cohortObservedAt).toBe(recoveredObservedAt);
+    expect(receipt).toMatchObject({
+      cohortObservedAt: recoveredObservedAt,
+      chunkOrdinal: 1,
+      checkpointRaceCountBefore: 0,
+      checkpointRaceCountAfter: 1,
+    });
     expect(recoveredPrepared.commit).toHaveBeenCalledWith({
       registeredAt: FIRST_COMMIT_AT,
     });
