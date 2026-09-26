@@ -422,7 +422,8 @@ function sameDurableBoundary(
 
 function preparedReceipt(input: {
   exactCodeHeadSha: string;
-  boundary: BoundaryBinding;
+  requestedBoundary: BoundaryBinding;
+  currentBoundary: BoundaryBinding;
   prepared: DnaPopulationEntrantAuthorityPreparedCohort;
 }): DnaPopulationEntrantAuthorityContinuationCommandPreparedReceipt {
   const summary = input.prepared.summary;
@@ -430,9 +431,9 @@ function preparedReceipt(input: {
     status: "prepared_uncommitted" as const,
     exactCodeHeadSha: input.exactCodeHeadSha,
     cohortObservedAt: summary.cohortObservedAt,
-    unresolvedRaceCount: input.boundary.unresolvedRaceCount,
-    unresolvedRaceSetSha256: input.boundary.unresolvedRaceSetSha256,
-    recoveredChunkCount: input.boundary.recoveredChunkCount,
+    unresolvedRaceCount: input.currentBoundary.unresolvedRaceCount,
+    unresolvedRaceSetSha256: input.currentBoundary.unresolvedRaceSetSha256,
+    recoveredChunkCount: input.currentBoundary.recoveredChunkCount,
     recoveredRaceCount: summary.recoveredRaceCount,
     chunkOrdinal: summary.chunkOrdinal,
     selectedRaceCount: summary.selectedRaceCount,
@@ -440,10 +441,10 @@ function preparedReceipt(input: {
     quarantinedRaceCount: summary.quarantinedRaceCount,
     providerRequestCount: summary.providerRequestCount,
     preparationSource: summary.preparationSource,
-    continuationCapacityObservedAt: input.boundary.capacityObservedAt,
-    currentCapacityObservedAt: input.boundary.capacityObservedAt,
-    checkpointUpdatedAt: input.boundary.checkpointUpdatedAt,
-    durableBoundarySha256: input.boundary.durableBoundarySha256,
+    continuationCapacityObservedAt: input.requestedBoundary.capacityObservedAt,
+    currentCapacityObservedAt: input.currentBoundary.capacityObservedAt,
+    checkpointUpdatedAt: input.currentBoundary.checkpointUpdatedAt,
+    durableBoundarySha256: input.currentBoundary.durableBoundarySha256,
     cohortSha256: summary.cohortSha256,
     selectedRaceSetSha256: summary.selectedRaceSetSha256,
     preparedBodySha256: summary.preparedBodySha256,
@@ -461,7 +462,8 @@ function preparedReceipt(input: {
 
 function committedReceipt(input: {
   exactCodeHeadSha: string;
-  boundary: BoundaryBinding;
+  requestedBoundary: BoundaryBinding;
+  currentBoundary: BoundaryBinding;
   preparedObservedAt: string;
   result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
 }): DnaPopulationEntrantAuthorityContinuationCommandReceipt {
@@ -469,9 +471,9 @@ function committedReceipt(input: {
     status: "committed" as const,
     exactCodeHeadSha: input.exactCodeHeadSha,
     cohortObservedAt: input.preparedObservedAt,
-    unresolvedRaceCount: input.boundary.unresolvedRaceCount,
-    unresolvedRaceSetSha256: input.boundary.unresolvedRaceSetSha256,
-    recoveredChunkCountBefore: input.boundary.recoveredChunkCount,
+    unresolvedRaceCount: input.currentBoundary.unresolvedRaceCount,
+    unresolvedRaceSetSha256: input.currentBoundary.unresolvedRaceSetSha256,
+    recoveredChunkCountBefore: input.currentBoundary.recoveredChunkCount,
     chunkOrdinal: input.result.chunkOrdinal,
     rowCount: input.result.rowCount,
     resolvedRaceCount: input.result.resolvedRaceCount,
@@ -483,11 +485,11 @@ function committedReceipt(input: {
     checkpointRaceCountAfter: input.result.checkpointRaceCountAfter,
     authorityComplete: input.result.authorityComplete,
     storageStatus: input.result.storageStatus,
-    continuationCapacityObservedAt: input.boundary.capacityObservedAt,
-    boundaryCapacityObservedAt: input.boundary.capacityObservedAt,
+    continuationCapacityObservedAt: input.requestedBoundary.capacityObservedAt,
+    boundaryCapacityObservedAt: input.currentBoundary.capacityObservedAt,
     commitCapacityObservedAt: input.result.capacityObservedAt,
-    checkpointUpdatedAtBefore: input.boundary.checkpointUpdatedAt,
-    durableBoundarySha256: input.boundary.durableBoundarySha256,
+    checkpointUpdatedAtBefore: input.currentBoundary.checkpointUpdatedAt,
+    durableBoundarySha256: input.currentBoundary.durableBoundarySha256,
     persistentWriteArmed: true as const,
     previewOnly: true as const,
     providerRequestPerformed: false as const,
@@ -647,10 +649,8 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
 
       const receipt = preparedReceipt({
         exactCodeHeadSha: requestedHead,
-        boundary: Object.freeze({
-          ...current,
-          capacityObservedAt: current.capacityObservedAt,
-        }),
+        requestedBoundary: expectedBoundary,
+        currentBoundary: current,
         prepared,
       });
 
@@ -683,7 +683,8 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
           }
           accepted = committedReceipt({
             exactCodeHeadSha: requestedHead,
-            boundary: current,
+            requestedBoundary: expectedBoundary,
+            currentBoundary: current,
             preparedObservedAt: summary.cohortObservedAt,
             result,
           });
