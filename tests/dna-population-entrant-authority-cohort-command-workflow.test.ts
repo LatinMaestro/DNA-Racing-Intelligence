@@ -13,6 +13,8 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
     expect(workflow).toContain("expected_main_sha:");
     expect(workflow).toContain("cohort_observed_at:");
+    expect(workflow).toContain("expected_unresolved_race_count:");
+    expect(workflow).toContain("expected_unresolved_race_set_sha256:");
     expect(workflow).toContain("execute_one_private_preview_entrant_cohort:");
     expect(workflow).toContain("default: false");
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
@@ -25,6 +27,12 @@ describe("DNA population entrant authority cohort commissioning workflow", () =>
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain(
       'DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_COMMAND: "1"',
+    );
+    expect(workflow).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+    );
+    expect(workflow).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
     );
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
     expect(workflow).toContain("cancel-in-progress: false");

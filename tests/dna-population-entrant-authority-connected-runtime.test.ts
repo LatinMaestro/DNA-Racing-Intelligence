@@ -44,6 +44,8 @@ function invocation(
     allowPersistentWrite: true,
     exactCodeHeadSha: HEAD,
     cohortObservedAt: "2026-09-26T08:00:00.000Z",
+    expectedUnresolvedRaceCount: 1,
+    expectedUnresolvedRaceSetSha256: "c".repeat(64),
     ...overrides,
   });
 }
@@ -112,6 +114,26 @@ describe("population entrant connected runtime", () => {
     expect(error).toMatchObject({
       diagnostic: "not_explicitly_armed",
       message: "Population entrant commissioning command is unavailable",
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed authority binding before any connected call", async () => {
+    const fetcher = vi.fn();
+    const runtime =
+      dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
+        environment: environment(),
+        fetch: fetcher as unknown as typeof globalThis.fetch,
+        now: () => new Date("2026-09-26T08:01:00.000Z"),
+      });
+    if (runtime.status !== "ready") {
+      throw new Error("synthetic runtime unavailable");
+    }
+
+    await expect(
+      runtime.execute(invocation({ expectedUnresolvedRaceCount: 0 })),
+    ).rejects.toMatchObject({
+      diagnostic: "invalid_authority_binding",
     });
     expect(fetcher).not.toHaveBeenCalled();
   });

@@ -34,6 +34,26 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
+function positiveCount(name: string): number {
+  const value = requiredEnvironment(name);
+  if (!/^[1-9]\d*$/u.test(value)) {
+    throw new Error("commissioning count authority is unavailable");
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error("commissioning count authority is unavailable");
+  }
+  return parsed;
+}
+
+function sha256(name: string): string {
+  const value = requiredEnvironment(name);
+  if (!/^[a-f0-9]{64}$/u.test(value)) {
+    throw new Error("commissioning hash authority is unavailable");
+  }
+  return value;
+}
+
 function exactTimestamp(name: string): string {
   const value = requiredEnvironment(name);
   const parsed = new Date(value);
@@ -75,6 +95,12 @@ describeConnected(
           }
           const cohortObservedAt = exactTimestamp(
             "DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_OBSERVED_AT",
+          );
+          const expectedUnresolvedRaceCount = positiveCount(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+          );
+          const expectedUnresolvedRaceSetSha256 = sha256(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
           );
 
           stage = "runtime-composition";
@@ -119,6 +145,8 @@ describeConnected(
             allowPersistentWrite: true,
             exactCodeHeadSha,
             cohortObservedAt,
+            expectedUnresolvedRaceCount,
+            expectedUnresolvedRaceSetSha256,
           });
           expect(session.prepared).toMatchObject({
             status: "prepared_uncommitted",
