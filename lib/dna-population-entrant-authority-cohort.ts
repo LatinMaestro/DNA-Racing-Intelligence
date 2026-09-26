@@ -8,6 +8,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpoint,
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityCheckpointRepository,
+  DnaPopulationEntrantAuthorityChunkManifest,
 } from "./dna-population-entrant-authority-checkpoint";
 import {
   commitDnaPopulationEntrantAuthorityChunk,
@@ -29,8 +30,8 @@ import {
 } from "./dna-population-history-acquisition-plan";
 import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
 import {
-  hydrateDnaRaceDocuments,
   DNA_RACE_DOCUMENT_BATCH_LIMIT,
+  hydrateDnaRaceDocuments,
 } from "./dna-open-lab-race-document-hydrator";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
@@ -43,14 +44,8 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
-export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_PROVIDER_REQUESTS =
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
-
-export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES = Math.min(
-  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
-  DNA_RACE_DOCUMENT_BATCH_LIMIT *
-    DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_PROVIDER_REQUESTS,
-);
+export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES =
+  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS;
 
 export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "invalid_audited_authority"
@@ -63,7 +58,8 @@ export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "hydration_coverage_mismatch"
   | "compact_record_unavailable"
   | "prepared_chunk_invalid"
-  | "commit_unavailable";
+  | "commit_unavailable"
+  | "commit_receipt_mismatch";
 
 export class DnaPopulationEntrantAuthorityCohortError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityCohortDiagnostic;
@@ -75,25 +71,57 @@ export class DnaPopulationEntrantAuthorityCohortError extends Error {
   }
 }
 
-export type DnaPopulationEntrantAuthorityCohortResult = Readonly<{
+export type DnaPopulationEntrantAuthorityPreparedCohortSummary = Readonly<{
+  version: 1;
+  status: "prepared_uncommitted";
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
+  recoveredRaceCount: number;
   chunkOrdinal: number;
   selectedRaceCount: number;
   providerRequestCount: number;
   cohortSha256: string;
+  selectedRaceSetSha256: string;
   preparedBodySha256: string;
   preparedRecordSetSha256: string;
+  cohortObservedAt: string;
+  aggregateRequestsPerMinute: typeof DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  providerRequestPerformed: true;
+  persistentWritePerformed: false;
+  providerWritePerformed: false;
+  paidUsageAllowed: false;
+}>;
+
+export type DnaPopulationEntrantAuthorityCommittedCohortSummary = Readonly<{
+  version: 1;
+  status: "committed";
+  authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
+  chunkOrdinal: number;
+  rowCount: number;
+  bodySha256: string;
+  raceSetSha256: string;
+  recordSetSha256: string;
+  storageStatus: "created" | "existing";
+  capacityObservedAt: string;
   checkpointRaceCountBefore: number;
   checkpointRaceCountAfter: number;
   authorityComplete: boolean;
-  storageStatus: "created" | "existing";
-  cohortObservedAt: string;
-  capacityObservedAt: string;
-  providerRequestPerformed: true;
+  providerRequestPerformed: false;
   persistentWritePerformed: true;
   providerWritePerformed: false;
   paidUsageAllowed: false;
 }>;
+
+export type DnaPopulationEntrantAuthorityPreparedCohort = Readonly<{
+  summary: DnaPopulationEntrantAuthorityPreparedCohortSummary;
+  commit: (input: {
+    registeredAt: string;
+  }) => Promise<DnaPopulationEntrantAuthorityCommittedCohortSummary>;
+}>;
+
+type CohortCheckpointRepository = Pick<
+  DnaPopulationEntrantAuthorityCheckpointRepository,
+  "read" | "listChunkManifests" | "registerChunk"
+>;
 
 function cohortError(
   diagnostic: DnaPopulationEntrantAuthorityCohortDiagnostic,
@@ -307,51 +335,6 @@ function bindAuditedAuthority(input: {
   return Object.freeze({ authority, unresolvedRaceIds });
 }
 
-function validateRecoveredBoundary(input: {
-  recovery: DnaPopulationEntrantAuthorityRecovery;
-  unresolvedRaceIds: readonly string[];
-}): void {
-  if (input.recovery.complete) {
-    cohortError("authority_already_complete");
-  }
-  if (
-    input.recovery.recoveredRaceCount < 0 ||
-    !Number.isSafeInteger(input.recovery.recoveredRaceCount) ||
-    input.recovery.recoveredRaceCount >= input.unresolvedRaceIds.length
-  ) {
-    cohortError("recovered_boundary_mismatch");
-  }
-
-  let recoveredOffset = 0;
-  for (const manifest of input.recovery.manifests) {
-    const expectedRaceIds = input.unresolvedRaceIds.slice(
-      recoveredOffset,
-      recoveredOffset + manifest.rowCount,
-    );
-    if (
-      expectedRaceIds.length !== manifest.rowCount ||
-      manifest.firstSourceRaceId !== expectedRaceIds[0] ||
-      manifest.lastSourceRaceId !== expectedRaceIds.at(-1) ||
-      manifest.raceSetSha256 !== raceSetSha256(expectedRaceIds)
-    ) {
-      cohortError("recovered_boundary_mismatch");
-    }
-    recoveredOffset += manifest.rowCount;
-  }
-  if (recoveredOffset !== input.recovery.recoveredRaceCount) {
-    cohortError("recovered_boundary_mismatch");
-  }
-
-  const expectedBoundary =
-    input.recovery.recoveredRaceCount === 0
-      ? null
-      : (input.unresolvedRaceIds[input.recovery.recoveredRaceCount - 1] ??
-        null);
-  if (input.recovery.resumeAfterSourceRaceId !== expectedBoundary) {
-    cohortError("recovered_boundary_mismatch");
-  }
-}
-
 function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
   let snapshot: ReturnType<DnaOpenLabRequestBudget["snapshot"]>;
   try {
@@ -371,6 +354,76 @@ function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
   }
 }
 
+function validateRecoveredManifest(input: {
+  manifest: DnaPopulationEntrantAuthorityChunkManifest;
+  unresolvedRaceIds: readonly string[];
+  recoveredOffset: number;
+}): void {
+  if (
+    !Number.isSafeInteger(input.manifest.rowCount) ||
+    input.manifest.rowCount < 1
+  ) {
+    cohortError("recovered_boundary_mismatch");
+  }
+  const expectedRaceIds = input.unresolvedRaceIds.slice(
+    input.recoveredOffset,
+    input.recoveredOffset + input.manifest.rowCount,
+  );
+  if (
+    expectedRaceIds.length !== input.manifest.rowCount ||
+    input.manifest.firstSourceRaceId !== expectedRaceIds[0] ||
+    input.manifest.lastSourceRaceId !== expectedRaceIds.at(-1) ||
+    input.manifest.raceSetSha256 !== raceSetSha256(expectedRaceIds)
+  ) {
+    cohortError("recovered_boundary_mismatch");
+  }
+}
+
+function validateRecoveredBoundary(input: {
+  authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
+  recovery: DnaPopulationEntrantAuthorityRecovery;
+  unresolvedRaceIds: readonly string[];
+}): number {
+  if (
+    input.recovery.authority.generationId !== input.authority.generationId ||
+    input.recovery.authority.unresolvedRaceCount !==
+      input.authority.unresolvedRaceCount ||
+    input.recovery.authority.unresolvedRaceSetSha256 !==
+      input.authority.unresolvedRaceSetSha256 ||
+    input.recovery.recoveredChunkCount !== input.recovery.manifests.length ||
+    input.recovery.nextChunkOrdinal !== input.recovery.manifests.length + 1
+  ) {
+    cohortError("recovered_boundary_mismatch");
+  }
+
+  let recoveredOffset = 0;
+  for (const manifest of input.recovery.manifests) {
+    validateRecoveredManifest({
+      manifest,
+      unresolvedRaceIds: input.unresolvedRaceIds,
+      recoveredOffset,
+    });
+    recoveredOffset += manifest.rowCount;
+  }
+
+  const expectedBoundary =
+    recoveredOffset === 0
+      ? null
+      : (input.unresolvedRaceIds[recoveredOffset - 1] ?? null);
+  if (
+    recoveredOffset !== input.recovery.recoveredRaceCount ||
+    input.recovery.resumeAfterSourceRaceId !== expectedBoundary ||
+    input.recovery.complete !==
+      (recoveredOffset === input.authority.unresolvedRaceCount)
+  ) {
+    cohortError("recovered_boundary_mismatch");
+  }
+  if (input.recovery.complete) {
+    cohortError("authority_already_complete");
+  }
+  return recoveredOffset;
+}
+
 function sameCheckpoint(
   left: DnaPopulationEntrantAuthorityCheckpoint,
   right: DnaPopulationEntrantAuthorityCheckpoint,
@@ -385,6 +438,24 @@ function sameCheckpoint(
     left.lastSourceRaceId === right.lastSourceRaceId &&
     left.startedAt === right.startedAt &&
     left.updatedAt === right.updatedAt
+  );
+}
+
+function sameReceipt(
+  left: DnaPopulationEntrantAuthorityChunkReceipt,
+  right: DnaPopulationEntrantAuthorityChunkReceipt,
+): boolean {
+  return (
+    left.version === right.version &&
+    left.generationId === right.generationId &&
+    left.chunkOrdinal === right.chunkOrdinal &&
+    left.bodySha256 === right.bodySha256 &&
+    left.byteLength === right.byteLength &&
+    left.rowCount === right.rowCount &&
+    left.firstSourceRaceId === right.firstSourceRaceId &&
+    left.lastSourceRaceId === right.lastSourceRaceId &&
+    left.raceSetSha256 === right.raceSetSha256 &&
+    left.recordSetSha256 === right.recordSetSha256
   );
 }
 
@@ -406,24 +477,7 @@ function validatePreparedChunk(input: {
   }
 }
 
-/**
- * Re-derives the exact unresolved-Race authority, recovers the durable boundary,
- * deterministically selects one bounded next cohort, hydrates it through the
- * shared strict races.docs path, converts only exact-coverage evidence to
- * compact entrant records, and hands those records to the accepted R2-first
- * commit protocol.
- *
- * One call can start at most 30 DNA requests, with at most 20 Race IDs per
- * request. The injected shared request budget remains the authoritative rolling
- * aggregate limiter and must not exceed the base 30 requests/minute policy.
- *
- * This is a library-level composition primitive only. It exposes no command,
- * workflow, credential construction, Production route or game-state action.
- * A caller retrying an interrupted attempt must reuse the same cohortObservedAt
- * for the same recovered boundary so identical provider evidence rebuilds the
- * exact immutable compact body.
- */
-export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input: {
+export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   ownerId: string;
   plan: DnaPopulationHistoryAcquisitionPlan;
   raceDocuments: readonly CanonicalRaceDocumentMetadata[];
@@ -431,14 +485,10 @@ export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input:
   client: Pick<DnaOpenLabClient, "raceDocs">;
   requestBudget: DnaOpenLabRequestBudget;
   capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
-  checkpointRepository: Pick<
-    DnaPopulationEntrantAuthorityCheckpointRepository,
-    "read" | "listChunkManifests" | "registerChunk"
-  >;
+  checkpointRepository: CohortCheckpointRepository;
   r2Store: DnaPopulationEntrantAuthorityR2CommitPort;
   cohortObservedAt: string;
-  registeredAt: string;
-}): Promise<DnaPopulationEntrantAuthorityCohortResult> {
+}): Promise<DnaPopulationEntrantAuthorityPreparedCohort> {
   const bound = bindAuditedAuthority({
     plan: input.plan,
     raceDocuments: input.raceDocuments,
@@ -456,24 +506,22 @@ export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input:
   } catch {
     cohortError("recovery_unavailable");
   }
-  validateRecoveredBoundary({
+  const recoveredRaceCount = validateRecoveredBoundary({
+    authority: bound.authority,
     recovery,
     unresolvedRaceIds: bound.unresolvedRaceIds,
   });
 
   const cohortObservedAt = canonicalTimestamp(input.cohortObservedAt);
-  const registeredAt = canonicalTimestamp(input.registeredAt);
-  if (
-    Date.parse(cohortObservedAt) < Date.parse(recovery.checkpoint.updatedAt) ||
-    Date.parse(registeredAt) < Date.parse(cohortObservedAt)
-  ) {
+  const checkpointUpdatedAt = canonicalTimestamp(recovery.checkpoint.updatedAt);
+  if (Date.parse(cohortObservedAt) < Date.parse(checkpointUpdatedAt)) {
     cohortError("invalid_audited_authority");
   }
 
   const raceIds = Object.freeze(
     bound.unresolvedRaceIds.slice(
-      recovery.recoveredRaceCount,
-      recovery.recoveredRaceCount +
+      recoveredRaceCount,
+      recoveredRaceCount +
         DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
     ),
   );
@@ -483,9 +531,7 @@ export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input:
   if (
     raceIds.length < 1 ||
     raceIds.length > DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES ||
-    expectedBatchCount < 1 ||
-    expectedBatchCount >
-      DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_PROVIDER_REQUESTS
+    expectedBatchCount < 1
   ) {
     cohortError("recovered_boundary_mismatch");
   }
@@ -504,6 +550,7 @@ export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input:
     cohortError("hydration_unavailable");
   }
 
+  validateRequestBudget(input.requestBudget);
   if (
     hydration.requestedRaceCount !== raceIds.length ||
     hydration.documents.length !== raceIds.length ||
@@ -556,50 +603,106 @@ export async function hydrateAndCommitDnaPopulationEntrantAuthorityCohort(input:
     raceIds,
   });
 
-  let committed: Awaited<
-    ReturnType<typeof commitDnaPopulationEntrantAuthorityChunk>
-  >;
-  try {
-    committed = await commitDnaPopulationEntrantAuthorityChunk({
-      ownerId: input.ownerId,
+  const exactRecords = Object.freeze([...prepared.records]);
+  const expectedReceipt = Object.freeze({ ...prepared.receipt });
+  const summary: DnaPopulationEntrantAuthorityPreparedCohortSummary =
+    Object.freeze({
+      version: 1 as const,
+      status: "prepared_uncommitted" as const,
       authority: bound.authority,
-      records,
-      capacityGate: input.capacityGate,
-      checkpointRepository: input.checkpointRepository,
-      r2Store: input.r2Store,
-      registeredAt,
+      recoveredRaceCount,
+      chunkOrdinal: recovery.nextChunkOrdinal,
+      selectedRaceCount: raceIds.length,
+      providerRequestCount: hydration.batchCount,
+      cohortSha256: cohortSha256({
+        generationId: bound.authority.generationId,
+        chunkOrdinal: recovery.nextChunkOrdinal,
+        raceIds,
+      }),
+      selectedRaceSetSha256: raceSetSha256(raceIds),
+      preparedBodySha256: expectedReceipt.bodySha256,
+      preparedRecordSetSha256: expectedReceipt.recordSetSha256,
+      cohortObservedAt,
+      aggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+      providerRequestPerformed: true as const,
+      persistentWritePerformed: false as const,
+      providerWritePerformed: false as const,
+      paidUsageAllowed: false as const,
     });
-  } catch {
-    cohortError("commit_unavailable");
-  }
-
-  if (!sameCheckpoint(committed.checkpointBefore, recovery.checkpoint)) {
-    cohortError("commit_unavailable");
-  }
 
   return Object.freeze({
-    authority: bound.authority,
-    chunkOrdinal: recovery.nextChunkOrdinal,
-    selectedRaceCount: raceIds.length,
-    providerRequestCount: hydration.batchCount,
-    cohortSha256: cohortSha256({
-      generationId: bound.authority.generationId,
-      chunkOrdinal: recovery.nextChunkOrdinal,
-      raceIds,
-    }),
-    preparedBodySha256: prepared.receipt.bodySha256,
-    preparedRecordSetSha256: prepared.receipt.recordSetSha256,
-    checkpointRaceCountBefore: committed.checkpointBefore.persistedRaceCount,
-    checkpointRaceCountAfter: committed.checkpointAfter.persistedRaceCount,
-    authorityComplete:
-      committed.checkpointAfter.persistedRaceCount ===
-      bound.authority.unresolvedRaceCount,
-    storageStatus: committed.storageStatus,
-    cohortObservedAt,
-    capacityObservedAt: committed.capacityObservedAt,
-    providerRequestPerformed: true as const,
-    persistentWritePerformed: true as const,
-    providerWritePerformed: false as const,
-    paidUsageAllowed: false as const,
+    summary,
+    async commit(commitInput) {
+      const registeredAt = canonicalTimestamp(commitInput.registeredAt);
+      if (
+        Date.parse(registeredAt) < Date.parse(cohortObservedAt) ||
+        Date.parse(registeredAt) < Date.parse(checkpointUpdatedAt)
+      ) {
+        cohortError("invalid_audited_authority");
+      }
+
+      let replayedPrepared: ReturnType<
+        typeof buildDnaPopulationEntrantAuthorityChunk
+      >;
+      try {
+        replayedPrepared = buildDnaPopulationEntrantAuthorityChunk({
+          generationId: bound.authority.generationId,
+          chunkOrdinal: recovery.nextChunkOrdinal,
+          records: exactRecords,
+        });
+      } catch {
+        cohortError("prepared_chunk_invalid");
+      }
+      if (!sameReceipt(replayedPrepared.receipt, expectedReceipt)) {
+        cohortError("prepared_chunk_invalid");
+      }
+
+      let committed: Awaited<
+        ReturnType<typeof commitDnaPopulationEntrantAuthorityChunk>
+      >;
+      try {
+        committed = await commitDnaPopulationEntrantAuthorityChunk({
+          ownerId: input.ownerId,
+          authority: bound.authority,
+          records: exactRecords,
+          capacityGate: input.capacityGate,
+          checkpointRepository: input.checkpointRepository,
+          r2Store: input.r2Store,
+          registeredAt,
+        });
+      } catch {
+        cohortError("commit_unavailable");
+      }
+
+      if (!sameCheckpoint(committed.checkpointBefore, recovery.checkpoint)) {
+        cohortError("commit_unavailable");
+      }
+      if (!sameReceipt(committed.receipt, expectedReceipt)) {
+        cohortError("commit_receipt_mismatch");
+      }
+
+      return Object.freeze({
+        version: 1 as const,
+        status: "committed" as const,
+        authority: bound.authority,
+        chunkOrdinal: expectedReceipt.chunkOrdinal,
+        rowCount: expectedReceipt.rowCount,
+        bodySha256: expectedReceipt.bodySha256,
+        raceSetSha256: expectedReceipt.raceSetSha256,
+        recordSetSha256: expectedReceipt.recordSetSha256,
+        storageStatus: committed.storageStatus,
+        capacityObservedAt: committed.capacityObservedAt,
+        checkpointRaceCountBefore:
+          committed.checkpointBefore.persistedRaceCount,
+        checkpointRaceCountAfter: committed.checkpointAfter.persistedRaceCount,
+        authorityComplete:
+          committed.checkpointAfter.persistedRaceCount ===
+          bound.authority.unresolvedRaceCount,
+        providerRequestPerformed: false as const,
+        persistentWritePerformed: true as const,
+        providerWritePerformed: false as const,
+        paidUsageAllowed: false as const,
+      });
+    },
   });
 }
