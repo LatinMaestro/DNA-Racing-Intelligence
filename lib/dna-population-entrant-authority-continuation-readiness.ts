@@ -96,7 +96,9 @@ function positiveInteger(value: number): number {
   return value;
 }
 
-function canonicalManifest(manifest: DnaPopulationEntrantAuthorityChunkManifest) {
+function canonicalManifest(
+  manifest: DnaPopulationEntrantAuthorityChunkManifest,
+) {
   return Object.freeze({
     version: manifest.version,
     generationId: sha256(manifest.generationId),
@@ -157,7 +159,8 @@ function capacityObservedAt(input: {
     input.approval.capacityAllowed !== true ||
     input.approval.paidUsageAllowed !== false ||
     input.approval.generationId !== input.authority.generationId ||
-    input.approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
+    input.approval.unresolvedRaceCount !==
+      input.authority.unresolvedRaceCount ||
     input.approval.unresolvedRaceSetSha256 !==
       input.authority.unresolvedRaceSetSha256
   ) {
@@ -166,19 +169,17 @@ function capacityObservedAt(input: {
   return exactTimestamp(input.approval.observedAt);
 }
 
-export function createDnaPopulationEntrantAuthorityContinuationReadinessInspector(
-  input: {
-    ownerId: string;
-    exactCodeHeadSha: string;
-    authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
-    capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
-    checkpointRepository: Pick<
-      DnaPopulationEntrantAuthorityCheckpointRepository,
-      "read" | "listChunkManifests"
-    >;
-    r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
-  },
-): Readonly<{
+export function createDnaPopulationEntrantAuthorityContinuationReadinessInspector(input: {
+  ownerId: string;
+  exactCodeHeadSha: string;
+  authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
+  capacityGate: DnaPopulationEntrantAuthorityCapacityGate;
+  checkpointRepository: Pick<
+    DnaPopulationEntrantAuthorityCheckpointRepository,
+    "read" | "listChunkManifests"
+  >;
+  r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
+}): Readonly<{
   inspect: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
 }> {
   const ownerId = identity(input.ownerId);
@@ -202,8 +203,9 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
           unavailable();
         }
 
-        const approval =
-          await input.capacityGate.assertFreshCurrentCapacity(audit.authority);
+        const approval = await input.capacityGate.assertFreshCurrentCapacity(
+          audit.authority,
+        );
         const observedAt = capacityObservedAt({
           authority: audit.authority,
           approval,
