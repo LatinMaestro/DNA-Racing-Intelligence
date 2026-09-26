@@ -43,13 +43,17 @@ describeConnected(
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
             environment: Object.freeze({
-              authorizedOwnerId: requiredEnvironment("AUTHORIZED_CLERK_USER_ID"),
+              authorizedOwnerId: requiredEnvironment(
+                "AUTHORIZED_CLERK_USER_ID",
+              ),
               exactCodeHeadSha,
               databaseUrl: requiredEnvironment("DATABASE_URL"),
               databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
               runtimeRole: RUNTIME_ROLE,
               dnaOpenLabApiKey: requiredEnvironment("DNA_OPEN_LAB_API_KEY_1"),
-              cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
+              cloudflareAccountId: requiredEnvironment(
+                "CLOUDFLARE_ACCOUNT_ID",
+              ),
               cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
               cloudflareAnalyticsApiToken: requiredEnvironment(
                 "CLOUDFLARE_ANALYTICS_API_TOKEN",
@@ -57,7 +61,9 @@ describeConnected(
               r2BucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
               r2StorageClass: requiredEnvironment("DNA_R2_STORAGE_CLASS"),
               r2AccessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
-              r2SecretAccessKey: requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY"),
+              r2SecretAccessKey: requiredEnvironment(
+                "DNA_R2_SECRET_ACCESS_KEY",
+              ),
               neonApiKey: requiredEnvironment("NEON_API_KEY"),
               neonProjectId: requiredEnvironment("NEON_PROJECT_ID"),
             }),
