@@ -9,7 +9,16 @@ const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const MODES = new Set(["bike", "car", "horse"]);
 
-export type DnaPopulationEntrantAuthorityRecord = Readonly<{
+export const DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS = [
+  "provider_document_missing",
+  "provider_document_unusable",
+  "entrant_authority_unresolved",
+] as const;
+
+export type DnaPopulationEntrantAuthorityQuarantineReason =
+  (typeof DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS)[number];
+
+export type DnaPopulationEntrantAuthorityResolvedRecord = Readonly<{
   sourceRaceId: string;
   observedAt: string;
   rawEvidenceSha256: string;
@@ -17,7 +26,25 @@ export type DnaPopulationEntrantAuthorityRecord = Readonly<{
   modeEvidenceStatus?: "unsupported_source_value";
   entrantCoreIds?: readonly string[];
   entrantCoreIdsEvidenceStatus?: "unsupported_source_value";
+  quarantineReason?: never;
+  sourceEvidenceSha256?: never;
 }>;
+
+export type DnaPopulationEntrantAuthorityQuarantineRecord = Readonly<{
+  sourceRaceId: string;
+  observedAt: string;
+  quarantineReason: DnaPopulationEntrantAuthorityQuarantineReason;
+  sourceEvidenceSha256?: string;
+  rawEvidenceSha256?: never;
+  mode?: never;
+  modeEvidenceStatus?: never;
+  entrantCoreIds?: never;
+  entrantCoreIdsEvidenceStatus?: never;
+}>;
+
+export type DnaPopulationEntrantAuthorityRecord =
+  | DnaPopulationEntrantAuthorityResolvedRecord
+  | DnaPopulationEntrantAuthorityQuarantineRecord;
 
 function authorityError(message: string): never {
   throw new Error(`Population entrant authority record: ${message}`);
@@ -69,6 +96,40 @@ function entrantIds(values: readonly string[]): readonly string[] {
     return value;
   });
   return Object.freeze(normalized);
+}
+
+
+function quarantineReason(
+  value: DnaPopulationEntrantAuthorityQuarantineReason,
+): DnaPopulationEntrantAuthorityQuarantineReason {
+  if (
+    !DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS.includes(value)
+  ) {
+    authorityError("quarantine reason is invalid");
+  }
+  return value;
+}
+
+export function dnaPopulationEntrantAuthorityQuarantineRecord(input: {
+  sourceRaceId: string;
+  observedAt: string;
+  quarantineReason: DnaPopulationEntrantAuthorityQuarantineReason;
+  sourceEvidenceSha256?: string;
+}): DnaPopulationEntrantAuthorityQuarantineRecord {
+  return Object.freeze({
+    sourceRaceId: safeRaceId(input.sourceRaceId),
+    observedAt: timestamp(input.observedAt),
+    quarantineReason: quarantineReason(input.quarantineReason),
+    ...(input.sourceEvidenceSha256 === undefined
+      ? {}
+      : { sourceEvidenceSha256: sha256(input.sourceEvidenceSha256) }),
+  });
+}
+
+export function isDnaPopulationEntrantAuthorityQuarantineRecord(
+  record: DnaPopulationEntrantAuthorityRecord,
+): record is DnaPopulationEntrantAuthorityQuarantineRecord {
+  return "quarantineReason" in record;
 }
 
 /**
