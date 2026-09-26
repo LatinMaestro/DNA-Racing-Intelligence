@@ -322,6 +322,26 @@ function validateRecoveredBoundary(input: {
     cohortError("recovered_boundary_mismatch");
   }
 
+  let recoveredOffset = 0;
+  for (const manifest of input.recovery.manifests) {
+    const expectedRaceIds = input.unresolvedRaceIds.slice(
+      recoveredOffset,
+      recoveredOffset + manifest.rowCount,
+    );
+    if (
+      expectedRaceIds.length !== manifest.rowCount ||
+      manifest.firstSourceRaceId !== expectedRaceIds[0] ||
+      manifest.lastSourceRaceId !== expectedRaceIds.at(-1) ||
+      manifest.raceSetSha256 !== raceSetSha256(expectedRaceIds)
+    ) {
+      cohortError("recovered_boundary_mismatch");
+    }
+    recoveredOffset += manifest.rowCount;
+  }
+  if (recoveredOffset !== input.recovery.recoveredRaceCount) {
+    cohortError("recovered_boundary_mismatch");
+  }
+
   const expectedBoundary =
     input.recovery.recoveredRaceCount === 0
       ? null
