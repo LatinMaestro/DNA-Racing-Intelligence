@@ -124,9 +124,7 @@ function harness(input?: {
   baselineCount?: number;
   classBOperations?: number;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
-  chunks?: Readonly<
-    Record<number, readonly DnaPopulationRaceIndexDocument[]>
-  >;
+  chunks?: Readonly<Record<number, readonly DnaPopulationRaceIndexDocument[]>>;
 }) {
   const manifests =
     input?.manifests ??
