@@ -14,6 +14,10 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandInvocation,
 } from "./dna-population-entrant-authority-cohort-command";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-live-audit-source";
+import {
+  createDnaPopulationEntrantAuthorityReadinessInspector,
+  type DnaPopulationEntrantAuthorityReadinessReceipt,
+} from "./dna-population-entrant-authority-readiness";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-population-entrant-authority-r2-store";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
@@ -58,6 +62,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
   | Readonly<{
       status: "ready";
       exactCodeHeadSha: string;
+      inspectReadiness: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -328,6 +333,13 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       },
     });
 
+    const readiness = createDnaPopulationEntrantAuthorityReadinessInspector({
+      ownerId: config.ownerId,
+      exactCodeHeadSha: config.exactCodeHeadSha,
+      authoritySource,
+      capacityGate,
+    });
+
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
       runtimeCodeHeadSha: config.exactCodeHeadSha,
@@ -345,6 +357,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
     return Object.freeze({
       status: "ready" as const,
       exactCodeHeadSha: config.exactCodeHeadSha,
+      inspectReadiness: readiness.inspect,
       execute: command.execute,
     });
   } catch {
