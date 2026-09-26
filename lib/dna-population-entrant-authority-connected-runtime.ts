@@ -14,6 +14,10 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandInvocation,
 } from "./dna-population-entrant-authority-cohort-command";
 import {
+  createDnaPopulationEntrantAuthorityContinuationReadinessInspector,
+  type DnaPopulationEntrantAuthorityContinuationReadinessReceipt,
+} from "./dna-population-entrant-authority-continuation-readiness";
+import {
   createDnaPopulationEntrantAuthorityFirstCohortVerifier,
   type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt,
 } from "./dna-population-entrant-authority-first-cohort-verification";
@@ -68,6 +72,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       exactCodeHeadSha: string;
       inspectReadiness: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
       inspectFirstCohortVerification: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
+      inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -352,6 +357,15 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         checkpointRepository,
         r2Store,
       });
+    const continuationReadiness =
+      createDnaPopulationEntrantAuthorityContinuationReadinessInspector({
+        ownerId: config.ownerId,
+        exactCodeHeadSha: config.exactCodeHeadSha,
+        authoritySource,
+        capacityGate,
+        checkpointRepository,
+        r2Store,
+      });
 
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
@@ -372,6 +386,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       exactCodeHeadSha: config.exactCodeHeadSha,
       inspectReadiness: readiness.inspect,
       inspectFirstCohortVerification: firstCohortVerification.inspect,
+      inspectContinuationReadiness: continuationReadiness.inspect,
       execute: command.execute,
     });
   } catch {
