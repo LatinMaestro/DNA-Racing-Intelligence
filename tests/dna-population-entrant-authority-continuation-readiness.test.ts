@@ -22,23 +22,25 @@ const OWNER = "private-owner";
 const OBSERVED_AT = "2026-09-27T00:00:00.000Z";
 
 function audit() {
-  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze([
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-1",
-      mode: "bike" as const,
-    }),
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-2",
-      mode: "bike" as const,
-    }),
-    Object.freeze({
-      sourceType: "race_document" as const,
-      sourceRaceId: "race-3",
-      mode: "bike" as const,
-    }),
-  ]);
+  const raceDocuments: readonly CanonicalRaceDocumentMetadata[] = Object.freeze(
+    [
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-1",
+        mode: "bike" as const,
+      }),
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-2",
+        mode: "bike" as const,
+      }),
+      Object.freeze({
+        sourceType: "race_document" as const,
+        sourceRaceId: "race-3",
+        mode: "bike" as const,
+      }),
+    ],
+  );
   const plan: DnaPopulationHistoryAcquisitionPlan =
     planDnaPopulationHistoryAcquisition({ raceDocuments });
   if (plan.unresolvedRaceSetSha256 === null) {
@@ -262,8 +264,6 @@ describe("population entrant continuation readiness", () => {
       }),
     ).inspect();
 
-    expect(second.durableBoundarySha256).not.toBe(
-      first.durableBoundarySha256,
-    );
+    expect(second.durableBoundarySha256).not.toBe(first.durableBoundarySha256);
   });
 });
