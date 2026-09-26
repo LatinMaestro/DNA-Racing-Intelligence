@@ -79,7 +79,6 @@ describe("population entrant authority archive", () => {
     expect(replay.paidUsageAllowed).toBe(false);
   });
 
-
   it("round-trips quarantine outcomes while preserving exact Race coverage", () => {
     const generationId = "e".repeat(64);
     const chunk = buildDnaPopulationEntrantAuthorityChunk({
