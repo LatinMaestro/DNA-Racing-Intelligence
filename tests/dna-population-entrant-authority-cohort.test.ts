@@ -8,6 +8,7 @@ import {
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
   prepareDnaPopulationEntrantAuthorityCohort,
   type DnaPopulationEntrantAuthorityCohortR2Port,
+  type DnaPopulationEntrantAuthorityExpectedRecoveryBoundary,
   type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "@/lib/dna-population-entrant-authority-cohort";
 import type {
@@ -365,6 +366,7 @@ async function prepare(input: {
   plan?: DnaPopulationHistoryAcquisitionPlan;
   authority?: DnaPopulationEntrantAuthorityCheckpointAuthority;
   requestBudget?: DnaOpenLabRequestBudget;
+  expectedRecoveryBoundary?: DnaPopulationEntrantAuthorityExpectedRecoveryBoundary;
 }): Promise<DnaPopulationEntrantAuthorityPreparedCohort> {
   const plan = input.plan ?? planFor(input.raceDocuments);
   const authority = input.authority ?? authorityFor(plan);
@@ -379,6 +381,9 @@ async function prepare(input: {
     checkpointRepository: input.test.checkpointRepository,
     r2Store: input.test.r2Store,
     cohortObservedAt: OBSERVED_AT,
+    ...(input.expectedRecoveryBoundary === undefined
+      ? {}
+      : { expectedRecoveryBoundary: input.expectedRecoveryBoundary }),
   });
 }
 
@@ -507,6 +512,52 @@ describe("DNA population entrant authority cohort bridge", () => {
       chunkOrdinal: 2,
       selectedRaceCount: 3,
     });
+  });
+
+  it("fails closed on expected recovery-boundary drift before pending lookup or DNA hydration", async () => {
+    const raceDocuments = unresolvedRaceDocuments(5);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const previous = priorChunk({
+      authority,
+      chunkOrdinal: 1,
+      records: [compactRecord(raceId(1)), compactRecord(raceId(2))],
+    });
+    const checkpoint = Object.freeze({
+      ...authority,
+      chunkCount: 1,
+      persistedRaceCount: 2,
+      lastSourceRaceId: raceId(2),
+      startedAt: STARTED_AT,
+      updatedAt: STARTED_AT,
+    });
+    const test = harness({
+      authority,
+      checkpoint,
+      priorChunks: [previous],
+    });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+      expectedRecoveryBoundary: Object.freeze({
+        recoveredChunkCount: 1,
+        recoveredRaceCount: 1,
+        nextChunkOrdinal: 2,
+        checkpointUpdatedAt: STARTED_AT,
+      }),
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "recovered_boundary_mismatch",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(test.events).toEqual(["checkpoint-read"]);
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.r2Store.findPending).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
   it("recovers the exact pending R2 cohort after process loss without DNA hydration", async () => {
