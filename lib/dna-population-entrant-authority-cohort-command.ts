@@ -69,7 +69,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     persistentWriteArmed: true;
     previewOnly: true;
     providerRequestPerformed: boolean;
-    persistentWritePerformed: false;
+    entrantChunkPersistentWritePerformed: false;
     providerWritePerformed: false;
     paidUsageAllowed: false;
     preserveLastGood: true;
@@ -468,7 +468,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         persistentWriteArmed: true as const,
         previewOnly: true as const,
         providerRequestPerformed: prepared.summary.providerRequestPerformed,
-        persistentWritePerformed: false as const,
+        entrantChunkPersistentWritePerformed: false as const,
         providerWritePerformed: false as const,
         paidUsageAllowed: false as const,
         preserveLastGood: true as const,
