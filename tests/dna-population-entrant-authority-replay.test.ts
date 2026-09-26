@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { replayDnaPopulationEntrantAuthority } from "@/lib/dna-population-entrant-authority-replay";
-import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
+import {
+  dnaPopulationEntrantAuthorityQuarantineRecord,
+  type DnaPopulationEntrantAuthorityRecord,
+} from "@/lib/dna-population-entrant-authority-record";
 
 function setHash(raceIds: readonly string[]): string {
   return createHash("sha256")
@@ -75,6 +78,61 @@ describe("population entrant authority replay", () => {
     expect(replay.providerReadRequired).toBe(false);
     expect(replay.persistentWriteAllowed).toBe(false);
     expect(replay.paidUsageAllowed).toBe(false);
+  });
+
+
+  it("keeps quarantined Races in exact authority while excluding fabricated entrant documents", () => {
+    const records: readonly DnaPopulationEntrantAuthorityRecord[] = [
+      record({ raceId: "10", mode: "bike", entrants: ["101"] }),
+      dnaPopulationEntrantAuthorityQuarantineRecord({
+        sourceRaceId: "20",
+        observedAt: "2026-09-25T00:00:00.000Z",
+        quarantineReason: "provider_document_missing",
+      }),
+      dnaPopulationEntrantAuthorityQuarantineRecord({
+        sourceRaceId: "30",
+        observedAt: "2026-09-25T00:00:00.000Z",
+        quarantineReason: "entrant_authority_unresolved",
+        sourceEvidenceSha256: "b".repeat(64),
+      }),
+    ];
+    const expectedIds = ["10", "20", "30"];
+
+    const replay = replayDnaPopulationEntrantAuthority({
+      records,
+      expectedUnresolvedRaceCount: expectedIds.length,
+      expectedUnresolvedRaceSetSha256: setHash(expectedIds),
+    });
+
+    expect(replay.resolvedRaceCount).toBe(1);
+    expect(replay.quarantinedRaceCount).toBe(2);
+    expect(replay.quarantinedRaceSetSha256).toBe(setHash(["20", "30"]));
+    expect(replay.canonicalDocuments).toEqual([
+      {
+        sourceType: "race_document",
+        sourceRaceId: "10",
+        mode: "bike",
+        entrantCoreIds: ["101"],
+      },
+    ]);
+    expect(replay.authority.replayedUniqueRaceCount).toBe(3);
+  });
+
+  it("fails closed when the same Race replays as both resolved and quarantined", () => {
+    expect(() =>
+      replayDnaPopulationEntrantAuthority({
+        records: [
+          record({ raceId: "10", mode: "bike", entrants: ["101"] }),
+          dnaPopulationEntrantAuthorityQuarantineRecord({
+            sourceRaceId: "10",
+            observedAt: "2026-09-25T00:00:00.000Z",
+            quarantineReason: "provider_document_missing",
+          }),
+        ],
+        expectedUnresolvedRaceCount: 1,
+        expectedUnresolvedRaceSetSha256: setHash(["10"]),
+      }),
+    ).toThrow("conflicting compact entrant replay detected");
   });
 
   it("fails closed when the same Race replays with altered authority or provenance", () => {
