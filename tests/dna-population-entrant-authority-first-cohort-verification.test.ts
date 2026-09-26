@@ -8,10 +8,7 @@ import {
   createDnaPopulationEntrantAuthorityFirstCohortVerifier,
   DnaPopulationEntrantAuthorityFirstCohortVerificationError,
 } from "@/lib/dna-population-entrant-authority-first-cohort-verification";
-import {
-  dnaPopulationEntrantAuthorityRaceSetSha256,
-  type DnaPopulationEntrantAuthorityR2CommitPort,
-} from "@/lib/dna-population-entrant-authority-cohort";
+import { dnaPopulationEntrantAuthorityRaceSetSha256 } from "@/lib/dna-population-entrant-authority-cohort";
 import type { DnaPopulationEntrantAuthorityR2RecoveryPort } from "@/lib/dna-population-entrant-authority-recovery";
 import type { DnaPopulationEntrantAuthorityRecord } from "@/lib/dna-population-entrant-authority-record";
 import {
