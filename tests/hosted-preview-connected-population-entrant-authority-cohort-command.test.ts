@@ -75,10 +75,10 @@ function connectedFailureId(error: unknown): string {
 }
 
 describeConnected(
-  "hosted Preview population entrant authority single-cohort commissioning",
+  "hosted Preview population entrant authority first-cohort commissioning",
   () => {
     it(
-      "preflights, prepares and commits exactly one bounded private Preview cohort",
+      "preflights, prepares and commits only the first bounded private Preview cohort",
       async () => {
         let stage: DiagnosticStage = "environment";
         try {
@@ -159,6 +159,10 @@ describeConnected(
           expect(session.prepared).toMatchObject({
             status: "prepared_uncommitted",
             exactCodeHeadSha,
+            recoveredRaceCount: 0,
+            chunkOrdinal: 1,
+            checkpointChunkCountBeforePreparation: 0,
+            checkpointRaceCountBeforePreparation: 0,
             persistentWriteArmed: true,
             previewOnly: true,
             entrantChunkPersistentWritePerformed: false,
@@ -178,6 +182,8 @@ describeConnected(
           expect(receipt).toMatchObject({
             status: "committed",
             exactCodeHeadSha,
+            chunkOrdinal: 1,
+            checkpointRaceCountBefore: 0,
             chunkOrdinal: session.prepared.chunkOrdinal,
             rowCount: session.prepared.selectedRaceCount,
             resolvedRaceCount: session.prepared.resolvedRaceCount,
