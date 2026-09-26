@@ -27,9 +27,7 @@ import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
 } from "./dna-population-history-acquisition-plan";
-import {
-  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
-} from "./dna-population-race-index-r2-chunk";
+import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
 import {
   hydrateDnaRaceDocuments,
   DNA_RACE_DOCUMENT_BATCH_LIMIT,
@@ -38,9 +36,7 @@ import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "./dna-open-lab-request-budget";
-import type {
-  CanonicalRaceDocumentMetadata,
-} from "./dna-open-lab-v1-adapters";
+import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -197,9 +193,7 @@ function validateAuthority(
   });
 }
 
-function validEntrantAuthority(
-  values: readonly string[] | undefined,
-): boolean {
+function validEntrantAuthority(values: readonly string[] | undefined): boolean {
   if (values === undefined || values.length < 1) return false;
   const seen = new Set<string>();
   for (const value of values) {
@@ -295,7 +289,10 @@ function bindAuditedAuthority(input: {
     rederivedPlan.unresolvedRaceCount !== unresolvedRaceIds.length ||
     input.plan.unresolvedRaceSetSha256 !== unresolvedRaceSetSha256 ||
     rederivedPlan.unresolvedRaceSetSha256 !== unresolvedRaceSetSha256 ||
-    !sameValues(input.plan.unresolvedRaceMeasurementSampleIds, expectedSample) ||
+    !sameValues(
+      input.plan.unresolvedRaceMeasurementSampleIds,
+      expectedSample,
+    ) ||
     !sameValues(
       rederivedPlan.unresolvedRaceMeasurementSampleIds,
       expectedSample,
@@ -328,7 +325,8 @@ function validateRecoveredBoundary(input: {
   const expectedBoundary =
     input.recovery.recoveredRaceCount === 0
       ? null
-      : input.unresolvedRaceIds[input.recovery.recoveredRaceCount - 1] ?? null;
+      : (input.unresolvedRaceIds[input.recovery.recoveredRaceCount - 1] ??
+        null);
   if (input.recovery.resumeAfterSourceRaceId !== expectedBoundary) {
     cohortError("recovered_boundary_mismatch");
   }
