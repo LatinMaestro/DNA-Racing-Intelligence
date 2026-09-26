@@ -52,6 +52,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     recoveredRaceCount: number;
     chunkOrdinal: number;
     selectedRaceCount: number;
+    resolvedRaceCount: number;
+    quarantinedRaceCount: number;
     providerRequestCount: number;
     preparationSource: "provider_hydration" | "pending_r2_recovery";
     cohortSha256: string;
@@ -74,6 +76,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandReceipt = Readonly<{
   cohortObservedAt: string;
   chunkOrdinal: number;
   rowCount: number;
+  resolvedRaceCount: number;
+  quarantinedRaceCount: number;
   bodySha256: string;
   raceSetSha256: string;
   recordSetSha256: string;
@@ -211,6 +215,8 @@ function committedReceipt(input: {
     cohortObservedAt: input.cohortObservedAt,
     chunkOrdinal: input.result.chunkOrdinal,
     rowCount: input.result.rowCount,
+    resolvedRaceCount: input.result.resolvedRaceCount,
+    quarantinedRaceCount: input.result.quarantinedRaceCount,
     bodySha256: input.result.bodySha256,
     raceSetSha256: input.result.raceSetSha256,
     recordSetSha256: input.result.recordSetSha256,
@@ -314,6 +320,9 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         prepared.summary.preparationSource === "pending_r2_recovery";
       if (
         prepared.summary.status !== "prepared_uncommitted" ||
+        prepared.summary.resolvedRaceCount +
+          prepared.summary.quarantinedRaceCount !==
+          prepared.summary.selectedRaceCount ||
         prepared.summary.aggregateRequestsPerMinute !== 30 ||
         prepared.summary.persistentWritePerformed !== false ||
         prepared.summary.providerWritePerformed !== false ||
@@ -338,6 +347,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         recoveredRaceCount: prepared.summary.recoveredRaceCount,
         chunkOrdinal: prepared.summary.chunkOrdinal,
         selectedRaceCount: prepared.summary.selectedRaceCount,
+        resolvedRaceCount: prepared.summary.resolvedRaceCount,
+        quarantinedRaceCount: prepared.summary.quarantinedRaceCount,
         providerRequestCount: prepared.summary.providerRequestCount,
         preparationSource: prepared.summary.preparationSource,
         cohortSha256: prepared.summary.cohortSha256,
@@ -370,7 +381,11 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           } catch {
             commandError("cohort_unavailable");
           }
-          if (!sameAuthority(result.authority, audit.authority)) {
+          if (
+            !sameAuthority(result.authority, audit.authority) ||
+            result.resolvedRaceCount + result.quarantinedRaceCount !==
+              result.rowCount
+          ) {
             commandError("cohort_unavailable");
           }
           accepted = committedReceipt({
