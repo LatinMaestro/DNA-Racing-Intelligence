@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const workflowPath =
   ".github/workflows/dna-population-entrant-authority-checkpoint-preview-migration.yml";
+const smokePath =
+  "database/migrations/0117_dna_population_entrant_authority_checkpoint.smoke.sql";
 
 describe("DNA population entrant checkpoint Preview migration workflow", () => {
   it("is exact-main, Preview-only, explicitly armed and recoverable", async () => {
@@ -29,9 +31,18 @@ describe("DNA population entrant checkpoint Preview migration workflow", () => {
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=${migration_url}");
     expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
+    expect(workflow).toContain("--set skip_runtime_role=1");
     expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=");
     expect(workflow).not.toMatch(
       /echo .*"\$\{(?:DATABASE_URL|NEON_API_KEY|NEON_PROJECT_ID)\}"|printenv|env\s*$/mu,
     );
+  });
+
+  it("preserves normal runtime-role smoke while supporting connected owner-role proof", async () => {
+    const smoke = await readFile(smokePath, "utf8");
+
+    expect(smoke.match(/\\if :\{\?skip_runtime_role\}/gu)).toHaveLength(4);
+    expect(smoke.match(/SET LOCAL ROLE dna_app_runtime;/gu)).toHaveLength(2);
+    expect(smoke.match(/RESET ROLE;/gu)).toHaveLength(2);
   });
 });
