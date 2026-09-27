@@ -32,8 +32,13 @@ jobs:
     timeout-minutes: 150
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
       PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT: ${{ inputs.published_at || '2026-09-16T13:00:00.000Z' }}
       PRO_LEAGUE_API_EVIDENCE_PUBLICATION_COMMAND: "1"
     steps:
@@ -73,8 +78,13 @@ jobs:
           node --input-type=module <<'NODE'
           const required = [
             "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_API_TOKEN",
             "DATABASE_URL",
             "DNA_DATABASE_OWNER_ID",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
             "PRO_LEAGUE_API_EVIDENCE_PUBLICATION_AT",
           ];
           const invalid = required.filter((name) => {
