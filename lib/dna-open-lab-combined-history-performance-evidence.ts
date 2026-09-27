@@ -461,6 +461,10 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
   canonicalPurpose?: "performance_evidence" | "population_inventory";
   onCanonicalRaceDocument?: (document: CanonicalRaceDocumentMetadata) => void;
+  onCanonicalRaceDocumentEvidence?: (document: Readonly<{
+    canonical: CanonicalRaceDocumentMetadata;
+    rawEvidenceSha256: string;
+  }>) => void;
 }): Promise<DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment> {
   const bucketName = safeText(input.bucketName, "bucketName");
   const prefix = ownerPrefix(input.ownerId);
@@ -523,10 +527,12 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   const endpointEvidence = new Map<string, string>();
   const raceIds = new Set<string>();
   const preferredDocuments = new Map<string, DnaRaceDocument>();
+  const preferredDocumentDigests = new Map<string, string>();
   const compactCanonicalDocuments = new Map<
     string,
     CanonicalRaceDocumentMetadata
   >();
+  const compactCanonicalDigests = new Map<string, string>();
   let duplicateRaceEvidenceCount = 0;
   let conflictingRaceEvidenceCount = 0;
   let baselineFinishedRaceReceiptCount = 0;
@@ -570,6 +576,7 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         !compactCanonicalDocuments.has(sourceRaceId))
     ) {
       compactCanonicalDocuments.set(sourceRaceId, canonical);
+      compactCanonicalDigests.set(sourceRaceId, digest);
     }
   }
 
@@ -635,7 +642,9 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
         !compactCanonicalDocuments.has(sourceRaceId))
     ) {
       preferredDocuments.set(sourceRaceId, raw);
+      preferredDocumentDigests.set(sourceRaceId, digest);
       compactCanonicalDocuments.delete(sourceRaceId);
+      compactCanonicalDigests.delete(sourceRaceId);
     }
   }
 
@@ -989,7 +998,17 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     if (canonical === undefined) {
       historyError("preferred Race document is unavailable");
     }
+    const rawEvidenceSha256 =
+      raw === undefined
+        ? compactCanonicalDigests.get(sourceRaceId)
+        : preferredDocumentDigests.get(sourceRaceId);
+    if (rawEvidenceSha256 === undefined) {
+      historyError("preferred Race evidence digest is unavailable");
+    }
     input.onCanonicalRaceDocument?.(canonical);
+    input.onCanonicalRaceDocumentEvidence?.(
+      Object.freeze({ canonical, rawEvidenceSha256 }),
+    );
     if (canonical.mode !== "bike") continue;
     bikeRaceCount += 1;
     if (canonical.format !== undefined && canonical.format !== null) {
