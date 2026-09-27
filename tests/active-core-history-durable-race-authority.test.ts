@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createActiveCoreHistoryDurableRaceAuthority } from "@/lib/active-core-history-durable-race-authority";
+import { createActiveCoreHistoryDurableRaceAuthority as createRaceAuthority } from "@/lib/active-core-history-durable-race-authority";
 import type {
   DnaPopulationEntrantAuthorityLiveAudit,
   DnaPopulationEntrantAuthorityLiveAuditSource,
@@ -57,7 +57,7 @@ describe("active Core history durable Race authority", () => {
     "loads one exact-main snapshot, preserves requested order and caches it",
     async () => {
       const auditSource = source(audit());
-      const authority = createActiveCoreHistoryDurableRaceAuthority({
+      const authority = createRaceAuthority({
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
         source: auditSource,
@@ -87,7 +87,7 @@ describe("active Core history durable Race authority", () => {
   it(
     "fails closed on missing, duplicate, cross-owner or stale evidence",
     async () => {
-      const authority = createActiveCoreHistoryDurableRaceAuthority({
+      const authority = createRaceAuthority({
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
         source: source(audit()),
@@ -105,7 +105,7 @@ describe("active Core history durable Race authority", () => {
       const stale = source(
         Object.freeze({ ...audit(), exactCodeHeadSha: "f".repeat(40) }),
       );
-      const staleAuthority = createActiveCoreHistoryDurableRaceAuthority({
+      const staleAuthority = createRaceAuthority({
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
         source: stale,
@@ -115,7 +115,7 @@ describe("active Core history durable Race authority", () => {
       ).rejects.toThrow("exact durable Race snapshot is unavailable");
 
       const duplicated = race("race-1", "e".repeat(64));
-      const ambiguous = createActiveCoreHistoryDurableRaceAuthority({
+      const ambiguous = createRaceAuthority({
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
         source: source(audit([race("race-1", "c".repeat(64)), duplicated])),
