@@ -240,9 +240,21 @@ function source(
     assessCombinedHistory: async (input) => {
       await input.baselineIndex!.scanDocuments!((entry) => {
         input.onCanonicalRaceDocument?.(entry.canonical);
+        input.onCanonicalRaceDocumentEvidence?.(
+          Object.freeze({
+            canonical: entry.canonical,
+            rawEvidenceSha256: entry.rawEvidenceSha256,
+          }),
+        );
       });
       for (const entry of extras) {
         input.onCanonicalRaceDocument?.(entry);
+        input.onCanonicalRaceDocumentEvidence?.(
+          Object.freeze({
+            canonical: entry,
+            rawEvidenceSha256: "e".repeat(64),
+          }),
+        );
       }
       return assessment(3 + extras.length);
     },
