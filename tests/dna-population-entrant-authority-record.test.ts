@@ -37,6 +37,7 @@ describe("population entrant authority record", () => {
       gateCount: 12,
       entrantCoreIds: ["101", "202"],
       payoutSourceValue: "some-payout",
+      prizeDistributionSourceValue: { first: 10, second: 5 },
     });
 
     const record = dnaPopulationEntrantAuthorityRecord(source);
@@ -52,6 +53,7 @@ describe("population entrant authority record", () => {
     expect(record).not.toHaveProperty("distanceMetres");
     expect(record).not.toHaveProperty("gateCount");
     expect(record).not.toHaveProperty("payoutSourceValue");
+    expect(record).not.toHaveProperty("prizeDistributionSourceValue");
     expect(dnaPopulationEntrantAuthorityRecordBytes(source)).toBeGreaterThan(0);
   });
 

@@ -110,6 +110,7 @@ export type DnaRaceDocument = DnaOpenLabRecord<{
   payout?: string;
   prize?: number;
   prizeusd?: number;
+  prize_map?: unknown;
   track?: string;
   yellowstars?: readonly number[];
   bluestars?: readonly number[];
