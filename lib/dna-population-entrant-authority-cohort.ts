@@ -45,8 +45,10 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
-export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES =
-  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES = Math.min(
+  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
+  1_000,
+);
 
 export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "invalid_audited_authority"
