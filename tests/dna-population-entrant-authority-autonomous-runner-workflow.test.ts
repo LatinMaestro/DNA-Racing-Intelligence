@@ -69,8 +69,12 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(hosted).toContain("const SESSION_COHORT_LIMIT = 60");
     expect(hosted).toContain("assertCurrentExactHead");
     expect(hosted).toContain("runBoundedSession");
-    expect(relay).not.toContain(
+    expect(relay).toContain(
       "dna-population-entrant-authority-autonomous-runner.yml",
+    );
+    expect(relay).toContain('"entrant-autonomous"');
+    expect(relay).toContain(
+      "payload.execute_all_private_preview_entrant_authority !== true",
     );
   });
 });
