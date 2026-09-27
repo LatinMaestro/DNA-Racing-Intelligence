@@ -4,7 +4,6 @@ import type { DnaCoreRaceHistoryPublishedGeneration } from "@/lib/dna-core-race-
 import {
   dnaOpenLabRawEvidenceSha256,
   type CanonicalRaceDocumentMetadata,
-  type DnaOpenLabEvidence,
 } from "@/lib/dna-open-lab-v1-adapters";
 import type {
   ActiveDnaCoreRaceHistoryGenerationReadRepository,
@@ -17,16 +16,21 @@ export type ActiveCoreHistoryProLeagueSource = Readonly<{
   observations: AsyncIterable<ProLeagueExactFormatAnalyticalObservation>;
 }>;
 
+export type ActiveCoreHistoryCanonicalRaceDocument = Readonly<{
+  canonical: CanonicalRaceDocumentMetadata;
+  rawEvidenceSha256: string;
+}>;
+
 export type ActiveCoreHistoryCanonicalRaceAuthority = Readonly<{
   readRaceDocuments(
     ownerId: string,
     sourceRaceIds: readonly string[],
-  ): Promise<readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[]>;
+  ): Promise<readonly ActiveCoreHistoryCanonicalRaceDocument[]>;
 }>;
 
 function observation(
   row: ActiveDnaCoreRaceHistoryGenerationRow,
-  raceDocument?: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>,
+  raceDocument?: ActiveCoreHistoryCanonicalRaceDocument,
 ): ProLeagueExactFormatAnalyticalObservation {
   const value = row.payload;
   if (value.sourceType === "core_race_history_outcome") {
@@ -144,7 +148,7 @@ export async function activeCoreHistoryProLeagueSource(input: {
       );
       const raceDocuments = new Map<
         string,
-        DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>
+        ActiveCoreHistoryCanonicalRaceDocument
       >();
       if (compactRows.length > 0) {
         if (input.raceAuthority === undefined) {
