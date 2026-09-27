@@ -57,26 +57,26 @@ describe("active Core history durable Race authority", () => {
     "loads one exact-main snapshot, preserves requested order and caches it",
     async () => {
       const auditSource = source(audit());
-    const authority = createActiveCoreHistoryDurableRaceAuthority({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      source: auditSource,
-    });
+      const authority = createActiveCoreHistoryDurableRaceAuthority({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+        source: auditSource,
+      });
 
-    await expect(
-      authority.readRaceDocuments(OWNER, ["race-2", "race-1"]),
-    ).resolves.toEqual([
-      expect.objectContaining({
-        rawEvidenceSha256: "d".repeat(64),
-        canonical: expect.objectContaining({ sourceRaceId: "race-2" }),
-      }),
-      expect.objectContaining({
-        rawEvidenceSha256: "c".repeat(64),
-        canonical: expect.objectContaining({ sourceRaceId: "race-1" }),
-      }),
-    ]);
-    await authority.readRaceDocuments(OWNER, ["race-1"]);
-    expect(auditSource.load).toHaveBeenCalledTimes(1);
+      await expect(
+        authority.readRaceDocuments(OWNER, ["race-2", "race-1"]),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          rawEvidenceSha256: "d".repeat(64),
+          canonical: expect.objectContaining({ sourceRaceId: "race-2" }),
+        }),
+        expect.objectContaining({
+          rawEvidenceSha256: "c".repeat(64),
+          canonical: expect.objectContaining({ sourceRaceId: "race-1" }),
+        }),
+      ]);
+      await authority.readRaceDocuments(OWNER, ["race-1"]);
+      expect(auditSource.load).toHaveBeenCalledTimes(1);
       expect(auditSource.load).toHaveBeenCalledWith({
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
@@ -88,38 +88,38 @@ describe("active Core history durable Race authority", () => {
     "fails closed on missing, duplicate, cross-owner or stale evidence",
     async () => {
       const authority = createActiveCoreHistoryDurableRaceAuthority({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      source: source(audit()),
-    });
-    await expect(
-      authority.readRaceDocuments(OWNER, ["race-missing"]),
-    ).rejects.toThrow("requested Race evidence is unavailable");
-    await expect(
-      authority.readRaceDocuments(OWNER, ["race-1", "race-1"]),
-    ).rejects.toThrow("duplicate identities");
-    await expect(
-      authority.readRaceDocuments("other-owner", ["race-1"]),
-    ).rejects.toThrow("owner scope changed");
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+        source: source(audit()),
+      });
+      await expect(
+        authority.readRaceDocuments(OWNER, ["race-missing"]),
+      ).rejects.toThrow("requested Race evidence is unavailable");
+      await expect(
+        authority.readRaceDocuments(OWNER, ["race-1", "race-1"]),
+      ).rejects.toThrow("duplicate identities");
+      await expect(
+        authority.readRaceDocuments("other-owner", ["race-1"]),
+      ).rejects.toThrow("owner scope changed");
 
-    const stale = source(
-      Object.freeze({ ...audit(), exactCodeHeadSha: "f".repeat(40) }),
-    );
-    const staleAuthority = createActiveCoreHistoryDurableRaceAuthority({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      source: stale,
-    });
-    await expect(
-      staleAuthority.readRaceDocuments(OWNER, ["race-1"]),
-    ).rejects.toThrow("exact durable Race snapshot is unavailable");
+      const stale = source(
+        Object.freeze({ ...audit(), exactCodeHeadSha: "f".repeat(40) }),
+      );
+      const staleAuthority = createActiveCoreHistoryDurableRaceAuthority({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+        source: stale,
+      });
+      await expect(
+        staleAuthority.readRaceDocuments(OWNER, ["race-1"]),
+      ).rejects.toThrow("exact durable Race snapshot is unavailable");
 
-    const duplicated = race("race-1", "e".repeat(64));
-    const ambiguous = createActiveCoreHistoryDurableRaceAuthority({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-      source: source(audit([race("race-1", "c".repeat(64)), duplicated])),
-    });
+      const duplicated = race("race-1", "e".repeat(64));
+      const ambiguous = createActiveCoreHistoryDurableRaceAuthority({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+        source: source(audit([race("race-1", "c".repeat(64)), duplicated])),
+      });
       await expect(
         ambiguous.readRaceDocuments(OWNER, ["race-1"]),
       ).rejects.toThrow("durable Race snapshot is ambiguous");
