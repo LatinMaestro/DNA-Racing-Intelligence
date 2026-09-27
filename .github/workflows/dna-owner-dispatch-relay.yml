@@ -131,6 +131,59 @@ jobs:
                 expected_main_sha: payload.expected_main_sha,
               };
               break;
+            case "entrant-autonomous":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "accepted_boundary_status",
+                "expected_unresolved_race_count",
+                "expected_unresolved_race_set_sha256",
+                "expected_recovered_chunk_count",
+                "expected_recovered_race_count",
+                "expected_next_chunk_ordinal",
+                "expected_checkpoint_updated_at",
+                "readiness_capacity_observed_at",
+                "durable_boundary_sha256",
+                "execute_all_private_preview_entrant_authority",
+              ]);
+              if (
+                payload.accepted_boundary_status !== "ready_for_continuation" ||
+                !positiveCount(payload.expected_unresolved_race_count) ||
+                !sha64(payload.expected_unresolved_race_set_sha256) ||
+                !positiveCount(payload.expected_recovered_chunk_count) ||
+                !positiveCount(payload.expected_recovered_race_count) ||
+                !positiveCount(payload.expected_next_chunk_ordinal) ||
+                !exactTimestamp(payload.expected_checkpoint_updated_at) ||
+                !exactTimestamp(payload.readiness_capacity_observed_at) ||
+                !sha64(payload.durable_boundary_sha256) ||
+                payload.execute_all_private_preview_entrant_authority !== true
+              ) {
+                throw new Error("Autonomous dispatch authority is invalid.");
+              }
+              workflow =
+                "dna-population-entrant-authority-autonomous-runner.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                accepted_boundary_status: payload.accepted_boundary_status,
+                expected_unresolved_race_count:
+                  payload.expected_unresolved_race_count,
+                expected_unresolved_race_set_sha256:
+                  payload.expected_unresolved_race_set_sha256,
+                expected_recovered_chunk_count:
+                  payload.expected_recovered_chunk_count,
+                expected_recovered_race_count:
+                  payload.expected_recovered_race_count,
+                expected_next_chunk_ordinal:
+                  payload.expected_next_chunk_ordinal,
+                expected_checkpoint_updated_at:
+                  payload.expected_checkpoint_updated_at,
+                readiness_capacity_observed_at:
+                  payload.readiness_capacity_observed_at,
+                durable_boundary_sha256:
+                  payload.durable_boundary_sha256,
+                execute_all_private_preview_entrant_authority: true,
+              };
+              break;
             case "entrant-continuation":
               exactKeys([
                 "kind",
