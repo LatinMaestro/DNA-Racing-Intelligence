@@ -8,6 +8,7 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandRuntime,
   type DnaPopulationEntrantAuthorityLiveAudit,
 } from "@/lib/dna-population-entrant-authority-cohort-command";
+import { DnaPopulationEntrantAuthorityCohortError } from "@/lib/dna-population-entrant-authority-cohort";
 import type {
   DnaPopulationEntrantAuthorityCommittedCohortSummary,
   DnaPopulationEntrantAuthorityPreparedCohort,
@@ -822,5 +823,24 @@ describe("DNA population entrant authority cohort command", () => {
       .catch((caught: unknown) => caught);
     expect(cohortError).toMatchObject({ diagnostic: "cohort_unavailable" });
     expect(String(cohortError)).not.toContain("provider-response-secret");
+
+    const typedCohortCommand = createDnaPopulationEntrantAuthorityCohortCommand(
+      {
+        configuredOwnerId: OWNER,
+        runtimeCodeHeadSha: HEAD,
+        authoritySource: { load: vi.fn(async () => liveAudit) },
+        runtime: runtime(),
+        now: () => new Date(FIRST_COMMIT_AT),
+        cohortPreparer: vi.fn(async () => {
+          throw new DnaPopulationEntrantAuthorityCohortError(
+            "hydration_unavailable",
+          );
+        }),
+      },
+    );
+    await expect(typedCohortCommand.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "cohort_hydration_unavailable",
+      message: "Population entrant commissioning command is unavailable",
+    });
   });
 });
