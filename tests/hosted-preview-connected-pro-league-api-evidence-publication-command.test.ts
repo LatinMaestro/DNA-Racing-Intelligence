@@ -36,6 +36,11 @@ describeConnected(
           databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
           ownerId,
           runtimeRole: "dna_app_runtime",
+          cloudflareAccountId: requiredEnvironment("CLOUDFLARE_ACCOUNT_ID"),
+          cloudflareApiToken: requiredEnvironment("CLOUDFLARE_API_TOKEN"),
+          r2BucketName: requiredEnvironment("DNA_R2_BUCKET_NAME"),
+          r2AccessKeyId: requiredEnvironment("DNA_R2_ACCESS_KEY_ID"),
+          r2SecretAccessKey: requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY"),
         });
         if (command.status !== "ready") {
           throw new Error("Pro League API evidence command is not configured");
