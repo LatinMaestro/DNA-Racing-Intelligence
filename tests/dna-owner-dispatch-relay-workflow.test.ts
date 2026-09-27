@@ -14,7 +14,7 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "github.event.comment.author_association == 'OWNER'",
     );
-    expect(workflow).toContain("startsWith(github.event.comment.body, '/dna-dispatch ')");
+    expect(workflow).toContain(\n      "startsWith(github.event.comment.body, '/dna-dispatch ')",\n    );
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain(
