@@ -14,7 +14,9 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "github.event.comment.author_association == 'OWNER'",
     );
-    expect(workflow).toContain(\n      "startsWith(github.event.comment.body, '/dna-dispatch ')",\n    );
+    expect(workflow).toContain(
+      "startsWith(github.event.comment.body, '/dna-dispatch ')",
+    );
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain(
@@ -27,11 +29,9 @@ describe("DNA owner dispatch relay workflow", () => {
       "dna-population-entrant-authority-first-cohort-verification.yml",
     );
     expect(workflow).toContain(
-      'payload.execute_first_private_preview_entrant_cohort !== true',
+      "payload.execute_first_private_preview_entrant_cohort !== true",
     );
-    expect(workflow).toContain(
-      'main?.sha !== payload.expected_main_sha',
-    );
+    expect(workflow).toContain("main?.sha !== payload.expected_main_sha");
     expect(workflow).not.toContain(
       "dna-population-entrant-authority-continuation-command.yml",
     );
