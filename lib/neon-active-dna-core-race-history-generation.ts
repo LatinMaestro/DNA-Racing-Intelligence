@@ -163,6 +163,7 @@ function payload(
       "naturalKey",
       "payloadVersion",
       "raceDocumentEvidenceSha256",
+      "raceDocumentObservedAt",
       "resultEvidenceSha256",
       "sourceCoreId",
       "sourceRaceId",
@@ -179,6 +180,8 @@ function payload(
       !SHA_256_PATTERN.test(row.resultEvidenceSha256) ||
       typeof row.raceDocumentEvidenceSha256 !== "string" ||
       !SHA_256_PATTERN.test(row.raceDocumentEvidenceSha256) ||
+      typeof row.raceDocumentObservedAt !== "string" ||
+      Number.isNaN(Date.parse(row.raceDocumentObservedAt)) ||
       !Number.isSafeInteger(row.elapsedMilliseconds) ||
       (row.elapsedMilliseconds as number) < 1 ||
       !Number.isSafeInteger(row.finishPosition) ||
