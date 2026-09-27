@@ -293,6 +293,10 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       });
 
       const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
+      const raceDocumentEvidence: Readonly<{
+        canonical: CanonicalRaceDocumentMetadata;
+        rawEvidenceSha256: string;
+      }>[] = [];
       const seenRaceIds = new Set<string>();
       const baselineR2ClassBOperations = manifests.length * 2;
       if (
@@ -370,12 +374,16 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         onCanonicalRaceDocument: (document) => {
           raceDocuments.push(document);
         },
+        onCanonicalRaceDocumentEvidence: (document) => {
+          raceDocumentEvidence.push(document);
+        },
       });
 
       if (
         assessment.authority !==
           "complete_serving_generation_combined_finished_history" ||
         assessment.uniqueRaceCount !== raceDocuments.length ||
+        raceDocumentEvidence.length !== raceDocuments.length ||
         assessment.conflictingRaceEvidenceCount !== 0 ||
         assessment.persistentWritePerformed !== false ||
         assessment.paidUsageAllowed !== false
@@ -392,6 +400,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         exactCodeHeadSha: configuredHead,
         plan,
         raceDocuments: Object.freeze(raceDocuments),
+        raceDocumentEvidence: Object.freeze(raceDocumentEvidence),
         authority,
       });
     },
