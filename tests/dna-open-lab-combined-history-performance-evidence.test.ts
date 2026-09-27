@@ -388,11 +388,17 @@ describe("combined DNA finished-history performance evidence", () => {
   it("uses the population-inventory purpose without weakening essential Race authority", async () => {
     const input = fixture();
     const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
+    const raceDocumentEvidence: Readonly<{
+      canonical: CanonicalRaceDocumentMetadata;
+      rawEvidenceSha256: string;
+    }>[] = [];
     const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
       {
         ...input,
         canonicalPurpose: "population_inventory",
         onCanonicalRaceDocument: (document) => raceDocuments.push(document),
+        onCanonicalRaceDocumentEvidence: (document) =>
+          raceDocumentEvidence.push(document),
       },
     );
 
@@ -405,6 +411,15 @@ describe("combined DNA finished-history performance evidence", () => {
       }),
       expect.objectContaining({ sourceRaceId: "202", mode: "car" }),
     ]);
+    expect(raceDocumentEvidence).toHaveLength(2);
+    expect(raceDocumentEvidence).toEqual(
+      raceDocuments.map((canonical) =>
+        expect.objectContaining({
+          canonical,
+          rawEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        }),
+      ),
+    );
   });
 
   it("reconciles the one immutable P5 identity omission without admitting it to the population", async () => {
