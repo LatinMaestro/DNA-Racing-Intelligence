@@ -149,12 +149,6 @@ describe("active Core history Pro League source", () => {
         async (_owner: string, sourceRaceIds: readonly string[]) =>
           sourceRaceIds.map((sourceRaceId, index) =>
             Object.freeze({
-              source: "dna_open_lab" as const,
-              sourceVersion: "v1" as const,
-              scope: "races" as const,
-              endpoint: "races.docs",
-              entityKey: `race:${sourceRaceId}`,
-              observedAt: "2026-09-16T00:00:00.000Z",
               rawEvidenceSha256: "c".repeat(64),
               canonical: Object.freeze({
                 sourceType: "race_document" as const,
