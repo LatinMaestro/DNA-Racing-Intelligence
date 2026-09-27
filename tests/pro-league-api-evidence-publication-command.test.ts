@@ -29,6 +29,7 @@ function sourceRow(
     naturalKey: `bike:race-1:${input.coreId}`,
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
+    raceDocumentObservedAt: "2026-09-16T00:00:00.000Z",
     sourceCoreId: input.coreId,
     sourceRaceId: "race-1",
     mode: input.mode ?? "bike",

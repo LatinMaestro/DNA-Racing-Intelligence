@@ -29,6 +29,7 @@ import {
   createDnaOpenLabRequestBudget,
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
 } from "./dna-open-lab-request-budget";
+import { createDnaOpenLabR2RaceDocumentClient } from "./dna-open-lab-r2-race-evidence";
 import type { DnaOpenLabR2BudgetRepository } from "./dna-open-lab-r2-budget-repository";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
@@ -283,20 +284,41 @@ export function dnaCoreRaceHistoryPrivateGenerationCommandFromEnvironment(
       bucketName: r2BucketName,
       storage,
     });
+    const raceDocumentClient = createDnaOpenLabR2RaceDocumentClient({
+      client: {
+        raceDocs: (raceIds) =>
+          pool.execute({
+            scope: "races",
+            request: (client) => client.raceDocs(raceIds),
+          }),
+      },
+      configuration: {
+        ownerId,
+        bucketName: r2BucketName,
+        storage,
+      },
+    });
     return createDnaCoreRaceHistoryPrivateGenerationOperator({
       configuredOwnerId: ownerId,
       sources: {
         loadServingCores: () => serving.readServingOwnedCores({ ownerId }),
         client: createDnaCoreRaceHistoryClient(),
         requestBudget,
-        evidenceStore,
-        raceDocumentClient: {
-          raceDocs: (raceIds) =>
-            pool.execute({
-              scope: "races",
-              request: (client) => client.raceDocs(raceIds),
-            }),
-        },
+        evidenceStore: Object.freeze({
+          read: evidenceStore.read,
+          recover: evidenceStore.recover,
+          write: evidenceStore.write,
+          readMaterializationPage: evidenceStore.readMaterializationPage,
+          // Preserve read compatibility with already-retained legacy batches,
+          // but deliberately omit the writer so no parallel Race archive grows.
+          ...(evidenceStore.readMaterializationRaceDocumentBatch === undefined
+            ? {}
+            : {
+                readMaterializationRaceDocumentBatch:
+                  evidenceStore.readMaterializationRaceDocumentBatch,
+              }),
+        }),
+        raceDocumentClient,
       },
       repositories: {
         acquisition: createNeonDnaCoreRaceHistoryAcquisitionRepository({

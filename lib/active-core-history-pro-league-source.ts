@@ -20,7 +20,11 @@ export type ActiveCoreHistoryProLeagueSource = Readonly<{
 export type ActiveCoreHistoryCanonicalRaceAuthority = Readonly<{
   readRaceDocuments(
     ownerId: string,
-    sourceRaceIds: readonly string[],
+    references: readonly Readonly<{
+      sourceRaceId: string;
+      observedAt: string;
+      rawEvidenceSha256: string;
+    }>[],
   ): Promise<readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[]>;
 }>;
 
@@ -152,17 +156,43 @@ export async function activeCoreHistoryProLeagueSource(input: {
             "Active Core history canonical Race authority is unavailable",
           );
         }
-        const sourceRaceIds = [
-          ...new Set(compactRows.map((row) => row.payload.sourceRaceId)),
-        ];
+        const references = new Map<
+          string,
+          Readonly<{
+            sourceRaceId: string;
+            observedAt: string;
+            rawEvidenceSha256: string;
+          }>
+        >();
+        for (const row of compactRows) {
+          const value = row.payload;
+          if (value.sourceType !== "core_race_history_outcome") continue;
+          const existing = references.get(value.sourceRaceId);
+          const reference = Object.freeze({
+            sourceRaceId: value.sourceRaceId,
+            observedAt: value.raceDocumentObservedAt,
+            rawEvidenceSha256: value.raceDocumentEvidenceSha256,
+          });
+          if (
+            existing !== undefined &&
+            (existing.observedAt !== reference.observedAt ||
+              existing.rawEvidenceSha256 !== reference.rawEvidenceSha256)
+          ) {
+            throw new Error(
+              "Active Core history canonical Race authority is conflicting",
+            );
+          }
+          references.set(value.sourceRaceId, reference);
+        }
+        const requested = Object.freeze([...references.values()]);
         const loaded = await input.raceAuthority.readRaceDocuments(
           input.ownerId,
-          Object.freeze(sourceRaceIds),
+          requested,
         );
         for (const document of loaded) {
           const sourceRaceId = document.canonical.sourceRaceId;
           if (
-            !sourceRaceIds.includes(sourceRaceId) ||
+            !references.has(sourceRaceId) ||
             raceDocuments.has(sourceRaceId)
           ) {
             throw new Error(
@@ -171,7 +201,7 @@ export async function activeCoreHistoryProLeagueSource(input: {
           }
           raceDocuments.set(sourceRaceId, document);
         }
-        if (raceDocuments.size !== sourceRaceIds.length) {
+        if (raceDocuments.size !== references.size) {
           throw new Error(
             "Active Core history canonical Race coverage is incomplete",
           );

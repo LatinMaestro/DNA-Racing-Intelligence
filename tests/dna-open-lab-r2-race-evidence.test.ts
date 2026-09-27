@@ -7,6 +7,7 @@ import type {
   DnaFinishedRaceWindowPublicationReceipt,
 } from "../lib/dna-open-lab-finished-race-backfill";
 import {
+  createDnaOpenLabR2CanonicalRaceDocumentReader,
   createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine,
   createDnaOpenLabR2FinishedRaceWindowPublisher,
   createDnaOpenLabR2RaceDocumentClient,
@@ -93,6 +94,19 @@ class MemoryR2Storage implements DnaOpenLabR2RaceEvidenceStoragePort {
       metadata: stored.metadata,
     });
   }
+
+  async getObject(input: { bucketName: string; key: string }) {
+    const stored = this.objects.get(input.key);
+    if (stored === undefined) {
+      return Object.freeze({ status: "missing" as const });
+    }
+    return Object.freeze({
+      status: "ready" as const,
+      body: (async function* () {
+        yield stored.body;
+      })(),
+    });
+  }
 }
 
 function response<T>(result: T): DnaOpenLabResponse<T> {
@@ -149,6 +163,63 @@ function configuration(storage: MemoryR2Storage) {
 }
 
 describe("DNA Open Lab private R2 Race evidence", () => {
+  it("reopens one exact canonical Race object without a second Race archive", async () => {
+    const storage = new MemoryR2Storage();
+    const raw = {
+      rid: 77,
+      rvmode: "bike",
+      cb: 1200,
+      gates: 12,
+      start_time: "2026-08-27T09:00:00.000Z",
+      hids: [101, 102],
+    } satisfies DnaRaceDocument;
+    const client = createDnaOpenLabR2RaceDocumentClient({
+      client: sourceClient([raw]),
+      configuration: configuration(storage),
+    });
+    await client.raceDocs([77]);
+    const reader = createDnaOpenLabR2CanonicalRaceDocumentReader({
+      ownerId: configuration(storage).ownerId,
+      bucketName: configuration(storage).bucketName,
+      storage,
+    });
+
+    await expect(
+      reader.read({
+        sourceRaceId: "77",
+        observedAt: "2026-08-27T10:00:00.000Z",
+        rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(raw),
+      }),
+    ).resolves.toMatchObject({
+      endpoint: "races.docs",
+      entityKey: "race:77",
+      observedAt: "2026-08-27T10:00:00.000Z",
+      rawEvidenceSha256: dnaOpenLabRawEvidenceSha256(raw),
+      canonical: {
+        sourceRaceId: "77",
+        entrantCoreIds: ["101", "102"],
+      },
+    });
+    expect(storage.objects.size).toBe(1);
+  });
+
+  it("fails closed when the requested canonical Race hash is absent", async () => {
+    const storage = new MemoryR2Storage();
+    const reader = createDnaOpenLabR2CanonicalRaceDocumentReader({
+      ownerId: configuration(storage).ownerId,
+      bucketName: configuration(storage).bucketName,
+      storage,
+    });
+
+    await expect(
+      reader.read({
+        sourceRaceId: "77",
+        observedAt: "2026-08-27T10:00:00.000Z",
+        rawEvidenceSha256: "a".repeat(64),
+      }),
+    ).rejects.toThrow("canonical Race object conflicts with its reference");
+  });
+
   it("stores an unidentified finished observation under an opaque non-publishable locator", async () => {
     const storage = new MemoryR2Storage();
     const quarantine = createDnaOpenLabR2FinishedRaceIdentityConflictQuarantine(

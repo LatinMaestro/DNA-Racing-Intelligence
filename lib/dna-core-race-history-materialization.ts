@@ -76,6 +76,7 @@ export type DnaCoreRaceHistoryJoinedObservation = Readonly<{
   naturalKey: string;
   resultEvidenceSha256: string;
   raceDocumentEvidenceSha256: string;
+  raceDocumentObservedAt: string;
   sourceCoreId: string;
   sourceRaceId: string;
   mode: RaceMode;
@@ -539,6 +540,7 @@ export function materializeDnaCoreRaceHistory(input: {
         naturalKey: result.entityKey,
         resultEvidenceSha256: result.rawEvidenceSha256,
         raceDocumentEvidenceSha256: documentEvidence.rawEvidenceSha256,
+        raceDocumentObservedAt: documentEvidence.observedAt,
         sourceCoreId: value.sourceCoreId,
         sourceRaceId: value.sourceRaceId,
         mode: value.mode,
