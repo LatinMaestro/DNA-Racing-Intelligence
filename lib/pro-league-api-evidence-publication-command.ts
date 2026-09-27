@@ -3,10 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { createActiveCoreHistoryDurableRaceAuthority } from "./active-core-history-durable-race-authority";
 import {
   activeCoreHistoryProLeagueSource,
   type ActiveCoreHistoryCanonicalRaceAuthority,
 } from "./active-core-history-pro-league-source";
+import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import { createEphemeralJsonlExternalSortedRunStore } from "./ephemeral-jsonl-external-sorted-run-store";
 import {
   createNeonActiveDnaCoreRaceHistoryGenerationReadRepository,
@@ -76,6 +78,7 @@ type CommandDependencies = Readonly<{
   scratchRootFactory?: () => Promise<string>;
   sourceRepository?: ActiveDnaCoreRaceHistoryGenerationReadRepository;
   raceAuthority?: ActiveCoreHistoryCanonicalRaceAuthority;
+  raceAuditSource?: DnaPopulationEntrantAuthorityLiveAuditSource;
   evidenceRepository?: NeonProLeagueEvidenceGenerationRepository;
 }>;
 
@@ -186,12 +189,19 @@ export function proLeagueApiEvidencePublicationCommandFromEnvironment(
       }
       const exactCodeHeadSha = exactHead(invocation.exactCodeHeadSha);
       const publishedAt = timestamp(invocation.publishedAt, "publishedAt");
+      const raceAuthority =
+        dependencies.raceAuthority ??
+        (dependencies.raceAuditSource === undefined
+          ? undefined
+          : createActiveCoreHistoryDurableRaceAuthority({
+              ownerId,
+              exactCodeHeadSha,
+              source: dependencies.raceAuditSource,
+            }));
       const source = await activeCoreHistoryProLeagueSource({
         ownerId,
         repository: sourceRepository,
-        ...(dependencies.raceAuthority === undefined
-          ? {}
-          : { raceAuthority: dependencies.raceAuthority }),
+        ...(raceAuthority === undefined ? {} : { raceAuthority }),
       });
       if (source === null) {
         return emptyReceipt({ exactCodeHeadSha, publishedAt });
