@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createActiveCoreHistoryDurableRaceAuthority as createRaceAuthority } from "@/lib/active-core-history-durable-race-authority";
+import {
+  createActiveCoreHistoryDurableRaceAuthority as createRaceAuthority,
+} from "@/lib/active-core-history-durable-race-authority";
 import type {
   DnaPopulationEntrantAuthorityLiveAudit,
   DnaPopulationEntrantAuthorityLiveAuditSource,
