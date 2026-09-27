@@ -461,10 +461,12 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
   canonicalPurpose?: "performance_evidence" | "population_inventory";
   onCanonicalRaceDocument?: (document: CanonicalRaceDocumentMetadata) => void;
-  onCanonicalRaceDocumentEvidence?: (document: Readonly<{
-    canonical: CanonicalRaceDocumentMetadata;
-    rawEvidenceSha256: string;
-  }>) => void;
+  onCanonicalRaceDocumentEvidence?: (
+    document: Readonly<{
+      canonical: CanonicalRaceDocumentMetadata;
+      rawEvidenceSha256: string;
+    }>,
+  ) => void;
 }): Promise<DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment> {
   const bucketName = safeText(input.bucketName, "bucketName");
   const prefix = ownerPrefix(input.ownerId);
