@@ -24,6 +24,15 @@ describe("Pro League API evidence private publication workflow", () => {
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
-    expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY|DNA_R2_/u);
+    expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY/u);
+    for (const setting of [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "DNA_R2_ACCESS_KEY_ID",
+      "DNA_R2_BUCKET_NAME",
+      "DNA_R2_SECRET_ACCESS_KEY",
+    ]) {
+      expect(workflow).toContain(setting);
+    }
   });
 });
