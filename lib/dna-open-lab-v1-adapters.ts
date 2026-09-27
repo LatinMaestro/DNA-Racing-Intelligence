@@ -157,6 +157,8 @@ export type CanonicalRaceDocumentMetadata = Readonly<{
   prizeEvidenceStatus?: "explicitly_absent" | "unsupported_source_value";
   prizeUsdSourceValue?: number;
   prizeUsdEvidenceStatus?: "explicitly_absent" | "unsupported_source_value";
+  prizeDistributionSourceValue?: JsonSourceValue;
+  prizeDistributionEvidenceStatus?: "explicitly_absent";
   trackSourceValue?: string;
   yellowStarSourceCoreIds?: readonly string[];
   blueStarSourceCoreIds?: readonly string[];
@@ -1092,6 +1094,7 @@ export function adaptDnaRaceDocument(input: {
   const rawPayout = input.raw.payout;
   const rawPrize = input.raw.prize;
   const rawPrizeUsd = input.raw.prizeusd;
+  const rawPrizeDistribution = input.raw.prize_map;
   const economics = raceDocumentAdaptationBoundary(
     "race_document_adaptation_economics_unavailable",
     () => ({
@@ -1149,6 +1152,16 @@ export function adaptDnaRaceDocument(input: {
                   () => nonNegativeFinite(rawPrizeUsd, "race.prizeUsd"),
                 ),
               }),
+      ...(rawPrizeDistribution === null
+        ? { prizeDistributionEvidenceStatus: "explicitly_absent" as const }
+        : rawPrizeDistribution === undefined
+          ? {}
+          : {
+              prizeDistributionSourceValue: raceDocumentAdaptationBoundary(
+                "race_document_adaptation_prize_map_unavailable",
+                () => jsonSourceValue(rawPrizeDistribution, "race.prizeMap"),
+              ),
+            }),
     }),
   );
   const schedule = raceDocumentAdaptationBoundary(
