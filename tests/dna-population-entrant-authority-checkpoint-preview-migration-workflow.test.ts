@@ -22,6 +22,16 @@ describe("DNA population entrant checkpoint Preview migration workflow", () => {
     expect(workflow).toContain("entrant checkpoint schema is not absent");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).toContain("DATABASE_URL: ${{ secrets.DATABASE_URL }}");
-    expect(workflow).not.toMatch(/echo .*DATABASE_URL|printenv|env\s*$/mu);
+    expect(workflow).toContain("NEON_API_KEY: ${{ secrets.NEON_API_KEY }}");
+    expect(workflow).toContain(
+      "NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}",
+    );
+    expect(workflow).toContain("--role-name neondb_owner");
+    expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=${migration_url}");
+    expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
+    expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=");
+    expect(workflow).not.toMatch(
+      /echo .*"\$\{(?:DATABASE_URL|NEON_API_KEY|NEON_PROJECT_ID)\}"|printenv|env\s*$/mu,
+    );
   });
 });
