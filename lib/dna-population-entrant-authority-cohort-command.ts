@@ -130,7 +130,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "authority_unavailable"
   | "authority_head_mismatch"
   | "authority_binding_mismatch"
-  | "preflight_unavailable"
+  | "capacity_preflight_unavailable"
+  | "checkpoint_preflight_unavailable"
   | "generation_already_commissioned"
   | "cohort_unavailable";
 
@@ -310,14 +311,14 @@ function preflightCapacityObservedAt(input: {
     approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
     approval.unresolvedRaceSetSha256 !== input.authority.unresolvedRaceSetSha256
   ) {
-    commandError("preflight_unavailable");
+    commandError("capacity_preflight_unavailable");
   }
   const parsed = new Date(approval.observedAt);
   if (
     Number.isNaN(parsed.getTime()) ||
     parsed.toISOString() !== approval.observedAt
   ) {
-    commandError("preflight_unavailable");
+    commandError("capacity_preflight_unavailable");
   }
   return parsed.toISOString();
 }
@@ -349,7 +350,7 @@ function validateInitializedCheckpoint(input: {
     Number.isNaN(updatedAt) ||
     updatedAt < startedAt
   ) {
-    commandError("preflight_unavailable");
+    commandError("checkpoint_preflight_unavailable");
   }
   return checkpoint;
 }
@@ -478,7 +479,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           audit.authority,
         );
       } catch {
-        commandError("preflight_unavailable");
+        commandError("capacity_preflight_unavailable");
       }
       const capacityObservedAt = preflightCapacityObservedAt({
         authority: audit.authority,
@@ -488,7 +489,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         Date.parse(capacityObservedAt) <
         Date.parse(readinessHandoff.readinessCapacityObservedAt)
       ) {
-        commandError("preflight_unavailable");
+        commandError("capacity_preflight_unavailable");
       }
 
       let initializedCheckpoint: DnaPopulationEntrantAuthorityCheckpoint;
@@ -504,7 +505,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         if (error instanceof DnaPopulationEntrantAuthorityCohortCommandError) {
           throw error;
         }
-        commandError("preflight_unavailable");
+        commandError("checkpoint_preflight_unavailable");
       }
       if (
         initializedCheckpoint.chunkCount !== 0 ||
