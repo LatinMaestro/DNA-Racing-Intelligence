@@ -27,7 +27,10 @@ function race(sourceRaceId: string, digest: string) {
 }
 
 function audit(
-  evidence = [race("race-1", "c".repeat(64)), race("race-2", "d".repeat(64))],
+  evidence = [
+    race("race-1", "c".repeat(64)),
+    race("race-2", "d".repeat(64)),
+  ],
 ): DnaPopulationEntrantAuthorityLiveAudit {
   return Object.freeze({
     exactCodeHeadSha: HEAD,
@@ -94,7 +97,9 @@ describe("active Core history durable Race authority", () => {
       authority.readRaceDocuments("other-owner", ["race-1"]),
     ).rejects.toThrow("owner scope changed");
 
-    const stale = source(Object.freeze({ ...audit(), exactCodeHeadSha: "f".repeat(40) }));
+    const stale = source(
+      Object.freeze({ ...audit(), exactCodeHeadSha: "f".repeat(40) }),
+    );
     const staleAuthority = createActiveCoreHistoryDurableRaceAuthority({
       ownerId: OWNER,
       exactCodeHeadSha: HEAD,
