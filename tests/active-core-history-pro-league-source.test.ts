@@ -13,7 +13,7 @@ import type {
 function row(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
   const payload = {
     sourceType: "joined_core_race_history_result" as const,
-    naturalKey: `bike:race-${ordinal + 1}:${101 + ordinal}`,
+    naturalKey: `core-result:${101 + ordinal}:race-${ordinal + 1}`,
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
     sourceCoreId: String(101 + ordinal),

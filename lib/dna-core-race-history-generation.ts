@@ -152,7 +152,7 @@ function durableOutcome(
   return Object.freeze({
     sourceType: "core_race_history_outcome" as const,
     payloadVersion: 1 as const,
-    naturalKey: observation.naturalKey,
+    naturalKey: `core-result:${observation.sourceCoreId}:${observation.sourceRaceId}`,
     resultEvidenceSha256: observation.resultEvidenceSha256,
     raceDocumentEvidenceSha256: observation.raceDocumentEvidenceSha256,
     sourceCoreId: observation.sourceCoreId,
@@ -189,23 +189,36 @@ function generationMetadata(
     return generationError("observation authority is invalid");
   }
 
-  let previousNaturalKey: string | null = null;
-  const rows = observations.map((observation, ordinal) => {
+  let previousObservationKey: string | null = null;
+  for (const observation of observations) {
     if (
       typeof observation.naturalKey !== "string" ||
       observation.naturalKey.length < 1 ||
       observation.naturalKey.length > 1024 ||
       /[\u0000-\u001f\u007f-\u009f]/u.test(observation.naturalKey) ||
-      (previousNaturalKey !== null &&
-        previousNaturalKey.localeCompare(observation.naturalKey) >= 0)
+      (previousObservationKey !== null &&
+        previousObservationKey.localeCompare(observation.naturalKey) >= 0)
     ) {
       return generationError("observation order or identity is invalid");
     }
-    previousNaturalKey = observation.naturalKey;
-    const payload = durableOutcome(observation);
+    previousObservationKey = observation.naturalKey;
+  }
+  const outcomes = observations
+    .map(durableOutcome)
+    .sort((left, right) => left.naturalKey.localeCompare(right.naturalKey));
+  let previousOutcomeKey: string | null = null;
+  const rows = outcomes.map((payload, ordinal) => {
+    if (
+      payload.naturalKey.length > 1024 ||
+      (previousOutcomeKey !== null &&
+        previousOutcomeKey.localeCompare(payload.naturalKey) >= 0)
+    ) {
+      return generationError("durable outcome identity is invalid");
+    }
+    previousOutcomeKey = payload.naturalKey;
     return Object.freeze({
       ordinal,
-      naturalKey: observation.naturalKey,
+      naturalKey: payload.naturalKey,
       rowSha256: dnaOpenLabRawEvidenceSha256(payload),
       canonicalPayload: dnaOpenLabRawEvidenceCanonicalJson(payload),
       payload,

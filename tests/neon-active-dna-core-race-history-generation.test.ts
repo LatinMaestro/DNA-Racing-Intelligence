@@ -37,7 +37,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
 function payload() {
   return {
     sourceType: "joined_core_race_history_result",
-    naturalKey: "bike:race-1:101",
+    naturalKey: "core-result:101:race-1",
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
     sourceCoreId: "101",
