@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const workflowPath = ".github/workflows/dna-owner-dispatch-relay.yml";
 
 describe("DNA owner dispatch relay workflow", () => {
-  it("is owner-only, Issue #120-only and restricts dispatch to the accepted first-cohort boundary", async () => {
+  it("is owner-only, Issue #120-only and restricts dispatch to accepted entrant commissioning boundaries", async () => {
     const workflow = await readFile(workflowPath, "utf8");
 
     expect(workflow).toContain("issue_comment:");
@@ -32,12 +32,20 @@ describe("DNA owner dispatch relay workflow", () => {
       "payload.execute_first_private_preview_entrant_cohort !== true",
     );
     expect(workflow).toContain("main?.sha !== payload.expected_main_sha");
-    expect(workflow).not.toContain(
+    expect(workflow).toContain(
       "dna-population-entrant-authority-continuation-command.yml",
     );
-    expect(workflow).not.toContain(
+    expect(workflow).toContain(
       "dna-population-entrant-authority-continuation-readiness.yml",
     );
+    expect(workflow).toContain(
+      "payload.execute_next_private_preview_entrant_cohort !== true",
+    );
+    expect(workflow).toContain("expected_recovered_chunk_count");
+    expect(workflow).toContain("expected_recovered_race_count");
+    expect(workflow).toContain("expected_next_chunk_ordinal");
+    expect(workflow).toContain("expected_checkpoint_updated_at");
+    expect(workflow).toContain("durable_boundary_sha256");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
