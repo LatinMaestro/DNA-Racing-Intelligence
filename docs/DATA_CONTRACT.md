@@ -112,8 +112,14 @@ The typed server client and sync plan must cover documented read operations requ
 - recent/history evidence required for analytics and automatic post-race ingestion.
 
 Open Lab v1 supports race metadata, entrants, fees, tags and scheduling fields.
-The separately observed per-Core history family supplies result rows with `cb`,
-`time` and `pos`. The 15 September 2026 owner-wide redacted scan joined those
+The live `races.docs` contract also exposes payout mechanism, prize/prize-USD and
+`prize_map`; canonical race evidence retains that payout-distribution value as
+JSON source evidence. Full Race metadata belongs to the single Race authority
+and must not be copied into population entrant-authority records or per-Core
+outcome source records merely to make them self-contained.
+
+The separately observed per-Core history family supplies compact result rows with
+`cb`, `time` and `pos`. The 15 September 2026 owner-wide redacted scan joined those
 rows to v1 race documents by race ID and entrant Core ID; every comparable
 `cb` value matched. Treat `cb` as the provider distance code, normalize the
 observed sub-100 codes to metres using the established provider convention,
