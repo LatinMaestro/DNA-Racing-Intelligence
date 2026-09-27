@@ -4,7 +4,9 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
 import {
+  DnaPopulationEntrantAuthorityCohortError,
   prepareDnaPopulationEntrantAuthorityCohort,
+  type DnaPopulationEntrantAuthorityCohortDiagnostic,
   type DnaPopulationEntrantAuthorityCohortR2Port,
   type DnaPopulationEntrantAuthorityCommittedCohortSummary,
   type DnaPopulationEntrantAuthorityPreparedCohort,
@@ -133,7 +135,8 @@ export type DnaPopulationEntrantAuthorityCohortCommandDiagnostic =
   | "capacity_preflight_unavailable"
   | "checkpoint_preflight_unavailable"
   | "generation_already_commissioned"
-  | "cohort_unavailable";
+  | "cohort_unavailable"
+  | `cohort_${DnaPopulationEntrantAuthorityCohortDiagnostic}`;
 
 export class DnaPopulationEntrantAuthorityCohortCommandError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityCohortCommandDiagnostic;
@@ -166,6 +169,13 @@ function commandError(
   diagnostic: DnaPopulationEntrantAuthorityCohortCommandDiagnostic,
 ): never {
   throw new DnaPopulationEntrantAuthorityCohortCommandError(diagnostic);
+}
+
+function cohortCommandError(error: unknown): never {
+  if (error instanceof DnaPopulationEntrantAuthorityCohortError) {
+    commandError(`cohort_${error.diagnostic}`);
+  }
+  commandError("cohort_unavailable");
 }
 
 function identity(value: string): string {
@@ -529,8 +539,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           r2Store: input.runtime.r2Store,
           cohortObservedAt,
         });
-      } catch {
-        commandError("cohort_unavailable");
+      } catch (error) {
+        cohortCommandError(error);
       }
       const providerHydration =
         prepared.summary.preparationSource === "provider_hydration";
@@ -610,8 +620,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
           let result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
           try {
             result = await prepared.commit({ registeredAt });
-          } catch {
-            commandError("cohort_unavailable");
+          } catch (error) {
+            cohortCommandError(error);
           }
           if (
             !sameAuthority(result.authority, audit.authority) ||
