@@ -87,9 +87,9 @@ export function createActiveCoreHistoryDurableRaceAuthority(input: {
 }): ActiveCoreHistoryCanonicalRaceAuthority {
   const ownerId = identity(input.ownerId, "ownerId");
   const expectedHead = exactHead(input.exactCodeHeadSha);
-  let snapshot:
-    | Promise<ReadonlyMap<string, ActiveCoreHistoryCanonicalRaceDocument>>
-    | null = null;
+  let snapshot: Promise<
+    ReadonlyMap<string, ActiveCoreHistoryCanonicalRaceDocument>
+  > | null = null;
 
   async function loadSnapshot() {
     snapshot ??= input.source
