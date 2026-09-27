@@ -8,6 +8,7 @@ import type {
   DnaFinishedRaceWindowPublisher,
 } from "./dna-open-lab-finished-race-backfill";
 import {
+  adaptDnaRaceDocument,
   dnaOpenLabRawEvidenceSha256,
   type CanonicalRaceDocumentMetadata,
   type DnaOpenLabEvidence,
@@ -18,6 +19,7 @@ import type {
   DnaRaceDocument,
 } from "./dna-open-lab-v1-client";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
+import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const DEFAULT_MAXIMUM_OBJECT_BYTES = 8 * 1024 * 1024;
@@ -27,6 +29,18 @@ export type DnaOpenLabR2RaceEvidenceStoragePort = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "putObjectIfAbsent" | "headObject"
 >;
+
+export type DnaOpenLabR2CanonicalRaceDocumentStoragePort = Pick<
+  PrivateDatasetEvidenceObjectStoragePort,
+  "readBucketPrivacy" | "headObject"
+> &
+  Pick<PrivateDatasetEvidenceObjectReadableStoragePort, "getObject">;
+
+export type DnaOpenLabR2CanonicalRaceDocumentReference = Readonly<{
+  sourceRaceId: string;
+  observedAt: string;
+  rawEvidenceSha256: string;
+}>;
 
 export type DnaOpenLabR2RaceEvidenceConfiguration = Readonly<{
   ownerId: string;
@@ -233,6 +247,42 @@ async function verifyStoredObject(input: {
   }
 }
 
+async function collectStoredObject(input: {
+  body: AsyncIterable<Uint8Array>;
+  byteLength: number;
+  maximumObjectBytes: number;
+  bodySha256: string;
+}): Promise<Uint8Array> {
+  if (
+    !Number.isSafeInteger(input.byteLength) ||
+    input.byteLength < 1 ||
+    input.byteLength > input.maximumObjectBytes
+  ) {
+    evidenceError("canonical Race object byte length is invalid");
+  }
+  const body = new Uint8Array(input.byteLength);
+  const digest = createHash("sha256");
+  let offset = 0;
+  for await (const chunk of input.body) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > input.byteLength
+    ) {
+      evidenceError("canonical Race object body is invalid");
+    }
+    body.set(chunk, offset);
+    digest.update(chunk);
+    offset += chunk.byteLength;
+  }
+  if (
+    offset !== input.byteLength ||
+    digest.digest("hex") !== input.bodySha256
+  ) {
+    evidenceError("canonical Race object checksum disagrees");
+  }
+  return body;
+}
+
 async function putVerifiedObject(input: {
   storage: DnaOpenLabR2RaceEvidenceStoragePort;
   bucketName: string;
@@ -265,7 +315,7 @@ async function putVerifiedObject(input: {
 }
 
 function createBucketPrivacyGuard(input: {
-  storage: DnaOpenLabR2RaceEvidenceStoragePort;
+  storage: Pick<PrivateDatasetEvidenceObjectStoragePort, "readBucketPrivacy">;
   bucketName: string;
 }): () => Promise<void> {
   let verified: Promise<void> | null = null;
@@ -501,6 +551,111 @@ export function createDnaOpenLabR2RaceDocumentClient(input: {
         });
       }
       return response;
+    },
+  });
+}
+
+/**
+ * Reopens one exact immutable `/races/docs` object by Race identity and raw
+ * evidence hash. The caller supplies the observation timestamp retained by its
+ * generation, so the returned evidence is bound to that generation without a
+ * second durable copy of Race metadata.
+ */
+export function createDnaOpenLabR2CanonicalRaceDocumentReader(input: {
+  ownerId: string;
+  bucketName: string;
+  storage: DnaOpenLabR2CanonicalRaceDocumentStoragePort;
+  maximumObjectBytes?: number;
+}): Readonly<{
+  read: (
+    reference: DnaOpenLabR2CanonicalRaceDocumentReference,
+  ) => Promise<DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>>;
+}> {
+  const ownerId = safeText(input.ownerId, "ownerId");
+  const bucketName = safeText(input.bucketName, "bucketName");
+  const maximumObjectBytes = positiveSafeInteger(
+    input.maximumObjectBytes ?? DEFAULT_MAXIMUM_OBJECT_BYTES,
+    "maximumObjectBytes",
+  );
+  const prefix = ownerPrefix(ownerId);
+  const ensurePrivateBucket = createBucketPrivacyGuard({
+    storage: input.storage,
+    bucketName,
+  });
+
+  return Object.freeze({
+    async read(reference) {
+      const sourceRaceId = raceIdentifier(reference.sourceRaceId);
+      const rawEvidenceSha256 = safeText(
+        reference.rawEvidenceSha256,
+        "rawEvidenceSha256",
+      ).toLowerCase();
+      if (!SHA_256_PATTERN.test(rawEvidenceSha256)) {
+        evidenceError("rawEvidenceSha256 is invalid");
+      }
+      const observedAt = new Date(reference.observedAt);
+      if (
+        Number.isNaN(observedAt.getTime()) ||
+        observedAt.toISOString() !== reference.observedAt
+      ) {
+        evidenceError("observedAt is invalid");
+      }
+      const key = raceDocumentObjectKey({
+        ownerPrefix: prefix,
+        sourceRaceId,
+        rawEvidenceSha256,
+      });
+      await ensurePrivateBucket();
+      const head = await input.storage.headObject({ bucketName, key });
+      if (
+        head.status !== "ready" ||
+        head.contentType !== JSON_CONTENT_TYPE ||
+        head.checksumSha256 !== rawEvidenceSha256 ||
+        metadataValue(head.metadata, "dna-source") !== "dna_open_lab" ||
+        metadataValue(head.metadata, "dna-version") !== "v1" ||
+        metadataValue(head.metadata, "dna-endpoint") !== "races.docs" ||
+        metadataValue(head.metadata, "dna-owner-sha256") !== prefix ||
+        metadataValue(head.metadata, "dna-race-id-sha256") !==
+          raceIdentityHash(sourceRaceId) ||
+        metadataValue(head.metadata, "dna-raw-sha256") !== rawEvidenceSha256
+      ) {
+        evidenceError("canonical Race object conflicts with its reference");
+      }
+      const object = await input.storage.getObject({ bucketName, key });
+      if (object.status !== "ready") {
+        evidenceError("canonical Race object is unavailable");
+      }
+      const bytes = await collectStoredObject({
+        body: object.body,
+        byteLength: head.byteLength,
+        maximumObjectBytes,
+        bodySha256: rawEvidenceSha256,
+      });
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      let raw: unknown;
+      try {
+        raw = JSON.parse(decoded);
+      } catch {
+        evidenceError("canonical Race object is not valid JSON");
+      }
+      if (
+        canonicalJson(raw) !== decoded ||
+        dnaOpenLabRawEvidenceSha256(raw) !== rawEvidenceSha256
+      ) {
+        evidenceError("canonical Race object is not canonical evidence");
+      }
+      const evidence = adaptDnaRaceDocument({
+        raw: raw as DnaRaceDocument,
+        observedAt: reference.observedAt,
+        endpoint: "races.docs",
+      });
+      if (
+        evidence.canonical.sourceRaceId !== sourceRaceId ||
+        evidence.rawEvidenceSha256 !== rawEvidenceSha256
+      ) {
+        evidenceError("canonical Race evidence identity disagrees");
+      }
+      return evidence;
     },
   });
 }
