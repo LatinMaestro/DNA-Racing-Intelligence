@@ -115,8 +115,16 @@ Open Lab v1 supports race metadata, entrants, fees, tags and scheduling fields.
 The live `races.docs` contract also exposes payout mechanism, prize/prize-USD and
 `prize_map`; canonical race evidence retains that payout-distribution value as
 JSON source evidence. Full Race metadata belongs to the single Race authority
-and must not be copied into population entrant-authority records or per-Core
-outcome source records merely to make them self-contained.
+and must not be copied into population entrant-authority records merely to make
+them self-contained. The first-cohort verifier therefore reports a sanitized
+owner-facing `PASS` only after strict compact-record replay proves that no
+additional Race metadata was smuggled into that entrant-authority archive.
+
+Per-Core finish position/time is a later Core-history enrichment boundary, not
+part of the entrant-authority cohort. Its durable serving representation should
+remain normalized around Race ID + Core ID + outcome values; Race-level fields
+needed for analytics should be obtained from the Race authority rather than
+creating a second Race-history archive.
 
 The separately observed per-Core history family supplies compact result rows with
 `cb`, `time` and `pos`. The 15 September 2026 owner-wide redacted scan joined those

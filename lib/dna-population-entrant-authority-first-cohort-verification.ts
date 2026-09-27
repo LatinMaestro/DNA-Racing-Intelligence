@@ -34,6 +34,12 @@ export type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt =
     checkpointUpdatedAt: string;
     nextChunkOrdinal: 2;
     authorityComplete: boolean;
+    ownerAcceptance: "PASS";
+    raceStorageAuthority: "single_canonical_race_authority";
+    entrantStorageAuthority: "compact_race_core_authority_only";
+    duplicateRaceMetadataStoredInEntrantCohort: false;
+    outcomeEnrichmentStatus: "not_persisted_by_entrant_authority_cohort";
+    outcomeJoinAuthority: "race_id_plus_core_id";
     previewOnly: true;
     providerRequestPerformed: false;
     persistentWritePerformed: false;
@@ -236,6 +242,13 @@ export function createDnaPopulationEntrantAuthorityFirstCohortVerifier(input: {
           checkpointUpdatedAt,
           nextChunkOrdinal: 2 as const,
           authorityComplete: recovery.complete,
+          ownerAcceptance: "PASS" as const,
+          raceStorageAuthority: "single_canonical_race_authority" as const,
+          entrantStorageAuthority: "compact_race_core_authority_only" as const,
+          duplicateRaceMetadataStoredInEntrantCohort: false as const,
+          outcomeEnrichmentStatus:
+            "not_persisted_by_entrant_authority_cohort" as const,
+          outcomeJoinAuthority: "race_id_plus_core_id" as const,
           previewOnly: true as const,
           providerRequestPerformed: false as const,
           persistentWritePerformed: false as const,
