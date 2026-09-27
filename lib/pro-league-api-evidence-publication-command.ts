@@ -7,6 +7,8 @@ import {
   activeCoreHistoryProLeagueSource,
   type ActiveCoreHistoryCanonicalRaceAuthority,
 } from "./active-core-history-pro-league-source";
+import { createCloudflareR2DatasetEvidencePort } from "./cloudflare-r2-dataset-evidence-port";
+import { createDnaOpenLabR2CanonicalRaceDocumentReader } from "./dna-open-lab-r2-race-evidence";
 import { createEphemeralJsonlExternalSortedRunStore } from "./ephemeral-jsonl-external-sorted-run-store";
 import {
   createNeonActiveDnaCoreRaceHistoryGenerationReadRepository,
@@ -31,6 +33,7 @@ export const PRO_LEAGUE_API_EVIDENCE_PUBLICATION_COMMAND_INTENT =
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
+const CANONICAL_RACE_READ_CONCURRENCY = 16;
 
 export type ProLeagueApiEvidencePublicationCommandInvocation = Readonly<{
   commandVersion: typeof PRO_LEAGUE_API_EVIDENCE_PUBLICATION_COMMAND_VERSION;
@@ -69,6 +72,11 @@ type CommandEnvironment = Readonly<{
   databaseOwnerId?: string;
   ownerId?: string;
   runtimeRole?: string;
+  cloudflareAccountId?: string;
+  cloudflareApiToken?: string;
+  r2BucketName?: string;
+  r2AccessKeyId?: string;
+  r2SecretAccessKey?: string;
 }>;
 
 type CommandDependencies = Readonly<{
@@ -169,6 +177,64 @@ export function proLeagueApiEvidencePublicationCommandFromEnvironment(
   const scratchRootFactory =
     dependencies.scratchRootFactory ??
     (() => mkdtemp(join(tmpdir(), "dna-pro-league-evidence-")));
+  const raceAuthority = (() => {
+    if (dependencies.raceAuthority !== undefined) {
+      return dependencies.raceAuthority;
+    }
+    const accountId = configured(environment.cloudflareAccountId);
+    const apiToken = configured(environment.cloudflareApiToken);
+    const bucketName = configured(environment.r2BucketName);
+    const accessKeyId = configured(environment.r2AccessKeyId);
+    const secretAccessKey = configured(environment.r2SecretAccessKey);
+    if (
+      accountId === null ||
+      apiToken === null ||
+      bucketName === null ||
+      accessKeyId === null ||
+      secretAccessKey === null
+    ) {
+      return undefined;
+    }
+    const reader = createDnaOpenLabR2CanonicalRaceDocumentReader({
+      ownerId,
+      bucketName,
+      storage: createCloudflareR2DatasetEvidencePort({
+        accountId,
+        apiToken,
+        accessKeyId,
+        secretAccessKey,
+      }),
+    });
+    return Object.freeze({
+      async readRaceDocuments(
+        requestedOwnerId: string,
+        references: readonly Readonly<{
+          sourceRaceId: string;
+          observedAt: string;
+          rawEvidenceSha256: string;
+        }>[],
+      ) {
+        if (requestedOwnerId !== ownerId) {
+          throw new Error("Pro League canonical Race owner scope denied.");
+        }
+        const documents: Awaited<ReturnType<typeof reader.read>>[] = [];
+        for (
+          let offset = 0;
+          offset < references.length;
+          offset += CANONICAL_RACE_READ_CONCURRENCY
+        ) {
+          documents.push(
+            ...(await Promise.all(
+              references
+                .slice(offset, offset + CANONICAL_RACE_READ_CONCURRENCY)
+                .map(reader.read),
+            )),
+          );
+        }
+        return Object.freeze(documents);
+      },
+    });
+  })();
 
   return Object.freeze({
     status: "ready" as const,
@@ -189,9 +255,7 @@ export function proLeagueApiEvidencePublicationCommandFromEnvironment(
       const source = await activeCoreHistoryProLeagueSource({
         ownerId,
         repository: sourceRepository,
-        ...(dependencies.raceAuthority === undefined
-          ? {}
-          : { raceAuthority: dependencies.raceAuthority }),
+        ...(raceAuthority === undefined ? {} : { raceAuthority }),
       });
       if (source === null) {
         return emptyReceipt({ exactCodeHeadSha, publishedAt });
