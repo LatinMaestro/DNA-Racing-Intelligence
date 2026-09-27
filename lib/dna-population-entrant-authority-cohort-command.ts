@@ -33,6 +33,10 @@ export type DnaPopulationEntrantAuthorityLiveAudit = Readonly<{
   exactCodeHeadSha: string;
   plan: DnaPopulationHistoryAcquisitionPlan;
   raceDocuments: readonly CanonicalRaceDocumentMetadata[];
+  raceDocumentEvidence?: readonly Readonly<{
+    canonical: CanonicalRaceDocumentMetadata;
+    rawEvidenceSha256: string;
+  }>[];
   authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
 }>;
 
