@@ -470,7 +470,7 @@ describe("DNA population entrant authority cohort command", () => {
       .catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({
-      diagnostic: "preflight_unavailable",
+      diagnostic: "capacity_preflight_unavailable",
       message: "Population entrant commissioning command is unavailable",
     });
     expect(String(error)).not.toContain("provider-capacity-secret");
@@ -545,7 +545,7 @@ describe("DNA population entrant authority cohort command", () => {
       .catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({
-      diagnostic: "preflight_unavailable",
+      diagnostic: "checkpoint_preflight_unavailable",
       message: "Population entrant commissioning command is unavailable",
     });
     expect(String(error)).not.toContain("private-neon-generation-secret");
