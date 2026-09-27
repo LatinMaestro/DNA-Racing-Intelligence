@@ -35,6 +35,7 @@ import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-populatio
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
+import { createDnaOpenLabR2RaceDocumentClient } from "./dna-open-lab-r2-race-evidence";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "./neon-dna-open-lab-p5-first-backfill-ledger";
@@ -324,6 +325,14 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       bucketName: config.bucketName,
       storage: entrantStorage,
     });
+    const raceDocumentClient = createDnaOpenLabR2RaceDocumentClient({
+      client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+      configuration: {
+        ownerId: config.ownerId,
+        bucketName: config.bucketName,
+        storage,
+      },
+    });
 
     const capacityGate = Object.freeze({
       async assertFreshCurrentCapacity(
@@ -380,7 +389,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       runtimeCodeHeadSha: config.exactCodeHeadSha,
       authoritySource,
       runtime: Object.freeze({
-        client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+        client: raceDocumentClient,
         requestBudget: createDnaOpenLabRequestBudget(),
         capacityGate,
         checkpointRepository,
@@ -395,7 +404,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         authoritySource,
         continuationReadiness,
         runtime: Object.freeze({
-          client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+          client: raceDocumentClient,
           requestBudget: createDnaOpenLabRequestBudget(),
           capacityGate,
           checkpointRepository,
