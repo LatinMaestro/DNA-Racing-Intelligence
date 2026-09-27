@@ -72,7 +72,10 @@ INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
     'synthetic_population_entrant_checkpoint_other'
   );
 
+\if :{?skip_runtime_role}
+\else
 SET LOCAL ROLE dna_app_runtime;
+\endif
 SET LOCAL app.owner_id = '91170000-0000-4000-8000-000000000001';
 
 DO $checkpoint$
@@ -409,7 +412,10 @@ BEGIN
 END
 $isolation$;
 
+\if :{?skip_runtime_role}
+\else
 RESET ROLE;
+\endif
 
 DO $immutability$
 BEGIN
@@ -468,7 +474,10 @@ INSERT INTO dna.dna_population_entrant_authority_chunk (
   '2026-09-25 06:02:30+00'
 );
 
+\if :{?skip_runtime_role}
+\else
 SET LOCAL ROLE dna_app_runtime;
+\endif
 SET LOCAL app.owner_id = '91170000-0000-4000-8000-000000000001';
 
 DO $tamper$
@@ -518,6 +527,9 @@ BEGIN
 END
 $tamper$;
 
+\if :{?skip_runtime_role}
+\else
 RESET ROLE;
+\endif
 
 ROLLBACK;
