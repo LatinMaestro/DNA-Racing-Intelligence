@@ -235,6 +235,16 @@ describe("population entrant authority continuation command", () => {
     expect(test.inspect).toHaveBeenCalledOnce();
     expect(test.load).toHaveBeenCalledOnce();
     expect(test.cohortPreparer).toHaveBeenCalledOnce();
+    expect(test.cohortPreparer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedRecoveryBoundary: {
+          recoveredChunkCount: 1,
+          recoveredRaceCount: 2,
+          nextChunkOrdinal: 2,
+          checkpointUpdatedAt: CHECKPOINT_AT,
+        },
+      }),
+    );
   });
 
   it("rejects missing arming and stale/tampered boundary evidence before hydration", async () => {

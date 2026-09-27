@@ -119,6 +119,13 @@ export type DnaPopulationEntrantAuthorityCommittedCohortSummary = Readonly<{
   paidUsageAllowed: false;
 }>;
 
+export type DnaPopulationEntrantAuthorityExpectedRecoveryBoundary = Readonly<{
+  recoveredChunkCount: number;
+  recoveredRaceCount: number;
+  nextChunkOrdinal: number;
+  checkpointUpdatedAt: string;
+}>;
+
 export type DnaPopulationEntrantAuthorityPreparedCohort = Readonly<{
   summary: DnaPopulationEntrantAuthorityPreparedCohortSummary;
   commit: (input: {
@@ -684,6 +691,7 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   checkpointRepository: CohortCheckpointRepository;
   r2Store: DnaPopulationEntrantAuthorityCohortR2Port;
   cohortObservedAt: string;
+  expectedRecoveryBoundary?: DnaPopulationEntrantAuthorityExpectedRecoveryBoundary;
 }): Promise<DnaPopulationEntrantAuthorityPreparedCohort> {
   const bound = bindAuditedAuthority({
     plan: input.plan,
@@ -708,6 +716,25 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
     unresolvedRaceIds: bound.unresolvedRaceIds,
   });
   const checkpointUpdatedAt = canonicalTimestamp(recovery.checkpoint.updatedAt);
+  const expectedRecoveryBoundary = input.expectedRecoveryBoundary;
+  if (
+    expectedRecoveryBoundary !== undefined &&
+    (!Number.isSafeInteger(expectedRecoveryBoundary.recoveredChunkCount) ||
+      expectedRecoveryBoundary.recoveredChunkCount < 0 ||
+      !Number.isSafeInteger(expectedRecoveryBoundary.recoveredRaceCount) ||
+      expectedRecoveryBoundary.recoveredRaceCount < 0 ||
+      !Number.isSafeInteger(expectedRecoveryBoundary.nextChunkOrdinal) ||
+      expectedRecoveryBoundary.nextChunkOrdinal < 1 ||
+      canonicalTimestamp(expectedRecoveryBoundary.checkpointUpdatedAt) !==
+        expectedRecoveryBoundary.checkpointUpdatedAt ||
+      recovery.recoveredChunkCount !==
+        expectedRecoveryBoundary.recoveredChunkCount ||
+      recoveredRaceCount !== expectedRecoveryBoundary.recoveredRaceCount ||
+      recovery.nextChunkOrdinal !== expectedRecoveryBoundary.nextChunkOrdinal ||
+      checkpointUpdatedAt !== expectedRecoveryBoundary.checkpointUpdatedAt)
+  ) {
+    cohortError("recovered_boundary_mismatch");
+  }
 
   let pending: DnaPopulationEntrantAuthorityR2PendingChunk | null;
   try {
