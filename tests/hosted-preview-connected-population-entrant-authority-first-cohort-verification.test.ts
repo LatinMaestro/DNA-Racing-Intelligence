@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES } from "@/lib/dna-population-entrant-authority-cohort";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_FIRST_COHORT_VERIFICATION ===
@@ -87,7 +88,9 @@ describeConnected(
           paidUsageAllowed: false,
         });
         expect(receipt.rowCount).toBeGreaterThan(0);
-        expect(receipt.rowCount).toBeLessThanOrEqual(5_000);
+        expect(receipt.rowCount).toBeLessThanOrEqual(
+          DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
+        );
         expect(receipt.resolvedRaceCount + receipt.quarantinedRaceCount).toBe(
           receipt.rowCount,
         );
