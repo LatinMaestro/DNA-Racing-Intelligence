@@ -6,6 +6,7 @@ import type {
 } from "@/lib/dna-population-entrant-authority-checkpoint";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "@/lib/dna-population-entrant-authority-commit-protocol";
 import {
+  createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector,
   createDnaPopulationEntrantAuthorityContinuationReadinessInspector,
   DnaPopulationEntrantAuthorityContinuationReadinessError,
   DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
@@ -99,6 +100,7 @@ function harness(input?: {
   checkpoint?: DnaPopulationEntrantAuthorityCheckpoint;
   manifests?: readonly DnaPopulationEntrantAuthorityChunkManifest[];
   capacityGate?: DnaPopulationEntrantAuthorityCapacityGate;
+  r2Store?: DnaPopulationEntrantAuthorityR2RecoveryPort;
 }) {
   const cp = input?.checkpoint ?? checkpoint();
   const manifests = input?.manifests ?? Object.freeze([manifest()]);
@@ -114,24 +116,28 @@ function harness(input?: {
           .slice(0, request.limit),
     ),
   });
-  const r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort = Object.freeze({
-    read: vi.fn(async (requested) => {
-      const match = manifests.find(
-        (entry) => entry.chunkOrdinal === requested.chunkOrdinal,
-      );
-      if (match === undefined) throw new Error("private-r2-missing");
-      const {
-        objectKey: _objectKey,
-        registeredAt: _registeredAt,
-        ...receipt
-      } = match;
-      return Object.freeze({
-        receipt: Object.freeze(receipt),
-        body: new Uint8Array(receipt.byteLength),
-        records: Object.freeze([]),
-      });
-    }),
-  });
+  const r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort =
+    input?.r2Store ??
+    Object.freeze({
+      read: vi.fn(async (requested) => {
+        const match = manifests.find(
+          (entry) => entry.chunkOrdinal === requested.chunkOrdinal,
+        );
+        if (match === undefined) throw new Error("private-r2-missing");
+        const {
+          objectKey: _objectKey,
+          registeredAt: _registeredAt,
+          ...receipt
+        } = match;
+        void _objectKey;
+        void _registeredAt;
+        return Object.freeze({
+          receipt: Object.freeze(receipt),
+          body: new Uint8Array(receipt.byteLength),
+          records: Object.freeze([]),
+        });
+      }),
+    });
   const capacityGate =
     input?.capacityGate ??
     Object.freeze({
@@ -160,6 +166,17 @@ function harness(input?: {
 
 function inspector(test: ReturnType<typeof harness>) {
   return createDnaPopulationEntrantAuthorityContinuationReadinessInspector({
+    ownerId: OWNER,
+    exactCodeHeadSha: HEAD,
+    authoritySource: test.authoritySource,
+    capacityGate: test.capacityGate,
+    checkpointRepository: test.checkpointRepository,
+    r2Store: test.r2Store,
+  });
+}
+
+function autonomousBoundaryInspector(test: ReturnType<typeof harness>) {
+  return createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector({
     ownerId: OWNER,
     exactCodeHeadSha: HEAD,
     authoritySource: test.authoritySource,
@@ -265,5 +282,75 @@ describe("population entrant continuation readiness", () => {
     ).inspect();
 
     expect(second.durableBoundarySha256).not.toBe(first.durableBoundarySha256);
+  });
+});
+
+describe("population entrant autonomous durable boundary", () => {
+  it("adapts the accepted incomplete proof without changing its boundary digest", async () => {
+    const continuation = await inspector(harness()).inspect();
+    const autonomous = await autonomousBoundaryInspector(harness()).inspect();
+
+    expect(autonomous).toMatchObject({
+      version: 1,
+      status: "ready_for_continuation",
+      exactCodeHeadSha: HEAD,
+      recoveredChunkCount: 1,
+      recoveredRaceCount: 2,
+      nextChunkOrdinal: 2,
+      durableBoundarySha256: continuation.durableBoundarySha256,
+      previewOnly: true,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+  });
+
+  it("reports exact completion only after reopening the complete R2-backed boundary", async () => {
+    const completeManifest = manifest({
+      rowCount: 3,
+      lastSourceRaceId: "race-3",
+    });
+    const test = harness({
+      checkpoint: checkpoint({
+        persistedRaceCount: 3,
+        lastSourceRaceId: "race-3",
+      }),
+      manifests: Object.freeze([completeManifest]),
+    });
+
+    await expect(
+      autonomousBoundaryInspector(test).inspect(),
+    ).resolves.toMatchObject({
+      version: 1,
+      status: "authority_complete",
+      unresolvedRaceCount: 3,
+      recoveredChunkCount: 1,
+      recoveredRaceCount: 3,
+      nextChunkOrdinal: 2,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+    expect(test.r2Store.read).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed with sanitized diagnostics when immutable R2 evidence conflicts", async () => {
+    const test = harness({
+      r2Store: Object.freeze({
+        read: vi.fn(async () => {
+          throw new Error("private-r2-object-key-and-payload");
+        }),
+      }),
+    });
+
+    const error = await autonomousBoundaryInspector(test)
+      .inspect()
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(
+      DnaPopulationEntrantAuthorityContinuationReadinessError,
+    );
+    expect(String(error)).not.toContain("private-r2-object-key-and-payload");
   });
 });

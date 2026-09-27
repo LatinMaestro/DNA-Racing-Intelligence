@@ -14,9 +14,11 @@ import {
   type DnaPopulationEntrantAuthorityCohortCommandInvocation,
 } from "./dna-population-entrant-authority-cohort-command";
 import {
+  createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector,
   createDnaPopulationEntrantAuthorityContinuationReadinessInspector,
   type DnaPopulationEntrantAuthorityContinuationReadinessReceipt,
 } from "./dna-population-entrant-authority-continuation-readiness";
+import type { DnaPopulationEntrantAuthorityAutonomousBoundary } from "./dna-population-entrant-authority-autonomous-runner";
 import {
   createDnaPopulationEntrantAuthorityContinuationCommand,
   type DnaPopulationEntrantAuthorityContinuationCommandInvocation,
@@ -79,6 +81,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectReadiness: () => Promise<DnaPopulationEntrantAuthorityReadinessReceipt>;
       inspectFirstCohortVerification: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
       inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
+      inspectAutonomousBoundary: () => Promise<DnaPopulationEntrantAuthorityAutonomousBoundary>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -383,6 +386,15 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         checkpointRepository,
         r2Store,
       });
+    const autonomousBoundary =
+      createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector({
+        ownerId: config.ownerId,
+        exactCodeHeadSha: config.exactCodeHeadSha,
+        authoritySource,
+        capacityGate,
+        checkpointRepository,
+        r2Store,
+      });
 
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
@@ -419,6 +431,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectReadiness: readiness.inspect,
       inspectFirstCohortVerification: firstCohortVerification.inspect,
       inspectContinuationReadiness: continuationReadiness.inspect,
+      inspectAutonomousBoundary: autonomousBoundary.inspect,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
     });
