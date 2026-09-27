@@ -82,6 +82,10 @@ const raceDocument: DnaRaceDocument = {
   payout: "winner_take_all",
   prize: 5,
   prizeusd: 6.25,
+  prize_map: {
+    first: { asset: "DEZ", amount: 5 },
+    second: 0,
+  },
   track: "synthetic-track",
   yellowstars: [42],
   bluestars: [43],
@@ -295,6 +299,10 @@ describe("DNA Open Lab v1 canonical adapters", () => {
         payoutSourceValue: "winner_take_all",
         prizeSourceValue: 5,
         prizeUsdSourceValue: 6.25,
+        prizeDistributionSourceValue: {
+          first: { amount: 5, asset: "DEZ" },
+          second: 0,
+        },
         trackSourceValue: "synthetic-track",
         yellowStarSourceCoreIds: ["42"],
         blueStarSourceCoreIds: ["43"],
@@ -375,6 +383,11 @@ describe("DNA Open Lab v1 canonical adapters", () => {
       name: "prize USD",
       raw: { rid: 1, prizeusd: -1 },
       diagnostic: "race_document_adaptation_prize_usd_unavailable",
+    },
+    {
+      name: "prize distribution",
+      raw: { rid: 1, prize_map: { first: Number.NaN } },
+      diagnostic: "race_document_adaptation_prize_map_unavailable",
     },
     {
       name: "schedule",
