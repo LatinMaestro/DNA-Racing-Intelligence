@@ -57,6 +57,34 @@ function sourceRow(
   });
 }
 
+function compactSourceRow(
+  ordinal: number,
+  input: {
+    coreId: string;
+    finishPosition: number;
+    elapsedMilliseconds: number;
+  },
+): ActiveDnaCoreRaceHistoryGenerationRow {
+  const payload = Object.freeze({
+    sourceType: "core_race_history_outcome" as const,
+    payloadVersion: 1 as const,
+    naturalKey: `core-result:${input.coreId}:race-1`,
+    resultEvidenceSha256: "b".repeat(64),
+    raceDocumentEvidenceSha256: "c".repeat(64),
+    sourceCoreId: input.coreId,
+    sourceRaceId: "race-1",
+    elapsedMilliseconds: input.elapsedMilliseconds,
+    finishPosition: input.finishPosition,
+  });
+  return Object.freeze({
+    generationId: "a".repeat(64),
+    ordinal,
+    naturalKey: payload.naturalKey,
+    rowSha256: dnaOpenLabRawEvidenceSha256(payload),
+    payload,
+  });
+}
+
 function sourceGeneration(
   rows: readonly ActiveDnaCoreRaceHistoryGenerationRow[],
 ): DnaCoreRaceHistoryPublishedGeneration {
@@ -200,6 +228,91 @@ describe("Pro League API evidence publication command", () => {
     );
     expect(target.stageRows).toHaveBeenCalledTimes(2);
     expect(target.publishCoreHistory).toHaveBeenCalledOnce();
+  });
+
+  it("publishes compact outcomes through one exact durable Race audit snapshot", async () => {
+    const rows = [
+      compactSourceRow(0, {
+        coreId: "101",
+        finishPosition: 1,
+        elapsedMilliseconds: 40_000,
+      }),
+      compactSourceRow(1, {
+        coreId: "102",
+        finishPosition: 2,
+        elapsedMilliseconds: 42_000,
+      }),
+    ];
+    const target = evidenceRepository();
+    const raceAuditSource = {
+      load: vi.fn(async () =>
+        Object.freeze({
+          exactCodeHeadSha: invocation.exactCodeHeadSha,
+          plan: {} as never,
+          raceDocuments: Object.freeze([
+            Object.freeze({
+              sourceType: "race_document" as const,
+              sourceRaceId: "race-1",
+              mode: "bike" as const,
+              distanceMetres: 1_000,
+              gateCount: 2,
+              entrantCoreIds: ["101", "102"],
+              startAt: "2026-09-16T09:00:00.000Z",
+              payoutSourceValue: "Winner Take All",
+            }),
+          ]),
+          raceDocumentEvidence: Object.freeze([
+            Object.freeze({
+              rawEvidenceSha256: "c".repeat(64),
+              canonical: Object.freeze({
+                sourceType: "race_document" as const,
+                sourceRaceId: "race-1",
+                mode: "bike" as const,
+                distanceMetres: 1_000,
+                gateCount: 2,
+                entrantCoreIds: ["101", "102"],
+                startAt: "2026-09-16T09:00:00.000Z",
+                payoutSourceValue: "Winner Take All",
+              }),
+            }),
+          ]),
+          authority: Object.freeze({
+            version: 1 as const,
+            generationId: "e".repeat(64),
+            unresolvedRaceCount: 1,
+            unresolvedRaceSetSha256: "e".repeat(64),
+          }),
+        }),
+      ),
+    };
+
+    const command = proLeagueApiEvidencePublicationCommandFromEnvironment(
+      {
+        databaseUrl: "postgres://runtime@example.invalid/private",
+        databaseOwnerId: "a1050000-0000-4000-8000-000000000001",
+        ownerId: "private_owner",
+      },
+      {
+        sourceRepository: sourceRepository(rows),
+        raceAuditSource,
+        evidenceRepository: target.repository,
+      },
+    );
+    expect(command.status).toBe("ready");
+    if (command.status !== "ready") throw new Error("command unavailable");
+
+    await expect(command.execute(invocation)).resolves.toMatchObject({
+      status: "published",
+      inputObservationCount: 2,
+      acceptedEntryCount: 2,
+      benchmarkCount: 1,
+      profileCount: 2,
+    });
+    expect(raceAuditSource.load).toHaveBeenCalledTimes(1);
+    expect(raceAuditSource.load).toHaveBeenCalledWith({
+      ownerId: "private_owner",
+      exactCodeHeadSha: invocation.exactCodeHeadSha,
+    });
   });
 
   it("accounts for mixed-mode source coverage while publishing Bike evidence only", async () => {
