@@ -16,6 +16,7 @@ function row(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
     naturalKey: `core-result:${101 + ordinal}:race-${ordinal + 1}`,
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
+    raceDocumentObservedAt: "2026-09-16T00:00:00.000Z",
     sourceCoreId: String(101 + ordinal),
     sourceRaceId: `race-${ordinal + 1}`,
     mode: "bike" as const,
@@ -51,6 +52,7 @@ function compactRow(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
     naturalKey: `bike:race-${ordinal + 1}:${101 + ordinal}`,
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
+    raceDocumentObservedAt: "2026-09-16T00:00:00.000Z",
     sourceCoreId: String(101 + ordinal),
     sourceRaceId: `race-${ordinal + 1}`,
     elapsedMilliseconds: 40_000 + ordinal,
@@ -146,8 +148,11 @@ describe("active Core history Pro League source", () => {
     };
     const raceAuthority = {
       readRaceDocuments: vi.fn(
-        async (_owner: string, sourceRaceIds: readonly string[]) =>
-          sourceRaceIds.map((sourceRaceId, index) =>
+        async (
+          _owner: string,
+          references: readonly Readonly<{ sourceRaceId: string }>[],
+        ) =>
+          references.map(({ sourceRaceId }, index) =>
             Object.freeze({
               source: "dna_open_lab" as const,
               sourceVersion: "v1" as const,
@@ -189,7 +194,18 @@ describe("active Core history Pro League source", () => {
     ]);
     expect(raceAuthority.readRaceDocuments).toHaveBeenCalledWith(
       "private_owner",
-      ["race-1", "race-2"],
+      [
+        {
+          sourceRaceId: "race-1",
+          observedAt: "2026-09-16T00:00:00.000Z",
+          rawEvidenceSha256: "c".repeat(64),
+        },
+        {
+          sourceRaceId: "race-2",
+          observedAt: "2026-09-16T00:00:00.000Z",
+          rawEvidenceSha256: "c".repeat(64),
+        },
+      ],
     );
   });
 
