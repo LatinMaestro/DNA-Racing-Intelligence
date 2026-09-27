@@ -28,7 +28,9 @@ const DEFAULT_EVIDENCE = Object.freeze([
   race("race-2", "d".repeat(64)),
 ]);
 
-function audit(evidence = DEFAULT_EVIDENCE): DnaPopulationEntrantAuthorityLiveAudit {
+function audit(
+  evidence = DEFAULT_EVIDENCE,
+): DnaPopulationEntrantAuthorityLiveAudit {
   return Object.freeze({
     exactCodeHeadSha: HEAD,
     plan: {} as never,
