@@ -121,10 +121,14 @@ owner-facing `PASS` only after strict compact-record replay proves that no
 additional Race metadata was smuggled into that entrant-authority archive.
 
 Per-Core finish position/time is a later Core-history enrichment boundary, not
-part of the entrant-authority cohort. Its durable serving representation should
-remain normalized around Race ID + Core ID + outcome values; Race-level fields
-needed for analytics should be obtained from the Race authority rather than
-creating a second Race-history archive.
+part of the entrant-authority cohort. Its durable serving representation remains
+normalized around Race ID + Core ID + outcome values; Race-level fields needed
+for analytics are obtained from the single Race authority rather than creating
+a second Race-history archive. The analytical adapter loads one exact-main
+read-only combined Race snapshot, retains the exact raw-evidence digest beside
+each canonical Race document, caches that snapshot for the complete analytical
+read, and fails closed when a compact outcome's Race ID, entrant membership or
+race-document evidence digest cannot be matched exactly.
 
 The separately observed per-Core history family supplies compact result rows with
 `cb`, `time` and `pos`. The 15 September 2026 owner-wide redacted scan joined those
