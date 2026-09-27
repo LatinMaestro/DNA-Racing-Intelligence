@@ -60,6 +60,18 @@ export type DnaPopulationEntrantAuthorityAutonomousRunnerReceipt = Readonly<{
   preserveLastGood: true;
 }>;
 
+export type DnaPopulationEntrantAuthorityAutonomousSessionReceipt = Readonly<{
+  version: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION;
+  status: "advanced" | "authority_complete";
+  boundary: DnaPopulationEntrantAuthorityAutonomousBoundary;
+  initialRecoveredRaceCount: number;
+  completedCohortCount: number;
+  previewOnly: true;
+  providerWritePerformed: false;
+  paidUsageAllowed: false;
+  preserveLastGood: true;
+}>;
+
 export type DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic =
   | "invalid_configuration"
   | "not_explicitly_armed"
@@ -95,6 +107,10 @@ export type DnaPopulationEntrantAuthorityAutonomousContinuationCommand =
       invocation: DnaPopulationEntrantAuthorityContinuationCommandInvocation,
     ) => Promise<DnaPopulationEntrantAuthorityContinuationCommandSession>;
   }>;
+
+export type DnaPopulationEntrantAuthorityAutonomousCohortGuard = Readonly<{
+  assertCurrentExactHead: (exactCodeHeadSha: string) => Promise<void>;
+}>;
 
 function runnerError(
   diagnostic: DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic,
@@ -334,8 +350,13 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
   runtimeCodeHeadSha: string;
   boundaryInspector: DnaPopulationEntrantAuthorityAutonomousBoundaryInspector;
   continuationCommand: DnaPopulationEntrantAuthorityAutonomousContinuationCommand;
+  cohortGuard?: DnaPopulationEntrantAuthorityAutonomousCohortGuard;
   now?: () => Date;
 }): Readonly<{
+  runBoundedSession: (
+    invocation: DnaPopulationEntrantAuthorityAutonomousRunnerInvocation,
+    maximumCohortCount: number,
+  ) => Promise<DnaPopulationEntrantAuthorityAutonomousSessionReceipt>;
   runToCompletion: (
     invocation: DnaPopulationEntrantAuthorityAutonomousRunnerInvocation,
   ) => Promise<DnaPopulationEntrantAuthorityAutonomousRunnerReceipt>;
@@ -346,111 +367,152 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
   );
   const now = input.now ?? (() => new Date());
 
-  return Object.freeze({
-    async runToCompletion(invocation) {
-      if (
-        invocation.runnerVersion !==
-          DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION ||
-        invocation.intent !==
-          DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_INTENT ||
-        invocation.allowPersistentWrite !== true
-      ) {
-        runnerError("not_explicitly_armed");
-      }
-      if (
-        exactHead(invocation.exactCodeHeadSha, "exact_head_mismatch") !==
-        runtimeCodeHeadSha
-      ) {
-        runnerError("exact_head_mismatch");
-      }
+  async function runSession(
+    invocation: DnaPopulationEntrantAuthorityAutonomousRunnerInvocation,
+    maximumCohortCount: number | null,
+  ): Promise<DnaPopulationEntrantAuthorityAutonomousSessionReceipt> {
+    if (
+      maximumCohortCount !== null &&
+      (!Number.isSafeInteger(maximumCohortCount) || maximumCohortCount < 1)
+    ) {
+      runnerError("invalid_configuration");
+    }
+    if (
+      invocation.runnerVersion !==
+        DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION ||
+      invocation.intent !==
+        DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_INTENT ||
+      invocation.allowPersistentWrite !== true
+    ) {
+      runnerError("not_explicitly_armed");
+    }
+    if (
+      exactHead(invocation.exactCodeHeadSha, "exact_head_mismatch") !==
+      runtimeCodeHeadSha
+    ) {
+      runnerError("exact_head_mismatch");
+    }
 
-      const acceptedBoundary = canonicalBoundary(invocation.acceptedBoundary);
-      if (acceptedBoundary.exactCodeHeadSha !== runtimeCodeHeadSha) {
-        runnerError("exact_head_mismatch");
-      }
+    const acceptedBoundary = canonicalBoundary(invocation.acceptedBoundary);
+    if (acceptedBoundary.exactCodeHeadSha !== runtimeCodeHeadSha) {
+      runnerError("exact_head_mismatch");
+    }
 
-      let current: DnaPopulationEntrantAuthorityAutonomousBoundary;
+    let current: DnaPopulationEntrantAuthorityAutonomousBoundary;
+    try {
+      current = canonicalBoundary(await input.boundaryInspector.inspect());
+    } catch (error) {
+      if (error instanceof DnaPopulationEntrantAuthorityAutonomousRunnerError) {
+        throw error;
+      }
+      runnerError("boundary_unavailable");
+    }
+    if (!sameBoundary(current, acceptedBoundary)) {
+      runnerError("boundary_drift");
+    }
+
+    const initialRecoveredRaceCount = current.recoveredRaceCount;
+    let completedCohortCount = 0;
+
+    while (
+      current.status !== "authority_complete" &&
+      (maximumCohortCount === null || completedCohortCount < maximumCohortCount)
+    ) {
+      if (input.cohortGuard !== undefined) {
+        try {
+          await input.cohortGuard.assertCurrentExactHead(runtimeCodeHeadSha);
+        } catch {
+          runnerError("boundary_drift");
+        }
+      }
+      let session: DnaPopulationEntrantAuthorityContinuationCommandSession;
       try {
-        current = canonicalBoundary(await input.boundaryInspector.inspect());
+        session = await input.continuationCommand.executeContinuation(
+          invocationFromBoundary({ boundary: current, now }),
+        );
+      } catch {
+        runnerError("continuation_unavailable");
+      }
+
+      if (
+        session.prepared.recoveredChunkCount !== current.recoveredChunkCount ||
+        session.prepared.recoveredRaceCount !== current.recoveredRaceCount ||
+        session.prepared.chunkOrdinal !== current.nextChunkOrdinal ||
+        session.prepared.durableBoundarySha256 !==
+          current.durableBoundarySha256 ||
+        session.prepared.aggregateRequestsPerMinute !== 30 ||
+        session.prepared.persistentWriteArmed !== true ||
+        session.prepared.previewOnly !== true ||
+        session.prepared.entrantChunkPersistentWritePerformed !== false ||
+        session.prepared.providerWritePerformed !== false ||
+        session.prepared.paidUsageAllowed !== false ||
+        session.prepared.preserveLastGood !== true
+      ) {
+        runnerError("continuation_unavailable");
+      }
+
+      let commit: DnaPopulationEntrantAuthorityContinuationCommandReceipt;
+      try {
+        commit = await session.commit();
+      } catch {
+        runnerError("commit_unavailable");
+      }
+      validateCommit({ boundary: current, receipt: commit });
+
+      let next: DnaPopulationEntrantAuthorityAutonomousBoundary;
+      try {
+        next = canonicalBoundary(await input.boundaryInspector.inspect());
       } catch (error) {
         if (
           error instanceof DnaPopulationEntrantAuthorityAutonomousRunnerError
         ) {
           throw error;
         }
-        runnerError("boundary_unavailable");
+        runnerError(
+          commit.authorityComplete
+            ? "completion_unverified"
+            : "boundary_unavailable",
+        );
       }
-      if (!sameBoundary(current, acceptedBoundary)) {
-        runnerError("boundary_drift");
+      validatePostCommitBoundary({ before: current, commit, after: next });
+      current = next;
+      completedCohortCount += 1;
+    }
+
+    return Object.freeze({
+      version: DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION,
+      status:
+        current.status === "authority_complete"
+          ? ("authority_complete" as const)
+          : ("advanced" as const),
+      boundary: current,
+      initialRecoveredRaceCount,
+      completedCohortCount,
+      previewOnly: true as const,
+      providerWritePerformed: false as const,
+      paidUsageAllowed: false as const,
+      preserveLastGood: true as const,
+    });
+  }
+
+  return Object.freeze({
+    async runBoundedSession(invocation, maximumCohortCount) {
+      return runSession(invocation, maximumCohortCount);
+    },
+    async runToCompletion(invocation) {
+      const session = await runSession(invocation, null);
+      if (session.status !== "authority_complete") {
+        runnerError("completion_unverified");
       }
-
-      const initialRecoveredRaceCount = current.recoveredRaceCount;
-      let completedCohortCount = 0;
-
-      while (current.status !== "authority_complete") {
-        let session: DnaPopulationEntrantAuthorityContinuationCommandSession;
-        try {
-          session = await input.continuationCommand.executeContinuation(
-            invocationFromBoundary({ boundary: current, now }),
-          );
-        } catch {
-          runnerError("continuation_unavailable");
-        }
-
-        if (
-          session.prepared.recoveredChunkCount !==
-            current.recoveredChunkCount ||
-          session.prepared.recoveredRaceCount !== current.recoveredRaceCount ||
-          session.prepared.chunkOrdinal !== current.nextChunkOrdinal ||
-          session.prepared.durableBoundarySha256 !==
-            current.durableBoundarySha256 ||
-          session.prepared.aggregateRequestsPerMinute !== 30 ||
-          session.prepared.persistentWriteArmed !== true ||
-          session.prepared.previewOnly !== true ||
-          session.prepared.entrantChunkPersistentWritePerformed !== false ||
-          session.prepared.providerWritePerformed !== false ||
-          session.prepared.paidUsageAllowed !== false ||
-          session.prepared.preserveLastGood !== true
-        ) {
-          runnerError("continuation_unavailable");
-        }
-
-        let commit: DnaPopulationEntrantAuthorityContinuationCommandReceipt;
-        try {
-          commit = await session.commit();
-        } catch {
-          runnerError("commit_unavailable");
-        }
-        validateCommit({ boundary: current, receipt: commit });
-
-        let next: DnaPopulationEntrantAuthorityAutonomousBoundary;
-        try {
-          next = canonicalBoundary(await input.boundaryInspector.inspect());
-        } catch (error) {
-          if (
-            error instanceof DnaPopulationEntrantAuthorityAutonomousRunnerError
-          ) {
-            throw error;
-          }
-          runnerError(
-            commit.authorityComplete
-              ? "completion_unverified"
-              : "boundary_unavailable",
-          );
-        }
-        validatePostCommitBoundary({ before: current, commit, after: next });
-        current = next;
-        completedCohortCount += 1;
-      }
-
+      const current = session.boundary;
       return Object.freeze({
         version: DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION,
         status: "authority_complete" as const,
         exactCodeHeadSha: current.exactCodeHeadSha,
         unresolvedRaceCount: current.unresolvedRaceCount,
         unresolvedRaceSetSha256: current.unresolvedRaceSetSha256,
-        initialRecoveredRaceCount,
-        completedCohortCount,
+        initialRecoveredRaceCount: session.initialRecoveredRaceCount,
+        completedCohortCount: session.completedCohortCount,
         recoveredChunkCount: current.recoveredChunkCount,
         recoveredRaceCount: current.recoveredRaceCount,
         nextChunkOrdinal: current.nextChunkOrdinal,

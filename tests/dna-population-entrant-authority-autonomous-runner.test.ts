@@ -145,6 +145,83 @@ function invocation(
 }
 
 describe("population entrant authority autonomous runner", () => {
+  it("yields an exact resumable boundary after the hosted cohort limit", async () => {
+    const first = boundary();
+    const second = boundary({
+      recoveredChunkCount: 3,
+      recoveredRaceCount: 3_000,
+      checkpointUpdatedAt: "2026-09-28T00:02:00.000Z",
+      capacityObservedAt: "2026-09-28T00:02:10.000Z",
+      durableBoundarySha256: "3".repeat(64),
+    });
+    const inspect = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+    const executeContinuation = vi.fn(async () => session({ before: first }));
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect },
+      continuationCommand: { executeContinuation },
+      now: () => new Date("2026-09-28T00:01:00.000Z"),
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(first), 1),
+    ).resolves.toMatchObject({
+      status: "advanced",
+      initialRecoveredRaceCount: 2_000,
+      completedCohortCount: 1,
+      boundary: {
+        status: "ready_for_continuation",
+        recoveredChunkCount: 3,
+        recoveredRaceCount: 3_000,
+        durableBoundarySha256: "3".repeat(64),
+      },
+      previewOnly: true,
+      paidUsageAllowed: false,
+    });
+    expect(inspect).toHaveBeenCalledTimes(2);
+    expect(executeContinuation).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an invalid hosted cohort limit before inspecting durable state", async () => {
+    const accepted = boundary();
+    const inspect = vi.fn();
+    const executeContinuation = vi.fn();
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect },
+      continuationCommand: { executeContinuation },
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(accepted), 0),
+    ).rejects.toMatchObject({ diagnostic: "invalid_configuration" });
+    expect(inspect).not.toHaveBeenCalled();
+    expect(executeContinuation).not.toHaveBeenCalled();
+  });
+
+  it("stops before the next cohort when the hosted exact-main guard fails", async () => {
+    const accepted = boundary();
+    const executeContinuation = vi.fn();
+    const assertCurrentExactHead = vi.fn(async () => {
+      throw new Error("main moved");
+    });
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect: vi.fn(async () => accepted) },
+      continuationCommand: { executeContinuation },
+      cohortGuard: { assertCurrentExactHead },
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(accepted), 1),
+    ).rejects.toMatchObject({ diagnostic: "boundary_drift" });
+    expect(assertCurrentExactHead).toHaveBeenCalledWith(HEAD);
+    expect(executeContinuation).not.toHaveBeenCalled();
+  });
+
   it("advances bounded cohorts until independently verified exact completion", async () => {
     const first = boundary();
     const second = boundary({
