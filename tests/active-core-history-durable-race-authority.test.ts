@@ -53,8 +53,10 @@ function source(value: DnaPopulationEntrantAuthorityLiveAudit) {
 }
 
 describe("active Core history durable Race authority", () => {
-  it("loads one exact-main snapshot, preserves requested order and caches it", async () => {
-    const auditSource = source(audit());
+  it(
+    "loads one exact-main snapshot, preserves requested order and caches it",
+    async () => {
+      const auditSource = source(audit());
     const authority = createActiveCoreHistoryDurableRaceAuthority({
       ownerId: OWNER,
       exactCodeHeadSha: HEAD,
@@ -75,14 +77,17 @@ describe("active Core history durable Race authority", () => {
     ]);
     await authority.readRaceDocuments(OWNER, ["race-1"]);
     expect(auditSource.load).toHaveBeenCalledTimes(1);
-    expect(auditSource.load).toHaveBeenCalledWith({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-    });
-  });
+      expect(auditSource.load).toHaveBeenCalledWith({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      });
+    },
+  );
 
-  it("fails closed on missing, duplicate, cross-owner or stale evidence", async () => {
-    const authority = createActiveCoreHistoryDurableRaceAuthority({
+  it(
+    "fails closed on missing, duplicate, cross-owner or stale evidence",
+    async () => {
+      const authority = createActiveCoreHistoryDurableRaceAuthority({
       ownerId: OWNER,
       exactCodeHeadSha: HEAD,
       source: source(audit()),
@@ -115,8 +120,9 @@ describe("active Core history durable Race authority", () => {
       exactCodeHeadSha: HEAD,
       source: source(audit([race("race-1", "c".repeat(64)), duplicated])),
     });
-    await expect(
-      ambiguous.readRaceDocuments(OWNER, ["race-1"]),
-    ).rejects.toThrow("durable Race snapshot is ambiguous");
-  });
+      await expect(
+        ambiguous.readRaceDocuments(OWNER, ["race-1"]),
+      ).rejects.toThrow("durable Race snapshot is ambiguous");
+    },
+  );
 });
