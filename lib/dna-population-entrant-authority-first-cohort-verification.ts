@@ -12,6 +12,11 @@ import {
   recoverDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityR2RecoveryPort,
 } from "./dna-population-entrant-authority-recovery";
+import type { CanonicalCoreRaceHistoryResult } from "./dna-core-race-history-adapter";
+import {
+  assessDnaPopulationEntrantAuthorityFirstCohortAcceptance,
+  type DnaPopulationEntrantAuthorityFirstCohortAcceptance,
+} from "./dna-population-entrant-authority-first-cohort-acceptance";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -34,6 +39,7 @@ export type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt =
     checkpointUpdatedAt: string;
     nextChunkOrdinal: 2;
     authorityComplete: boolean;
+    ownerAcceptance: DnaPopulationEntrantAuthorityFirstCohortAcceptance;
     previewOnly: true;
     providerRequestPerformed: false;
     persistentWritePerformed: false;
@@ -124,6 +130,15 @@ export function createDnaPopulationEntrantAuthorityFirstCohortVerifier(input: {
     "read" | "listChunkManifests"
   >;
   r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
+  coreOutcomeSource?: Readonly<{
+    load: (request: { ownerId: string; exactCodeHeadSha: string }) => Promise<
+      Readonly<{
+        outcomes: readonly CanonicalCoreRaceHistoryResult[];
+        providerRequestPerformed: false;
+        persistentWritePerformed: false;
+      }>
+    >;
+  }>;
 }): Readonly<{
   inspect: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
 }> {
@@ -220,6 +235,29 @@ export function createDnaPopulationEntrantAuthorityFirstCohortVerifier(input: {
           unavailable();
         }
 
+        const coreOutcomeEvidence =
+          input.coreOutcomeSource === undefined
+            ? Object.freeze({
+                outcomes: Object.freeze([]),
+                providerRequestPerformed: false as const,
+                persistentWritePerformed: false as const,
+              })
+            : await input.coreOutcomeSource.load({ ownerId, exactCodeHeadSha });
+        if (
+          coreOutcomeEvidence.providerRequestPerformed !== false ||
+          coreOutcomeEvidence.persistentWritePerformed !== false
+        ) {
+          unavailable();
+        }
+        const ownerAcceptance =
+          assessDnaPopulationEntrantAuthorityFirstCohortAcceptance({
+            raceDocuments: audit.raceDocuments,
+            records: stored.records,
+            raceSetSha256: manifest.raceSetSha256,
+            recordSetSha256: manifest.recordSetSha256,
+            coreOutcomes: coreOutcomeEvidence.outcomes,
+          });
+
         return Object.freeze({
           status: "verified_first_cohort" as const,
           exactCodeHeadSha,
@@ -236,6 +274,7 @@ export function createDnaPopulationEntrantAuthorityFirstCohortVerifier(input: {
           checkpointUpdatedAt,
           nextChunkOrdinal: 2 as const,
           authorityComplete: recovery.complete,
+          ownerAcceptance,
           previewOnly: true as const,
           providerRequestPerformed: false as const,
           persistentWritePerformed: false as const,

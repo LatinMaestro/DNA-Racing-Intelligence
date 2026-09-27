@@ -45,7 +45,7 @@ jobs:
             echo "This entrant verification workflow may only run from main."
             exit 1
           fi
-          if [[ "${{ inputs.expected_main_sha }}" != "$GITHUB_SHA" ]]; then
+          if [[ "$DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA" != "$GITHUB_SHA" ]]; then
             echo "The supplied verification commit does not match the dispatch head."
             exit 1
           fi

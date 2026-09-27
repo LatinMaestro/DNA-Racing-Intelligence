@@ -103,6 +103,7 @@ describeConnected(
           "DNA_POPULATION_ENTRANT_AUTHORITY_FIRST_COHORT_VERIFICATION=" +
             JSON.stringify(receipt),
         );
+        expect(receipt.ownerAcceptance.verdict).toBe("PASS");
       },
       30 * 60_000,
     );

@@ -2819,3 +2819,19 @@ After the private Pro League milestone, continue in this order:
   preflight blocked solely by Neon storage may run this storage-negative relief
   operation. R2, compute, measurement and billing guards remain fail-closed;
   paid use remains disabled and Production is unchanged.
+
+## 2026-09-27 — Make first-cohort acceptance one fail-closed owner verdict
+
+- Reopen the exact immutable first entrant chunk and bind its Race set and
+  record-set hashes to the canonical unresolved-Race slice before evaluating
+  acceptance.
+- Preserve the existing Race authority as the only full Race record. Merge only
+  compact mode/entrant authority for verification and reject any conflict or
+  duplicated Race metadata in the compact shape.
+- PASS requires complete durable Core outcome coverage keyed by Race ID and Core
+  ID, with exact mode/distance agreement, positive elapsed time and valid finish
+  position. Exact replay is counted once; changed replay fails closed.
+- Emit only aggregate counts and five PASS/FAIL checks. Missing durable Core
+  outcomes, quarantines or incomplete joins produce FAIL without exposing Race,
+  Core, owner or object-key identities. The verifier performs no provider read
+  or persistent write and grants no cohort execution authority.

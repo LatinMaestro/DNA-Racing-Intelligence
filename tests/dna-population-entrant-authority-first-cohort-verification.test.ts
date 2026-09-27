@@ -4,6 +4,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpoint,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
+import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
 import {
   createDnaPopulationEntrantAuthorityFirstCohortVerifier,
   DnaPopulationEntrantAuthorityFirstCohortVerificationError,
@@ -22,7 +23,6 @@ const OWNER = "private-owner";
 const RACE_IDS = Object.freeze(["race-1", "race-2"]);
 const GENERATION = dnaPopulationEntrantAuthorityRaceSetSha256(RACE_IDS);
 const BODY = "b".repeat(64);
-const RECORD_SET = "c".repeat(64);
 const REGISTERED_AT = "2026-09-26T16:00:00.000Z";
 const UPDATED_AT = "2026-09-26T16:00:01.000Z";
 
@@ -97,6 +97,12 @@ function records(): readonly DnaPopulationEntrantAuthorityRecord[] {
     }),
   ]);
 }
+
+const RECORD_SET = buildDnaPopulationEntrantAuthorityChunk({
+  generationId: GENERATION,
+  chunkOrdinal: 1,
+  records: records(),
+}).receipt.recordSetSha256;
 
 function harness(input?: {
   checkpoint?: DnaPopulationEntrantAuthorityCheckpoint;
@@ -182,6 +188,17 @@ describe("population entrant first-cohort verification", () => {
       checkpointUpdatedAt: UPDATED_AT,
       nextChunkOrdinal: 2,
       authorityComplete: true,
+      ownerAcceptance: {
+        verdict: "FAIL",
+        singleRaceAuthority: "PASS",
+        availableCanonicalRaceFieldsPreserved: "FAIL",
+        completeCoreOutcomeIdentityJoins: "FAIL",
+        exactReplayAndConflictSafety: "PASS",
+        compactStorageAttribution: "PASS",
+        expectedCoreOutcomeCount: 0,
+        verifiedCoreOutcomeCount: 0,
+        exactCoreOutcomeReplayCount: 0,
+      },
       previewOnly: true,
       providerRequestPerformed: false,
       persistentWritePerformed: false,

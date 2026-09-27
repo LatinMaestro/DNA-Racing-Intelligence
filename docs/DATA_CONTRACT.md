@@ -141,6 +141,16 @@ entrant list is likewise retained as contradictory source evidence but omitted
 from canonical analytics. The generation records unavailable-authority and
 contradictory-entrant omissions separately; a merely absent entrant collection
 still fails closed.
+
+Post-first-cohort acceptance is one identity-free PASS/FAIL receipt. It reopens
+the exact immutable entrant chunk, reconstructs only the population fields into
+the existing canonical Race authority, proves exact replay/conflict handling,
+and attributes storage to the compact rows plus their manifest/checkpoint. PASS
+also requires complete durable Core outcomes joined by Race ID and Core ID with
+exact mode and distance agreement, positive elapsed time and valid finish
+position. Missing durable outcomes, quarantined Races or incomplete joins return
+FAIL; the verifier never substitutes a fresh provider read for durable proof.
+
 The subsequent generation boundary recomputes the observation hash, reconciles
 all counts exactly and stages no more than 250 rows per call. Migrations `0101`
 through `0104` store and read those rows behind forced owner isolation and function-only
