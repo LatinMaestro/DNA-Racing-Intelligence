@@ -4,6 +4,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointRepository,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "./dna-population-entrant-authority-checkpoint";
+import type { DnaPopulationEntrantAuthorityAutonomousBoundary } from "./dna-population-entrant-authority-autonomous-runner";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import {
@@ -37,6 +38,24 @@ export type DnaPopulationEntrantAuthorityContinuationReadinessReceipt =
     providerWritePerformed: false;
     paidUsageAllowed: false;
   }>;
+
+type DnaPopulationEntrantAuthorityDurableBoundaryProof = Readonly<{
+  status: "ready_for_continuation" | "authority_complete";
+  exactCodeHeadSha: string;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
+  recoveredChunkCount: number;
+  recoveredRaceCount: number;
+  nextChunkOrdinal: number;
+  checkpointUpdatedAt: string;
+  capacityObservedAt: string;
+  durableBoundarySha256: string;
+  previewOnly: true;
+  providerRequestPerformed: false;
+  persistentWritePerformed: false;
+  providerWritePerformed: false;
+  paidUsageAllowed: false;
+}>;
 
 export class DnaPopulationEntrantAuthorityContinuationReadinessError extends Error {
   constructor() {
@@ -169,7 +188,7 @@ function capacityObservedAt(input: {
   return exactTimestamp(input.approval.observedAt);
 }
 
-export function createDnaPopulationEntrantAuthorityContinuationReadinessInspector(input: {
+type DurableBoundaryInspectorInput = Readonly<{
   ownerId: string;
   exactCodeHeadSha: string;
   authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
@@ -179,8 +198,12 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
     "read" | "listChunkManifests"
   >;
   r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
-}): Readonly<{
-  inspect: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
+}>;
+
+function createDurableBoundaryProofInspector(
+  input: DurableBoundaryInspectorInput,
+): Readonly<{
+  inspect: () => Promise<DnaPopulationEntrantAuthorityDurableBoundaryProof>;
 }> {
   const ownerId = identity(input.ownerId);
   const exactCodeHeadSha = exactHead(input.exactCodeHeadSha);
@@ -219,7 +242,6 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
         });
 
         if (
-          recovery.complete ||
           recovery.recoveredChunkCount < 1 ||
           recovery.recoveredRaceCount < 1 ||
           recovery.nextChunkOrdinal !== recovery.recoveredChunkCount + 1 ||
@@ -249,9 +271,9 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
         });
 
         return Object.freeze({
-          version:
-            DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
-          status: "ready_for_continuation" as const,
+          status: recovery.complete
+            ? ("authority_complete" as const)
+            : ("ready_for_continuation" as const),
           exactCodeHeadSha,
           unresolvedRaceCount: audit.authority.unresolvedRaceCount,
           unresolvedRaceSetSha256: sha256(
@@ -278,6 +300,52 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
         }
         unavailable();
       }
+    },
+  });
+}
+
+export function createDnaPopulationEntrantAuthorityContinuationReadinessInspector(
+  input: DurableBoundaryInspectorInput,
+): Readonly<{
+  inspect: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
+}> {
+  const durableBoundary = createDurableBoundaryProofInspector(input);
+
+  return Object.freeze({
+    async inspect() {
+      const proof = await durableBoundary.inspect();
+      if (proof.status !== "ready_for_continuation") unavailable();
+      return Object.freeze({
+        version:
+          DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
+        ...proof,
+        status: "ready_for_continuation" as const,
+      });
+    },
+  });
+}
+
+/**
+ * Re-opens the exact live authority, compact Neon checkpoint/manifests and each
+ * immutable private R2 chunk for the autonomous controller. The same proof is
+ * used by continuation readiness, but this adapter can also report independently
+ * verified exact completion so the controller stops without attempting another
+ * cohort. It performs no DNA provider request and no persistent write.
+ */
+export function createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector(
+  input: DurableBoundaryInspectorInput,
+): Readonly<{
+  inspect: () => Promise<DnaPopulationEntrantAuthorityAutonomousBoundary>;
+}> {
+  const durableBoundary = createDurableBoundaryProofInspector(input);
+
+  return Object.freeze({
+    async inspect() {
+      const proof = await durableBoundary.inspect();
+      return Object.freeze({
+        version: 1 as const,
+        ...proof,
+      });
     },
   });
 }
