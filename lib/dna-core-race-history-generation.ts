@@ -56,6 +56,7 @@ export type DnaCoreRaceHistoryOutcome = Readonly<{
   naturalKey: string;
   resultEvidenceSha256: string;
   raceDocumentEvidenceSha256: string;
+  raceDocumentObservedAt: string;
   sourceCoreId: string;
   sourceRaceId: string;
   elapsedMilliseconds: number;
@@ -155,6 +156,7 @@ function durableOutcome(
     naturalKey: `core-result:${observation.sourceCoreId}:${observation.sourceRaceId}`,
     resultEvidenceSha256: observation.resultEvidenceSha256,
     raceDocumentEvidenceSha256: observation.raceDocumentEvidenceSha256,
+    raceDocumentObservedAt: observation.raceDocumentObservedAt,
     sourceCoreId: observation.sourceCoreId,
     sourceRaceId: observation.sourceRaceId,
     elapsedMilliseconds: observation.elapsedMilliseconds,
