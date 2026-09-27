@@ -123,6 +123,67 @@ jobs:
                 expected_main_sha: payload.expected_main_sha,
               };
               break;
+            case "entrant-continuation-readiness":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-entrant-authority-continuation-readiness.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
+            case "entrant-continuation":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "cohort_observed_at",
+                "expected_unresolved_race_count",
+                "expected_unresolved_race_set_sha256",
+                "expected_recovered_chunk_count",
+                "expected_recovered_race_count",
+                "expected_next_chunk_ordinal",
+                "expected_checkpoint_updated_at",
+                "readiness_capacity_observed_at",
+                "durable_boundary_sha256",
+                "execute_next_private_preview_entrant_cohort",
+              ]);
+              if (
+                !exactTimestamp(payload.cohort_observed_at) ||
+                !positiveCount(payload.expected_unresolved_race_count) ||
+                !sha64(payload.expected_unresolved_race_set_sha256) ||
+                !positiveCount(payload.expected_recovered_chunk_count) ||
+                !positiveCount(payload.expected_recovered_race_count) ||
+                !positiveCount(payload.expected_next_chunk_ordinal) ||
+                !exactTimestamp(payload.expected_checkpoint_updated_at) ||
+                !exactTimestamp(payload.readiness_capacity_observed_at) ||
+                !sha64(payload.durable_boundary_sha256) ||
+                payload.execute_next_private_preview_entrant_cohort !== true
+              ) {
+                throw new Error("Continuation dispatch authority is invalid.");
+              }
+              workflow =
+                "dna-population-entrant-authority-continuation-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                cohort_observed_at: payload.cohort_observed_at,
+                expected_unresolved_race_count:
+                  payload.expected_unresolved_race_count,
+                expected_unresolved_race_set_sha256:
+                  payload.expected_unresolved_race_set_sha256,
+                expected_recovered_chunk_count:
+                  payload.expected_recovered_chunk_count,
+                expected_recovered_race_count:
+                  payload.expected_recovered_race_count,
+                expected_next_chunk_ordinal:
+                  payload.expected_next_chunk_ordinal,
+                expected_checkpoint_updated_at:
+                  payload.expected_checkpoint_updated_at,
+                readiness_capacity_observed_at:
+                  payload.readiness_capacity_observed_at,
+                durable_boundary_sha256:
+                  payload.durable_boundary_sha256,
+                execute_next_private_preview_entrant_cohort: true,
+              };
+              break;
             case "entrant-first-cohort":
               exactKeys([
                 "kind",
