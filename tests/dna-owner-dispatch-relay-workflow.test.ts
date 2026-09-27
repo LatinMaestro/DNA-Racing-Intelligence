@@ -46,6 +46,15 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("expected_next_chunk_ordinal");
     expect(workflow).toContain("expected_checkpoint_updated_at");
     expect(workflow).toContain("durable_boundary_sha256");
+    expect(workflow).toContain(
+      "dna-population-entrant-authority-autonomous-runner.yml",
+    );
+    expect(workflow).toContain(
+      "payload.execute_all_private_preview_entrant_authority !== true",
+    );
+    expect(workflow).toContain(
+      'payload.accepted_boundary_status !== "ready_for_continuation"',
+    );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
