@@ -199,6 +199,29 @@ describe("DNA Core race history generation", () => {
       repo.stageRows.mock.calls.map((call) => call[1].rows.length),
     ).toEqual([250, 1]);
     expect(repo.publish).toHaveBeenCalledTimes(1);
+    const persisted = repo.rows.get(0)?.payload;
+    expect(persisted).toEqual({
+      sourceType: "core_race_history_outcome",
+      payloadVersion: 1,
+      naturalKey: expect.any(String),
+      resultEvidenceSha256: "a".repeat(64),
+      raceDocumentEvidenceSha256: "b".repeat(64),
+      sourceCoreId: expect.any(String),
+      sourceRaceId: expect.any(String),
+      elapsedMilliseconds: expect.any(Number),
+      finishPosition: 1,
+    });
+    expect(persisted).not.toHaveProperty("mode");
+    expect(persisted).not.toHaveProperty("distanceMetres");
+    expect(persisted).not.toHaveProperty("eventAt");
+    expect(persisted).not.toHaveProperty("gateCount");
+    expect(persisted).not.toHaveProperty("payoutMechanismSourceValue");
+    expect(persisted).not.toHaveProperty("sourceFormat");
+    expect(persisted).not.toHaveProperty("sourceRaceClass");
+    expect(persisted).not.toHaveProperty("goldStar");
+    expect(persisted).not.toHaveProperty("blueStar");
+    expect(persisted).not.toHaveProperty("raceType");
+    expect(persisted).not.toHaveProperty("mapIds");
   });
 
   it("retains quarantined entrant omissions outside analytical rows", async () => {

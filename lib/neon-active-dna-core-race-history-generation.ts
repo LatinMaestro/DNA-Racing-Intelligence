@@ -1,5 +1,6 @@
 import {
   DNA_CORE_RACE_HISTORY_GENERATION_MAXIMUM_OBSERVATIONS,
+  type DnaCoreRaceHistoryOutcome,
   type DnaCoreRaceHistoryPublishedGeneration,
 } from "@/lib/dna-core-race-history-generation";
 import type { DnaCoreRaceHistoryJoinedObservation } from "@/lib/dna-core-race-history-materialization";
@@ -67,7 +68,7 @@ export type ActiveDnaCoreRaceHistoryGenerationRow = Readonly<{
   ordinal: number;
   naturalKey: string;
   rowSha256: string;
-  payload: DnaCoreRaceHistoryJoinedObservation;
+  payload: DnaCoreRaceHistoryJoinedObservation | DnaCoreRaceHistoryOutcome;
 }>;
 
 export type ActiveDnaCoreRaceHistoryGenerationReadRepository = Readonly<{
@@ -148,22 +149,57 @@ function ownerId(value: string): string {
   return value;
 }
 
-function payload(value: unknown): DnaCoreRaceHistoryJoinedObservation {
+function payload(
+  value: unknown,
+): DnaCoreRaceHistoryJoinedObservation | DnaCoreRaceHistoryOutcome {
   const parsed =
     typeof value === "string" ? (JSON.parse(value) as unknown) : value;
   const row = record(parsed, "Core history active payload");
-  if (
-    row.sourceType !== "joined_core_race_history_result" ||
-    row.distanceAuthority !== "result_and_race_document" ||
-    (row.mode !== "bike" && row.mode !== "car" && row.mode !== "horse") ||
-    (row.publishedCellStatus !== "accepted" &&
-      row.publishedCellStatus !== "missing_format" &&
-      row.publishedCellStatus !== "unsupported_format" &&
-      row.publishedCellStatus !== "unpublished_cell")
-  ) {
-    throw new Error("Core history active payload authority is invalid");
+  if (row.sourceType === "core_race_history_outcome") {
+    const keys = Object.keys(row).sort();
+    const expectedKeys = [
+      "elapsedMilliseconds",
+      "finishPosition",
+      "naturalKey",
+      "payloadVersion",
+      "raceDocumentEvidenceSha256",
+      "resultEvidenceSha256",
+      "sourceCoreId",
+      "sourceRaceId",
+      "sourceType",
+    ].sort();
+    if (
+      keys.length !== expectedKeys.length ||
+      keys.some((key, index) => key !== expectedKeys[index]) ||
+      row.payloadVersion !== 1 ||
+      typeof row.naturalKey !== "string" ||
+      typeof row.sourceCoreId !== "string" ||
+      typeof row.sourceRaceId !== "string" ||
+      typeof row.resultEvidenceSha256 !== "string" ||
+      !SHA_256_PATTERN.test(row.resultEvidenceSha256) ||
+      typeof row.raceDocumentEvidenceSha256 !== "string" ||
+      !SHA_256_PATTERN.test(row.raceDocumentEvidenceSha256) ||
+      !Number.isSafeInteger(row.elapsedMilliseconds) ||
+      (row.elapsedMilliseconds as number) < 1 ||
+      !Number.isSafeInteger(row.finishPosition) ||
+      (row.finishPosition as number) < 1
+    ) {
+      throw new Error("Core history active outcome payload is invalid");
+    }
+    return row as DnaCoreRaceHistoryOutcome;
   }
-  return row as DnaCoreRaceHistoryJoinedObservation;
+  if (
+    row.sourceType === "joined_core_race_history_result" &&
+    row.distanceAuthority === "result_and_race_document" &&
+    (row.mode === "bike" || row.mode === "car" || row.mode === "horse") &&
+    (row.publishedCellStatus === "accepted" ||
+      row.publishedCellStatus === "missing_format" ||
+      row.publishedCellStatus === "unsupported_format" ||
+      row.publishedCellStatus === "unpublished_cell")
+  ) {
+    return row as DnaCoreRaceHistoryJoinedObservation;
+  }
+  throw new Error("Core history active payload authority is invalid");
 }
 
 function parseGeneration(row: DbRow): DnaCoreRaceHistoryPublishedGeneration {
