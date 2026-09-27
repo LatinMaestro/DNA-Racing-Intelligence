@@ -1,0 +1,88 @@
+name: DNA population entrant checkpoint readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit to inspect
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-entrant-authority-checkpoint-readiness
+  cancel-in-progress: false
+
+jobs:
+  read-only-checkpoint-readiness:
+    name: Read-only private Preview checkpoint readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_CHECKPOINT_READINESS: "1"
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+    steps:
+      - name: Require exact main dispatch
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "This checkpoint readiness workflow may only run from main."
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "The supplied exact main commit is invalid."
+            exit 1
+          fi
+          if [[ "$EXPECTED_MAIN_SHA" != "${{ github.sha }}" ]]; then
+            echo "The supplied exact main commit does not match the dispatch head."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN_SHA"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          for (const name of [
+            "AUTHORIZED_CLERK_USER_ID",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+          ]) {
+            const value = process.env[name];
+            if (!value || value.trim() !== value || value.length > 4096) {
+              throw new Error(name + " is missing or invalid");
+            }
+          }
+          console.log("Validated checkpoint-readiness configuration presence.");
+          NODE
+      - name: Inspect the read-only checkpoint boundary
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-entrant-authority-checkpoint-readiness.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN_SHA"
