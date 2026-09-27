@@ -142,7 +142,8 @@ jobs:
           set -euo pipefail
           psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
             database/migrations/0117_dna_population_entrant_authority_checkpoint.up.sql
-          if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
+          if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 --file \
             database/migrations/0117_dna_population_entrant_authority_checkpoint.smoke.sql; then
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
               database/migrations/0117_dna_population_entrant_authority_checkpoint.down.sql
