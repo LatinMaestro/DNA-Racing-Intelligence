@@ -1,0 +1,181 @@
+name: DNA owner dispatch relay
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dna-owner-dispatch-relay
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch allow-listed DNA entrant workflow
+    if: >-
+      ${{ github.event.issue.number == 120 &&
+          github.actor == github.repository_owner &&
+          github.event.comment.author_association == 'OWNER' &&
+          startsWith(github.event.comment.body, '/dna-dispatch ') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate owner command and dispatch allow-listed workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DNA_OWNER_DISPATCH_COMMAND: ${{ github.event.comment.body }}
+          DNA_OWNER_DISPATCH_REPOSITORY: ${{ github.repository }}
+        run: |
+          node --input-type=module <<'NODE'
+          const prefix = "/dna-dispatch ";
+          const command = process.env.DNA_OWNER_DISPATCH_COMMAND ?? "";
+          const repository = process.env.DNA_OWNER_DISPATCH_REPOSITORY ?? "";
+          const token = process.env.GH_TOKEN ?? "";
+
+          if (
+            !command.startsWith(prefix) ||
+            command.length > 4096 ||
+            !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) ||
+            token.length < 1
+          ) {
+            throw new Error("Owner dispatch command is invalid.");
+          }
+
+          let payload;
+          try {
+            payload = JSON.parse(command.slice(prefix.length));
+          } catch {
+            throw new Error("Owner dispatch payload is invalid.");
+          }
+          if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+            throw new Error("Owner dispatch payload is invalid.");
+          }
+
+          const exactKeys = (allowed) => {
+            const actual = Object.keys(payload).sort();
+            const expected = [...allowed].sort();
+            if (
+              actual.length !== expected.length ||
+              actual.some((key, index) => key !== expected[index])
+            ) {
+              throw new Error("Owner dispatch payload keys are invalid.");
+            }
+          };
+          const sha40 = (value) =>
+            typeof value === "string" && /^[a-f0-9]{40}$/.test(value);
+          const sha64 = (value) =>
+            typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+          const positiveCount = (value) =>
+            typeof value === "string" &&
+            /^[1-9]\d*$/.test(value) &&
+            Number.isSafeInteger(Number(value));
+          const exactTimestamp = (value) => {
+            if (typeof value !== "string") return false;
+            const parsed = new Date(value);
+            return (
+              !Number.isNaN(parsed.getTime()) &&
+              parsed.toISOString() === value &&
+              parsed.getTime() <= Date.now()
+            );
+          };
+
+          if (!sha40(payload.expected_main_sha)) {
+            throw new Error("Owner dispatch main authority is invalid.");
+          }
+
+          const headers = {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          };
+          const mainResponse = await fetch(
+            `https://api.github.com/repos/${repository}/commits/main`,
+            { headers, cache: "no-store" },
+          );
+          if (!mainResponse.ok) {
+            throw new Error("Current main authority is unavailable.");
+          }
+          const main = await mainResponse.json();
+          if (main?.sha !== payload.expected_main_sha) {
+            throw new Error("Owner dispatch main authority is stale.");
+          }
+
+          let workflow;
+          let inputs;
+          switch (payload.kind) {
+            case "entrant-readiness":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow = "dna-population-entrant-authority-readiness.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
+            case "entrant-first-verify":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-entrant-authority-first-cohort-verification.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
+            case "entrant-first-cohort":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "cohort_observed_at",
+                "expected_unresolved_race_count",
+                "expected_unresolved_race_set_sha256",
+                "readiness_capacity_observed_at",
+                "readiness_receipt_sha256",
+                "execute_first_private_preview_entrant_cohort",
+              ]);
+              if (
+                !exactTimestamp(payload.cohort_observed_at) ||
+                !positiveCount(payload.expected_unresolved_race_count) ||
+                !sha64(payload.expected_unresolved_race_set_sha256) ||
+                !exactTimestamp(payload.readiness_capacity_observed_at) ||
+                !sha64(payload.readiness_receipt_sha256) ||
+                payload.execute_first_private_preview_entrant_cohort !== true
+              ) {
+                throw new Error("First-cohort dispatch authority is invalid.");
+              }
+              workflow =
+                "dna-population-entrant-authority-cohort-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                cohort_observed_at: payload.cohort_observed_at,
+                expected_unresolved_race_count:
+                  payload.expected_unresolved_race_count,
+                expected_unresolved_race_set_sha256:
+                  payload.expected_unresolved_race_set_sha256,
+                readiness_capacity_observed_at:
+                  payload.readiness_capacity_observed_at,
+                readiness_receipt_sha256:
+                  payload.readiness_receipt_sha256,
+                execute_first_private_preview_entrant_cohort: true,
+              };
+              break;
+            default:
+              throw new Error("Owner dispatch workflow is not allow-listed.");
+          }
+
+          const response = await fetch(
+            `https://api.github.com/repos/${repository}/actions/workflows/${workflow}/dispatches`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ ref: "main", inputs }),
+            },
+          );
+          if (!response.ok) {
+            throw new Error(
+              `Allow-listed workflow dispatch failed with HTTP ${response.status}.`,
+            );
+          }
+          console.log(`Dispatched ${payload.kind} on exact current main.`);
+          NODE
