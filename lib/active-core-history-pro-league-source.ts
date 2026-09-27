@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 
 import type { DnaCoreRaceHistoryPublishedGeneration } from "@/lib/dna-core-race-history-generation";
-import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
+import {
+  dnaOpenLabRawEvidenceSha256,
+  type CanonicalRaceDocumentMetadata,
+  type DnaOpenLabEvidence,
+} from "@/lib/dna-open-lab-v1-adapters";
 import type {
   ActiveDnaCoreRaceHistoryGenerationReadRepository,
   ActiveDnaCoreRaceHistoryGenerationRow,
@@ -13,10 +17,56 @@ export type ActiveCoreHistoryProLeagueSource = Readonly<{
   observations: AsyncIterable<ProLeagueExactFormatAnalyticalObservation>;
 }>;
 
+export type ActiveCoreHistoryCanonicalRaceAuthority = Readonly<{
+  readRaceDocuments(
+    ownerId: string,
+    sourceRaceIds: readonly string[],
+  ): Promise<readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[]>;
+}>;
+
 function observation(
   row: ActiveDnaCoreRaceHistoryGenerationRow,
+  raceDocument?: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>,
 ): ProLeagueExactFormatAnalyticalObservation {
   const value = row.payload;
+  if (value.sourceType === "core_race_history_outcome") {
+    const race = raceDocument?.canonical;
+    const eventAt = race?.startAt;
+    if (
+      raceDocument === undefined ||
+      race === undefined ||
+      race.sourceType !== "race_document" ||
+      race.sourceRaceId !== value.sourceRaceId ||
+      raceDocument.rawEvidenceSha256 !== value.raceDocumentEvidenceSha256 ||
+      race.entrantCoreIds === undefined ||
+      !race.entrantCoreIds.includes(value.sourceCoreId) ||
+      race.mode === undefined ||
+      race.distanceMetres === undefined ||
+      race.gateCount === undefined ||
+      typeof eventAt !== "string" ||
+      Number.isNaN(Date.parse(eventAt)) ||
+      !Number.isSafeInteger(race.distanceMetres) ||
+      race.distanceMetres < 1 ||
+      !Number.isSafeInteger(race.gateCount) ||
+      race.gateCount < 1 ||
+      value.finishPosition > race.gateCount
+    ) {
+      throw new Error(
+        "Active Core history canonical Race authority is invalid",
+      );
+    }
+    return Object.freeze({
+      naturalKey: value.naturalKey,
+      sourceCoreId: value.sourceCoreId,
+      eventAt: new Date(eventAt).toISOString(),
+      mode: race.mode,
+      distanceMetres: race.distanceMetres,
+      gateCount: race.gateCount,
+      finishPosition: value.finishPosition,
+      elapsedMilliseconds: value.elapsedMilliseconds,
+      payoutMechanismSourceValue: race.payoutSourceValue ?? null,
+    });
+  }
   if (
     typeof value.naturalKey !== "string" ||
     typeof value.sourceCoreId !== "string" ||
@@ -63,6 +113,7 @@ function sameGeneration(
 export async function activeCoreHistoryProLeagueSource(input: {
   ownerId: string;
   repository: ActiveDnaCoreRaceHistoryGenerationReadRepository;
+  raceAuthority?: ActiveCoreHistoryCanonicalRaceAuthority;
   pageSize?: number;
 }): Promise<ActiveCoreHistoryProLeagueSource | null> {
   const generation = await input.repository.readActiveGeneration(input.ownerId);
@@ -88,6 +139,44 @@ export async function activeCoreHistoryProLeagueSource(input: {
           "Active Core history Pro League coverage is incomplete",
         );
       }
+      const compactRows = page.filter(
+        (row) => row.payload.sourceType === "core_race_history_outcome",
+      );
+      const raceDocuments = new Map<
+        string,
+        DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>
+      >();
+      if (compactRows.length > 0) {
+        if (input.raceAuthority === undefined) {
+          throw new Error(
+            "Active Core history canonical Race authority is unavailable",
+          );
+        }
+        const sourceRaceIds = [
+          ...new Set(compactRows.map((row) => row.payload.sourceRaceId)),
+        ];
+        const loaded = await input.raceAuthority.readRaceDocuments(
+          input.ownerId,
+          Object.freeze(sourceRaceIds),
+        );
+        for (const document of loaded) {
+          const sourceRaceId = document.canonical.sourceRaceId;
+          if (
+            !sourceRaceIds.includes(sourceRaceId) ||
+            raceDocuments.has(sourceRaceId)
+          ) {
+            throw new Error(
+              "Active Core history canonical Race authority is ambiguous",
+            );
+          }
+          raceDocuments.set(sourceRaceId, document);
+        }
+        if (raceDocuments.size !== sourceRaceIds.length) {
+          throw new Error(
+            "Active Core history canonical Race coverage is incomplete",
+          );
+        }
+      }
       for (const row of page) {
         if (
           row.generationId !== generation.generationId ||
@@ -107,7 +196,7 @@ export async function activeCoreHistoryProLeagueSource(input: {
         if (count > generation.observationCount) {
           throw new Error("Active Core history Pro League coverage exceeded");
         }
-        yield observation(row);
+        yield observation(row, raceDocuments.get(row.payload.sourceRaceId));
       }
     }
     if (digest.digest("hex") !== generation.payloadSha256) {

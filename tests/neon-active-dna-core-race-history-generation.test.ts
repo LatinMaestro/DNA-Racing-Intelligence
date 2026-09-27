@@ -61,6 +61,20 @@ function payload() {
   } as const;
 }
 
+function compactPayload() {
+  return {
+    sourceType: "core_race_history_outcome",
+    payloadVersion: 1,
+    naturalKey: "bike:race-1:101",
+    resultEvidenceSha256: "b".repeat(64),
+    raceDocumentEvidenceSha256: "c".repeat(64),
+    sourceCoreId: "101",
+    sourceRaceId: "race-1",
+    elapsedMilliseconds: 40_000,
+    finishPosition: 1,
+  } as const;
+}
+
 function generationRow() {
   return {
     version: 1,
@@ -159,6 +173,44 @@ describe("active DNA Core race history generation reads", () => {
     ).resolves.toMatchObject([
       { generationId, ordinal: 0, naturalKey: value.naturalKey },
     ]);
+  });
+
+  it("accepts exact compact outcomes and rejects copied Race metadata", async () => {
+    const value = compactPayload();
+    const compact = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          ordinal: 0,
+          natural_key: value.naturalKey,
+          row_sha256: dnaOpenLabRawEvidenceSha256(value),
+          payload: value,
+        },
+      ],
+    ]);
+    await expect(
+      compact.repository.readActiveRows(ownerId, -1, 250),
+    ).resolves.toMatchObject([{ payload: value }]);
+
+    const copied = { ...value, gateCount: 12 };
+    const invalid = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          ordinal: 0,
+          natural_key: copied.naturalKey,
+          row_sha256: dnaOpenLabRawEvidenceSha256(copied),
+          payload: copied,
+        },
+      ],
+    ]);
+    await expect(
+      invalid.repository.readActiveRows(ownerId, -1, 250),
+    ).rejects.toThrow("outcome payload is invalid");
   });
 
   it("fails closed for cross-owner and privileged runtime access", async () => {

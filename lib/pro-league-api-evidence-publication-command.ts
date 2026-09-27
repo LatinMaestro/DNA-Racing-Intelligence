@@ -3,7 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { activeCoreHistoryProLeagueSource } from "./active-core-history-pro-league-source";
+import {
+  activeCoreHistoryProLeagueSource,
+  type ActiveCoreHistoryCanonicalRaceAuthority,
+} from "./active-core-history-pro-league-source";
 import { createEphemeralJsonlExternalSortedRunStore } from "./ephemeral-jsonl-external-sorted-run-store";
 import {
   createNeonActiveDnaCoreRaceHistoryGenerationReadRepository,
@@ -72,6 +75,7 @@ type CommandDependencies = Readonly<{
   sessionFactory?: NeonImportPersistenceSessionFactory;
   scratchRootFactory?: () => Promise<string>;
   sourceRepository?: ActiveDnaCoreRaceHistoryGenerationReadRepository;
+  raceAuthority?: ActiveCoreHistoryCanonicalRaceAuthority;
   evidenceRepository?: NeonProLeagueEvidenceGenerationRepository;
 }>;
 
@@ -185,6 +189,9 @@ export function proLeagueApiEvidencePublicationCommandFromEnvironment(
       const source = await activeCoreHistoryProLeagueSource({
         ownerId,
         repository: sourceRepository,
+        ...(dependencies.raceAuthority === undefined
+          ? {}
+          : { raceAuthority: dependencies.raceAuthority }),
       });
       if (source === null) {
         return emptyReceipt({ exactCodeHeadSha, publishedAt });

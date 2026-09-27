@@ -45,12 +45,29 @@ export type DnaCoreRaceHistoryPublishedGeneration =
       publishedAt: string;
     }>;
 
+/**
+ * The durable serving row keeps only one Core's result and the evidence needed
+ * to bind it back to the canonical Race document. Race metadata is deliberately
+ * excluded and must be joined from the single Race authority at read time.
+ */
+export type DnaCoreRaceHistoryOutcome = Readonly<{
+  sourceType: "core_race_history_outcome";
+  payloadVersion: 1;
+  naturalKey: string;
+  resultEvidenceSha256: string;
+  raceDocumentEvidenceSha256: string;
+  sourceCoreId: string;
+  sourceRaceId: string;
+  elapsedMilliseconds: number;
+  finishPosition: number;
+}>;
+
 export type DnaCoreRaceHistoryGenerationStageRow = Readonly<{
   ordinal: number;
   naturalKey: string;
   rowSha256: string;
   canonicalPayload: string;
-  payload: DnaCoreRaceHistoryJoinedObservation;
+  payload: DnaCoreRaceHistoryOutcome;
 }>;
 
 export type DnaCoreRaceHistoryGenerationRepository = Readonly<{
@@ -129,6 +146,22 @@ function workerId(value: string): string {
   return value;
 }
 
+function durableOutcome(
+  observation: DnaCoreRaceHistoryJoinedObservation,
+): DnaCoreRaceHistoryOutcome {
+  return Object.freeze({
+    sourceType: "core_race_history_outcome" as const,
+    payloadVersion: 1 as const,
+    naturalKey: observation.naturalKey,
+    resultEvidenceSha256: observation.resultEvidenceSha256,
+    raceDocumentEvidenceSha256: observation.raceDocumentEvidenceSha256,
+    sourceCoreId: observation.sourceCoreId,
+    sourceRaceId: observation.sourceRaceId,
+    elapsedMilliseconds: observation.elapsedMilliseconds,
+    finishPosition: observation.finishPosition,
+  });
+}
+
 function generationMetadata(
   materialization: DnaCoreRaceHistoryMaterialization,
 ): Readonly<{
@@ -169,12 +202,13 @@ function generationMetadata(
       return generationError("observation order or identity is invalid");
     }
     previousNaturalKey = observation.naturalKey;
+    const payload = durableOutcome(observation);
     return Object.freeze({
       ordinal,
       naturalKey: observation.naturalKey,
-      rowSha256: dnaOpenLabRawEvidenceSha256(observation),
-      canonicalPayload: dnaOpenLabRawEvidenceCanonicalJson(observation),
-      payload: observation,
+      rowSha256: dnaOpenLabRawEvidenceSha256(payload),
+      canonicalPayload: dnaOpenLabRawEvidenceCanonicalJson(payload),
+      payload,
     });
   });
   const payloadSha256 = createHash("sha256")

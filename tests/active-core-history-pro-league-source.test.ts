@@ -44,6 +44,27 @@ function row(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
   });
 }
 
+function compactRow(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
+  const payload = Object.freeze({
+    sourceType: "core_race_history_outcome" as const,
+    payloadVersion: 1 as const,
+    naturalKey: `bike:race-${ordinal + 1}:${101 + ordinal}`,
+    resultEvidenceSha256: "b".repeat(64),
+    raceDocumentEvidenceSha256: "c".repeat(64),
+    sourceCoreId: String(101 + ordinal),
+    sourceRaceId: `race-${ordinal + 1}`,
+    elapsedMilliseconds: 40_000 + ordinal,
+    finishPosition: ordinal + 1,
+  });
+  return Object.freeze({
+    generationId: "a".repeat(64),
+    ordinal,
+    naturalKey: payload.naturalKey,
+    rowSha256: dnaOpenLabRawEvidenceSha256(payload),
+    payload,
+  });
+}
+
 function generation(rows: readonly ActiveDnaCoreRaceHistoryGenerationRow[]) {
   const digest = createHash("sha256");
   for (const value of rows) {
@@ -114,6 +135,78 @@ describe("active Core history Pro League source", () => {
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);
     expect(repository.readActiveGeneration).toHaveBeenCalledTimes(2);
+  });
+
+  it("joins compact outcomes to canonical Race authority at read time", async () => {
+    const rows = [compactRow(0), compactRow(1)];
+    const active = generation(rows);
+    const repository: ActiveDnaCoreRaceHistoryGenerationReadRepository = {
+      readActiveGeneration: vi.fn(async () => active),
+      readActiveRows: vi.fn(async () => rows),
+    };
+    const raceAuthority = {
+      readRaceDocuments: vi.fn(
+        async (_owner: string, sourceRaceIds: readonly string[]) =>
+          sourceRaceIds.map((sourceRaceId, index) =>
+            Object.freeze({
+              source: "dna_open_lab" as const,
+              sourceVersion: "v1" as const,
+              scope: "races" as const,
+              endpoint: "races.docs",
+              entityKey: `race:${sourceRaceId}`,
+              observedAt: "2026-09-16T00:00:00.000Z",
+              rawEvidenceSha256: "c".repeat(64),
+              canonical: Object.freeze({
+                sourceType: "race_document" as const,
+                sourceRaceId,
+                mode: "bike" as const,
+                distanceMetres: 1_200,
+                gateCount: 12,
+                entrantCoreIds: [String(101 + index)],
+                startAt: `2026-09-${String(14 + index).padStart(2, "0")}T00:00:00.000Z`,
+                payoutSourceValue: "Winner Take All",
+              }),
+            }),
+          ),
+      ),
+    };
+    const source = await activeCoreHistoryProLeagueSource({
+      ownerId: "private_owner",
+      repository,
+      raceAuthority,
+    });
+
+    await expect(collect(source!.observations)).resolves.toEqual([
+      expect.objectContaining({
+        sourceCoreId: "101",
+        mode: "bike",
+        distanceMetres: 1_200,
+        gateCount: 12,
+        finishPosition: 1,
+        elapsedMilliseconds: 40_000,
+      }),
+      expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
+    ]);
+    expect(raceAuthority.readRaceDocuments).toHaveBeenCalledWith(
+      "private_owner",
+      ["race-1", "race-2"],
+    );
+  });
+
+  it("fails closed when compact outcomes lack exact canonical Race evidence", async () => {
+    const rows = [compactRow(0)];
+    const active = generation(rows);
+    const repository: ActiveDnaCoreRaceHistoryGenerationReadRepository = {
+      readActiveGeneration: vi.fn(async () => active),
+      readActiveRows: vi.fn(async () => rows),
+    };
+    const unavailable = await activeCoreHistoryProLeagueSource({
+      ownerId: "private_owner",
+      repository,
+    });
+    await expect(collect(unavailable!.observations)).rejects.toThrow(
+      "canonical Race authority is unavailable",
+    );
   });
 
   it("fails closed on incomplete coverage, digest drift and pointer drift", async () => {
