@@ -219,6 +219,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
     ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>
   > | null = null;
   let cachedAuthorityFingerprint: string | null = null;
+  let cachedBaselineCompletionSha256: string | null = null;
   let remainingAuditReuses = 0;
 
   function fingerprint(input: {
@@ -250,7 +251,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         cachedAuthorityFingerprint !== null &&
         remainingAuditReuses > 0
       ) {
-        const completionSha256 = cachedAudit.plan.baselineCompletionSha256;
+        const completionSha256 = cachedBaselineCompletionSha256;
         if (
           completionSha256 === null ||
           input.historyAuthoritySource === undefined
@@ -274,6 +275,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         ) {
           cachedAudit = null;
           cachedAuthorityFingerprint = null;
+          cachedBaselineCompletionSha256 = null;
           remainingAuditReuses = 0;
           auditError("cached Race authority drifted");
         }
@@ -282,6 +284,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         if (remainingAuditReuses === 0) {
           cachedAudit = null;
           cachedAuthorityFingerprint = null;
+          cachedBaselineCompletionSha256 = null;
         }
         return reused;
       }
@@ -488,6 +491,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           auditError("finished Race authority pointer is unavailable");
         }
         cachedAudit = audit;
+        cachedBaselineCompletionSha256 = baseline.completionSha256;
         cachedAuthorityFingerprint = fingerprint({
           baseline,
           populationIndex,
