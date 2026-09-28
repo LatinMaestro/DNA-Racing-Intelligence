@@ -172,6 +172,26 @@ describe("population entrant authority R2 chunk store", () => {
     expect(target.getObject).toHaveBeenCalledOnce();
   });
 
+  it("verifies an immutable chunk from its exact head without downloading the body", async () => {
+    const target = storage();
+    const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.port,
+    });
+    const written = await store.write({
+      generationId: "7".repeat(64),
+      chunkOrdinal: 1,
+      records: [record("1")],
+    });
+    const getCallsAfterWrite = target.getObject.mock.calls.length;
+
+    await expect(store.verify(written.receipt)).resolves.toBeUndefined();
+
+    expect(target.headObject).toHaveBeenCalled();
+    expect(target.getObject).toHaveBeenCalledTimes(getCallsAfterWrite);
+  });
+
   it("discovers and fully re-opens one unmanifested content-addressed chunk by ordinal", async () => {
     const target = storage();
     const store = createDnaPopulationEntrantAuthorityR2ChunkStore({

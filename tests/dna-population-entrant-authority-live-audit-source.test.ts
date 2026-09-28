@@ -194,6 +194,11 @@ function harness(input?: {
         }),
       ),
     },
+    historyAuthoritySource: {
+      loadLastGood: vi.fn(async () =>
+        Object.freeze({ finishedHistoryCycleId: "cycle-1" }),
+      ),
+    },
     populationIndex: {
       load: vi.fn(async () => checkpoint()),
       listPublishedR2ChunkManifests: vi.fn(
@@ -226,6 +231,7 @@ function harness(input?: {
 function source(
   target: ReturnType<typeof harness>,
   extras: readonly CanonicalRaceDocumentMetadata[] = [],
+  fullAuditReuseCount: 0 | 1 | 2 = 0,
 ) {
   return createDnaPopulationEntrantAuthorityLiveAuditSource({
     configuredOwnerId: OWNER,
@@ -233,10 +239,12 @@ function source(
     bucketName: "private-preview",
     baseline: target.baseline,
     historySource: target.historySource,
+    historyAuthoritySource: target.historyAuthoritySource,
     populationIndex: target.populationIndex,
     chunkStore: target.chunkStore,
     storage: target.storage as never,
     capacitySource: target.capacitySource,
+    fullAuditReuseCount,
     assessCombinedHistory: async (input) => {
       await input.baselineIndex!.scanDocuments!((entry) => {
         input.onCanonicalRaceDocument?.(entry.canonical);
@@ -267,6 +275,31 @@ describe("population entrant live audit source", () => {
       unresolvedRaceCount: 3,
     });
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+  });
+
+  it("reuses a fresh full audit only for the configured immediate checks", async () => {
+    const target = harness();
+    const live = source(target, [], 2);
+    const request = Object.freeze({
+      ownerId: OWNER,
+      exactCodeHeadSha: HEAD,
+    });
+
+    const first = await live.load(request);
+    const second = await live.load(request);
+    const third = await live.load(request);
+
+    expect(second).toBe(first);
+    expect(third).toBe(first);
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+    expect(target.capacitySource.measure).toHaveBeenCalledTimes(1);
+    expect(target.historyAuthoritySource.loadLastGood).toHaveBeenCalledTimes(3);
+
+    const fourth = await live.load(request);
+
+    expect(fourth).not.toBe(first);
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(4);
+    expect(target.capacitySource.measure).toHaveBeenCalledTimes(2);
   });
 
   it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {

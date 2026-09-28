@@ -52,10 +52,8 @@ const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
-export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES = Math.min(
-  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
-  1_000,
-);
+export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES =
+  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES = 3 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
@@ -164,6 +162,19 @@ export type DnaPopulationEntrantAuthorityCohortR2Port =
         chunkOrdinal: number;
       }) => Promise<DnaPopulationEntrantAuthorityR2PendingChunk | null>;
     }>;
+
+type CachedBoundAuthority = Readonly<{
+  plan: DnaPopulationHistoryAcquisitionPlan;
+  generationId: string;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
+  unresolvedRaceIds: readonly string[];
+}>;
+
+const boundAuthorityCache = new WeakMap<
+  readonly CanonicalRaceDocumentMetadata[],
+  CachedBoundAuthority
+>();
 
 function cohortError(
   diagnostic: DnaPopulationEntrantAuthorityCohortDiagnostic,
@@ -346,6 +357,20 @@ function bindAuditedAuthority(input: {
   unresolvedRaceIds: readonly string[];
 }> {
   const authority = validateAuthority(input.authority);
+  const cached = boundAuthorityCache.get(input.raceDocuments);
+  if (
+    cached !== undefined &&
+    cached.plan === input.plan &&
+    cached.generationId === authority.generationId &&
+    cached.unresolvedRaceCount === authority.unresolvedRaceCount &&
+    cached.unresolvedRaceSetSha256 === authority.unresolvedRaceSetSha256
+  ) {
+    return Object.freeze({
+      authority,
+      unresolvedRaceIds: cached.unresolvedRaceIds,
+    });
+  }
+
   let rederivedPlan: DnaPopulationHistoryAcquisitionPlan;
   try {
     rederivedPlan = planDnaPopulationHistoryAcquisition({
@@ -391,7 +416,20 @@ function bindAuditedAuthority(input: {
     cohortError("audited_authority_mismatch");
   }
 
-  return Object.freeze({ authority, unresolvedRaceIds });
+  const result = Object.freeze({ authority, unresolvedRaceIds });
+  if (Object.isFrozen(input.raceDocuments) && Object.isFrozen(input.plan)) {
+    boundAuthorityCache.set(
+      input.raceDocuments,
+      Object.freeze({
+        plan: input.plan,
+        generationId: authority.generationId,
+        unresolvedRaceCount: authority.unresolvedRaceCount,
+        unresolvedRaceSetSha256: authority.unresolvedRaceSetSha256,
+        unresolvedRaceIds,
+      }),
+    );
+  }
+  return result;
 }
 
 function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
