@@ -287,9 +287,9 @@ describe("population entrant live audit source", () => {
     expect(third).toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
     expect(target.capacitySource.measure).toHaveBeenCalledTimes(1);
-    expect(target.historySource.readServingFinishedHistory).toHaveBeenCalledTimes(
-      3,
-    );
+    expect(
+      target.historySource.readServingFinishedHistory,
+    ).toHaveBeenCalledTimes(3);
 
     const fourth = await live.load(request);
 
