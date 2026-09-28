@@ -47,7 +47,8 @@ async function docs(apiKey: string, rids: readonly (string | number)[]) {
       status?: unknown;
       result?: unknown;
     };
-    envelopeStatus = typeof body.status === "string" ? body.status.slice(0, 32) : null;
+    envelopeStatus =
+      typeof body.status === "string" ? body.status.slice(0, 32) : null;
     if (Array.isArray(body.result)) {
       resultKind = "array";
       resultCount = body.result.length;
