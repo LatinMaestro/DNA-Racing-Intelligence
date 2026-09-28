@@ -63,13 +63,32 @@ describeConnected("DNA Open Lab throughput probe", () => {
       key("DNA_OPEN_LAB_API_KEY_3"),
     ];
     expect(new Set(keys).size).toBe(3);
-    const seed = await createDnaOpenLabV1Client({
-      apiKey: keys[0]!,
-    }).racesFinished({ limit: 100 });
-    const ids = seed.result
-      .map((race) => race.rid)
-      .filter((rid) => typeof rid === "string" || typeof rid === "number")
-      .slice(0, 100);
+    const client = createDnaOpenLabV1Client({ apiKey: keys[0]! });
+    const ids: (string | number)[] = [];
+    const seen = new Set<string>();
+    const end = Date.now();
+    for (let window = 0; window < 12 && ids.length < 100; window += 1) {
+      const endTime = new Date(
+        end - window * 24 * 60 * 60 * 1_000,
+      ).toISOString();
+      const startTime = new Date(
+        end - (window + 1) * 24 * 60 * 60 * 1_000,
+      ).toISOString();
+      const seed = await client.racesFinished({
+        startTime,
+        endTime,
+        limit: 200,
+      });
+      for (const race of seed.result) {
+        if (typeof race.rid !== "string" && typeof race.rid !== "number")
+          continue;
+        const identity = String(race.rid);
+        if (seen.has(identity)) continue;
+        seen.add(identity);
+        ids.push(race.rid);
+        if (ids.length === 100) break;
+      }
+    }
     if (ids.length < 100) throw new Error("insufficient bounded race sample");
     const batches = [];
     for (const size of [20, 50, 100] as const)
