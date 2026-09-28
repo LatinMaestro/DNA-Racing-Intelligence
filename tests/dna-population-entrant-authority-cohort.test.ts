@@ -471,11 +471,11 @@ describe("DNA population entrant authority cohort bridge", () => {
       test,
     });
 
-    expect(DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES).toBe(1_000);
-    expect(prepared.summary.selectedRaceCount).toBe(1_000);
-    expect(prepared.summary.resolvedRaceCount).toBe(1_000);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES).toBe(5_000);
+    expect(prepared.summary.selectedRaceCount).toBe(5_000);
+    expect(prepared.summary.resolvedRaceCount).toBe(5_000);
     expect(prepared.summary.quarantinedRaceCount).toBe(0);
-    expect(prepared.summary.providerRequestCount).toBe(50);
+    expect(prepared.summary.providerRequestCount).toBe(250);
     expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
     expect(test.providerCalls).toHaveLength(50);
     expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
