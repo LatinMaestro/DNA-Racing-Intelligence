@@ -299,7 +299,7 @@ describe("population entrant live audit source", () => {
 
     expect(fourth).not.toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(4);
-    expect(target.capacitySource.measure).toHaveBeenCalledTimes(4);
+    expect(target.capacitySource.measure).toHaveBeenCalledTimes(2);
   });
 
   it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {
