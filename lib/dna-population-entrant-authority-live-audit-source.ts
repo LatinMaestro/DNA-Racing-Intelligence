@@ -355,21 +355,6 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       if (capacity.r2StorageClass !== "Standard") {
         liveAuditUnavailable("authority_capacity_storage_class_unavailable");
       }
-      const maximumClassBOperations = liveAuditStage(
-        "authority_capacity_read_budget_unavailable",
-        () =>
-          safeAdd(
-            capacity.currentR2Usage.classBOperations,
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-          ),
-      );
-      if (
-        maximumClassBOperations >
-        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
-      ) {
-        liveAuditUnavailable("authority_capacity_read_budget_unavailable");
-      }
-
       const baseline = await input.baseline
         .load()
         .catch((error: unknown) =>
@@ -463,6 +448,39 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         .catch((error: unknown) =>
           liveAuditFailure("serving_history_unavailable", error),
         );
+      const maximumClassBOperations = liveAuditStage(
+        "authority_capacity_read_budget_unavailable",
+        () => {
+          // Each baseline chunk, incremental manifest, Race document and
+          // quarantine object consumes one HEAD plus one GET. Quarantine
+          // count is not indexed in Neon, so total canonical manifest bytes
+          // are a conservative upper bound: every JSON entry consumes at
+          // least one byte. This bound is known before any R2 evidence read.
+          const incrementalObjectUpperBound = safeAdd(
+            safeAdd(history.receiptCount, history.documentCount),
+            history.manifestByteLength,
+          );
+          const derivedReadBound = safeAdd(
+            baselineR2ClassBOperations,
+            safeAdd(incrementalObjectUpperBound, incrementalObjectUpperBound),
+          );
+          if (
+            derivedReadBound >
+            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
+          ) {
+            liveAuditUnavailable("authority_capacity_read_budget_unavailable");
+          }
+          if (
+            safeAdd(
+              capacity.currentR2Usage.classBOperations,
+              derivedReadBound,
+            ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+          ) {
+            liveAuditUnavailable("authority_capacity_read_budget_unavailable");
+          }
+          return derivedReadBound;
+        },
+      );
       const assessment = await assessCombinedHistory({
         ownerId: configuredOwnerId,
         bucketName,
@@ -518,8 +536,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         history,
         storage: input.storage,
         readBudget: Object.freeze({
-          maximumClassBOperations:
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+          maximumClassBOperations,
           paidUsageAllowed: false as const,
         }),
         canonicalPurpose: "population_inventory",
