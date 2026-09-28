@@ -57,15 +57,29 @@ type DnaPopulationEntrantAuthorityDurableBoundaryProof = Readonly<{
   paidUsageAllowed: false;
 }>;
 
+export type DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic =
+  | "authority_unavailable"
+  | "capacity_unavailable"
+  | "recovery_unavailable"
+  | "boundary_invalid"
+  | "authority_complete";
+
 export class DnaPopulationEntrantAuthorityContinuationReadinessError extends Error {
-  constructor() {
+  readonly diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic;
+
+  constructor(
+    diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic = "boundary_invalid",
+  ) {
     super("Population entrant continuation readiness is unavailable");
     this.name = "DnaPopulationEntrantAuthorityContinuationReadinessError";
+    this.diagnostic = diagnostic;
   }
 }
 
-function unavailable(): never {
-  throw new DnaPopulationEntrantAuthorityContinuationReadinessError();
+function unavailable(
+  diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic = "boundary_invalid",
+): never {
+  throw new DnaPopulationEntrantAuthorityContinuationReadinessError(diagnostic);
 }
 
 function identity(value: string): string {
@@ -211,10 +225,17 @@ function createDurableBoundaryProofInspector(
   return Object.freeze({
     async inspect() {
       try {
-        const audit = await input.authoritySource.load({
-          ownerId,
-          exactCodeHeadSha,
-        });
+        let audit: Awaited<
+          ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>
+        >;
+        try {
+          audit = await input.authoritySource.load({
+            ownerId,
+            exactCodeHeadSha,
+          });
+        } catch {
+          unavailable("authority_unavailable");
+        }
         if (
           audit === null ||
           typeof audit !== "object" ||
@@ -223,23 +244,44 @@ function createDurableBoundaryProofInspector(
           audit.authority.generationId !==
             audit.authority.unresolvedRaceSetSha256
         ) {
-          unavailable();
+          unavailable("authority_unavailable");
         }
 
-        const approval = await input.capacityGate.assertFreshCurrentCapacity(
-          audit.authority,
-        );
-        const observedAt = capacityObservedAt({
-          authority: audit.authority,
-          approval,
-        });
+        let approval: Awaited<
+          ReturnType<
+            DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+          >
+        >;
+        try {
+          approval = await input.capacityGate.assertFreshCurrentCapacity(
+            audit.authority,
+          );
+        } catch {
+          unavailable("capacity_unavailable");
+        }
+        let observedAt: string;
+        try {
+          observedAt = capacityObservedAt({
+            authority: audit.authority,
+            approval,
+          });
+        } catch {
+          unavailable("capacity_unavailable");
+        }
 
-        const recovery = await recoverDnaPopulationEntrantAuthority({
+        let recovery: Awaited<
+          ReturnType<typeof recoverDnaPopulationEntrantAuthority>
+        >;
+        try {
+          recovery = await recoverDnaPopulationEntrantAuthority({
           ownerId,
           authority: audit.authority,
           checkpointRepository: input.checkpointRepository,
-          r2Store: input.r2Store,
-        });
+            r2Store: input.r2Store,
+          });
+        } catch {
+          unavailable("recovery_unavailable");
+        }
 
         if (
           recovery.recoveredChunkCount < 1 ||
@@ -298,7 +340,7 @@ function createDurableBoundaryProofInspector(
         ) {
           throw error;
         }
-        unavailable();
+        unavailable("boundary_invalid");
       }
     },
   });
@@ -314,7 +356,9 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
   return Object.freeze({
     async inspect() {
       const proof = await durableBoundary.inspect();
-      if (proof.status !== "ready_for_continuation") unavailable();
+      if (proof.status !== "ready_for_continuation") {
+        unavailable("authority_complete");
+      }
       return Object.freeze({
         version:
           DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
