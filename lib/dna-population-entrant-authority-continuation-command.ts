@@ -4,6 +4,7 @@ import type {
 } from "./dna-population-entrant-authority-checkpoint";
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+  DnaPopulationEntrantAuthorityCohortError,
   prepareDnaPopulationEntrantAuthorityCohort,
   type DnaPopulationEntrantAuthorityCohortR2Port,
   type DnaPopulationEntrantAuthorityCommittedCohortSummary,
@@ -123,7 +124,8 @@ export type DnaPopulationEntrantAuthorityContinuationCommandDiagnostic =
   | "authority_head_mismatch"
   | "authority_binding_mismatch"
   | "preflight_unavailable"
-  | "cohort_unavailable";
+  | "cohort_unavailable"
+  | `cohort_${DnaPopulationEntrantAuthorityCohortError["diagnostic"]}`;
 
 export class DnaPopulationEntrantAuthorityContinuationCommandError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityContinuationCommandDiagnostic;
@@ -160,6 +162,13 @@ function commandError(
   diagnostic: DnaPopulationEntrantAuthorityContinuationCommandDiagnostic,
 ): never {
   throw new DnaPopulationEntrantAuthorityContinuationCommandError(diagnostic);
+}
+
+function cohortCommandError(error: unknown): never {
+  if (error instanceof DnaPopulationEntrantAuthorityCohortError) {
+    commandError(`cohort_${error.diagnostic}`);
+  }
+  commandError("cohort_unavailable");
 }
 
 function identity(value: string): string {
@@ -520,8 +529,8 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
             checkpointUpdatedAt: boundary.checkpointUpdatedAt,
           }),
         });
-      } catch {
-        commandError("cohort_unavailable");
+      } catch (error) {
+        cohortCommandError(error);
       }
       const providerHydration =
         prepared.summary.preparationSource === "provider_hydration";
@@ -596,8 +605,8 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
           let result: DnaPopulationEntrantAuthorityCommittedCohortSummary;
           try {
             result = await prepared.commit({ registeredAt });
-          } catch {
-            commandError("cohort_unavailable");
+          } catch (error) {
+            cohortCommandError(error);
           }
           if (
             !sameAuthority(result.authority, audit.authority) ||
