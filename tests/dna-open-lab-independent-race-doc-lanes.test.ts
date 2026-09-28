@@ -44,9 +44,7 @@ describe("independent Race-doc API-key lanes", () => {
 
     await Promise.all(
       Array.from({ length: 6 }, (_, index) =>
-        runtime.requestBudget.execute(() =>
-          runtime.client.raceDocs([index + 1]),
-        ),
+        runtime.requestBudget.execute(() => runtime.client.raceDocs([index + 1])),
       ),
     );
 
@@ -87,9 +85,7 @@ describe("independent Race-doc API-key lanes", () => {
     );
 
     const pending = Array.from({ length: 6 }, (_, index) =>
-      runtime.requestBudget.execute(() =>
-        runtime.client.raceDocs([index + 1]),
-      ),
+      runtime.requestBudget.execute(() => runtime.client.raceDocs([index + 1])),
     );
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
