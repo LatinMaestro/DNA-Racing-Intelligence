@@ -246,22 +246,6 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         requestedHead: request.exactCodeHeadSha,
       });
 
-      if (input.capacitySource.status !== "ready") {
-        auditError("provider capacity measurement is unavailable");
-      }
-      const capacity = await input.capacitySource.measure({
-        ownerId: configuredOwnerId,
-      });
-      if (
-        capacity.r2StorageClass !== "Standard" ||
-        safeAdd(
-          capacity.currentR2Usage.classBOperations,
-          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-        ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
-      ) {
-        auditError("published Race audit read budget is unavailable");
-      }
-
       if (
         cachedAudit !== null &&
         cachedAuthorityFingerprint !== null &&
@@ -303,6 +287,22 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           cachedBaselineCompletionSha256 = null;
         }
         return reused;
+      }
+
+      if (input.capacitySource.status !== "ready") {
+        auditError("provider capacity measurement is unavailable");
+      }
+      const capacity = await input.capacitySource.measure({
+        ownerId: configuredOwnerId,
+      });
+      if (
+        capacity.r2StorageClass !== "Standard" ||
+        safeAdd(
+          capacity.currentR2Usage.classBOperations,
+          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+        ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+      ) {
+        auditError("published Race audit read budget is unavailable");
       }
 
       const baseline = await input.baseline.load();
