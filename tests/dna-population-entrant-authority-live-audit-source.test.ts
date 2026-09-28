@@ -9,6 +9,7 @@ import type {
 } from "@/lib/dna-population-race-index-generation";
 import type { DnaPopulationRaceIndexR2ChunkReceipt } from "@/lib/dna-population-race-index-r2-chunk";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
+import type { NeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const OWNER = "private-owner";
 const HEAD = "a".repeat(40);
@@ -141,6 +142,20 @@ function harness(input?: {
       2: Object.freeze([document("race-3", 3)]),
     });
 
+  const readServingFinishedHistory = vi.fn<
+    NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]
+  >(async () =>
+    Object.freeze({
+      refreshCycleId: "refresh-1",
+      currentStateGenerationId: "current-1",
+      selectedCycleId: "cycle-1",
+      cycles: Object.freeze([]),
+      receiptCount: 0,
+      documentCount: 0,
+      manifestByteLength: 0,
+    }),
+  );
+
   return {
     capacitySource: Object.freeze({
       status: "ready" as const,
@@ -182,22 +197,7 @@ function harness(input?: {
       readEvidence: vi.fn(async () => null),
     },
     historySource: {
-      readServingFinishedHistory: vi.fn(async () =>
-        Object.freeze({
-          refreshCycleId: "refresh-1",
-          currentStateGenerationId: "current-1",
-          selectedCycleId: "cycle-1",
-          cycles: Object.freeze([]),
-          receiptCount: 0,
-          documentCount: 0,
-          manifestByteLength: 0,
-        }),
-      ),
-    },
-    historyAuthoritySource: {
-      loadLastGood: vi.fn(async () =>
-        Object.freeze({ finishedHistoryCycleId: "cycle-1" }),
-      ),
+      readServingFinishedHistory,
     },
     populationIndex: {
       load: vi.fn(async () => checkpoint()),
@@ -239,7 +239,6 @@ function source(
     bucketName: "private-preview",
     baseline: target.baseline,
     historySource: target.historySource,
-    historyAuthoritySource: target.historyAuthoritySource,
     populationIndex: target.populationIndex,
     chunkStore: target.chunkStore,
     storage: target.storage as never,
@@ -293,13 +292,42 @@ describe("population entrant live audit source", () => {
     expect(third).toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
     expect(target.capacitySource.measure).toHaveBeenCalledTimes(1);
-    expect(target.historyAuthoritySource.loadLastGood).toHaveBeenCalledTimes(3);
+    expect(
+      target.historySource.readServingFinishedHistory,
+    ).toHaveBeenCalledTimes(3);
 
     const fourth = await live.load(request);
 
     expect(fourth).not.toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(4);
     expect(target.capacitySource.measure).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when serving finished-history metadata changes during reuse", async () => {
+    const target = harness();
+    const live = source(target, [], 2);
+    const request = Object.freeze({
+      ownerId: OWNER,
+      exactCodeHeadSha: HEAD,
+    });
+
+    await live.load(request);
+    target.historySource.readServingFinishedHistory.mockResolvedValueOnce(
+      Object.freeze({
+        refreshCycleId: "refresh-2",
+        currentStateGenerationId: "current-2",
+        selectedCycleId: "cycle-2",
+        cycles: Object.freeze([]),
+        receiptCount: 1,
+        documentCount: 1,
+        manifestByteLength: 1,
+      }),
+    );
+
+    await expect(live.load(request)).rejects.toThrow(
+      "cached Race authority drifted",
+    );
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
   it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {

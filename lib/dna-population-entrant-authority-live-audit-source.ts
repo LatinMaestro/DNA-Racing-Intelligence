@@ -45,12 +45,6 @@ type FinishedHistorySource = Pick<
   "readServingFinishedHistory"
 >;
 
-type FinishedHistoryAuthoritySource = Readonly<{
-  loadLastGood: (
-    ownerId: string,
-  ) => Promise<Readonly<{ finishedHistoryCycleId: string }> | null>;
-}>;
-
 type ReadableEvidenceStorage = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "headObject"
@@ -193,7 +187,6 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   chunkStore: PopulationChunkReadStore;
   storage: ReadableEvidenceStorage;
   capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
-  historyAuthoritySource?: FinishedHistoryAuthoritySource;
   assessCombinedHistory?: typeof assessDnaOpenLabCombinedHistoryPerformanceEvidence;
   fullAuditReuseCount?: number;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
@@ -210,8 +203,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   if (
     !Number.isSafeInteger(fullAuditReuseCount) ||
     fullAuditReuseCount < 0 ||
-    fullAuditReuseCount > 64 ||
-    (fullAuditReuseCount > 0 && input.historyAuthoritySource === undefined)
+    fullAuditReuseCount > 64
   ) {
     auditError("full audit reuse configuration is invalid");
   }
@@ -225,15 +217,12 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   function fingerprint(input: {
     baseline: unknown;
     populationIndex: unknown;
-    finishedHistoryCycleId: string;
+    history: unknown;
   }): string {
     return JSON.stringify({
       baseline: input.baseline,
       populationIndex: input.populationIndex,
-      finishedHistoryCycleId: identity(
-        input.finishedHistoryCycleId,
-        "finishedHistoryCycleId",
-      ),
+      history: input.history,
     });
   }
 
@@ -252,25 +241,23 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         remainingAuditReuses > 0
       ) {
         const completionSha256 = cachedBaselineCompletionSha256;
-        if (
-          completionSha256 === null ||
-          input.historyAuthoritySource === undefined
-        ) {
+        if (completionSha256 === null) {
           auditError("cached authority fingerprint is unavailable");
         }
-        const [baseline, populationIndex, lastGood] = await Promise.all([
+        const [baseline, populationIndex, history] = await Promise.all([
           input.baseline.load(),
           input.populationIndex.load(configuredOwnerId, completionSha256),
-          input.historyAuthoritySource.loadLastGood(configuredOwnerId),
+          input.historySource.readServingFinishedHistory({
+            ownerId: configuredOwnerId,
+          }),
         ]);
         if (
           baseline === null ||
           populationIndex === null ||
-          lastGood === null ||
           fingerprint({
             baseline,
             populationIndex,
-            finishedHistoryCycleId: lastGood.finishedHistoryCycleId,
+            history,
           }) !== cachedAuthorityFingerprint
         ) {
           cachedAudit = null;
@@ -385,20 +372,9 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("compact P5 read budget is invalid");
       }
 
-      const [history, lastGood] = await Promise.all([
-        input.historySource.readServingFinishedHistory({
-          ownerId: configuredOwnerId,
-        }),
-        input.historyAuthoritySource?.loadLastGood(configuredOwnerId) ??
-          Promise.resolve(null),
-      ]);
-      if (
-        fullAuditReuseCount > 0 &&
-        (lastGood === null ||
-          history.selectedCycleId !== lastGood.finishedHistoryCycleId)
-      ) {
-        auditError("finished Race authority pointer is unavailable");
-      }
+      const history = await input.historySource.readServingFinishedHistory({
+        ownerId: configuredOwnerId,
+      });
       const assessment = await assessCombinedHistory({
         ownerId: configuredOwnerId,
         bucketName,
@@ -487,15 +463,12 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         authority,
       });
       if (fullAuditReuseCount > 0) {
-        if (lastGood === null) {
-          auditError("finished Race authority pointer is unavailable");
-        }
         cachedAudit = audit;
         cachedBaselineCompletionSha256 = baseline.completionSha256;
         cachedAuthorityFingerprint = fingerprint({
           baseline,
           populationIndex,
-          finishedHistoryCycleId: lastGood.finishedHistoryCycleId,
+          history,
         });
         remainingAuditReuses = fullAuditReuseCount;
       }

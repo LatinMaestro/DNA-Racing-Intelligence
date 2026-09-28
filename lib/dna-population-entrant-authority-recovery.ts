@@ -12,7 +12,8 @@ import type { DnaPopulationEntrantAuthorityR2ChunkReceipt } from "./dna-populati
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
-const R2_VERIFY_CONCURRENCY = 32 as const;
+// Bound R2 HEAD pressure after connected readiness failed closed.
+const R2_VERIFY_CONCURRENCY = 4 as const;
 
 export type DnaPopulationEntrantAuthorityR2RecoveryPort = Readonly<{
   verify?: (

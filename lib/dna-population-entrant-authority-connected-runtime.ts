@@ -42,7 +42,6 @@ import { createDnaOpenLabIndependentRaceDocRuntime } from "./dna-open-lab-indepe
 import { createDnaOpenLabR2RaceDocumentClient } from "./dna-open-lab-r2-race-evidence";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
-import { createNeonDnaOpenLabDailyRefreshGenerationRepository } from "./neon-dna-open-lab-daily-refresh-generation-repository";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "./neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "./neon-dna-population-entrant-authority-checkpoint";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "./neon-dna-population-race-index-generation";
@@ -295,12 +294,6 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         runtimeRole: config.runtimeRole,
       },
     );
-    const dailyRefreshRepository =
-      createNeonDnaOpenLabDailyRefreshGenerationRepository({
-        databaseUrl: config.databaseUrl,
-        databaseOwnerId: config.databaseOwnerId,
-        runtimeRole: config.runtimeRole,
-      });
     const baselineEvidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
       ownerId: config.ownerId,
       bucketName: config.bucketName,
@@ -326,7 +319,6 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       chunkStore: populationChunkStore,
       storage,
       capacitySource,
-      historyAuthoritySource: dailyRefreshRepository,
       ...(input.liveAuditReuseCount === undefined
         ? {}
         : { fullAuditReuseCount: input.liveAuditReuseCount }),
