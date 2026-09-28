@@ -90,10 +90,7 @@ async function forEachWithConcurrency<T>(
     }
   };
   await Promise.all(
-    Array.from(
-      { length: Math.min(maximumConcurrency, values.length) },
-      worker,
-    ),
+    Array.from({ length: Math.min(maximumConcurrency, values.length) }, worker),
   );
 }
 
