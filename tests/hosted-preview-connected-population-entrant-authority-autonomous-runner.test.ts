@@ -147,6 +147,7 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         stage = "runtime-composition";
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
+            liveAuditReuseCount: 2,
             environment: Object.freeze({
               authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
               exactCodeHeadSha,
