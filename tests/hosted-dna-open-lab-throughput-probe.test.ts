@@ -68,7 +68,9 @@ describeConnected("DNA Open Lab throughput probe", () => {
     const seen = new Set<string>();
     const end = Date.now();
     for (let window = 0; window < 12 && ids.length < 100; window += 1) {
-      const endTime = new Date(end - window * 24 * 60 * 60 * 1_000).toISOString();
+      const endTime = new Date(
+        end - window * 24 * 60 * 60 * 1_000,
+      ).toISOString();
       const startTime = new Date(
         end - (window + 1) * 24 * 60 * 60 * 1_000,
       ).toISOString();
@@ -78,7 +80,8 @@ describeConnected("DNA Open Lab throughput probe", () => {
         limit: 200,
       });
       for (const race of seed.result) {
-        if (typeof race.rid !== "string" && typeof race.rid !== "number") continue;
+        if (typeof race.rid !== "string" && typeof race.rid !== "number")
+          continue;
         const identity = String(race.rid);
         if (seen.has(identity)) continue;
         seen.add(identity);
