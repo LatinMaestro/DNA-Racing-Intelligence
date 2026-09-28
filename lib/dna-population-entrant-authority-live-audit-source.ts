@@ -451,34 +451,32 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       const maximumClassBOperations = liveAuditStage(
         "authority_capacity_read_budget_unavailable",
         () => {
-          // Each baseline chunk, incremental manifest, Race document and
-          // quarantine object consumes one HEAD plus one GET. Quarantine
-          // count is not indexed in Neon, so total canonical manifest bytes
-          // are a conservative upper bound: every JSON entry consumes at
-          // least one byte. This bound is known before any R2 evidence read.
-          const incrementalObjectUpperBound = safeAdd(
-            safeAdd(history.receiptCount, history.documentCount),
-            history.manifestByteLength,
+          // Each baseline chunk, incremental manifest and Race document
+          // consumes one HEAD plus one GET. Their counts are known before any
+          // R2 evidence read, so the complete known floor must fit first.
+          // Quarantine count is intentionally enforced later by the evidence
+          // reader's reserve-before-access guard as manifests reveal it.
+          const knownIncrementalObjectCount = safeAdd(
+            history.receiptCount,
+            history.documentCount,
           );
-          const derivedReadBound = safeAdd(
+          const minimumKnownReadOperations = safeAdd(
             baselineR2ClassBOperations,
-            safeAdd(incrementalObjectUpperBound, incrementalObjectUpperBound),
+            safeAdd(knownIncrementalObjectCount, knownIncrementalObjectCount),
           );
-          if (
-            derivedReadBound >
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
-          ) {
-            liveAuditUnavailable("authority_capacity_read_budget_unavailable");
-          }
           if (
             safeAdd(
               capacity.currentR2Usage.classBOperations,
-              derivedReadBound,
+              minimumKnownReadOperations,
             ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
           ) {
             liveAuditUnavailable("authority_capacity_read_budget_unavailable");
           }
-          return derivedReadBound;
+          return Math.min(
+            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+            DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations -
+              capacity.currentR2Usage.classBOperations,
+          );
         },
       );
       const assessment = await assessCombinedHistory({
