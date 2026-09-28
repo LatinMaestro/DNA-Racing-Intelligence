@@ -8,6 +8,7 @@ import {
   createDnaPopulationEntrantAuthorityCapacityGate,
   DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR,
 } from "./dna-population-entrant-authority-capacity-gate";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
 import {
   createDnaPopulationEntrantAuthorityCohortCommand,
   type DnaPopulationEntrantAuthorityCohortCommandSession,
@@ -336,8 +337,10 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         Object.freeze({
           client: createDnaOpenLabV1Client({ apiKey }),
           requestBudget: createDnaOpenLabRequestBudget({
-            initialRequestsPerMinute: 30,
-            maximumRequestsPerMinute: 30,
+            initialRequestsPerMinute:
+              DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
+            maximumRequestsPerMinute:
+              DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
           }),
         }),
       ),
