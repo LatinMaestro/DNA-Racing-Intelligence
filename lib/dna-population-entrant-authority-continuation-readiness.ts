@@ -57,15 +57,32 @@ type DnaPopulationEntrantAuthorityDurableBoundaryProof = Readonly<{
   paidUsageAllowed: false;
 }>;
 
+export type DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic =
+  | "invalid_configuration"
+  | "authority_unavailable"
+  | "capacity_unavailable"
+  | "recovery_unavailable"
+  | "durable_boundary_invalid"
+  | "authority_complete";
+
 export class DnaPopulationEntrantAuthorityContinuationReadinessError extends Error {
-  constructor() {
-    super("Population entrant continuation readiness is unavailable");
+  readonly diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic;
+
+  constructor(
+    diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic,
+  ) {
+    super(
+      `Population entrant continuation readiness is unavailable: ${diagnostic}`,
+    );
     this.name = "DnaPopulationEntrantAuthorityContinuationReadinessError";
+    this.diagnostic = diagnostic;
   }
 }
 
-function unavailable(): never {
-  throw new DnaPopulationEntrantAuthorityContinuationReadinessError();
+function unavailable(
+  diagnostic: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic = "invalid_configuration",
+): never {
+  throw new DnaPopulationEntrantAuthorityContinuationReadinessError(diagnostic);
 }
 
 function identity(value: string): string {
@@ -210,6 +227,8 @@ function createDurableBoundaryProofInspector(
 
   return Object.freeze({
     async inspect() {
+      let stage: DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic =
+        "authority_unavailable";
       try {
         const audit = await input.authoritySource.load({
           ownerId,
@@ -226,6 +245,7 @@ function createDurableBoundaryProofInspector(
           unavailable();
         }
 
+        stage = "capacity_unavailable";
         const approval = await input.capacityGate.assertFreshCurrentCapacity(
           audit.authority,
         );
@@ -234,6 +254,7 @@ function createDurableBoundaryProofInspector(
           approval,
         });
 
+        stage = "recovery_unavailable";
         const recovery = await recoverDnaPopulationEntrantAuthority({
           ownerId,
           authority: audit.authority,
@@ -241,6 +262,7 @@ function createDurableBoundaryProofInspector(
           r2Store: input.r2Store,
         });
 
+        stage = "durable_boundary_invalid";
         if (
           recovery.recoveredChunkCount < 1 ||
           recovery.recoveredRaceCount < 1 ||
@@ -291,14 +313,8 @@ function createDurableBoundaryProofInspector(
           providerWritePerformed: false as const,
           paidUsageAllowed: false as const,
         });
-      } catch (error) {
-        if (
-          error instanceof
-          DnaPopulationEntrantAuthorityContinuationReadinessError
-        ) {
-          throw error;
-        }
-        unavailable();
+      } catch {
+        unavailable(stage);
       }
     },
   });
@@ -314,7 +330,9 @@ export function createDnaPopulationEntrantAuthorityContinuationReadinessInspecto
   return Object.freeze({
     async inspect() {
       const proof = await durableBoundary.inspect();
-      if (proof.status !== "ready_for_continuation") unavailable();
+      if (proof.status !== "ready_for_continuation") {
+        unavailable("authority_complete");
+      }
       return Object.freeze({
         version:
           DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
