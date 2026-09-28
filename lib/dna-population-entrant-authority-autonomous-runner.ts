@@ -1,6 +1,7 @@
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_INTENT,
   DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_COMMAND_VERSION,
+  DnaPopulationEntrantAuthorityContinuationCommandError,
   type DnaPopulationEntrantAuthorityContinuationCommandInvocation,
   type DnaPopulationEntrantAuthorityContinuationCommandReceipt,
   type DnaPopulationEntrantAuthorityContinuationCommandSession,
@@ -81,6 +82,7 @@ export type DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic =
   | "boundary_unavailable"
   | "boundary_drift"
   | "continuation_unavailable"
+  | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError["diagnostic"]}`
   | "commit_unavailable"
   | "commit_invariant_failed"
   | "completion_unverified";
@@ -431,7 +433,10 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
         session = await input.continuationCommand.executeContinuation(
           invocationFromBoundary({ boundary: current, now }),
         );
-      } catch {
+      } catch (error) {
+        if (error instanceof DnaPopulationEntrantAuthorityContinuationCommandError) {
+          runnerError(`continuation_${error.diagnostic}`);
+        }
         runnerError("continuation_unavailable");
       }
 
