@@ -341,28 +341,6 @@ function sameBoundary(
   );
 }
 
-function capacityObservedAt(input: {
-  authority: DnaPopulationEntrantAuthorityCheckpointAuthority;
-  approval: Awaited<
-    ReturnType<
-      DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
-    >
-  >;
-}): string {
-  const approval = input.approval;
-  if (
-    approval.version !== 1 ||
-    approval.capacityAllowed !== true ||
-    approval.paidUsageAllowed !== false ||
-    approval.generationId !== input.authority.generationId ||
-    approval.unresolvedRaceCount !== input.authority.unresolvedRaceCount ||
-    approval.unresolvedRaceSetSha256 !== input.authority.unresolvedRaceSetSha256
-  ) {
-    commandError("preflight_unavailable");
-  }
-  return exactTimestamp(approval.observedAt, "preflight_unavailable");
-}
-
 function committedReceipt(input: {
   exactCodeHeadSha: string;
   cohortObservedAt: string;
@@ -486,28 +464,10 @@ export function createDnaPopulationEntrantAuthorityContinuationCommand(input: {
         commandError("authority_binding_mismatch");
       }
 
-      let approval: Awaited<
-        ReturnType<
-          DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
-        >
-      >;
-      try {
-        approval = await input.runtime.capacityGate.assertFreshCurrentCapacity(
-          audit.authority,
-        );
-      } catch {
-        commandError("preflight_unavailable");
-      }
-      const revalidatedCapacityObservedAt = capacityObservedAt({
-        authority: audit.authority,
-        approval,
-      });
-      if (
-        Date.parse(revalidatedCapacityObservedAt) <
-        Date.parse(readiness.capacityObservedAt)
-      ) {
-        commandError("preflight_unavailable");
-      }
+      const revalidatedCapacityObservedAt = exactTimestamp(
+        readiness.capacityObservedAt,
+        "preflight_unavailable",
+      );
 
       let prepared: DnaPopulationEntrantAuthorityPreparedCohort;
       try {
