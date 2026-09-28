@@ -253,7 +253,9 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
 
       if (
         batchKeys.length > 1 &&
-        batchKeys.every((key) => outcomesByKey.get(key)?.status === "quarantined")
+        batchKeys.every(
+          (key) => outcomesByKey.get(key)?.status === "quarantined",
+        )
       ) {
         hydrationError(
           "invalid_response",
