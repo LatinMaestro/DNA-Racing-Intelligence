@@ -16,12 +16,6 @@ const HEAD = "a".repeat(40);
 const COMPLETION = "b".repeat(64);
 const OBSERVED_AT = "2026-09-25T00:00:00.000Z";
 
-type ServingFinishedHistory = Awaited<
-  ReturnType<
-    NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]
-  >
->;
-
 function document(
   sourceRaceId: string,
   requestOrdinal: number,
