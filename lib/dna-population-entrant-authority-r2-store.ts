@@ -128,6 +128,24 @@ function objectKey(
   })}${receipt.bodySha256}.json`;
 }
 
+function verificationKey(
+  receipt: DnaPopulationEntrantAuthorityChunkReceipt,
+  key: string,
+): string {
+  return [
+    key,
+    receipt.generationId,
+    String(receipt.chunkOrdinal),
+    receipt.bodySha256,
+    String(receipt.byteLength),
+    String(receipt.rowCount),
+    receipt.firstSourceRaceId,
+    receipt.lastSourceRaceId,
+    receipt.raceSetSha256,
+    receipt.recordSetSha256,
+  ].join("\u0000");
+}
+
 function exactMetadata(
   receipt: DnaPopulationEntrantAuthorityChunkReceipt,
 ): Readonly<Record<string, string>> {
@@ -320,6 +338,7 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
 }> {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
+  const verifiedHeads = new Set<string>();
   let privacy: Promise<void> | null = null;
 
   async function privateStorage(): Promise<void> {
@@ -370,6 +389,8 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
       ) {
         storageError("object key conflicts with its deterministic identity");
       }
+      const cacheKey = verificationKey(receipt, expectedObjectKey);
+      if (verifiedHeads.has(cacheKey)) return;
       await privateStorage();
       exactHead(
         await input.storage.headObject({
@@ -378,6 +399,7 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
         }),
         receipt,
       );
+      verifiedHeads.add(cacheKey);
     },
 
     async read(storedReceipt) {

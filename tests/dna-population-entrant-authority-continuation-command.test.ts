@@ -27,7 +27,6 @@ const HEAD = "a".repeat(40);
 const OWNER = "private-owner";
 const CHECKPOINT_AT = "2026-09-27T00:00:00.000Z";
 const CAPACITY_AT = "2026-09-27T00:01:00.000Z";
-const REVALIDATED_AT = "2026-09-27T00:01:30.000Z";
 const OBSERVED_AT = "2026-09-27T00:01:40.000Z";
 const COMMITTED_AT = "2026-09-27T00:02:00.000Z";
 const BOUNDARY = "f".repeat(64);
@@ -170,7 +169,7 @@ function runtime(): DnaPopulationEntrantAuthorityContinuationCommandRuntime {
           generationId: AUDIT.authority.generationId,
           unresolvedRaceCount: 3,
           unresolvedRaceSetSha256: AUDIT.authority.unresolvedRaceSetSha256,
-          observedAt: REVALIDATED_AT,
+          observedAt: CAPACITY_AT,
           capacityAllowed: true as const,
           paidUsageAllowed: false as const,
         }),
@@ -213,8 +212,9 @@ function command(
 }
 
 describe("population entrant authority continuation command", () => {
-  it("revalidates the exact durable boundary before one idempotent commit", async () => {
-    const test = command();
+  it("reuses fresh readiness capacity before one idempotent commit", async () => {
+    const commandRuntime = runtime();
+    const test = command({ runtime: commandRuntime });
     const session = await test.command.executeContinuation(INVOCATION);
     expect(session.prepared).toMatchObject({
       recoveredChunkCount: 1,
@@ -224,6 +224,8 @@ describe("population entrant authority continuation command", () => {
       persistentWriteArmed: true,
       previewOnly: true,
       paidUsageAllowed: false,
+      readinessCapacityObservedAt: CAPACITY_AT,
+      revalidatedCapacityObservedAt: CAPACITY_AT,
     });
     const first = await session.commit();
     const second = await session.commit();
@@ -236,6 +238,9 @@ describe("population entrant authority continuation command", () => {
     expect(test.inspect).toHaveBeenCalledOnce();
     expect(test.load).toHaveBeenCalledOnce();
     expect(test.cohortPreparer).toHaveBeenCalledOnce();
+    expect(
+      commandRuntime.capacityGate.assertFreshCurrentCapacity,
+    ).not.toHaveBeenCalled();
     expect(test.cohortPreparer).toHaveBeenCalledWith(
       expect.objectContaining({
         expectedRecoveryBoundary: {
@@ -299,7 +304,7 @@ describe("population entrant authority continuation command", () => {
     expect(drifted.commit).not.toHaveBeenCalled();
   });
 
-  it("fails closed on live authority drift and loss of zero-cost capacity", async () => {
+  it("fails closed on live authority drift before hydration", async () => {
     const driftedAudit = Object.freeze({
       ...AUDIT,
       authority: Object.freeze({
@@ -312,23 +317,6 @@ describe("population entrant authority continuation command", () => {
       authorityDrift.command.executeContinuation(INVOCATION),
     ).rejects.toMatchObject({ diagnostic: "authority_binding_mismatch" });
     expect(authorityDrift.cohortPreparer).not.toHaveBeenCalled();
-
-    const baseRuntime = runtime();
-    const blockedRuntime = Object.freeze({
-      ...baseRuntime,
-      capacityGate: Object.freeze({
-        assertFreshCurrentCapacity: vi.fn(async () => {
-          throw new Error("private capacity detail");
-        }),
-      }),
-    });
-    const capacityLoss = command({ runtime: blockedRuntime });
-    const error = await capacityLoss.command
-      .executeContinuation(INVOCATION)
-      .catch((caught: unknown) => caught);
-    expect(error).toMatchObject({ diagnostic: "preflight_unavailable" });
-    expect(String(error)).not.toContain("private capacity detail");
-    expect(capacityLoss.cohortPreparer).not.toHaveBeenCalled();
   });
 
   it("accepts an interrupted R2-first recovery without duplicate provider hydration", async () => {

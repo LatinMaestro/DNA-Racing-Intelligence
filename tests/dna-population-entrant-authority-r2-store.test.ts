@@ -172,7 +172,7 @@ describe("population entrant authority R2 chunk store", () => {
     expect(target.getObject).toHaveBeenCalledOnce();
   });
 
-  it("verifies an immutable chunk from its exact head without downloading the body", async () => {
+  it("caches an exact immutable head after its first independent verification", async () => {
     const target = storage();
     const store = createDnaPopulationEntrantAuthorityR2ChunkStore({
       ownerId: "private-owner",
@@ -184,12 +184,19 @@ describe("population entrant authority R2 chunk store", () => {
       chunkOrdinal: 1,
       records: [record("1")],
     });
+    const headCallsAfterWrite = target.headObject.mock.calls.length;
     const getCallsAfterWrite = target.getObject.mock.calls.length;
 
     await expect(store.verify(written.receipt)).resolves.toBeUndefined();
+    await expect(store.verify(written.receipt)).resolves.toBeUndefined();
 
-    expect(target.headObject).toHaveBeenCalled();
+    expect(target.headObject).toHaveBeenCalledTimes(headCallsAfterWrite + 1);
     expect(target.getObject).toHaveBeenCalledTimes(getCallsAfterWrite);
+
+    await expect(
+      store.verify({ ...written.receipt, rowCount: 2 }),
+    ).rejects.toThrow("stored chunk head conflicts with its receipt");
+    expect(target.headObject).toHaveBeenCalledTimes(headCallsAfterWrite + 2);
   });
 
   it("discovers and fully re-opens one unmanifested content-addressed chunk by ordinal", async () => {
