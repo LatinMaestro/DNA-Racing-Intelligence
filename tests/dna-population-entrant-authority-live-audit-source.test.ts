@@ -480,13 +480,10 @@ describe("population entrant live audit source", () => {
       .load({ ownerId: OWNER, exactCodeHeadSha: HEAD })
       .catch((caught: unknown) => caught);
 
-    expect(error).toBeInstanceOf(
-      DnaPopulationEntrantAuthorityLiveAuditError,
-    );
+    expect(error).toBeInstanceOf(DnaPopulationEntrantAuthorityLiveAuditError);
     expect(error).toMatchObject({
       diagnostic: "population_index_unavailable",
     });
     expect((error as Error).message).not.toContain("private-object-key");
   });
-
 });
