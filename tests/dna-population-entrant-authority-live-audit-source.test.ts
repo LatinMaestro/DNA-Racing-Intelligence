@@ -292,14 +292,14 @@ describe("population entrant live audit source", () => {
     expect(second).toBe(first);
     expect(third).toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
-    expect(target.capacitySource.measure).toHaveBeenCalledTimes(1);
+    expect(target.capacitySource.measure).toHaveBeenCalledTimes(3);
     expect(target.historyAuthoritySource.loadLastGood).toHaveBeenCalledTimes(3);
 
     const fourth = await live.load(request);
 
     expect(fourth).not.toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(4);
-    expect(target.capacitySource.measure).toHaveBeenCalledTimes(2);
+    expect(target.capacitySource.measure).toHaveBeenCalledTimes(4);
   });
 
   it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {
