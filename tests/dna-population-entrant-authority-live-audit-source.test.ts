@@ -194,6 +194,11 @@ function harness(input?: {
         }),
       ),
     },
+    historyAuthoritySource: {
+      loadLastGood: vi.fn(async () =>
+        Object.freeze({ finishedHistoryCycleId: "cycle-1" }),
+      ),
+    },
     populationIndex: {
       load: vi.fn(async () => checkpoint()),
       listPublishedR2ChunkManifests: vi.fn(
@@ -234,6 +239,7 @@ function source(
     bucketName: "private-preview",
     baseline: target.baseline,
     historySource: target.historySource,
+    historyAuthoritySource: target.historyAuthoritySource,
     populationIndex: target.populationIndex,
     chunkStore: target.chunkStore,
     storage: target.storage as never,
@@ -287,6 +293,7 @@ describe("population entrant live audit source", () => {
     expect(third).toBe(first);
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
     expect(target.capacitySource.measure).toHaveBeenCalledTimes(1);
+    expect(target.historyAuthoritySource.loadLastGood).toHaveBeenCalledTimes(3);
 
     const fourth = await live.load(request);
 
