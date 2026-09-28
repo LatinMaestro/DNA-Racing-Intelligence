@@ -31,14 +31,21 @@ import {
   type DnaPopulationHistoryAcquisitionPlan,
 } from "./dna-population-history-acquisition-plan";
 import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
-import { DNA_RACE_DOCUMENT_BATCH_LIMIT } from "./dna-open-lab-race-document-hydrator";
+import {
+  DnaRaceDocumentHydrationError,
+  DNA_RACE_DOCUMENT_BATCH_LIMIT,
+} from "./dna-open-lab-race-document-hydrator";
 import { hydrateDnaRaceDocumentsWithQuarantine } from "./dna-open-lab-race-document-quarantine-hydrator";
+import { DnaOpenLabR2RaceEvidenceProviderError } from "./dna-open-lab-r2-race-evidence";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "./dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
-import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+} from "./dna-open-lab-v1-client";
 import type { DnaPopulationEntrantAuthorityR2PendingChunk } from "./dna-population-entrant-authority-r2-store";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -64,6 +71,9 @@ export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "recovered_boundary_mismatch"
   | "request_budget_invalid"
   | "hydration_unavailable"
+  | `hydration_${DnaRaceDocumentHydrationError["kind"]}`
+  | `hydration_api_${DnaOpenLabApiError["kind"]}`
+  | `hydration_r2_${DnaOpenLabR2RaceEvidenceProviderError["kind"]}`
   | "hydration_coverage_mismatch"
   | "compact_record_unavailable"
   | "prepared_chunk_invalid"
@@ -157,6 +167,19 @@ function cohortError(
   diagnostic: DnaPopulationEntrantAuthorityCohortDiagnostic,
 ): never {
   throw new DnaPopulationEntrantAuthorityCohortError(diagnostic);
+}
+
+function hydrationCohortError(error: unknown): never {
+  if (error instanceof DnaRaceDocumentHydrationError) {
+    cohortError(`hydration_${error.kind}`);
+  }
+  if (error instanceof DnaOpenLabApiError) {
+    cohortError(`hydration_api_${error.kind}`);
+  }
+  if (error instanceof DnaOpenLabR2RaceEvidenceProviderError) {
+    cohortError(`hydration_r2_${error.kind}`);
+  }
+  cohortError("hydration_unavailable");
 }
 
 function hash(parts: readonly (string | number)[]): string {
@@ -850,8 +873,8 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
       requestBudget: input.requestBudget,
       observedAt: cohortObservedAt,
     });
-  } catch {
-    cohortError("hydration_unavailable");
+  } catch (error) {
+    hydrationCohortError(error);
   }
 
   validateRequestBudget(input.requestBudget);
