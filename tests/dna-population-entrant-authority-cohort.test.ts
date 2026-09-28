@@ -144,7 +144,7 @@ function immediateRequestBudget(): DnaOpenLabRequestBudget {
     reduceEffectiveRequestsPerMinute: () => undefined,
     snapshot: () =>
       Object.freeze({
-        effectiveRequestsPerMinute: 90,
+        effectiveRequestsPerMinute: 30,
         requestsInCurrentWindow: 0,
         blockedUntilMilliseconds: null,
       }),
@@ -419,7 +419,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
-      aggregateRequestsPerMinute: 90,
+      aggregateRequestsPerMinute: 30,
       providerRequestPerformed: true,
       persistentWritePerformed: false,
       providerWritePerformed: false,
