@@ -307,6 +307,9 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
     chunkOrdinal: number;
     records: readonly DnaPopulationEntrantAuthorityRecord[];
   }) => Promise<DnaPopulationEntrantAuthorityR2ChunkWrite>;
+  verify: (
+    receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt,
+  ) => Promise<void>;
   read: (
     receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt,
   ) => Promise<DnaPopulationEntrantAuthorityChunk>;
@@ -356,6 +359,25 @@ export function createDnaPopulationEntrantAuthorityR2ChunkStore(input: {
         }),
         storageStatus: stored.status,
       });
+    },
+
+    async verify(storedReceipt) {
+      const receipt = chunkReceipt(storedReceipt);
+      const expectedObjectKey = objectKey(ownerId, receipt);
+      if (
+        safeText(storedReceipt.objectKey, "objectKey", 2_048) !==
+        expectedObjectKey
+      ) {
+        storageError("object key conflicts with its deterministic identity");
+      }
+      await privateStorage();
+      exactHead(
+        await input.storage.headObject({
+          bucketName,
+          key: expectedObjectKey,
+        }),
+        receipt,
+      );
     },
 
     async read(storedReceipt) {
