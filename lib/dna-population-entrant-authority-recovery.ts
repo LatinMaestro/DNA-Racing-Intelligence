@@ -12,8 +12,12 @@ import type { DnaPopulationEntrantAuthorityR2ChunkReceipt } from "./dna-populati
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
+const R2_VERIFY_CONCURRENCY = 32 as const;
 
 export type DnaPopulationEntrantAuthorityR2RecoveryPort = Readonly<{
+  verify?: (
+    receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt,
+  ) => Promise<void>;
   read: (
     receipt: DnaPopulationEntrantAuthorityR2ChunkReceipt,
   ) => Promise<DnaPopulationEntrantAuthorityChunk>;
@@ -219,11 +223,24 @@ export async function recoverDnaPopulationEntrantAuthority(input: {
     manifests,
   });
 
-  for (const manifest of manifests) {
-    const stored = await input.r2Store.read(manifest);
-    if (!sameReceipt(stored.receipt, manifest)) {
-      recoveryError("R2 chunk disagrees with durable manifest");
-    }
+  for (
+    let start = 0;
+    start < manifests.length;
+    start += R2_VERIFY_CONCURRENCY
+  ) {
+    const batch = manifests.slice(start, start + R2_VERIFY_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (manifest) => {
+        if (input.r2Store.verify !== undefined) {
+          await input.r2Store.verify(manifest);
+          return;
+        }
+        const stored = await input.r2Store.read(manifest);
+        if (!sameReceipt(stored.receipt, manifest)) {
+          recoveryError("R2 chunk disagrees with durable manifest");
+        }
+      }),
+    );
   }
 
   const complete =
