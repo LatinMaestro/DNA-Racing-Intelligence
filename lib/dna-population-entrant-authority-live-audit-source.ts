@@ -27,6 +27,33 @@ const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
 const CHUNK_READ_CONCURRENCY = 24 as const;
 
+export type DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
+  | "request_binding_unavailable"
+  | "cached_authority_unavailable"
+  | "authority_capacity_unavailable"
+  | "baseline_authority_unavailable"
+  | "population_index_unavailable"
+  | "manifest_authority_unavailable"
+  | "serving_history_unavailable"
+  | "combined_history_unavailable"
+  | "acquisition_plan_unavailable";
+
+export class DnaPopulationEntrantAuthorityLiveAuditError extends Error {
+  readonly diagnostic: DnaPopulationEntrantAuthorityLiveAuditDiagnostic;
+
+  constructor(diagnostic: DnaPopulationEntrantAuthorityLiveAuditDiagnostic) {
+    super(`Population entrant live audit is unavailable: ${diagnostic}`);
+    this.name = "DnaPopulationEntrantAuthorityLiveAuditError";
+    this.diagnostic = diagnostic;
+  }
+}
+
+function liveAuditUnavailable(
+  diagnostic: DnaPopulationEntrantAuthorityLiveAuditDiagnostic,
+): never {
+  throw new DnaPopulationEntrantAuthorityLiveAuditError(diagnostic);
+}
+
 export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
   100_000 as const;
 
@@ -228,7 +255,10 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
 
   return Object.freeze({
     async load(request) {
-      sameRequest({
+      let stage: DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
+        "request_binding_unavailable";
+      try {
+        sameRequest({
         configuredOwnerId,
         configuredHead,
         requestedOwnerId: request.ownerId,
@@ -240,6 +270,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         cachedAuthorityFingerprint !== null &&
         remainingAuditReuses > 0
       ) {
+        stage = "cached_authority_unavailable";
         const completionSha256 = cachedBaselineCompletionSha256;
         if (completionSha256 === null) {
           auditError("cached authority fingerprint is unavailable");
@@ -276,6 +307,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         return reused;
       }
 
+      stage = "authority_capacity_unavailable";
       if (input.capacitySource.status !== "ready") {
         auditError("provider capacity measurement is unavailable");
       }
@@ -292,6 +324,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("published Race audit read budget is unavailable");
       }
 
+      stage = "baseline_authority_unavailable";
       const baseline = await input.baseline.load();
       if (
         baseline === null ||
@@ -307,6 +340,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("immutable P5 baseline authority is unavailable");
       }
 
+      stage = "population_index_unavailable";
       const populationIndex = await input.populationIndex.load(
         configuredOwnerId,
         baseline.completionSha256,
@@ -332,6 +366,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("published compact P5 population authority is unavailable");
       }
 
+      stage = "manifest_authority_unavailable";
       const manifests: DnaPopulationRaceIndexR2ChunkManifest[] = [];
       let afterChunkOrdinal = 0;
       while (manifests.length < populationIndex.r2ChunkCount) {
@@ -372,9 +407,11 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("compact P5 read budget is invalid");
       }
 
+      stage = "serving_history_unavailable";
       const history = await input.historySource.readServingFinishedHistory({
         ownerId: configuredOwnerId,
       });
+      stage = "combined_history_unavailable";
       const assessment = await assessCombinedHistory({
         ownerId: configuredOwnerId,
         bucketName,
@@ -451,6 +488,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("combined Race authority did not reconcile");
       }
 
+      stage = "acquisition_plan_unavailable";
       const plan = planDnaPopulationHistoryAcquisition({
         raceDocuments: Object.freeze(raceDocuments),
       });
@@ -473,6 +511,12 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         remainingAuditReuses = fullAuditReuseCount;
       }
       return audit;
+      } catch (error) {
+        if (error instanceof DnaPopulationEntrantAuthorityLiveAuditError) {
+          throw error;
+        }
+        liveAuditUnavailable(stage);
+      }
     },
   });
 }
