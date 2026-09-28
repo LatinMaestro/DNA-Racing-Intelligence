@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import type {
   DnaOpenLabClient,
   DnaOpenLabRateLimit,
@@ -46,8 +48,9 @@ function snapshot(
 /**
  * Couples a deterministic round-robin Race-doc client with one independent
  * server-observed request budget per API key. Permit acquisition and network
- * responses may overlap across calls; only the synchronous client selection is
- * coupled so each request retains the correct credential and per-key rate state.
+ * responses may overlap across calls. Async request context retains the selected
+ * credential and per-key rate state through wrappers that await before invoking
+ * the coupled provider client.
  */
 export function createDnaOpenLabIndependentRaceDocRuntime(
   lanes: readonly DnaOpenLabIndependentRaceDocLane[],
@@ -57,14 +60,15 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
   }
 
   let laneCursor = 0;
-  let activeLane: DnaOpenLabIndependentRaceDocLane | null = null;
+  const laneContext = new AsyncLocalStorage<DnaOpenLabIndependentRaceDocLane>();
 
   const client = Object.freeze({
     raceDocs: async (raceIds: Parameters<DnaOpenLabClient["raceDocs"]>[0]) => {
-      if (activeLane === null) {
+      const lane = laneContext.getStore();
+      if (lane === undefined) {
         throw new Error("race-doc lane is not selected");
       }
-      return activeLane.client.raceDocs(raceIds);
+      return lane.client.raceDocs(raceIds);
     },
   });
 
@@ -75,27 +79,15 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
     laneCursor += 1;
     if (lane === undefined) throw new Error("race-doc lane is unavailable");
 
-    return lane.requestBudget.execute(() => {
-      if (activeLane !== null) {
-        throw new Error("race-doc lane overlap is unavailable");
-      }
-      activeLane = lane;
-      try {
-        return request();
-      } finally {
-        // The selected lane is needed only while the coupled client constructs
-        // the provider request. The lane-local budget owns the full async
-        // response lifecycle and observes that response's rate-limit metadata.
-        activeLane = null;
-      }
-    });
+    return lane.requestBudget.execute(() => laneContext.run(lane, request));
   };
 
   const observeRateLimit = (rateLimit: DnaOpenLabRateLimit): void => {
-    if (activeLane === null) {
+    const lane = laneContext.getStore();
+    if (lane === undefined) {
       throw new Error("race-doc lane is not selected");
     }
-    activeLane.requestBudget.observeRateLimit(rateLimit);
+    lane.requestBudget.observeRateLimit(rateLimit);
   };
 
   const reduceEffectiveRequestsPerMinute = (
