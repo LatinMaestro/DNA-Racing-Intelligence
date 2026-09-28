@@ -148,7 +148,7 @@ function prepared(
       preparedBodySha256: "b".repeat(64),
       preparedRecordSetSha256: "d".repeat(64),
       cohortObservedAt: OBSERVED_AT,
-      aggregateRequestsPerMinute: 90 as const,
+      aggregateRequestsPerMinute: 30 as const,
       providerRequestPerformed: true,
       persistentWritePerformed: false,
       providerWritePerformed: false,
