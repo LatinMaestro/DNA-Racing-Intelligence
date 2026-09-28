@@ -142,6 +142,54 @@ describe("DNA race document quarantine hydrator", () => {
     });
   });
 
+  it("hydrates independent 20-Race batches concurrently", async () => {
+    const raceIds = Array.from({ length: 41 }, (_, index) => index + 1);
+    let releaseBarrier: (() => void) | undefined;
+    const barrier = new Promise<void>((resolve) => {
+      releaseBarrier = resolve;
+    });
+    let inFlight = 0;
+    let peakInFlight = 0;
+
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async (batch) => {
+        inFlight += 1;
+        peakInFlight = Math.max(peakInFlight, inFlight);
+        await barrier;
+        inFlight -= 1;
+        return response(
+          batch.map((rid) => ({
+            rid,
+            rvmode: "bike",
+            hids: [Number(rid) + 100],
+          })),
+        );
+      },
+    });
+
+    const pending = hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds,
+      client,
+      requestBudget: createDnaOpenLabRequestBudget(),
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(peakInFlight).toBe(3);
+    releaseBarrier?.();
+
+    const result = await pending;
+    expect(result).toMatchObject({
+      requestedRaceCount: 41,
+      batchCount: 3,
+      resolvedRaceCount: 41,
+      quarantinedRaceCount: 0,
+    });
+    expect(result.outcomes.map((entry) => entry.sourceRaceId)).toEqual(
+      raceIds.map(String),
+    );
+  });
+
   it("fails closed instead of mass-quarantining an empty multi-Race batch", async () => {
     const target = clientWith(() => []);
 
