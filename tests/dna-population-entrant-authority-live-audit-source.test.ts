@@ -148,6 +148,21 @@ function harness(input?: {
       2: Object.freeze([document("race-3", 3)]),
     });
 
+  const readServingFinishedHistory =
+    vi.fn<
+      NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]
+    >(async () =>
+      Object.freeze({
+        refreshCycleId: "refresh-1",
+        currentStateGenerationId: "current-1",
+        selectedCycleId: "cycle-1",
+        cycles: Object.freeze([]),
+        receiptCount: 0,
+        documentCount: 0,
+        manifestByteLength: 0,
+      }),
+    );
+
   return {
     capacitySource: Object.freeze({
       status: "ready" as const,
@@ -189,17 +204,7 @@ function harness(input?: {
       readEvidence: vi.fn(async () => null),
     },
     historySource: {
-      readServingFinishedHistory: vi.fn(async (): Promise<ServingFinishedHistory> =>
-        Object.freeze({
-          refreshCycleId: "refresh-1",
-          currentStateGenerationId: "current-1",
-          selectedCycleId: "cycle-1",
-          cycles: Object.freeze([]),
-          receiptCount: 0,
-          documentCount: 0,
-          manifestByteLength: 0,
-        }),
-      ),
+      readServingFinishedHistory,
     },
     populationIndex: {
       load: vi.fn(async () => checkpoint()),
