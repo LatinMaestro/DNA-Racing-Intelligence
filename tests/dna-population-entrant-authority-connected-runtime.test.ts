@@ -37,7 +37,11 @@ function environment(
     databaseUrl: "postgresql://example.invalid/dna",
     databaseOwnerId: "11111111-1111-4111-8111-111111111111",
     runtimeRole: "dna_app_runtime",
-    dnaOpenLabApiKey: `dna_${"x".repeat(43)}`,
+    dnaOpenLabApiKeys: [
+      `dna_${"x".repeat(43)}`,
+      `dna_${"y".repeat(43)}`,
+      `dna_${"z".repeat(43)}`,
+    ],
     cloudflareAccountId: "b".repeat(32),
     cloudflareApiToken: "test-cloudflare-token",
     cloudflareAnalyticsApiToken: "test-analytics-token",
@@ -111,7 +115,13 @@ describe("population entrant connected runtime", () => {
   it("fails closed for a malformed DNA API key", () => {
     expect(
       dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-        environment: environment({ dnaOpenLabApiKey: "invalid-key" }),
+        environment: environment({
+          dnaOpenLabApiKeys: [
+            `dna_${"x".repeat(43)}`,
+            "invalid-key",
+            `dna_${"z".repeat(43)}`,
+          ],
+        }),
       }),
     ).toEqual({ status: "not_configured" });
   });

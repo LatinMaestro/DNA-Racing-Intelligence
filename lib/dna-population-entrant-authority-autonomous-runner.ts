@@ -5,6 +5,7 @@ import {
   type DnaPopulationEntrantAuthorityContinuationCommandReceipt,
   type DnaPopulationEntrantAuthorityContinuationCommandSession,
 } from "./dna-population-entrant-authority-continuation-command";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION =
   "dna-population-entrant-authority-autonomous-runner/v1" as const;
@@ -440,7 +441,8 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
         session.prepared.chunkOrdinal !== current.nextChunkOrdinal ||
         session.prepared.durableBoundarySha256 !==
           current.durableBoundarySha256 ||
-        session.prepared.aggregateRequestsPerMinute !== 30 ||
+        session.prepared.aggregateRequestsPerMinute !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
         session.prepared.persistentWriteArmed !== true ||
         session.prepared.previewOnly !== true ||
         session.prepared.entrantChunkPersistentWritePerformed !== false ||

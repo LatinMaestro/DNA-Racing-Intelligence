@@ -550,7 +550,7 @@ describe("DNA Core race history private generation operator", () => {
     expect(mocks.materialize).not.toHaveBeenCalled();
   });
 
-  it("hydrates more than twenty race documents in safe batches on the same aggregate budget", async () => {
+  it("hydrates race documents at the measured server batch maximum on the same aggregate budget", async () => {
     mocks.collect.mockResolvedValue(completeStep());
     const raceDocs = vi
       .fn()
@@ -595,14 +595,10 @@ describe("DNA Core race history private generation operator", () => {
     await expect(operator.execute(invocation)).resolves.toMatchObject({
       kind: "generation",
     });
-    expect(sourcePorts.requestBudget.execute).toHaveBeenCalledTimes(2);
+    expect(sourcePorts.requestBudget.execute).toHaveBeenCalledTimes(1);
     expect(raceDocs).toHaveBeenNthCalledWith(
       1,
-      Array.from({ length: 20 }, (_, index) => String(index + 1)),
-    );
-    expect(raceDocs).toHaveBeenNthCalledWith(
-      2,
-      Array.from({ length: 5 }, (_, index) => String(index + 21)),
+      Array.from({ length: 25 }, (_, index) => String(index + 1)),
     );
   });
 

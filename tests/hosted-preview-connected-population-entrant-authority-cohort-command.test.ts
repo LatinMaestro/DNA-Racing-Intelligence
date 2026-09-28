@@ -120,7 +120,11 @@ describeConnected(
                 databaseUrl: requiredEnvironment("DATABASE_URL"),
                 databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
                 runtimeRole: RUNTIME_ROLE,
-                dnaOpenLabApiKey: requiredEnvironment("DNA_OPEN_LAB_API_KEY_1"),
+                dnaOpenLabApiKeys: [
+                  requiredEnvironment("DNA_OPEN_LAB_API_KEY_1"),
+                  requiredEnvironment("DNA_OPEN_LAB_API_KEY_2"),
+                  requiredEnvironment("DNA_OPEN_LAB_API_KEY_3"),
+                ],
                 cloudflareAccountId: requiredEnvironment(
                   "CLOUDFLARE_ACCOUNT_ID",
                 ),

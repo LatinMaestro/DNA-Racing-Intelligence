@@ -380,7 +380,7 @@ describe("DNA Open Lab finished-race backfill", () => {
     expect(first.kind).toBe("published");
     if (first.kind !== "published") throw new Error("expected publication");
     expect(source.finishedCalls).toHaveLength(1);
-    expect(source.docCalls.map((batch) => batch.length)).toEqual([20, 5]);
+    expect(source.docCalls.map((batch) => batch.length)).toEqual([25]);
     expect(publisher.callCount).toBe(1);
     expect(publisher.publications.size).toBe(1);
     expect(repository.lastPublication).toEqual({
@@ -392,7 +392,7 @@ describe("DNA Open Lab finished-race backfill", () => {
       completedWindowCount: 1,
       splitCount: 0,
       successfulFinishedRaceRequestCount: 1,
-      raceDocumentRequestCount: 2,
+      raceDocumentRequestCount: 1,
       publishedWindowDocumentCount: 25,
     });
 
@@ -403,7 +403,7 @@ describe("DNA Open Lab finished-race backfill", () => {
     });
     expect(second.kind).toBe("complete");
     expect(source.finishedCalls).toHaveLength(1);
-    expect(source.docCalls).toHaveLength(2);
+    expect(source.docCalls).toHaveLength(1);
     expect(publisher.callCount).toBe(1);
   });
 

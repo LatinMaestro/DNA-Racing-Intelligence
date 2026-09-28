@@ -115,8 +115,8 @@ describe("DNA race document quarantine hydrator", () => {
     });
   });
 
-  it("keeps 20-ID request batching while allowing isolated omissions", async () => {
-    const raceIds = Array.from({ length: 21 }, (_, index) => index + 1);
+  it("keeps measured 100-ID request batching while allowing isolated omissions", async () => {
+    const raceIds = Array.from({ length: 101 }, (_, index) => index + 1);
     const target = clientWith((batch) =>
       batch
         .filter((raceId) => Number(raceId) !== 20)
@@ -131,9 +131,9 @@ describe("DNA race document quarantine hydrator", () => {
       observedAt: "2026-08-27T08:00:00Z",
     });
 
-    expect(target.calls.map((batch) => batch.length)).toEqual([20, 1]);
+    expect(target.calls.map((batch) => batch.length)).toEqual([100, 1]);
     expect(result.batchCount).toBe(2);
-    expect(result.resolvedRaceCount).toBe(20);
+    expect(result.resolvedRaceCount).toBe(100);
     expect(result.quarantinedRaceCount).toBe(1);
     expect(result.outcomes[19]).toMatchObject({
       status: "quarantined",

@@ -27,7 +27,7 @@ export type DnaPopulationEntrantAuthorityChunkProjection = Readonly<{
   }>;
   provider: Readonly<{
     minimumRaceDocRequestCount: number;
-    aggregateRequestsPerMinuteCeiling: 30;
+    aggregateRequestsPerMinuteCeiling: 90;
   }>;
   projected: Readonly<{
     r2StorageBytes: number;
@@ -270,7 +270,7 @@ export function projectDnaPopulationEntrantAuthorityChunkArchive(input: {
       minimumRaceDocRequestCount: Math.ceil(
         unresolvedRaceCount / DNA_RACE_DOCUMENT_BATCH_LIMIT,
       ),
-      aggregateRequestsPerMinuteCeiling: 30 as const,
+      aggregateRequestsPerMinuteCeiling: 90 as const,
     }),
     projected: Object.freeze({
       r2StorageBytes,

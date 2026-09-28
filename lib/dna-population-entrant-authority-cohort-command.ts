@@ -4,6 +4,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
 import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
   DnaPopulationEntrantAuthorityCohortError,
   prepareDnaPopulationEntrantAuthorityCohort,
   type DnaPopulationEntrantAuthorityCohortDiagnostic,
@@ -79,7 +80,7 @@ export type DnaPopulationEntrantAuthorityCohortCommandPreparedReceipt =
     selectedRaceSetSha256: string;
     preparedBodySha256: string;
     preparedRecordSetSha256: string;
-    aggregateRequestsPerMinute: 30;
+    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
     persistentWriteArmed: true;
     previewOnly: true;
     providerRequestPerformed: boolean;
@@ -551,7 +552,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         prepared.summary.resolvedRaceCount +
           prepared.summary.quarantinedRaceCount !==
           prepared.summary.selectedRaceCount ||
-        prepared.summary.aggregateRequestsPerMinute !== 30 ||
+        prepared.summary.aggregateRequestsPerMinute !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
         prepared.summary.persistentWritePerformed !== false ||
         prepared.summary.providerWritePerformed !== false ||
         prepared.summary.paidUsageAllowed !== false ||
@@ -597,7 +599,8 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
         selectedRaceSetSha256: prepared.summary.selectedRaceSetSha256,
         preparedBodySha256: prepared.summary.preparedBodySha256,
         preparedRecordSetSha256: prepared.summary.preparedRecordSetSha256,
-        aggregateRequestsPerMinute: 30 as const,
+        aggregateRequestsPerMinute:
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
         persistentWriteArmed: true as const,
         previewOnly: true as const,
         providerRequestPerformed: prepared.summary.providerRequestPerformed,
