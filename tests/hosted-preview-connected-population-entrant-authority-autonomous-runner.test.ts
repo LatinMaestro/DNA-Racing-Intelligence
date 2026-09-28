@@ -17,7 +17,7 @@ const connected =
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-const SESSION_COHORT_LIMIT = 60;
+// Keep enough headroom for the sanitized handoff and self-dispatch before the\n// 145-minute connected-test / 150-minute hosted-job deadlines.\nconst SESSION_COHORT_LIMIT = 8;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 
 function required(name: string): string {
