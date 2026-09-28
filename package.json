@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/dna-population-entrant-authority-capacity-gate.ts lib/dna-population-entrant-authority-live-audit-source.ts && git diff -- lib/dna-population-entrant-authority-capacity-gate.ts lib/dna-population-entrant-authority-live-audit-source.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
