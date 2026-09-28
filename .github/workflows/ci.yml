@@ -29,6 +29,18 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
+      - name: Show runtime-status Prettier diff
+        shell: bash
+        run: |
+          npx prettier --write \
+            .github/scripts/update-dna-runtime-status.mjs \
+            tests/dna-runtime-status-workflow.test.ts
+          git diff -- \
+            .github/scripts/update-dna-runtime-status.mjs \
+            tests/dna-runtime-status-workflow.test.ts
+          git checkout -- \
+            .github/scripts/update-dna-runtime-status.mjs \
+            tests/dna-runtime-status-workflow.test.ts
       - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
