@@ -37,6 +37,7 @@ import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-populatio
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
+import { createDnaOpenLabIndependentRaceDocRuntime } from "./dna-open-lab-independent-race-doc-lanes";
 import { createDnaOpenLabR2RaceDocumentClient } from "./dna-open-lab-r2-race-evidence";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
@@ -61,7 +62,7 @@ export type DnaPopulationEntrantAuthorityConnectedEnvironment = Readonly<{
   databaseUrl?: string;
   databaseOwnerId?: string;
   runtimeRole?: string;
-  dnaOpenLabApiKey?: string;
+  dnaOpenLabApiKeys?: readonly string[];
   cloudflareAccountId?: string;
   cloudflareApiToken?: string;
   cloudflareAnalyticsApiToken?: string;
@@ -99,7 +100,7 @@ type ConnectedConfiguration = Readonly<{
   databaseUrl: string;
   databaseOwnerId: string;
   runtimeRole: string;
-  dnaApiKey: string;
+  dnaApiKeys: readonly [string, string, string];
   accountId: string;
   apiToken: string;
   analyticsApiToken: string;
@@ -133,7 +134,7 @@ function configured(
   const databaseOwnerId =
     environment.databaseOwnerId?.trim().toLowerCase() ?? "";
   const runtimeRole = environment.runtimeRole?.trim() ?? "";
-  const dnaApiKey = secret(environment.dnaOpenLabApiKey);
+  const dnaApiKeys = environment.dnaOpenLabApiKeys?.map(secret) ?? [];
   const accountId = environment.cloudflareAccountId?.trim().toLowerCase() ?? "";
   const apiToken = secret(environment.cloudflareApiToken);
   const analyticsApiToken = secret(environment.cloudflareAnalyticsApiToken);
@@ -150,7 +151,9 @@ function configured(
     databaseUrl === null ||
     !UUID_PATTERN.test(databaseOwnerId) ||
     !ROLE_PATTERN.test(runtimeRole) ||
-    dnaApiKey === null ||
+    dnaApiKeys.length !== 3 ||
+    dnaApiKeys.some((apiKey) => apiKey === null) ||
+    new Set(dnaApiKeys).size !== 3 ||
     !ACCOUNT_ID_PATTERN.test(accountId) ||
     apiToken === null ||
     analyticsApiToken === null ||
@@ -170,7 +173,7 @@ function configured(
     databaseUrl,
     databaseOwnerId,
     runtimeRole,
-    dnaApiKey,
+    dnaApiKeys: dnaApiKeys as [string, string, string],
     accountId,
     apiToken,
     analyticsApiToken,
@@ -328,8 +331,19 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       bucketName: config.bucketName,
       storage: entrantStorage,
     });
+    const raceDocumentRuntime = createDnaOpenLabIndependentRaceDocRuntime(
+      config.dnaApiKeys.map((apiKey) =>
+        Object.freeze({
+          client: createDnaOpenLabV1Client({ apiKey }),
+          requestBudget: createDnaOpenLabRequestBudget({
+            initialRequestsPerMinute: 30,
+            maximumRequestsPerMinute: 30,
+          }),
+        }),
+      ),
+    );
     const raceDocumentClient = createDnaOpenLabR2RaceDocumentClient({
-      client: createDnaOpenLabV1Client({ apiKey: config.dnaApiKey }),
+      client: raceDocumentRuntime.client,
       configuration: {
         ownerId: config.ownerId,
         bucketName: config.bucketName,
@@ -402,7 +416,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       authoritySource,
       runtime: Object.freeze({
         client: raceDocumentClient,
-        requestBudget: createDnaOpenLabRequestBudget(),
+        requestBudget: raceDocumentRuntime.requestBudget,
         capacityGate,
         checkpointRepository,
         r2Store,
@@ -417,7 +431,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         continuationReadiness,
         runtime: Object.freeze({
           client: raceDocumentClient,
-          requestBudget: createDnaOpenLabRequestBudget(),
+          requestBudget: raceDocumentRuntime.requestBudget,
           capacityGate,
           checkpointRepository,
           r2Store,

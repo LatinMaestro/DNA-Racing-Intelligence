@@ -49,6 +49,10 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES = Math.min(
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
   1_000,
 );
+export const DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES = 3 as const;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =
+  (DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE *
+    DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES) as 90;
 
 export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "invalid_audited_authority"
@@ -92,7 +96,7 @@ export type DnaPopulationEntrantAuthorityPreparedCohortSummary = Readonly<{
   preparedBodySha256: string;
   preparedRecordSetSha256: string;
   cohortObservedAt: string;
-  aggregateRequestsPerMinute: typeof DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
   providerRequestPerformed: boolean;
   persistentWritePerformed: false;
   providerWritePerformed: false;
@@ -376,7 +380,7 @@ function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
     !Number.isSafeInteger(snapshot.effectiveRequestsPerMinute) ||
     snapshot.effectiveRequestsPerMinute < 1 ||
     snapshot.effectiveRequestsPerMinute >
-      DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE ||
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
     !Number.isSafeInteger(snapshot.requestsInCurrentWindow) ||
     snapshot.requestsInCurrentWindow < 0
   ) {
@@ -593,7 +597,8 @@ function preparedCohort(input: {
       preparedBodySha256: expectedReceipt.bodySha256,
       preparedRecordSetSha256: expectedReceipt.recordSetSha256,
       cohortObservedAt: input.cohortObservedAt,
-      aggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+      aggregateRequestsPerMinute:
+        DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
       providerRequestPerformed:
         input.preparationSource === "provider_hydration",
       persistentWritePerformed: false as const,

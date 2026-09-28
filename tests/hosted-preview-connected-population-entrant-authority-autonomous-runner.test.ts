@@ -150,7 +150,11 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
               databaseUrl: required("DATABASE_URL"),
               databaseOwnerId: required("DNA_DATABASE_OWNER_ID"),
               runtimeRole: "dna_app_runtime",
-              dnaOpenLabApiKey: required("DNA_OPEN_LAB_API_KEY_1"),
+              dnaOpenLabApiKeys: [
+                required("DNA_OPEN_LAB_API_KEY_1"),
+                required("DNA_OPEN_LAB_API_KEY_2"),
+                required("DNA_OPEN_LAB_API_KEY_3"),
+              ],
               cloudflareAccountId: required("CLOUDFLARE_ACCOUNT_ID"),
               cloudflareApiToken: required("CLOUDFLARE_API_TOKEN"),
               cloudflareAnalyticsApiToken: required(

@@ -19,6 +19,7 @@ describe("population entrant authority chunk projection", () => {
     expect(projection.chunk.projectedRowsPerChunk).toBe(5_000);
     expect(projection.chunk.projectedChunkCount).toBe(228);
     expect(projection.provider.minimumRaceDocRequestCount).toBe(56_760);
+    expect(projection.provider.aggregateRequestsPerMinuteCeiling).toBe(90);
     expect(projection.projected.r2StorageBytes).toBe(1_025_317_038);
     expect(projection.projected.r2ClassAOperations).toBe(456);
     expect(projection.projected.r2ClassBOperations).toBe(912);
