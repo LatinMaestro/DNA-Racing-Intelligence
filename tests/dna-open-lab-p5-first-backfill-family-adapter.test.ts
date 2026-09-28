@@ -303,6 +303,7 @@ describe("DNA Open Lab P5 first-backfill family adapter", () => {
         { id: "key-3", client: fake.client, scopes },
       ],
       aggregateRequestsPerMinute: 30,
+      maximumLaneRequestsPerMinute: 30,
       allowIndependentRateBuckets: false,
       nowMilliseconds: () => nowMilliseconds,
       sleep: async (milliseconds) => {
