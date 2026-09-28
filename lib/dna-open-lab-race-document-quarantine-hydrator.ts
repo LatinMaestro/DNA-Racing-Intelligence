@@ -74,6 +74,29 @@ function batches<T>(
   return Object.freeze(result.map((batch) => Object.freeze(batch)));
 }
 
+const DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY = 3;
+
+async function forEachWithConcurrency<T>(
+  values: readonly T[],
+  maximumConcurrency: number,
+  operation: (value: T) => Promise<void>,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      await operation(values[index]!);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(maximumConcurrency, values.length) },
+      worker,
+    ),
+  );
+}
+
 function resolvedEntrantAuthority(
   canonical: CanonicalRaceDocumentMetadata,
 ): boolean {
@@ -133,8 +156,10 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
   >();
   const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
 
-  await Promise.all(
-    requestBatches.map(async (batch) => {
+  await forEachWithConcurrency(
+    requestBatches,
+    DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY,
+    async (batch) => {
       const batchKeys = batch.map(raceKey);
       const batchKeySet = new Set(batchKeys);
       const response = await input.requestBudget.execute(() =>
@@ -262,7 +287,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
           "race-doc batch entrant authority is systemically unavailable",
         );
       }
-    }),
+    },
   );
 
   const outcomes = Object.freeze(
