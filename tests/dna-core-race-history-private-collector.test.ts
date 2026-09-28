@@ -322,7 +322,9 @@ function sources() {
   return {
     client,
     evidenceStore,
-    requestBudget: createDnaOpenLabRequestBudget(),
+    requestBudget: createDnaOpenLabRequestBudget({
+      maximumRequestsPerMinute: 30,
+    }),
   };
 }
 

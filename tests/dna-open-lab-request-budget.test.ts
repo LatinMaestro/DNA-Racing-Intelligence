@@ -75,7 +75,7 @@ describe("DNA Open Lab request budget", () => {
     expect(clock.now()).toBe(60_000);
   });
 
-  it("does not raise the default allowance when DNA advertises a higher tier", () => {
+  it("follows an authenticated server-advertised higher lane allowance", () => {
     const budget = createDnaOpenLabRequestBudget();
 
     budget.observeRateLimit(
@@ -87,9 +87,7 @@ describe("DNA Open Lab request budget", () => {
       }),
     );
 
-    expect(budget.snapshot().effectiveRequestsPerMinute).toBe(
-      DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-    );
+    expect(budget.snapshot().effectiveRequestsPerMinute).toBe(150);
   });
 
   it("uses an advertised higher tier only with an explicit higher maximum", async () => {
