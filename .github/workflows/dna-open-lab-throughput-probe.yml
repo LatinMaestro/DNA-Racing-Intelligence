@@ -1,0 +1,41 @@
+name: DNA Open Lab throughput probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to inspect
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-open-lab-throughput-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Read-only sanitized throughput probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+    steps:
+      - name: Require exact main
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "${{ inputs.expected_main_sha }}" == "$GITHUB_SHA" ]]
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run bounded read-only throughput probe
+        run: npx vitest run --no-file-parallelism tests/hosted-dna-open-lab-throughput-probe.test.ts
