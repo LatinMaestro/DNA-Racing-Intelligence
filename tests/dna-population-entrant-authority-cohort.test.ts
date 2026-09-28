@@ -26,16 +26,18 @@ import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
 } from "@/lib/dna-population-history-acquisition-plan";
+import { DnaOpenLabR2RaceEvidenceProviderError } from "@/lib/dna-open-lab-r2-race-evidence";
 import {
   createDnaOpenLabRequestBudget,
   type DnaOpenLabRequestBudget,
 } from "@/lib/dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
-import type {
-  DnaOpenLabClient,
-  DnaOpenLabResponse,
-  DnaRaceDocument,
-  DnaRaceIdentifier,
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+  type DnaOpenLabResponse,
+  type DnaRaceDocument,
+  type DnaRaceIdentifier,
 } from "@/lib/dna-open-lab-v1-client";
 
 const STARTED_AT = "2026-09-26T01:00:00.000Z";
@@ -187,6 +189,7 @@ function harness(input: {
   pendingFailure?: boolean;
   failFirstRegistration?: boolean;
   capacityFailure?: boolean;
+  providerError?: Error;
   provider?: (
     raceIds: readonly DnaRaceIdentifier[],
   ) => readonly DnaRaceDocument[];
@@ -338,6 +341,9 @@ function harness(input: {
     raceDocs: vi.fn(async (raceIds) => {
       events.push("dna");
       providerCalls.push([...raceIds]);
+      if (input.providerError !== undefined) {
+        throw input.providerError;
+      }
       return response(
         input.provider?.(raceIds) ??
           [...raceIds]
@@ -864,7 +870,64 @@ describe("DNA population entrant authority cohort bridge", () => {
     }).catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({
-      diagnostic: "hydration_unavailable",
+      diagnostic: "hydration_invalid_response",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+  });
+
+  it("preserves a sanitized API hydration failure family", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({
+      authority,
+      providerError: new DnaOpenLabApiError({
+        kind: "rate_limited",
+        message: "private API detail",
+        httpStatus: 429,
+      }),
+    });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "hydration_api_rate_limited",
+      message: "Population entrant cohort processing is unavailable",
+    });
+    expect(String(error)).not.toContain("private API detail");
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+  });
+
+  it("preserves a sanitized R2 hydration failure family", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({
+      authority,
+      providerError: new DnaOpenLabR2RaceEvidenceProviderError(
+        "write_unavailable",
+      ),
+    });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "hydration_r2_write_unavailable",
       message: "Population entrant cohort processing is unavailable",
     });
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
