@@ -143,18 +143,17 @@ function harness(input?: {
     });
 
   const readServingFinishedHistory =
-    vi.fn<
-      NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]
-    >(async () =>
-      Object.freeze({
-        refreshCycleId: "refresh-1",
-        currentStateGenerationId: "current-1",
-        selectedCycleId: "cycle-1",
-        cycles: Object.freeze([]),
-        receiptCount: 0,
-        documentCount: 0,
-        manifestByteLength: 0,
-      }),
+    vi.fn<NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]>(
+      async () =>
+        Object.freeze({
+          refreshCycleId: "refresh-1",
+          currentStateGenerationId: "current-1",
+          selectedCycleId: "cycle-1",
+          cycles: Object.freeze([]),
+          receiptCount: 0,
+          documentCount: 0,
+          manifestByteLength: 0,
+        }),
     );
 
   return {
