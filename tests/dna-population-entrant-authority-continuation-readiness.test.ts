@@ -260,6 +260,9 @@ describe("population entrant continuation readiness", () => {
       .inspect()
       .catch((caught: unknown) => caught);
 
+    expect(error).toMatchObject({
+      diagnostic: "capacity_unavailable",
+    });
     expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
@@ -348,6 +351,9 @@ describe("population entrant autonomous durable boundary", () => {
       .inspect()
       .catch((caught: unknown) => caught);
 
+    expect(error).toMatchObject({
+      diagnostic: "recovery_unavailable",
+    });
     expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
