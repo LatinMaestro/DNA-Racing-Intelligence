@@ -340,16 +340,16 @@ describe("DNA Open Lab private R2 Race evidence", () => {
       const storage = new MemoryR2Storage();
       let releaseBarrier: (() => void) | undefined;
       storage.putBarrier = new Promise<void>((resolve) => {
-      releaseBarrier = resolve;
+        releaseBarrier = resolve;
       });
       const documents = Array.from({ length: 9 }, (_, index) => ({
-      rid: index + 1,
-      rvmode: "bike",
-      hids: [index + 101],
+        rid: index + 1,
+        rvmode: "bike",
+        hids: [index + 101],
       })) satisfies readonly DnaRaceDocument[];
       const client = createDnaOpenLabR2RaceDocumentClient({
-      client: sourceClient(documents),
-      configuration: configuration(storage),
+        client: sourceClient(documents),
+        configuration: configuration(storage),
       });
 
       const pending = client.raceDocs(documents.map(({ rid }) => rid));
