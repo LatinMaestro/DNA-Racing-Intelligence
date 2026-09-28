@@ -58,45 +58,48 @@ describe("independent Race-doc API-key lanes", () => {
     });
   });
 
-  it("allows provider responses to overlap across independent keyed lanes", async () => {
-    let releaseBarrier: (() => void) | undefined;
-    const barrier = new Promise<void>((resolve) => {
-      releaseBarrier = resolve;
-    });
-    let inFlight = 0;
-    let peakInFlight = 0;
+  it(
+    "allows provider responses to overlap across independent keyed lanes",
+    async () => {
+      let releaseBarrier: (() => void) | undefined;
+      const barrier = new Promise<void>((resolve) => {
+        releaseBarrier = resolve;
+      });
+      let inFlight = 0;
+      let peakInFlight = 0;
 
-    const runtime = createDnaOpenLabIndependentRaceDocRuntime(
-      Array.from({ length: 3 }, () =>
-        Object.freeze({
-          client: Object.freeze({
-            raceDocs: async () => {
-              inFlight += 1;
-              peakInFlight = Math.max(peakInFlight, inFlight);
-              await barrier;
-              inFlight -= 1;
-              return response();
-            },
+      const runtime = createDnaOpenLabIndependentRaceDocRuntime(
+        Array.from({ length: 3 }, () =>
+          Object.freeze({
+            client: Object.freeze({
+              raceDocs: async () => {
+                inFlight += 1;
+                peakInFlight = Math.max(peakInFlight, inFlight);
+                await barrier;
+                inFlight -= 1;
+                return response();
+              },
+            }),
+            requestBudget: createDnaOpenLabRequestBudget({
+              initialRequestsPerMinute: 30,
+              maximumRequestsPerMinute: 30,
+            }),
           }),
-          requestBudget: createDnaOpenLabRequestBudget({
-            initialRequestsPerMinute: 30,
-            maximumRequestsPerMinute: 30,
-          }),
-        }),
-      ),
-    );
+        ),
+      );
 
-    const pending = Array.from({ length: 6 }, (_, index) =>
-      runtime.requestBudget.execute(() =>
-        runtime.client.raceDocs([index + 1]),
-      ),
-    );
+      const pending = Array.from({ length: 6 }, (_, index) =>
+        runtime.requestBudget.execute(() =>
+          runtime.client.raceDocs([index + 1]),
+        ),
+      );
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(peakInFlight).toBe(6);
-    releaseBarrier?.();
-    await Promise.all(pending);
-  });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      expect(peakInFlight).toBe(6);
+      releaseBarrier?.();
+      await Promise.all(pending);
+    },
+  );
 
   it("fails closed when the coupled client is used outside its budget", async () => {
     const runtime = createDnaOpenLabIndependentRaceDocRuntime([
