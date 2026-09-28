@@ -211,6 +211,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
   environment: DnaPopulationEntrantAuthorityConnectedEnvironment;
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
+  liveAuditReuseCount?: 0 | 1 | 2;
 }): DnaPopulationEntrantAuthorityConnectedRuntime {
   const config = configured(input.environment);
   if (config === null) {
@@ -318,6 +319,9 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       chunkStore: populationChunkStore,
       storage,
       capacitySource,
+      ...(input.liveAuditReuseCount === undefined
+        ? {}
+        : { fullAuditReuseCount: input.liveAuditReuseCount }),
     });
 
     const checkpointRepository =
