@@ -65,7 +65,7 @@ export type DnaOpenLabProviderCapacityProjection = Readonly<{
   neonHeadroom: DnaOpenLabNeonUsage;
   requiredR2StorageClass: typeof DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS;
   r2FreeAllowances: typeof DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES;
-  r2Budgets: typeof DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS;
+  r2Budgets: DnaOpenLabR2Usage;
   neonFreeAllowances: typeof DNA_OPEN_LAB_NEON_FREE_ALLOWANCES;
   neonBudgets: typeof DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS;
   paidUsageAllowed: false;
@@ -167,6 +167,7 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
   neonBillingWindowEndAt: string;
   currentR2Usage: DnaOpenLabR2Usage;
   plannedR2UsagePerRefresh: DnaOpenLabR2Usage;
+  r2Budgets?: DnaOpenLabR2Usage;
   currentNeonUsage: DnaOpenLabNeonUsage;
   plannedNeonUsagePerRefresh: DnaOpenLabNeonUsage;
 }): DnaOpenLabProviderCapacityProjection {
@@ -233,6 +234,19 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
     input.plannedR2UsagePerRefresh,
     "plannedR2UsagePerRefresh",
   );
+  const r2Budgets = r2Usage(
+    input.r2Budgets ?? DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
+    "r2Budgets",
+  );
+  for (const field of [
+    "storageBytes",
+    "classAOperations",
+    "classBOperations",
+  ] as const) {
+    if (r2Budgets[field] > DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES[field]) {
+      capacityError("R2 budgets exceed published free allowances");
+    }
+  }
   const currentNeon = neonUsage(input.currentNeonUsage, "currentNeonUsage");
   const plannedNeon = neonUsage(
     input.plannedNeonUsagePerRefresh,
@@ -297,7 +311,7 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
     ["classBOperations", "class_b_budget_exhausted"],
   ];
   for (const [field, blocker] of r2BudgetChecks) {
-    if (projectedR2Usage[field] > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS[field]) {
+    if (projectedR2Usage[field] > r2Budgets[field]) {
       blockerIds.push(blocker);
     }
   }
@@ -319,7 +333,7 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
           safeRefreshes({
             current: currentR2[field],
             perRefresh: plannedR2[field],
-            budget: DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS[field],
+            budget: r2Budgets[field],
             requested: r2RemainingRefreshes,
           }),
         ),
@@ -365,15 +379,15 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
     r2Headroom: Object.freeze({
       storageBytes: headroom(
         projectedR2Usage.storageBytes,
-        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes,
+        r2Budgets.storageBytes,
       ),
       classAOperations: headroom(
         projectedR2Usage.classAOperations,
-        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations,
+        r2Budgets.classAOperations,
       ),
       classBOperations: headroom(
         projectedR2Usage.classBOperations,
-        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations,
+        r2Budgets.classBOperations,
       ),
     }),
     neonHeadroom: Object.freeze({
@@ -388,7 +402,7 @@ export function projectDnaOpenLabZeroCostProviderCapacity(input: {
     }),
     requiredR2StorageClass: DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS,
     r2FreeAllowances: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES,
-    r2Budgets: DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
+    r2Budgets,
     neonFreeAllowances: DNA_OPEN_LAB_NEON_FREE_ALLOWANCES,
     neonBudgets: DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
     paidUsageAllowed: false,

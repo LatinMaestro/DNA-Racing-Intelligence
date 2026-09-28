@@ -1,6 +1,6 @@
 import { DNA_RACE_DOCUMENT_BATCH_LIMIT } from "./dna-open-lab-race-document-hydrator";
 import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "./dna-open-lab-zero-cost-provider-capacity";
-import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
 import {
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_BYTES,
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
@@ -231,19 +231,19 @@ export function projectDnaPopulationEntrantAuthorityChunkArchive(input: {
     [];
   if (
     projectedUsage.r2StorageBytes >
-    DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes
+    DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.storageBytes
   ) {
     blockerIds.push("r2_storage_budget_exhausted");
   }
   if (
     projectedUsage.r2ClassAOperations >
-    DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classAOperations
+    DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classAOperations
   ) {
     blockerIds.push("r2_class_a_budget_exhausted");
   }
   if (
     projectedUsage.r2ClassBOperations >
-    DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+    DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations
   ) {
     blockerIds.push("r2_class_b_budget_exhausted");
   }

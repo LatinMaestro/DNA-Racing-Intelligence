@@ -40,7 +40,7 @@ describe("population entrant authority chunk projection", () => {
       measuredMaximumCompactEntrantAuthorityBytes: 257,
       verifiedIncrementalMaximumCompactEntrantAuthorityBytes: 902,
       currentR2StorageBytes: 7_500_000_000,
-      currentR2ClassAOperations: 799_700,
+      currentR2ClassAOperations: 899_700,
       currentR2ClassBOperations: 100_000,
       currentNeonStorageBytes: 499_500_000,
     });
