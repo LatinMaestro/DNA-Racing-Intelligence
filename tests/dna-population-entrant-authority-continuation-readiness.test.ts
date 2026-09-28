@@ -217,6 +217,24 @@ describe("population entrant continuation readiness", () => {
     expect(JSON.stringify(receipt)).not.toContain("private/chunk-1.json");
   });
 
+  it("reports sanitized authority-stage failures", async () => {
+    const test = harness();
+    test.authoritySource.load.mockRejectedValue(
+      new Error("private-authority-source-detail"),
+    );
+
+    const error = await inspector(test)
+      .inspect()
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(
+      DnaPopulationEntrantAuthorityContinuationReadinessError,
+    );
+    expect(error).toMatchObject({ diagnostic: "authority_unavailable" });
+    expect(String(error)).not.toContain("private-authority-source-detail");
+    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+  });
+
   it("fails closed before continuation when no cohort has been durably registered", async () => {
     const test = harness({
       checkpoint: checkpoint({
@@ -227,9 +245,13 @@ describe("population entrant continuation readiness", () => {
       manifests: Object.freeze([]),
     });
 
-    await expect(inspector(test).inspect()).rejects.toBeInstanceOf(
+    const error = await inspector(test)
+      .inspect()
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
+    expect(error).toMatchObject({ diagnostic: "durable_boundary_invalid" });
   });
 
   it("fails closed when the entrant authority is already complete", async () => {
@@ -242,9 +264,13 @@ describe("population entrant continuation readiness", () => {
       manifests: Object.freeze([completeManifest]),
     });
 
-    await expect(inspector(test).inspect()).rejects.toBeInstanceOf(
+    const error = await inspector(test)
+      .inspect()
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
+    expect(error).toMatchObject({ diagnostic: "authority_complete" });
   });
 
   it("fails closed and sanitizes current-capacity failures", async () => {
@@ -263,6 +289,7 @@ describe("population entrant continuation readiness", () => {
     expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
+    expect(error).toMatchObject({ diagnostic: "capacity_unavailable" });
     expect(String(error)).not.toContain("private-provider-capacity-secret");
     expect(test.checkpointRepository.read).not.toHaveBeenCalled();
     expect(test.r2Store.read).not.toHaveBeenCalled();
@@ -351,6 +378,7 @@ describe("population entrant autonomous durable boundary", () => {
     expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
+    expect(error).toMatchObject({ diagnostic: "recovery_unavailable" });
     expect(String(error)).not.toContain("private-r2-object-key-and-payload");
   });
 });
