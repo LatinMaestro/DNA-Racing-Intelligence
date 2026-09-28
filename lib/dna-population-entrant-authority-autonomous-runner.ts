@@ -82,7 +82,9 @@ export type DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic =
   | "boundary_unavailable"
   | "boundary_drift"
   | "continuation_unavailable"
-  | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError["diagnostic"]}`
+  | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError[
+      "diagnostic"
+    ]}`
   | "commit_unavailable"
   | "commit_invariant_failed"
   | "completion_unverified";
@@ -434,7 +436,9 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
           invocationFromBoundary({ boundary: current, now }),
         );
       } catch (error) {
-        if (error instanceof DnaPopulationEntrantAuthorityContinuationCommandError) {
+        if (
+          error instanceof DnaPopulationEntrantAuthorityContinuationCommandError
+        ) {
           runnerError(`continuation_${error.diagnostic}`);
         }
         runnerError("continuation_unavailable");
