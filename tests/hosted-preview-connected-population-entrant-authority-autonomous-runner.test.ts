@@ -17,9 +17,11 @@ const connected =
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-// Keep enough headroom for the sanitized handoff and self-dispatch before the
-// 145-minute connected-test / 150-minute hosted-job deadlines.
-const SESSION_COHORT_LIMIT = 8;
+// The first accelerated connected session proved that eight cohorts can cross
+// the 145-minute test deadline before the sanitized handoff is written. Bound
+// each session to four committed cohorts so recovery, handoff validation and
+// the next non-overlapping dispatch retain deterministic runtime headroom.
+const SESSION_COHORT_LIMIT = 4;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 
 function required(name: string): string {
