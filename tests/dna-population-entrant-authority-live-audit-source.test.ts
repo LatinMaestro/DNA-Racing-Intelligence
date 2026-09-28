@@ -9,11 +9,18 @@ import type {
 } from "@/lib/dna-population-race-index-generation";
 import type { DnaPopulationRaceIndexR2ChunkReceipt } from "@/lib/dna-population-race-index-r2-chunk";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
+import type { NeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const OWNER = "private-owner";
 const HEAD = "a".repeat(40);
 const COMPLETION = "b".repeat(64);
 const OBSERVED_AT = "2026-09-25T00:00:00.000Z";
+
+type ServingFinishedHistory = Awaited<
+  ReturnType<
+    NeonDnaOpenLabSyncPublicationRepository["readServingFinishedHistory"]
+  >
+>;
 
 function document(
   sourceRaceId: string,
@@ -182,7 +189,7 @@ function harness(input?: {
       readEvidence: vi.fn(async () => null),
     },
     historySource: {
-      readServingFinishedHistory: vi.fn(async () =>
+      readServingFinishedHistory: vi.fn(async (): Promise<ServingFinishedHistory> =>
         Object.freeze({
           refreshCycleId: "refresh-1",
           currentStateGenerationId: "current-1",
