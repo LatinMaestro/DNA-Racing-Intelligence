@@ -434,7 +434,7 @@ describe("population entrant live audit source", () => {
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
-  it("uses the metadata-derived R2 read bound instead of the fixed ceiling", async () => {
+  it("uses only available zero-cost R2 headroom instead of reserving the fixed ceiling", async () => {
     const target = harness({ classBOperations: 7_999_996 });
 
     await expect(
@@ -445,9 +445,9 @@ describe("population entrant live audit source", () => {
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed before R2 evidence reads when derived read headroom is unavailable", async () => {
+  it("fails closed before R2 evidence reads when the known read floor exceeds headroom", async () => {
     const target = harness({
-      classBOperations: 7_999_983,
+      classBOperations: 7_999_991,
       history: Object.freeze({
         receiptCount: 1,
         documentCount: 2,
