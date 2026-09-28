@@ -133,7 +133,8 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
   >();
   const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
 
-  for (const batch of requestBatches) {
+  await Promise.all(
+    requestBatches.map(async (batch) => {
     const batchKeys = batch.map(raceKey);
     const batchKeySet = new Set(batchKeys);
     const response = await input.requestBudget.execute(() =>
@@ -259,7 +260,8 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
         "race-doc batch entrant authority is systemically unavailable",
       );
     }
-  }
+    }),
+  );
 
   const outcomes = Object.freeze(
     requestedKeys.map((key) => {
