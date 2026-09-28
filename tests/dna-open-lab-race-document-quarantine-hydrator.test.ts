@@ -142,8 +142,8 @@ describe("DNA race document quarantine hydrator", () => {
     });
   });
 
-  it("hydrates independent 20-Race batches concurrently", async () => {
-    const raceIds = Array.from({ length: 41 }, (_, index) => index + 1);
+  it("caps concurrent 20-Race hydration batches at three workers", async () => {
+    const raceIds = Array.from({ length: 81 }, (_, index) => index + 1);
     let releaseBarrier: (() => void) | undefined;
     const barrier = new Promise<void>((resolve) => {
       releaseBarrier = resolve;
@@ -180,9 +180,9 @@ describe("DNA race document quarantine hydrator", () => {
 
     const result = await pending;
     expect(result).toMatchObject({
-      requestedRaceCount: 41,
-      batchCount: 3,
-      resolvedRaceCount: 41,
+      requestedRaceCount: 81,
+      batchCount: 5,
+      resolvedRaceCount: 81,
       quarantinedRaceCount: 0,
     });
     expect(result.outcomes.map((entry) => entry.sourceRaceId)).toEqual(
