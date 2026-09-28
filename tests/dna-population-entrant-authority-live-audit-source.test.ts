@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment } from "@/lib/dna-open-lab-combined-history-performance-evidence";
+import { DnaOpenLabProviderCapacityMeasurementError } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import {
   createDnaPopulationEntrantAuthorityLiveAuditSource,
   DnaPopulationEntrantAuthorityLiveAuditError,
@@ -434,7 +435,24 @@ describe("population entrant live audit source", () => {
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
     ).rejects.toMatchObject({
-      diagnostic: "authority_capacity_unavailable",
+      diagnostic: "authority_capacity_read_budget_unavailable",
+    });
+    expect(target.baseline.load).not.toHaveBeenCalled();
+  });
+
+  it("preserves sanitized provider capacity failure authority", async () => {
+    const target = harness();
+    target.capacitySource.measure.mockRejectedValueOnce(
+      new DnaOpenLabProviderCapacityMeasurementError(
+        "cloudflare_graphql_rate_limited",
+      ),
+    );
+
+    await expect(
+      source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+    ).rejects.toMatchObject({
+      diagnostic:
+        "authority_capacity_measurement_cloudflare_graphql_rate_limited",
     });
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
