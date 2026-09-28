@@ -15,7 +15,11 @@ import type {
 } from "./dna-population-race-index-generation";
 import { DNA_POPULATION_RACE_INDEX_P5_AUTHORITY } from "./dna-population-race-index-private-preview-operator";
 import type { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
-import type { DnaOpenLabProviderCapacityMeasurementSource } from "./dna-open-lab-provider-capacity-preflight";
+import {
+  DnaOpenLabProviderCapacityMeasurementError,
+  type DnaOpenLabProviderCapacityMeasurementFailureId,
+  type DnaOpenLabProviderCapacityMeasurementSource,
+} from "./dna-open-lab-provider-capacity-preflight";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
@@ -30,7 +34,11 @@ const CHUNK_READ_CONCURRENCY = 24 as const;
 export type DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
   | "request_binding_unavailable"
   | "cached_authority_unavailable"
-  | "authority_capacity_unavailable"
+  | "authority_capacity_not_configured"
+  | "authority_capacity_measurement_unavailable"
+  | `authority_capacity_measurement_${DnaOpenLabProviderCapacityMeasurementFailureId}`
+  | "authority_capacity_storage_class_unavailable"
+  | "authority_capacity_read_budget_unavailable"
   | "baseline_authority_unavailable"
   | "population_index_unavailable"
   | "manifest_authority_unavailable"
@@ -76,6 +84,13 @@ function liveAuditFailure(
     throw error;
   }
   liveAuditUnavailable(diagnostic);
+}
+
+function liveAuditCapacityFailure(error: unknown): never {
+  if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
+    liveAuditUnavailable(`authority_capacity_measurement_${error.failureId}`);
+  }
+  liveAuditUnavailable("authority_capacity_measurement_unavailable");
 }
 
 export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
@@ -332,21 +347,27 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       }
 
       if (input.capacitySource.status !== "ready") {
-        liveAuditUnavailable("authority_capacity_unavailable");
+        liveAuditUnavailable("authority_capacity_not_configured");
       }
       const capacity = await input.capacitySource
         .measure({ ownerId: configuredOwnerId })
-        .catch((error: unknown) =>
-          liveAuditFailure("authority_capacity_unavailable", error),
-        );
+        .catch((error: unknown) => liveAuditCapacityFailure(error));
+      if (capacity.r2StorageClass !== "Standard") {
+        liveAuditUnavailable("authority_capacity_storage_class_unavailable");
+      }
+      const maximumClassBOperations = liveAuditStage(
+        "authority_capacity_read_budget_unavailable",
+        () =>
+          safeAdd(
+            capacity.currentR2Usage.classBOperations,
+            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+          ),
+      );
       if (
-        capacity.r2StorageClass !== "Standard" ||
-        safeAdd(
-          capacity.currentR2Usage.classBOperations,
-          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-        ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+        maximumClassBOperations >
+        DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
       ) {
-        liveAuditUnavailable("authority_capacity_unavailable");
+        liveAuditUnavailable("authority_capacity_read_budget_unavailable");
       }
 
       const baseline = await input.baseline
