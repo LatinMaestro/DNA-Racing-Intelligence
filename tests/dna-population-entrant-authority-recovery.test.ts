@@ -146,6 +146,30 @@ describe("DNA population entrant authority recovery", () => {
     expect(test.r2Store.read).toHaveBeenCalledTimes(2);
   });
 
+  it("prefers concurrent exact-head verification when the R2 port supports it", async () => {
+    const test = harness();
+    const verify = vi.fn(async () => undefined);
+    const optimizedStore: DnaPopulationEntrantAuthorityR2RecoveryPort =
+      Object.freeze({
+        verify,
+        read: test.r2Store.read,
+      });
+
+    const result = await recoverDnaPopulationEntrantAuthority({
+      ownerId: "private-owner",
+      authority,
+      checkpointRepository: {
+        read: test.read,
+        listChunkManifests: test.listChunkManifests,
+      },
+      r2Store: optimizedStore,
+    });
+
+    expect(result.recoveredChunkCount).toBe(2);
+    expect(verify).toHaveBeenCalledTimes(2);
+    expect(test.r2Store.read).not.toHaveBeenCalled();
+  });
+
   it("pages manifests in bounded deterministic order", async () => {
     const manifests = Object.freeze(
       Array.from({ length: 101 }, (_, index) =>
