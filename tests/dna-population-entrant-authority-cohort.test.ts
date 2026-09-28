@@ -401,13 +401,15 @@ describe("DNA population entrant authority cohort bridge", () => {
       test,
     });
 
-    expect(test.providerCalls.map((batch) => batch.length)).toEqual([45]);
+    expect(test.providerCalls.map((batch) => batch.length)).toEqual([
+      20, 20, 5,
+    ]);
     expect(prepared.summary).toMatchObject({
       status: "prepared_uncommitted",
       selectedRaceCount: 45,
       resolvedRaceCount: 45,
       quarantinedRaceCount: 0,
-      providerRequestCount: 1,
+      providerRequestCount: 3,
       preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
@@ -448,7 +450,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
-  it("selects the 1,000-row cohort in 100-Race batches under three 30-RPM lanes", async () => {
+  it("selects the 1,000-row cohort in 20-Race batches under three 30-RPM lanes", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
     );
@@ -467,12 +469,10 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(prepared.summary.selectedRaceCount).toBe(1_000);
     expect(prepared.summary.resolvedRaceCount).toBe(1_000);
     expect(prepared.summary.quarantinedRaceCount).toBe(0);
-    expect(prepared.summary.providerRequestCount).toBe(10);
+    expect(prepared.summary.providerRequestCount).toBe(50);
     expect(prepared.summary.aggregateRequestsPerMinute).toBe(90);
-    expect(test.providerCalls).toHaveLength(10);
-    expect(test.providerCalls.every((batch) => batch.length === 100)).toBe(
-      true,
-    );
+    expect(test.providerCalls).toHaveLength(50);
+    expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 

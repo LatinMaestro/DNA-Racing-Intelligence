@@ -268,8 +268,8 @@ describe("DNA Open Lab race document hydrator", () => {
     });
   });
 
-  it("hydrates 205 races in bounded 100, 100, 5 batches and restores requested order", async () => {
-    const raceIds = Array.from({ length: 205 }, (_, index) => index + 1);
+  it("hydrates 45 races in bounded 20, 20, 5 batches and restores requested order", async () => {
+    const raceIds = Array.from({ length: 45 }, (_, index) => index + 1);
     const { result, calls, requestCount } = await hydrate({
       raceIds,
       handler: async (batch) =>
@@ -278,10 +278,10 @@ describe("DNA Open Lab race document hydrator", () => {
           .map((rid) => ({ rid, future_optional_field: { retained: true } })),
     });
 
-    expect(calls.map((batch) => batch.length)).toEqual([100, 100, 5]);
+    expect(calls.map((batch) => batch.length)).toEqual([20, 20, 5]);
     expect(requestCount).toBe(3);
     expect(result.batchCount).toBe(3);
-    expect(result.requestedRaceCount).toBe(205);
+    expect(result.requestedRaceCount).toBe(45);
     expect(
       result.documents.map((entry) => entry.canonical.sourceRaceId),
     ).toEqual(raceIds.map(String));

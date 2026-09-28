@@ -109,7 +109,7 @@ function session(input: {
       selectedRaceCount: receipt.rowCount,
       resolvedRaceCount: receipt.resolvedRaceCount,
       quarantinedRaceCount: receipt.quarantinedRaceCount,
-      providerRequestCount: 10,
+      providerRequestCount: 50,
       preparationSource: "provider_hydration" as const,
       checkpointUpdatedAt: input.before.checkpointUpdatedAt,
       durableBoundarySha256: input.before.durableBoundarySha256,

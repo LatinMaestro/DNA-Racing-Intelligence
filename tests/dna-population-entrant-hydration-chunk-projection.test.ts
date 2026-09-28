@@ -17,7 +17,8 @@ describe("population entrant hydration chunk projection", () => {
 
     expect(projection.authority.maximumRaceDocumentBytes).toBe(11_795);
     expect(projection.chunk.projectedChunkCount).toBeLessThan(2_000);
-    expect(projection.provider.minimumRaceDocRequestCount).toBe(11_352);
+    expect(projection.provider.minimumRaceDocRequestCount).toBe(56_760);
+    expect(projection.provider.aggregateRequestsPerMinuteCeiling).toBe(90);
     expect(projection.projected.r2ClassAOperations).toBeLessThan(4_000);
     expect(projection.projected.r2ClassBOperations).toBeLessThan(8_000);
     expect(projection.allowed).toBe(false);

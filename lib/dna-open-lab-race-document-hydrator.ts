@@ -12,10 +12,7 @@ import type {
 } from "./dna-open-lab-v1-client";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 
-// Connected probe 36368755669 proved that /races/docs accepts 100 Race IDs
-// in one read-only request. Keep the measured server maximum explicit so
-// projections and persistent entrant hydration share the same boundary.
-export const DNA_RACE_DOCUMENT_BATCH_LIMIT = 100 as const;
+export const DNA_RACE_DOCUMENT_BATCH_LIMIT = 20 as const;
 
 export type DnaRaceDocumentHydrationResult = Readonly<{
   documents: readonly DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>[];
