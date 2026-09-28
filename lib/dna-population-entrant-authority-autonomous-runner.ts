@@ -82,9 +82,7 @@ export type DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic =
   | "boundary_unavailable"
   | "boundary_drift"
   | "continuation_unavailable"
-  | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError[
-      "diagnostic"
-    ]}`
+  | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError["diagnostic"]}`
   | "commit_unavailable"
   | "commit_invariant_failed"
   | "completion_unverified";
