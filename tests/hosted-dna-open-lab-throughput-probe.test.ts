@@ -39,16 +39,33 @@ async function docs(apiKey: string, rids: readonly (string | number)[]) {
   });
   const rate = safeRate(response.headers);
   let resultCount: number | null = null;
+  let envelopeStatus: string | null = null;
+  let resultKind: "array" | "object" | "other" | null = null;
+  let resultKeys: string[] = [];
   try {
     const body = (await response.json()) as {
       status?: unknown;
       result?: unknown;
     };
-    if (body.status === "success" && Array.isArray(body.result))
+    envelopeStatus =
+      typeof body.status === "string" ? body.status.slice(0, 32) : null;
+    if (Array.isArray(body.result)) {
+      resultKind = "array";
       resultCount = body.result.length;
+    } else if (body.result !== null && typeof body.result === "object") {
+      resultKind = "object";
+      resultKeys = Object.keys(body.result as Record<string, unknown>)
+        .filter((key) => /^[A-Za-z0-9_-]{1,32}$/.test(key))
+        .slice(0, 12);
+    } else if (body.result !== undefined) {
+      resultKind = "other";
+    }
   } catch {}
   return {
     status: response.status,
+    envelopeStatus,
+    resultKind,
+    resultKeys,
     resultCount,
     elapsedMs: Date.now() - started,
     rate,
