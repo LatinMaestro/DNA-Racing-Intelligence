@@ -3,7 +3,9 @@ import type {
   DnaPopulationEntrantAuthorityCapacityGate,
 } from "./dna-population-entrant-authority-commit-protocol";
 import { projectDnaPopulationEntrantAuthorityChunkArchive } from "./dna-population-entrant-authority-chunk-projection";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS,
+} from "./dna-population-entrant-authority-zero-cost-policy";
 import {
   DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS,
   type DnaOpenLabProviderCapacityMeasurement,
