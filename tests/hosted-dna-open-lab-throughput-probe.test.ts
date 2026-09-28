@@ -40,10 +40,19 @@ async function docs(apiKey: string, rids: readonly (string | number)[]) {
   const rate = safeRate(response.headers);
   let resultCount: number | null = null;
   try {
-    const body = await response.json() as { status?: unknown; result?: unknown };
-    if (body.status === "success" && Array.isArray(body.result)) resultCount = body.result.length;
+    const body = (await response.json()) as {
+      status?: unknown;
+      result?: unknown;
+    };
+    if (body.status === "success" && Array.isArray(body.result))
+      resultCount = body.result.length;
   } catch {}
-  return { status: response.status, resultCount, elapsedMs: Date.now() - started, rate };
+  return {
+    status: response.status,
+    resultCount,
+    elapsedMs: Date.now() - started,
+    rate,
+  };
 }
 
 describeConnected("DNA Open Lab throughput probe", () => {
@@ -54,7 +63,9 @@ describeConnected("DNA Open Lab throughput probe", () => {
       key("DNA_OPEN_LAB_API_KEY_3"),
     ];
     expect(new Set(keys).size).toBe(3);
-    const seed = await createDnaOpenLabV1Client({ apiKey: keys[0]! }).racesFinished({ limit: 100 });
+    const seed = await createDnaOpenLabV1Client({
+      apiKey: keys[0]!,
+    }).racesFinished({ limit: 100 });
     const ids = seed.result
       .map((race) => race.rid)
       .filter((rid) => typeof rid === "string" || typeof rid === "number")
