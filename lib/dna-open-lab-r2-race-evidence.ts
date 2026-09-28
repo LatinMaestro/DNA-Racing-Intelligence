@@ -186,6 +186,26 @@ function oneChunk(bytes: Uint8Array): AsyncIterable<Uint8Array> {
   })();
 }
 
+const DNA_RACE_DOCUMENT_ARCHIVE_CONCURRENCY = 4;
+
+async function forEachWithConcurrency<T>(
+  values: readonly T[],
+  maximumConcurrency: number,
+  operation: (value: T) => Promise<void>,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      await operation(values[index]!);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(maximumConcurrency, values.length) }, worker),
+  );
+}
+
 function assertPrivateBucket(input: {
   publicAccessDisabled: boolean;
   r2DevDisabled: boolean;
@@ -519,37 +539,41 @@ export function createDnaOpenLabR2RaceDocumentClient(input: {
     ): Promise<DnaOpenLabResponse<readonly DnaRaceDocument[]>> => {
       await ensurePrivateBucket();
       const response = await input.client.raceDocs(raceIds);
-      for (const document of response.result) {
-        const sourceRaceId = raceIdentifier(document.rid);
-        const rawEvidenceSha256 = dnaOpenLabRawEvidenceSha256(document);
-        const body = objectBody(document, maximumObjectBytes);
-        if (body.bodySha256 !== rawEvidenceSha256) {
-          evidenceError(
-            "canonical Race document checksum drifted from API evidence hash",
-          );
-        }
-        const key = raceDocumentObjectKey({
-          ownerPrefix: prefix,
-          sourceRaceId,
-          rawEvidenceSha256,
-        });
-        const metadata = Object.freeze({
-          "dna-source": "dna_open_lab",
-          "dna-version": "v1",
-          "dna-endpoint": "races.docs",
-          "dna-owner-sha256": prefix,
-          "dna-race-id-sha256": raceIdentityHash(sourceRaceId),
-          "dna-raw-sha256": rawEvidenceSha256,
-        });
-        await putVerifiedObject({
-          storage: input.configuration.storage,
-          bucketName,
-          key,
-          body: body.bytes,
-          bodySha256: body.bodySha256,
-          metadata,
-        });
-      }
+      await forEachWithConcurrency(
+        response.result,
+        DNA_RACE_DOCUMENT_ARCHIVE_CONCURRENCY,
+        async (document) => {
+          const sourceRaceId = raceIdentifier(document.rid);
+          const rawEvidenceSha256 = dnaOpenLabRawEvidenceSha256(document);
+          const body = objectBody(document, maximumObjectBytes);
+          if (body.bodySha256 !== rawEvidenceSha256) {
+            evidenceError(
+              "canonical Race document checksum drifted from API evidence hash",
+            );
+          }
+          const key = raceDocumentObjectKey({
+            ownerPrefix: prefix,
+            sourceRaceId,
+            rawEvidenceSha256,
+          });
+          const metadata = Object.freeze({
+            "dna-source": "dna_open_lab",
+            "dna-version": "v1",
+            "dna-endpoint": "races.docs",
+            "dna-owner-sha256": prefix,
+            "dna-race-id-sha256": raceIdentityHash(sourceRaceId),
+            "dna-raw-sha256": rawEvidenceSha256,
+          });
+          await putVerifiedObject({
+            storage: input.configuration.storage,
+            bucketName,
+            key,
+            body: body.bytes,
+            bodySha256: body.bodySha256,
+            metadata,
+          });
+        },
+      );
       return response;
     },
   });

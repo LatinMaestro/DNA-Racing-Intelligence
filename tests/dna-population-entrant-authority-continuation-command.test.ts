@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  DnaPopulationEntrantAuthorityCommittedCohortSummary,
-  DnaPopulationEntrantAuthorityPreparedCohort,
+import {
+  DnaPopulationEntrantAuthorityCohortError,
+  type DnaPopulationEntrantAuthorityCommittedCohortSummary,
+  type DnaPopulationEntrantAuthorityPreparedCohort,
 } from "@/lib/dna-population-entrant-authority-cohort";
 import {
   createDnaPopulationEntrantAuthorityContinuationCommand,
@@ -274,6 +275,19 @@ describe("population entrant authority continuation command", () => {
     ).rejects.toMatchObject({ diagnostic: "durable_boundary_mismatch" });
     expect(tampered.load).not.toHaveBeenCalled();
     expect(tampered.cohortPreparer).not.toHaveBeenCalled();
+  });
+
+  it("preserves sanitized cohort diagnostics from preparation failures", async () => {
+    const test = command();
+    test.cohortPreparer.mockRejectedValueOnce(
+      new DnaPopulationEntrantAuthorityCohortError("hydration_unavailable"),
+    );
+
+    await expect(
+      test.command.executeContinuation(INVOCATION),
+    ).rejects.toMatchObject({
+      diagnostic: "cohort_hydration_unavailable",
+    });
   });
 
   it("rejects checkpoint drift discovered during preparation before commit", async () => {

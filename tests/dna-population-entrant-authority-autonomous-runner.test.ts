@@ -6,9 +6,10 @@ import {
   DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION,
   type DnaPopulationEntrantAuthorityAutonomousBoundary,
 } from "@/lib/dna-population-entrant-authority-autonomous-runner";
-import type {
-  DnaPopulationEntrantAuthorityContinuationCommandReceipt,
-  DnaPopulationEntrantAuthorityContinuationCommandSession,
+import {
+  DnaPopulationEntrantAuthorityContinuationCommandError,
+  type DnaPopulationEntrantAuthorityContinuationCommandReceipt,
+  type DnaPopulationEntrantAuthorityContinuationCommandSession,
 } from "@/lib/dna-population-entrant-authority-continuation-command";
 
 const HEAD = "a".repeat(40);
@@ -403,6 +404,28 @@ describe("population entrant authority autonomous runner", () => {
       recoveredRaceCount: 4_000,
     });
     expect(executeContinuation).not.toHaveBeenCalled();
+  });
+
+  it("preserves sanitized continuation-command diagnostics", async () => {
+    const accepted = boundary();
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect: vi.fn(async () => accepted) },
+      continuationCommand: {
+        executeContinuation: vi.fn(async () => {
+          throw new DnaPopulationEntrantAuthorityContinuationCommandError(
+            "cohort_hydration_unavailable",
+          );
+        }),
+      },
+      now: () => new Date("2026-09-28T00:01:00.000Z"),
+    });
+
+    await expect(
+      runner.runToCompletion(invocation(accepted)),
+    ).rejects.toMatchObject({
+      diagnostic: "continuation_cohort_hydration_unavailable",
+    });
   });
 
   it("sanitizes provider, capacity and persistence failures", async () => {
