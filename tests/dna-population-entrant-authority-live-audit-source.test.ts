@@ -303,32 +303,35 @@ describe("population entrant live audit source", () => {
     expect(target.capacitySource.measure).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed when serving finished-history metadata changes during reuse", async () => {
-    const target = harness();
-    const live = source(target, [], 2);
-    const request = Object.freeze({
-      ownerId: OWNER,
-      exactCodeHeadSha: HEAD,
-    });
+  it(
+    "fails closed when serving finished-history metadata changes during reuse",
+    async () => {
+      const target = harness();
+      const live = source(target, [], 2);
+      const request = Object.freeze({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      });
 
-    await live.load(request);
-    target.historySource.readServingFinishedHistory.mockResolvedValueOnce(
-      Object.freeze({
-        refreshCycleId: "refresh-2",
-        currentStateGenerationId: "current-2",
-        selectedCycleId: "cycle-2",
-        cycles: Object.freeze([]),
-        receiptCount: 1,
-        documentCount: 1,
-        manifestByteLength: 1,
-      }),
-    );
+      await live.load(request);
+      target.historySource.readServingFinishedHistory.mockResolvedValueOnce(
+        Object.freeze({
+          refreshCycleId: "refresh-2",
+          currentStateGenerationId: "current-2",
+          selectedCycleId: "cycle-2",
+          cycles: Object.freeze([]),
+          receiptCount: 1,
+          documentCount: 1,
+          manifestByteLength: 1,
+        }),
+      );
 
-    await expect(live.load(request)).rejects.toThrow(
-      "cached Race authority drifted",
-    );
-    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
-  });
+      await expect(live.load(request)).rejects.toThrow(
+        "cached Race authority drifted",
+      );
+      expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("accepts append-ordered chunks whose Race ranges are not globally sorted", async () => {
     const target = harness({
