@@ -26,9 +26,7 @@ import {
   planDnaPopulationHistoryAcquisition,
   type DnaPopulationHistoryAcquisitionPlan,
 } from "@/lib/dna-population-history-acquisition-plan";
-import {
-  DnaOpenLabR2RaceEvidenceProviderError,
-} from "@/lib/dna-open-lab-r2-race-evidence";
+import { DnaOpenLabR2RaceEvidenceProviderError } from "@/lib/dna-open-lab-r2-race-evidence";
 import {
   createDnaOpenLabRequestBudget,
   type DnaOpenLabRequestBudget,
