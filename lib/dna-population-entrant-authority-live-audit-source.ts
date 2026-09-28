@@ -54,6 +54,30 @@ function liveAuditUnavailable(
   throw new DnaPopulationEntrantAuthorityLiveAuditError(diagnostic);
 }
 
+function liveAuditStage<T>(
+  diagnostic: DnaPopulationEntrantAuthorityLiveAuditDiagnostic,
+  operation: () => T,
+): T {
+  try {
+    return operation();
+  } catch (error) {
+    if (error instanceof DnaPopulationEntrantAuthorityLiveAuditError) {
+      throw error;
+    }
+    liveAuditUnavailable(diagnostic);
+  }
+}
+
+function liveAuditFailure(
+  diagnostic: DnaPopulationEntrantAuthorityLiveAuditDiagnostic,
+  error: unknown,
+): never {
+  if (error instanceof DnaPopulationEntrantAuthorityLiveAuditError) {
+    throw error;
+  }
+  liveAuditUnavailable(diagnostic);
+}
+
 export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
   100_000 as const;
 
@@ -255,272 +279,273 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
 
   return Object.freeze({
     async load(request) {
-      let stage: DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
-        "request_binding_unavailable";
-      try {
+      liveAuditStage("request_binding_unavailable", () =>
         sameRequest({
           configuredOwnerId,
           configuredHead,
           requestedOwnerId: request.ownerId,
           requestedHead: request.exactCodeHeadSha,
-        });
+        }),
+      );
 
-        if (
-          cachedAudit !== null &&
-          cachedAuthorityFingerprint !== null &&
-          remainingAuditReuses > 0
-        ) {
-          stage = "cached_authority_unavailable";
-          const completionSha256 = cachedBaselineCompletionSha256;
-          if (completionSha256 === null) {
-            auditError("cached authority fingerprint is unavailable");
-          }
-          const [baseline, populationIndex, history] = await Promise.all([
-            input.baseline.load(),
-            input.populationIndex.load(configuredOwnerId, completionSha256),
-            input.historySource.readServingFinishedHistory({
-              ownerId: configuredOwnerId,
-            }),
-          ]);
-          if (
-            baseline === null ||
-            populationIndex === null ||
-            fingerprint({
-              baseline,
-              populationIndex,
-              history,
-            }) !== cachedAuthorityFingerprint
-          ) {
-            cachedAudit = null;
-            cachedAuthorityFingerprint = null;
-            cachedBaselineCompletionSha256 = null;
-            remainingAuditReuses = 0;
-            auditError("cached Race authority drifted");
-          }
-          remainingAuditReuses -= 1;
-          const reused = cachedAudit;
-          if (remainingAuditReuses === 0) {
-            cachedAudit = null;
-            cachedAuthorityFingerprint = null;
-            cachedBaselineCompletionSha256 = null;
-          }
-          return reused;
+      if (
+        cachedAudit !== null &&
+        cachedAuthorityFingerprint !== null &&
+        remainingAuditReuses > 0
+      ) {
+        const completionSha256 = cachedBaselineCompletionSha256;
+        if (completionSha256 === null) {
+          liveAuditUnavailable("cached_authority_unavailable");
         }
-
-        stage = "authority_capacity_unavailable";
-        if (input.capacitySource.status !== "ready") {
-          auditError("provider capacity measurement is unavailable");
-        }
-        const capacity = await input.capacitySource.measure({
-          ownerId: configuredOwnerId,
-        });
-        if (
-          capacity.r2StorageClass !== "Standard" ||
-          safeAdd(
-            capacity.currentR2Usage.classBOperations,
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-          ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
-        ) {
-          auditError("published Race audit read budget is unavailable");
-        }
-
-        stage = "baseline_authority_unavailable";
-        const baseline = await input.baseline.load();
-        if (
-          baseline === null ||
-          baseline.status !== "complete" ||
-          baseline.completionSha256 === null ||
-          baseline.logicalRequestCount !==
-            DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.logicalRequestCount ||
-          baseline.retainedR2Bytes !==
-            DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.retainedR2Bytes ||
-          baseline.omittedIdentityObservationCount !==
-            DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.omittedIdentityObservationCount
-        ) {
-          auditError("immutable P5 baseline authority is unavailable");
-        }
-
-        stage = "population_index_unavailable";
-        const populationIndex = await input.populationIndex.load(
-          configuredOwnerId,
-          baseline.completionSha256,
+        const [baseline, populationIndex, history] = await Promise.all([
+          input.baseline.load(),
+          input.populationIndex.load(configuredOwnerId, completionSha256),
+          input.historySource.readServingFinishedHistory({
+            ownerId: configuredOwnerId,
+          }),
+        ]).catch((error: unknown) =>
+          liveAuditFailure("cached_authority_unavailable", error),
         );
         if (
+          baseline === null ||
           populationIndex === null ||
-          populationIndex.state !== "published" ||
-          populationIndex.generationId !== baseline.completionSha256 ||
-          populationIndex.lastRequestOrdinal !== baseline.logicalRequestCount ||
-          populationIndex.processedReceiptCount !==
-            baseline.logicalRequestCount ||
-          populationIndex.processedReceiptBytes !== baseline.retainedR2Bytes ||
-          populationIndex.processedIdentityOmissionCount !==
-            baseline.omittedIdentityObservationCount ||
-          populationIndex.storageLayout !== "r2_chunked_v1" ||
-          populationIndex.r2ChunkCount < 1 ||
-          populationIndex.r2IdentityChunkCount !==
-            populationIndex.r2ChunkCount ||
-          populationIndex.r2CompactedRaceCount !==
-            populationIndex.uniqueRaceCount ||
-          populationIndex.r2LastSourceRaceId === null ||
-          populationIndex.legacyStorageRetiredAt === null
+          fingerprint({
+            baseline,
+            populationIndex,
+            history,
+          }) !== cachedAuthorityFingerprint
         ) {
-          auditError(
-            "published compact P5 population authority is unavailable",
+          cachedAudit = null;
+          cachedAuthorityFingerprint = null;
+          cachedBaselineCompletionSha256 = null;
+          remainingAuditReuses = 0;
+          liveAuditUnavailable("cached_authority_unavailable");
+        }
+        remainingAuditReuses -= 1;
+        const reused = cachedAudit;
+        if (remainingAuditReuses === 0) {
+          cachedAudit = null;
+          cachedAuthorityFingerprint = null;
+          cachedBaselineCompletionSha256 = null;
+        }
+        return reused;
+      }
+
+      if (input.capacitySource.status !== "ready") {
+        liveAuditUnavailable("authority_capacity_unavailable");
+      }
+      const capacity = await input.capacitySource
+        .measure({ ownerId: configuredOwnerId })
+        .catch((error: unknown) =>
+          liveAuditFailure("authority_capacity_unavailable", error),
+        );
+      if (
+        capacity.r2StorageClass !== "Standard" ||
+        safeAdd(
+          capacity.currentR2Usage.classBOperations,
+          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+        ) > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+      ) {
+        liveAuditUnavailable("authority_capacity_unavailable");
+      }
+
+      const baseline = await input.baseline
+        .load()
+        .catch((error: unknown) =>
+          liveAuditFailure("baseline_authority_unavailable", error),
+        );
+      if (
+        baseline === null ||
+        baseline.status !== "complete" ||
+        baseline.completionSha256 === null ||
+        baseline.logicalRequestCount !==
+          DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.logicalRequestCount ||
+        baseline.retainedR2Bytes !==
+          DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.retainedR2Bytes ||
+        baseline.omittedIdentityObservationCount !==
+          DNA_POPULATION_RACE_INDEX_P5_AUTHORITY.omittedIdentityObservationCount
+      ) {
+        liveAuditUnavailable("baseline_authority_unavailable");
+      }
+
+      const populationIndex = await input.populationIndex
+        .load(configuredOwnerId, baseline.completionSha256)
+        .catch((error: unknown) =>
+          liveAuditFailure("population_index_unavailable", error),
+        );
+      if (
+        populationIndex === null ||
+        populationIndex.state !== "published" ||
+        populationIndex.generationId !== baseline.completionSha256 ||
+        populationIndex.lastRequestOrdinal !== baseline.logicalRequestCount ||
+        populationIndex.processedReceiptCount !==
+          baseline.logicalRequestCount ||
+        populationIndex.processedReceiptBytes !== baseline.retainedR2Bytes ||
+        populationIndex.processedIdentityOmissionCount !==
+          baseline.omittedIdentityObservationCount ||
+        populationIndex.storageLayout !== "r2_chunked_v1" ||
+        populationIndex.r2ChunkCount < 1 ||
+        populationIndex.r2IdentityChunkCount !== populationIndex.r2ChunkCount ||
+        populationIndex.r2CompactedRaceCount !==
+          populationIndex.uniqueRaceCount ||
+        populationIndex.r2LastSourceRaceId === null ||
+        populationIndex.legacyStorageRetiredAt === null
+      ) {
+        liveAuditUnavailable("population_index_unavailable");
+      }
+
+      const manifests: DnaPopulationRaceIndexR2ChunkManifest[] = [];
+      let afterChunkOrdinal = 0;
+      while (manifests.length < populationIndex.r2ChunkCount) {
+        const page = await input.populationIndex
+          .listPublishedR2ChunkManifests(configuredOwnerId, {
+            generationId: baseline.completionSha256,
+            afterChunkOrdinal,
+            limit: MANIFEST_PAGE_LIMIT,
+          })
+          .catch((error: unknown) =>
+            liveAuditFailure("manifest_authority_unavailable", error),
           );
+        if (
+          page.length < 1 ||
+          page.length > MANIFEST_PAGE_LIMIT ||
+          manifests.length + page.length > populationIndex.r2ChunkCount
+        ) {
+          liveAuditUnavailable("manifest_authority_unavailable");
         }
+        manifests.push(...page);
+        afterChunkOrdinal = page.at(-1)!.chunkOrdinal;
+      }
 
-        stage = "manifest_authority_unavailable";
-        const manifests: DnaPopulationRaceIndexR2ChunkManifest[] = [];
-        let afterChunkOrdinal = 0;
-        while (manifests.length < populationIndex.r2ChunkCount) {
-          const page =
-            await input.populationIndex.listPublishedR2ChunkManifests(
-              configuredOwnerId,
-              {
-                generationId: baseline.completionSha256,
-                afterChunkOrdinal,
-                limit: MANIFEST_PAGE_LIMIT,
-              },
-            );
-          if (
-            page.length < 1 ||
-            page.length > MANIFEST_PAGE_LIMIT ||
-            manifests.length + page.length > populationIndex.r2ChunkCount
-          ) {
-            auditError("published manifest pagination is invalid");
-          }
-          manifests.push(...page);
-          afterChunkOrdinal = page.at(-1)!.chunkOrdinal;
-        }
-
+      liveAuditStage("manifest_authority_unavailable", () =>
         validateManifestSequence({
           manifests,
           expectedCount: populationIndex.r2ChunkCount,
           expectedRaceCount: populationIndex.uniqueRaceCount,
-        });
+        }),
+      );
 
-        const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
-        const seenRaceIds = new Set<string>();
-        const baselineR2ClassBOperations = manifests.length * 2;
-        if (
-          !Number.isSafeInteger(baselineR2ClassBOperations) ||
-          baselineR2ClassBOperations < 1 ||
-          baselineR2ClassBOperations >
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
-        ) {
-          auditError("compact P5 read budget is invalid");
-        }
+      const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
+      const seenRaceIds = new Set<string>();
+      const baselineR2ClassBOperations = manifests.length * 2;
+      if (
+        !Number.isSafeInteger(baselineR2ClassBOperations) ||
+        baselineR2ClassBOperations < 1 ||
+        baselineR2ClassBOperations >
+          DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
+      ) {
+        liveAuditUnavailable("manifest_authority_unavailable");
+      }
 
-        stage = "serving_history_unavailable";
-        const history = await input.historySource.readServingFinishedHistory({
-          ownerId: configuredOwnerId,
-        });
-        stage = "combined_history_unavailable";
-        const assessment = await assessCombinedHistory({
-          ownerId: configuredOwnerId,
-          bucketName,
-          baselineAuthority: Object.freeze({
-            logicalRequestCount: baseline.logicalRequestCount,
-            retainedR2Bytes: baseline.retainedR2Bytes,
-            omittedIdentityObservationCount:
-              baseline.omittedIdentityObservationCount,
-            completionSha256: baseline.completionSha256,
-          }),
-          baseline: input.baseline,
-          baselineIndex: Object.freeze({
-            scanDocuments: async (accept) => {
-              let scannedRaceCount = 0;
-              for (
-                let start = 0;
-                start < manifests.length;
-                start += CHUNK_READ_CONCURRENCY
-              ) {
-                const batch = manifests.slice(
-                  start,
-                  start + CHUNK_READ_CONCURRENCY,
-                );
-                const chunks = await Promise.all(
-                  batch.map((manifest) => input.chunkStore.read(manifest)),
-                );
-                for (const [index, documents] of chunks.entries()) {
-                  validateChunkDocuments({
-                    manifest: batch[index]!,
-                    documents,
-                    seenRaceIds,
-                  });
-                  for (const document of documents) {
-                    accept(document);
-                    scannedRaceCount += 1;
-                  }
+      const history = await input.historySource
+        .readServingFinishedHistory({ ownerId: configuredOwnerId })
+        .catch((error: unknown) =>
+          liveAuditFailure("serving_history_unavailable", error),
+        );
+      const assessment = await assessCombinedHistory({
+        ownerId: configuredOwnerId,
+        bucketName,
+        baselineAuthority: Object.freeze({
+          logicalRequestCount: baseline.logicalRequestCount,
+          retainedR2Bytes: baseline.retainedR2Bytes,
+          omittedIdentityObservationCount:
+            baseline.omittedIdentityObservationCount,
+          completionSha256: baseline.completionSha256,
+        }),
+        baseline: input.baseline,
+        baselineIndex: Object.freeze({
+          scanDocuments: async (accept) => {
+            let scannedRaceCount = 0;
+            for (
+              let start = 0;
+              start < manifests.length;
+              start += CHUNK_READ_CONCURRENCY
+            ) {
+              const batch = manifests.slice(
+                start,
+                start + CHUNK_READ_CONCURRENCY,
+              );
+              const chunks = await Promise.all(
+                batch.map((manifest) => input.chunkStore.read(manifest)),
+              );
+              for (const [index, documents] of chunks.entries()) {
+                validateChunkDocuments({
+                  manifest: batch[index]!,
+                  documents,
+                  seenRaceIds,
+                });
+                for (const document of documents) {
+                  accept(document);
+                  scannedRaceCount += 1;
                 }
               }
-              if (
-                scannedRaceCount !== populationIndex.uniqueRaceCount ||
-                seenRaceIds.size !== populationIndex.uniqueRaceCount
-              ) {
-                auditError("published Race documents do not reconcile");
-              }
-            },
-            baselineReceiptCount: populationIndex.processedReceiptCount,
-            baselineFinishedRaceReceiptCount:
-              populationIndex.finishedRaceReceiptCount,
-            baselineIdentityOmissionObservationCount:
-              populationIndex.processedIdentityOmissionCount,
-            r2ClassBOperationsUsed: baselineR2ClassBOperations,
-          }),
-          history,
-          storage: input.storage,
-          readBudget: Object.freeze({
-            maximumClassBOperations:
-              DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-            paidUsageAllowed: false as const,
-          }),
-          canonicalPurpose: "population_inventory",
-          onCanonicalRaceDocument: (document) => {
-            raceDocuments.push(document);
+            }
+            if (
+              scannedRaceCount !== populationIndex.uniqueRaceCount ||
+              seenRaceIds.size !== populationIndex.uniqueRaceCount
+            ) {
+              auditError("published Race documents do not reconcile");
+            }
           },
-        });
+          baselineReceiptCount: populationIndex.processedReceiptCount,
+          baselineFinishedRaceReceiptCount:
+            populationIndex.finishedRaceReceiptCount,
+          baselineIdentityOmissionObservationCount:
+            populationIndex.processedIdentityOmissionCount,
+          r2ClassBOperationsUsed: baselineR2ClassBOperations,
+        }),
+        history,
+        storage: input.storage,
+        readBudget: Object.freeze({
+          maximumClassBOperations:
+            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
+          paidUsageAllowed: false as const,
+        }),
+        canonicalPurpose: "population_inventory",
+        onCanonicalRaceDocument: (document) => {
+          raceDocuments.push(document);
+        },
+      }).catch((error: unknown) =>
+        liveAuditFailure("combined_history_unavailable", error),
+      );
 
-        if (
-          assessment.authority !==
-            "complete_serving_generation_combined_finished_history" ||
-          assessment.uniqueRaceCount !== raceDocuments.length ||
-          assessment.conflictingRaceEvidenceCount !== 0 ||
-          assessment.persistentWritePerformed !== false ||
-          assessment.paidUsageAllowed !== false
-        ) {
-          auditError("combined Race authority did not reconcile");
-        }
-
-        stage = "acquisition_plan_unavailable";
-        const plan = planDnaPopulationHistoryAcquisition({
-          raceDocuments: Object.freeze(raceDocuments),
-        });
-        const authority = entrantAuthority(plan);
-
-        const audit = Object.freeze({
-          exactCodeHeadSha: configuredHead,
-          plan,
-          raceDocuments: Object.freeze(raceDocuments),
-          authority,
-        });
-        if (fullAuditReuseCount > 0) {
-          cachedAudit = audit;
-          cachedBaselineCompletionSha256 = baseline.completionSha256;
-          cachedAuthorityFingerprint = fingerprint({
-            baseline,
-            populationIndex,
-            history,
-          });
-          remainingAuditReuses = fullAuditReuseCount;
-        }
-        return audit;
-      } catch (error) {
-        if (error instanceof DnaPopulationEntrantAuthorityLiveAuditError) {
-          throw error;
-        }
-        liveAuditUnavailable(stage);
+      if (
+        assessment.authority !==
+          "complete_serving_generation_combined_finished_history" ||
+        assessment.uniqueRaceCount !== raceDocuments.length ||
+        assessment.conflictingRaceEvidenceCount !== 0 ||
+        assessment.persistentWritePerformed !== false ||
+        assessment.paidUsageAllowed !== false
+      ) {
+        liveAuditUnavailable("combined_history_unavailable");
       }
+
+      const plan = liveAuditStage("acquisition_plan_unavailable", () =>
+        planDnaPopulationHistoryAcquisition({
+          raceDocuments: Object.freeze(raceDocuments),
+        }),
+      );
+      const authority = liveAuditStage("acquisition_plan_unavailable", () =>
+        entrantAuthority(plan),
+      );
+
+      const audit = Object.freeze({
+        exactCodeHeadSha: configuredHead,
+        plan,
+        raceDocuments: Object.freeze(raceDocuments),
+        authority,
+      });
+      if (fullAuditReuseCount > 0) {
+        cachedAudit = audit;
+        cachedBaselineCompletionSha256 = baseline.completionSha256;
+        cachedAuthorityFingerprint = fingerprint({
+          baseline,
+          populationIndex,
+          history,
+        });
+        remainingAuditReuses = fullAuditReuseCount;
+      }
+      return audit;
     },
   });
 }
