@@ -42,11 +42,13 @@ describe("independent Race-doc API-key lanes", () => {
       ),
     );
 
-    for (let index = 0; index < 6; index += 1) {
-      await runtime.requestBudget.execute(() =>
-        runtime.client.raceDocs([index + 1]),
-      );
-    }
+    await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        runtime.requestBudget.execute(() =>
+          runtime.client.raceDocs([index + 1]),
+        ),
+      ),
+    );
 
     expect(calls.map((call) => call.mock.calls.length)).toEqual([2, 2, 2]);
     expect(runtime.requestBudget.snapshot()).toMatchObject({
@@ -54,6 +56,46 @@ describe("independent Race-doc API-key lanes", () => {
       requestsInCurrentWindow: 6,
       blockedUntilMilliseconds: null,
     });
+  });
+
+  it("allows provider responses to overlap across independent keyed lanes", async () => {
+    let releaseBarrier: (() => void) | undefined;
+    const barrier = new Promise<void>((resolve) => {
+      releaseBarrier = resolve;
+    });
+    let inFlight = 0;
+    let peakInFlight = 0;
+
+    const runtime = createDnaOpenLabIndependentRaceDocRuntime(
+      Array.from({ length: 3 }, () =>
+        Object.freeze({
+          client: Object.freeze({
+            raceDocs: async () => {
+              inFlight += 1;
+              peakInFlight = Math.max(peakInFlight, inFlight);
+              await barrier;
+              inFlight -= 1;
+              return response();
+            },
+          }),
+          requestBudget: createDnaOpenLabRequestBudget({
+            initialRequestsPerMinute: 30,
+            maximumRequestsPerMinute: 30,
+          }),
+        }),
+      ),
+    );
+
+    const pending = Array.from({ length: 6 }, (_, index) =>
+      runtime.requestBudget.execute(() =>
+        runtime.client.raceDocs([index + 1]),
+      ),
+    );
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(peakInFlight).toBe(6);
+    releaseBarrier?.();
+    await Promise.all(pending);
   });
 
   it("fails closed when the coupled client is used outside its budget", async () => {
