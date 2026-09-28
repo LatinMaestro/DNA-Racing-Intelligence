@@ -66,7 +66,7 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
 
-    expect(hosted).toContain("const SESSION_COHORT_LIMIT = 8");
+    expect(hosted).toContain("const SESSION_COHORT_LIMIT = 4");
     expect(hosted).toContain("assertCurrentExactHead");
     expect(hosted).toContain("runBoundedSession");
     expect(relay).toContain(
