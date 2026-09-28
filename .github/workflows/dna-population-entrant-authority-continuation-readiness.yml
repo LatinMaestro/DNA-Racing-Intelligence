@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: dna-population-entrant-authority-continuation-readiness
@@ -73,6 +74,13 @@ jobs:
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-population-entrant-authority-continuation-readiness.test.ts
+      - name: Publish sanitized readiness status
+        env:
+          DNA_STATUS_MODE: readiness
+          DNA_STATUS_COMMENT_ID: "5866846740"
+          DNA_STATUS_RECEIPT_PATH: ${{ runner.temp }}/dna-entrant-continuation-readiness.json
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/update-dna-runtime-status.mjs
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash

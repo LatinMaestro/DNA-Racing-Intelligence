@@ -36,6 +36,13 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(workflow).toContain("default: false");
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
+    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("DNA_STATUS_MODE: autonomous-running");
+    expect(workflow).toContain("DNA_STATUS_MODE: autonomous-failure");
+    expect(workflow).toContain("DNA_STATUS_MODE: autonomous-result");
+    expect(workflow).toContain('DNA_STATUS_COMMENT_ID: "5866846740"');
+    expect(hosted).toContain("dna-entrant-autonomous-failure.json");
+
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
     expect(workflow).toContain(
       'DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA" != "$GITHUB_SHA',

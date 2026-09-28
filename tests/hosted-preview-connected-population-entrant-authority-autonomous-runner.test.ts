@@ -23,6 +23,7 @@ const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 // the next non-overlapping dispatch retain deterministic runtime headroom.
 const SESSION_COHORT_LIMIT = 4;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
+const FAILURE_FILENAME = "dna-entrant-autonomous-failure.json";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -242,9 +243,23 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
             }),
         );
       } catch (error) {
+        const failure = Object.freeze({ stage, diagnostic: diagnostic(error) });
+        try {
+          await writeFile(
+            join(required("RUNNER_TEMP"), FAILURE_FILENAME),
+            JSON.stringify(failure),
+            {
+              encoding: "utf8",
+              flag: "wx",
+              mode: 0o600,
+            },
+          );
+        } catch {
+          // Preserve the original fail-closed diagnostic path.
+        }
         console.log(
           "DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_FAILURE=" +
-            JSON.stringify({ stage, diagnostic: diagnostic(error) }),
+            JSON.stringify(failure),
         );
         throw new Error("DNA entrant autonomous session failed");
       }

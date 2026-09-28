@@ -1,3 +1,6 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
@@ -94,6 +97,15 @@ describeConnected(
         expect(receipt.unresolvedRaceSetSha256).toMatch(/^[a-f0-9]{64}$/u);
         expect(receipt.durableBoundarySha256).toMatch(/^[a-f0-9]{64}$/u);
 
+        const resultPath = join(
+          requiredEnvironment("RUNNER_TEMP"),
+          "dna-entrant-continuation-readiness.json",
+        );
+        await writeFile(resultPath, JSON.stringify(receipt), {
+          encoding: "utf8",
+          flag: "wx",
+          mode: 0o600,
+        });
         console.log(
           "DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS=" +
             JSON.stringify(receipt),
