@@ -147,7 +147,11 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         stage = "runtime-composition";
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-            liveAuditReuseCount: 2,
+            // One full Race-authority audit seeds the session. The next twelve
+            // authority loads (three per cohort across four cohorts) revalidate
+            // immutable last-good pointers and published generation metadata
+            // without reopening every historical Race object.
+            liveAuditReuseCount: 12,
             environment: Object.freeze({
               authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
               exactCodeHeadSha,
