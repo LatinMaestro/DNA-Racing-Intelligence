@@ -128,6 +128,11 @@ function assessment(
 function harness(input?: {
   baselineCount?: number;
   classBOperations?: number;
+  history?: Readonly<{
+    receiptCount: number;
+    documentCount: number;
+    manifestByteLength: number;
+  }>;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
   chunks?: Readonly<Record<number, readonly DnaPopulationRaceIndexDocument[]>>;
 }) {
@@ -154,9 +159,9 @@ function harness(input?: {
       currentStateGenerationId: "current-1",
       selectedCycleId: "cycle-1",
       cycles: Object.freeze([]),
-      receiptCount: 0,
-      documentCount: 0,
-      manifestByteLength: 0,
+      receiptCount: input?.history?.receiptCount ?? 0,
+      documentCount: input?.history?.documentCount ?? 0,
+      manifestByteLength: input?.history?.manifestByteLength ?? 0,
     }),
   );
 
@@ -429,15 +434,35 @@ describe("population entrant live audit source", () => {
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
-  it("fails closed before durable reads when zero-cost R2 read headroom is unavailable", async () => {
-    const target = harness({ classBOperations: 9_950_001 });
+  it("uses the metadata-derived R2 read bound instead of the fixed ceiling", async () => {
+    const target = harness({ classBOperations: 7_999_996 });
+
+    await expect(
+      source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
+    ).resolves.toMatchObject({
+      authority: { unresolvedRaceCount: 3 },
+    });
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed before R2 evidence reads when derived read headroom is unavailable", async () => {
+    const target = harness({
+      classBOperations: 7_999_983,
+      history: Object.freeze({
+        receiptCount: 1,
+        documentCount: 2,
+        manifestByteLength: 4,
+      }),
+    });
 
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
     ).rejects.toMatchObject({
       diagnostic: "authority_capacity_read_budget_unavailable",
     });
-    expect(target.baseline.load).not.toHaveBeenCalled();
+    expect(target.chunkStore.read).not.toHaveBeenCalled();
+    expect(target.storage.headObject).not.toHaveBeenCalled();
+    expect(target.storage.getObject).not.toHaveBeenCalled();
   });
 
   it("preserves sanitized provider capacity failure authority", async () => {
