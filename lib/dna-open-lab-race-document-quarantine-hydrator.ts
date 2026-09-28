@@ -133,133 +133,137 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
   >();
   const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
 
-  for (const batch of requestBatches) {
-    const batchKeys = batch.map(raceKey);
-    const batchKeySet = new Set(batchKeys);
-    const response = await input.requestBudget.execute(() =>
-      input.client.raceDocs(batch),
-    );
-    if (!Array.isArray(response.result)) {
-      hydrationError("invalid_response", "race-doc response is invalid");
-    }
-    if (batch.length > 1 && response.result.length === 0) {
-      hydrationError(
-        "invalid_response",
-        "race-doc batch coverage is systemically unavailable",
+  await Promise.all(
+    requestBatches.map(async (batch) => {
+      const batchKeys = batch.map(raceKey);
+      const batchKeySet = new Set(batchKeys);
+      const response = await input.requestBudget.execute(() =>
+        input.client.raceDocs(batch),
       );
-    }
-
-    const returnedKeys = new Set<string>();
-    for (const document of response.result) {
-      const key = raceKey(document.rid);
-      if (!batchKeySet.has(key)) {
+      if (!Array.isArray(response.result)) {
+        hydrationError("invalid_response", "race-doc response is invalid");
+      }
+      if (batch.length > 1 && response.result.length === 0) {
         hydrationError(
-          "unexpected_document",
-          "race-doc response contains an unexpected Race",
+          "invalid_response",
+          "race-doc batch coverage is systemically unavailable",
         );
-      }
-      if (returnedKeys.has(key) || outcomesByKey.has(key)) {
-        hydrationError(
-          "duplicate_document",
-          "race-doc response contains a duplicate Race",
-        );
-      }
-      returnedKeys.add(key);
-
-      let sourceEvidenceSha256: string | undefined;
-      try {
-        sourceEvidenceSha256 = dnaOpenLabRawEvidenceSha256(document);
-      } catch {
-        outcomesByKey.set(
-          key,
-          quarantined({
-            sourceRaceId: key,
-            observedAt: input.observedAt,
-            quarantineReason: "provider_document_unusable",
-          }),
-        );
-        continue;
       }
 
-      let evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
-      try {
-        evidence = adaptDnaRaceDocument({
-          raw: document as DnaRaceDocument,
-          observedAt: input.observedAt,
-          endpoint: "races.docs",
-        });
-      } catch (error) {
-        if (!(error instanceof DnaRaceDocumentAdaptationProcessingError)) {
-          throw error;
+      const returnedKeys = new Set<string>();
+      for (const document of response.result) {
+        const key = raceKey(document.rid);
+        if (!batchKeySet.has(key)) {
+          hydrationError(
+            "unexpected_document",
+            "race-doc response contains an unexpected Race",
+          );
         }
+        if (returnedKeys.has(key) || outcomesByKey.has(key)) {
+          hydrationError(
+            "duplicate_document",
+            "race-doc response contains a duplicate Race",
+          );
+        }
+        returnedKeys.add(key);
+
+        let sourceEvidenceSha256: string | undefined;
+        try {
+          sourceEvidenceSha256 = dnaOpenLabRawEvidenceSha256(document);
+        } catch {
+          outcomesByKey.set(
+            key,
+            quarantined({
+              sourceRaceId: key,
+              observedAt: input.observedAt,
+              quarantineReason: "provider_document_unusable",
+            }),
+          );
+          continue;
+        }
+
+        let evidence: DnaOpenLabEvidence<CanonicalRaceDocumentMetadata>;
+        try {
+          evidence = adaptDnaRaceDocument({
+            raw: document as DnaRaceDocument,
+            observedAt: input.observedAt,
+            endpoint: "races.docs",
+          });
+        } catch (error) {
+          if (!(error instanceof DnaRaceDocumentAdaptationProcessingError)) {
+            throw error;
+          }
+          outcomesByKey.set(
+            key,
+            quarantined({
+              sourceRaceId: key,
+              observedAt: input.observedAt,
+              quarantineReason: "provider_document_unusable",
+              sourceEvidenceSha256,
+            }),
+          );
+          continue;
+        }
+
+        if (
+          evidence.canonical.sourceRaceId !== key ||
+          evidence.entityKey !== `race:${key}`
+        ) {
+          hydrationError(
+            "conflicting_document",
+            "race-doc adapted identity conflicts with the requested Race",
+          );
+        }
+
+        if (!resolvedEntrantAuthority(evidence.canonical)) {
+          outcomesByKey.set(
+            key,
+            quarantined({
+              sourceRaceId: key,
+              observedAt: input.observedAt,
+              quarantineReason: "entrant_authority_unresolved",
+              sourceEvidenceSha256,
+            }),
+          );
+          continue;
+        }
+
         outcomesByKey.set(
           key,
-          quarantined({
+          Object.freeze({
+            status: "resolved" as const,
             sourceRaceId: key,
-            observedAt: input.observedAt,
-            quarantineReason: "provider_document_unusable",
-            sourceEvidenceSha256,
+            evidence,
           }),
         );
-        continue;
+      }
+
+      for (const key of batchKeys) {
+        if (!returnedKeys.has(key)) {
+          outcomesByKey.set(
+            key,
+            quarantined({
+              sourceRaceId: key,
+              observedAt: input.observedAt,
+              quarantineReason: "provider_document_missing",
+            }),
+          );
+        }
       }
 
       if (
-        evidence.canonical.sourceRaceId !== key ||
-        evidence.entityKey !== `race:${key}`
+        batchKeys.length > 1 &&
+        batchKeys.every(
+          (key) => outcomesByKey.get(key)?.status === "quarantined",
+        )
       ) {
         hydrationError(
-          "conflicting_document",
-          "race-doc adapted identity conflicts with the requested Race",
+          "invalid_response",
+          "race-doc batch entrant authority is systemically unavailable",
         );
       }
-
-      if (!resolvedEntrantAuthority(evidence.canonical)) {
-        outcomesByKey.set(
-          key,
-          quarantined({
-            sourceRaceId: key,
-            observedAt: input.observedAt,
-            quarantineReason: "entrant_authority_unresolved",
-            sourceEvidenceSha256,
-          }),
-        );
-        continue;
-      }
-
-      outcomesByKey.set(
-        key,
-        Object.freeze({
-          status: "resolved" as const,
-          sourceRaceId: key,
-          evidence,
-        }),
-      );
-    }
-
-    for (const key of batchKeys) {
-      if (!returnedKeys.has(key)) {
-        outcomesByKey.set(
-          key,
-          quarantined({
-            sourceRaceId: key,
-            observedAt: input.observedAt,
-            quarantineReason: "provider_document_missing",
-          }),
-        );
-      }
-    }
-
-    if (
-      batchKeys.length > 1 &&
-      batchKeys.every((key) => outcomesByKey.get(key)?.status === "quarantined")
-    ) {
-      hydrationError(
-        "invalid_response",
-        "race-doc batch entrant authority is systemically unavailable",
-      );
-    }
-  }
+    }),
+  );
 
   const outcomes = Object.freeze(
     requestedKeys.map((key) => {

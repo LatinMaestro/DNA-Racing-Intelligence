@@ -45,9 +45,9 @@ function snapshot(
 
 /**
  * Couples a deterministic round-robin Race-doc client with one independent
- * server-observed request budget per API key. Calls are serialized so the
- * selected credential cannot bleed across requests, while each key retains
- * its own 30-RPM window and response-derived rate state.
+ * server-observed request budget per API key. Permit acquisition and network
+ * responses may overlap across calls; only the synchronous client selection is
+ * coupled so each request retains the correct credential and per-key rate state.
  */
 export function createDnaOpenLabIndependentRaceDocRuntime(
   lanes: readonly DnaOpenLabIndependentRaceDocLane[],
@@ -58,7 +58,6 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
 
   let laneCursor = 0;
   let activeLane: DnaOpenLabIndependentRaceDocLane | null = null;
-  let executionTail: Promise<void> = Promise.resolve();
 
   const client = Object.freeze({
     raceDocs: async (raceIds: Parameters<DnaOpenLabClient["raceDocs"]>[0]) => {
@@ -72,31 +71,24 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
   const execute = async <T>(
     request: () => Promise<DnaOpenLabResponse<T>>,
   ): Promise<DnaOpenLabResponse<T>> => {
-    const previous = executionTail;
-    let release: (() => void) | undefined;
-    executionTail = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-
     const lane = lanes[laneCursor % lanes.length];
     laneCursor += 1;
     if (lane === undefined) throw new Error("race-doc lane is unavailable");
-    try {
-      return await lane.requestBudget.execute(async () => {
-        if (activeLane !== null) {
-          throw new Error("race-doc lane overlap is unavailable");
-        }
-        activeLane = lane;
-        try {
-          return await request();
-        } finally {
-          activeLane = null;
-        }
-      });
-    } finally {
-      release?.();
-    }
+
+    return lane.requestBudget.execute(() => {
+      if (activeLane !== null) {
+        throw new Error("race-doc lane overlap is unavailable");
+      }
+      activeLane = lane;
+      try {
+        return request();
+      } finally {
+        // The selected lane is needed only while the coupled client constructs
+        // the provider request. The lane-local budget owns the full async
+        // response lifecycle and observes that response's rate-limit metadata.
+        activeLane = null;
+      }
+    });
   };
 
   const observeRateLimit = (rateLimit: DnaOpenLabRateLimit): void => {

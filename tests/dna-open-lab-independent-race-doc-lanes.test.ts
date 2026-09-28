@@ -56,6 +56,47 @@ describe("independent Race-doc API-key lanes", () => {
     });
   });
 
+  it("allows concurrent keyed provider responses", async () => {
+    let releaseBarrier: () => void = () => undefined;
+    const barrier = new Promise<void>((resolve) => {
+      releaseBarrier = resolve;
+    });
+    let inFlight = 0;
+    let peakInFlight = 0;
+
+    const lane = () =>
+      Object.freeze({
+        client: Object.freeze({
+          raceDocs: async () => {
+            inFlight += 1;
+            peakInFlight = Math.max(peakInFlight, inFlight);
+            await barrier;
+            inFlight -= 1;
+            return response();
+          },
+        }),
+        requestBudget: createDnaOpenLabRequestBudget({
+          initialRequestsPerMinute: 30,
+          maximumRequestsPerMinute: 30,
+        }),
+      });
+
+    const runtime = createDnaOpenLabIndependentRaceDocRuntime([
+      lane(),
+      lane(),
+      lane(),
+    ]);
+    const execute = (raceId: number) =>
+      runtime.requestBudget.execute(() => runtime.client.raceDocs([raceId]));
+
+    const pending = [1, 2, 3, 4, 5, 6].map(execute);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(peakInFlight).toBe(6);
+    releaseBarrier();
+    await Promise.all(pending);
+  });
+
   it("fails closed when the coupled client is used outside its budget", async () => {
     const runtime = createDnaOpenLabIndependentRaceDocRuntime([
       Object.freeze({
