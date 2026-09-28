@@ -45,6 +45,12 @@ type FinishedHistorySource = Pick<
   "readServingFinishedHistory"
 >;
 
+type FinishedHistoryAuthoritySource = Readonly<{
+  loadLastGood: (
+    ownerId: string,
+  ) => Promise<Readonly<{ finishedHistoryCycleId: string }> | null>;
+}>;
+
 type ReadableEvidenceStorage = Pick<
   PrivateDatasetEvidenceObjectStoragePort,
   "readBucketPrivacy" | "headObject"
@@ -187,8 +193,9 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   chunkStore: PopulationChunkReadStore;
   storage: ReadableEvidenceStorage;
   capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
+  historyAuthoritySource?: FinishedHistoryAuthoritySource;
   assessCombinedHistory?: typeof assessDnaOpenLabCombinedHistoryPerformanceEvidence;
-  fullAuditReuseCount?: 0 | 1 | 2;
+  fullAuditReuseCount?: number;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
   const configuredOwnerId = identity(
     input.configuredOwnerId,
@@ -200,10 +207,34 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
     input.assessCombinedHistory ??
     assessDnaOpenLabCombinedHistoryPerformanceEvidence;
   const fullAuditReuseCount = input.fullAuditReuseCount ?? 0;
+  if (
+    !Number.isSafeInteger(fullAuditReuseCount) ||
+    fullAuditReuseCount < 0 ||
+    fullAuditReuseCount > 64 ||
+    (fullAuditReuseCount > 0 && input.historyAuthoritySource === undefined)
+  ) {
+    auditError("full audit reuse configuration is invalid");
+  }
   let cachedAudit: Awaited<
     ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>
   > | null = null;
+  let cachedAuthorityFingerprint: string | null = null;
   let remainingAuditReuses = 0;
+
+  function fingerprint(input: {
+    baseline: unknown;
+    populationIndex: unknown;
+    finishedHistoryCycleId: string;
+  }): string {
+    return JSON.stringify({
+      baseline: input.baseline,
+      populationIndex: input.populationIndex,
+      finishedHistoryCycleId: identity(
+        input.finishedHistoryCycleId,
+        "finishedHistoryCycleId",
+      ),
+    });
+  }
 
   return Object.freeze({
     async load(request) {
@@ -214,11 +245,43 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         requestedHead: request.exactCodeHeadSha,
       });
 
-      if (cachedAudit !== null && remainingAuditReuses > 0) {
+      if (
+        cachedAudit !== null &&
+        cachedAuthorityFingerprint !== null &&
+        remainingAuditReuses > 0
+      ) {
+        const completionSha256 = cachedAudit.plan.baselineCompletionSha256;
+        if (
+          completionSha256 === null ||
+          input.historyAuthoritySource === undefined
+        ) {
+          auditError("cached authority fingerprint is unavailable");
+        }
+        const [baseline, populationIndex, lastGood] = await Promise.all([
+          input.baseline.load(),
+          input.populationIndex.load(configuredOwnerId, completionSha256),
+          input.historyAuthoritySource.loadLastGood(configuredOwnerId),
+        ]);
+        if (
+          baseline === null ||
+          populationIndex === null ||
+          lastGood === null ||
+          fingerprint({
+            baseline,
+            populationIndex,
+            finishedHistoryCycleId: lastGood.finishedHistoryCycleId,
+          }) !== cachedAuthorityFingerprint
+        ) {
+          cachedAudit = null;
+          cachedAuthorityFingerprint = null;
+          remainingAuditReuses = 0;
+          auditError("cached Race authority drifted");
+        }
         remainingAuditReuses -= 1;
         const reused = cachedAudit;
         if (remainingAuditReuses === 0) {
           cachedAudit = null;
+          cachedAuthorityFingerprint = null;
         }
         return reused;
       }
@@ -319,9 +382,20 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         auditError("compact P5 read budget is invalid");
       }
 
-      const history = await input.historySource.readServingFinishedHistory({
-        ownerId: configuredOwnerId,
-      });
+      const [history, lastGood] = await Promise.all([
+        input.historySource.readServingFinishedHistory({
+          ownerId: configuredOwnerId,
+        }),
+        input.historyAuthoritySource?.loadLastGood(configuredOwnerId) ??
+          Promise.resolve(null),
+      ]);
+      if (
+        fullAuditReuseCount > 0 &&
+        (lastGood === null ||
+          history.selectedCycleId !== lastGood.finishedHistoryCycleId)
+      ) {
+        auditError("finished Race authority pointer is unavailable");
+      }
       const assessment = await assessCombinedHistory({
         ownerId: configuredOwnerId,
         bucketName,
@@ -410,7 +484,15 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         authority,
       });
       if (fullAuditReuseCount > 0) {
+        if (lastGood === null) {
+          auditError("finished Race authority pointer is unavailable");
+        }
         cachedAudit = audit;
+        cachedAuthorityFingerprint = fingerprint({
+          baseline,
+          populationIndex,
+          finishedHistoryCycleId: lastGood.finishedHistoryCycleId,
+        });
         remainingAuditReuses = fullAuditReuseCount;
       }
       return audit;
