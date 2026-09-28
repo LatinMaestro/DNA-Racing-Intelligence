@@ -24,7 +24,9 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS,
+} from "./dna-population-entrant-authority-zero-cost-policy";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -468,7 +470,8 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
             safeAdd(
               capacity.currentR2Usage.classBOperations,
               minimumKnownReadOperations,
-            ) > DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations
+            ) >
+            DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations
           ) {
             liveAuditUnavailable("authority_capacity_read_budget_unavailable");
           }
