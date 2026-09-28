@@ -477,7 +477,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(prepared.summary.quarantinedRaceCount).toBe(0);
     expect(prepared.summary.providerRequestCount).toBe(250);
     expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
-    expect(test.providerCalls).toHaveLength(50);
+    expect(test.providerCalls).toHaveLength(250);
     expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
