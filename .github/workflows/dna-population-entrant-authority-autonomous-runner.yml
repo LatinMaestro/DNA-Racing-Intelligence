@@ -55,6 +55,7 @@ on:
 permissions:
   actions: write
   contents: read
+  issues: write
 
 concurrency:
   group: dna-population-entrant-authority-cohort-persistence
@@ -204,10 +205,30 @@ jobs:
           }
           console.log("Validated autonomous entrant configuration without printing private values.");
           NODE
+      - name: Publish sanitized autonomous running status
+        continue-on-error: true
+        env:
+          DNA_STATUS_MODE: autonomous-running
+          DNA_STATUS_COMMENT_ID: "5866846740"
+          DNA_STATUS_RECOVERED_RACE_COUNT: ${{ inputs.expected_recovered_race_count }}
+          DNA_STATUS_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/update-dna-runtime-status.mjs
       - name: Execute one guarded bounded private Preview session
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-population-entrant-authority-autonomous-runner.test.ts
+      - name: Publish sanitized autonomous failure status
+        if: failure()
+        continue-on-error: true
+        env:
+          DNA_STATUS_MODE: autonomous-failure
+          DNA_STATUS_COMMENT_ID: "5866846740"
+          DNA_STATUS_RECEIPT_PATH: ${{ runner.temp }}/dna-entrant-autonomous-failure.json
+          DNA_STATUS_RECOVERED_RACE_COUNT: ${{ inputs.expected_recovered_race_count }}
+          DNA_STATUS_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/update-dna-runtime-status.mjs
       - name: Continue only from sanitized durable handoff
         shell: bash
         env:
@@ -330,6 +351,15 @@ jobs:
           }
           console.log("Queued the next non-overlapping autonomous entrant session from exact durable state.");
           NODE
+      - name: Publish sanitized autonomous durable status
+        if: success()
+        continue-on-error: true
+        env:
+          DNA_STATUS_MODE: autonomous-result
+          DNA_STATUS_COMMENT_ID: "5866846740"
+          DNA_STATUS_RECEIPT_PATH: ${{ runner.temp }}/dna-entrant-autonomous-session.json
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/update-dna-runtime-status.mjs
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
