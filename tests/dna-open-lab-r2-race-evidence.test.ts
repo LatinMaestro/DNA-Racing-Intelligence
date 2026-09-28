@@ -71,7 +71,9 @@ class MemoryR2Storage implements DnaOpenLabR2RaceEvidenceStoragePort {
         body.set(chunk, offset);
         offset += chunk.byteLength;
       }
-      if (offset !== input.byteLength) throw new Error("synthetic body mismatch");
+      if (offset !== input.byteLength) {
+        throw new Error("synthetic body mismatch");
+      }
       const checksumSha256 = createHash("sha256").update(body).digest("hex");
       if (checksumSha256 !== input.checksumSha256) {
         throw new Error("synthetic checksum mismatch");
@@ -332,32 +334,35 @@ describe("DNA Open Lab private R2 Race evidence", () => {
     }
   });
 
-  it("bounds concurrent canonical Race archival at four objects per response", async () => {
-    const storage = new MemoryR2Storage();
-    let releaseBarrier: (() => void) | undefined;
-    storage.putBarrier = new Promise<void>((resolve) => {
+  it(
+    "bounds concurrent canonical Race archival at four objects per response",
+    async () => {
+      const storage = new MemoryR2Storage();
+      let releaseBarrier: (() => void) | undefined;
+      storage.putBarrier = new Promise<void>((resolve) => {
       releaseBarrier = resolve;
-    });
-    const documents = Array.from({ length: 9 }, (_, index) => ({
+      });
+      const documents = Array.from({ length: 9 }, (_, index) => ({
       rid: index + 1,
       rvmode: "bike",
       hids: [index + 101],
-    })) satisfies readonly DnaRaceDocument[];
-    const client = createDnaOpenLabR2RaceDocumentClient({
+      })) satisfies readonly DnaRaceDocument[];
+      const client = createDnaOpenLabR2RaceDocumentClient({
       client: sourceClient(documents),
       configuration: configuration(storage),
-    });
+      });
 
-    const pending = client.raceDocs(documents.map(({ rid }) => rid));
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      const pending = client.raceDocs(documents.map(({ rid }) => rid));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(storage.peakPutInFlight).toBe(4);
-    releaseBarrier?.();
-    await pending;
+      expect(storage.peakPutInFlight).toBe(4);
+      releaseBarrier?.();
+      await pending;
 
-    expect(storage.objects.size).toBe(9);
-    expect(storage.putCount).toBe(9);
-  });
+      expect(storage.objects.size).toBe(9);
+      expect(storage.putCount).toBe(9);
+    },
+  );
 
   it("publishes a window manifest only after all referenced full race docs exist", async () => {
     const storage = new MemoryR2Storage();
