@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
+import { DnaPopulationEntrantAuthorityContinuationReadinessError } from "@/lib/dna-population-entrant-authority-continuation-readiness";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS === "1";
@@ -77,7 +78,21 @@ describeConnected(
           throw new Error("entrant continuation readiness runtime unavailable");
         }
 
-        const receipt = await runtime.inspectContinuationReadiness();
+        let receipt;
+        try {
+          receipt = await runtime.inspectContinuationReadiness();
+        } catch (error) {
+          const diagnostic =
+            error instanceof
+            DnaPopulationEntrantAuthorityContinuationReadinessError
+              ? error.diagnostic
+              : "unexpected_failure";
+          console.log(
+            "DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_FAILURE=" +
+              JSON.stringify({ diagnostic }),
+          );
+          throw new Error("DNA entrant continuation readiness failed");
+        }
 
         expect(receipt).toMatchObject({
           status: "ready_for_continuation",
