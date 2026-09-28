@@ -8,6 +8,10 @@ import type { DnaPopulationEntrantAuthorityAutonomousBoundary } from "./dna-popu
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import {
+  DnaPopulationEntrantAuthorityLiveAuditError,
+  type DnaPopulationEntrantAuthorityLiveAuditDiagnostic,
+} from "./dna-population-entrant-authority-live-audit-source";
+import {
   recoverDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityR2RecoveryPort,
 } from "./dna-population-entrant-authority-recovery";
@@ -60,6 +64,7 @@ type DnaPopulationEntrantAuthorityDurableBoundaryProof = Readonly<{
 export type DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic =
   | "invalid_configuration"
   | "authority_unavailable"
+  | DnaPopulationEntrantAuthorityLiveAuditDiagnostic
   | "capacity_unavailable"
   | "recovery_unavailable"
   | "durable_boundary_invalid"
@@ -313,7 +318,13 @@ function createDurableBoundaryProofInspector(
           providerWritePerformed: false as const,
           paidUsageAllowed: false as const,
         });
-      } catch {
+      } catch (error) {
+        if (
+          stage === "authority_unavailable" &&
+          error instanceof DnaPopulationEntrantAuthorityLiveAuditError
+        ) {
+          unavailable(error.diagnostic);
+        }
         unavailable(stage);
       }
     },

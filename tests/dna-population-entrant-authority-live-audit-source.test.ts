@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment } from "@/lib/dna-open-lab-combined-history-performance-evidence";
-import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
+import {
+  createDnaPopulationEntrantAuthorityLiveAuditSource,
+  DnaPopulationEntrantAuthorityLiveAuditError,
+} from "@/lib/dna-population-entrant-authority-live-audit-source";
 import type { DnaPopulationRaceIndexDocument } from "@/lib/dna-population-race-index-checkpoint";
 import type {
   DnaPopulationRaceIndexCheckpoint,
@@ -324,9 +327,9 @@ describe("population entrant live audit source", () => {
       }),
     );
 
-    await expect(live.load(request)).rejects.toThrow(
-      "cached Race authority drifted",
-    );
+    await expect(live.load(request)).rejects.toMatchObject({
+      diagnostic: "cached_authority_unavailable",
+    });
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
@@ -376,7 +379,9 @@ describe("population entrant live audit source", () => {
         ownerId: OWNER,
         exactCodeHeadSha: HEAD,
       }),
-    ).rejects.toThrow("published Race identity is duplicated across chunks");
+    ).rejects.toMatchObject({
+      diagnostic: "combined_history_unavailable",
+    });
   });
 
   it("includes serving incremental Race documents in the exact authority", async () => {
@@ -412,10 +417,14 @@ describe("population entrant live audit source", () => {
 
     await expect(
       live.load({ ownerId: "other-owner", exactCodeHeadSha: HEAD }),
-    ).rejects.toThrow("request binding is invalid");
+    ).rejects.toMatchObject({
+      diagnostic: "request_binding_unavailable",
+    });
     await expect(
       live.load({ ownerId: OWNER, exactCodeHeadSha: "f".repeat(40) }),
-    ).rejects.toThrow("request binding is invalid");
+    ).rejects.toMatchObject({
+      diagnostic: "request_binding_unavailable",
+    });
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
@@ -424,7 +433,9 @@ describe("population entrant live audit source", () => {
 
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
-    ).rejects.toThrow("published Race audit read budget is unavailable");
+    ).rejects.toMatchObject({
+      diagnostic: "authority_capacity_unavailable",
+    });
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
@@ -433,7 +444,9 @@ describe("population entrant live audit source", () => {
 
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
-    ).rejects.toThrow("immutable P5 baseline authority is unavailable");
+    ).rejects.toMatchObject({
+      diagnostic: "baseline_authority_unavailable",
+    });
     expect(target.populationIndex.load).not.toHaveBeenCalled();
   });
 
@@ -452,6 +465,25 @@ describe("population entrant live audit source", () => {
 
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
-    ).rejects.toThrow("published chunk disagrees with its manifest");
+    ).rejects.toMatchObject({
+      diagnostic: "combined_history_unavailable",
+    });
+  });
+
+  it("classifies dependency failures without exposing private details", async () => {
+    const target = harness();
+    target.populationIndex.load.mockRejectedValueOnce(
+      new Error("private-object-key/should-not-leak"),
+    );
+
+    const error = await source(target)
+      .load({ ownerId: OWNER, exactCodeHeadSha: HEAD })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(DnaPopulationEntrantAuthorityLiveAuditError);
+    expect(error).toMatchObject({
+      diagnostic: "population_index_unavailable",
+    });
+    expect((error as Error).message).not.toContain("private-object-key");
   });
 });
