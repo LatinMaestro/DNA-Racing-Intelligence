@@ -16,6 +16,10 @@ describe("DNA population entrant continuation readiness workflow", () => {
     expect(workflow).toContain(
       '"$(git rev-parse origin/main)" != "$GITHUB_SHA"',
     );
+    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("DNA_STATUS_MODE: readiness");
+    expect(workflow).toContain('DNA_STATUS_COMMENT_ID: "5866846740"');
+    expect(workflow).toContain("dna-entrant-continuation-readiness.json");
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain(
       'DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS: "1"',
