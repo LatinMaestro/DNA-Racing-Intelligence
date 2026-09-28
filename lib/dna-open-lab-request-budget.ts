@@ -8,8 +8,9 @@ const WINDOW_MILLISECONDS = 60_000;
 export const DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE = 30 as const;
 const DEFAULT_INITIAL_REQUESTS_PER_MINUTE =
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+export const DNA_OPEN_LAB_SERVER_LIMIT_CEILING = 10_000 as const;
 const DEFAULT_MAXIMUM_REQUESTS_PER_MINUTE =
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  DNA_OPEN_LAB_SERVER_LIMIT_CEILING;
 
 export type DnaOpenLabRequestBudgetSnapshot = Readonly<{
   effectiveRequestsPerMinute: number;
@@ -34,10 +35,10 @@ function positiveSafeInteger(value: number, field: string): number {
 }
 
 /**
- * Creates a local sliding-window request gate fixed by default at DNA's base
- * 30 requests/minute allowance. Advertised higher limits are recorded by the
- * response boundary but cannot increase this gate unless a caller explicitly
- * supplies a higher maximum under a separately approved policy.
+ * Creates a local sliding-window request gate starting at DNA's base
+ * 30 requests/minute allowance. Authenticated server-advertised rate limits are
+ * authoritative and may raise or lower the effective lane allowance. The high
+ * implementation ceiling exists only as a sanity bound; it is not an owner RPM policy.
  *
  * The gate deliberately does not retry failed requests. A 429 is surfaced to
  * the caller unchanged, while Retry-After/reset metadata blocks later requests
