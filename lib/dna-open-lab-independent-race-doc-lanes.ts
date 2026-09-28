@@ -60,8 +60,7 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
   }
 
   let laneCursor = 0;
-  const laneContext =
-    new AsyncLocalStorage<DnaOpenLabIndependentRaceDocLane>();
+  const laneContext = new AsyncLocalStorage<DnaOpenLabIndependentRaceDocLane>();
 
   const client = Object.freeze({
     raceDocs: async (raceIds: Parameters<DnaOpenLabClient["raceDocs"]>[0]) => {
