@@ -34,6 +34,9 @@ class MemoryR2Storage implements DnaOpenLabR2RaceEvidenceStoragePort {
   readonly objects = new Map<string, StoredObject>();
   privacyReadCount = 0;
   putCount = 0;
+  putInFlight = 0;
+  peakPutInFlight = 0;
+  putBarrier: Promise<void> | null = null;
   privacy = {
     publicAccessDisabled: true,
     r2DevDisabled: true,
@@ -55,30 +58,37 @@ class MemoryR2Storage implements DnaOpenLabR2RaceEvidenceStoragePort {
     metadata: Readonly<Record<string, string>>;
   }) {
     this.putCount += 1;
-    if (this.objects.has(input.key)) {
-      return Object.freeze({ status: "existing" as const });
+    this.putInFlight += 1;
+    this.peakPutInFlight = Math.max(this.peakPutInFlight, this.putInFlight);
+    try {
+      if (this.putBarrier !== null) await this.putBarrier;
+      if (this.objects.has(input.key)) {
+        return Object.freeze({ status: "existing" as const });
+      }
+      const body = new Uint8Array(input.byteLength);
+      let offset = 0;
+      for await (const chunk of input.body) {
+        body.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      if (offset !== input.byteLength) throw new Error("synthetic body mismatch");
+      const checksumSha256 = createHash("sha256").update(body).digest("hex");
+      if (checksumSha256 !== input.checksumSha256) {
+        throw new Error("synthetic checksum mismatch");
+      }
+      this.objects.set(
+        input.key,
+        Object.freeze({
+          body,
+          contentType: input.contentType,
+          checksumSha256,
+          metadata: input.metadata,
+        }),
+      );
+      return Object.freeze({ status: "created" as const });
+    } finally {
+      this.putInFlight -= 1;
     }
-    const body = new Uint8Array(input.byteLength);
-    let offset = 0;
-    for await (const chunk of input.body) {
-      body.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    if (offset !== input.byteLength) throw new Error("synthetic body mismatch");
-    const checksumSha256 = createHash("sha256").update(body).digest("hex");
-    if (checksumSha256 !== input.checksumSha256) {
-      throw new Error("synthetic checksum mismatch");
-    }
-    this.objects.set(
-      input.key,
-      Object.freeze({
-        body,
-        contentType: input.contentType,
-        checksumSha256,
-        metadata: input.metadata,
-      }),
-    );
-    return Object.freeze({ status: "created" as const });
   }
 
   async headObject(input: { bucketName: string; key: string }) {
@@ -320,6 +330,33 @@ describe("DNA Open Lab private R2 Race evidence", () => {
       expect(stored?.[1].metadata["dna-endpoint"]).toBe("races.docs");
       expect(stored?.[1].metadata["dna-raw-sha256"]).toBe(rawSha);
     }
+  });
+
+  it("bounds concurrent canonical Race archival at four objects per response", async () => {
+    const storage = new MemoryR2Storage();
+    let releaseBarrier: (() => void) | undefined;
+    storage.putBarrier = new Promise<void>((resolve) => {
+      releaseBarrier = resolve;
+    });
+    const documents = Array.from({ length: 9 }, (_, index) => ({
+      rid: index + 1,
+      rvmode: "bike",
+      hids: [index + 101],
+    })) satisfies readonly DnaRaceDocument[];
+    const client = createDnaOpenLabR2RaceDocumentClient({
+      client: sourceClient(documents),
+      configuration: configuration(storage),
+    });
+
+    const pending = client.raceDocs(documents.map(({ rid }) => rid));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(storage.peakPutInFlight).toBe(4);
+    releaseBarrier?.();
+    await pending;
+
+    expect(storage.objects.size).toBe(9);
+    expect(storage.putCount).toBe(9);
   });
 
   it("publishes a window manifest only after all referenced full race docs exist", async () => {
