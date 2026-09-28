@@ -188,6 +188,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   storage: ReadableEvidenceStorage;
   capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
   assessCombinedHistory?: typeof assessDnaOpenLabCombinedHistoryPerformanceEvidence;
+  fullAuditReuseCount?: 0 | 1 | 2;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
   const configuredOwnerId = identity(
     input.configuredOwnerId,
@@ -198,6 +199,11 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   const assessCombinedHistory =
     input.assessCombinedHistory ??
     assessDnaOpenLabCombinedHistoryPerformanceEvidence;
+  const fullAuditReuseCount = input.fullAuditReuseCount ?? 0;
+  let cachedAudit: Awaited<
+    ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>
+  > | null = null;
+  let remainingAuditReuses = 0;
 
   return Object.freeze({
     async load(request) {
@@ -207,6 +213,15 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         requestedOwnerId: request.ownerId,
         requestedHead: request.exactCodeHeadSha,
       });
+
+      if (cachedAudit !== null && remainingAuditReuses > 0) {
+        remainingAuditReuses -= 1;
+        const reused = cachedAudit;
+        if (remainingAuditReuses === 0) {
+          cachedAudit = null;
+        }
+        return reused;
+      }
 
       if (input.capacitySource.status !== "ready") {
         auditError("provider capacity measurement is unavailable");
@@ -388,12 +403,17 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       });
       const authority = entrantAuthority(plan);
 
-      return Object.freeze({
+      const audit = Object.freeze({
         exactCodeHeadSha: configuredHead,
         plan,
         raceDocuments: Object.freeze(raceDocuments),
         authority,
       });
+      if (fullAuditReuseCount > 0) {
+        cachedAudit = audit;
+        remainingAuditReuses = fullAuditReuseCount;
+      }
+      return audit;
     },
   });
 }
