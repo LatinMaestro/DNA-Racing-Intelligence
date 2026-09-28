@@ -111,6 +111,35 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
     });
   });
 
+  it("supports a stricter caller-specific budget without permitting a budget above the free allowance", () => {
+    const callerBudget = {
+      storageBytes: 8_000_000_000,
+      classAOperations: 900_000,
+      classBOperations: 9_000_000,
+    } as const;
+    const result = projectDnaOpenLabZeroCostProviderCapacity({
+      ...safe,
+      r2Budgets: callerBudget,
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.r2Budgets).toEqual(callerBudget);
+    expect(result.r2Headroom.classBOperations).toBe(
+      callerBudget.classBOperations - result.projectedR2Usage.classBOperations,
+    );
+
+    expect(() =>
+      projectDnaOpenLabZeroCostProviderCapacity({
+        ...safe,
+        r2Budgets: {
+          ...callerBudget,
+          classBOperations:
+            DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations + 1,
+        },
+      }),
+    ).toThrow("R2 budgets exceed published free allowances");
+  });
+
   it("fails closed when the R2 storage class is not Standard", () => {
     expect(
       projectDnaOpenLabZeroCostProviderCapacity({
