@@ -78,8 +78,7 @@ const headers = {
   "Content-Type": "application/json",
   "X-GitHub-Api-Version": "2022-11-28",
 };
-const runUrl =
-  "https://github.com/" + repository + "/actions/runs/" + runId;
+const runUrl = "https://github.com/" + repository + "/actions/runs/" + runId;
 
 async function mainSha() {
   const response = await fetch(
@@ -250,9 +249,7 @@ if (mode === "autonomous-result") {
       machine.recoveredRaceCount.toLocaleString("en-US") +
       "** / " +
       machine.unresolvedRaceCount.toLocaleString("en-US"),
-    "Cohorts committed this session: **" +
-      machine.completedCohortCount +
-      "**",
+    "Cohorts committed this session: **" + machine.completedCohortCount + "**",
     "Run: " + runUrl,
     "Main: " + head,
     "Sanitized durable boundary: " + JSON.stringify(machine),
