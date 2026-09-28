@@ -11,6 +11,7 @@ import {
   DnaPopulationEntrantAuthorityContinuationReadinessError,
   DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS_VERSION,
 } from "@/lib/dna-population-entrant-authority-continuation-readiness";
+import { DnaPopulationEntrantAuthorityLiveAuditError } from "@/lib/dna-population-entrant-authority-live-audit-source";
 import type { DnaPopulationEntrantAuthorityR2RecoveryPort } from "@/lib/dna-population-entrant-authority-recovery";
 import {
   planDnaPopulationHistoryAcquisition,
@@ -217,10 +218,12 @@ describe("population entrant continuation readiness", () => {
     expect(JSON.stringify(receipt)).not.toContain("private/chunk-1.json");
   });
 
-  it("reports sanitized authority-stage failures", async () => {
+  it("propagates sanitized live Race-audit stages", async () => {
     const test = harness();
     test.authoritySource.load.mockRejectedValue(
-      new Error("private-authority-source-detail"),
+      new DnaPopulationEntrantAuthorityLiveAuditError(
+        "population_index_unavailable",
+      ),
     );
 
     const error = await inspector(test)
@@ -230,8 +233,9 @@ describe("population entrant continuation readiness", () => {
     expect(error).toBeInstanceOf(
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
-    expect(error).toMatchObject({ diagnostic: "authority_unavailable" });
-    expect(String(error)).not.toContain("private-authority-source-detail");
+    expect(error).toMatchObject({
+      diagnostic: "population_index_unavailable",
+    });
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
   });
 
