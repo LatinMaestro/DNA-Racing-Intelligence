@@ -113,6 +113,16 @@ jobs:
               workflow = "dna-open-lab-throughput-probe.yml";
               inputs = { expected_main_sha: payload.expected_main_sha };
               break;
+            case "population-index-maintenance":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-race-index-private-preview-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                maximum_receipts: "25",
+                execute_bounded_private_preview_index: true,
+              };
+              break;
             case "entrant-readiness":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-population-entrant-authority-readiness.yml";
