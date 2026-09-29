@@ -80,6 +80,14 @@ describeConnected(
           stage = "runtime-composition";
           const runtime =
             dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
+              acceptedUnresolvedAuthority: Object.freeze({
+                unresolvedRaceCount: positiveCount(
+                  "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+                ),
+                unresolvedRaceSetSha256: sha256(
+                  "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+                ),
+              }),
               environment: Object.freeze({
                 authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
                 exactCodeHeadSha,
