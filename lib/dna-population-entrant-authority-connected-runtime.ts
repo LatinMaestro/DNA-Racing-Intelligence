@@ -212,6 +212,10 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
   liveAuditReuseCount?: number;
+  acceptedUnresolvedAuthority?: Readonly<{
+    unresolvedRaceCount: number;
+    unresolvedRaceSetSha256: string;
+  }>;
 }): DnaPopulationEntrantAuthorityConnectedRuntime {
   const config = configured(input.environment);
   if (config === null) {
@@ -319,6 +323,11 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       chunkStore: populationChunkStore,
       storage,
       capacitySource,
+      ...(input.acceptedUnresolvedAuthority === undefined
+        ? {}
+        : {
+            acceptedUnresolvedAuthority: input.acceptedUnresolvedAuthority,
+          }),
       ...(input.liveAuditReuseCount === undefined
         ? {}
         : { fullAuditReuseCount: input.liveAuditReuseCount }),

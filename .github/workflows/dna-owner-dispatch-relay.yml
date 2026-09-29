@@ -129,11 +129,28 @@ jobs:
               };
               break;
             case "entrant-continuation-readiness":
-              exactKeys(["kind", "expected_main_sha"]);
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "expected_unresolved_race_count",
+                "expected_unresolved_race_set_sha256",
+              ]);
+              if (
+                !positiveCount(payload.expected_unresolved_race_count) ||
+                !sha64(payload.expected_unresolved_race_set_sha256)
+              ) {
+                throw new Error(
+                  "Continuation-readiness Race authority is invalid.",
+                );
+              }
               workflow =
                 "dna-population-entrant-authority-continuation-readiness.yml";
               inputs = {
                 expected_main_sha: payload.expected_main_sha,
+                expected_unresolved_race_count:
+                  payload.expected_unresolved_race_count,
+                expected_unresolved_race_set_sha256:
+                  payload.expected_unresolved_race_set_sha256,
               };
               break;
             case "entrant-autonomous":
