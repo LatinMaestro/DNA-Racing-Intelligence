@@ -321,10 +321,7 @@ describe("population entrant live audit source", () => {
       version: 1,
       unresolvedRaceCount: 3,
     });
-    expect(target.chunkStore.read).not.toHaveBeenCalled();
-    expect(
-      target.populationIndex.listPublishedCompactIdentities,
-    ).toHaveBeenCalled();
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
   it("reuses a fresh full audit only for the configured immediate checks", async () => {
@@ -533,7 +530,10 @@ describe("population entrant live audit source", () => {
     ).resolves.toMatchObject({
       authority: acceptedUnresolvedAuthority,
     });
-    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+    expect(target.chunkStore.read).not.toHaveBeenCalled();
+    expect(
+      target.populationIndex.listPublishedCompactIdentities,
+    ).toHaveBeenCalled();
   });
 
   it("fails closed when low-read population reconstruction disagrees with accepted authority", async () => {
