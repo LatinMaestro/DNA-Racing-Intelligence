@@ -44,6 +44,7 @@ export type DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
   | "manifest_authority_unavailable"
   | "serving_history_unavailable"
   | "combined_history_unavailable"
+  | "accepted_authority_mismatch"
   | "acquisition_plan_unavailable";
 
 export class DnaPopulationEntrantAuthorityLiveAuditError extends Error {
@@ -253,6 +254,10 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   chunkStore: PopulationChunkReadStore;
   storage: ReadableEvidenceStorage;
   capacitySource: DnaOpenLabProviderCapacityMeasurementSource;
+  acceptedUnresolvedAuthority?: Readonly<{
+    unresolvedRaceCount: number;
+    unresolvedRaceSetSha256: string;
+  }>;
   assessCombinedHistory?: typeof assessDnaOpenLabCombinedHistoryPerformanceEvidence;
   fullAuditReuseCount?: number;
 }): DnaPopulationEntrantAuthorityLiveAuditSource {
@@ -265,6 +270,28 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
   const assessCombinedHistory =
     input.assessCombinedHistory ??
     assessDnaOpenLabCombinedHistoryPerformanceEvidence;
+  const acceptedUnresolvedAuthority =
+    input.acceptedUnresolvedAuthority === undefined
+      ? null
+      : (() => {
+          const value = input.acceptedUnresolvedAuthority;
+          if (
+            !Number.isSafeInteger(value.unresolvedRaceCount) ||
+            value.unresolvedRaceCount < 1 ||
+            typeof value.unresolvedRaceSetSha256 !== "string" ||
+            value.unresolvedRaceSetSha256.trim() !==
+              value.unresolvedRaceSetSha256 ||
+            value.unresolvedRaceSetSha256.toLowerCase() !==
+              value.unresolvedRaceSetSha256 ||
+            !/^[a-f0-9]{64}$/u.test(value.unresolvedRaceSetSha256)
+          ) {
+            auditError("accepted unresolved Race authority is invalid");
+          }
+          return Object.freeze({
+            unresolvedRaceCount: value.unresolvedRaceCount,
+            unresolvedRaceSetSha256: value.unresolvedRaceSetSha256,
+          });
+        })();
   const fullAuditReuseCount = input.fullAuditReuseCount ?? 0;
   if (
     !Number.isSafeInteger(fullAuditReuseCount) ||
@@ -456,10 +483,15 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           // R2 evidence read, so the complete known floor must fit first.
           // Quarantine count is intentionally enforced later by the evidence
           // reader's reserve-before-access guard as manifests reveal it.
-          const knownIncrementalObjectCount = safeAdd(
-            history.receiptCount,
-            history.documentCount,
-          );
+          // When an already accepted unresolved-Race authority is supplied,
+          // continuation only needs the compact baseline plus verified
+          // incremental manifests. The resulting candidate set is checksum-bound
+          // to that accepted authority below before it can be used. Otherwise,
+          // preserve the full manifest + races.docs evidence floor.
+          const knownIncrementalObjectCount =
+            acceptedUnresolvedAuthority === null
+              ? safeAdd(history.receiptCount, history.documentCount)
+              : history.receiptCount;
           const minimumKnownReadOperations = safeAdd(
             baselineR2ClassBOperations,
             safeAdd(knownIncrementalObjectCount, knownIncrementalObjectCount),
@@ -539,6 +571,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           paidUsageAllowed: false as const,
         }),
         canonicalPurpose: "population_inventory",
+        populationInventoryIdentityOnly: acceptedUnresolvedAuthority !== null,
         onCanonicalRaceDocument: (document) => {
           raceDocuments.push(document);
         },
@@ -562,6 +595,15 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           raceDocuments: Object.freeze(raceDocuments),
         }),
       );
+      if (
+        acceptedUnresolvedAuthority !== null &&
+        (plan.unresolvedRaceCount !==
+          acceptedUnresolvedAuthority.unresolvedRaceCount ||
+          plan.unresolvedRaceSetSha256 !==
+            acceptedUnresolvedAuthority.unresolvedRaceSetSha256)
+      ) {
+        liveAuditUnavailable("accepted_authority_mismatch");
+      }
       const authority = liveAuditStage("acquisition_plan_unavailable", () =>
         entrantAuthority(plan),
       );
