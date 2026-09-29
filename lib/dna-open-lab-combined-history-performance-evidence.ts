@@ -460,6 +460,13 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   storage: ReadableObjectStorage;
   readBudget: DnaOpenLabHistoryReadBudgetAuthorization;
   canonicalPurpose?: "performance_evidence" | "population_inventory";
+  /**
+   * Identity-only population reconstruction is permitted only for callers that
+   * independently bind the resulting acquisition plan to an already accepted
+   * unresolved-Race count + SHA-256 authority. It verifies every incremental
+   * manifest but deliberately does not reopen each referenced races.docs body.
+   */
+  populationInventoryIdentityOnly?: boolean;
   onCanonicalRaceDocument?: (document: CanonicalRaceDocumentMetadata) => void;
 }): Promise<DnaOpenLabCombinedHistoryPerformanceEvidenceAssessment> {
   const bucketName = safeText(input.bucketName, "bucketName");
@@ -534,6 +541,16 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
   let quarantinedIdentityObservationCount =
     baselineState.omittedIdentityObservationCount;
   let incrementalMaximumCompactEntrantAuthorityBytes = 0;
+  const populationInventoryIdentityOnly =
+    input.populationInventoryIdentityOnly === true;
+  if (
+    populationInventoryIdentityOnly &&
+    input.canonicalPurpose !== "population_inventory"
+  ) {
+    historyError(
+      "identity-only reconstruction is restricted to population inventory",
+    );
+  }
   const adaptDocument =
     input.canonicalPurpose === "population_inventory"
       ? adaptDnaRaceDocumentPopulationInventory
@@ -873,6 +890,22 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
           }),
         );
         quarantinedIdentityObservationCount += quarantineBatch.length;
+      }
+
+      if (populationInventoryIdentityOnly) {
+        incrementalDocumentReferenceCount += value.raceDocumentObjects.length;
+        for (const sourceRaceId of discoveredIds) {
+          if (raceIds.has(sourceRaceId)) continue;
+          raceIds.add(sourceRaceId);
+          compactCanonicalDocuments.set(
+            sourceRaceId,
+            Object.freeze({
+              sourceType: "race_document" as const,
+              sourceRaceId,
+            }),
+          );
+        }
+        continue;
       }
 
       for (
