@@ -147,6 +147,14 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         stage = "runtime-composition";
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
+              acceptedUnresolvedAuthority: Object.freeze({
+                unresolvedRaceCount: positiveCount(
+                  "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+                ),
+                unresolvedRaceSetSha256: sha256(
+                  "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+                ),
+              }),
             // One full Race-authority audit seeds the session. The next 24
             // authority loads (three per cohort across eight cohorts) revalidate
             // immutable last-good pointers and published generation metadata
