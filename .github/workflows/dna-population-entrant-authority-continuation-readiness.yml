@@ -7,6 +7,14 @@ on:
         description: Exact current main commit to inspect
         required: true
         type: string
+      expected_unresolved_race_count:
+        description: Accepted unresolved Race count to checksum-bind recovery
+        required: true
+        type: string
+      expected_unresolved_race_set_sha256:
+        description: Accepted unresolved Race authority SHA-256
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -34,6 +42,8 @@ jobs:
       DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
       DNA_POPULATION_ENTRANT_AUTHORITY_CONTINUATION_READINESS: "1"
       DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT: ${{ inputs.expected_unresolved_race_count }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256: ${{ inputs.expected_unresolved_race_set_sha256 }}
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
@@ -50,6 +60,11 @@ jobs:
           fi
           if [[ "${{ inputs.expected_main_sha }}" != "$GITHUB_SHA" ]]; then
             echo "The supplied continuation-readiness commit does not match the dispatch head."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_unresolved_race_count }}" =~ ^[1-9][0-9]*$ ]] || \
+             [[ ! "${{ inputs.expected_unresolved_race_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "The accepted unresolved Race authority is invalid."
             exit 1
           fi
       - name: Checkout exact head
