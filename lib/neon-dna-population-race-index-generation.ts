@@ -53,6 +53,9 @@ SELECT owner.id::text AS database_owner_id,
     'dna.read_dna_population_race_index_published_r2_chunk_manifests(uuid,text,integer,integer)',
     'EXECUTE') AS runtime_can_read_published_r2_manifests,
   has_function_privilege(session_user,
+    'dna.read_dna_population_race_index_published_compact_identities(uuid,text,text,integer)',
+    'EXECUTE') AS runtime_can_read_published_identities,
+  has_function_privilege(session_user,
     'dna.register_dna_population_race_index_compact_identity_chunk(uuid,text,text,integer,jsonb,timestamp with time zone)',
     'EXECUTE') AS runtime_can_register_identities,
   has_function_privilege(session_user,
@@ -330,6 +333,10 @@ function verifyIsolation(
     !bool(
       row.runtime_can_read_published_r2_manifests,
       "runtime_can_read_published_r2_manifests",
+    ) ||
+    !bool(
+      row.runtime_can_read_published_identities,
+      "runtime_can_read_published_identities",
     ) ||
     !bool(
       row.runtime_can_register_identities,
@@ -680,6 +687,46 @@ export function createNeonDnaPopulationRaceIndexGenerationRepository(input: {
               }),
             ),
           );
+        },
+      });
+    },
+
+    async listPublishedCompactIdentities(requestOwnerId, request) {
+      if (
+        request.afterSourceRaceId !== null &&
+        (typeof request.afterSourceRaceId !== "string" ||
+          request.afterSourceRaceId.trim() !== request.afterSourceRaceId ||
+          request.afterSourceRaceId.length < 1 ||
+          request.afterSourceRaceId.length > 512 ||
+          CONTROL_PATTERN.test(request.afterSourceRaceId))
+      ) {
+        throw new Error(
+          "published population compact identity cursor is invalid",
+        );
+      }
+      if (
+        !Number.isSafeInteger(request.limit) ||
+        request.limit < 1 ||
+        request.limit > 5_000
+      ) {
+        throw new Error(
+          "published population compact identity read bounds are invalid",
+        );
+      }
+      return transaction({
+        ownerId: requestOwnerId,
+        readOnly: true,
+        async run(client) {
+          const result = await client.query(
+            "SELECT * FROM dna.read_dna_population_race_index_published_compact_identities($1::uuid,$2::text,$3::text,$4::integer)",
+            [
+              databaseOwnerId,
+              sha256(request.generationId, "generationId"),
+              request.afterSourceRaceId,
+              request.limit,
+            ],
+          );
+          return Object.freeze(result.rows.map(compactIdentity));
         },
       });
     },

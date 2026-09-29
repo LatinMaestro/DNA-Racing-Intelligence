@@ -222,6 +222,37 @@ function harness(input?: {
               .slice(0, request.limit),
           ),
       ),
+      listPublishedCompactIdentities: vi.fn(
+        async (
+          _ownerId: string,
+          request: { afterSourceRaceId: string | null; limit: number },
+        ) => {
+          const values = Object.values(chunks)
+            .flat()
+            .map((entry) =>
+              Object.freeze({
+                sourceRaceId: entry.sourceRaceId,
+                rawEvidenceSha256: entry.rawEvidenceSha256,
+              }),
+            )
+            .sort((left, right) =>
+              left.sourceRaceId < right.sourceRaceId
+                ? -1
+                : left.sourceRaceId > right.sourceRaceId
+                  ? 1
+                  : 0,
+            );
+          return Object.freeze(
+            values
+              .filter(
+                (entry) =>
+                  request.afterSourceRaceId === null ||
+                  entry.sourceRaceId > request.afterSourceRaceId,
+              )
+              .slice(0, request.limit),
+          );
+        },
+      ),
     },
     chunkStore: {
       read: vi.fn(async (receipt: DnaPopulationRaceIndexR2ChunkReceipt) => {
@@ -499,7 +530,10 @@ describe("population entrant live audit source", () => {
     ).resolves.toMatchObject({
       authority: acceptedUnresolvedAuthority,
     });
-    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+    expect(target.chunkStore.read).not.toHaveBeenCalled();
+    expect(
+      target.populationIndex.listPublishedCompactIdentities,
+    ).toHaveBeenCalled();
   });
 
   it("fails closed when low-read population reconstruction disagrees with accepted authority", async () => {

@@ -135,6 +135,7 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
   const finalizeCompaction = vi.fn(async () => checkpoint());
   const listR2ChunkManifests = vi.fn(async () => []);
   const listPublishedR2ChunkManifests = vi.fn(async () => []);
+  const listPublishedCompactIdentities = vi.fn(async () => []);
   const registerCompactIdentityChunk = vi.fn(async () => checkpoint());
   const lookupIdentities = vi.fn(async () => []);
   const appendR2Batch = vi.fn(async () =>
@@ -162,6 +163,7 @@ function repository(existing: DnaPopulationRaceIndexCheckpoint | null = null) {
       finalizeCompaction,
       listR2ChunkManifests,
       listPublishedR2ChunkManifests,
+      listPublishedCompactIdentities,
       registerCompactIdentityChunk,
       lookupIdentities,
       appendR2Batch,

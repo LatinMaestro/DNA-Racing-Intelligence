@@ -68,6 +68,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_finalize_compaction: true,
     runtime_can_read_r2_manifests: true,
     runtime_can_read_published_r2_manifests: true,
+    runtime_can_read_published_identities: true,
     runtime_can_register_identities: true,
     runtime_can_lookup_identities: true,
     runtime_can_append: true,
@@ -262,6 +263,39 @@ describe("Neon DNA population race index generation", () => {
       test.events.some((event) =>
         event.includes(
           "read_dna_population_race_index_published_r2_chunk_manifests",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("pages published compact identities through the owner-scoped read contract", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          source_race_id: "race-2",
+          raw_evidence_sha256: "5".repeat(64),
+        },
+      ],
+    ]);
+
+    await expect(
+      test.repository.listPublishedCompactIdentities(ownerId, {
+        generationId,
+        afterSourceRaceId: "race-1",
+        limit: 5_000,
+      }),
+    ).resolves.toEqual([
+      {
+        sourceRaceId: "race-2",
+        rawEvidenceSha256: "5".repeat(64),
+      },
+    ]);
+    expect(
+      test.events.some((event) =>
+        event.includes(
+          "read_dna_population_race_index_published_compact_identities",
         ),
       ),
     ).toBe(true);

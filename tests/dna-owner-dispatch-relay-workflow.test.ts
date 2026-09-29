@@ -20,6 +20,10 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain(
+      "dna-population-race-index-private-preview-command.yml",
+    );
+    expect(workflow).toContain('"population-index-maintenance"');
+    expect(workflow).toContain(
       "dna-population-entrant-authority-readiness.yml",
     );
     expect(workflow).toContain(

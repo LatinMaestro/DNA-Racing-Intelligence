@@ -29,6 +29,7 @@ import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-pop
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 const MANIFEST_PAGE_LIMIT = 100 as const;
+const IDENTITY_PAGE_LIMIT = 5_000 as const;
 const CHUNK_READ_CONCURRENCY = 24 as const;
 
 export type DnaPopulationEntrantAuthorityLiveAuditDiagnostic =
@@ -99,7 +100,7 @@ export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
 
 type PopulationIndexReadRepository = Pick<
   DnaPopulationRaceIndexGenerationRepository,
-  "load" | "listPublishedR2ChunkManifests"
+  "load" | "listPublishedR2ChunkManifests" | "listPublishedCompactIdentities"
 >;
 
 type PopulationChunkReadStore = Pick<
@@ -460,10 +461,70 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
 
       const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
       const seenRaceIds = new Set<string>();
-      const baselineR2ClassBOperations = manifests.length * 2;
+      const publishedIdentities =
+        acceptedUnresolvedAuthority === null
+          ? null
+          : await (async () => {
+              const identities: Array<{
+                sourceRaceId: string;
+                rawEvidenceSha256: string;
+              }> = [];
+              let afterSourceRaceId: string | null = null;
+              while (identities.length < populationIndex.uniqueRaceCount) {
+                const page = await input.populationIndex
+                  .listPublishedCompactIdentities(configuredOwnerId, {
+                    generationId: populationIndex.generationId,
+                    afterSourceRaceId,
+                    limit: IDENTITY_PAGE_LIMIT,
+                  })
+                  .catch((error: unknown) =>
+                    liveAuditFailure("population_index_unavailable", error),
+                  );
+                if (
+                  page.length < 1 ||
+                  page.length > IDENTITY_PAGE_LIMIT ||
+                  identities.length + page.length >
+                    populationIndex.uniqueRaceCount
+                ) {
+                  liveAuditUnavailable("population_index_unavailable");
+                }
+                for (const entry of page) {
+                  const sourceRaceId = identity(
+                    entry.sourceRaceId,
+                    "sourceRaceId",
+                  );
+                  if (
+                    afterSourceRaceId !== null &&
+                    sourceRaceId <= afterSourceRaceId
+                  ) {
+                    liveAuditUnavailable("population_index_unavailable");
+                  }
+                  if (!/^[a-f0-9]{64}$/u.test(entry.rawEvidenceSha256)) {
+                    liveAuditUnavailable("population_index_unavailable");
+                  }
+                  identities.push(
+                    Object.freeze({
+                      sourceRaceId,
+                      rawEvidenceSha256: entry.rawEvidenceSha256,
+                    }),
+                  );
+                  afterSourceRaceId = sourceRaceId;
+                }
+              }
+              if (
+                identities.length !== populationIndex.uniqueRaceCount ||
+                identities.at(-1)?.sourceRaceId !==
+                  populationIndex.r2LastSourceRaceId
+              ) {
+                liveAuditUnavailable("population_index_unavailable");
+              }
+              return Object.freeze(identities);
+            })();
+      const baselineR2ClassBOperations =
+        acceptedUnresolvedAuthority === null ? manifests.length * 2 : 0;
       if (
         !Number.isSafeInteger(baselineR2ClassBOperations) ||
-        baselineR2ClassBOperations < 1 ||
+        baselineR2ClassBOperations < 0 ||
         baselineR2ClassBOperations >
           DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS
       ) {
@@ -478,16 +539,11 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
       const maximumClassBOperations = liveAuditStage(
         "authority_capacity_read_budget_unavailable",
         () => {
-          // Each baseline chunk, incremental manifest and Race document
-          // consumes one HEAD plus one GET. Their counts are known before any
-          // R2 evidence read, so the complete known floor must fit first.
-          // Quarantine count is intentionally enforced later by the evidence
-          // reader's reserve-before-access guard as manifests reveal it.
-          // When an already accepted unresolved-Race authority is supplied,
-          // continuation only needs the compact baseline plus verified
-          // incremental manifests. The resulting candidate set is checksum-bound
-          // to that accepted authority below before it can be used. Otherwise,
-          // preserve the full manifest + races.docs evidence floor.
+          // Full audit reopens each baseline R2 chunk and every incremental
+          // manifest/Race document. Checksum-bound continuation instead reads
+          // the published compact baseline identities from Neon and spends R2
+          // Class-B operations only on incremental manifests. Quarantine reads
+          // remain reserved before access by the evidence reader.
           const knownIncrementalObjectCount =
             acceptedUnresolvedAuthority === null
               ? safeAdd(history.receiptCount, history.documentCount)
@@ -525,6 +581,30 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
         baseline: input.baseline,
         baselineIndex: Object.freeze({
           scanDocuments: async (accept) => {
+            if (publishedIdentities !== null) {
+              const observedAt =
+                populationIndex.publishedAt ?? populationIndex.completedAt;
+              if (observedAt === null) {
+                auditError("published Race identity timestamp is unavailable");
+              }
+              for (const entry of publishedIdentities) {
+                accept(
+                  Object.freeze({
+                    requestOrdinal: 1,
+                    endpoint: "races.finished" as const,
+                    observedAt,
+                    sourceRaceId: entry.sourceRaceId,
+                    rawEvidenceSha256: entry.rawEvidenceSha256,
+                    canonical: Object.freeze({
+                      sourceType: "race_document" as const,
+                      sourceRaceId: entry.sourceRaceId,
+                    }),
+                  }),
+                );
+              }
+              return;
+            }
+
             let scannedRaceCount = 0;
             for (
               let start = 0;
