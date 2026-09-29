@@ -511,11 +511,12 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
                   afterSourceRaceId = sourceRaceId;
                 }
               }
-              if (
-                identities.length !== populationIndex.uniqueRaceCount ||
-                identities.at(-1)?.sourceRaceId !==
-                  populationIndex.r2LastSourceRaceId
-              ) {
+              // r2LastSourceRaceId is the legacy-to-R2 compaction cursor.
+              // Append-ordered immutable P5 chunks can add later identities
+              // without advancing that cursor. Coverage is instead proved by
+              // the published manifest row total, exact compact-identity count,
+              // strict page ordering, and the accepted unresolved-Race hash.
+              if (identities.length !== populationIndex.uniqueRaceCount) {
                 liveAuditUnavailable("population_index_unavailable");
               }
               return Object.freeze(identities);

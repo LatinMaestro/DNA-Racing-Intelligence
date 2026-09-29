@@ -134,6 +134,7 @@ function harness(input?: {
     documentCount: number;
     manifestByteLength: number;
   }>;
+  checkpoint?: DnaPopulationRaceIndexCheckpoint;
   manifests?: readonly DnaPopulationRaceIndexR2ChunkManifest[];
   chunks?: Readonly<Record<number, readonly DnaPopulationRaceIndexDocument[]>>;
 }) {
@@ -210,7 +211,7 @@ function harness(input?: {
       readServingFinishedHistory,
     },
     populationIndex: {
-      load: vi.fn(async () => checkpoint()),
+      load: vi.fn(async () => input?.checkpoint ?? checkpoint()),
       listPublishedR2ChunkManifests: vi.fn(
         async (
           _ownerId: string,
@@ -534,6 +535,33 @@ describe("population entrant live audit source", () => {
     expect(
       target.populationIndex.listPublishedCompactIdentities,
     ).toHaveBeenCalled();
+  });
+
+  it("does not treat the immutable compaction cursor as the current identity maximum", async () => {
+    const target = harness({
+      checkpoint: Object.freeze({
+        ...checkpoint(),
+        r2LastSourceRaceId: "race-2",
+      }),
+    });
+    const acceptedUnresolvedAuthority = Object.freeze({
+      unresolvedRaceCount: 3,
+      unresolvedRaceSetSha256: dnaPopulationEntrantAuthorityRaceSetSha256([
+        "race-1",
+        "race-2",
+        "race-3",
+      ]),
+    });
+
+    await expect(
+      source(target, [], 0, acceptedUnresolvedAuthority).load({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      }),
+    ).resolves.toMatchObject({
+      authority: acceptedUnresolvedAuthority,
+    });
+    expect(target.chunkStore.read).not.toHaveBeenCalled();
   });
 
   it("fails closed when low-read population reconstruction disagrees with accepted authority", async () => {
