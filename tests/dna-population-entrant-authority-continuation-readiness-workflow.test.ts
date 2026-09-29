@@ -12,6 +12,14 @@ describe("DNA population entrant continuation readiness workflow", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
     expect(workflow).toContain("expected_main_sha:");
+    expect(workflow).toContain("expected_unresolved_race_count:");
+    expect(workflow).toContain("expected_unresolved_race_set_sha256:");
+    expect(workflow).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+    );
+    expect(workflow).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+    );
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
     expect(workflow).toContain(
       '"$(git rev-parse origin/main)" != "$GITHUB_SHA"',
