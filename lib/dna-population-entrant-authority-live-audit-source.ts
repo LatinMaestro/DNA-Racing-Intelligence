@@ -100,9 +100,7 @@ export const DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS =
 
 type PopulationIndexReadRepository = Pick<
   DnaPopulationRaceIndexGenerationRepository,
-  | "load"
-  | "listPublishedR2ChunkManifests"
-  | "listPublishedCompactIdentities"
+  "load" | "listPublishedR2ChunkManifests" | "listPublishedCompactIdentities"
 >;
 
 type PopulationChunkReadStore = Pick<
