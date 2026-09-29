@@ -473,7 +473,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
               while (identities.length < populationIndex.uniqueRaceCount) {
                 const page = await input.populationIndex
                   .listPublishedCompactIdentities(configuredOwnerId, {
-                    generationId: baseline.completionSha256,
+                    generationId: populationIndex.generationId,
                     afterSourceRaceId,
                     limit: IDENTITY_PAGE_LIMIT,
                   })
