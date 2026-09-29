@@ -385,6 +385,60 @@ describe("combined DNA finished-history performance evidence", () => {
     ]);
   });
 
+  it("reconstructs checksum-bound population identity without reopening incremental Race documents", async () => {
+    const input = fixture();
+    const observedAt = "2026-09-02T00:00:00.000Z";
+    const raw = Object.freeze<DnaRaceDocument>({
+      rid: 101,
+      rvmode: "bike",
+      format: "sprint",
+      track: "source-track-value",
+    });
+    const adapted = adaptDnaRaceDocumentPopulationInventory({
+      raw,
+      observedAt,
+      endpoint: "races.finished",
+    });
+    const documents: CanonicalRaceDocumentMetadata[] = [];
+    const assessment = await assessDnaOpenLabCombinedHistoryPerformanceEvidence(
+      {
+        ...input,
+        readBudget: {
+          maximumClassBOperations: 4,
+          paidUsageAllowed: false,
+        },
+        baselineIndex: {
+          documents: Object.freeze([
+            Object.freeze({
+              requestOrdinal: 1,
+              endpoint: "races.finished" as const,
+              observedAt,
+              sourceRaceId: adapted.canonical.sourceRaceId,
+              rawEvidenceSha256: adapted.rawEvidenceSha256,
+              canonical: adapted.canonical,
+            }),
+          ]),
+          baselineReceiptCount: 1,
+          baselineFinishedRaceReceiptCount: 1,
+          baselineIdentityOmissionObservationCount: 0,
+          r2ClassBOperationsUsed: 2,
+        },
+        canonicalPurpose: "population_inventory",
+        populationInventoryIdentityOnly: true,
+        onCanonicalRaceDocument: (document) => documents.push(document),
+      },
+    );
+
+    expect(assessment.r2ClassBOperationsUsed).toBe(4);
+    expect(assessment.incrementalDocumentReferenceCount).toBe(2);
+    expect(assessment.incrementalMaximumRaceDocumentBytes).toBe(0);
+    expect(assessment.uniqueRaceCount).toBe(2);
+    expect(documents).toEqual([
+      expect.objectContaining({ sourceRaceId: "101", mode: "bike" }),
+      { sourceType: "race_document", sourceRaceId: "202" },
+    ]);
+  });
+
   it("uses the population-inventory purpose without weakening essential Race authority", async () => {
     const input = fixture();
     const raceDocuments: CanonicalRaceDocumentMetadata[] = [];
