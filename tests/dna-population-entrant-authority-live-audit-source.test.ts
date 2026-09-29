@@ -321,7 +321,10 @@ describe("population entrant live audit source", () => {
       version: 1,
       unresolvedRaceCount: 3,
     });
-    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+    expect(target.chunkStore.read).not.toHaveBeenCalled();
+    expect(
+      target.populationIndex.listPublishedCompactIdentities,
+    ).toHaveBeenCalled();
   });
 
   it("reuses a fresh full audit only for the configured immediate checks", async () => {
