@@ -473,57 +473,51 @@ describe("population entrant live audit source", () => {
     expect(target.storage.getObject).not.toHaveBeenCalled();
   });
 
-  it(
-    "uses accepted unresolved authority to avoid the full incremental Race-document read floor",
-    async () => {
-      const target = harness({
-        classBOperations: 8_999_991,
-        history: Object.freeze({
-          receiptCount: 1,
-          documentCount: 2,
-          manifestByteLength: 4,
-        }),
-      });
-      const acceptedUnresolvedAuthority = Object.freeze({
-        unresolvedRaceCount: 3,
-        unresolvedRaceSetSha256: dnaPopulationEntrantAuthorityRaceSetSha256([
-          "race-1",
-          "race-2",
-          "race-3",
-        ]),
-      });
+  it("uses accepted unresolved authority to avoid the full incremental Race-document read floor", async () => {
+    const target = harness({
+      classBOperations: 8_999_991,
+      history: Object.freeze({
+        receiptCount: 1,
+        documentCount: 2,
+        manifestByteLength: 4,
+      }),
+    });
+    const acceptedUnresolvedAuthority = Object.freeze({
+      unresolvedRaceCount: 3,
+      unresolvedRaceSetSha256: dnaPopulationEntrantAuthorityRaceSetSha256([
+        "race-1",
+        "race-2",
+        "race-3",
+      ]),
+    });
 
-      await expect(
-        source(target, [], 0, acceptedUnresolvedAuthority).load({
-          ownerId: OWNER,
-          exactCodeHeadSha: HEAD,
-        }),
-      ).resolves.toMatchObject({
-        authority: acceptedUnresolvedAuthority,
-      });
-      expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
-    },
-  );
+    await expect(
+      source(target, [], 0, acceptedUnresolvedAuthority).load({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      }),
+    ).resolves.toMatchObject({
+      authority: acceptedUnresolvedAuthority,
+    });
+    expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
+  });
 
-  it(
-    "fails closed when low-read population reconstruction disagrees with accepted authority",
-    async () => {
-      const target = harness();
-      const acceptedUnresolvedAuthority = Object.freeze({
-        unresolvedRaceCount: 3,
-        unresolvedRaceSetSha256: "f".repeat(64),
-      });
+  it("fails closed when low-read population reconstruction disagrees with accepted authority", async () => {
+    const target = harness();
+    const acceptedUnresolvedAuthority = Object.freeze({
+      unresolvedRaceCount: 3,
+      unresolvedRaceSetSha256: "f".repeat(64),
+    });
 
-      await expect(
-        source(target, [], 0, acceptedUnresolvedAuthority).load({
-          ownerId: OWNER,
-          exactCodeHeadSha: HEAD,
-        }),
-      ).rejects.toMatchObject({
-        diagnostic: "accepted_authority_mismatch",
-      });
-    },
-  );
+    await expect(
+      source(target, [], 0, acceptedUnresolvedAuthority).load({
+        ownerId: OWNER,
+        exactCodeHeadSha: HEAD,
+      }),
+    ).rejects.toMatchObject({
+      diagnostic: "accepted_authority_mismatch",
+    });
+  });
 
   it("preserves sanitized provider capacity failure authority", async () => {
     const target = harness();
