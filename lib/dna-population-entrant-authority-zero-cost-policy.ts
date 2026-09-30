@@ -54,9 +54,7 @@ function billedMicroUsd(input: {
   ) {
     throw new Error("Population entrant R2 cost policy: pricing is invalid");
   }
-  const microUsd = Math.ceil(
-    (billable * input.microUsdPerUnit) / input.units,
-  );
+  const microUsd = Math.ceil((billable * input.microUsdPerUnit) / input.units);
   if (!Number.isSafeInteger(microUsd) || microUsd < 0) {
     throw new Error(
       "Population entrant R2 cost policy: projected charge is invalid",
@@ -132,10 +130,7 @@ export function dnaPopulationEntrantAuthorityAdditionalClassBOperations(
     classBOperations: 0,
   }),
 ): number {
-  const reservedStorage = nonNegative(
-    reserve.storageBytes,
-    "reserved storage",
-  );
+  const reservedStorage = nonNegative(reserve.storageBytes, "reserved storage");
   const reservedClassA = nonNegative(
     reserve.classAOperations,
     "reserved Class-A operations",
