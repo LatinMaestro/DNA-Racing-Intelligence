@@ -125,9 +125,24 @@ export function dnaPopulationEntrantAuthorityR2CostMicroUsd(
  */
 export function dnaPopulationEntrantAuthorityAdditionalClassBOperations(
   usage: DnaOpenLabR2Usage,
+  reserve: DnaOpenLabR2Usage = Object.freeze({
+    storageBytes: 0,
+    classAOperations: 0,
+    classBOperations: 0,
+  }),
 ): number {
+  const reservedStorage = nonNegative(reserve.storageBytes, "reserved storage");
+  const reservedClassA = nonNegative(
+    reserve.classAOperations,
+    "reserved Class-A operations",
+  );
+  const reservedClassB = nonNegative(
+    reserve.classBOperations,
+    "reserved Class-B operations",
+  );
   const fixedCost = dnaPopulationEntrantAuthorityR2CostMicroUsd({
-    ...usage,
+    storageBytes: usage.storageBytes + reservedStorage,
+    classAOperations: usage.classAOperations + reservedClassA,
     classBOperations: 0,
   });
   if (
@@ -151,5 +166,8 @@ export function dnaPopulationEntrantAuthorityAdditionalClassBOperations(
       "Population entrant R2 cost policy: Class-B ceiling is invalid",
     );
   }
-  return Math.max(0, maximumClassBOperations - usage.classBOperations);
+  return Math.max(
+    0,
+    maximumClassBOperations - usage.classBOperations - reservedClassB,
+  );
 }
