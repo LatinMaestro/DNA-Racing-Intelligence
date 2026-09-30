@@ -474,7 +474,7 @@ describe("population entrant live audit source", () => {
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
-  it("uses only available zero-cost R2 headroom instead of reserving the fixed ceiling", async () => {
+  it("uses the bounded paid R2 policy instead of a free-tier reserve", async () => {
     const target = harness({ classBOperations: 8_999_996 });
 
     await expect(
@@ -485,9 +485,9 @@ describe("population entrant live audit source", () => {
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed before R2 evidence reads when the known read floor exceeds headroom", async () => {
+  it("fails closed before R2 evidence reads when projected paid cost exceeds US$5", async () => {
     const target = harness({
-      classBOperations: 8_999_991,
+      classBOperations: 30_000_000,
       history: Object.freeze({
         receiptCount: 1,
         documentCount: 2,
