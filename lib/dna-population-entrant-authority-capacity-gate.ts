@@ -98,6 +98,13 @@ function positive(value: number, field: string): number {
   return value;
 }
 
+function count(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    capacityError(`${field} is invalid`);
+  }
+  return value;
+}
+
 function exactInstant(value: string, field: string): number {
   if (typeof value !== "string") {
     capacityError(`${field} is invalid`);
@@ -235,8 +242,18 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   }
 
   return Object.freeze({
-    async assertFreshCurrentCapacity(requestedAuthority) {
+    async assertFreshCurrentCapacity(
+      requestedAuthority,
+      requestedRemainingRaceCount,
+    ) {
       const authority = validateAuthority(requestedAuthority);
+      const remainingRaceCount =
+        requestedRemainingRaceCount === undefined
+          ? authority.unresolvedRaceCount
+          : count(requestedRemainingRaceCount, "remainingRaceCount");
+      if (remainingRaceCount > authority.unresolvedRaceCount) {
+        capacityError("remainingRaceCount exceeds audited authority");
+      }
       if (
         sizingAuthority.unresolvedRaceCount !== authority.unresolvedRaceCount ||
         sizingAuthority.unresolvedRaceSetSha256 !==
@@ -304,12 +321,11 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         });
         r2CostProjection = projectDnaPopulationEntrantAuthorityR2Cost({
           currentUsage: measurement.currentR2Usage,
-          // The full unresolved count is intentionally reserved again on every
-          // cohort. This overstates remaining work after the checkpoint moves,
-          // but prevents a stale or ambiguous recovery count from weakening the
-          // owner-authorized cost ceiling.
+          // Continuation callers bind this count to independently recovered
+          // durable state. First-cohort callers omit it and retain the
+          // conservative full-authority reservation.
           plannedUsage: planDnaPopulationEntrantAuthorityRemainingR2Usage({
-            remainingRaceCount: authority.unresolvedRaceCount,
+            remainingRaceCount,
           }),
         });
         projectedImmediateNeonStorageBytes =

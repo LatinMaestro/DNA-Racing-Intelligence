@@ -374,6 +374,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
             typeof createDnaPopulationEntrantAuthorityCapacityGate
           >["assertFreshCurrentCapacity"]
         >[0],
+        remainingRaceCount?: number,
       ) {
         const gate = createDnaPopulationEntrantAuthorityCapacityGate({
           ownerId: config.ownerId,
@@ -389,7 +390,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
           }),
           ...(input.now === undefined ? {} : { now: input.now }),
         });
-        return gate.assertFreshCurrentCapacity(authority);
+        return gate.assertFreshCurrentCapacity(authority, remainingRaceCount);
       },
     });
 

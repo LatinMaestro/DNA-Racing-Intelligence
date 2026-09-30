@@ -29,6 +29,7 @@ export type DnaPopulationEntrantAuthorityCapacityApproval = Readonly<{
 export type DnaPopulationEntrantAuthorityCapacityGate = Readonly<{
   assertFreshCurrentCapacity: (
     authority: DnaPopulationEntrantAuthorityCheckpointAuthority,
+    remainingRaceCount?: number,
   ) => Promise<DnaPopulationEntrantAuthorityCapacityApproval>;
 }>;
 
@@ -264,8 +265,10 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     resumeAfterSourceRaceId: recovery.resumeAfterSourceRaceId,
   });
 
-  const approval =
-    await input.capacityGate.assertFreshCurrentCapacity(authority);
+  const approval = await input.capacityGate.assertFreshCurrentCapacity(
+    authority,
+    authority.unresolvedRaceCount - recovery.recoveredRaceCount,
+  );
   const capacityObservedAt = validateCapacityApproval({ authority, approval });
 
   const stored = await input.r2Store.write({

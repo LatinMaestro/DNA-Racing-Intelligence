@@ -213,6 +213,7 @@ describe("population entrant continuation readiness", () => {
     expect(receipt.durableBoundarySha256).toMatch(/^[a-f0-9]{64}$/u);
     expect(test.capacityGate.assertFreshCurrentCapacity).toHaveBeenCalledWith(
       AUTHORITY,
+      1,
     );
     expect(test.r2Store.read).toHaveBeenCalledOnce();
     expect(JSON.stringify(receipt)).not.toContain("race-2");
@@ -296,8 +297,8 @@ describe("population entrant continuation readiness", () => {
     );
     expect(error).toMatchObject({ diagnostic: "capacity_unavailable" });
     expect(String(error)).not.toContain("private-provider-capacity-secret");
-    expect(test.checkpointRepository.read).not.toHaveBeenCalled();
-    expect(test.r2Store.read).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.read).toHaveBeenCalledOnce();
+    expect(test.r2Store.read).toHaveBeenCalledOnce();
   });
 
   it("preserves a sanitized typed capacity blocker without provider detail", async () => {
@@ -320,8 +321,8 @@ describe("population entrant continuation readiness", () => {
       diagnostic: "capacity_neon_compute_blocked",
     });
     expect(String(error)).not.toContain("private-provider-capacity-secret");
-    expect(test.checkpointRepository.read).not.toHaveBeenCalled();
-    expect(test.r2Store.read).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.read).toHaveBeenCalledOnce();
+    expect(test.r2Store.read).toHaveBeenCalledOnce();
   });
 
   it("binds the sanitized boundary digest to exact durable manifest evidence", async () => {
