@@ -76,7 +76,8 @@ function batches<T>(
 }
 
 const DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY = 3;
-export const DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS = 3 as const;
+export const DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS =
+  3 as const;
 
 async function forEachWithConcurrency<T>(
   values: readonly T[],
