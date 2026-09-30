@@ -57,22 +57,39 @@ function response(
   });
 }
 
+function entrantRequestBudget(requestsPerMinute = 90) {
+  return createDnaOpenLabRequestBudget({
+    initialRequestsPerMinute: requestsPerMinute,
+    maximumRequestsPerMinute: requestsPerMinute,
+  });
+}
+
 describe("population entrant hydration read-only measurement", () => {
   it("fails closed when entrant measurement is configured below 90 aggregate RPM", async () => {
-    const fixture = setup();
-    const requestBudget = createDnaOpenLabRequestBudget({
-      initialRequestsPerMinute: 60,
-      maximumRequestsPerMinute: 60,
+    const plan = planDnaPopulationHistoryAcquisition({
+      raceDocuments: [unresolvedRace("1")],
     });
+    let calls = 0;
 
     await expect(
       measureDnaPopulationEntrantHydrationReadOnly({
-        ...fixture.input,
-        requestBudget,
+        plan,
+        expectedUnresolvedRaceCount: plan.unresolvedRaceCount,
+        expectedUnresolvedRaceSetSha256: plan.unresolvedRaceSetSha256!,
+        providerCapacity: capacity(),
+        client: {
+          raceDocs: async () => {
+            calls += 1;
+            return response([]);
+          },
+        },
+        requestBudget: entrantRequestBudget(60),
+        observedAt: "2026-09-25T04:00:00.000Z",
       }),
     ).rejects.toThrow("aggregate DNA request budget is not exactly 90 RPM");
-  });
 
+    expect(calls).toBe(0);
+  });
 
   it("binds one endpoint-sized sample to the exact unresolved Race authority", async () => {
     const plan = planDnaPopulationHistoryAcquisition({
@@ -103,7 +120,7 @@ describe("population entrant hydration read-only measurement", () => {
       expectedUnresolvedRaceSetSha256: plan.unresolvedRaceSetSha256!,
       providerCapacity: capacity(),
       client,
-      requestBudget: createDnaOpenLabRequestBudget(),
+      requestBudget: entrantRequestBudget(),
       observedAt: "2026-09-25T04:00:00.000Z",
     });
 
@@ -155,7 +172,7 @@ describe("population entrant hydration read-only measurement", () => {
             return response([]);
           },
         },
-        requestBudget: createDnaOpenLabRequestBudget(),
+        requestBudget: entrantRequestBudget(),
         observedAt: "2026-09-25T04:00:00.000Z",
       }),
     ).rejects.toThrow("audited unresolved Race authority does not match");
@@ -187,7 +204,7 @@ describe("population entrant hydration read-only measurement", () => {
             return response([]);
           },
         },
-        requestBudget: createDnaOpenLabRequestBudget(),
+        requestBudget: entrantRequestBudget(),
         observedAt: "2026-09-25T04:00:00.000Z",
       }),
     ).rejects.toThrow("current zero-cost provider capacity is unavailable");
