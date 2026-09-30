@@ -218,6 +218,16 @@ jobs:
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-population-entrant-authority-autonomous-runner.test.ts
+      - name: Ensure sanitized autonomous failure handoff
+        if: failure()
+        shell: bash
+        env:
+          DNA_AUTONOMOUS_FAILURE_PATH: ${{ runner.temp }}/dna-entrant-autonomous-failure.json
+        run: |
+          if [[ ! -s "$DNA_AUTONOMOUS_FAILURE_PATH" ]]; then
+            umask 077
+            printf '%s\n' '{"stage":"workflow","diagnostic":"session_receipt_unavailable"}' > "$DNA_AUTONOMOUS_FAILURE_PATH"
+          fi
       - name: Publish sanitized autonomous failure status
         if: failure()
         continue-on-error: true

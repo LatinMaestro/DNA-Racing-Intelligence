@@ -87,7 +87,8 @@ export type DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic =
   | `continuation_${DnaPopulationEntrantAuthorityContinuationCommandError["diagnostic"]}`
   | "commit_unavailable"
   | "commit_invariant_failed"
-  | "completion_unverified";
+  | "completion_unverified"
+  | "session_deadline_reached";
 
 export class DnaPopulationEntrantAuthorityAutonomousRunnerError extends Error {
   readonly diagnostic: DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic;
@@ -115,6 +116,7 @@ export type DnaPopulationEntrantAuthorityAutonomousContinuationCommand =
 
 export type DnaPopulationEntrantAuthorityAutonomousCohortGuard = Readonly<{
   assertCurrentExactHead: (exactCodeHeadSha: string) => Promise<void>;
+  canStartNextCohort?: () => boolean;
 }>;
 
 function runnerError(
@@ -430,6 +432,20 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
       current.status !== "authority_complete" &&
       (maximumCohortCount === null || completedCohortCount < maximumCohortCount)
     ) {
+      if (input.cohortGuard?.canStartNextCohort !== undefined) {
+        let canStartNextCohort: boolean;
+        try {
+          canStartNextCohort = input.cohortGuard.canStartNextCohort();
+        } catch {
+          runnerError("invalid_configuration");
+        }
+        if (canStartNextCohort !== true) {
+          if (completedCohortCount < 1) {
+            runnerError("session_deadline_reached");
+          }
+          break;
+        }
+      }
       if (input.cohortGuard !== undefined) {
         try {
           await input.cohortGuard.assertCurrentExactHead(runtimeCodeHeadSha);

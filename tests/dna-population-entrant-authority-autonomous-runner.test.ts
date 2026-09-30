@@ -187,6 +187,69 @@ describe("population entrant authority autonomous runner", () => {
     expect(executeContinuation).toHaveBeenCalledOnce();
   });
 
+  it("yields the latest durable boundary when the hosted session guard closes", async () => {
+    const first = boundary();
+    const second = boundary({
+      recoveredChunkCount: 3,
+      recoveredRaceCount: 3_000,
+      checkpointUpdatedAt: "2026-09-28T00:02:00.000Z",
+      capacityObservedAt: "2026-09-28T00:02:10.000Z",
+      durableBoundarySha256: "3".repeat(64),
+    });
+    const inspect = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+    const executeContinuation = vi.fn(async () => session({ before: first }));
+    const canStartNextCohort = vi
+      .fn()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect },
+      continuationCommand: { executeContinuation },
+      cohortGuard: {
+        assertCurrentExactHead: vi.fn(async () => undefined),
+        canStartNextCohort,
+      },
+      now: () => new Date("2026-09-28T00:01:00.000Z"),
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(first), 6),
+    ).resolves.toMatchObject({
+      status: "advanced",
+      completedCohortCount: 1,
+      boundary: {
+        recoveredChunkCount: 3,
+        recoveredRaceCount: 3_000,
+      },
+    });
+    expect(canStartNextCohort).toHaveBeenCalledTimes(2);
+    expect(executeContinuation).toHaveBeenCalledOnce();
+    expect(inspect).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed if the hosted session deadline is already exhausted", async () => {
+    const accepted = boundary();
+    const executeContinuation = vi.fn();
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect: vi.fn(async () => accepted) },
+      continuationCommand: { executeContinuation },
+      cohortGuard: {
+        assertCurrentExactHead: vi.fn(async () => undefined),
+        canStartNextCohort: () => false,
+      },
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(accepted), 6),
+    ).rejects.toMatchObject({ diagnostic: "session_deadline_reached" });
+    expect(executeContinuation).not.toHaveBeenCalled();
+  });
+
   it("rejects an invalid hosted cohort limit before inspecting durable state", async () => {
     const accepted = boundary();
     const inspect = vi.fn();

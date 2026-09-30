@@ -18,9 +18,11 @@ const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 // The owner-authorized path uses 5,000-Race cohorts and three independent
-// 30-rpm lanes. Twelve cohorts have a ~34-minute API floor at 90 aggregate RPM,
-// retaining wide timeout margin while each lane obeys provider evidence.
-const SESSION_COHORT_LIMIT = 12;
+// 30-rpm lanes. Keep each hosted session short enough to publish a durable
+// handoff well before the outer test/job limits, even when provider retries or
+// Race-by-Race isolation make a cohort materially slower than the API floor.
+const SESSION_COHORT_LIMIT = 6;
+const SESSION_SOFT_DEADLINE_MILLISECONDS = 75 * 60_000;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 const FAILURE_FILENAME = "dna-entrant-autonomous-failure.json";
 
@@ -146,11 +148,11 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         stage = "runtime-composition";
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-            // One full authoritative Race audit seeds the session. The next 36
-            // authority loads (three per cohort across twelve cohorts) revalidate
+            // One full authoritative Race audit seeds the session. The next 18
+            // authority loads (three per cohort across six cohorts) revalidate
             // immutable last-good pointers and published generation metadata
             // without reopening every historical races.docs object.
-            liveAuditReuseCount: 36,
+            liveAuditReuseCount: 18,
             environment: Object.freeze({
               authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
               exactCodeHeadSha,
@@ -199,6 +201,8 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         };
 
         stage = "bounded-session";
+        const sessionDeadlineAt =
+          Date.now() + SESSION_SOFT_DEADLINE_MILLISECONDS;
         const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
           runtimeCodeHeadSha: exactCodeHeadSha,
           boundaryInspector: {
@@ -207,7 +211,10 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
           continuationCommand: {
             executeContinuation: runtime.executeContinuation,
           },
-          cohortGuard: { assertCurrentExactHead },
+          cohortGuard: {
+            assertCurrentExactHead,
+            canStartNextCohort: () => Date.now() < sessionDeadlineAt,
+          },
         });
         const receipt = await runner.runBoundedSession(
           Object.freeze({
@@ -268,6 +275,6 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         throw new Error("DNA entrant autonomous session failed");
       }
     },
-    145 * 60_000,
+    120 * 60_000,
   );
 });
