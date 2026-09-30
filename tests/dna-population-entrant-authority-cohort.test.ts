@@ -144,7 +144,7 @@ function immediateRequestBudget(): DnaOpenLabRequestBudget {
     reduceEffectiveRequestsPerMinute: () => undefined,
     snapshot: () =>
       Object.freeze({
-        effectiveRequestsPerMinute: 30,
+        effectiveRequestsPerMinute: 90,
         requestsInCurrentWindow: 0,
         blockedUntilMilliseconds: null,
       }),
@@ -456,7 +456,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
-  it("selects the 1,000-row cohort in 20-Race batches under 90 aggregate RPM", async () => {
+  it("selects the 5,000-row cohort in 20-Race batches under 90 aggregate RPM", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
     );
