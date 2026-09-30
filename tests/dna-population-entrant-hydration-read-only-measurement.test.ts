@@ -58,6 +58,22 @@ function response(
 }
 
 describe("population entrant hydration read-only measurement", () => {
+  it("fails closed when entrant measurement is configured below 90 aggregate RPM", async () => {
+    const fixture = setup();
+    const requestBudget = createDnaOpenLabRequestBudget({
+      initialRequestsPerMinute: 60,
+      maximumRequestsPerMinute: 60,
+    });
+
+    await expect(
+      measureDnaPopulationEntrantHydrationReadOnly({
+        ...fixture.input,
+        requestBudget,
+      }),
+    ).rejects.toThrow("aggregate DNA request budget is not exactly 90 RPM");
+  });
+
+
   it("binds one endpoint-sized sample to the exact unresolved Race authority", async () => {
     const plan = planDnaPopulationHistoryAcquisition({
       raceDocuments: [
