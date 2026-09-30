@@ -401,7 +401,8 @@ function raceDocumentEntrantCoreIds(value: unknown): Readonly<{
     value.some(
       (entry) =>
         typeof entry !== "number" || !Number.isSafeInteger(entry) || entry < 1,
-    )
+    ) ||
+    new Set(value).size !== value.length
   ) {
     return Object.freeze({
       entrantCoreIdsEvidenceStatus: "unsupported_source_value",
