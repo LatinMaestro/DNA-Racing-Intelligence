@@ -9,8 +9,7 @@ import type {
   DnaOpenLabProviderCapacityMeasurement,
   DnaOpenLabProviderCapacityMeasurementSource,
 } from "@/lib/dna-open-lab-provider-capacity-preflight";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "@/lib/dna-population-entrant-authority-zero-cost-policy";
-import { DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES } from "@/lib/dna-open-lab-zero-cost-refresh-policy";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD } from "@/lib/dna-population-entrant-authority-r2-cost-policy";
 
 const generationId = "a".repeat(64);
 const authority: DnaPopulationEntrantAuthorityCheckpointAuthority =
@@ -29,6 +28,7 @@ const sizingAuthority: DnaPopulationEntrantAuthoritySizingAuthority =
     verifiedIncrementalMaximumCompactEntrantAuthorityBytes: 902,
   });
 const checkedAt = "2026-09-25T23:00:00.000Z";
+const durableProgress = Object.freeze({ persistedRaceCount: 476_000 });
 
 function measurement(
   overrides: Partial<DnaOpenLabProviderCapacityMeasurement> = {},
@@ -88,12 +88,12 @@ function gate(input?: {
 }
 
 describe("DNA population entrant authority capacity gate", () => {
-  it("returns an exact zero-cost approval from a fresh current provider measurement", async () => {
+  it("returns an exact bounded-R2 approval from a fresh current provider measurement", async () => {
     const test = gate();
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
-    ).resolves.toEqual({
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
+    ).resolves.toMatchObject({
       version: 1,
       generationId,
       unresolvedRaceCount: 1_135_198,
@@ -101,6 +101,9 @@ describe("DNA population entrant authority capacity gate", () => {
       observedAt: checkedAt,
       capacityAllowed: true,
       paidUsageAllowed: false,
+      r2PaidUsageAuthorized: true,
+      maximumR2CostMicroUsd:
+        DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD,
     });
     expect(test.fixture!.measure).toHaveBeenCalledWith({
       ownerId: "private-owner",
@@ -113,7 +116,7 @@ describe("DNA population entrant authority capacity gate", () => {
     });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).rejects.toThrow("current provider measurement is unavailable");
   });
 
@@ -127,7 +130,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).rejects.toThrow("current provider measurement failed");
   });
 
@@ -138,7 +141,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).rejects.toThrow("measurement is stale or future-dated");
   });
 
@@ -149,58 +152,48 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).rejects.toThrow("measurement is stale or future-dated");
   });
 
-  it("keeps a 10% R2 operation reserve while allowing the one-time entrant backfill above recurring budgets", async () => {
-    expect(DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS).toEqual({
-      storageBytes: 8_000_000_000,
-      classAOperations: 900_000,
-      classBOperations: 9_000_000,
-    });
-    expect(
-      DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classAOperations,
-    ).toBeLessThan(DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classAOperations);
-    expect(
-      DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations,
-    ).toBeLessThan(DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations);
-
+  it("allows R2 paid usage only when projected completion stays within US$5", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          classAOperations: 850_000,
-          classBOperations: 8_500_000,
+          classAOperations: 1_050_000,
+          classBOperations: 10_100_000,
         }),
       }),
     );
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).resolves.toMatchObject({
       capacityAllowed: true,
       paidUsageAllowed: false,
+      r2PaidUsageAuthorized: true,
+      maximumR2CostMicroUsd: 5_000_000,
     });
   });
 
-  it("fails closed before the entrant operation reserve is consumed", async () => {
+  it("fails closed when projected R2 completion would exceed US$5", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          classBOperations: 8_999_500,
+          classAOperations: 1_500_000,
         }),
       }),
     );
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
+    ).rejects.toThrow("current authorized provider capacity is blocked");
   });
 
   it("rejects non-Standard R2 storage through the immediate provider projection", async () => {
@@ -208,8 +201,8 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
+    ).rejects.toThrow("current authorized provider capacity is blocked");
   });
 
   it("rejects a full compact archive that no longer fits current R2 headroom", async () => {
@@ -218,15 +211,15 @@ describe("DNA population entrant authority capacity gate", () => {
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          storageBytes: 7_500_000_000,
+          storageBytes: 350_000_000_000,
         }),
       }),
     );
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
+    ).rejects.toThrow("current authorized provider capacity is blocked");
   });
 
   it("reserves conservative Neon compute headroom for the next commit", async () => {
@@ -242,18 +235,21 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
+    ).rejects.toThrow("current authorized provider capacity is blocked");
   });
 
   it("rejects malformed audited authority before requesting provider capacity", async () => {
     const test = gate();
 
     await expect(
-      test.value.assertFreshCurrentCapacity({
-        ...authority,
-        generationId: "b".repeat(64),
-      }),
+      test.value.assertFreshCurrentCapacity(
+        {
+          ...authority,
+          generationId: "b".repeat(64),
+        },
+        durableProgress,
+      ),
     ).rejects.toThrow("audited authority binding is invalid");
     expect(test.fixture!.measure).not.toHaveBeenCalled();
   });
@@ -267,9 +263,19 @@ describe("DNA population entrant authority capacity gate", () => {
     });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, durableProgress),
     ).rejects.toThrow("sizing authority disagrees with audited authority");
     expect(test.fixture!.measure).not.toHaveBeenCalled();
+  });
+
+  it("rejects durable progress outside the audited Race authority", async () => {
+    const test = gate();
+
+    await expect(
+      test.value.assertFreshCurrentCapacity(authority, {
+        persistedRaceCount: authority.unresolvedRaceCount + 1,
+      }),
+    ).rejects.toThrow("durable population progress is invalid");
   });
 
   it("rejects sizing authority below the accepted historical compact-size floor", () => {
