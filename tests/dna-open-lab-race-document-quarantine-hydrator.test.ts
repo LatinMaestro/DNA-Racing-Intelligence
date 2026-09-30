@@ -96,6 +96,42 @@ describe("DNA race document quarantine hydrator", () => {
     expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(1);
   });
 
+  it("quarantines duplicate provider entrant membership without stalling the cohort", async () => {
+    const target = clientWith(() => [
+      { rid: 1, rvmode: "bike", hids: [101, 101] },
+      { rid: 2, rvmode: "bike", hids: [202] },
+    ]);
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client: target.client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+    });
+    expect(result.outcomes[0]).toMatchObject({
+      status: "quarantined",
+      sourceRaceId: "1",
+      quarantineReason: "entrant_authority_unresolved",
+      sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
+    expect(result.outcomes[1]).toMatchObject({
+      status: "resolved",
+      sourceRaceId: "2",
+      evidence: {
+        canonical: {
+          entrantCoreIds: ["202"],
+        },
+      },
+    });
+  });
+
   it("retries a transient malformed provider envelope through the request budget", async () => {
     let calls = 0;
     const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
