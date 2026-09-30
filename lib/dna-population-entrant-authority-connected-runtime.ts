@@ -357,6 +357,10 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
           }),
         }),
       ),
+      {
+        requiredAggregateRequestsPerMinute:
+          DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE * 3,
+      },
     );
     const raceDocumentClient = createDnaOpenLabR2RaceDocumentClient({
       client: raceDocumentRuntime.client,
