@@ -148,6 +148,7 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
   currentUsage: DnaOpenLabR2Usage;
   unresolvedRaceCount: number;
   persistedRaceCount: number;
+  maximumCompactRecordBytes?: number;
 }): DnaPopulationEntrantAuthorityR2CompletionCostProjection {
   const unresolvedRaceCount = nonNegative(
     input.unresolvedRaceCount,
@@ -163,6 +164,22 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
   ) {
     throw new Error("Population entrant R2 cost policy: durable Race counters are invalid");
   }
+  const maximumCompactRecordBytes =
+    input.maximumCompactRecordBytes === undefined
+      ? DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_COMPACT_RECORD_BYTES
+      : nonNegative(
+          input.maximumCompactRecordBytes,
+          "maximumCompactRecordBytes",
+        );
+  if (
+    maximumCompactRecordBytes <
+    DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_COMPACT_RECORD_BYTES
+  ) {
+    throw new Error(
+      "Population entrant R2 cost policy: compact record bound regressed",
+    );
+  }
+
   const remainingRaceCount = unresolvedRaceCount - persistedRaceCount;
   const remainingCompactChunkCount =
     remainingRaceCount === 0
@@ -185,7 +202,7 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
   );
   const compactRecordBytes = multiply(
     remainingRaceCount,
-    DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_COMPACT_RECORD_BYTES,
+    maximumCompactRecordBytes,
   );
   const compactSeparatorBytes = Math.max(
     0,
