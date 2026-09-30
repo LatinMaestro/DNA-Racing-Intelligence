@@ -147,7 +147,7 @@ function immediateRequestBudget(): DnaOpenLabRequestBudget {
     reduceEffectiveRequestsPerMinute: () => undefined,
     snapshot: () =>
       Object.freeze({
-        effectiveRequestsPerMinute: 30,
+        effectiveRequestsPerMinute: 90,
         requestsInCurrentWindow: 0,
         blockedUntilMilliseconds: null,
       }),
@@ -944,6 +944,31 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
     expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+  });
+
+  it("rejects an aggregate request budget below 90 RPM before transport", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({ authority });
+    const requestBudget = createDnaOpenLabRequestBudget({
+      initialRequestsPerMinute: 60,
+      maximumRequestsPerMinute: 60,
+    });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+      requestBudget,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "request_budget_invalid",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
   it("rejects an aggregate request budget above 90 RPM before transport", async () => {
