@@ -42,7 +42,9 @@ function nonNegative(value: number, field: string): number {
 function add(...values: number[]): number {
   const result = values.reduce((total, value) => total + value, 0);
   if (!Number.isSafeInteger(result) || result < 0) {
-    throw new Error("Population entrant R2 cost policy: projection exceeds safe integer capacity");
+    throw new Error(
+      "Population entrant R2 cost policy: projection exceeds safe integer capacity",
+    );
   }
   return result;
 }
@@ -158,11 +160,10 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
     input.persistedRaceCount,
     "persistedRaceCount",
   );
-  if (
-    unresolvedRaceCount < 1 ||
-    persistedRaceCount > unresolvedRaceCount
-  ) {
-    throw new Error("Population entrant R2 cost policy: durable Race counters are invalid");
+  if (unresolvedRaceCount < 1 || persistedRaceCount > unresolvedRaceCount) {
+    throw new Error(
+      "Population entrant R2 cost policy: durable Race counters are invalid",
+    );
   }
   const maximumCompactRecordBytes =
     input.maximumCompactRecordBytes === undefined
@@ -227,10 +228,7 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
     ),
     classAOperations: add(
       input.currentUsage.classAOperations,
-      multiply(
-        remainingRaceCount,
-        CLASS_A_OPERATIONS_PER_REMAINING_RACE,
-      ),
+      multiply(remainingRaceCount, CLASS_A_OPERATIONS_PER_REMAINING_RACE),
       multiply(
         remainingCompactChunkCount,
         CLASS_A_OPERATIONS_PER_COMPACT_CHUNK_CEILING,
@@ -239,10 +237,7 @@ export function projectDnaPopulationEntrantAuthorityR2CompletionCost(input: {
     ),
     classBOperations: add(
       input.currentUsage.classBOperations,
-      multiply(
-        remainingRaceCount,
-        CLASS_B_OPERATIONS_PER_REMAINING_RACE,
-      ),
+      multiply(remainingRaceCount, CLASS_B_OPERATIONS_PER_REMAINING_RACE),
       multiply(
         remainingCompactChunkCount,
         CLASS_B_OPERATIONS_PER_COMPACT_CHUNK_CEILING,
