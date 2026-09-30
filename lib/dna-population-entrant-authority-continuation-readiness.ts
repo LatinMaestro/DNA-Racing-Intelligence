@@ -5,6 +5,10 @@ import type {
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "./dna-population-entrant-authority-checkpoint";
 import type { DnaPopulationEntrantAuthorityAutonomousBoundary } from "./dna-population-entrant-authority-autonomous-runner";
+import {
+  DnaPopulationEntrantAuthorityCapacityError,
+  type DnaPopulationEntrantAuthorityCapacityDiagnostic,
+} from "./dna-population-entrant-authority-capacity-gate";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import {
@@ -66,6 +70,7 @@ export type DnaPopulationEntrantAuthorityContinuationReadinessDiagnostic =
   | "authority_unavailable"
   | DnaPopulationEntrantAuthorityLiveAuditDiagnostic
   | "capacity_unavailable"
+  | `capacity_${DnaPopulationEntrantAuthorityCapacityDiagnostic}`
   | "recovery_unavailable"
   | "durable_boundary_invalid"
   | "authority_complete";
@@ -324,6 +329,12 @@ function createDurableBoundaryProofInspector(
           error instanceof DnaPopulationEntrantAuthorityLiveAuditError
         ) {
           unavailable(error.diagnostic);
+        }
+        if (
+          stage === "capacity_unavailable" &&
+          error instanceof DnaPopulationEntrantAuthorityCapacityError
+        ) {
+          unavailable(`capacity_${error.diagnostic}`);
         }
         unavailable(stage);
       }
