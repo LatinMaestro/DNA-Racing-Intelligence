@@ -112,11 +112,13 @@ async function raceDocsWithMalformedResponseRetry(input: {
         input.client.raceDocs(input.batch),
       );
     } catch (error) {
-      if (!(
-        error instanceof DnaOpenLabApiError &&
-        error.kind === "malformed_response" &&
-        attempt < DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS
-      )) {
+      if (
+        !(
+          error instanceof DnaOpenLabApiError &&
+          error.kind === "malformed_response" &&
+          attempt < DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS
+        )
+      ) {
         throw error;
       }
     }
