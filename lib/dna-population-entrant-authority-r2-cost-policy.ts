@@ -24,6 +24,10 @@ const COMPACT_CHUNK_CLASS_A_OPERATIONS = 2;
 const COMPACT_CHUNK_CLASS_B_OPERATIONS = 4;
 const RACE_DOCUMENT_CLASS_A_OPERATIONS = 1;
 const RACE_DOCUMENT_CLASS_B_OPERATIONS = 2;
+const AUTONOMOUS_SESSION_COHORT_LIMIT = 12;
+const LIVE_AUDIT_CLASS_B_OPERATIONS_PER_SESSION = 100_000;
+const CLASS_A_OPERATION_SAFETY_RESERVE = 25_000;
+const CLASS_B_OPERATION_SAFETY_RESERVE = 50_000;
 
 function costError(message: string): never {
   throw new Error(`Population entrant authority R2 cost policy: ${message}`);
@@ -88,6 +92,21 @@ export function planDnaPopulationEntrantAuthorityRemainingR2Usage(input: {
   const compactChunkCount = Math.ceil(
     remainingRaceCount / DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
   );
+  const racesPerAutonomousSession =
+    DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS *
+    AUTONOMOUS_SESSION_COHORT_LIMIT;
+  const remainingAutonomousSessionCount =
+    remainingRaceCount === 0
+      ? 0
+      : Math.ceil(remainingRaceCount / racesPerAutonomousSession);
+  // Reserve one current audit plus one full-authority audit for every future
+  // autonomous session. This covers provider usage reporting lag between the
+  // audit and the immediately following completion projection.
+  const liveAuditClassBOperations = multiply(
+    remainingAutonomousSessionCount + (remainingRaceCount > 0 ? 1 : 0),
+    LIVE_AUDIT_CLASS_B_OPERATIONS_PER_SESSION,
+    "live-audit Class B operations",
+  );
   const raceDocumentBytes = multiply(
     remainingRaceCount,
     DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_RACE_DOCUMENT_BYTES,
@@ -111,29 +130,41 @@ export function planDnaPopulationEntrantAuthorityRemainingR2Usage(input: {
       "remaining archive storage",
     ),
     classAOperations: add(
-      multiply(
-        remainingRaceCount,
-        RACE_DOCUMENT_CLASS_A_OPERATIONS,
-        "Race-document Class A operations",
+      add(
+        multiply(
+          remainingRaceCount,
+          RACE_DOCUMENT_CLASS_A_OPERATIONS,
+          "Race-document Class A operations",
+        ),
+        multiply(
+          compactChunkCount,
+          COMPACT_CHUNK_CLASS_A_OPERATIONS,
+          "compact chunk Class A operations",
+        ),
+        "remaining Class A operations",
       ),
-      multiply(
-        compactChunkCount,
-        COMPACT_CHUNK_CLASS_A_OPERATIONS,
-        "compact chunk Class A operations",
-      ),
+      CLASS_A_OPERATION_SAFETY_RESERVE,
       "remaining Class A operations",
     ),
     classBOperations: add(
-      multiply(
-        remainingRaceCount,
-        RACE_DOCUMENT_CLASS_B_OPERATIONS,
-        "Race-document verification Class B operations",
+      add(
+        add(
+          multiply(
+            remainingRaceCount,
+            RACE_DOCUMENT_CLASS_B_OPERATIONS,
+            "Race-document verification Class B operations",
+          ),
+          multiply(
+            compactChunkCount,
+            COMPACT_CHUNK_CLASS_B_OPERATIONS,
+            "compact chunk Class B operations",
+          ),
+          "remaining Class B operations",
+        ),
+        liveAuditClassBOperations,
+        "remaining Class B operations",
       ),
-      multiply(
-        compactChunkCount,
-        COMPACT_CHUNK_CLASS_B_OPERATIONS,
-        "compact chunk Class B operations",
-      ),
+      CLASS_B_OPERATION_SAFETY_RESERVE,
       "remaining Class B operations",
     ),
   });
