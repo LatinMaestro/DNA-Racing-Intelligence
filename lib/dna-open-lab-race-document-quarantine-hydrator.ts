@@ -32,6 +32,13 @@ export type DnaRaceDocumentQuarantineHydrationOutcome =
       sourceEvidenceSha256?: string;
     }>;
 
+type DnaRaceDocumentQuarantineOutcome =
+  DnaRaceDocumentQuarantineHydrationOutcome;
+type DnaRaceDocumentQuarantineOnlyOutcome = Extract<
+  DnaRaceDocumentQuarantineHydrationOutcome,
+  { status: "quarantined" }
+>;
+
 export type DnaRaceDocumentQuarantineHydrationResult = Readonly<{
   outcomes: readonly DnaRaceDocumentQuarantineHydrationOutcome[];
   requestedRaceCount: number;
@@ -359,20 +366,14 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
           }
           if (systemicInvalidResponse && batch.length > 1) {
             for (const raceId of batch) {
-              let accepted:
-                | DnaRaceDocumentQuarantineHydrationOutcome
-                | undefined;
+              let accepted: DnaRaceDocumentQuarantineOutcome | undefined;
               let stableQuarantine:
-                | Extract<
-                    DnaRaceDocumentQuarantineHydrationOutcome,
-                    { status: "quarantined" }
-                  >
+                | DnaRaceDocumentQuarantineOnlyOutcome
                 | undefined;
 
               for (
                 let probe = 1;
-                probe <=
-                DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+                probe <= DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
                 probe += 1
               ) {
                 const isolated = await hydrateDnaRaceDocumentsWithQuarantine({
