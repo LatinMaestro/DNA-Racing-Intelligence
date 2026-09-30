@@ -2,14 +2,19 @@ import type {
   DnaPopulationEntrantAuthorityCapacityApproval,
   DnaPopulationEntrantAuthorityCapacityGate,
 } from "./dna-population-entrant-authority-commit-protocol";
-import { projectDnaPopulationEntrantAuthorityChunkArchive } from "./dna-population-entrant-authority-chunk-projection";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD,
+  projectDnaPopulationEntrantAuthorityR2CompletionCost,
+} from "./dna-population-entrant-authority-r2-cost-policy";
 import {
   DNA_OPEN_LAB_PROVIDER_CAPACITY_MAXIMUM_AGE_MILLISECONDS,
   type DnaOpenLabProviderCapacityMeasurement,
   type DnaOpenLabProviderCapacityMeasurementSource,
 } from "./dna-open-lab-provider-capacity-preflight";
-import { projectDnaOpenLabZeroCostProviderCapacity } from "./dna-open-lab-zero-cost-provider-capacity";
+import {
+  DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS,
+  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
+} from "./dna-open-lab-zero-cost-provider-capacity";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -167,13 +172,14 @@ function assertFreshMeasurement(input: {
 }
 
 /**
- * Creates the read-only zero-cost capacity gate used by the R2-first entrant
- * authority commit primitive.
+ * Creates the read-only capacity gate used by the R2-first entrant authority
+ * commit primitive. R2 may use the owner's explicit bounded paid allowance,
+ * while Neon remains inside the existing zero-cost storage/compute budgets.
  *
- * Every assertion obtains a fresh sanitized Cloudflare/Neon measurement,
- * proves that one conservative commit fits the normal provider budgets
- * (including Neon compute), and separately projects the complete compact
- * archive against current R2/Neon storage and R2 operation usage.
+ * Every assertion obtains a fresh sanitized Cloudflare/Neon measurement and
+ * projects all remaining Race-document evidence, compact entrant chunks and
+ * future audit overhead to exact completion. It fails closed before the next
+ * cohort whenever that projection exceeds the authorized US$5 R2 ceiling.
  *
  * This adapter performs provider reads only. It exposes no collection command
  * and performs no DNA, R2 or Neon write itself.
@@ -201,7 +207,7 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   }
 
   return Object.freeze({
-    async assertFreshCurrentCapacity(requestedAuthority) {
+    async assertFreshCurrentCapacity(requestedAuthority, context) {
       const authority = validateAuthority(requestedAuthority);
       if (
         sizingAuthority.unresolvedRaceCount !== authority.unresolvedRaceCount ||
@@ -239,44 +245,47 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         maximumAgeMilliseconds: maximumMeasurementAgeMilliseconds,
       });
 
-      let immediateProjection;
-      let archiveProjection;
+      if (
+        !Number.isSafeInteger(context.persistedRaceCount) ||
+        context.persistedRaceCount < 0 ||
+        context.persistedRaceCount > authority.unresolvedRaceCount
+      ) {
+        capacityError("durable population progress is invalid");
+      }
+
+      let r2Projection;
       try {
-        immediateProjection = projectDnaOpenLabZeroCostProviderCapacity({
-          ...measurement,
-          projectionHorizon: "single_refresh",
-          plannedR2UsagePerRefresh:
-            DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE,
-          r2Budgets: DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS,
-          plannedNeonUsagePerRefresh:
-            DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE,
-        });
-        archiveProjection = projectDnaPopulationEntrantAuthorityChunkArchive({
+        r2Projection = projectDnaPopulationEntrantAuthorityR2CompletionCost({
+          currentUsage: measurement.currentR2Usage,
           unresolvedRaceCount: authority.unresolvedRaceCount,
-          unresolvedRaceSetSha256: authority.unresolvedRaceSetSha256,
-          measuredMaximumCompactEntrantAuthorityBytes:
+          persistedRaceCount: context.persistedRaceCount,
+          maximumCompactRecordBytes: Math.max(
             sizingAuthority.measuredMaximumCompactEntrantAuthorityBytes,
-          verifiedIncrementalMaximumCompactEntrantAuthorityBytes:
             sizingAuthority.verifiedIncrementalMaximumCompactEntrantAuthorityBytes,
-          currentR2StorageBytes: measurement.currentR2Usage.storageBytes,
-          currentR2ClassAOperations:
-            measurement.currentR2Usage.classAOperations,
-          currentR2ClassBOperations:
-            measurement.currentR2Usage.classBOperations,
-          currentNeonStorageBytes: measurement.currentNeonUsage.storageBytes,
+          ),
         });
       } catch {
         capacityError("current provider capacity projection is invalid");
       }
 
+      const projectedNeonStorageBytes =
+        measurement.currentNeonUsage.storageBytes +
+        DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.storageBytes;
+      const projectedNeonComputeMilliCuHours =
+        measurement.currentNeonUsage.computeMilliCuHours +
+        DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.computeMilliCuHours;
       if (
-        !immediateProjection.allowed ||
-        immediateProjection.paidUsageAllowed !== false ||
-        !archiveProjection.capacityAllowed ||
-        archiveProjection.blockerIds.length !== 0 ||
-        archiveProjection.paidUsageAllowed !== false
+        measurement.r2StorageClass.trim() !==
+          DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS ||
+        !r2Projection.allowed ||
+        r2Projection.projectedCostMicroUsd >
+          DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD ||
+        projectedNeonStorageBytes >
+          DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
+        projectedNeonComputeMilliCuHours >
+          DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
       ) {
-        capacityError("current zero-cost provider capacity is blocked");
+        capacityError("current authorized provider capacity is blocked");
       }
 
       return Object.freeze({
@@ -287,6 +296,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         observedAt: checked.toISOString(),
         capacityAllowed: true as const,
         paidUsageAllowed: false as const,
+        r2PaidUsageAuthorized: true as const,
+        maximumR2CostMicroUsd:
+          DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD,
+        projectedR2CostMicroUsd: r2Projection.projectedCostMicroUsd,
       }) satisfies DnaPopulationEntrantAuthorityCapacityApproval;
     },
   });
