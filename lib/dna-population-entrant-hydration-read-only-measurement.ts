@@ -1,4 +1,6 @@
-import { DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+} from "./dna-population-entrant-authority-cohort";
 import { dnaPopulationEntrantAuthorityRecordBytes } from "./dna-population-entrant-authority-record";
 import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
 import {
@@ -288,7 +290,8 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
         DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours -
         currentNeonComputeMilliCuHours,
     }),
-    aggregateRequestsPerMinute: DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+    aggregateRequestsPerMinute:
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
     persistentWritePerformed: false,
     providerWritePerformed: false,
     paidUsageAllowed: false,
