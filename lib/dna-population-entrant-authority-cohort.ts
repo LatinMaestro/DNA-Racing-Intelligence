@@ -974,7 +974,7 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
     raceIds,
     records,
     cohortObservedAt,
-    providerRequestCount: hydration.batchCount,
+    providerRequestCount: hydration.providerRequestCount,
     preparationSource: "provider_hydration",
     capacityGate: input.capacityGate,
     checkpointRepository: input.checkpointRepository,
