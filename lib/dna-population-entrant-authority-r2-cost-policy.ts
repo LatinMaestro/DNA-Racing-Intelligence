@@ -106,11 +106,7 @@ export function planDnaPopulationEntrantAuthorityRemainingR2Usage(input: {
 
   return Object.freeze({
     storageBytes: add(
-      add(
-        raceDocumentBytes,
-        compactRecordBytes,
-        "remaining archive storage",
-      ),
+      add(raceDocumentBytes, compactRecordBytes, "remaining archive storage"),
       compactEnvelopeBytes,
       "remaining archive storage",
     ),
@@ -173,14 +169,12 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
       freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.storageBytes,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_STORAGE_MICRO_USD_PER_GB_MONTH,
-      unitsPerPrice:
-        DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB,
+      unitsPerPrice: DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB,
       field: "current storage cost",
     }) +
     pricedExcess({
       projected: currentUsage.classAOperations,
-      freeAllowance:
-        DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classAOperations,
+      freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classAOperations,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_CLASS_A_MICRO_USD_PER_MILLION,
       unitsPerPrice: 1_000_000,
@@ -188,8 +182,7 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
     }) +
     pricedExcess({
       projected: currentUsage.classBOperations,
-      freeAllowance:
-        DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations,
+      freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_CLASS_B_MICRO_USD_PER_MILLION,
       unitsPerPrice: 1_000_000,
@@ -201,14 +194,12 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
       freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.storageBytes,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_STORAGE_MICRO_USD_PER_GB_MONTH,
-      unitsPerPrice:
-        DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB,
+      unitsPerPrice: DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB,
       field: "projected storage cost",
     }) +
     pricedExcess({
       projected: projectedUsage.classAOperations,
-      freeAllowance:
-        DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classAOperations,
+      freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classAOperations,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_CLASS_A_MICRO_USD_PER_MILLION,
       unitsPerPrice: 1_000_000,
@@ -216,8 +207,7 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
     }) +
     pricedExcess({
       projected: projectedUsage.classBOperations,
-      freeAllowance:
-        DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations,
+      freeAllowance: DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.classBOperations,
       priceMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_R2_CLASS_B_MICRO_USD_PER_MILLION,
       unitsPerPrice: 1_000_000,
