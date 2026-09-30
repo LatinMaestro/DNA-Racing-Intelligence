@@ -935,14 +935,14 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
   });
 
-  it("rejects an aggregate request budget above 30 RPM before transport", async () => {
+  it("rejects an aggregate request budget above 90 RPM before transport", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
     const test = harness({ authority });
     const requestBudget = createDnaOpenLabRequestBudget({
-      initialRequestsPerMinute: 31,
-      maximumRequestsPerMinute: 31,
+      initialRequestsPerMinute: 91,
+      maximumRequestsPerMinute: 91,
     });
 
     const error = await prepare({
