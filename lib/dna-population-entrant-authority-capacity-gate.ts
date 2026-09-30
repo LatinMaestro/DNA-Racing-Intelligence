@@ -16,7 +16,9 @@ import {
   DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS,
   DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
 } from "./dna-open-lab-zero-cost-provider-capacity";
-import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
+import {
+  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
+} from "./dna-population-race-index-r2-chunk";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -317,7 +319,8 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         );
         projectedNeonStorageBytes =
           measurement.currentNeonUsage.storageBytes +
-          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.storageBytes;
+          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE
+            .storageBytes;
         projectedNeonComputeMilliCuHours =
           measurement.currentNeonUsage.computeMilliCuHours +
           DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE
