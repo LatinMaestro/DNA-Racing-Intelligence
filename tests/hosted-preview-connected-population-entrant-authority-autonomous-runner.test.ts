@@ -246,7 +246,7 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
         expect(
           DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
         ).toBe(90);
-                expect(receipt.boundary.providerRequestPerformed).toBe(false);
+        expect(receipt.boundary.providerRequestPerformed).toBe(false);
         expect(receipt.boundary.persistentWritePerformed).toBe(false);
         expect(receipt.previewOnly).toBe(true);
         expect(receipt.providerWritePerformed).toBe(false);
