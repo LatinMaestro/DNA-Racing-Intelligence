@@ -960,6 +960,31 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
+  it("rejects an aggregate request budget below 90 RPM before transport", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({ authority });
+    const requestBudget = createDnaOpenLabRequestBudget({
+      initialRequestsPerMinute: 89,
+      maximumRequestsPerMinute: 89,
+    });
+
+    const error = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+      requestBudget,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "request_budget_invalid",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+  });
+
   it("replays an interrupted commit from the same prepared cohort without rehydrating DNA", async () => {
     const raceDocuments = unresolvedRaceDocuments(3);
     const plan = planFor(raceDocuments);
