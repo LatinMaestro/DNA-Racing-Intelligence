@@ -144,7 +144,7 @@ function immediateRequestBudget(): DnaOpenLabRequestBudget {
     reduceEffectiveRequestsPerMinute: () => undefined,
     snapshot: () =>
       Object.freeze({
-        effectiveRequestsPerMinute: 30,
+        effectiveRequestsPerMinute: 90,
         requestsInCurrentWindow: 0,
         blockedUntilMilliseconds: null,
       }),
@@ -419,7 +419,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
-      aggregateRequestsPerMinute: 30,
+      aggregateRequestsPerMinute: 90,
       providerRequestPerformed: true,
       persistentWritePerformed: false,
       providerWritePerformed: false,
@@ -456,7 +456,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
-  it("selects the 1,000-row cohort in 20-Race batches under 30 aggregate RPM", async () => {
+  it("selects the 5,000-row cohort in 20-Race batches under 90 aggregate RPM", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
     );
@@ -476,7 +476,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(prepared.summary.resolvedRaceCount).toBe(5_000);
     expect(prepared.summary.quarantinedRaceCount).toBe(0);
     expect(prepared.summary.providerRequestCount).toBe(250);
-    expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
+    expect(prepared.summary.aggregateRequestsPerMinute).toBe(90);
     expect(test.providerCalls).toHaveLength(250);
     expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
     expect(test.r2Store.write).not.toHaveBeenCalled();
