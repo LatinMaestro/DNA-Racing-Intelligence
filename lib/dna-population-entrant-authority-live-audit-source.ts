@@ -24,7 +24,10 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
+import {
+  planDnaPopulationEntrantAuthorityRemainingR2Usage,
+  projectDnaPopulationEntrantAuthorityR2Cost,
+} from "./dna-population-entrant-authority-r2-cost-policy";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -553,20 +556,32 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
             baselineR2ClassBOperations,
             safeAdd(knownIncrementalObjectCount, knownIncrementalObjectCount),
           );
-          if (
-            safeAdd(
-              capacity.currentR2Usage.classBOperations,
-              minimumKnownReadOperations,
-            ) >
-            DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations
-          ) {
+          const remainingUsage =
+            acceptedUnresolvedAuthority === null
+              ? Object.freeze({
+                  storageBytes: 0,
+                  classAOperations: 0,
+                  classBOperations: 0,
+                })
+              : planDnaPopulationEntrantAuthorityRemainingR2Usage({
+                  remainingRaceCount:
+                    acceptedUnresolvedAuthority.unresolvedRaceCount,
+                });
+          const projection = projectDnaPopulationEntrantAuthorityR2Cost({
+            currentUsage: capacity.currentR2Usage,
+            plannedUsage: Object.freeze({
+              storageBytes: remainingUsage.storageBytes,
+              classAOperations: remainingUsage.classAOperations,
+              classBOperations: safeAdd(
+                remainingUsage.classBOperations,
+                minimumKnownReadOperations,
+              ),
+            }),
+          });
+          if (!projection.allowed || projection.paidR2UsageAllowed !== true) {
             liveAuditUnavailable("authority_capacity_read_budget_unavailable");
           }
-          return Math.min(
-            DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-            DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations -
-              capacity.currentR2Usage.classBOperations,
-          );
+          return DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS;
         },
       );
       const assessment = await assessCombinedHistory({

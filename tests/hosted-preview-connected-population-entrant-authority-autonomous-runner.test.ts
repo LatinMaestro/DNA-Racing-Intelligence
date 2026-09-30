@@ -17,11 +17,10 @@ const connected =
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-// The former 1,000-Race/frequent-full-audit path could cross the hosted
-// deadline at eight cohorts. The optimized path uses 5,000-Race cohorts and
-// one full authority scan per session; eight cohorts have a ~67-minute API
-// floor at the permanent 30-rpm x 20-ID ceiling, retaining wide timeout margin.
-const SESSION_COHORT_LIMIT = 8;
+// The owner-authorized path uses 5,000-Race cohorts and three independent
+// 30-rpm lanes. Twelve cohorts have a ~34-minute API floor at 90 aggregate RPM,
+// retaining wide timeout margin while each lane obeys provider evidence.
+const SESSION_COHORT_LIMIT = 12;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 const FAILURE_FILENAME = "dna-entrant-autonomous-failure.json";
 
@@ -156,10 +155,10 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
               ),
             }),
             // One checksum-bound compact Race-authority audit seeds the session.
-            // The next 24 authority loads (three per cohort across eight cohorts)
+            // The next 36 authority loads (three per cohort across twelve cohorts)
             // revalidate immutable last-good pointers and published generation
             // metadata without reopening every historical races.docs object.
-            liveAuditReuseCount: 24,
+            liveAuditReuseCount: 36,
             environment: Object.freeze({
               authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
               exactCodeHeadSha,

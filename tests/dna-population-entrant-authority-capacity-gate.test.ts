@@ -186,13 +186,13 @@ describe("DNA population entrant authority capacity gate", () => {
     });
   });
 
-  it("fails closed before the entrant operation reserve is consumed", async () => {
+  it("fails closed before projected paid R2 usage exceeds US$5", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          classBOperations: 8_999_500,
+          classAOperations: 2_200_000,
         }),
       }),
     );
@@ -200,19 +200,19 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+    ).rejects.toThrow("current provider capacity is blocked");
   });
 
-  it("rejects non-Standard R2 storage through the immediate provider projection", async () => {
+  it("rejects non-Standard R2 storage", async () => {
     const fixture = readySource(measurement({ r2StorageClass: "Infrequent" }));
     const test = gate({ source: fixture.source });
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+    ).rejects.toThrow("current provider capacity is blocked");
   });
 
-  it("rejects a full compact archive that no longer fits current R2 headroom", async () => {
+  it("allows bounded paid R2 storage above the former free-tier reserve", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
@@ -226,7 +226,10 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+    ).resolves.toMatchObject({
+      capacityAllowed: true,
+      paidUsageAllowed: false,
+    });
   });
 
   it("reserves conservative Neon compute headroom for the next commit", async () => {
@@ -243,7 +246,7 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current zero-cost provider capacity is blocked");
+    ).rejects.toThrow("current provider capacity is blocked");
   });
 
   it("rejects malformed audited authority before requesting provider capacity", async () => {
