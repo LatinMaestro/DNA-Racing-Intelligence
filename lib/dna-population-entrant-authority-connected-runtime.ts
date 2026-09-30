@@ -8,7 +8,10 @@ import {
   createDnaPopulationEntrantAuthorityCapacityGate,
   DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_COMPACT_BYTES_FLOOR,
 } from "./dna-population-entrant-authority-capacity-gate";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+  DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
+} from "./dna-population-entrant-authority-cohort";
 import {
   createDnaPopulationEntrantAuthorityCohortCommand,
   type DnaPopulationEntrantAuthorityCohortCommandSession,
@@ -359,7 +362,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       ),
       {
         requiredAggregateRequestsPerMinute:
-          DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE * 3,
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
       },
     );
     const raceDocumentClient = createDnaOpenLabR2RaceDocumentClient({
