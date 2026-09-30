@@ -7,6 +7,16 @@ import {
 export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_OPERATION_RESERVE_BASIS_POINTS =
   1_000 as const;
 
+export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_COST_LIMIT_MICRO_USD =
+  5_000_000 as const;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_STANDARD_PRICING =
+  Object.freeze({
+    bytesPerBillableGb: 1_000_000_000,
+    storageMicroUsdPerGbMonth: 15_000,
+    classAMicroUsdPerMillion: 4_500_000,
+    classBMicroUsdPerMillion: 360_000,
+  });
+
 function budgetBelowFreeAllowance(freeAllowance: number): number {
   return (
     freeAllowance -
