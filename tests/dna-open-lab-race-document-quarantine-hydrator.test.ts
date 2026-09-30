@@ -191,6 +191,32 @@ describe("DNA race document quarantine hydrator", () => {
     });
   });
 
+  it("quarantines one Race whose entrant authority contains duplicate Core IDs", async () => {
+    const target = clientWith(() => [
+      { rid: 1, rvmode: "bike", hids: [101] },
+      { rid: 2, rvmode: "bike", hids: [202, 202] },
+    ]);
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client: target.client,
+      requestBudget: createDnaOpenLabRequestBudget(),
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+    });
+    expect(result.outcomes[1]).toMatchObject({
+      status: "quarantined",
+      sourceRaceId: "2",
+      quarantineReason: "entrant_authority_unresolved",
+      sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
+  });
+
   it("keeps 20-ID request batching while allowing isolated omissions", async () => {
     const raceIds = Array.from({ length: 21 }, (_, index) => index + 1);
     const target = clientWith((batch) =>
