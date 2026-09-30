@@ -16,9 +16,7 @@ import {
   DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS,
   DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
 } from "./dna-open-lab-zero-cost-provider-capacity";
-import {
-  DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
-} from "./dna-population-race-index-r2-chunk";
+import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -37,8 +35,7 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE =
       8 * 1024 * 1024 +
       DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_RACE_BYTES_CEILING *
         DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS,
-    classAOperations:
-      DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS + 2,
+    classAOperations: DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS + 2,
     classBOperations:
       DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS +
       4 +
@@ -284,16 +281,13 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
           dnaPopulationEntrantAuthorityR2CostMicroUsd({
             storageBytes:
               measurement.currentR2Usage.storageBytes +
-              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
-                .storageBytes,
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE.storageBytes,
             classAOperations:
               measurement.currentR2Usage.classAOperations +
-              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
-                .classAOperations,
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE.classAOperations,
             classBOperations:
               measurement.currentR2Usage.classBOperations +
-              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
-                .classBOperations,
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE.classBOperations,
           });
         const fullPopulationRawRaceBytes =
           authority.unresolvedRaceCount *
@@ -319,12 +313,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         );
         projectedNeonStorageBytes =
           measurement.currentNeonUsage.storageBytes +
-          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE
-            .storageBytes;
+          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.storageBytes;
         projectedNeonComputeMilliCuHours =
           measurement.currentNeonUsage.computeMilliCuHours +
-          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE
-            .computeMilliCuHours;
+          DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.computeMilliCuHours;
       } catch {
         capacityError("current provider capacity projection is invalid");
       }
