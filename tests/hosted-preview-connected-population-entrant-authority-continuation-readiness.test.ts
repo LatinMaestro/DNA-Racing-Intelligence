@@ -25,6 +25,26 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
+function positiveCount(name: string): number {
+  const value = requiredEnvironment(name);
+  if (!/^[1-9]\d*$/u.test(value)) {
+    throw new Error("count environment is unavailable");
+  }
+  const count = Number(value);
+  if (!Number.isSafeInteger(count)) {
+    throw new Error("count environment is unavailable");
+  }
+  return count;
+}
+
+function sha256(name: string): string {
+  const value = requiredEnvironment(name);
+  if (!/^[a-f0-9]{64}$/u.test(value)) {
+    throw new Error("hash environment is unavailable");
+  }
+  return value;
+}
+
 describeConnected(
   "hosted Preview population entrant continuation readiness",
   () => {
@@ -78,7 +98,17 @@ describeConnected(
         }
 
         const receipt = await runtime.inspectContinuationReadiness();
+        const expectedUnresolvedRaceCount = positiveCount(
+          "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+        );
+        const expectedUnresolvedRaceSetSha256 = sha256(
+          "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+        );
 
+        expect(receipt.unresolvedRaceCount).toBe(expectedUnresolvedRaceCount);
+        expect(receipt.unresolvedRaceSetSha256).toBe(
+          expectedUnresolvedRaceSetSha256,
+        );
         expect(receipt).toMatchObject({
           status: "ready_for_continuation",
           exactCodeHeadSha,
