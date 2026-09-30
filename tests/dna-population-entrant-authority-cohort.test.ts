@@ -456,6 +456,44 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
+  it("quarantines duplicate entrant Core IDs without stalling valid Races", async () => {
+    const raceDocuments = unresolvedRaceDocuments(2);
+    const plan = planFor(raceDocuments);
+    const authority = authorityFor(plan);
+    const test = harness({
+      authority,
+      provider: (raceIds) =>
+        raceIds.map((sourceRaceId, index) => ({
+          rid: sourceRaceId,
+          rvmode: "bike",
+          hids: index === 0 ? [1, 1] : [2],
+        })),
+    });
+
+    const prepared = await prepare({
+      raceDocuments,
+      plan,
+      authority,
+      test,
+    });
+
+    expect(prepared.summary).toMatchObject({
+      selectedRaceCount: 2,
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      providerRequestCount: 1,
+      preparationSource: "provider_hydration",
+    });
+
+    const committed = await prepared.commit({ registeredAt: REGISTERED_AT });
+    expect(committed).toMatchObject({
+      status: "committed",
+      resolvedRaceCount: 1,
+      quarantinedRaceCount: 1,
+      checkpointRaceCountAfter: 2,
+    });
+  });
+
   it("selects the 1,000-row cohort in 20-Race batches under 90 aggregate RPM", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
