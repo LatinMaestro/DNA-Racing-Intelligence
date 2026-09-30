@@ -7,13 +7,14 @@ const workflowPath =
 
 describe("DNA population entrant authority autonomous workflow", () => {
   it("is explicitly armed, bounded, exact-main, Preview-only and self-resuming", async () => {
-    const [workflow, relay, hosted] = await Promise.all([
+    const [workflow, relay, hosted, cohort] = await Promise.all([
       readFile(workflowPath, "utf8"),
       readFile(".github/workflows/dna-owner-dispatch-relay.yml", "utf8"),
       readFile(
         "tests/hosted-preview-connected-population-entrant-authority-autonomous-runner.test.ts",
         "utf8",
       ),
+      readFile("lib/dna-population-entrant-authority-cohort.ts", "utf8"),
     ]);
 
     expect(workflow).toContain("workflow_dispatch:");
@@ -73,7 +74,16 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
 
-    expect(hosted).toContain("const SESSION_COHORT_LIMIT = 8");
+    expect(hosted).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_SESSION_COHORT_LIMIT",
+    );
+    expect(hosted).toContain("liveAuditReuseCount: 36");
+    expect(cohort).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_SESSION_COHORT_LIMIT =\n  12 as const",
+    );
+    expect(cohort).toContain(
+      "DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =\n  90 as const",
+    );
     expect(hosted).toContain("assertCurrentExactHead");
     expect(hosted).toContain("runBoundedSession");
     expect(relay).toContain(
