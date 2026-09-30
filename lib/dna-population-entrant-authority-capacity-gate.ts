@@ -201,8 +201,18 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   }
 
   return Object.freeze({
-    async assertFreshCurrentCapacity(requestedAuthority) {
+    async assertFreshCurrentCapacity(requestedAuthority, context) {
       const authority = validateAuthority(requestedAuthority);
+      const persistedRaceCount = context?.persistedRaceCount ?? 0;
+      if (
+        !Number.isSafeInteger(persistedRaceCount) ||
+        persistedRaceCount < 0 ||
+        persistedRaceCount > authority.unresolvedRaceCount
+      ) {
+        capacityError("durable population progress is invalid");
+      }
+      const remainingRaceCount =
+        authority.unresolvedRaceCount - persistedRaceCount;
       if (
         sizingAuthority.unresolvedRaceCount !== authority.unresolvedRaceCount ||
         sizingAuthority.unresolvedRaceSetSha256 !==
@@ -264,12 +274,8 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         });
         r2CostProjection = projectDnaPopulationEntrantAuthorityR2Cost({
           currentUsage: measurement.currentR2Usage,
-          // The full unresolved count is intentionally reserved again on every
-          // cohort. This overstates remaining work after the checkpoint moves,
-          // but prevents a stale or ambiguous recovery count from weakening the
-          // owner-authorized cost ceiling.
           plannedUsage: planDnaPopulationEntrantAuthorityRemainingR2Usage({
-            remainingRaceCount: authority.unresolvedRaceCount,
+            remainingRaceCount,
           }),
         });
         projectedImmediateNeonStorageBytes =
