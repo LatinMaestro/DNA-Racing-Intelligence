@@ -211,6 +211,40 @@ describe("DNA population entrant authority commit protocol", () => {
     ).toHaveLength(2);
   });
 
+  it("fails closed before R2 when the R2 paid-cost authority exceeds the owner ceiling", async () => {
+    const test = harness();
+    vi.mocked(
+      test.capacityGate.assertFreshCurrentCapacity,
+    ).mockResolvedValueOnce(
+      Object.freeze({
+        version: 1,
+        generationId,
+        unresolvedRaceCount: 3,
+        unresolvedRaceSetSha256: generationId,
+        observedAt: "2026-09-25T06:01:00.000Z",
+        capacityAllowed: true,
+        paidUsageAllowed: false,
+        r2PaidUsageAuthorized: true,
+        maximumAuthorizedR2CostMicroUsd: 5_000_000,
+        projectedR2CostMicroUsd: 5_000_001,
+      }),
+    );
+
+    await expect(
+      commitDnaPopulationEntrantAuthorityChunk({
+        ownerId: "private-owner",
+        authority,
+        records,
+        capacityGate: test.capacityGate,
+        checkpointRepository: test.checkpointRepository,
+        r2Store: test.r2Store,
+        registeredAt: "2026-09-25T06:02:00.000Z",
+      }),
+    ).rejects.toThrow("R2 cost approval is invalid");
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+  });
+
   it("fails closed before R2 when fresh capacity approval drifts", async () => {
     const test = harness();
     vi.mocked(
