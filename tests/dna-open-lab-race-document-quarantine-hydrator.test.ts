@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+  DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS,
   DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS,
   DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
   hydrateDnaRaceDocumentsWithQuarantine,
@@ -203,6 +204,77 @@ describe("DNA race document quarantine hydrator", () => {
     expect(calls).toBe(DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS);
     expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
       DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+    );
+  });
+
+  it("retries a transient provider transport interruption through the request budget", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async (raceIds) => {
+        calls += 1;
+        if (calls < DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS) {
+          throw new DnaOpenLabApiError({
+            kind: "transport_error",
+            message: "private transient transport detail",
+          });
+        }
+        return response(
+          raceIds.map((rid) => ({
+            rid,
+            rvmode: "bike",
+            hids: [Number(rid) + 100],
+          })),
+        );
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      providerRequestCount: DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS,
+      resolvedRaceCount: 2,
+      quarantinedRaceCount: 0,
+    });
+    expect(calls).toBe(DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS,
+    );
+  });
+
+  it("fails closed after the bounded transport-error retry ceiling", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async () => {
+        calls += 1;
+        throw new DnaOpenLabApiError({
+          kind: "transport_error",
+          message: "private persistent transport detail",
+        });
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    await expect(
+      hydrateDnaRaceDocumentsWithQuarantine({
+        raceIds: [1, 2],
+        client,
+        requestBudget,
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      kind: "transport_error",
+      message: "private persistent transport detail",
+    });
+    expect(calls).toBe(DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS,
     );
   });
 
