@@ -12,6 +12,8 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION =
   "dna-population-entrant-authority-autonomous-runner/v1" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_INTENT =
   "complete_private_preview_unresolved_race_authority" as const;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS =
+  3 as const;
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -119,6 +121,13 @@ function runnerError(
   diagnostic: DnaPopulationEntrantAuthorityAutonomousRunnerDiagnostic,
 ): never {
   throw new DnaPopulationEntrantAuthorityAutonomousRunnerError(diagnostic);
+}
+
+function isReplayableCommitError(error: unknown): boolean {
+  return (
+    error instanceof DnaPopulationEntrantAuthorityContinuationCommandError &&
+    error.diagnostic === "cohort_commit_unavailable"
+  );
 }
 
 function exactHead(
@@ -460,12 +469,28 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
         runnerError("continuation_unavailable");
       }
 
-      let commit: DnaPopulationEntrantAuthorityContinuationCommandReceipt;
-      try {
-        commit = await session.commit();
-      } catch {
-        runnerError("commit_unavailable");
+      let commit: DnaPopulationEntrantAuthorityContinuationCommandReceipt | null =
+        null;
+      for (
+        let attempt = 1;
+        attempt <=
+        DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS;
+        attempt += 1
+      ) {
+        try {
+          commit = await session.commit();
+          break;
+        } catch (error) {
+          if (
+            !isReplayableCommitError(error) ||
+            attempt ===
+              DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS
+          ) {
+            runnerError("commit_unavailable");
+          }
+        }
       }
+      if (commit === null) runnerError("commit_unavailable");
       validateCommit({ boundary: current, receipt: commit });
 
       let next: DnaPopulationEntrantAuthorityAutonomousBoundary;
