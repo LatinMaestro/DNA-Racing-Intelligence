@@ -242,7 +242,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   }
 
   return Object.freeze({
-    async assertFreshCurrentCapacity(requestedAuthority, requestedRemainingRaceCount) {
+    async assertFreshCurrentCapacity(
+      requestedAuthority,
+      requestedRemainingRaceCount,
+    ) {
       const authority = validateAuthority(requestedAuthority);
       const remainingRaceCount =
         requestedRemainingRaceCount === undefined
