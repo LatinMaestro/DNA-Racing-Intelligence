@@ -36,6 +36,7 @@ export type DnaRaceDocumentQuarantineHydrationResult = Readonly<{
   outcomes: readonly DnaRaceDocumentQuarantineHydrationOutcome[];
   requestedRaceCount: number;
   batchCount: number;
+  providerRequestCount: number;
   resolvedRaceCount: number;
   quarantinedRaceCount: number;
 }>;
@@ -78,6 +79,7 @@ function batches<T>(
 const DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY = 3;
 export const DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS = 3 as const;
 export const DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS = 3 as const;
+export const DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS = 3 as const;
 
 async function forEachWithConcurrency<T>(
   values: readonly T[],
@@ -101,6 +103,7 @@ async function raceDocsWithMalformedResponseRetry(input: {
   batch: readonly DnaRaceIdentifier[];
   client: Pick<DnaOpenLabClient, "raceDocs">;
   requestBudget: DnaOpenLabRequestBudget;
+  onRequest?: () => void;
 }) {
   for (
     let attempt = 1;
@@ -108,6 +111,7 @@ async function raceDocsWithMalformedResponseRetry(input: {
     attempt += 1
   ) {
     try {
+      input.onRequest?.();
       return await input.requestBudget.execute(() =>
         input.client.raceDocs(input.batch),
       );
@@ -182,6 +186,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
     DnaRaceDocumentQuarantineHydrationOutcome
   >();
   const requestBatches = batches(input.raceIds, DNA_RACE_DOCUMENT_BATCH_LIMIT);
+  let providerRequestCount = 0;
 
   await forEachWithConcurrency(
     requestBatches,
@@ -205,6 +210,9 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
             batch,
             client: input.client,
             requestBudget: input.requestBudget,
+            onRequest: () => {
+              providerRequestCount += 1;
+            },
           });
           if (!Array.isArray(response.result)) {
             hydrationError("invalid_response", "race-doc response is invalid");
@@ -340,11 +348,87 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
           }
           return;
         } catch (error) {
-          const retryable =
+          const systemicInvalidResponse =
             error instanceof DnaRaceDocumentHydrationError &&
-            error.kind === "invalid_response" &&
-            attempt < DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS;
-          if (!retryable) throw error;
+            error.kind === "invalid_response";
+          if (
+            systemicInvalidResponse &&
+            attempt < DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS
+          ) {
+            continue;
+          }
+          if (systemicInvalidResponse && batch.length > 1) {
+            for (const raceId of batch) {
+              let accepted:
+                | DnaRaceDocumentQuarantineHydrationOutcome
+                | undefined;
+              let stableQuarantine:
+                | Extract<
+                    DnaRaceDocumentQuarantineHydrationOutcome,
+                    { status: "quarantined" }
+                  >
+                | undefined;
+
+              for (
+                let probe = 1;
+                probe <=
+                DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+                probe += 1
+              ) {
+                const isolated = await hydrateDnaRaceDocumentsWithQuarantine({
+                  raceIds: [raceId],
+                  client: input.client,
+                  requestBudget: input.requestBudget,
+                  observedAt: input.observedAt,
+                });
+                providerRequestCount += isolated.providerRequestCount;
+                const outcome = isolated.outcomes[0];
+                if (outcome === undefined) {
+                  hydrationError(
+                    "invalid_response",
+                    "race-doc isolated outcome is unavailable",
+                  );
+                }
+                if (outcome.status === "resolved") {
+                  accepted = outcome;
+                  break;
+                }
+                if (stableQuarantine === undefined) {
+                  stableQuarantine = outcome;
+                  continue;
+                }
+                if (
+                  stableQuarantine.quarantineReason !==
+                    outcome.quarantineReason ||
+                  stableQuarantine.sourceEvidenceSha256 !==
+                    outcome.sourceEvidenceSha256
+                ) {
+                  hydrationError(
+                    "invalid_response",
+                    "race-doc isolated quarantine evidence is unstable",
+                  );
+                }
+              }
+
+              const outcome = accepted ?? stableQuarantine;
+              if (outcome === undefined) {
+                hydrationError(
+                  "invalid_response",
+                  "race-doc isolated verification is unavailable",
+                );
+              }
+              const key = raceKey(raceId);
+              if (outcomesByKey.has(key)) {
+                hydrationError(
+                  "duplicate_document",
+                  "race-doc isolated outcome duplicates prior authority",
+                );
+              }
+              outcomesByKey.set(key, outcome);
+            }
+            return;
+          }
+          throw error;
         }
       }
 
@@ -373,6 +457,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
     outcomes,
     requestedRaceCount: requestedKeys.length,
     batchCount: requestBatches.length,
+    providerRequestCount,
     resolvedRaceCount,
     quarantinedRaceCount,
   });
