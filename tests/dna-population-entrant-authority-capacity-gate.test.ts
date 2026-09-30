@@ -190,6 +190,44 @@ describe("DNA population entrant authority capacity gate", () => {
     });
   });
 
+  it("uses checkpoint-verified remaining work instead of re-reserving the full archive", async () => {
+    const base = measurement();
+    const fixture = readySource(
+      measurement({
+        currentR2Usage: Object.freeze({
+          ...base.currentR2Usage,
+          classAOperations: 1_500_000,
+        }),
+      }),
+    );
+    const test = gate({ source: fixture.source });
+
+    await expect(
+      test.value.assertFreshCurrentCapacity(authority),
+    ).rejects.toMatchObject({
+      diagnostic: "r2_cost_ceiling_blocked",
+    });
+
+    await expect(
+      test.value.assertFreshCurrentCapacity(authority, 439_198),
+    ).resolves.toMatchObject({
+      capacityAllowed: true,
+      paidUsageAllowed: false,
+    });
+  });
+
+  it("rejects a remaining count above the audited unresolved authority before provider access", async () => {
+    const test = gate();
+
+    await expect(
+      test.value.assertFreshCurrentCapacity(
+        authority,
+        authority.unresolvedRaceCount + 1,
+      ),
+    ).rejects.toThrow("remainingRaceCount exceeds audited authority");
+    expect(test.fixture!.measure).not.toHaveBeenCalled();
+  });
+
   it("fails closed before projected paid R2 usage exceeds US$5", async () => {
     const base = measurement();
     const fixture = readySource(
