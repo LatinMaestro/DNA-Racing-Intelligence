@@ -239,8 +239,12 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         maximumAgeMilliseconds: maximumMeasurementAgeMilliseconds,
       });
 
-      let archiveProjection;
-      let r2CostProjection;
+      let archiveProjection: ReturnType<
+        typeof projectDnaPopulationEntrantAuthorityChunkArchive
+      >;
+      let r2CostProjection: ReturnType<
+        typeof projectDnaPopulationEntrantAuthorityR2Cost
+      >;
       let projectedImmediateNeonStorageBytes: number;
       let projectedImmediateNeonComputeMilliCuHours: number;
       try {
