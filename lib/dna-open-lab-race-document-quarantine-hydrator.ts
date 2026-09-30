@@ -373,7 +373,8 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
 
               for (
                 let probe = 1;
-                probe <= DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+                probe <=
+                  DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
                 probe += 1
               ) {
                 const isolated = await hydrateDnaRaceDocumentsWithQuarantine({
