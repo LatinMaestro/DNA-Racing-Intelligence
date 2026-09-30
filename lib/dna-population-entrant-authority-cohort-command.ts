@@ -488,6 +488,7 @@ export function createDnaPopulationEntrantAuthorityCohortCommand(input: {
       try {
         approval = await input.runtime.capacityGate.assertFreshCurrentCapacity(
           audit.authority,
+          { persistedRaceCount: 0 },
         );
       } catch {
         commandError("capacity_preflight_unavailable");
