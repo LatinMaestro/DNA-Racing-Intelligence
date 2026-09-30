@@ -24,7 +24,7 @@ import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import type { NeonDnaOpenLabSyncPublicationRepository } from "./neon-dna-open-lab-sync-publication";
 import type { PrivateDatasetEvidenceObjectReadableStoragePort } from "./private-dataset-evidence-object-reader";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
-import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
+import { dnaPopulationEntrantAuthorityAdditionalClassBOperations } from "./dna-population-entrant-authority-zero-cost-policy";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -544,7 +544,9 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
           // manifest/Race document. Checksum-bound continuation instead reads
           // the published compact baseline identities from Neon and spends R2
           // Class-B operations only on incremental manifests. Quarantine reads
-          // remain reserved before access by the evidence reader.
+          // remain reserved before access by the evidence reader. The owner-
+          // authorized entrant R2 ceiling is US$5 total for the billing window;
+          // unrelated paid providers remain prohibited.
           const knownIncrementalObjectCount =
             acceptedUnresolvedAuthority === null
               ? safeAdd(history.receiptCount, history.documentCount)
@@ -553,19 +555,16 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
             baselineR2ClassBOperations,
             safeAdd(knownIncrementalObjectCount, knownIncrementalObjectCount),
           );
-          if (
-            safeAdd(
-              capacity.currentR2Usage.classBOperations,
-              minimumKnownReadOperations,
-            ) >
-            DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations
-          ) {
+          const additionalClassBOperations =
+            dnaPopulationEntrantAuthorityAdditionalClassBOperations(
+              capacity.currentR2Usage,
+            );
+          if (minimumKnownReadOperations > additionalClassBOperations) {
             liveAuditUnavailable("authority_capacity_read_budget_unavailable");
           }
           return Math.min(
             DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS,
-            DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations -
-              capacity.currentR2Usage.classBOperations,
+            additionalClassBOperations,
           );
         },
       );
