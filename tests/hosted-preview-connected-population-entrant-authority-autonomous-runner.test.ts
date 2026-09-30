@@ -11,17 +11,22 @@ import {
   type DnaPopulationEntrantAuthorityAutonomousBoundary,
 } from "@/lib/dna-population-entrant-authority-autonomous-runner";
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_SESSION_COHORT_LIMIT,
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+} from "@/lib/dna-population-entrant-authority-cohort";
 
 const connected =
   process.env.DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-// The former 1,000-Race/frequent-full-audit path could cross the hosted
-// deadline at eight cohorts. The optimized path uses 5,000-Race cohorts and
-// one full authority scan per session; eight cohorts have a ~67-minute API
-// floor at the permanent 30-rpm x 20-ID ceiling, retaining wide timeout margin.
-const SESSION_COHORT_LIMIT = 8;
+// Three independently confirmed 30-RPM API-key lanes provide 90 aggregate RPM.
+// With 5,000-Race cohorts and 20 Race IDs/request, twelve cohorts have a
+// ~33-minute API floor while retaining substantial margin inside the hosted
+// timeout. One full authority scan seeds the session and is reused thereafter.
+const SESSION_COHORT_LIMIT =
+  DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_SESSION_COHORT_LIMIT;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 const FAILURE_FILENAME = "dna-entrant-autonomous-failure.json";
 
@@ -156,10 +161,10 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
               ),
             }),
             // One checksum-bound compact Race-authority audit seeds the session.
-            // The next 24 authority loads (three per cohort across eight cohorts)
+            // The next 36 authority loads (three per cohort across twelve cohorts)
             // revalidate immutable last-good pointers and published generation
             // metadata without reopening every historical races.docs object.
-            liveAuditReuseCount: 24,
+            liveAuditReuseCount: 36,
             environment: Object.freeze({
               authorizedOwnerId: required("AUTHORIZED_CLERK_USER_ID"),
               exactCodeHeadSha,
@@ -238,7 +243,10 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
           mode: 0o600,
         });
         expect(receipt.boundary.exactCodeHeadSha).toBe(exactCodeHeadSha);
-        expect(receipt.boundary.providerRequestPerformed).toBe(false);
+        expect(
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+        ).toBe(90);
+                expect(receipt.boundary.providerRequestPerformed).toBe(false);
         expect(receipt.boundary.persistentWritePerformed).toBe(false);
         expect(receipt.previewOnly).toBe(true);
         expect(receipt.providerWritePerformed).toBe(false);
