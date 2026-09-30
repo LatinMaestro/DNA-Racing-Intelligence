@@ -574,6 +574,7 @@ describe("DNA Open Lab v1 canonical adapters", () => {
     { name: "collection shape", hids: null },
     { name: "entry runtime type", hids: ["1"] },
     { name: "entry numeric value", hids: [0] },
+    { name: "duplicate membership", hids: [101, 101] },
   ])(
     "quarantines unsupported entrant Core ID $name without blocking the Race",
     ({ hids }) => {
