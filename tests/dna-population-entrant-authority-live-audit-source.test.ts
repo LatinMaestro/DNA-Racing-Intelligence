@@ -475,7 +475,7 @@ describe("population entrant live audit source", () => {
   });
 
   it("uses only available owner-authorized R2 Class-B headroom", async () => {
-    const target = harness({ classBOperations: 23_888_884 });
+    const target = harness({ classBOperations: 23_883_368 });
 
     await expect(
       source(target).load({ ownerId: OWNER, exactCodeHeadSha: HEAD }),
@@ -487,7 +487,7 @@ describe("population entrant live audit source", () => {
 
   it("fails closed before R2 evidence reads when the known read floor exceeds headroom", async () => {
     const target = harness({
-      classBOperations: 23_888_883,
+      classBOperations: 23_883_363,
       history: Object.freeze({
         receiptCount: 1,
         documentCount: 2,
@@ -507,7 +507,7 @@ describe("population entrant live audit source", () => {
 
   it("uses accepted unresolved authority to avoid the full incremental Race-document read floor", async () => {
     const target = harness({
-      classBOperations: 23_888_883,
+      classBOperations: 23_883_363,
       history: Object.freeze({
         receiptCount: 1,
         documentCount: 2,
