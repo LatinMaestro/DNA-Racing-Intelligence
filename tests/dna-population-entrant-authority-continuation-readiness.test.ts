@@ -4,6 +4,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpoint,
   DnaPopulationEntrantAuthorityChunkManifest,
 } from "@/lib/dna-population-entrant-authority-checkpoint";
+import { DnaPopulationEntrantAuthorityCapacityError } from "@/lib/dna-population-entrant-authority-capacity-gate";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "@/lib/dna-population-entrant-authority-commit-protocol";
 import {
   createDnaPopulationEntrantAuthorityAutonomousBoundaryInspector,
@@ -294,6 +295,30 @@ describe("population entrant continuation readiness", () => {
       DnaPopulationEntrantAuthorityContinuationReadinessError,
     );
     expect(error).toMatchObject({ diagnostic: "capacity_unavailable" });
+    expect(String(error)).not.toContain("private-provider-capacity-secret");
+    expect(test.checkpointRepository.read).not.toHaveBeenCalled();
+    expect(test.r2Store.read).not.toHaveBeenCalled();
+  });
+
+  it("preserves a sanitized typed capacity blocker without provider detail", async () => {
+    const test = harness({
+      capacityGate: Object.freeze({
+        assertFreshCurrentCapacity: vi.fn(async () => {
+          throw new DnaPopulationEntrantAuthorityCapacityError(
+            "neon_compute_blocked",
+            "private-provider-capacity-secret",
+          );
+        }),
+      }),
+    });
+
+    const error = await inspector(test)
+      .inspect()
+      .catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({
+      diagnostic: "capacity_neon_compute_blocked",
+    });
     expect(String(error)).not.toContain("private-provider-capacity-secret");
     expect(test.checkpointRepository.read).not.toHaveBeenCalled();
     expect(test.r2Store.read).not.toHaveBeenCalled();

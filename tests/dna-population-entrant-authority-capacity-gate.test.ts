@@ -114,7 +114,9 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current provider measurement is unavailable");
+    ).rejects.toMatchObject({
+      diagnostic: "measurement_unavailable",
+    });
   });
 
   it("sanitizes provider measurement failures", async () => {
@@ -128,7 +130,9 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current provider measurement failed");
+    ).rejects.toMatchObject({
+      diagnostic: "measurement_failed",
+    });
   });
 
   it("rejects stale Cloudflare evidence before capacity approval", async () => {
@@ -200,7 +204,9 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current provider capacity is blocked");
+    ).rejects.toMatchObject({
+      diagnostic: "r2_cost_ceiling_blocked",
+    });
   });
 
   it("rejects non-Standard R2 storage", async () => {
@@ -209,7 +215,9 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current provider capacity is blocked");
+    ).rejects.toMatchObject({
+      diagnostic: "r2_storage_class_blocked",
+    });
   });
 
   it("allows bounded paid R2 storage above the former free-tier reserve", async () => {
@@ -246,7 +254,9 @@ describe("DNA population entrant authority capacity gate", () => {
 
     await expect(
       test.value.assertFreshCurrentCapacity(authority),
-    ).rejects.toThrow("current provider capacity is blocked");
+    ).rejects.toMatchObject({
+      diagnostic: "neon_compute_blocked",
+    });
   });
 
   it("rejects malformed audited authority before requesting provider capacity", async () => {
