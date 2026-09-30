@@ -65,14 +65,6 @@ describeConnected(
 
         const runtime =
           dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
-            acceptedUnresolvedAuthority: Object.freeze({
-              unresolvedRaceCount: positiveCount(
-                "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
-              ),
-              unresolvedRaceSetSha256: sha256(
-                "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
-              ),
-            }),
             environment: Object.freeze({
               authorizedOwnerId: requiredEnvironment(
                 "AUTHORIZED_CLERK_USER_ID",
@@ -106,7 +98,17 @@ describeConnected(
         }
 
         const receipt = await runtime.inspectContinuationReadiness();
+        const expectedUnresolvedRaceCount = positiveCount(
+          "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_COUNT",
+        );
+        const expectedUnresolvedRaceSetSha256 = sha256(
+          "DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_UNRESOLVED_RACE_SET_SHA256",
+        );
 
+        expect(receipt.unresolvedRaceCount).toBe(expectedUnresolvedRaceCount);
+        expect(receipt.unresolvedRaceSetSha256).toBe(
+          expectedUnresolvedRaceSetSha256,
+        );
         expect(receipt).toMatchObject({
           status: "ready_for_continuation",
           exactCodeHeadSha,
