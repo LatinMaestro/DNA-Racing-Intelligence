@@ -289,8 +289,7 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
       }
 
       if (
-        measurement.r2StorageClass !==
-          DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS ||
+        measurement.r2StorageClass !== DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS ||
         !r2CostProjection.allowed ||
         r2CostProjection.paidR2UsageAllowed !== true ||
         archiveProjection.projectedUsage.neonStorageBytes >
