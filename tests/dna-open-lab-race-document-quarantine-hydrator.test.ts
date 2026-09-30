@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { hydrateDnaRaceDocumentsWithQuarantine } from "@/lib/dna-open-lab-race-document-quarantine-hydrator";
+import {
+  DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+  hydrateDnaRaceDocumentsWithQuarantine,
+} from "@/lib/dna-open-lab-race-document-quarantine-hydrator";
+import { DnaOpenLabApiError } from "@/lib/dna-open-lab-v1-client";
 import type {
   DnaOpenLabClient,
   DnaOpenLabResponse,
@@ -90,6 +94,78 @@ describe("DNA race document quarantine hydrator", () => {
       quarantineReason: "provider_document_missing",
     });
     expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(1);
+  });
+
+  it("retries a transient malformed provider envelope through the request budget", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async (raceIds) => {
+        calls += 1;
+        if (calls < DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS) {
+          throw new DnaOpenLabApiError({
+            kind: "malformed_response",
+            message: "private malformed provider detail",
+            httpStatus: 200,
+          });
+        }
+        return response(
+          raceIds.map((rid) => ({
+            rid,
+            rvmode: "bike",
+            hids: [Number(rid) + 100],
+          })),
+        );
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      resolvedRaceCount: 2,
+      quarantinedRaceCount: 0,
+    });
+    expect(calls).toBe(DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+    );
+  });
+
+  it("fails closed after the bounded malformed-response retry ceiling", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async () => {
+        calls += 1;
+        throw new DnaOpenLabApiError({
+          kind: "malformed_response",
+          message: "private persistent provider detail",
+          httpStatus: 200,
+        });
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    await expect(
+      hydrateDnaRaceDocumentsWithQuarantine({
+        raceIds: [1, 2],
+        client,
+        requestBudget,
+        observedAt: "2026-08-27T08:00:00Z",
+      }),
+    ).rejects.toMatchObject({
+      kind: "malformed_response",
+      message: "private persistent provider detail",
+    });
+    expect(calls).toBe(DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+    );
   });
 
   it("quarantines one returned Race whose document cannot be adapted", async () => {
