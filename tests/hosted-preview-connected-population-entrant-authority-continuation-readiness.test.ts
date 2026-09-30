@@ -25,7 +25,6 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
-
 describeConnected(
   "hosted Preview population entrant continuation readiness",
   () => {
