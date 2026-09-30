@@ -131,7 +131,8 @@ function resolvedEntrantAuthority(
       canonical.mode === "car" ||
       canonical.mode === "horse") &&
     Array.isArray(canonical.entrantCoreIds) &&
-    canonical.entrantCoreIds.length > 0
+    canonical.entrantCoreIds.length > 0 &&
+    new Set(canonical.entrantCoreIds).size === canonical.entrantCoreIds.length
   );
 }
 
