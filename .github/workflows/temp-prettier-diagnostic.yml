@@ -1,6 +1,16 @@
 name: TEMP Prettier diagnostic
 
 on:
+  push:
+    branches:
+      - "feat/entrant-90rpm-r2-5usd"
+    paths:
+      - "lib/dna-population-entrant-authority-capacity-gate.ts"
+      - "lib/dna-population-entrant-authority-zero-cost-policy.ts"
+      - "lib/dna-population-entrant-hydration-read-only-measurement.ts"
+      - "tests/dna-open-lab-independent-race-doc-lanes.test.ts"
+      - "tests/dna-population-entrant-authority-cohort.test.ts"
+      - ".github/workflows/temp-prettier-diagnostic.yml"
   pull_request:
     paths:
       - "lib/dna-population-entrant-authority-capacity-gate.ts"
