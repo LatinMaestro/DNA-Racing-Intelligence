@@ -251,8 +251,27 @@ function createDurableBoundaryProofInspector(
         }
 
         stage = "capacity_unavailable";
+        const checkpointForCost = await input.checkpointRepository.read(
+          ownerId,
+          { generationId: audit.authority.generationId },
+        );
+        if (
+          checkpointForCost.version !== audit.authority.version ||
+          checkpointForCost.generationId !== audit.authority.generationId ||
+          checkpointForCost.unresolvedRaceCount !==
+            audit.authority.unresolvedRaceCount ||
+          checkpointForCost.unresolvedRaceSetSha256 !==
+            audit.authority.unresolvedRaceSetSha256 ||
+          !Number.isSafeInteger(checkpointForCost.persistedRaceCount) ||
+          checkpointForCost.persistedRaceCount < 0 ||
+          checkpointForCost.persistedRaceCount >
+            audit.authority.unresolvedRaceCount
+        ) {
+          unavailable("capacity_unavailable");
+        }
         const approval = await input.capacityGate.assertFreshCurrentCapacity(
           audit.authority,
+          { persistedRaceCount: checkpointForCost.persistedRaceCount },
         );
         const observedAt = capacityObservedAt({
           authority: audit.authority,
