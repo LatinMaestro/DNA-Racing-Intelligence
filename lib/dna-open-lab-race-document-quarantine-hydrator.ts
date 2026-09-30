@@ -10,10 +10,11 @@ import {
   DNA_RACE_DOCUMENT_BATCH_LIMIT,
 } from "./dna-open-lab-race-document-hydrator";
 import type { DnaPopulationEntrantAuthorityQuarantineReason } from "./dna-population-entrant-authority-record";
-import type {
-  DnaOpenLabClient,
-  DnaRaceDocument,
-  DnaRaceIdentifier,
+import {
+  DnaOpenLabApiError,
+  type DnaOpenLabClient,
+  type DnaRaceDocument,
+  type DnaRaceIdentifier,
 } from "./dna-open-lab-v1-client";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 
@@ -75,6 +76,7 @@ function batches<T>(
 }
 
 const DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY = 3;
+export const DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS = 3 as const;
 
 async function forEachWithConcurrency<T>(
   values: readonly T[],
@@ -92,6 +94,35 @@ async function forEachWithConcurrency<T>(
   await Promise.all(
     Array.from({ length: Math.min(maximumConcurrency, values.length) }, worker),
   );
+}
+
+async function raceDocsWithMalformedResponseRetry(input: {
+  batch: readonly DnaRaceIdentifier[];
+  client: Pick<DnaOpenLabClient, "raceDocs">;
+  requestBudget: DnaOpenLabRequestBudget;
+}) {
+  for (
+    let attempt = 1;
+    attempt <= DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS;
+    attempt += 1
+  ) {
+    try {
+      return await input.requestBudget.execute(() =>
+        input.client.raceDocs(input.batch),
+      );
+    } catch (error) {
+      if (
+        !(
+          error instanceof DnaOpenLabApiError &&
+          error.kind === "malformed_response" &&
+          attempt < DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS
+        )
+      ) {
+        throw error;
+      }
+    }
+  }
+  throw new Error("unreachable malformed-response retry state");
 }
 
 function resolvedEntrantAuthority(
@@ -159,9 +190,11 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
     async (batch) => {
       const batchKeys = batch.map(raceKey);
       const batchKeySet = new Set(batchKeys);
-      const response = await input.requestBudget.execute(() =>
-        input.client.raceDocs(batch),
-      );
+      const response = await raceDocsWithMalformedResponseRetry({
+        batch,
+        client: input.client,
+        requestBudget: input.requestBudget,
+      });
       if (!Array.isArray(response.result)) {
         hydrationError("invalid_response", "race-doc response is invalid");
       }
