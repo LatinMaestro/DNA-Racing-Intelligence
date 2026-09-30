@@ -42,6 +42,8 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(workflow).toContain("DNA_STATUS_MODE: autonomous-result");
     expect(workflow).toContain('DNA_STATUS_COMMENT_ID: "5866846740"');
     expect(hosted).toContain("dna-entrant-autonomous-failure.json");
+    expect(workflow).toContain("Ensure sanitized autonomous failure handoff");
+    expect(workflow).toContain("session_receipt_unavailable");
 
     expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
     expect(workflow).toContain(
@@ -73,7 +75,12 @@ describe("DNA population entrant authority autonomous workflow", () => {
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
 
-    expect(hosted).toContain("const SESSION_COHORT_LIMIT = 12");
+    expect(hosted).toContain("const SESSION_COHORT_LIMIT = 6");
+    expect(hosted).toContain(
+      "const SESSION_SOFT_DEADLINE_MILLISECONDS = 75 * 60_000",
+    );
+    expect(hosted).toContain("canStartNextCohort");
+    expect(hosted).toContain("120 * 60_000");
     expect(hosted).toContain("assertCurrentExactHead");
     expect(hosted).toContain("runBoundedSession");
     expect(relay).toContain(
