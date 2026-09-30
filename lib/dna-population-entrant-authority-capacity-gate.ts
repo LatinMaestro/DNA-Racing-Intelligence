@@ -235,8 +235,15 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
   }
 
   return Object.freeze({
-    async assertFreshCurrentCapacity(requestedAuthority) {
+    async assertFreshCurrentCapacity(requestedAuthority, requestedRemainingRaceCount) {
       const authority = validateAuthority(requestedAuthority);
+      const remainingRaceCount =
+        requestedRemainingRaceCount === undefined
+          ? authority.unresolvedRaceCount
+          : positive(requestedRemainingRaceCount, "remainingRaceCount");
+      if (remainingRaceCount > authority.unresolvedRaceCount) {
+        capacityError("remainingRaceCount exceeds audited authority");
+      }
       if (
         sizingAuthority.unresolvedRaceCount !== authority.unresolvedRaceCount ||
         sizingAuthority.unresolvedRaceSetSha256 !==
@@ -304,12 +311,11 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         });
         r2CostProjection = projectDnaPopulationEntrantAuthorityR2Cost({
           currentUsage: measurement.currentR2Usage,
-          // The full unresolved count is intentionally reserved again on every
-          // cohort. This overstates remaining work after the checkpoint moves,
-          // but prevents a stale or ambiguous recovery count from weakening the
-          // owner-authorized cost ceiling.
+          // Continuation callers bind this count to independently recovered
+          // durable state. First-cohort callers omit it and retain the
+          // conservative full-authority reservation.
           plannedUsage: planDnaPopulationEntrantAuthorityRemainingR2Usage({
-            remainingRaceCount: authority.unresolvedRaceCount,
+            remainingRaceCount,
           }),
         });
         projectedImmediateNeonStorageBytes =
