@@ -60,6 +60,15 @@ The application must work correctly at the minimum supported design tier of **30
 
 The website uses one fixed **30 requests/minute combined cap across all configured keys**. Higher advertised limits, including the observed 150 requests/minute per key, are metadata only and must not automatically raise either a lane or aggregate allowance. Any future increase requires a separate owner decision and focused configuration change.
 
+The private Preview population entrant-authority backfill is the sole scoped exception:
+it requires exactly three distinct API credentials, gives each credential its own
+30 requests/minute budget, and permits at most 90 aggregate requests/minute.
+Provider rate-limit evidence may only hold or reduce the affected lane. The same
+backfill measures R2 usage before audit reads and before every cohort, reserving
+the complete remaining per-Race archive and compact-chunk upper bound; it stops
+before projected paid R2 usage exceeds 5,000,000 micro-USD. This exception does
+not authorize paid DNA, Neon, GitHub, Vercel or Production usage.
+
 The client/scheduler must:
 
 - capture available rate-limit response metadata;
