@@ -85,6 +85,7 @@ function batches<T>(
 
 const DNA_RACE_DOCUMENT_HYDRATION_CONCURRENCY = 3;
 export const DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS = 3 as const;
+export const DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS = 3 as const;
 export const DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS = 3 as const;
 export const DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS = 3 as const;
 
@@ -106,33 +107,37 @@ async function forEachWithConcurrency<T>(
   );
 }
 
-async function raceDocsWithMalformedResponseRetry(input: {
+async function raceDocsWithProviderRetry(input: {
   batch: readonly DnaRaceIdentifier[];
   client: Pick<DnaOpenLabClient, "raceDocs">;
   requestBudget: DnaOpenLabRequestBudget;
   onRequest?: () => void;
 }) {
-  for (
-    let attempt = 1;
-    attempt <= DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS;
-    attempt += 1
-  ) {
+  const maximumAttempts = Math.max(
+    DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+    DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS,
+  );
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     try {
       input.onRequest?.();
       return await input.requestBudget.execute(() =>
         input.client.raceDocs(input.batch),
       );
     } catch (error) {
-      if (!(
+      const retryLimit =
         error instanceof DnaOpenLabApiError &&
-        error.kind === "malformed_response" &&
-        attempt < DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS
-      )) {
+        error.kind === "malformed_response"
+          ? DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS
+          : error instanceof DnaOpenLabApiError &&
+              error.kind === "transport_error"
+            ? DNA_RACE_DOCUMENT_TRANSPORT_ERROR_MAX_ATTEMPTS
+            : 0;
+      if (retryLimit === 0 || attempt >= retryLimit) {
         throw error;
       }
     }
   }
-  throw new Error("unreachable malformed-response retry state");
+  throw new Error("unreachable provider retry state");
 }
 
 function resolvedEntrantAuthority(
@@ -213,7 +218,7 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
         >();
 
         try {
-          const response = await raceDocsWithMalformedResponseRetry({
+          const response = await raceDocsWithProviderRetry({
             batch,
             client: input.client,
             requestBudget: input.requestBudget,
