@@ -22,7 +22,14 @@ import type {
 } from "./neon-dna-open-lab-p5-first-backfill-ledger";
 import type { DnaOpenLabCombinedFinishedHistory } from "./neon-dna-open-lab-sync-publication";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
-import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
+import {
+  dnaPopulationEntrantAuthorityR2BillMicroUsd,
+  DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD,
+} from "./dna-population-entrant-authority-r2-cost-policy";
+import {
+  DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS,
+  type DnaOpenLabR2Usage,
+} from "./dna-open-lab-zero-cost-refresh-policy";
 
 const JSON_CONTENT_TYPE = "application/json";
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -61,6 +68,10 @@ export type DnaOpenLabP5FinishedHistoryAuthority = Readonly<{
 export type DnaOpenLabHistoryReadBudgetAuthorization = Readonly<{
   maximumClassBOperations: number;
   paidUsageAllowed: false;
+  r2PaidUsageAuthorization?: Readonly<{
+    currentUsage: DnaOpenLabR2Usage;
+    maximumCostMicroUsd: number;
+  }>;
 }>;
 
 export type DnaOpenLabCompactPopulationBaseline = Readonly<{
@@ -475,11 +486,49 @@ export async function assessDnaOpenLabCombinedHistoryPerformanceEvidence(input: 
     input.readBudget.maximumClassBOperations,
     "read budget maximumClassBOperations",
   );
-  if (
-    input.readBudget.paidUsageAllowed !== false ||
-    maximumClassBOperations > DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
-  ) {
-    historyError("read budget is not bounded to the zero-cost policy");
+  if (input.readBudget.paidUsageAllowed !== false) {
+    historyError("read budget is not bounded to the approved provider policy");
+  }
+  const r2PaidUsageAuthorization = input.readBudget.r2PaidUsageAuthorization;
+  if (r2PaidUsageAuthorization === undefined) {
+    if (
+      maximumClassBOperations >
+      DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations
+    ) {
+      historyError("read budget is not bounded to the zero-cost policy");
+    }
+  } else {
+    if (
+      !Number.isSafeInteger(r2PaidUsageAuthorization.maximumCostMicroUsd) ||
+      r2PaidUsageAuthorization.maximumCostMicroUsd < 1 ||
+      r2PaidUsageAuthorization.maximumCostMicroUsd >
+        DNA_POPULATION_ENTRANT_AUTHORITY_R2_MAXIMUM_COST_MICRO_USD
+    ) {
+      historyError("R2 paid read authorization is invalid");
+    }
+    const currentUsage = r2PaidUsageAuthorization.currentUsage;
+    const projectedUsage = Object.freeze({
+      storageBytes: nonNegativeInteger(
+        currentUsage.storageBytes,
+        "R2 paid read current storageBytes",
+      ),
+      classAOperations: nonNegativeInteger(
+        currentUsage.classAOperations,
+        "R2 paid read current classAOperations",
+      ),
+      classBOperations:
+        nonNegativeInteger(
+          currentUsage.classBOperations,
+          "R2 paid read current classBOperations",
+        ) + maximumClassBOperations,
+    });
+    if (
+      !Number.isSafeInteger(projectedUsage.classBOperations) ||
+      dnaPopulationEntrantAuthorityR2BillMicroUsd(projectedUsage) >
+        r2PaidUsageAuthorization.maximumCostMicroUsd
+    ) {
+      historyError("R2 paid read budget exceeds its authorized cost ceiling");
+    }
   }
   let r2ClassBOperationsUsed = nonNegativeInteger(
     input.baselineIndex?.r2ClassBOperationsUsed ?? 0,
