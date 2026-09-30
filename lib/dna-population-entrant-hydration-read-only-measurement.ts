@@ -140,10 +140,10 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
 
   const initialBudget = input.requestBudget.snapshot();
   if (
-    initialBudget.effectiveRequestsPerMinute >
+    initialBudget.effectiveRequestsPerMinute !==
     DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE
   ) {
-    measurementError("aggregate DNA request budget exceeds the safe ceiling");
+    measurementError("aggregate DNA request budget is not exactly 90 RPM");
   }
 
   const currentR2StorageBytes = nonNegativeSafeInteger(
