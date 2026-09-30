@@ -54,12 +54,13 @@ const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES =
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_SESSION_COHORT_LIMIT =
+  12 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES = 3 as const;
-export const DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE =
-  (DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE /
-    DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES) as 10;
+  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =
+  90 as const;
 
 export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "invalid_audited_authority"
@@ -70,6 +71,7 @@ export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "authority_already_complete"
   | "recovered_boundary_mismatch"
   | "request_budget_invalid"
+  | "capacity_unavailable"
   | "hydration_unavailable"
   | `hydration_${DnaRaceDocumentHydrationError["kind"]}`
   | `hydration_api_${DnaOpenLabApiError["kind"]}`
@@ -441,8 +443,7 @@ function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
   }
   if (
     !Number.isSafeInteger(snapshot.effectiveRequestsPerMinute) ||
-    snapshot.effectiveRequestsPerMinute < 1 ||
-    snapshot.effectiveRequestsPerMinute >
+    snapshot.effectiveRequestsPerMinute !==
       DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
     !Number.isSafeInteger(snapshot.requestsInCurrentWindow) ||
     snapshot.requestsInCurrentWindow < 0
@@ -902,6 +903,14 @@ export async function prepareDnaPopulationEntrantAuthorityCohort(input: {
   }
 
   validateRequestBudget(input.requestBudget);
+
+  try {
+    await input.capacityGate.assertFreshCurrentCapacity(bound.authority, {
+      persistedRaceCount: recoveredRaceCount,
+    });
+  } catch {
+    cohortError("capacity_unavailable");
+  }
 
   let hydration: Awaited<
     ReturnType<typeof hydrateDnaRaceDocumentsWithQuarantine>
