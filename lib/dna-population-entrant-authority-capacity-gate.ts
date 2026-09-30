@@ -278,19 +278,43 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
             measurement.currentR2Usage.classBOperations,
           currentNeonStorageBytes: measurement.currentNeonUsage.storageBytes,
         });
-        projectedR2CostMicroUsd = dnaPopulationEntrantAuthorityR2CostMicroUsd({
-          storageBytes:
-            measurement.currentR2Usage.storageBytes +
-            DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE.storageBytes,
-          classAOperations:
-            measurement.currentR2Usage.classAOperations +
-            DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
-              .classAOperations,
-          classBOperations:
-            measurement.currentR2Usage.classBOperations +
-            DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
-              .classBOperations,
-        });
+        const immediateR2CostMicroUsd =
+          dnaPopulationEntrantAuthorityR2CostMicroUsd({
+            storageBytes:
+              measurement.currentR2Usage.storageBytes +
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
+                .storageBytes,
+            classAOperations:
+              measurement.currentR2Usage.classAOperations +
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
+                .classAOperations,
+            classBOperations:
+              measurement.currentR2Usage.classBOperations +
+              DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_R2_USAGE
+                .classBOperations,
+          });
+        const fullPopulationRawRaceBytes =
+          authority.unresolvedRaceCount *
+          DNA_POPULATION_ENTRANT_AUTHORITY_VERIFIED_RACE_BYTES_CEILING;
+        const fullPopulationR2CostMicroUsd =
+          dnaPopulationEntrantAuthorityR2CostMicroUsd({
+            storageBytes:
+              measurement.currentR2Usage.storageBytes +
+              fullPopulationRawRaceBytes +
+              archiveProjection.projected.r2StorageBytes,
+            classAOperations:
+              measurement.currentR2Usage.classAOperations +
+              authority.unresolvedRaceCount +
+              archiveProjection.projected.r2ClassAOperations,
+            classBOperations:
+              measurement.currentR2Usage.classBOperations +
+              authority.unresolvedRaceCount +
+              archiveProjection.projected.r2ClassBOperations,
+          });
+        projectedR2CostMicroUsd = Math.max(
+          immediateR2CostMicroUsd,
+          fullPopulationR2CostMicroUsd,
+        );
         projectedNeonStorageBytes =
           measurement.currentNeonUsage.storageBytes +
           DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE.storageBytes;
