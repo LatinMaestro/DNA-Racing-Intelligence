@@ -54,9 +54,20 @@ function snapshot(
  */
 export function createDnaOpenLabIndependentRaceDocRuntime(
   lanes: readonly DnaOpenLabIndependentRaceDocLane[],
+  options: Readonly<{ requiredAggregateRequestsPerMinute?: number }> = {},
 ): DnaOpenLabIndependentRaceDocRuntime {
   if (lanes.length < 1 || lanes.length > 16) {
     throw new Error("race-doc lane count is invalid");
+  }
+
+  const requiredAggregateRequestsPerMinute =
+    options.requiredAggregateRequestsPerMinute;
+  if (
+    requiredAggregateRequestsPerMinute !== undefined &&
+    (!Number.isSafeInteger(requiredAggregateRequestsPerMinute) ||
+      requiredAggregateRequestsPerMinute < 1)
+  ) {
+    throw new Error("required aggregate Race-doc rate is invalid");
   }
 
   let laneCursor = 0;
@@ -75,6 +86,13 @@ export function createDnaOpenLabIndependentRaceDocRuntime(
   const execute = async <T>(
     request: () => Promise<DnaOpenLabResponse<T>>,
   ): Promise<DnaOpenLabResponse<T>> => {
+    if (
+      requiredAggregateRequestsPerMinute !== undefined &&
+      snapshot(lanes).effectiveRequestsPerMinute !==
+        requiredAggregateRequestsPerMinute
+    ) {
+      throw new Error("required aggregate Race-doc rate is unavailable");
+    }
     const lane = lanes[laneCursor % lanes.length];
     laneCursor += 1;
     if (lane === undefined) throw new Error("race-doc lane is unavailable");
