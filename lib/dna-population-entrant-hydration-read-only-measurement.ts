@@ -1,3 +1,4 @@
+import { DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
 import { dnaPopulationEntrantAuthorityRecordBytes } from "./dna-population-entrant-authority-record";
 import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
 import {
@@ -5,10 +6,7 @@ import {
   DNA_RACE_DOCUMENT_BATCH_LIMIT,
 } from "./dna-open-lab-race-document-hydrator";
 import type { DnaOpenLabProviderCapacityMeasurement } from "./dna-open-lab-provider-capacity-preflight";
-import {
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-  type DnaOpenLabRequestBudget,
-} from "./dna-open-lab-request-budget";
+import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import { dnaOpenLabRawEvidenceCanonicalJson } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "./dna-open-lab-zero-cost-provider-capacity";
@@ -42,7 +40,7 @@ export type DnaPopulationEntrantHydrationReadOnlyMeasurement = Readonly<{
     currentNeonComputeMilliCuHours: number;
     neonComputeHeadroomMilliCuHours: number;
   }>;
-  aggregateRequestsPerMinute: typeof DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
   persistentWritePerformed: false;
   providerWritePerformed: false;
   paidUsageAllowed: false;
@@ -143,7 +141,7 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
   const initialBudget = input.requestBudget.snapshot();
   if (
     initialBudget.effectiveRequestsPerMinute >
-    DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE
+    DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE
   ) {
     measurementError("aggregate DNA request budget exceeds the safe ceiling");
   }
@@ -290,7 +288,7 @@ export async function measureDnaPopulationEntrantHydrationReadOnly(input: {
         DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours -
         currentNeonComputeMilliCuHours,
     }),
-    aggregateRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+    aggregateRequestsPerMinute: DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
     persistentWritePerformed: false,
     providerWritePerformed: false,
     paidUsageAllowed: false,
