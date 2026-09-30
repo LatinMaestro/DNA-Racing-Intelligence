@@ -128,6 +128,8 @@ function assessment(
 
 function harness(input?: {
   baselineCount?: number;
+  storageBytes?: number;
+  classAOperations?: number;
   classBOperations?: number;
   history?: Readonly<{
     receiptCount: number;
@@ -178,8 +180,8 @@ function harness(input?: {
           billingWindowStartAt: "2026-09-01T00:00:00.000Z",
           billingWindowEndAt: "2026-10-01T00:00:00.000Z",
           currentR2Usage: Object.freeze({
-            storageBytes: 1_000,
-            classAOperations: 1_000,
+            storageBytes: input?.storageBytes ?? 1_000,
+            classAOperations: input?.classAOperations ?? 1_000,
             classBOperations: input?.classBOperations ?? 1_000,
           }),
           neonMeasuredAt: "2026-09-26T00:00:00.000Z",
@@ -474,7 +476,7 @@ describe("population entrant live audit source", () => {
     expect(target.baseline.load).not.toHaveBeenCalled();
   });
 
-  it("uses only available zero-cost R2 headroom instead of reserving the fixed ceiling", async () => {
+  it("uses the bounded paid R2 allowance beyond the former zero-cost reserve", async () => {
     const target = harness({ classBOperations: 8_999_996 });
 
     await expect(
@@ -485,8 +487,9 @@ describe("population entrant live audit source", () => {
     expect(target.chunkStore.read).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed before R2 evidence reads when the known read floor exceeds headroom", async () => {
+  it("fails closed before R2 evidence reads when the US$5 allowance is exhausted", async () => {
     const target = harness({
+      classAOperations: 2_111_112,
       classBOperations: 8_999_991,
       history: Object.freeze({
         receiptCount: 1,
