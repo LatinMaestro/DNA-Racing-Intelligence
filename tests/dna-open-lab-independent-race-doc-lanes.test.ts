@@ -56,7 +56,9 @@ describe("independent Race-doc API-key lanes", () => {
     });
   });
 
-  it("fails closed before another request when one key drops below the required aggregate rate", async () => {
+  it(
+    "fails closed before another request when one key drops below the required aggregate rate",
+    async () => {
     const throttledResponse = Object.freeze({
       ...response(),
       rateLimit: Object.freeze({
@@ -84,11 +86,14 @@ describe("independent Race-doc API-key lanes", () => {
 
     await runtime.requestBudget.execute(() => runtime.client.raceDocs([1]));
 
-    expect(runtime.requestBudget.snapshot().effectiveRequestsPerMinute).toBe(80);
-    await expect(
-      runtime.requestBudget.execute(() => runtime.client.raceDocs([2])),
-    ).rejects.toThrow("required aggregate Race-doc rate is unavailable");
-  });
+      expect(runtime.requestBudget.snapshot().effectiveRequestsPerMinute).toBe(
+        80,
+      );
+      await expect(
+        runtime.requestBudget.execute(() => runtime.client.raceDocs([2])),
+      ).rejects.toThrow("required aggregate Race-doc rate is unavailable");
+    },
+  );
 
   it("retains the selected lane through an async wrapper", async () => {
     const calls = [vi.fn(), vi.fn(), vi.fn()];
