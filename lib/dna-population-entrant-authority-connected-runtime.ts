@@ -374,6 +374,11 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
             typeof createDnaPopulationEntrantAuthorityCapacityGate
           >["assertFreshCurrentCapacity"]
         >[0],
+        context?: Parameters<
+          ReturnType<
+            typeof createDnaPopulationEntrantAuthorityCapacityGate
+          >["assertFreshCurrentCapacity"]
+        >[1],
       ) {
         const gate = createDnaPopulationEntrantAuthorityCapacityGate({
           ownerId: config.ownerId,
@@ -389,7 +394,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
           }),
           ...(input.now === undefined ? {} : { now: input.now }),
         });
-        return gate.assertFreshCurrentCapacity(authority);
+        return gate.assertFreshCurrentCapacity(authority, context);
       },
     });
 
