@@ -853,7 +853,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     });
   });
 
-  it("fails closed instead of mass-quarantining an empty multi-Race provider batch", async () => {
+  it("accepts only individually verified missing-Race quarantines after a persistent empty batch", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
@@ -862,20 +862,36 @@ describe("DNA population entrant authority cohort bridge", () => {
       provider: () => [],
     });
 
-    const error = await prepare({
+    const prepared = await prepare({
       raceDocuments,
       plan,
       authority,
       test,
-    }).catch((caught: unknown) => caught);
+    });
 
-    expect(error).toMatchObject({
-      diagnostic: "hydration_invalid_response",
-      message: "Population entrant cohort processing is unavailable",
+    expect(prepared.summary).toMatchObject({
+      selectedRaceCount: 2,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 2,
+      providerRequestCount: 9,
+      preparationSource: "provider_hydration",
+      aggregateRequestsPerMinute: 90,
     });
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
-    expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
+
+    const committed = await prepared.commit({
+      registeredAt: REGISTERED_AT,
+    });
+
+    expect(committed).toMatchObject({
+      rowCount: 2,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 2,
+      checkpointRaceCountBefore: 0,
+      checkpointRaceCountAfter: 2,
+      authorityComplete: true,
+    });
   });
 
   it("preserves a sanitized API hydration failure family", async () => {
