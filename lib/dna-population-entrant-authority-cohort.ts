@@ -441,8 +441,7 @@ function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
   }
   if (
     !Number.isSafeInteger(snapshot.effectiveRequestsPerMinute) ||
-    snapshot.effectiveRequestsPerMinute < 1 ||
-    snapshot.effectiveRequestsPerMinute >
+    snapshot.effectiveRequestsPerMinute !==
       DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
     !Number.isSafeInteger(snapshot.requestsInCurrentWindow) ||
     snapshot.requestsInCurrentWindow < 0
