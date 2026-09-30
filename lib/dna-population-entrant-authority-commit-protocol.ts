@@ -26,9 +26,14 @@ export type DnaPopulationEntrantAuthorityCapacityApproval = Readonly<{
   paidUsageAllowed: false;
 }>;
 
+export type DnaPopulationEntrantAuthorityCapacityContext = Readonly<{
+  persistedRaceCount: number;
+}>;
+
 export type DnaPopulationEntrantAuthorityCapacityGate = Readonly<{
   assertFreshCurrentCapacity: (
     authority: DnaPopulationEntrantAuthorityCheckpointAuthority,
+    context?: DnaPopulationEntrantAuthorityCapacityContext,
   ) => Promise<DnaPopulationEntrantAuthorityCapacityApproval>;
 }>;
 
@@ -223,7 +228,7 @@ function validateCheckpointAdvance(input: {
  *
  * The protocol is intentionally strict:
  * 1. recover and verify all existing manifests/R2 objects;
- * 2. require a fresh current zero-cost capacity approval bound to that authority;
+ * 2. require a fresh current owner-authorized capacity approval bound to that authority;
  * 3. write and verify the immutable R2 object;
  * 4. only then register the matching Neon manifest/checkpoint.
  *
@@ -231,8 +236,8 @@ function validateCheckpointAdvance(input: {
  * exact idempotent "existing" object before retrying manifest registration.
  *
  * This function does not discover Race IDs, call DNA, create compact records,
- * expose a command/workflow, or enable paid usage. It is a code-level commit
- * primitive for later commissioning only.
+ * expose a command/workflow, or broaden paid usage beyond the explicit R2
+ * ceiling. It is a code-level commit primitive for later commissioning only.
  */
 export async function commitDnaPopulationEntrantAuthorityChunk(input: {
   ownerId: string;
@@ -264,8 +269,10 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     resumeAfterSourceRaceId: recovery.resumeAfterSourceRaceId,
   });
 
-  const approval =
-    await input.capacityGate.assertFreshCurrentCapacity(authority);
+  const approval = await input.capacityGate.assertFreshCurrentCapacity(
+    authority,
+    { persistedRaceCount: recovery.recoveredRaceCount },
+  );
   const capacityObservedAt = validateCapacityApproval({ authority, approval });
 
   const stored = await input.r2Store.write({
