@@ -8,10 +8,9 @@ import {
 
 describe("population entrant authority R2 cost policy", () => {
   it("prices current usage plus the complete conservative remaining archive below the owner cap", () => {
-    const plannedUsage =
-      planDnaPopulationEntrantAuthorityRemainingR2Usage({
-        remainingRaceCount: 1_135_198,
-      });
+    const plannedUsage = planDnaPopulationEntrantAuthorityRemainingR2Usage({
+      remainingRaceCount: 1_135_198,
+    });
     const projection = projectDnaPopulationEntrantAuthorityR2Cost({
       currentUsage: {
         storageBytes: 1_500_631_079,
