@@ -123,6 +123,13 @@ function runnerError(
   throw new DnaPopulationEntrantAuthorityAutonomousRunnerError(diagnostic);
 }
 
+function isReplayableCommitError(error: unknown): boolean {
+  return (
+    error instanceof DnaPopulationEntrantAuthorityContinuationCommandError &&
+    error.diagnostic === "cohort_commit_unavailable"
+  );
+}
+
 function exactHead(
   value: string,
   diagnostic: "invalid_configuration" | "exact_head_mismatch",
@@ -474,11 +481,8 @@ export function createDnaPopulationEntrantAuthorityAutonomousRunner(input: {
           commit = await session.commit();
           break;
         } catch (error) {
-          const replayable =
-            error instanceof DnaPopulationEntrantAuthorityContinuationCommandError &&
-            error.diagnostic === "cohort_commit_unavailable";
           if (
-            !replayable ||
+            !isReplayableCommitError(error) ||
             attempt ===
               DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS
           ) {
