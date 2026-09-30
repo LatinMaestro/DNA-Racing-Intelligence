@@ -84,8 +84,10 @@ export function createDnaPopulationEntrantAuthorityReadinessInspector(input: {
         )
           unavailable();
 
-        const approval =
-          await input.capacityGate.assertFreshCurrentCapacity(authority);
+        const approval = await input.capacityGate.assertFreshCurrentCapacity(
+          authority,
+          { persistedRaceCount: 0 },
+        );
         if (
           approval.version !== 1 ||
           approval.capacityAllowed !== true ||
