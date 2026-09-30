@@ -29,7 +29,14 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: Check formatting
+        shell: bash
+        run: |
+          if ! npm run format; then
+            npx prettier --write lib/dna-open-lab-race-document-quarantine-hydrator.ts
+            git diff -- lib/dna-open-lab-race-document-quarantine-hydrator.ts
+            exit 1
+          fi
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
