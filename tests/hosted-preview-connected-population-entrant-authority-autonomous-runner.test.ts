@@ -17,11 +17,11 @@ const connected =
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-// The former 1,000-Race/frequent-full-audit path could cross the hosted
-// deadline at eight cohorts. The optimized path uses 5,000-Race cohorts and
-// one full authority scan per session; eight cohorts have a ~67-minute API
-// floor at the permanent 30-rpm x 20-ID ceiling, retaining wide timeout margin.
-const SESSION_COHORT_LIMIT = 8;
+// The entrant population uses three independently confirmed API-key counters:
+// 30 RPM per key, 90 RPM aggregate, with 20 Race IDs/request. Twelve 5,000-Race
+// cohorts therefore have a ~33.4-minute API floor while retaining substantial
+// headroom inside the hosted timeout for audits, R2 verification and recovery.
+const SESSION_COHORT_LIMIT = 12;
 const RESULT_FILENAME = "dna-entrant-autonomous-session.json";
 const FAILURE_FILENAME = "dna-entrant-autonomous-failure.json";
 
