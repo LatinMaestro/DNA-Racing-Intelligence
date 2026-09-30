@@ -164,6 +164,10 @@ describe("DNA population entrant authority commit protocol", () => {
       "r2-write",
       "manifest-register",
     ]);
+    expect(test.capacityGate.assertFreshCurrentCapacity).toHaveBeenCalledWith(
+      authority,
+      3,
+    );
     expect(result).toMatchObject({
       storageStatus: "created",
       capacityObservedAt: "2026-09-25T06:01:00.000Z",
