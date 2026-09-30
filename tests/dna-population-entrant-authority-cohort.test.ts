@@ -5,7 +5,10 @@ import {
   type DnaPopulationEntrantAuthorityChunk,
 } from "@/lib/dna-population-entrant-authority-archive";
 import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+  DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES,
   DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES,
+  DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
   prepareDnaPopulationEntrantAuthorityCohort,
   type DnaPopulationEntrantAuthorityCohortR2Port,
   type DnaPopulationEntrantAuthorityExpectedRecoveryBoundary,
@@ -394,6 +397,14 @@ async function prepare(input: {
 }
 
 describe("DNA population entrant authority cohort bridge", () => {
+  it("uses three independently capped 30-RPM lanes for 90 aggregate RPM", () => {
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES).toBe(3);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE).toBe(30);
+    expect(
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+    ).toBe(90);
+  });
+
   it("prepares exact strict hydration then commits through capacity, R2 and Neon", async () => {
     const raceDocuments = unresolvedRaceDocuments(45);
     const plan = planFor(raceDocuments);
