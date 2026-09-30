@@ -177,7 +177,10 @@ function assertFreshMeasurement(input: {
     typeof input.measurement !== "object" ||
     input.measurement.evidenceSource !== "provider_api"
   ) {
-    capacityError("current provider measurement is invalid", "measurement_invalid");
+    capacityError(
+      "current provider measurement is invalid",
+      "measurement_invalid",
+    );
   }
   const r2MeasuredAt = exactInstant(input.measurement.measuredAt, "measuredAt");
   const neonMeasuredAt = exactInstant(
@@ -189,7 +192,10 @@ function assertFreshMeasurement(input: {
       measuredAt > input.checkedAt ||
       input.checkedAt - measuredAt > input.maximumAgeMilliseconds
     ) {
-      capacityError("current provider measurement is stale or future-dated", "measurement_stale");
+      capacityError(
+        "current provider measurement is stale or future-dated",
+        "measurement_stale",
+      );
     }
   }
 }
@@ -239,7 +245,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         capacityError("sizing authority disagrees with audited authority");
       }
       if (input.measurementSource.status !== "ready") {
-        capacityError("current provider measurement is unavailable", "measurement_unavailable");
+        capacityError(
+          "current provider measurement is unavailable",
+          "measurement_unavailable",
+        );
       }
 
       const started = now();
@@ -251,7 +260,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
       try {
         measurement = await input.measurementSource.measure({ ownerId });
       } catch {
-        capacityError("current provider measurement failed", "measurement_failed");
+        capacityError(
+          "current provider measurement failed",
+          "measurement_failed",
+        );
       }
 
       const checked = now();
@@ -310,7 +322,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
           !Number.isSafeInteger(projectedImmediateNeonStorageBytes) ||
           !Number.isSafeInteger(projectedImmediateNeonComputeMilliCuHours)
         ) {
-          capacityError("current provider capacity projection is invalid", "projection_invalid");
+          capacityError(
+            "current provider capacity projection is invalid",
+            "projection_invalid",
+          );
         }
       } catch {
         capacityError("current provider capacity projection is invalid");
@@ -324,7 +339,10 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
           "r2_storage_class_blocked",
         );
       }
-      if (!r2CostProjection.allowed || r2CostProjection.paidR2UsageAllowed !== true) {
+      if (
+        !r2CostProjection.allowed ||
+        r2CostProjection.paidR2UsageAllowed !== true
+      ) {
         capacityError(
           "current provider capacity is blocked",
           "r2_cost_ceiling_blocked",
