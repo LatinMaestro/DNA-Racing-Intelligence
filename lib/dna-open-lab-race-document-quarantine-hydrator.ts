@@ -262,7 +262,9 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
                 endpoint: "races.docs",
               });
             } catch (error) {
-              if (!(error instanceof DnaRaceDocumentAdaptationProcessingError)) {
+              if (
+                !(error instanceof DnaRaceDocumentAdaptationProcessingError)
+              ) {
                 throw error;
               }
               batchOutcomes.set(
