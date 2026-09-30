@@ -212,6 +212,7 @@ describe("population entrant continuation readiness", () => {
     expect(receipt.durableBoundarySha256).toMatch(/^[a-f0-9]{64}$/u);
     expect(test.capacityGate.assertFreshCurrentCapacity).toHaveBeenCalledWith(
       AUTHORITY,
+      { persistedRaceCount: 2 },
     );
     expect(test.r2Store.read).toHaveBeenCalledOnce();
     expect(JSON.stringify(receipt)).not.toContain("race-2");
@@ -295,7 +296,7 @@ describe("population entrant continuation readiness", () => {
     );
     expect(error).toMatchObject({ diagnostic: "capacity_unavailable" });
     expect(String(error)).not.toContain("private-provider-capacity-secret");
-    expect(test.checkpointRepository.read).not.toHaveBeenCalled();
+    expect(test.checkpointRepository.read).toHaveBeenCalledOnce();
     expect(test.r2Store.read).not.toHaveBeenCalled();
   });
 
