@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createDnaPopulationEntrantAuthorityAutonomousRunner,
+  DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS,
   DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_INTENT,
   DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_RUNNER_VERSION,
   type DnaPopulationEntrantAuthorityAutonomousBoundary,
@@ -426,6 +427,79 @@ describe("population entrant authority autonomous runner", () => {
     ).rejects.toMatchObject({
       diagnostic: "continuation_cohort_hydration_unavailable",
     });
+  });
+
+  it("replays a transient idempotent commit interruption without rehydrating", async () => {
+    const accepted = boundary();
+    const advanced = boundary({
+      recoveredChunkCount: 3,
+      recoveredRaceCount: 3_000,
+      checkpointUpdatedAt: "2026-09-28T00:02:00.000Z",
+      capacityObservedAt: "2026-09-28T00:02:10.000Z",
+      durableBoundarySha256: "3".repeat(64),
+    });
+    const preparedSession = session({ before: accepted });
+    const receipt = commit({ before: accepted, rowCount: 1_000 });
+    const commitAttempt = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new DnaPopulationEntrantAuthorityContinuationCommandError(
+          "cohort_commit_unavailable",
+        ),
+      )
+      .mockResolvedValueOnce(receipt);
+    const executeContinuation = vi.fn(async () =>
+      Object.freeze({ ...preparedSession, commit: commitAttempt }),
+    );
+    const inspect = vi
+      .fn()
+      .mockResolvedValueOnce(accepted)
+      .mockResolvedValueOnce(advanced);
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect },
+      continuationCommand: { executeContinuation },
+      now: () => new Date("2026-09-28T00:01:00.000Z"),
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(accepted), 1),
+    ).resolves.toMatchObject({
+      status: "advanced",
+      completedCohortCount: 1,
+      boundary: { recoveredRaceCount: 3_000 },
+    });
+    expect(executeContinuation).toHaveBeenCalledOnce();
+    expect(commitAttempt).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed after the bounded replay ceiling for commit interruptions", async () => {
+    const accepted = boundary();
+    const preparedSession = session({ before: accepted });
+    const commitAttempt = vi.fn(async () => {
+      throw new DnaPopulationEntrantAuthorityContinuationCommandError(
+        "cohort_commit_unavailable",
+      );
+    });
+    const executeContinuation = vi.fn(async () =>
+      Object.freeze({ ...preparedSession, commit: commitAttempt }),
+    );
+    const inspect = vi.fn(async () => accepted);
+    const runner = createDnaPopulationEntrantAuthorityAutonomousRunner({
+      runtimeCodeHeadSha: HEAD,
+      boundaryInspector: { inspect },
+      continuationCommand: { executeContinuation },
+      now: () => new Date("2026-09-28T00:01:00.000Z"),
+    });
+
+    await expect(
+      runner.runBoundedSession(invocation(accepted), 1),
+    ).rejects.toMatchObject({ diagnostic: "commit_unavailable" });
+    expect(commitAttempt).toHaveBeenCalledTimes(
+      DNA_POPULATION_ENTRANT_AUTHORITY_AUTONOMOUS_COMMIT_MAXIMUM_ATTEMPTS,
+    );
+    expect(inspect).toHaveBeenCalledOnce();
+    expect(executeContinuation).toHaveBeenCalledOnce();
   });
 
   it("sanitizes provider, capacity and persistence failures", async () => {
