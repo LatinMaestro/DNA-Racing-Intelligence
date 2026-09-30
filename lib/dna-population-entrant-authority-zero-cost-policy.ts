@@ -43,7 +43,8 @@ function billedMicroUsd(input: {
 }): number {
   const billable = Math.max(
     0,
-    nonNegative(input.used, "usage") - nonNegative(input.free, "free allowance"),
+    nonNegative(input.used, "usage") -
+      nonNegative(input.free, "free allowance"),
   );
   if (
     !Number.isSafeInteger(input.microUsdPerUnit) ||
@@ -131,7 +132,10 @@ export function dnaPopulationEntrantAuthorityAdditionalClassBOperations(
     classBOperations: 0,
   }),
 ): number {
-  const reservedStorage = nonNegative(reserve.storageBytes, "reserved storage");
+  const reservedStorage = nonNegative(
+    reserve.storageBytes,
+    "reserved storage",
+  );
   const reservedClassA = nonNegative(
     reserve.classAOperations,
     "reserved Class-A operations",
