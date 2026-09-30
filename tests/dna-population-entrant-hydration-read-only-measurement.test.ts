@@ -100,7 +100,7 @@ describe("population entrant hydration read-only measurement", () => {
       },
       providerRequestCount: 1,
       returnedRowCount: 3,
-      aggregateRequestsPerMinute: 30,
+      aggregateRequestsPerMinute: 90,
       persistentWritePerformed: false,
       providerWritePerformed: false,
       paidUsageAllowed: false,
