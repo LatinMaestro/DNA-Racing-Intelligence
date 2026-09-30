@@ -13,6 +13,7 @@ import type {
   DnaPopulationEntrantAuthorityR2ChunkReceipt,
   DnaPopulationEntrantAuthorityR2ChunkWrite,
 } from "./dna-population-entrant-authority-r2-store";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_AUTHORIZED_R2_COST_MICRO_USD } from "./dna-population-entrant-authority-zero-cost-policy";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -24,6 +25,9 @@ export type DnaPopulationEntrantAuthorityCapacityApproval = Readonly<{
   observedAt: string;
   capacityAllowed: true;
   paidUsageAllowed: false;
+  r2PaidUsageAuthorized?: true;
+  maximumAuthorizedR2CostMicroUsd?: number;
+  projectedR2CostMicroUsd?: number;
 }>;
 
 export type DnaPopulationEntrantAuthorityCapacityGate = Readonly<{
@@ -125,6 +129,22 @@ function validateCapacityApproval(input: {
       input.authority.unresolvedRaceSetSha256
   ) {
     commitError("fresh current capacity approval disagrees with authority");
+  }
+  const hasR2CostAuthority =
+    input.approval.r2PaidUsageAuthorized !== undefined ||
+    input.approval.maximumAuthorizedR2CostMicroUsd !== undefined ||
+    input.approval.projectedR2CostMicroUsd !== undefined;
+  if (
+    hasR2CostAuthority &&
+    (input.approval.r2PaidUsageAuthorized !== true ||
+      input.approval.maximumAuthorizedR2CostMicroUsd !==
+        DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_AUTHORIZED_R2_COST_MICRO_USD ||
+      !Number.isSafeInteger(input.approval.projectedR2CostMicroUsd) ||
+      Number(input.approval.projectedR2CostMicroUsd) < 0 ||
+      Number(input.approval.projectedR2CostMicroUsd) >
+        input.approval.maximumAuthorizedR2CostMicroUsd)
+  ) {
+    commitError("fresh current R2 cost approval is invalid");
   }
   return observedAt;
 }
