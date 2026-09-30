@@ -255,15 +255,6 @@ function createDurableBoundaryProofInspector(
           unavailable();
         }
 
-        stage = "capacity_unavailable";
-        const approval = await input.capacityGate.assertFreshCurrentCapacity(
-          audit.authority,
-        );
-        const observedAt = capacityObservedAt({
-          authority: audit.authority,
-          approval,
-        });
-
         stage = "recovery_unavailable";
         const recovery = await recoverDnaPopulationEntrantAuthority({
           ownerId,
@@ -288,6 +279,18 @@ function createDurableBoundaryProofInspector(
         const checkpointUpdatedAt = exactTimestamp(
           recovery.checkpoint.updatedAt,
         );
+
+        stage = "capacity_unavailable";
+        const approval = await input.capacityGate.assertFreshCurrentCapacity(
+          audit.authority,
+          audit.authority.unresolvedRaceCount - recovery.recoveredRaceCount,
+        );
+        const observedAt = capacityObservedAt({
+          authority: audit.authority,
+          approval,
+        });
+
+        stage = "durable_boundary_invalid";
         const boundarySha256 = durableBoundarySha256({
           exactCodeHeadSha,
           unresolvedRaceCount: audit.authority.unresolvedRaceCount,
