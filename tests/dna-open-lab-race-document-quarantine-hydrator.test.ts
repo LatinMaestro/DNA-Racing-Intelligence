@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+  DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS,
   DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
   hydrateDnaRaceDocumentsWithQuarantine,
 } from "@/lib/dna-open-lab-race-document-quarantine-hydrator";
@@ -335,50 +336,115 @@ describe("DNA race document quarantine hydrator", () => {
       quarantinedRaceCount: 0,
     });
     expect(calls).toBe(DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS);
+    expect(result.providerRequestCount).toBe(
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
+    );
     expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
       DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
     );
   });
 
-  it("fails closed instead of mass-quarantining an empty multi-Race batch", async () => {
+  it("isolates a persistently empty multi-Race batch before quarantining verified missing Races", async () => {
     const target = clientWith(() => []);
     const requestBudget = createDnaOpenLabRequestBudget();
 
-    await expect(
-      hydrateDnaRaceDocumentsWithQuarantine({
-        raceIds: [1, 2],
-        client: target.client,
-        requestBudget,
-        observedAt: "2026-08-27T08:00:00Z",
-      }),
-    ).rejects.toMatchObject({
-      name: "DnaRaceDocumentHydrationError",
-      kind: "invalid_response",
-      message: "race-doc batch coverage is systemically unavailable",
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client: target.client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
     });
-    expect(target.calls).toHaveLength(
-      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
-    );
+
+    const expectedRequests =
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS +
+      2 * DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      batchCount: 1,
+      providerRequestCount: expectedRequests,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 2,
+    });
+    expect(result.outcomes).toEqual([
+      {
+        status: "quarantined",
+        sourceRaceId: "1",
+        observedAt: "2026-08-27T08:00:00Z",
+        quarantineReason: "provider_document_missing",
+      },
+      {
+        status: "quarantined",
+        sourceRaceId: "2",
+        observedAt: "2026-08-27T08:00:00Z",
+        quarantineReason: "provider_document_missing",
+      },
+    ]);
+    expect(target.calls).toHaveLength(expectedRequests);
     expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
-      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
+      expectedRequests,
     );
   });
 
-  it("fails closed when every Race in a multi-Race batch remains unresolved", async () => {
+  it("isolates a persistently unresolved batch and retains stable Race-specific quarantine evidence", async () => {
     const target = clientWith((raceIds) =>
       raceIds.map((rid) => ({ rid, rvmode: "bike" })),
     );
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client: target.client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    const expectedRequests =
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS +
+      2 * DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+    expect(result).toMatchObject({
+      providerRequestCount: expectedRequests,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 2,
+    });
+    expect(result.outcomes).toEqual([
+      expect.objectContaining({
+        status: "quarantined",
+        sourceRaceId: "1",
+        quarantineReason: "entrant_authority_unresolved",
+        sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      }),
+      expect.objectContaining({
+        status: "quarantined",
+        sourceRaceId: "2",
+        quarantineReason: "entrant_authority_unresolved",
+        sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      }),
+    ]);
+  });
+
+  it("fails closed when isolated quarantine evidence changes between probes", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async (raceIds) => {
+        calls += 1;
+        if (raceIds.length > 1) return response([]);
+        if (calls === DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS + 1) {
+          return response([]);
+        }
+        return response([{ rid: raceIds[0]!, rvmode: "bike" }]);
+      },
+    });
 
     await expect(
       hydrateDnaRaceDocumentsWithQuarantine({
         raceIds: [1, 2],
-        client: target.client,
+        client,
         requestBudget: createDnaOpenLabRequestBudget(),
         observedAt: "2026-08-27T08:00:00Z",
       }),
     ).rejects.toMatchObject({
       kind: "invalid_response",
-      message: "race-doc batch entrant authority is systemically unavailable",
+      message: "race-doc isolated quarantine evidence is unstable",
     });
   });
 
