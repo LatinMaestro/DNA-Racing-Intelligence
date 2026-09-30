@@ -110,7 +110,8 @@ describe("DNA population entrant authority capacity gate", () => {
       projectedR2CostMicroUsd: expect.any(Number),
     });
     const approval = await test.value.assertFreshCurrentCapacity(authority);
-    expect(approval.projectedR2CostMicroUsd).toBeLessThanOrEqual(
+    expect(approval.projectedR2CostMicroUsd).toBeTypeOf("number");
+    expect(Number(approval.projectedR2CostMicroUsd)).toBeLessThanOrEqual(
       DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_AUTHORIZED_R2_COST_MICRO_USD,
     );
     expect(test.fixture!.measure).toHaveBeenCalledWith({
