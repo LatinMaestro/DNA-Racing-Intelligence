@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DNA_RACE_DOCUMENT_MALFORMED_RESPONSE_MAX_ATTEMPTS,
+  DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
   hydrateDnaRaceDocumentsWithQuarantine,
 } from "@/lib/dna-open-lab-race-document-quarantine-hydrator";
 import { DnaOpenLabApiError } from "@/lib/dna-open-lab-v1-client";
@@ -302,14 +303,52 @@ describe("DNA race document quarantine hydrator", () => {
     );
   });
 
+  it("retries a transient systemic empty batch before accepting the same deterministic batch", async () => {
+    let calls = 0;
+    const client: Pick<DnaOpenLabClient, "raceDocs"> = Object.freeze({
+      raceDocs: async (raceIds) => {
+        calls += 1;
+        if (calls < DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS) {
+          return response([]);
+        }
+        return response(
+          raceIds.map((rid) => ({
+            rid,
+            rvmode: "bike",
+            hids: [Number(rid) + 100],
+          })),
+        );
+      },
+    });
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    expect(result).toMatchObject({
+      requestedRaceCount: 2,
+      resolvedRaceCount: 2,
+      quarantinedRaceCount: 0,
+    });
+    expect(calls).toBe(DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
+    );
+  });
+
   it("fails closed instead of mass-quarantining an empty multi-Race batch", async () => {
     const target = clientWith(() => []);
+    const requestBudget = createDnaOpenLabRequestBudget();
 
     await expect(
       hydrateDnaRaceDocumentsWithQuarantine({
         raceIds: [1, 2],
         client: target.client,
-        requestBudget: createDnaOpenLabRequestBudget(),
+        requestBudget,
         observedAt: "2026-08-27T08:00:00Z",
       }),
     ).rejects.toMatchObject({
@@ -317,6 +356,12 @@ describe("DNA race document quarantine hydrator", () => {
       kind: "invalid_response",
       message: "race-doc batch coverage is systemically unavailable",
     });
+    expect(target.calls).toHaveLength(
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
+    );
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS,
+    );
   });
 
   it("fails closed when every Race in a multi-Race batch remains unresolved", async () => {
