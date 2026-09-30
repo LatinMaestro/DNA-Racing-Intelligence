@@ -24,11 +24,19 @@ export type DnaPopulationEntrantAuthorityCapacityApproval = Readonly<{
   observedAt: string;
   capacityAllowed: true;
   paidUsageAllowed: false;
+  r2PaidUsageAuthorized?: true;
+  maximumR2CostMicroUsd?: number;
+  projectedR2CostMicroUsd?: number;
+}>;
+
+export type DnaPopulationEntrantAuthorityCapacityContext = Readonly<{
+  persistedRaceCount: number;
 }>;
 
 export type DnaPopulationEntrantAuthorityCapacityGate = Readonly<{
   assertFreshCurrentCapacity: (
     authority: DnaPopulationEntrantAuthorityCheckpointAuthority,
+    context: DnaPopulationEntrantAuthorityCapacityContext,
   ) => Promise<DnaPopulationEntrantAuthorityCapacityApproval>;
 }>;
 
@@ -118,6 +126,13 @@ function validateCapacityApproval(input: {
     input.approval.version !== 1 ||
     input.approval.capacityAllowed !== true ||
     input.approval.paidUsageAllowed !== false ||
+    (input.approval.r2PaidUsageAuthorized === true &&
+      (!Number.isSafeInteger(input.approval.maximumR2CostMicroUsd) ||
+        input.approval.maximumR2CostMicroUsd! < 1 ||
+        !Number.isSafeInteger(input.approval.projectedR2CostMicroUsd) ||
+        input.approval.projectedR2CostMicroUsd! < 0 ||
+        input.approval.projectedR2CostMicroUsd! >
+          input.approval.maximumR2CostMicroUsd!)) ||
     input.approval.generationId !== input.authority.generationId ||
     input.approval.unresolvedRaceCount !==
       input.authority.unresolvedRaceCount ||
@@ -264,8 +279,10 @@ export async function commitDnaPopulationEntrantAuthorityChunk(input: {
     resumeAfterSourceRaceId: recovery.resumeAfterSourceRaceId,
   });
 
-  const approval =
-    await input.capacityGate.assertFreshCurrentCapacity(authority);
+  const approval = await input.capacityGate.assertFreshCurrentCapacity(
+    authority,
+    { persistedRaceCount: recovery.recoveredRaceCount },
+  );
   const capacityObservedAt = validateCapacityApproval({ authority, approval });
 
   const stored = await input.r2Store.write({
