@@ -397,16 +397,13 @@ async function prepare(input: {
 }
 
 describe("DNA population entrant authority cohort bridge", () => {
-  it(
-    "uses three independently capped 30-RPM lanes for 90 aggregate RPM",
-    () => {
-      expect(DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES).toBe(3);
-      expect(DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE).toBe(30);
-      expect(
-        DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
-      ).toBe(90);
-    },
-  );
+  it("uses three independently capped 30-RPM lanes for 90 aggregate RPM", () => {
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES).toBe(3);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE).toBe(30);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE).toBe(
+      90,
+    );
+  });
 
   it("prepares exact strict hydration then commits through capacity, R2 and Neon", async () => {
     const raceDocuments = unresolvedRaceDocuments(45);
@@ -949,9 +946,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
   });
 
-  it(
-    "rejects an aggregate request budget below 90 RPM before transport",
-    async () => {
+  it("rejects an aggregate request budget below 90 RPM before transport", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
@@ -969,13 +964,12 @@ describe("DNA population entrant authority cohort bridge", () => {
       requestBudget,
     }).catch((caught: unknown) => caught);
 
-      expect(error).toMatchObject({
-        diagnostic: "request_budget_invalid",
-      });
-      expect(test.providerCalls).toHaveLength(0);
-      expect(test.r2Store.write).not.toHaveBeenCalled();
-    },
-  );
+    expect(error).toMatchObject({
+      diagnostic: "request_budget_invalid",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.r2Store.write).not.toHaveBeenCalled();
+  });
 
   it("rejects an aggregate request budget above 90 RPM before transport", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
