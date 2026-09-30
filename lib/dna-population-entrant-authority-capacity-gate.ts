@@ -30,6 +30,31 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_COMMIT_PLANNED_NEON_USAGE =
     computeMilliCuHours: 1_000,
   });
 
+export type DnaPopulationEntrantAuthorityCapacityDiagnostic =
+  | "invalid_configuration"
+  | "measurement_unavailable"
+  | "measurement_failed"
+  | "measurement_invalid"
+  | "measurement_stale"
+  | "projection_invalid"
+  | "r2_storage_class_blocked"
+  | "r2_cost_ceiling_blocked"
+  | "neon_storage_blocked"
+  | "neon_compute_blocked";
+
+export class DnaPopulationEntrantAuthorityCapacityError extends Error {
+  readonly diagnostic: DnaPopulationEntrantAuthorityCapacityDiagnostic;
+
+  constructor(
+    diagnostic: DnaPopulationEntrantAuthorityCapacityDiagnostic,
+    message: string,
+  ) {
+    super(`Population entrant authority capacity gate: ${message}`);
+    this.name = "DnaPopulationEntrantAuthorityCapacityError";
+    this.diagnostic = diagnostic;
+  }
+}
+
 export type DnaPopulationEntrantAuthoritySizingAuthority = Readonly<{
   version: 1;
   unresolvedRaceCount: number;
@@ -38,8 +63,11 @@ export type DnaPopulationEntrantAuthoritySizingAuthority = Readonly<{
   verifiedIncrementalMaximumCompactEntrantAuthorityBytes: number;
 }>;
 
-function capacityError(message: string): never {
-  throw new Error(`Population entrant authority capacity gate: ${message}`);
+function capacityError(
+  message: string,
+  diagnostic: DnaPopulationEntrantAuthorityCapacityDiagnostic = "invalid_configuration",
+): never {
+  throw new DnaPopulationEntrantAuthorityCapacityError(diagnostic, message);
 }
 
 function identity(value: string, field: string): string {
@@ -149,7 +177,7 @@ function assertFreshMeasurement(input: {
     typeof input.measurement !== "object" ||
     input.measurement.evidenceSource !== "provider_api"
   ) {
-    capacityError("current provider measurement is invalid");
+    capacityError("current provider measurement is invalid", "measurement_invalid");
   }
   const r2MeasuredAt = exactInstant(input.measurement.measuredAt, "measuredAt");
   const neonMeasuredAt = exactInstant(
@@ -161,7 +189,7 @@ function assertFreshMeasurement(input: {
       measuredAt > input.checkedAt ||
       input.checkedAt - measuredAt > input.maximumAgeMilliseconds
     ) {
-      capacityError("current provider measurement is stale or future-dated");
+      capacityError("current provider measurement is stale or future-dated", "measurement_stale");
     }
   }
 }
@@ -211,7 +239,7 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         capacityError("sizing authority disagrees with audited authority");
       }
       if (input.measurementSource.status !== "ready") {
-        capacityError("current provider measurement is unavailable");
+        capacityError("current provider measurement is unavailable", "measurement_unavailable");
       }
 
       const started = now();
@@ -223,7 +251,7 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
       try {
         measurement = await input.measurementSource.measure({ ownerId });
       } catch {
-        capacityError("current provider measurement failed");
+        capacityError("current provider measurement failed", "measurement_failed");
       }
 
       const checked = now();
@@ -282,24 +310,45 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
           !Number.isSafeInteger(projectedImmediateNeonStorageBytes) ||
           !Number.isSafeInteger(projectedImmediateNeonComputeMilliCuHours)
         ) {
-          capacityError("current provider capacity projection is invalid");
+          capacityError("current provider capacity projection is invalid", "projection_invalid");
         }
       } catch {
         capacityError("current provider capacity projection is invalid");
       }
 
       if (
-        measurement.r2StorageClass !== DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS ||
-        !r2CostProjection.allowed ||
-        r2CostProjection.paidR2UsageAllowed !== true ||
+        measurement.r2StorageClass !== DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS
+      ) {
+        capacityError(
+          "current provider capacity is blocked",
+          "r2_storage_class_blocked",
+        );
+      }
+      if (!r2CostProjection.allowed || r2CostProjection.paidR2UsageAllowed !== true) {
+        capacityError(
+          "current provider capacity is blocked",
+          "r2_cost_ceiling_blocked",
+        );
+      }
+      if (
         archiveProjection.projectedUsage.neonStorageBytes >
           DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
         projectedImmediateNeonStorageBytes >
-          DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
-        projectedImmediateNeonComputeMilliCuHours >
-          DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
+          DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes
       ) {
-        capacityError("current provider capacity is blocked");
+        capacityError(
+          "current provider capacity is blocked",
+          "neon_storage_blocked",
+        );
+      }
+      if (
+        projectedImmediateNeonComputeMilliCuHours >
+        DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
+      ) {
+        capacityError(
+          "current provider capacity is blocked",
+          "neon_compute_blocked",
+        );
       }
 
       return Object.freeze({
