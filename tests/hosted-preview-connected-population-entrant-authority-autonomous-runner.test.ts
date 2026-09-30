@@ -155,7 +155,7 @@ describeConnected("hosted Preview population entrant autonomous runner", () => {
               ),
             }),
             // One checksum-bound compact Race-authority audit seeds the session.
-            // The next 24 authority loads (three per cohort across eight cohorts)
+            // The next 36 authority loads (three per cohort across twelve cohorts)
             // revalidate immutable last-good pointers and published generation
             // metadata without reopening every historical races.docs object.
             liveAuditReuseCount: 36,
