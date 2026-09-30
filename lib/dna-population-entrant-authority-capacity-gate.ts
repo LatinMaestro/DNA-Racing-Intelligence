@@ -98,6 +98,13 @@ function positive(value: number, field: string): number {
   return value;
 }
 
+function count(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    capacityError(`${field} is invalid`);
+  }
+  return value;
+}
+
 function exactInstant(value: string, field: string): number {
   if (typeof value !== "string") {
     capacityError(`${field} is invalid`);
@@ -240,7 +247,7 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
       const remainingRaceCount =
         requestedRemainingRaceCount === undefined
           ? authority.unresolvedRaceCount
-          : positive(requestedRemainingRaceCount, "remainingRaceCount");
+          : count(requestedRemainingRaceCount, "remainingRaceCount");
       if (remainingRaceCount > authority.unresolvedRaceCount) {
         capacityError("remainingRaceCount exceeds audited authority");
       }
