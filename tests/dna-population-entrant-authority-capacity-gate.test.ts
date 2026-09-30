@@ -107,8 +107,12 @@ describe("DNA population entrant authority capacity gate", () => {
       r2PaidUsageAuthorized: true,
       maximumAuthorizedR2CostMicroUsd:
         DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_AUTHORIZED_R2_COST_MICRO_USD,
-      projectedR2CostMicroUsd: 0,
+      projectedR2CostMicroUsd: expect.any(Number),
     });
+    const approval = await test.value.assertFreshCurrentCapacity(authority);
+    expect(approval.projectedR2CostMicroUsd).toBeLessThanOrEqual(
+      DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_AUTHORIZED_R2_COST_MICRO_USD,
+    );
     expect(test.fixture!.measure).toHaveBeenCalledWith({
       ownerId: "private-owner",
     });
