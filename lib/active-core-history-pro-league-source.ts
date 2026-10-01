@@ -44,6 +44,16 @@ function observation(
       raceDocument.rawEvidenceSha256 !== value.raceDocumentEvidenceSha256 ||
       race.entrantCoreIds === undefined ||
       !race.entrantCoreIds.includes(value.sourceCoreId) ||
+      (value.starEvidenceStatus === "available" &&
+        (race.yellowStarSourceCoreIds === undefined ||
+          race.blueStarSourceCoreIds === undefined ||
+          race.yellowStarSourceCoreIds.includes(value.sourceCoreId) !==
+            value.goldStar ||
+          race.blueStarSourceCoreIds.includes(value.sourceCoreId) !==
+            value.blueStar)) ||
+      (value.starEvidenceStatus === "missing" &&
+        (race.yellowStarSourceCoreIds !== undefined ||
+          race.blueStarSourceCoreIds !== undefined)) ||
       race.mode === undefined ||
       race.distanceMetres === undefined ||
       race.gateCount === undefined ||
@@ -71,6 +81,14 @@ function observation(
       payoutMechanismSourceValue: race.payoutSourceValue ?? null,
       goldStar: value.goldStar,
       blueStar: value.blueStar,
+      goldStarAssignmentOpportunity:
+        race.yellowStarSourceCoreIds === undefined
+          ? null
+          : race.yellowStarSourceCoreIds.length > 0,
+      blueStarAssignmentOpportunity:
+        race.blueStarSourceCoreIds === undefined
+          ? null
+          : race.blueStarSourceCoreIds.length > 0,
       starEvidenceStatus: value.starEvidenceStatus,
     });
   }
@@ -104,9 +122,11 @@ function observation(
     finishPosition: value.finishPosition,
     elapsedMilliseconds: value.elapsedMilliseconds,
     payoutMechanismSourceValue: value.payoutMechanismSourceValue,
-    goldStar: value.goldStar,
-    blueStar: value.blueStar,
-    starEvidenceStatus: value.starEvidenceStatus,
+    goldStar: null,
+    blueStar: null,
+    goldStarAssignmentOpportunity: null,
+    blueStarAssignmentOpportunity: null,
+    starEvidenceStatus: "missing",
   });
 }
 

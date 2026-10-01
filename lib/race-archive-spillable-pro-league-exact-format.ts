@@ -11,9 +11,9 @@ import {
 import { exactSortedRaceArchiveStatistics } from "./race-archive-exact-sorted-statistics";
 import {
   proLeagueExactFormatBenchmarkAssessment,
-  proLeagueExactFormatSupportingEvidence,
   publishedProLeagueRaceTypeFromArchive,
   roundedProLeagueExactFormatMetric,
+  unavailableProLeagueExactFormatSupportingEvidence,
   type RaceArchiveProLeagueExactFormatBenchmark,
   type RaceArchiveProLeagueExactFormatProfile,
 } from "./race-archive-pro-league-exact-format";
@@ -44,6 +44,8 @@ export type ProLeagueExactFormatAnalyticalObservation = Readonly<{
   payoutMechanismSourceValue: string | null;
   goldStar: boolean | null;
   blueStar: boolean | null;
+  goldStarAssignmentOpportunity: boolean | null;
+  blueStarAssignmentOpportunity: boolean | null;
   starEvidenceStatus: "available" | "missing";
 }>;
 
@@ -350,6 +352,8 @@ async function coreMetadata(input: {
       value.observation.starEvidenceStatus !== "available" ||
       value.observation.goldStar === null ||
       value.observation.blueStar === null ||
+      value.observation.goldStarAssignmentOpportunity === null ||
+      value.observation.blueStarAssignmentOpportunity === null ||
       (value.observation.goldStar && !goldStarEligible)
     ) {
       active.starEvidenceAvailable = false;
@@ -359,7 +363,9 @@ async function coreMetadata(input: {
       active.goldStarAssignedCount += 1;
     }
     if (value.observation.blueStar === true) active.blueStarAssignedCount += 1;
-    active.blueStarOpportunityCount += 1;
+    if (value.observation.blueStarAssignmentOpportunity) {
+      active.blueStarOpportunityCount += 1;
+    }
     if (eventAt > active.dataCurrentThrough)
       active.dataCurrentThrough = eventAt;
   }
@@ -577,15 +583,27 @@ function rowsFromSorted(input: {
                   ),
                 }),
                 populationBenchmark,
-                supportingEvidence: proLeagueExactFormatSupportingEvidence({
-                  winCount: core.winCount,
-                  topThreeCount: core.topThreeCount,
-                  starEvidenceAvailable: core.starEvidenceAvailable,
-                  goldStarAssignedCount: core.goldStarAssignedCount,
-                  goldStarEligibleRaceCount: core.goldStarEligibleRaceCount,
-                  blueStarAssignedCount: core.blueStarAssignedCount,
-                  blueStarOpportunityCount: core.blueStarOpportunityCount,
-                }),
+                supportingEvidence: (() => {
+                  const unavailable =
+                    unavailableProLeagueExactFormatSupportingEvidence({
+                      winCount: core.winCount,
+                      topThreeCount: core.topThreeCount,
+                    });
+                  if (!core.starEvidenceAvailable) return unavailable;
+                  return Object.freeze({
+                    ...unavailable,
+                    goldStar: Object.freeze({
+                      status: "available" as const,
+                      assignedCount: core.goldStarAssignedCount,
+                      eligibleRaceCount: core.goldStarEligibleRaceCount,
+                    }),
+                    blueStar: Object.freeze({
+                      status: "available" as const,
+                      assignedCount: core.blueStarAssignedCount,
+                      opportunityCount: core.blueStarOpportunityCount,
+                    }),
+                  });
+                })(),
               }),
             });
           }
@@ -678,9 +696,14 @@ export async function spillableProLeagueExactFormatEvidence(input: {
           !["available", "missing"].includes(value.starEvidenceStatus) ||
           (value.starEvidenceStatus === "available" &&
             (typeof value.goldStar !== "boolean" ||
-              typeof value.blueStar !== "boolean")) ||
+              typeof value.blueStar !== "boolean" ||
+              typeof value.goldStarAssignmentOpportunity !== "boolean" ||
+              typeof value.blueStarAssignmentOpportunity !== "boolean")) ||
           (value.starEvidenceStatus === "missing" &&
-            (value.goldStar !== null || value.blueStar !== null))
+            (value.goldStar !== null ||
+              value.blueStar !== null ||
+              value.goldStarAssignmentOpportunity !== null ||
+              value.blueStarAssignmentOpportunity !== null))
         ) {
           throw new Error("observation star evidence is invalid");
         }
@@ -858,20 +881,11 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
         finishPosition: observation.finishPosition,
         elapsedMilliseconds: observation.elapsedMilliseconds,
         payoutMechanismSourceValue: observation.payoutMechanismSourceValue,
-        goldStar:
-          observation.starDataStatus === "complete"
-            ? observation.goldStar
-            : null,
-        blueStar:
-          observation.starDataStatus === "complete"
-            ? observation.blueStar
-            : null,
-        starEvidenceStatus:
-          observation.starDataStatus === "complete" &&
-          observation.goldStar !== null &&
-          observation.blueStar !== null
-            ? ("available" as const)
-            : ("missing" as const),
+        goldStar: null,
+        blueStar: null,
+        goldStarAssignmentOpportunity: null,
+        blueStarAssignmentOpportunity: null,
+        starEvidenceStatus: "missing" as const,
       }) satisfies ProLeagueExactFormatAnalyticalObservation;
     }
   })();

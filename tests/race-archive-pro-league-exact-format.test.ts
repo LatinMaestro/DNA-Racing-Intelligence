@@ -16,9 +16,6 @@ function observation(input: {
   finishPosition?: number;
   milliseconds?: number;
   eventAt?: string;
-  goldStar?: boolean | null;
-  blueStar?: boolean | null;
-  starDataStatus?: "complete" | "partial" | "missing" | "invalid";
 }): RaceArchiveCoreAnalyticalObservation {
   const coreId = input.coreId ?? "core-a";
   return {
@@ -38,9 +35,9 @@ function observation(input: {
     distance: input.distance ?? 1_000,
     gateCount: input.gateCount ?? 6,
     goldStarEligible: true,
-    goldStar: input.goldStar === undefined ? false : input.goldStar,
-    blueStar: input.blueStar === undefined ? false : input.blueStar,
-    starDataStatus: input.starDataStatus ?? "complete",
+    goldStar: false,
+    blueStar: false,
+    starDataStatus: "complete",
     finishPosition: input.finishPosition ?? 1,
     elapsedMilliseconds: input.milliseconds ?? 90_000 + input.row,
     payoutMechanismSourceValue:
@@ -164,16 +161,8 @@ describe("Race archive Pro League exact-format evidence", () => {
       },
       supportingEvidence: {
         outcomes: { status: "available", winCount: 4, topThreeCount: 10 },
-        goldStar: {
-          status: "available",
-          assignedCount: 0,
-          eligibleRaceCount: 10,
-        },
-        blueStar: {
-          status: "available",
-          assignedCount: 0,
-          opportunityCount: 10,
-        },
+        goldStar: { status: "unavailable" },
+        blueStar: { status: "unavailable" },
         oppositionAdjustedStars: { status: "unavailable" },
         strongOpposition: { status: "unavailable" },
       },
@@ -212,55 +201,6 @@ describe("Race archive Pro League exact-format evidence", () => {
       ["6 gate madness", 1_000],
       ["6 gate madness", 1_200],
     ]);
-  });
-
-  it("publishes complete raw star evidence and fails closed on partial profiles", () => {
-    const complete = proLeagueExactFormatEvidenceFromRaceArchive({
-      observations: [
-        observation({ row: 1, goldStar: true }),
-        observation({ row: 2, blueStar: true }),
-      ],
-      refreshedAt: "2026-09-07T00:00:00.000Z",
-      ...bounds,
-    });
-    expect(complete.profiles[0]!.supportingEvidence).toMatchObject({
-      goldStar: {
-        status: "available",
-        assignedCount: 1,
-        eligibleRaceCount: 2,
-      },
-      blueStar: {
-        status: "available",
-        assignedCount: 1,
-        opportunityCount: 2,
-      },
-    });
-
-    const partial = proLeagueExactFormatEvidenceFromRaceArchive({
-      observations: [
-        observation({ row: 1, goldStar: true }),
-        observation({
-          row: 2,
-          goldStar: null,
-          blueStar: null,
-          starDataStatus: "missing",
-        }),
-      ],
-      refreshedAt: "2026-09-07T00:00:00.000Z",
-      ...bounds,
-    });
-    expect(partial.profiles[0]!.supportingEvidence).toMatchObject({
-      goldStar: {
-        status: "unavailable",
-        assignedCount: 0,
-        eligibleRaceCount: 0,
-      },
-      blueStar: {
-        status: "unavailable",
-        assignedCount: 0,
-        opportunityCount: 0,
-      },
-    });
   });
 
   it("reports excluded evidence classes without treating them as favourable", () => {
