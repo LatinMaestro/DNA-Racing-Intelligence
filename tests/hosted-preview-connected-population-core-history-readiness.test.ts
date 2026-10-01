@@ -1,39 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
-} from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
-import {
-  createCloudflareDnaOpenLabP5R2S3ListBinding,
-} from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
+import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
+import { createCloudflareDnaOpenLabP5R2S3ListBinding } from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
 import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
-import {
-  createDnaCoreRaceHistoryClient,
-} from "@/lib/dna-core-race-history-client";
-import {
-  DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES,
-} from "@/lib/dna-core-race-history-r2-evidence";
-import {
-  completeDnaPopulationCoreHistoryAuthority,
-} from "@/lib/dna-population-core-history-authority";
-import {
-  loadDnaPopulationCoreHistoryEntrantAuthority,
-} from "@/lib/dna-population-core-history-entrant-source";
-import {
-  measureDnaPopulationCoreHistoryReadOnly,
-} from "@/lib/dna-population-core-history-read-only-measurement";
-import {
-  createDnaPopulationEntrantAuthorityLiveAuditSource,
-} from "@/lib/dna-population-entrant-authority-live-audit-source";
-import {
-  createDnaPopulationEntrantAuthorityR2ChunkStore,
-} from "@/lib/dna-population-entrant-authority-r2-store";
-import {
-  createDnaOpenLabP5FirstBackfillR2EvidenceWriter,
-} from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
-import {
-  DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
-} from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import { createDnaCoreRaceHistoryClient } from "@/lib/dna-core-race-history-client";
+import { DNA_CORE_RACE_HISTORY_MAXIMUM_EVIDENCE_OBJECT_BYTES } from "@/lib/dna-core-race-history-r2-evidence";
+import { completeDnaPopulationCoreHistoryAuthority } from "@/lib/dna-population-core-history-authority";
+import { loadDnaPopulationCoreHistoryEntrantAuthority } from "@/lib/dna-population-core-history-entrant-source";
+import { measureDnaPopulationCoreHistoryReadOnly } from "@/lib/dna-population-core-history-read-only-measurement";
+import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
+import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "@/lib/dna-population-entrant-authority-r2-store";
+import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
+import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import {
   createDnaOpenLabProviderCapacityPreflight,
   DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
@@ -45,21 +23,11 @@ import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
 } from "@/lib/dna-open-lab-request-budget";
 import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
-import {
-  createDnaPopulationRaceIndexR2ChunkStore,
-} from "@/lib/dna-population-race-index-r2-chunk";
-import {
-  createNeonDnaOpenLabP5FirstBackfillLedger,
-} from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
-import {
-  createNeonDnaPopulationEntrantAuthorityCheckpointRepository,
-} from "@/lib/neon-dna-population-entrant-authority-checkpoint";
-import {
-  createNeonDnaPopulationRaceIndexGenerationRepository,
-} from "@/lib/neon-dna-population-race-index-generation";
-import {
-  createNeonDnaOpenLabSyncPublicationRepository,
-} from "@/lib/neon-dna-open-lab-sync-publication";
+import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
+import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "@/lib/neon-dna-population-entrant-authority-checkpoint";
+import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
+import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
 
 const connected = process.env.DNA_POPULATION_CORE_HISTORY_READINESS === "1";
 const describeConnected = connected ? describe : describe.skip;
@@ -113,9 +81,7 @@ describeConnected("hosted Preview population Core-history readiness", () => {
   it(
     "proves complete all-mode authority and zero-cost capacity for one deterministic first cohort",
     async () => {
-      const exactCodeHeadSha = requiredEnvironment(
-        "GITHUB_SHA",
-      ).toLowerCase();
+      const exactCodeHeadSha = requiredEnvironment("GITHUB_SHA").toLowerCase();
       if (!COMMIT_PATTERN.test(exactCodeHeadSha)) {
         throw new Error("exact main commit is unavailable");
       }
@@ -130,9 +96,7 @@ describeConnected("hosted Preview population Core-history readiness", () => {
       );
       const bucketName = requiredEnvironment("DNA_R2_BUCKET_NAME");
       const accessKeyId = requiredEnvironment("DNA_R2_ACCESS_KEY_ID");
-      const secretAccessKey = requiredEnvironment(
-        "DNA_R2_SECRET_ACCESS_KEY",
-      );
+      const secretAccessKey = requiredEnvironment("DNA_R2_SECRET_ACCESS_KEY");
       const r2StorageClass = requiredEnvironment("DNA_R2_STORAGE_CLASS");
       if (r2StorageClass !== "Standard") {
         throw new Error("only R2 Standard storage is allowed");
@@ -197,18 +161,18 @@ describeConnected("hosted Preview population Core-history readiness", () => {
       });
       const authoritySource =
         createDnaPopulationEntrantAuthorityLiveAuditSource({
-        configuredOwnerId: ownerId,
-        exactCodeHeadSha,
-        bucketName,
-        baseline: Object.freeze({
-          load: baseline.load,
-          loadReceipts: baseline.loadReceipts,
-          readEvidence: baselineEvidence.read,
-        }),
-        historySource: publicationRepository,
-        populationIndex,
-        chunkStore: populationChunkStore,
-        storage,
+          configuredOwnerId: ownerId,
+          exactCodeHeadSha,
+          bucketName,
+          baseline: Object.freeze({
+            load: baseline.load,
+            loadReceipts: baseline.loadReceipts,
+            readEvidence: baselineEvidence.read,
+          }),
+          historySource: publicationRepository,
+          populationIndex,
+          chunkStore: populationChunkStore,
+          storage,
           capacitySource,
         });
       const audit = await authoritySource.load({
@@ -294,7 +258,9 @@ describeConnected("hosted Preview population Core-history readiness", () => {
         !measurement.selectedCohortFullyMeasured ||
         measurement.selectedCoreCount !== FIRST_PROOF_CORE_COUNT
       ) {
-        throw new Error("first population Core-history cohort is not measurable");
+        throw new Error(
+          "first population Core-history cohort is not measurable",
+        );
       }
 
       const plannedR2Usage = addUsage(
@@ -333,7 +299,9 @@ describeConnected("hosted Preview population Core-history readiness", () => {
           DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
       });
       if (preflight.status !== "ready") {
-        throw new Error("first population Core-history capacity is unavailable");
+        throw new Error(
+          "first population Core-history capacity is unavailable",
+        );
       }
 
       const report = Object.freeze({
