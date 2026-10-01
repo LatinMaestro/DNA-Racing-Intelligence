@@ -7,7 +7,7 @@ import {
 } from "@/lib/dna-population-entrant-authority-r2-cost-policy";
 
 describe("population entrant authority R2 cost policy", () => {
-  it("prices current usage plus the complete conservative remaining archive below the owner cap", () => {
+  it("fails closed when the complete remaining archive would leave zero-cost R2 budgets", () => {
     const plannedUsage = planDnaPopulationEntrantAuthorityRemainingR2Usage({
       remainingRaceCount: 1_135_198,
     });
@@ -23,12 +23,33 @@ describe("population entrant authority R2 cost policy", () => {
     expect(plannedUsage.storageBytes).toBeGreaterThan(14_000_000_000);
     expect(plannedUsage.classAOperations).toBeGreaterThan(1_135_198);
     expect(plannedUsage.classBOperations).toBeGreaterThan(2_270_396);
-    expect(projection.allowed).toBe(true);
+    expect(projection.allowed).toBe(false);
     expect(projection.projectedPaidCostMicroUsd).toBeGreaterThan(0);
-    expect(projection.projectedPaidCostMicroUsd).toBeLessThanOrEqual(
-      DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD,
-    );
-    expect(projection.paidR2UsageAllowed).toBe(true);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD).toBe(0);
+    expect(projection.maximumAuthorizedCostMicroUsd).toBe(0);
+    expect(projection.paidR2UsageAllowed).toBe(false);
+    expect(projection.paidUsageAllowed).toBe(false);
+  });
+
+  it("allows a bounded cohort only while projected usage stays entirely zero-cost", () => {
+    const projection = projectDnaPopulationEntrantAuthorityR2Cost({
+      currentUsage: {
+        storageBytes: 1_500_631_079,
+        classAOperations: 58_080,
+        classBOperations: 1_177_686,
+      },
+      plannedUsage: {
+        storageBytes: 2_000_000,
+        classAOperations: 200,
+        classBOperations: 400,
+      },
+    });
+
+    expect(projection.allowed).toBe(true);
+    expect(projection.currentPaidCostMicroUsd).toBe(0);
+    expect(projection.projectedPaidCostMicroUsd).toBe(0);
+    expect(projection.maximumAuthorizedCostMicroUsd).toBe(0);
+    expect(projection.paidR2UsageAllowed).toBe(false);
     expect(projection.paidUsageAllowed).toBe(false);
   });
 
