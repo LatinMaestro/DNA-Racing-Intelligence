@@ -321,9 +321,9 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
         });
         r2CostProjection = projectDnaPopulationEntrantAuthorityR2Cost({
           currentUsage: measurement.currentR2Usage,
-          // Continuation callers bind this count to independently recovered
-          // durable state. First-cohort callers omit it and retain the
-          // conservative full-authority reservation.
+          // Every caller binds this count to the exact work boundary it is
+          // about to perform. The first remediation uses its conservative
+          // bounded reservation; continuation uses recovered durable state.
           plannedUsage: planDnaPopulationEntrantAuthorityRemainingR2Usage({
             remainingRaceCount,
           }),

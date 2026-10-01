@@ -1,5 +1,6 @@
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES } from "./dna-population-entrant-authority-remediation";
 
 const GIT_OBJECT_ID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -84,8 +85,10 @@ export function createDnaPopulationEntrantAuthorityReadinessInspector(input: {
         )
           unavailable();
 
-        const approval =
-          await input.capacityGate.assertFreshCurrentCapacity(authority);
+        const approval = await input.capacityGate.assertFreshCurrentCapacity(
+          authority,
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
+        );
         if (
           approval.version !== 1 ||
           approval.capacityAllowed !== true ||

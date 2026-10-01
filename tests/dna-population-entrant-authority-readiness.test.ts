@@ -5,6 +5,7 @@ import {
   createDnaPopulationEntrantAuthorityReadinessInspector,
   DnaPopulationEntrantAuthorityReadinessError,
 } from "@/lib/dna-population-entrant-authority-readiness";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES } from "@/lib/dna-population-entrant-authority-remediation";
 
 const HEAD = "a".repeat(40);
 const OWNER = "private-owner";
@@ -63,6 +64,14 @@ describe("population entrant commissioning readiness", () => {
     const receipt = await inspector.inspect();
 
     expect(events).toEqual(["authority", "capacity"]);
+    expect(gate.assertFreshCurrentCapacity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generationId: HASH,
+        unresolvedRaceCount: 17,
+        unresolvedRaceSetSha256: HASH,
+      }),
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
+    );
     expect(receipt).toEqual({
       status: "ready",
       exactCodeHeadSha: HEAD,
