@@ -2,9 +2,7 @@ import type {
   DnaPopulationEntrantAuthorityCheckpointAuthority,
   DnaPopulationEntrantAuthorityCheckpointRepository,
 } from "./dna-population-entrant-authority-checkpoint";
-import type {
-  DnaPopulationEntrantAuthorityRecord,
-} from "./dna-population-entrant-authority-record";
+import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
 import {
   recoverDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityR2RecoveryPort,
@@ -96,10 +94,7 @@ export async function loadDnaPopulationCoreHistoryEntrantAuthority(input: {
     start < recovery.manifests.length;
     start += READ_CONCURRENCY
   ) {
-    const manifests = recovery.manifests.slice(
-      start,
-      start + READ_CONCURRENCY,
-    );
+    const manifests = recovery.manifests.slice(start, start + READ_CONCURRENCY);
     const chunks = await Promise.all(
       manifests.map((manifest) => input.r2Store.read(manifest)),
     );
