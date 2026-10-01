@@ -46,7 +46,7 @@ export type ProLeagueExactFormatAnalyticalObservation = Readonly<{
   blueStar: boolean | null;
   goldStarAssignmentOpportunity: boolean | null;
   blueStarAssignmentOpportunity: boolean | null;
-  starEvidenceStatus: "available" | "missing";
+  starEvidenceStatus: "available" | "unavailable";
 }>;
 
 type AcceptedObservation = AcceptedProLeagueExactFormatObservation;
@@ -354,7 +354,12 @@ async function coreMetadata(input: {
       value.observation.blueStar === null ||
       value.observation.goldStarAssignmentOpportunity === null ||
       value.observation.blueStarAssignmentOpportunity === null ||
-      (value.observation.goldStar && !goldStarEligible)
+      (value.observation.goldStar &&
+        (!goldStarEligible ||
+          !value.observation.goldStarAssignmentOpportunity)) ||
+      (value.observation.blueStar &&
+        !value.observation.blueStarAssignmentOpportunity) ||
+      (value.observation.goldStarAssignmentOpportunity && !goldStarEligible)
     ) {
       active.starEvidenceAvailable = false;
     }
@@ -693,13 +698,13 @@ export async function spillableProLeagueExactFormatEvidence(input: {
         positiveSafeInteger(value.distanceMetres, "observation.distanceMetres");
         positiveSafeInteger(value.gateCount, "observation.gateCount");
         if (
-          !["available", "missing"].includes(value.starEvidenceStatus) ||
+          !["available", "unavailable"].includes(value.starEvidenceStatus) ||
           (value.starEvidenceStatus === "available" &&
             (typeof value.goldStar !== "boolean" ||
               typeof value.blueStar !== "boolean" ||
               typeof value.goldStarAssignmentOpportunity !== "boolean" ||
               typeof value.blueStarAssignmentOpportunity !== "boolean")) ||
-          (value.starEvidenceStatus === "missing" &&
+          (value.starEvidenceStatus === "unavailable" &&
             (value.goldStar !== null ||
               value.blueStar !== null ||
               value.goldStarAssignmentOpportunity !== null ||
@@ -885,7 +890,7 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
         blueStar: null,
         goldStarAssignmentOpportunity: null,
         blueStarAssignmentOpportunity: null,
-        starEvidenceStatus: "missing" as const,
+        starEvidenceStatus: "unavailable" as const,
       }) satisfies ProLeagueExactFormatAnalyticalObservation;
     }
   })();

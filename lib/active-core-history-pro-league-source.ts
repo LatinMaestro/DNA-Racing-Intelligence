@@ -69,6 +69,19 @@ function observation(
         "Active Core history canonical Race authority is invalid",
       );
     }
+    const starEvidenceAvailable =
+      value.starEvidenceStatus === "available" &&
+      race.yellowStarSourceCoreIds !== undefined &&
+      race.blueStarSourceCoreIds !== undefined &&
+      race.yellowStarSourceCoreIds.length <= 1 &&
+      race.blueStarSourceCoreIds.length <= 1 &&
+      race.yellowStarSourceCoreIds.every((coreId) =>
+        race.entrantCoreIds!.includes(coreId),
+      ) &&
+      race.blueStarSourceCoreIds.every((coreId) =>
+        race.entrantCoreIds!.includes(coreId),
+      ) &&
+      (race.gateCount > 3 || race.yellowStarSourceCoreIds.length === 0);
     return Object.freeze({
       naturalKey: value.naturalKey,
       sourceCoreId: value.sourceCoreId,
@@ -79,17 +92,19 @@ function observation(
       finishPosition: value.finishPosition,
       elapsedMilliseconds: value.elapsedMilliseconds,
       payoutMechanismSourceValue: race.payoutSourceValue ?? null,
-      goldStar: value.goldStar,
-      blueStar: value.blueStar,
+      goldStar: starEvidenceAvailable ? value.goldStar : null,
+      blueStar: starEvidenceAvailable ? value.blueStar : null,
       goldStarAssignmentOpportunity:
-        race.yellowStarSourceCoreIds === undefined
-          ? null
-          : race.yellowStarSourceCoreIds.length > 0,
+        starEvidenceAvailable && race.yellowStarSourceCoreIds !== undefined
+          ? race.yellowStarSourceCoreIds.length > 0
+          : null,
       blueStarAssignmentOpportunity:
-        race.blueStarSourceCoreIds === undefined
-          ? null
-          : race.blueStarSourceCoreIds.length > 0,
-      starEvidenceStatus: value.starEvidenceStatus,
+        starEvidenceAvailable && race.blueStarSourceCoreIds !== undefined
+          ? race.blueStarSourceCoreIds.length > 0
+          : null,
+      starEvidenceStatus: starEvidenceAvailable
+        ? ("available" as const)
+        : ("unavailable" as const),
     });
   }
   if (
@@ -126,7 +141,7 @@ function observation(
     blueStar: null,
     goldStarAssignmentOpportunity: null,
     blueStarAssignmentOpportunity: null,
-    starEvidenceStatus: "missing",
+    starEvidenceStatus: "unavailable",
   });
 }
 

@@ -311,7 +311,7 @@ describe("spillable Pro League exact-format evidence", () => {
         blueStar: boolean | null;
         goldOpportunity: boolean | null;
         blueOpportunity: boolean | null;
-        status: "available" | "missing";
+        status: "available" | "unavailable";
       }>,
     ): ProLeagueExactFormatAnalyticalObservation =>
       Object.freeze({
@@ -361,7 +361,7 @@ describe("spillable Pro League exact-format evidence", () => {
         blueStar: null,
         goldOpportunity: null,
         blueOpportunity: null,
-        status: "missing",
+        status: "unavailable",
       }),
     ];
     const observationScratch =

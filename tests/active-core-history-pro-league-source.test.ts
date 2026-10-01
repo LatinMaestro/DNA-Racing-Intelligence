@@ -140,7 +140,7 @@ describe("active Core history Pro League source", () => {
         blueStar: null,
         goldStarAssignmentOpportunity: null,
         blueStarAssignmentOpportunity: null,
-        starEvidenceStatus: "missing",
+        starEvidenceStatus: "unavailable",
       },
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);
