@@ -158,6 +158,7 @@ function exactHead(value: string): string {
 
 function safeText(value: string, field: string): string {
   if (
+    field.length < 1 ||
     typeof value !== "string" ||
     value.trim() !== value ||
     value.length < 1 ||
@@ -814,7 +815,11 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       }
 
       validateRequestBudget(input.requestBudget);
-      let capacity;
+      let capacity: Awaited<
+        ReturnType<
+          DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+        >
+      >;
       try {
         capacity = await input.capacityGate.assertFreshCurrentCapacity(
           loaded.audit.authority,
@@ -826,7 +831,9 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       validateCapacityApproval(capacity);
 
       const providerCounter = { value: 0 };
-      let hydration;
+      let hydration: Awaited<
+        ReturnType<typeof hydrateDnaRaceDocumentsWithQuarantine>
+      >;
       try {
         hydration = await hydrateDnaRaceDocumentsWithQuarantine({
           raceIds: selected.map((record) => record.sourceRaceId),
