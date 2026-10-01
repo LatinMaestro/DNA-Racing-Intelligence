@@ -42,6 +42,7 @@ import {
   type DnaPopulationEntrantAuthorityRemediationReceipt,
   type DnaPopulationEntrantAuthorityRemediationVerification,
 } from "./dna-population-entrant-authority-remediation";
+import type { DnaPopulationEntrantAuthorityExactMainGuard } from "./dna-population-entrant-authority-successor-commissioning";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-population-entrant-authority-r2-store";
 import {
   resolveDnaPopulationEntrantAuthority,
@@ -231,6 +232,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
   environment: DnaPopulationEntrantAuthorityConnectedEnvironment;
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
+  remediationMainGuard?: DnaPopulationEntrantAuthorityExactMainGuard;
   liveAuditReuseCount?: number;
   acceptedUnresolvedAuthority?: Readonly<{
     unresolvedRaceCount: number;
@@ -428,6 +430,13 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
     const remediation = createDnaPopulationEntrantAuthorityRemediation({
       ownerId: config.ownerId,
       runtimeCodeHeadSha: config.exactCodeHeadSha,
+      mainGuard:
+        input.remediationMainGuard ??
+        Object.freeze({
+          async assertCurrentMain() {
+            throw new Error("remediation main guard is unavailable");
+          },
+        }),
       authoritySource,
       checkpointRepository,
       r2Store,

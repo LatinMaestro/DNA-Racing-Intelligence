@@ -262,9 +262,13 @@ function harness() {
       },
     ),
   });
+  const mainGuard = Object.freeze({
+    assertCurrentMain: vi.fn(async () => ({ currentMainSha: HEAD })),
+  });
   const remediation = createDnaPopulationEntrantAuthorityRemediation({
     ownerId: OWNER,
     runtimeCodeHeadSha: HEAD,
+    mainGuard,
     authoritySource,
     checkpointRepository,
     r2Store,
@@ -276,6 +280,7 @@ function harness() {
   });
   return {
     remediation,
+    mainGuard,
     authoritySource,
     capacityGate,
     client,
@@ -326,6 +331,7 @@ describe("population entrant authority bounded remediation", () => {
     expect(
       test.capacityGate.assertFreshCurrentCapacity,
     ).toHaveBeenNthCalledWith(2, expect.any(Object), 100);
+    expect(test.mainGuard.assertCurrentMain).toHaveBeenCalledTimes(4);
 
     await expect(test.remediation.verify()).resolves.toMatchObject({
       status: "verified_replacements",
@@ -377,5 +383,41 @@ describe("population entrant authority bounded remediation", () => {
     expect(error).toMatchObject({ diagnostic: "exact_head_mismatch" });
     expect(test.providerCalls).toHaveLength(0);
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before the manifest write when main changes during hydration", async () => {
+    const test = harness();
+    test.mainGuard.assertCurrentMain
+      .mockResolvedValueOnce({ currentMainSha: HEAD })
+      .mockResolvedValueOnce({ currentMainSha: HEAD })
+      .mockResolvedValueOnce({ currentMainSha: HEAD })
+      .mockResolvedValueOnce({ currentMainSha: "b".repeat(40) });
+
+    await expect(test.remediation.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "exact_head_mismatch",
+    });
+    expect(test.providerCalls).toHaveLength(1);
+    expect(test.storage.storage.putObjectIfAbsent).not.toHaveBeenCalled();
+  });
+
+  it("rejects a capacity receipt that is not bound to the loaded authority", async () => {
+    const test = harness();
+    test.capacityGate.assertFreshCurrentCapacity.mockResolvedValueOnce(
+      Object.freeze({
+        version: 1 as const,
+        generationId: "f".repeat(64),
+        unresolvedRaceCount: 25,
+        unresolvedRaceSetSha256: "f".repeat(64),
+        observedAt: OBSERVED_AT,
+        capacityAllowed: true as const,
+        paidUsageAllowed: false as const,
+      }),
+    );
+
+    await expect(test.remediation.execute(invocation)).rejects.toMatchObject({
+      diagnostic: "capacity_unavailable",
+    });
+    expect(test.providerCalls).toHaveLength(0);
+    expect(test.storage.storage.putObjectIfAbsent).not.toHaveBeenCalled();
   });
 });

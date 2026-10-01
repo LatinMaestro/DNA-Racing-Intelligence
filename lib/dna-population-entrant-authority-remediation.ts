@@ -12,6 +12,7 @@ import {
 } from "./dna-population-entrant-authority-record";
 import type { DnaPopulationEntrantAuthorityR2RecoveryPort } from "./dna-population-entrant-authority-recovery";
 import { replayDnaPopulationEntrantAuthority } from "./dna-population-entrant-authority-replay";
+import type { DnaPopulationEntrantAuthorityExactMainGuard } from "./dna-population-entrant-authority-successor-commissioning";
 import { loadDnaPopulationCoreHistoryEntrantAuthority } from "./dna-population-core-history-entrant-source";
 import { hydrateDnaRaceDocumentsWithQuarantine } from "./dna-open-lab-race-document-quarantine-hydrator";
 import {
@@ -109,7 +110,9 @@ export type DnaPopulationEntrantAuthorityRemediationDiagnostic =
   | "invalid_configuration"
   | "not_explicitly_armed"
   | "exact_head_mismatch"
+  | "main_guard_unavailable"
   | "authority_unavailable"
+  | "authority_drift"
   | "base_authority_unavailable"
   | "base_authority_incomplete"
   | "no_quarantine_available"
@@ -148,6 +151,25 @@ function exactHead(value: string): string {
     remediationError("exact_head_mismatch");
   }
   return value;
+}
+
+async function assertCurrentMain(input: {
+  mainGuard: DnaPopulationEntrantAuthorityExactMainGuard;
+  expectedHeadSha: string;
+}): Promise<void> {
+  try {
+    const result = await input.mainGuard.assertCurrentMain(
+      input.expectedHeadSha,
+    );
+    if (exactHead(result.currentMainSha) !== input.expectedHeadSha) {
+      remediationError("exact_head_mismatch");
+    }
+  } catch (error) {
+    if (error instanceof DnaPopulationEntrantAuthorityRemediationError) {
+      throw error;
+    }
+    remediationError("main_guard_unavailable");
+  }
 }
 
 function safeText(value: string, field: string): string {
@@ -578,14 +600,42 @@ function validateCapacityApproval(
       DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
     >
   >,
+  authority: Parameters<
+    DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+  >[0],
 ): void {
   if (
     approval.version !== 1 ||
+    approval.generationId !== authority.generationId ||
+    approval.unresolvedRaceCount !== authority.unresolvedRaceCount ||
+    approval.unresolvedRaceSetSha256 !== authority.unresolvedRaceSetSha256 ||
     approval.capacityAllowed !== true ||
-    approval.paidUsageAllowed !== false
+    approval.paidUsageAllowed !== false ||
+    Number.isNaN(Date.parse(approval.observedAt)) ||
+    new Date(approval.observedAt).toISOString() !== approval.observedAt
   ) {
     remediationError("capacity_unavailable");
   }
+}
+
+function sameBaseAuthority(
+  before: Awaited<ReturnType<typeof loadBase>>,
+  after: Awaited<ReturnType<typeof loadBase>>,
+): boolean {
+  return (
+    before.audit.authority.generationId ===
+      after.audit.authority.generationId &&
+    before.audit.authority.unresolvedRaceCount ===
+      after.audit.authority.unresolvedRaceCount &&
+    before.audit.authority.unresolvedRaceSetSha256 ===
+      after.audit.authority.unresolvedRaceSetSha256 &&
+    before.base.checkpointUpdatedAt === after.base.checkpointUpdatedAt &&
+    before.replay.recordSetSha256 === after.replay.recordSetSha256 &&
+    dnaOpenLabRawEvidenceCanonicalJson(
+      selectFirstCohort(before.base.records),
+    ) ===
+      dnaOpenLabRawEvidenceCanonicalJson(selectFirstCohort(after.base.records))
+  );
 }
 
 function validateRequestBudget(requestBudget: DnaOpenLabRequestBudget): void {
@@ -729,6 +779,7 @@ async function verifyManifest(input: {
 export function createDnaPopulationEntrantAuthorityRemediation(input: {
   ownerId: string;
   runtimeCodeHeadSha: string;
+  mainGuard: DnaPopulationEntrantAuthorityExactMainGuard;
   authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
   checkpointRepository: Pick<
     DnaPopulationEntrantAuthorityCheckpointRepository,
@@ -768,6 +819,10 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       if (requestedHead !== runtimeCodeHeadSha) {
         remediationError("exact_head_mismatch");
       }
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
       const cohortObservedAt = timestamp(invocation.cohortObservedAt);
       const loaded = await loadBase({
         ownerId,
@@ -837,7 +892,11 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       } catch {
         remediationError("capacity_unavailable");
       }
-      validateCapacityApproval(capacity);
+      validateCapacityApproval(capacity, loaded.audit.authority);
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
 
       const providerCounter = { value: 0 };
       let hydration: Awaited<
@@ -889,16 +948,35 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
           ),
       );
 
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
+      const currentBase = await loadBase({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+      });
+      if (!sameBaseAuthority(loaded, currentBase)) {
+        remediationError("authority_drift");
+      }
+
       try {
         capacity = await input.capacityGate.assertFreshCurrentCapacity(
-          loaded.audit.authority,
+          currentBase.audit.authority,
           DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
         );
       } catch {
         remediationError("capacity_unavailable");
       }
-      validateCapacityApproval(capacity);
+      validateCapacityApproval(capacity, currentBase.audit.authority);
       validateRequestBudget(input.requestBudget);
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
 
       const selectedRaceIds = Object.freeze(
         selected.map((record) => record.sourceRaceId),

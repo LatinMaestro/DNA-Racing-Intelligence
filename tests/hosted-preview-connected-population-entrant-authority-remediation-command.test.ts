@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
@@ -47,6 +48,23 @@ function failureId(error: unknown): string {
   return "unexpected_failure";
 }
 
+const remediationMainGuard = Object.freeze({
+  async assertCurrentMain(expectedHeadSha: string) {
+    execFileSync("git", ["fetch", "--no-tags", "origin", "main"], {
+      stdio: "ignore",
+    });
+    const currentMainSha = execFileSync("git", ["rev-parse", "origin/main"], {
+      encoding: "utf8",
+    })
+      .trim()
+      .toLowerCase();
+    if (currentMainSha !== expectedHeadSha) {
+      throw new Error("current main does not match remediation authority");
+    }
+    return Object.freeze({ currentMainSha });
+  },
+});
+
 describeConnected(
   "hosted Preview population entrant authority first remediation cohort",
   () => {
@@ -73,6 +91,7 @@ describeConnected(
           stage = "runtime-composition";
           const runtime =
             dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment({
+              remediationMainGuard,
               environment: Object.freeze({
                 authorizedOwnerId: requiredEnvironment(
                   "AUTHORIZED_CLERK_USER_ID",
