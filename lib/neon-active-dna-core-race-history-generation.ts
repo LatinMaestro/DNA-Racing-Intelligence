@@ -158,8 +158,10 @@ function payload(
   if (row.sourceType === "core_race_history_outcome") {
     const keys = Object.keys(row).sort();
     const expectedKeys = [
+      "blueStar",
       "elapsedMilliseconds",
       "finishPosition",
+      "goldStar",
       "naturalKey",
       "payloadVersion",
       "raceDocumentEvidenceSha256",
@@ -168,6 +170,7 @@ function payload(
       "sourceCoreId",
       "sourceRaceId",
       "sourceType",
+      "starEvidenceStatus",
     ].sort();
     if (
       keys.length !== expectedKeys.length ||
@@ -185,7 +188,15 @@ function payload(
       !Number.isSafeInteger(row.elapsedMilliseconds) ||
       (row.elapsedMilliseconds as number) < 1 ||
       !Number.isSafeInteger(row.finishPosition) ||
-      (row.finishPosition as number) < 1
+      (row.finishPosition as number) < 1 ||
+      !(
+        (row.starEvidenceStatus === "available" &&
+          typeof row.goldStar === "boolean" &&
+          typeof row.blueStar === "boolean") ||
+        (row.starEvidenceStatus === "missing" &&
+          row.goldStar === null &&
+          row.blueStar === null)
+      )
     ) {
       throw new Error("Core history active outcome payload is invalid");
     }
