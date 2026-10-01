@@ -61,6 +61,9 @@ export type DnaCoreRaceHistoryOutcome = Readonly<{
   sourceRaceId: string;
   elapsedMilliseconds: number;
   finishPosition: number;
+  goldStar: boolean | null;
+  blueStar: boolean | null;
+  starEvidenceStatus: "available" | "missing";
 }>;
 
 export type DnaCoreRaceHistoryGenerationStageRow = Readonly<{
@@ -161,6 +164,9 @@ function durableOutcome(
     sourceRaceId: observation.sourceRaceId,
     elapsedMilliseconds: observation.elapsedMilliseconds,
     finishPosition: observation.finishPosition,
+    goldStar: observation.goldStar,
+    blueStar: observation.blueStar,
+    starEvidenceStatus: observation.starEvidenceStatus,
   });
 }
 
