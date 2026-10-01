@@ -25,6 +25,7 @@ import {
 import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import { createNeonDnaCoreRaceHistoryAcquisitionRepository } from "@/lib/neon-dna-core-race-history-acquisition";
 import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "@/lib/neon-dna-population-entrant-authority-checkpoint";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
 import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
@@ -224,13 +225,31 @@ describeConnected("hosted Preview population Core-history readiness", () => {
         checkpointRepository,
         r2Store: entrantR2Store,
       });
+      const latestCompleteCoreHistory =
+        await createNeonDnaCoreRaceHistoryAcquisitionRepository({
+          databaseUrl,
+          databaseOwnerId,
+          ownerId,
+          runtimeRole: RUNTIME_ROLE,
+        }).loadLatestComplete();
+      if (
+        latestCompleteCoreHistory === null ||
+        latestCompleteCoreHistory.cycle.status !== "complete" ||
+        latestCompleteCoreHistory.cycle.completion === null ||
+        latestCompleteCoreHistory.cycle.completion.completedCoreCount !==
+          latestCompleteCoreHistory.cycle.coreIds.length
+      ) {
+        throw new Error(
+          "complete persisted Core-history authority is unavailable",
+        );
+      }
       const population = completeDnaPopulationCoreHistoryAuthority({
         baseRaceDocuments: audit.raceDocuments,
         entrantRecords: entrant.records,
         expectedUnresolvedRaceCount: audit.authority.unresolvedRaceCount,
         expectedUnresolvedRaceSetSha256:
           audit.authority.unresolvedRaceSetSha256,
-        persistedPerformanceCoreIds: [],
+        persistedPerformanceCoreIds: latestCompleteCoreHistory.cycle.coreIds,
       });
       if (
         entrant.recoveredRaceCount !== audit.authority.unresolvedRaceCount ||
@@ -320,9 +339,13 @@ describeConnected("hosted Preview population Core-history readiness", () => {
           raceCountByMode: population.plan.raceCountByMode,
           populationCoreCountByMode: population.plan.populationCoreCountByMode,
           populationCoreCount: population.plan.populationCoreCount,
+          persistedPerformanceCoreCount:
+            population.plan.persistedPerformanceCoreCount,
           missingPerformanceCoreCount:
             population.plan.missingPerformanceCoreCount,
           populationCoreSetSha256: population.plan.populationCoreSetSha256,
+          persistedPerformanceCoreSetSha256:
+            population.plan.persistedPerformanceCoreSetSha256,
           missingPerformanceCoreSetSha256:
             population.plan.missingPerformanceCoreSetSha256,
         }),

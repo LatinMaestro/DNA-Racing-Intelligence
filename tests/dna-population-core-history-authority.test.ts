@@ -76,6 +76,7 @@ describe("population Core history authority reconstruction", () => {
       entrantRecords: records,
       expectedUnresolvedRaceCount: 2,
       expectedUnresolvedRaceSetSha256: setHash(["2", "3"]),
+      persistedPerformanceCoreIds: [101],
     });
 
     expect(result.plan).toMatchObject({
@@ -85,7 +86,8 @@ describe("population Core history authority reconstruction", () => {
       raceWithoutEntrantAuthorityByMode: { bike: 0, car: 0, horse: 0 },
       raceWithUnknownModeCount: 0,
       populationCoreCount: 4,
-      missingPerformanceCoreCount: 4,
+      persistedPerformanceCoreCount: 1,
+      missingPerformanceCoreCount: 3,
       providerReadAllowed: false,
       persistentWriteAllowed: false,
       paidUsageAllowed: false,
