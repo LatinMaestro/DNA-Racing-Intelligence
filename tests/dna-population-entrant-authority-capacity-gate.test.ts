@@ -92,7 +92,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate();
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, 100),
     ).resolves.toEqual({
       version: 1,
       generationId,
@@ -157,7 +157,7 @@ describe("DNA population entrant authority capacity gate", () => {
     ).rejects.toThrow("measurement is stale or future-dated");
   });
 
-  it("keeps a 10% R2 operation reserve while allowing the one-time entrant backfill above recurring budgets", async () => {
+  it("keeps a 10% R2 operation reserve while allowing one bounded zero-cost cohort", async () => {
     expect(DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS).toEqual({
       storageBytes: 8_000_000_000,
       classAOperations: 900_000,
@@ -183,7 +183,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, 100),
     ).resolves.toMatchObject({
       capacityAllowed: true,
       paidUsageAllowed: false,
@@ -196,7 +196,7 @@ describe("DNA population entrant authority capacity gate", () => {
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          classAOperations: 1_500_000,
+          classAOperations: 899_950,
         }),
       }),
     );
@@ -209,7 +209,7 @@ describe("DNA population entrant authority capacity gate", () => {
     });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority, 439_198),
+      test.value.assertFreshCurrentCapacity(authority, 10),
     ).resolves.toMatchObject({
       capacityAllowed: true,
       paidUsageAllowed: false,
@@ -228,13 +228,13 @@ describe("DNA population entrant authority capacity gate", () => {
     expect(test.fixture!.measure).not.toHaveBeenCalled();
   });
 
-  it("fails closed before projected paid R2 usage exceeds US$5", async () => {
+  it("fails closed before projected usage exceeds the entrant zero-cost reserve", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
         currentR2Usage: Object.freeze({
           ...base.currentR2Usage,
-          classAOperations: 2_200_000,
+          classAOperations: 900_000,
         }),
       }),
     );
@@ -258,7 +258,7 @@ describe("DNA population entrant authority capacity gate", () => {
     });
   });
 
-  it("allows bounded paid R2 storage above the former free-tier reserve", async () => {
+  it("allows bounded R2 storage only while it remains below the zero-cost reserve", async () => {
     const base = measurement();
     const fixture = readySource(
       measurement({
@@ -271,7 +271,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, 100),
     ).resolves.toMatchObject({
       capacityAllowed: true,
       paidUsageAllowed: false,
@@ -291,7 +291,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, 100),
     ).rejects.toMatchObject({
       diagnostic: "neon_compute_blocked",
     });

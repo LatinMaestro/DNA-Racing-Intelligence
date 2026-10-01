@@ -578,7 +578,7 @@ export function createDnaPopulationEntrantAuthorityLiveAuditSource(input: {
               ),
             }),
           });
-          if (!projection.allowed || projection.paidR2UsageAllowed !== true) {
+          if (!projection.allowed || projection.paidR2UsageAllowed !== false) {
             liveAuditUnavailable("authority_capacity_read_budget_unavailable");
           }
           return DNA_POPULATION_ENTRANT_LIVE_AUDIT_MAXIMUM_CLASS_B_OPERATIONS;
