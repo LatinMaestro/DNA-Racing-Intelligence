@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE } from "@/lib/dna-core-race-history-acquisition-runner";
+import {
+  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+} from "@/lib/dna-core-race-history-acquisition-runner";
 import type {
   DnaCoreRaceHistoryClient,
   DnaCoreRaceHistoryRow,
@@ -9,7 +11,9 @@ import {
   measureDnaPopulationCoreHistoryReadOnly,
   type DnaPopulationCoreHistoryReadOnlyMeasurement,
 } from "@/lib/dna-population-core-history-read-only-measurement";
-import { planDnaPopulationHistoryAcquisition } from "@/lib/dna-population-history-acquisition-plan";
+import {
+  planDnaPopulationHistoryAcquisition,
+} from "@/lib/dna-population-history-acquisition-plan";
 import { createDnaOpenLabRequestBudget } from "@/lib/dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
 import {
@@ -109,9 +113,7 @@ function run(input: {
 describe("population Core history read-only readiness measurement", () => {
   it("measures one all-mode Core only through an explicit empty terminal page", async () => {
     const page = vi.fn(async ({ coreId, page: pageNumber }) =>
-      response(
-        pageNumber === 1 ? [row(coreId, `race-${coreId}`)] : [],
-      ),
+      response(pageNumber === 1 ? [row(coreId, `race-${coreId}`)] : []),
     );
 
     const result = await run({
@@ -257,8 +259,7 @@ describe("population Core history read-only readiness measurement", () => {
           sourceType: "race_document" as const,
           sourceRaceId: "missing-entrants",
           mode: "bike" as const,
-          entrantCoreIdsEvidenceStatus:
-            "unsupported_source_value" as const,
+          entrantCoreIdsEvidenceStatus: "unsupported_source_value" as const,
         }),
       ],
     });
