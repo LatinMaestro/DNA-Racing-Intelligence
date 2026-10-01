@@ -144,7 +144,7 @@ function immediateRequestBudget(): DnaOpenLabRequestBudget {
     reduceEffectiveRequestsPerMinute: () => undefined,
     snapshot: () =>
       Object.freeze({
-        effectiveRequestsPerMinute: 90,
+        effectiveRequestsPerMinute: 30,
         requestsInCurrentWindow: 0,
         blockedUntilMilliseconds: null,
       }),
@@ -456,7 +456,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     ]);
   });
 
-  it("selects the 1,000-row cohort in 20-Race batches under 90 aggregate RPM", async () => {
+  it("selects the 1,000-row cohort in 20-Race batches under 30 aggregate RPM", async () => {
     const raceDocuments = unresolvedRaceDocuments(
       DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES + 1,
     );
@@ -951,14 +951,14 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.checkpointRepository.registerChunk).not.toHaveBeenCalled();
   });
 
-  it("rejects an aggregate request budget below the required 90 RPM before transport", async () => {
+  it("rejects an aggregate request budget below the required 30 RPM before transport", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
     const test = harness({ authority });
     const requestBudget = createDnaOpenLabRequestBudget({
-      initialRequestsPerMinute: 89,
-      maximumRequestsPerMinute: 89,
+      initialRequestsPerMinute: 29,
+      maximumRequestsPerMinute: 29,
     });
 
     const error = await prepare({
@@ -976,14 +976,14 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(test.r2Store.write).not.toHaveBeenCalled();
   });
 
-  it("rejects an aggregate request budget above 90 RPM before transport", async () => {
+  it("rejects an aggregate request budget above 30 RPM before transport", async () => {
     const raceDocuments = unresolvedRaceDocuments(2);
     const plan = planFor(raceDocuments);
     const authority = authorityFor(plan);
     const test = harness({ authority });
     const requestBudget = createDnaOpenLabRequestBudget({
-      initialRequestsPerMinute: 91,
-      maximumRequestsPerMinute: 91,
+      initialRequestsPerMinute: 31,
+      maximumRequestsPerMinute: 31,
     });
 
     const error = await prepare({
