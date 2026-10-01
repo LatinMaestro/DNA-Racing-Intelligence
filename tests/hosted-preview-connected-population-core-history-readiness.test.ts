@@ -251,13 +251,33 @@ describeConnected("hosted Preview population Core-history readiness", () => {
           audit.authority.unresolvedRaceSetSha256,
         persistedPerformanceCoreIds: latestCompleteCoreHistory.cycle.coreIds,
       });
-      if (
-        entrant.recoveredRaceCount !== audit.authority.unresolvedRaceCount ||
-        population.entrantReplay.quarantinedRaceCount !== 0 ||
-        population.plan.status !== "ready_for_budget_measurement" ||
-        population.plan.missingPerformanceCoreCount < 1
-      ) {
-        throw new Error("complete population Core authority is unavailable");
+      if (entrant.recoveredRaceCount !== audit.authority.unresolvedRaceCount) {
+        throw new Error(
+          "population Core-history entrant recovery count disagrees with authority",
+        );
+      }
+      if (population.entrantReplay.quarantinedRaceCount !== 0) {
+        throw new Error(
+          `population Core-history entrant replay contains ${population.entrantReplay.quarantinedRaceCount} quarantined Race identities`,
+        );
+      }
+      if (population.plan.status !== "ready_for_budget_measurement") {
+        throw new Error(
+          "population Core-history plan is held: " +
+            JSON.stringify({
+              status: population.plan.status,
+              unresolvedRaceCount: population.plan.unresolvedRaceCount,
+              raceWithUnknownModeCount:
+                population.plan.raceWithUnknownModeCount,
+              raceWithoutEntrantAuthorityByMode:
+                population.plan.raceWithoutEntrantAuthorityByMode,
+            }),
+        );
+      }
+      if (population.plan.missingPerformanceCoreCount < 1) {
+        throw new Error(
+          "population Core-history enrichment is already complete",
+        );
       }
 
       const requestBudget = createDnaOpenLabRequestBudget({
