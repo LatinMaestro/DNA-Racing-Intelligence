@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
-} from "@/lib/dna-core-race-history-acquisition-runner";
+import { DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE } from "@/lib/dna-core-race-history-acquisition-runner";
 import type {
   DnaCoreRaceHistoryClient,
   DnaCoreRaceHistoryRow,
@@ -11,9 +9,7 @@ import {
   measureDnaPopulationCoreHistoryReadOnly,
   type DnaPopulationCoreHistoryReadOnlyMeasurement,
 } from "@/lib/dna-population-core-history-read-only-measurement";
-import {
-  planDnaPopulationHistoryAcquisition,
-} from "@/lib/dna-population-history-acquisition-plan";
+import { planDnaPopulationHistoryAcquisition } from "@/lib/dna-population-history-acquisition-plan";
 import { createDnaOpenLabRequestBudget } from "@/lib/dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "@/lib/dna-open-lab-v1-adapters";
 import {
@@ -179,9 +175,7 @@ describe("population Core history read-only readiness measurement", () => {
   it("counts quarantined source rows without leaking their private identity", async () => {
     const page = vi.fn(async ({ coreId, page: pageNumber }) =>
       response(
-        pageNumber === 1
-          ? [row(coreId, "private-race", { pos: null })]
-          : [],
+        pageNumber === 1 ? [row(coreId, "private-race", { pos: null })] : [],
       ),
     );
 
