@@ -7,7 +7,7 @@ import {
 } from "@/lib/dna-population-entrant-authority-r2-cost-policy";
 
 describe("population entrant authority R2 cost policy", () => {
-  it("prices current usage plus the complete conservative remaining archive below the owner cap", () => {
+  it("fails closed when the complete remaining archive would create any paid R2 cost", () => {
     const plannedUsage = planDnaPopulationEntrantAuthorityRemainingR2Usage({
       remainingRaceCount: 1_135_198,
     });
@@ -23,16 +23,33 @@ describe("population entrant authority R2 cost policy", () => {
     expect(plannedUsage.storageBytes).toBeGreaterThan(14_000_000_000);
     expect(plannedUsage.classAOperations).toBeGreaterThan(1_135_198);
     expect(plannedUsage.classBOperations).toBeGreaterThan(2_270_396);
-    expect(projection.allowed).toBe(true);
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD).toBe(0);
+    expect(projection.allowed).toBe(false);
     expect(projection.projectedPaidCostMicroUsd).toBeGreaterThan(0);
-    expect(projection.projectedPaidCostMicroUsd).toBeLessThanOrEqual(
-      DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD,
-    );
-    expect(projection.paidR2UsageAllowed).toBe(true);
+    expect(projection.paidR2UsageAllowed).toBe(false);
     expect(projection.paidUsageAllowed).toBe(false);
   });
 
-  it("fails closed when measured usage is already above the authorized cost ceiling", () => {
+  it("allows only a projection whose paid R2 cost remains exactly zero", () => {
+    const projection = projectDnaPopulationEntrantAuthorityR2Cost({
+      currentUsage: {
+        storageBytes: 1_500_631_079,
+        classAOperations: 58_080,
+        classBOperations: 1_177_686,
+      },
+      plannedUsage: planDnaPopulationEntrantAuthorityRemainingR2Usage({
+        remainingRaceCount: 154_260,
+      }),
+    });
+
+    expect(projection.allowed).toBe(true);
+    expect(projection.projectedPaidCostMicroUsd).toBe(0);
+    expect(projection.maximumAuthorizedCostMicroUsd).toBe(0);
+    expect(projection.paidR2UsageAllowed).toBe(false);
+    expect(projection.paidUsageAllowed).toBe(false);
+  });
+
+  it("fails closed when measured usage is already outside the free allowance", () => {
     const projection = projectDnaPopulationEntrantAuthorityR2Cost({
       currentUsage: {
         storageBytes: 0,
