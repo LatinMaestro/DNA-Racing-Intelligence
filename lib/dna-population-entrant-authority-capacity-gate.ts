@@ -357,7 +357,8 @@ export function createDnaPopulationEntrantAuthorityCapacityGate(input: {
       }
       if (
         !r2CostProjection.allowed ||
-        r2CostProjection.paidR2UsageAllowed !== true
+        r2CostProjection.projectedPaidCostMicroUsd !== 0 ||
+        r2CostProjection.paidR2UsageAllowed !== false
       ) {
         capacityError(
           "current provider capacity is blocked",
