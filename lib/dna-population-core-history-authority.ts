@@ -6,7 +6,9 @@ import {
   replayDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityReplay,
 } from "./dna-population-entrant-authority-replay";
-import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
+import type {
+  DnaPopulationEntrantAuthorityRecord,
+} from "./dna-population-entrant-authority-record";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
@@ -118,10 +120,7 @@ export function completeDnaPopulationCoreHistoryAuthority(input: {
   const baseByRaceId = new Map<string, CanonicalRaceDocumentMetadata>();
   for (const document of input.baseRaceDocuments) {
     const id = raceId(document.sourceRaceId);
-    if (
-      document.sourceType !== "race_document" ||
-      baseByRaceId.has(id)
-    ) {
+    if (document.sourceType !== "race_document" || baseByRaceId.has(id)) {
       authorityError("base Race authority is duplicated or invalid");
     }
     baseByRaceId.set(id, document);
