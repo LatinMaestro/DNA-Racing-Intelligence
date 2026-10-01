@@ -457,7 +457,7 @@ describe("DNA race document quarantine hydrator", () => {
     );
   });
 
-  it("isolates a persistently unresolved batch and retains stable Race-specific quarantine evidence", async () => {
+  it("reuses stable Race-specific quarantine evidence after bounded batch retries", async () => {
     const target = clientWith((raceIds) =>
       raceIds.map((rid) => ({ rid, rvmode: "bike" })),
     );
@@ -470,9 +470,7 @@ describe("DNA race document quarantine hydrator", () => {
       observedAt: "2026-08-27T08:00:00Z",
     });
 
-    const expectedRequests =
-      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS +
-      2 * DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+    const expectedRequests = DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS;
     expect(result).toMatchObject({
       providerRequestCount: expectedRequests,
       resolvedRaceCount: 0,
@@ -492,6 +490,51 @@ describe("DNA race document quarantine hydrator", () => {
         sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
       }),
     ]);
+    expect(target.calls).toHaveLength(expectedRequests);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      expectedRequests,
+    );
+  });
+
+  it("isolates only ambiguous Races after stable batch evidence is retained", async () => {
+    const target = clientWith((raceIds) =>
+      raceIds
+        .filter((rid) => Number(rid) === 1)
+        .map((rid) => ({ rid, rvmode: "bike" })),
+    );
+    const requestBudget = createDnaOpenLabRequestBudget();
+
+    const result = await hydrateDnaRaceDocumentsWithQuarantine({
+      raceIds: [1, 2],
+      client: target.client,
+      requestBudget,
+      observedAt: "2026-08-27T08:00:00Z",
+    });
+
+    const expectedRequests =
+      DNA_RACE_DOCUMENT_SYSTEMIC_RESPONSE_MAX_ATTEMPTS +
+      DNA_RACE_DOCUMENT_SYSTEMIC_INDIVIDUAL_PROBE_ATTEMPTS;
+    expect(result).toMatchObject({
+      providerRequestCount: expectedRequests,
+      resolvedRaceCount: 0,
+      quarantinedRaceCount: 2,
+    });
+    expect(result.outcomes[0]).toMatchObject({
+      status: "quarantined",
+      sourceRaceId: "1",
+      quarantineReason: "entrant_authority_unresolved",
+      sourceEvidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
+    expect(result.outcomes[1]).toEqual({
+      status: "quarantined",
+      sourceRaceId: "2",
+      observedAt: "2026-08-27T08:00:00Z",
+      quarantineReason: "provider_document_missing",
+    });
+    expect(target.calls.map((call) => call.length)).toEqual([2, 2, 2, 1, 1, 1]);
+    expect(requestBudget.snapshot().requestsInCurrentWindow).toBe(
+      expectedRequests,
+    );
   });
 
   it("fails closed when isolated quarantine evidence changes between probes", async () => {
