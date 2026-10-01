@@ -4,6 +4,7 @@ import type { RaceArchiveCoreAnalyticalObservation } from "../lib/race-archive-c
 import type { RaceArchiveExternalSortedRunStore } from "../lib/race-archive-external-sort";
 import { proLeagueExactFormatEvidenceFromRaceArchive } from "../lib/race-archive-pro-league-exact-format";
 import {
+  spillableProLeagueExactFormatEvidence,
   spillableProLeagueExactFormatEvidenceFromRaceArchive,
   type AcceptedProLeagueExactFormatObservation,
   type ProLeagueExactFormatAnalyticalObservation,
@@ -298,6 +299,123 @@ describe("spillable Pro League exact-format evidence", () => {
     ).toEqual(resident.profiles);
     expect(observationScratch.runs.size).toBe(0);
     expect(acceptedScratch.runs.size).toBe(0);
+  });
+
+  it("publishes canonical star opportunities and hides incomplete profiles", async () => {
+    const value = (
+      naturalKey: string,
+      sourceCoreId: string,
+      input: Readonly<{
+        finishPosition: number;
+        goldStar: boolean | null;
+        blueStar: boolean | null;
+        goldOpportunity: boolean | null;
+        blueOpportunity: boolean | null;
+        status: "available" | "unavailable";
+      }>,
+    ): ProLeagueExactFormatAnalyticalObservation =>
+      Object.freeze({
+        naturalKey,
+        sourceCoreId,
+        eventAt: "2026-04-01T00:00:00.000Z",
+        mode: "bike",
+        distanceMetres: 1_000,
+        gateCount: 6,
+        finishPosition: input.finishPosition,
+        elapsedMilliseconds: 40_000 + input.finishPosition,
+        payoutMechanismSourceValue: "Top 3",
+        goldStar: input.goldStar,
+        blueStar: input.blueStar,
+        goldStarAssignmentOpportunity: input.goldOpportunity,
+        blueStarAssignmentOpportunity: input.blueOpportunity,
+        starEvidenceStatus: input.status,
+      });
+    const values = [
+      value("race-1:core-a", "core-a", {
+        finishPosition: 1,
+        goldStar: true,
+        blueStar: false,
+        goldOpportunity: true,
+        blueOpportunity: true,
+        status: "available",
+      }),
+      value("race-2:core-a", "core-a", {
+        finishPosition: 2,
+        goldStar: false,
+        blueStar: true,
+        goldOpportunity: true,
+        blueOpportunity: true,
+        status: "available",
+      }),
+      value("race-1:core-b", "core-b", {
+        finishPosition: 2,
+        goldStar: false,
+        blueStar: false,
+        goldOpportunity: true,
+        blueOpportunity: true,
+        status: "available",
+      }),
+      value("race-2:core-b", "core-b", {
+        finishPosition: 1,
+        goldStar: null,
+        blueStar: null,
+        goldOpportunity: null,
+        blueOpportunity: null,
+        status: "unavailable",
+      }),
+    ];
+    const observationScratch =
+      memoryStore<ProLeagueExactFormatAnalyticalObservation>();
+    const acceptedScratch =
+      memoryStore<AcceptedProLeagueExactFormatObservation>();
+    const spillable = await spillableProLeagueExactFormatEvidence({
+      observations: records(values),
+      observationStore: observationScratch.store,
+      acceptedStore: acceptedScratch.store,
+      runPrefix: "test/stars",
+      refreshedAt: "2026-04-02T00:00:00.000Z",
+      maximumRecordsInMemory: 2,
+      mergeFanIn: 2,
+      maximumObservations: 10,
+      maximumRunObjects: 100,
+      maximumBenchmarks: 10,
+      maximumProfiles: 10,
+    });
+    const profiles = (await collect(spillable.readRows()))
+      .filter((row) => row.kind === "profile")
+      .map((row) => row.value);
+    expect(profiles).toEqual([
+      expect.objectContaining({
+        sourceCoreId: "core-a",
+        supportingEvidence: expect.objectContaining({
+          goldStar: {
+            status: "available",
+            assignedCount: 1,
+            eligibleRaceCount: 2,
+          },
+          blueStar: {
+            status: "available",
+            assignedCount: 1,
+            opportunityCount: 2,
+          },
+        }),
+      }),
+      expect.objectContaining({
+        sourceCoreId: "core-b",
+        supportingEvidence: expect.objectContaining({
+          goldStar: {
+            status: "unavailable",
+            assignedCount: 0,
+            eligibleRaceCount: 0,
+          },
+          blueStar: {
+            status: "unavailable",
+            assignedCount: 0,
+            opportunityCount: 0,
+          },
+        }),
+      }),
+    ]);
   });
 
   it("fails closed on duplicate natural keys during preparation and cleans scratch", async () => {

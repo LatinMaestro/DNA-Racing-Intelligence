@@ -44,6 +44,16 @@ function observation(
       raceDocument.rawEvidenceSha256 !== value.raceDocumentEvidenceSha256 ||
       race.entrantCoreIds === undefined ||
       !race.entrantCoreIds.includes(value.sourceCoreId) ||
+      (value.starEvidenceStatus === "available" &&
+        (race.yellowStarSourceCoreIds === undefined ||
+          race.blueStarSourceCoreIds === undefined ||
+          race.yellowStarSourceCoreIds.includes(value.sourceCoreId) !==
+            value.goldStar ||
+          race.blueStarSourceCoreIds.includes(value.sourceCoreId) !==
+            value.blueStar)) ||
+      (value.starEvidenceStatus === "missing" &&
+        (race.yellowStarSourceCoreIds !== undefined ||
+          race.blueStarSourceCoreIds !== undefined)) ||
       race.mode === undefined ||
       race.distanceMetres === undefined ||
       race.gateCount === undefined ||
@@ -59,6 +69,19 @@ function observation(
         "Active Core history canonical Race authority is invalid",
       );
     }
+    const starEvidenceAvailable =
+      value.starEvidenceStatus === "available" &&
+      race.yellowStarSourceCoreIds !== undefined &&
+      race.blueStarSourceCoreIds !== undefined &&
+      race.yellowStarSourceCoreIds.length <= 1 &&
+      race.blueStarSourceCoreIds.length <= 1 &&
+      race.yellowStarSourceCoreIds.every((coreId) =>
+        race.entrantCoreIds!.includes(coreId),
+      ) &&
+      race.blueStarSourceCoreIds.every((coreId) =>
+        race.entrantCoreIds!.includes(coreId),
+      ) &&
+      (race.gateCount > 3 || race.yellowStarSourceCoreIds.length === 0);
     return Object.freeze({
       naturalKey: value.naturalKey,
       sourceCoreId: value.sourceCoreId,
@@ -69,6 +92,19 @@ function observation(
       finishPosition: value.finishPosition,
       elapsedMilliseconds: value.elapsedMilliseconds,
       payoutMechanismSourceValue: race.payoutSourceValue ?? null,
+      goldStar: starEvidenceAvailable ? value.goldStar : null,
+      blueStar: starEvidenceAvailable ? value.blueStar : null,
+      goldStarAssignmentOpportunity:
+        starEvidenceAvailable && race.yellowStarSourceCoreIds !== undefined
+          ? race.yellowStarSourceCoreIds.length > 0
+          : null,
+      blueStarAssignmentOpportunity:
+        starEvidenceAvailable && race.blueStarSourceCoreIds !== undefined
+          ? race.blueStarSourceCoreIds.length > 0
+          : null,
+      starEvidenceStatus: starEvidenceAvailable
+        ? ("available" as const)
+        : ("unavailable" as const),
     });
   }
   if (
@@ -101,6 +137,11 @@ function observation(
     finishPosition: value.finishPosition,
     elapsedMilliseconds: value.elapsedMilliseconds,
     payoutMechanismSourceValue: value.payoutMechanismSourceValue,
+    goldStar: null,
+    blueStar: null,
+    goldStarAssignmentOpportunity: null,
+    blueStarAssignmentOpportunity: null,
+    starEvidenceStatus: "unavailable",
   });
 }
 

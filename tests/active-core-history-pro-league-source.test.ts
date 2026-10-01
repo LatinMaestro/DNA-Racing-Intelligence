@@ -58,7 +58,7 @@ function compactRow(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
     elapsedMilliseconds: 40_000 + ordinal,
     finishPosition: ordinal + 1,
     goldStar: ordinal === 0,
-    blueStar: false,
+    blueStar: ordinal === 1,
     starEvidenceStatus: "available" as const,
   });
   return Object.freeze({
@@ -136,6 +136,11 @@ describe("active Core history Pro League source", () => {
         finishPosition: 1,
         elapsedMilliseconds: 40_000,
         payoutMechanismSourceValue: "Winner Take All",
+        goldStar: null,
+        blueStar: null,
+        goldStarAssignmentOpportunity: null,
+        blueStarAssignmentOpportunity: null,
+        starEvidenceStatus: "unavailable",
       },
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);
@@ -171,6 +176,8 @@ describe("active Core history Pro League source", () => {
                 distanceMetres: 1_200,
                 gateCount: 12,
                 entrantCoreIds: [String(101 + index)],
+                yellowStarSourceCoreIds: index === 0 ? ["101"] : [],
+                blueStarSourceCoreIds: index === 1 ? ["102"] : [],
                 startAt: `2026-09-${String(14 + index).padStart(2, "0")}T00:00:00.000Z`,
                 payoutSourceValue: "Winner Take All",
               }),
@@ -192,6 +199,11 @@ describe("active Core history Pro League source", () => {
         gateCount: 12,
         finishPosition: 1,
         elapsedMilliseconds: 40_000,
+        goldStar: true,
+        blueStar: false,
+        goldStarAssignmentOpportunity: true,
+        blueStarAssignmentOpportunity: false,
+        starEvidenceStatus: "available",
       }),
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);

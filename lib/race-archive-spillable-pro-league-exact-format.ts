@@ -42,6 +42,11 @@ export type ProLeagueExactFormatAnalyticalObservation = Readonly<{
   finishPosition: number;
   elapsedMilliseconds: number;
   payoutMechanismSourceValue: string | null;
+  goldStar: boolean | null;
+  blueStar: boolean | null;
+  goldStarAssignmentOpportunity: boolean | null;
+  blueStarAssignmentOpportunity: boolean | null;
+  starEvidenceStatus: "available" | "unavailable";
 }>;
 
 type AcceptedObservation = AcceptedProLeagueExactFormatObservation;
@@ -51,6 +56,11 @@ type CoreMetadata = Readonly<{
   raceCount: number;
   winCount: number;
   topThreeCount: number;
+  starEvidenceAvailable: boolean;
+  goldStarAssignedCount: number;
+  goldStarEligibleRaceCount: number;
+  blueStarAssignedCount: number;
+  blueStarOpportunityCount: number;
   dataCurrentThrough: string;
 }>;
 
@@ -298,6 +308,11 @@ async function coreMetadata(input: {
         raceCount: number;
         winCount: number;
         topThreeCount: number;
+        starEvidenceAvailable: boolean;
+        goldStarAssignedCount: number;
+        goldStarEligibleRaceCount: number;
+        blueStarAssignedCount: number;
+        blueStarOpportunityCount: number;
         dataCurrentThrough: string;
       }
     | undefined;
@@ -321,12 +336,41 @@ async function coreMetadata(input: {
         raceCount: 0,
         winCount: 0,
         topThreeCount: 0,
+        starEvidenceAvailable: true,
+        goldStarAssignedCount: 0,
+        goldStarEligibleRaceCount: 0,
+        blueStarAssignedCount: 0,
+        blueStarOpportunityCount: 0,
         dataCurrentThrough: eventAt,
       };
     }
     active.raceCount += 1;
     if (value.observation.finishPosition === 1) active.winCount += 1;
     if (value.observation.finishPosition <= 3) active.topThreeCount += 1;
+    const goldStarEligible = value.observation.gateCount > 3;
+    if (
+      value.observation.starEvidenceStatus !== "available" ||
+      value.observation.goldStar === null ||
+      value.observation.blueStar === null ||
+      value.observation.goldStarAssignmentOpportunity === null ||
+      value.observation.blueStarAssignmentOpportunity === null ||
+      (value.observation.goldStar &&
+        (!goldStarEligible ||
+          !value.observation.goldStarAssignmentOpportunity)) ||
+      (value.observation.blueStar &&
+        !value.observation.blueStarAssignmentOpportunity) ||
+      (value.observation.goldStarAssignmentOpportunity && !goldStarEligible)
+    ) {
+      active.starEvidenceAvailable = false;
+    }
+    if (goldStarEligible) active.goldStarEligibleRaceCount += 1;
+    if (goldStarEligible && value.observation.goldStar === true) {
+      active.goldStarAssignedCount += 1;
+    }
+    if (value.observation.blueStar === true) active.blueStarAssignedCount += 1;
+    if (value.observation.blueStarAssignmentOpportunity) {
+      active.blueStarOpportunityCount += 1;
+    }
     if (eventAt > active.dataCurrentThrough)
       active.dataCurrentThrough = eventAt;
   }
@@ -544,11 +588,27 @@ function rowsFromSorted(input: {
                   ),
                 }),
                 populationBenchmark,
-                supportingEvidence:
-                  unavailableProLeagueExactFormatSupportingEvidence({
-                    winCount: core.winCount,
-                    topThreeCount: core.topThreeCount,
-                  }),
+                supportingEvidence: (() => {
+                  const unavailable =
+                    unavailableProLeagueExactFormatSupportingEvidence({
+                      winCount: core.winCount,
+                      topThreeCount: core.topThreeCount,
+                    });
+                  if (!core.starEvidenceAvailable) return unavailable;
+                  return Object.freeze({
+                    ...unavailable,
+                    goldStar: Object.freeze({
+                      status: "available" as const,
+                      assignedCount: core.goldStarAssignedCount,
+                      eligibleRaceCount: core.goldStarEligibleRaceCount,
+                    }),
+                    blueStar: Object.freeze({
+                      status: "available" as const,
+                      assignedCount: core.blueStarAssignedCount,
+                      opportunityCount: core.blueStarOpportunityCount,
+                    }),
+                  });
+                })(),
               }),
             });
           }
@@ -637,6 +697,21 @@ export async function spillableProLeagueExactFormatEvidence(input: {
         normalizedTimestamp(value.eventAt, "observation.eventAt");
         positiveSafeInteger(value.distanceMetres, "observation.distanceMetres");
         positiveSafeInteger(value.gateCount, "observation.gateCount");
+        if (
+          !["available", "unavailable"].includes(value.starEvidenceStatus) ||
+          (value.starEvidenceStatus === "available" &&
+            (typeof value.goldStar !== "boolean" ||
+              typeof value.blueStar !== "boolean" ||
+              typeof value.goldStarAssignmentOpportunity !== "boolean" ||
+              typeof value.blueStarAssignmentOpportunity !== "boolean")) ||
+          (value.starEvidenceStatus === "unavailable" &&
+            (value.goldStar !== null ||
+              value.blueStar !== null ||
+              value.goldStarAssignmentOpportunity !== null ||
+              value.blueStarAssignmentOpportunity !== null))
+        ) {
+          throw new Error("observation star evidence is invalid");
+        }
         yield value;
       }
     })(),
@@ -811,6 +886,11 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
         finishPosition: observation.finishPosition,
         elapsedMilliseconds: observation.elapsedMilliseconds,
         payoutMechanismSourceValue: observation.payoutMechanismSourceValue,
+        goldStar: null,
+        blueStar: null,
+        goldStarAssignmentOpportunity: null,
+        blueStarAssignmentOpportunity: null,
+        starEvidenceStatus: "unavailable" as const,
       }) satisfies ProLeagueExactFormatAnalyticalObservation;
     }
   })();
