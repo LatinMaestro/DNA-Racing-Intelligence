@@ -91,6 +91,7 @@ describe("population entrant connected runtime", () => {
     }
     expect(runtime.inspectContinuationReadiness).toEqual(expect.any(Function));
     expect(runtime.inspectAutonomousBoundary).toEqual(expect.any(Function));
+    expect(runtime.inspectResolvedAuthority).toEqual(expect.any(Function));
     expect(runtime.executeContinuation).toEqual(expect.any(Function));
     expect(fetcher).not.toHaveBeenCalled();
     expect(JSON.stringify(runtime)).toBe(

@@ -76,39 +76,29 @@ describeConnected(
           );
         }
 
-        const receipt = await runtime.inspectAutonomousBoundary();
+        const receipt = await runtime.inspectResolvedAuthority();
 
         expect(receipt).toMatchObject({
-          version: 1,
-          status: "authority_complete",
-          exactCodeHeadSha,
-          previewOnly: true,
+          version: "dna-population-entrant-authority-resolution/v1",
+          status: "resolved_authority_complete",
           providerRequestPerformed: false,
           persistentWritePerformed: false,
-          providerWritePerformed: false,
           paidUsageAllowed: false,
         });
-        expect(receipt.recoveredChunkCount).toBeGreaterThanOrEqual(1);
-        expect(receipt.recoveredRaceCount).toBe(receipt.unresolvedRaceCount);
-        expect(receipt.nextChunkOrdinal).toBe(receipt.recoveredChunkCount + 1);
-        expect(new Date(receipt.checkpointUpdatedAt).toISOString()).toBe(
-          receipt.checkpointUpdatedAt,
-        );
-        expect(new Date(receipt.capacityObservedAt).toISOString()).toBe(
-          receipt.capacityObservedAt,
-        );
+        expect(receipt.resolvedRaceCount).toBe(receipt.unresolvedRaceCount);
+        expect(receipt.quarantinedRaceCount).toBe(0);
 
         console.log(
           "DNA_POPULATION_ENTRANT_AUTHORITY_COMPLETION_VERIFICATION=" +
             JSON.stringify({
               status: receipt.status,
-              recoveredChunkCount: receipt.recoveredChunkCount,
-              recoveredRaceCount: receipt.recoveredRaceCount,
+              resolvedRaceCount: receipt.resolvedRaceCount,
               unresolvedRaceCount: receipt.unresolvedRaceCount,
-              previewOnly: receipt.previewOnly,
+              quarantinedRaceCount: receipt.quarantinedRaceCount,
+              quarantinedRaceCountByReason:
+                receipt.quarantinedRaceCountByReason,
               providerRequestPerformed: receipt.providerRequestPerformed,
               persistentWritePerformed: receipt.persistentWritePerformed,
-              providerWritePerformed: receipt.providerWritePerformed,
               paidUsageAllowed: receipt.paidUsageAllowed,
             }),
         );

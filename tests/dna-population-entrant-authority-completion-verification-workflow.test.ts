@@ -36,11 +36,11 @@ describe("DNA population entrant authority completion-verification workflow", ()
     );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
 
-    expect(connectedTest).toContain("inspectAutonomousBoundary");
-    expect(connectedTest).toContain('status: "authority_complete"');
+    expect(connectedTest).toContain("inspectResolvedAuthority");
+    expect(connectedTest).toContain('status: "resolved_authority_complete"');
+    expect(connectedTest).toContain("quarantinedRaceCount");
     expect(connectedTest).toContain("providerRequestPerformed: false");
     expect(connectedTest).toContain("persistentWritePerformed: false");
-    expect(connectedTest).toContain("providerWritePerformed: false");
     expect(connectedTest).toContain("paidUsageAllowed: false");
   });
 });

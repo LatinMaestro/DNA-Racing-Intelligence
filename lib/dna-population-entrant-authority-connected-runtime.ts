@@ -29,12 +29,17 @@ import {
   createDnaPopulationEntrantAuthorityFirstCohortVerifier,
   type DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt,
 } from "./dna-population-entrant-authority-first-cohort-verification";
+import { loadDnaPopulationCoreHistoryEntrantAuthority } from "./dna-population-core-history-entrant-source";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-live-audit-source";
 import {
   createDnaPopulationEntrantAuthorityReadinessInspector,
   type DnaPopulationEntrantAuthorityReadinessReceipt,
 } from "./dna-population-entrant-authority-readiness";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-population-entrant-authority-r2-store";
+import {
+  resolveDnaPopulationEntrantAuthority,
+  type DnaPopulationEntrantAuthorityResolution,
+} from "./dna-population-entrant-authority-resolution";
 import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-open-lab-p5-first-backfill-approval";
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
@@ -84,6 +89,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectFirstCohortVerification: () => Promise<DnaPopulationEntrantAuthorityFirstCohortVerificationReceipt>;
       inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
       inspectAutonomousBoundary: () => Promise<DnaPopulationEntrantAuthorityAutonomousBoundary>;
+      inspectResolvedAuthority: () => Promise<DnaPopulationEntrantAuthorityResolution>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -426,6 +432,25 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         checkpointRepository,
         r2Store,
       });
+    const inspectResolvedAuthority = async () => {
+      const audit = await authoritySource.load({
+        ownerId: config.ownerId,
+        exactCodeHeadSha: config.exactCodeHeadSha,
+      });
+      const entrantAuthority =
+        await loadDnaPopulationCoreHistoryEntrantAuthority({
+          ownerId: config.ownerId,
+          authority: audit.authority,
+          checkpointRepository,
+          r2Store,
+        });
+      return resolveDnaPopulationEntrantAuthority({
+        records: entrantAuthority.records,
+        expectedUnresolvedRaceCount: audit.authority.unresolvedRaceCount,
+        expectedUnresolvedRaceSetSha256:
+          audit.authority.unresolvedRaceSetSha256,
+      });
+    };
 
     const command = createDnaPopulationEntrantAuthorityCohortCommand({
       configuredOwnerId: config.ownerId,
@@ -463,6 +488,7 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectFirstCohortVerification: firstCohortVerification.inspect,
       inspectContinuationReadiness: continuationReadiness.inspect,
       inspectAutonomousBoundary: autonomousBoundary.inspect,
+      inspectResolvedAuthority,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
     });
