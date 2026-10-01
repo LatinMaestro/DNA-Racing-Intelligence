@@ -147,7 +147,10 @@ can require an exact second-source match. `track` remains a separate source
 value and must not be treated as distance. Its
 read-only commissioning evidence may disclose aggregate quarantine counts by
 the fixed reason taxonomy, but never protected Race identities, private object
-keys or provider payload values. Its
+keys or provider payload values. The standalone completion verifier must
+distinguish complete identity coverage from resolved Race-to-Core authority:
+only a zero-quarantine replay may report resolved authority complete. Coverage
+containing quarantine remains a fail-closed, aggregate-only diagnostic. Its
 versioned acquisition-cycle, per-Core page checkpoint and private immutable
 page/quarantine receipt boundaries are now defined. Its bounded runner requires
 the exact page budget identity, zero paid-use authority and last-good
