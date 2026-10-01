@@ -291,7 +291,7 @@ describe("DNA population entrant authority capacity gate", () => {
     const test = gate({ source: fixture.source });
 
     await expect(
-      test.value.assertFreshCurrentCapacity(authority),
+      test.value.assertFreshCurrentCapacity(authority, 100),
     ).rejects.toMatchObject({
       diagnostic: "neon_compute_blocked",
     });
