@@ -121,7 +121,7 @@ function session(input: {
       selectedRaceSetSha256: receipt.raceSetSha256,
       preparedBodySha256: receipt.bodySha256,
       preparedRecordSetSha256: receipt.recordSetSha256,
-      aggregateRequestsPerMinute: 90 as const,
+      aggregateRequestsPerMinute: 30 as const,
       persistentWriteArmed: true as const,
       previewOnly: true as const,
       providerRequestPerformed: true,
