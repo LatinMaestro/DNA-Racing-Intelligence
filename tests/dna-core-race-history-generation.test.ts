@@ -212,6 +212,9 @@ describe("DNA Core race history generation", () => {
       sourceRaceId: expect.any(String),
       elapsedMilliseconds: expect.any(Number),
       finishPosition: 1,
+      goldStar: false,
+      blueStar: false,
+      starEvidenceStatus: "available",
     });
     expect(persisted).not.toHaveProperty("mode");
     expect(persisted).not.toHaveProperty("distanceMetres");
@@ -220,10 +223,41 @@ describe("DNA Core race history generation", () => {
     expect(persisted).not.toHaveProperty("payoutMechanismSourceValue");
     expect(persisted).not.toHaveProperty("sourceFormat");
     expect(persisted).not.toHaveProperty("sourceRaceClass");
-    expect(persisted).not.toHaveProperty("goldStar");
-    expect(persisted).not.toHaveProperty("blueStar");
     expect(persisted).not.toHaveProperty("raceType");
     expect(persisted).not.toHaveProperty("mapIds");
+  });
+
+  it("preserves missing star authority without inventing recipients", async () => {
+    const repo = repository();
+    const candidate = materialization(1);
+    const missing = {
+      ...candidate,
+      observations: [
+        {
+          ...candidate.observations[0]!,
+          goldStar: null,
+          blueStar: null,
+          starEvidenceStatus: "missing" as const,
+        },
+      ],
+    };
+    missing.observationSetSha256 = dnaOpenLabRawEvidenceSha256(
+      missing.observations,
+    );
+
+    await publishDnaCoreRaceHistoryGeneration({
+      ownerId,
+      workerId,
+      materialization: missing,
+      publishedAt,
+      repository: repo.value,
+    });
+
+    expect(repo.rows.get(0)?.payload).toMatchObject({
+      goldStar: null,
+      blueStar: null,
+      starEvidenceStatus: "missing",
+    });
   });
 
   it("retains quarantined entrant omissions outside analytical rows", async () => {
