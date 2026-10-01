@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 
 import type { DnaPopulationEntrantAuthorityCheckpointRepository } from "./dna-population-entrant-authority-checkpoint";
-import {
-  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
-  type DnaPopulationEntrantAuthorityLiveAuditSource,
-} from "./dna-population-entrant-authority-cohort-command";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE } from "./dna-population-entrant-authority-cohort";
+import type { DnaPopulationEntrantAuthorityLiveAuditSource } from "./dna-population-entrant-authority-cohort-command";
 import type { DnaPopulationEntrantAuthorityCapacityGate } from "./dna-population-entrant-authority-commit-protocol";
 import {
   dnaPopulationEntrantAuthorityRecord,
