@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 
-import {
-  DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
-  type DnaCoreRaceHistoryProviderPageSize,
-} from "./dna-core-race-history-acquisition-cycle";
+import { DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE } from "./dna-core-race-history-acquisition-cycle";
 import { adaptDnaCoreRaceHistoryPage } from "./dna-core-race-history-adapter";
 import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
 import { DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE } from "./dna-core-race-history-acquisition-runner";
