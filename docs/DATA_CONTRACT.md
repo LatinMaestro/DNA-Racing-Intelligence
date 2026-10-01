@@ -62,9 +62,9 @@ The website uses one fixed **30 requests/minute combined cap across all configur
 
 The private Preview population entrant-authority backfill is the sole scoped exception:
 it requires exactly three distinct API credentials and gives each credential its
-own fixed 30 requests/minute budget for exactly 90 aggregate requests/minute.
-If the three-lane 30×3 authority cannot be maintained, the entrant backfill fails
-closed rather than silently continuing below 90 aggregate requests/minute. The same
+own fixed 10 requests/minute budget for exactly 30 aggregate requests/minute.
+If the three-lane 10×3 authority cannot be maintained, the entrant backfill fails
+closed rather than exceeding 30 aggregate requests/minute. The same
 backfill measures R2 usage before audit reads and before every cohort, reserving
 the complete remaining per-Race archive and compact-chunk upper bound; it stops
 before projected paid R2 usage exceeds 5,000,000 micro-USD. This exception does
