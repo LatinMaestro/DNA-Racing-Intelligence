@@ -1,0 +1,117 @@
+name: DNA population entrant authority first remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to remediate
+        required: true
+        type: string
+      cohort_observed_at:
+        description: Canonical UTC observation timestamp for this one remediation cohort
+        required: true
+        type: string
+      execute_first_private_preview_entrant_remediation:
+        description: Confirm the first bounded private Preview entrant remediation cohort
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-entrant-authority-remediation-persistence
+  cancel-in-progress: false
+
+jobs:
+  exact-main-first-private-preview-remediation:
+    name: Exact-main first private Preview entrant remediation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: preview
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND: "1"
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_OBSERVED_AT: ${{ inputs.cohort_observed_at }}
+      DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit remediation write arm
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This remediation workflow may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_first_private_preview_entrant_remediation }}" != "true" ]]; then
+            echo "The first private Preview remediation cohort was not explicitly armed."
+            exit 1
+          fi
+          if [[ "${{ inputs.expected_main_sha }}" != "$GITHUB_SHA" ]]; then
+            echo "The supplied remediation commit does not match the dispatch head."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]] || \
+             [[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]]; then
+            echo "The remediation head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate bounded private Preview remediation configuration
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const expectedMain = process.env.DNA_POPULATION_ENTRANT_AUTHORITY_EXPECTED_MAIN_SHA ?? "";
+          const observedAt = process.env.DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_OBSERVED_AT ?? "";
+          const parsed = new Date(observedAt);
+          if (!/^[a-f0-9]{40}$/.test(expectedMain) || expectedMain !== process.env.GITHUB_SHA) {
+            throw new Error("The exact main remediation authority is invalid.");
+          }
+          if (
+            Number.isNaN(parsed.getTime()) ||
+            parsed.toISOString() !== observedAt ||
+            parsed.getTime() > Date.now()
+          ) {
+            throw new Error("The remediation observation timestamp is invalid.");
+          }
+          console.log("Validated bounded private Preview remediation configuration.");
+          NODE
+      - name: Execute the guarded first private Preview remediation cohort
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-entrant-authority-remediation-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]]; then
+            echo "Main changed during entrant remediation."
+            exit 1
+          fi
