@@ -67,8 +67,8 @@ If the three-lane 10×3 authority cannot be maintained, the entrant backfill fai
 closed rather than exceeding 30 aggregate requests/minute. The same
 backfill measures R2 usage before audit reads and before every cohort, reserving
 the complete remaining per-Race archive and compact-chunk upper bound; it stops
-before projected paid R2 usage exceeds 5,000,000 micro-USD. This exception does
-not authorize paid DNA, Neon, GitHub, Vercel or Production usage.
+before any projected R2 usage would leave the accepted zero-cost budgets. Paid
+DNA, R2, Neon, GitHub, Vercel or Production usage is not authorized.
 
 The client/scheduler must:
 
