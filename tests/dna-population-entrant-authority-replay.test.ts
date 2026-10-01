@@ -105,6 +105,11 @@ describe("population entrant authority replay", () => {
 
     expect(replay.resolvedRaceCount).toBe(1);
     expect(replay.quarantinedRaceCount).toBe(2);
+    expect(replay.quarantinedRaceCountByReason).toEqual({
+      provider_document_missing: 1,
+      provider_document_unusable: 0,
+      entrant_authority_unresolved: 1,
+    });
     expect(replay.quarantinedRaceSetSha256).toBe(setHash(["20", "30"]));
     expect(replay.canonicalDocuments).toEqual([
       {
