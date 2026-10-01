@@ -37,10 +37,7 @@ import {
 } from "./dna-open-lab-race-document-hydrator";
 import { hydrateDnaRaceDocumentsWithQuarantine } from "./dna-open-lab-race-document-quarantine-hydrator";
 import { DnaOpenLabR2RaceEvidenceProviderError } from "./dna-open-lab-r2-race-evidence";
-import {
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-  type DnaOpenLabRequestBudget,
-} from "./dna-open-lab-request-budget";
+import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 import {
   DnaOpenLabApiError,
@@ -56,10 +53,10 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_COHORT_MAXIMUM_RACES =
   DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES = 3 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE =
-  DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE;
+  10 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE =
   (DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE *
-    DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES) as 90;
+    DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES) as 30;
 
 export type DnaPopulationEntrantAuthorityCohortDiagnostic =
   | "invalid_audited_authority"
