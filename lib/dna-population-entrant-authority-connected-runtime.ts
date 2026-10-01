@@ -35,6 +35,13 @@ import {
   createDnaPopulationEntrantAuthorityReadinessInspector,
   type DnaPopulationEntrantAuthorityReadinessReceipt,
 } from "./dna-population-entrant-authority-readiness";
+import {
+  createDnaPopulationEntrantAuthorityRemediation,
+  createDnaPopulationEntrantAuthorityRemediationManifestStore,
+  type DnaPopulationEntrantAuthorityRemediationInvocation,
+  type DnaPopulationEntrantAuthorityRemediationReceipt,
+  type DnaPopulationEntrantAuthorityRemediationVerification,
+} from "./dna-population-entrant-authority-remediation";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "./dna-population-entrant-authority-r2-store";
 import {
   resolveDnaPopulationEntrantAuthority,
@@ -44,7 +51,10 @@ import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "./dna-op
 import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "./dna-open-lab-p5-first-backfill-r2-evidence";
 import { createDnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
 import { createDnaOpenLabIndependentRaceDocRuntime } from "./dna-open-lab-independent-race-doc-lanes";
-import { createDnaOpenLabR2RaceDocumentClient } from "./dna-open-lab-r2-race-evidence";
+import {
+  createDnaOpenLabR2CanonicalRaceDocumentReader,
+  createDnaOpenLabR2RaceDocumentClient,
+} from "./dna-open-lab-r2-race-evidence";
 import { createDnaOpenLabV1Client } from "./dna-open-lab-v1-client";
 import { createDnaPopulationRaceIndexR2ChunkStore } from "./dna-population-race-index-r2-chunk";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "./neon-dna-open-lab-p5-first-backfill-ledger";
@@ -90,6 +100,10 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityContinuationReadinessReceipt>;
       inspectAutonomousBoundary: () => Promise<DnaPopulationEntrantAuthorityAutonomousBoundary>;
       inspectResolvedAuthority: () => Promise<DnaPopulationEntrantAuthorityResolution>;
+      inspectRemediationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
+      executeRemediation: (
+        invocation: DnaPopulationEntrantAuthorityRemediationInvocation,
+      ) => Promise<DnaPopulationEntrantAuthorityRemediationReceipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -372,6 +386,11 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         storage,
       },
     });
+    const raceDocumentReader = createDnaOpenLabR2CanonicalRaceDocumentReader({
+      ownerId: config.ownerId,
+      bucketName: config.bucketName,
+      storage,
+    });
 
     const capacityGate = Object.freeze({
       async assertFreshCurrentCapacity(
@@ -398,6 +417,25 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         });
         return gate.assertFreshCurrentCapacity(authority, remainingRaceCount);
       },
+    });
+
+    const remediationManifestStore =
+      createDnaPopulationEntrantAuthorityRemediationManifestStore({
+        ownerId: config.ownerId,
+        bucketName: config.bucketName,
+        storage,
+      });
+    const remediation = createDnaPopulationEntrantAuthorityRemediation({
+      ownerId: config.ownerId,
+      runtimeCodeHeadSha: config.exactCodeHeadSha,
+      authoritySource,
+      checkpointRepository,
+      r2Store,
+      capacityGate,
+      client: raceDocumentClient,
+      requestBudget: raceDocumentRuntime.requestBudget,
+      manifestStore: remediationManifestStore,
+      raceDocumentReader,
     });
 
     const readiness = createDnaPopulationEntrantAuthorityReadinessInspector({
@@ -489,6 +527,8 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectContinuationReadiness: continuationReadiness.inspect,
       inspectAutonomousBoundary: autonomousBoundary.inspect,
       inspectResolvedAuthority,
+      inspectRemediationVerification: remediation.verify,
+      executeRemediation: remediation.execute,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
     });
