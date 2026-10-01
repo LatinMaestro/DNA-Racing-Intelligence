@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  DnaPopulationEntrantAuthorityCheckpointRepository,
-} from "./dna-population-entrant-authority-checkpoint";
+import type { DnaPopulationEntrantAuthorityCheckpointRepository } from "./dna-population-entrant-authority-checkpoint";
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
   type DnaPopulationEntrantAuthorityLiveAuditSource,
@@ -23,9 +21,7 @@ import {
   type DnaOpenLabR2CanonicalRaceDocumentStoragePort,
 } from "./dna-open-lab-r2-race-evidence";
 import type { DnaOpenLabRequestBudget } from "./dna-open-lab-request-budget";
-import {
-  dnaOpenLabRawEvidenceCanonicalJson,
-} from "./dna-open-lab-v1-adapters";
+import { dnaOpenLabRawEvidenceCanonicalJson } from "./dna-open-lab-v1-adapters";
 import type { DnaOpenLabClient } from "./dna-open-lab-v1-client";
 import type { PrivateDatasetEvidenceObjectStoragePort } from "./private-dataset-evidence-object-writer";
 
@@ -344,11 +340,15 @@ function validateManifestShape(
   ) {
     remediationError("manifest_conflict");
   }
-  const replacements = Object.freeze(value.replacements.map(exactResolvedRecord));
+  const replacements = Object.freeze(
+    value.replacements.map(exactResolvedRecord),
+  );
   if (
     new Set(replacements.map((record) => record.sourceRaceId)).size !==
       replacements.length ||
-    replacements.some((record) => !selectedRaceIds.includes(record.sourceRaceId))
+    replacements.some(
+      (record) => !selectedRaceIds.includes(record.sourceRaceId),
+    )
   ) {
     remediationError("manifest_conflict");
   }
@@ -493,7 +493,12 @@ const QUARANTINE_PRIORITY = Object.freeze({
   provider_document_unusable: 0,
   provider_document_missing: 1,
   entrant_authority_unresolved: 2,
-} satisfies Readonly<Record<DnaPopulationEntrantAuthorityQuarantineRecord["quarantineReason"], number>>);
+} satisfies Readonly<
+  Record<
+    DnaPopulationEntrantAuthorityQuarantineRecord["quarantineReason"],
+    number
+  >
+>);
 
 function selectFirstCohort(
   records: readonly (
@@ -529,7 +534,9 @@ async function loadBase(input: {
   >;
   r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
 }) {
-  let audit: Awaited<ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>>;
+  let audit: Awaited<
+    ReturnType<DnaPopulationEntrantAuthorityLiveAuditSource["load"]>
+  >;
   try {
     audit = await input.authoritySource.load({
       ownerId: input.ownerId,
@@ -549,8 +556,7 @@ async function loadBase(input: {
     const replay = replayDnaPopulationEntrantAuthority({
       records: base.records,
       expectedUnresolvedRaceCount: audit.authority.unresolvedRaceCount,
-      expectedUnresolvedRaceSetSha256:
-        audit.authority.unresolvedRaceSetSha256,
+      expectedUnresolvedRaceSetSha256: audit.authority.unresolvedRaceSetSha256,
     });
     if (
       replay.exactReplayDuplicateCount !== 0 ||
@@ -570,7 +576,9 @@ async function loadBase(input: {
 
 function validateCapacityApproval(
   approval: Awaited<
-    ReturnType<DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]>
+    ReturnType<
+      DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+    >
   >,
 ): void {
   if (
@@ -650,7 +658,8 @@ async function verifyManifest(input: {
   if (
     manifest.baseGenerationId !== loaded.audit.authority.generationId ||
     manifest.baseRecordSetSha256 !== loaded.replay.recordSetSha256 ||
-    manifest.unresolvedRaceCount !== loaded.audit.authority.unresolvedRaceCount ||
+    manifest.unresolvedRaceCount !==
+      loaded.audit.authority.unresolvedRaceCount ||
     manifest.unresolvedRaceSetSha256 !==
       loaded.audit.authority.unresolvedRaceSetSha256 ||
     manifest.selectedRaceIds.length !== selectedRaceIds.length ||
@@ -683,7 +692,9 @@ async function verifyManifest(input: {
       remediationError("verification_failed");
     }
     const reopened = exactResolvedRecord(
-      dnaPopulationEntrantAuthorityRecord(evidence) as DnaPopulationEntrantAuthorityResolvedRecord,
+      dnaPopulationEntrantAuthorityRecord(
+        evidence,
+      ) as DnaPopulationEntrantAuthorityResolvedRecord,
     );
     if (
       dnaOpenLabRawEvidenceCanonicalJson(reopened) !==
@@ -845,9 +856,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
           observedAt: cohortObservedAt,
         });
       } catch (error) {
-        if (
-          error instanceof DnaPopulationEntrantAuthorityRemediationError
-        ) {
+        if (error instanceof DnaPopulationEntrantAuthorityRemediationError) {
           throw error;
         }
         remediationError("hydration_unavailable");
@@ -923,9 +932,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       try {
         stored = await input.manifestStore.write(manifest);
       } catch (error) {
-        if (
-          error instanceof DnaPopulationEntrantAuthorityRemediationError
-        ) {
+        if (error instanceof DnaPopulationEntrantAuthorityRemediationError) {
           throw error;
         }
         remediationError("manifest_unavailable");
@@ -997,20 +1004,22 @@ export function createDnaPopulationEntrantAuthorityRemediationReplacementSource(
     unresolvedRaceCount: number;
     unresolvedRaceSetSha256: string;
     quarantinedRaceIds: readonly string[];
-  }) => Promise<Readonly<{
-    version: 1;
-    status: "ready";
-    observedAt: string;
-    baseGenerationId: string;
-    baseRecordSetSha256: string;
-    unresolvedRaceCount: number;
-    unresolvedRaceSetSha256: string;
-    replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
-    providerRequestPerformed: false;
-    persistentWritePerformed: false;
-    providerWritePerformed: false;
-    paidUsageAllowed: false;
-  }>>;
+  }) => Promise<
+    Readonly<{
+      version: 1;
+      status: "ready";
+      observedAt: string;
+      baseGenerationId: string;
+      baseRecordSetSha256: string;
+      unresolvedRaceCount: number;
+      unresolvedRaceSetSha256: string;
+      replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
+      providerRequestPerformed: false;
+      persistentWritePerformed: false;
+      providerWritePerformed: false;
+      paidUsageAllowed: false;
+    }>
+  >;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId");
   const exactCodeHeadSha = exactHead(input.exactCodeHeadSha);
