@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write lib/dna-population-core-history-authority.ts lib/dna-population-core-history-entrant-source.ts lib/dna-population-core-history-read-only-measurement.ts tests/dna-population-core-history-read-only-measurement.test.ts tests/hosted-preview-connected-population-core-history-readiness.test.ts && git diff -- lib/dna-population-core-history-authority.ts lib/dna-population-core-history-entrant-source.ts lib/dna-population-core-history-read-only-measurement.ts tests/dna-population-core-history-read-only-measurement.test.ts tests/hosted-preview-connected-population-core-history-readiness.test.ts && exit 1",
+    "format": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
