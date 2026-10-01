@@ -419,7 +419,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       preparationSource: "provider_hydration",
       recoveredRaceCount: 0,
       chunkOrdinal: 1,
-      aggregateRequestsPerMinute: 90,
+      aggregateRequestsPerMinute: 30,
       providerRequestPerformed: true,
       persistentWritePerformed: false,
       providerWritePerformed: false,
@@ -476,7 +476,7 @@ describe("DNA population entrant authority cohort bridge", () => {
     expect(prepared.summary.resolvedRaceCount).toBe(5_000);
     expect(prepared.summary.quarantinedRaceCount).toBe(0);
     expect(prepared.summary.providerRequestCount).toBe(250);
-    expect(prepared.summary.aggregateRequestsPerMinute).toBe(90);
+    expect(prepared.summary.aggregateRequestsPerMinute).toBe(30);
     expect(test.providerCalls).toHaveLength(250);
     expect(test.providerCalls.every((batch) => batch.length === 20)).toBe(true);
     expect(test.r2Store.write).not.toHaveBeenCalled();
@@ -875,7 +875,7 @@ describe("DNA population entrant authority cohort bridge", () => {
       quarantinedRaceCount: 2,
       providerRequestCount: 9,
       preparationSource: "provider_hydration",
-      aggregateRequestsPerMinute: 90,
+      aggregateRequestsPerMinute: 30,
     });
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.r2Store.write).not.toHaveBeenCalled();
