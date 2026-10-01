@@ -8,8 +8,10 @@ const verificationPath =
   ".github/workflows/dna-population-entrant-authority-remediation-verification.yml";
 
 describe("DNA population entrant remediation workflows", () => {
-  it("keeps the first remediation command dispatch-only, exact-main, bounded and Preview-only", async () => {
-    const workflow = await readFile(commandPath, "utf8");
+  it(
+    "keeps the first remediation command dispatch-only, exact-main, bounded and Preview-only",
+    async () => {
+      const workflow = await readFile(commandPath, "utf8");
 
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
@@ -33,11 +35,14 @@ describe("DNA population entrant remediation workflows", () => {
       "group: dna-population-entrant-authority-remediation-persistence",
     );
     expect(workflow).toContain("cancel-in-progress: false");
-    expect(workflow).not.toMatch(/VERCEL|production/iu);
-  });
+      expect(workflow).not.toMatch(/VERCEL|production/iu);
+    },
+  );
 
-  it("keeps remediation verification dispatch-only, exact-main and read-only", async () => {
-    const workflow = await readFile(verificationPath, "utf8");
+  it(
+    "keeps remediation verification dispatch-only, exact-main and read-only",
+    async () => {
+      const workflow = await readFile(verificationPath, "utf8");
 
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
@@ -53,6 +58,7 @@ describe("DNA population entrant remediation workflows", () => {
     expect(workflow).not.toContain(
       "execute_first_private_preview_entrant_remediation",
     );
-    expect(workflow).not.toMatch(/VERCEL|production/iu);
-  });
+      expect(workflow).not.toMatch(/VERCEL|production/iu);
+    },
+  );
 });
