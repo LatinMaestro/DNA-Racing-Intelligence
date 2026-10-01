@@ -151,7 +151,14 @@ keys or provider payload values. The standalone completion verifier must
 distinguish complete identity coverage from resolved Race-to-Core authority:
 only a zero-quarantine replay may report resolved authority complete. Coverage
 containing quarantine remains a fail-closed, aggregate-only diagnostic. Its
-versioned acquisition-cycle, per-Core page checkpoint and private immutable
+immutable v1 generation is never rewritten. A pure successor planner may
+replace only identities that replay as quarantined, requires newer uniquely
+resolved entrant membership, preserves every accepted base record, and derives
+a new identity from the exact base, replacement and successor record sets.
+That plan performs no provider read or persistence; connected remediation and
+successor publication remain separately owner-gated and must preserve the
+last-good base on every failure. The versioned acquisition-cycle, per-Core page
+checkpoint and private immutable
 page/quarantine receipt boundaries are now defined. Its bounded runner requires
 the exact page budget identity, zero paid-use authority and last-good
 preservation before evidence or provider access. The pure materialization
