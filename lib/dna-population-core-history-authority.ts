@@ -6,9 +6,7 @@ import {
   replayDnaPopulationEntrantAuthority,
   type DnaPopulationEntrantAuthorityReplay,
 } from "./dna-population-entrant-authority-replay";
-import type {
-  DnaPopulationEntrantAuthorityRecord,
-} from "./dna-population-entrant-authority-record";
+import type { DnaPopulationEntrantAuthorityRecord } from "./dna-population-entrant-authority-record";
 import type { CanonicalRaceDocumentMetadata } from "./dna-open-lab-v1-adapters";
 
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
