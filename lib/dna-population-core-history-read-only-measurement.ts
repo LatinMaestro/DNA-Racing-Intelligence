@@ -1,16 +1,24 @@
 import { createHash } from "node:crypto";
 
-import { DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE } from "./dna-core-race-history-acquisition-cycle";
+import {
+  DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
+} from "./dna-core-race-history-acquisition-cycle";
 import { adaptDnaCoreRaceHistoryPage } from "./dna-core-race-history-adapter";
 import type { DnaCoreRaceHistoryClient } from "./dna-core-race-history-client";
-import { DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE } from "./dna-core-race-history-acquisition-runner";
-import type { DnaPopulationHistoryAcquisitionPlan } from "./dna-population-history-acquisition-plan";
+import {
+  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+} from "./dna-core-race-history-acquisition-runner";
+import type {
+  DnaPopulationHistoryAcquisitionPlan,
+} from "./dna-population-history-acquisition-plan";
 import {
   DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
   type DnaOpenLabRequestBudget,
 } from "./dna-open-lab-request-budget";
 import { DnaOpenLabApiError } from "./dna-open-lab-v1-client";
-import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy";
+import type {
+  DnaOpenLabR2Usage,
+} from "./dna-open-lab-zero-cost-refresh-policy";
 
 export const DNA_POPULATION_CORE_HISTORY_READINESS_MAXIMUM_CORES = 8 as const;
 export const DNA_POPULATION_CORE_HISTORY_READINESS_MAXIMUM_PAGES_PER_CORE =
@@ -102,7 +110,12 @@ function hash(parts: readonly (string | number)[]): string {
 }
 
 function selectedCoreSetSha256(coreIds: readonly number[]): string {
-  return hash(["dna_open_lab", "population_core_history", "readiness_core_set", ...coreIds]);
+  return hash([
+    "dna_open_lab",
+    "population_core_history",
+    "readiness_core_set",
+    ...coreIds,
+  ]);
 }
 
 function measurementSliceSha256(input: {
@@ -252,7 +265,8 @@ export async function measureDnaPopulationCoreHistoryReadOnly(input: {
   ) {
     readinessError("request budget exceeds the conservative aggregate rate");
   }
-  const aggregateRequestsPerMinute = requestSnapshot.effectiveRequestsPerMinute;
+  const aggregateRequestsPerMinute =
+    requestSnapshot.effectiveRequestsPerMinute;
 
   if (
     input.plan.status !== "ready_for_budget_measurement" ||
