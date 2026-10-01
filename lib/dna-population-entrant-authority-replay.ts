@@ -5,9 +5,11 @@ import {
   type CanonicalRaceDocumentMetadata,
 } from "./dna-open-lab-v1-adapters";
 import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS,
   dnaPopulationEntrantAuthorityQuarantineRecord,
   dnaPopulationEntrantAuthorityRecord,
   isDnaPopulationEntrantAuthorityQuarantineRecord,
+  type DnaPopulationEntrantAuthorityQuarantineReason,
   type DnaPopulationEntrantAuthorityRecord,
   type DnaPopulationEntrantAuthorityResolvedRecord,
 } from "./dna-population-entrant-authority-record";
@@ -25,6 +27,9 @@ export type DnaPopulationEntrantAuthorityReplay = Readonly<{
   recordSetSha256: string;
   resolvedRaceCount: number;
   quarantinedRaceCount: number;
+  quarantinedRaceCountByReason: Readonly<
+    Record<DnaPopulationEntrantAuthorityQuarantineReason, number>
+  >;
   quarantinedRaceSetSha256: string | null;
   canonicalDocuments: readonly CanonicalRaceDocumentMetadata[];
   replayIntegrityStatus: "proven_compact_population_authority_replay";
@@ -200,6 +205,17 @@ export function replayDnaPopulationEntrantAuthority(input: {
       isDnaPopulationEntrantAuthorityQuarantineRecord(entry.record),
     )
     .map((entry) => entry.record.sourceRaceId);
+  const quarantinedRaceCountByReason = Object.fromEntries(
+    DNA_POPULATION_ENTRANT_AUTHORITY_QUARANTINE_REASONS.map((reason) => [
+      reason,
+      0,
+    ]),
+  ) as Record<DnaPopulationEntrantAuthorityQuarantineReason, number>;
+  for (const entry of ordered) {
+    if (isDnaPopulationEntrantAuthorityQuarantineRecord(entry.record)) {
+      quarantinedRaceCountByReason[entry.record.quarantineReason] += 1;
+    }
+  }
   const canonicalDocuments = Object.freeze(
     resolved.map((entry) => canonicalDocument(entry.record)),
   );
@@ -215,6 +231,7 @@ export function replayDnaPopulationEntrantAuthority(input: {
     recordSetSha256,
     resolvedRaceCount: resolved.length,
     quarantinedRaceCount: quarantinedRaceIds.length,
+    quarantinedRaceCountByReason: Object.freeze(quarantinedRaceCountByReason),
     quarantinedRaceSetSha256:
       quarantinedRaceIds.length === 0
         ? null

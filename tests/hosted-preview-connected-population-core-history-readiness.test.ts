@@ -258,7 +258,13 @@ describeConnected("hosted Preview population Core-history readiness", () => {
       }
       if (population.entrantReplay.quarantinedRaceCount !== 0) {
         throw new Error(
-          `population Core-history entrant replay contains ${population.entrantReplay.quarantinedRaceCount} quarantined Race identities`,
+          "population Core-history entrant replay contains quarantined Race identities: " +
+            JSON.stringify({
+              quarantinedRaceCount:
+                population.entrantReplay.quarantinedRaceCount,
+              quarantinedRaceCountByReason:
+                population.entrantReplay.quarantinedRaceCountByReason,
+            }),
         );
       }
       if (population.plan.status !== "ready_for_budget_measurement") {
