@@ -293,8 +293,10 @@ const invocation = Object.freeze({
 });
 
 describe("population entrant authority bounded remediation", () => {
-  it("persists one 20-Race private Preview remediation cohort and verifies its raw evidence", async () => {
-    const test = harness();
+  it(
+    "persists one 20-Race private Preview remediation cohort and verifies its raw evidence",
+    async () => {
+      const test = harness();
 
     await expect(test.remediation.execute(invocation)).resolves.toMatchObject({
       status: "committed_unpublished",
@@ -337,8 +339,9 @@ describe("population entrant authority bounded remediation", () => {
       previewOnly: true,
       paidUsageAllowed: false,
     });
-    expect(test.raceDocumentReader.read).toHaveBeenCalledTimes(40);
-  });
+      expect(test.raceDocumentReader.read).toHaveBeenCalledTimes(40);
+    },
+  );
 
   it("replays an existing first cohort without another DNA request or write", async () => {
     const test = harness();
