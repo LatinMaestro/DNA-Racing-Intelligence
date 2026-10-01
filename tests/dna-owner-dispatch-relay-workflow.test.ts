@@ -30,6 +30,17 @@ describe("DNA owner dispatch relay workflow", () => {
       "dna-population-entrant-authority-cohort-command.yml",
     );
     expect(workflow).toContain(
+      "dna-population-entrant-authority-remediation-command.yml",
+    );
+    expect(workflow).toContain(
+      "dna-population-entrant-authority-remediation-verification.yml",
+    );
+    expect(workflow).toContain('"entrant-remediation-first"');
+    expect(workflow).toContain('"entrant-remediation-verify"');
+    expect(workflow).toContain(
+      "payload.execute_first_private_preview_entrant_remediation !== true",
+    );
+    expect(workflow).toContain(
       "dna-population-entrant-authority-first-cohort-verification.yml",
     );
     expect(workflow).toContain(
