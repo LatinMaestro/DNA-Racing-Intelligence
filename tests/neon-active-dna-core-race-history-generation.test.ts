@@ -73,6 +73,9 @@ function compactPayload() {
     sourceRaceId: "race-1",
     elapsedMilliseconds: 40_000,
     finishPosition: 1,
+    goldStar: true,
+    blueStar: false,
+    starEvidenceStatus: "available",
   } as const;
 }
 
@@ -194,6 +197,24 @@ describe("active DNA Core race history generation reads", () => {
     await expect(
       compact.repository.readActiveRows(ownerId, -1, 250),
     ).resolves.toMatchObject([{ payload: value }]);
+
+    const invalidStar = { ...value, starEvidenceStatus: "missing" as const };
+    const invalidStarHarness = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          generation_id: generationId,
+          ordinal: 0,
+          natural_key: invalidStar.naturalKey,
+          row_sha256: dnaOpenLabRawEvidenceSha256(invalidStar),
+          payload: invalidStar,
+        },
+      ],
+    ]);
+    await expect(
+      invalidStarHarness.repository.readActiveRows(ownerId, -1, 250),
+    ).rejects.toThrow("outcome payload is invalid");
 
     const copied = { ...value, gateCount: 12 };
     const invalid = harness([
