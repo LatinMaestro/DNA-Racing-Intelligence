@@ -206,6 +206,10 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
     async (batch) => {
       const batchKeys = batch.map(raceKey);
       const batchKeySet = new Set(batchKeys);
+      const stableBatchQuarantines = new Map<
+        string,
+        DnaRaceDocumentQuarantineOnlyOutcome
+      >();
 
       for (
         let attempt = 1;
@@ -227,9 +231,11 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
             },
           });
           if (!Array.isArray(response.result)) {
+            stableBatchQuarantines.clear();
             hydrationError("invalid_response", "race-doc response is invalid");
           }
           if (batch.length > 1 && response.result.length === 0) {
+            stableBatchQuarantines.clear();
             hydrationError(
               "invalid_response",
               "race-doc batch coverage is systemically unavailable",
@@ -349,6 +355,31 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
               (key) => batchOutcomes.get(key)?.status === "quarantined",
             )
           ) {
+            for (const key of batchKeys) {
+              const outcome = batchOutcomes.get(key);
+              const hasRaceSpecificEvidence =
+                outcome?.status === "quarantined" &&
+                outcome.quarantineReason !== "provider_document_missing" &&
+                outcome.sourceEvidenceSha256 !== undefined;
+              if (!hasRaceSpecificEvidence) {
+                stableBatchQuarantines.delete(key);
+                continue;
+              }
+
+              if (attempt === 1) {
+                stableBatchQuarantines.set(key, outcome);
+                continue;
+              }
+
+              const previous = stableBatchQuarantines.get(key);
+              if (
+                previous === undefined ||
+                previous.quarantineReason !== outcome.quarantineReason ||
+                previous.sourceEvidenceSha256 !== outcome.sourceEvidenceSha256
+              ) {
+                stableBatchQuarantines.delete(key);
+              }
+            }
             hydrationError(
               "invalid_response",
               "race-doc batch entrant authority is systemically unavailable",
@@ -370,7 +401,23 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
             continue;
           }
           if (systemicInvalidResponse && batch.length > 1) {
+            // Repeated identical Race-specific evidence already proves stable
+            // quarantine authority. Avoid three redundant singleton probes for
+            // those Races; only missing or unstable evidence is isolated.
+            for (const [key, outcome] of stableBatchQuarantines) {
+              if (outcomesByKey.has(key)) {
+                hydrationError(
+                  "duplicate_document",
+                  "race-doc stable batch outcome duplicates prior authority",
+                );
+              }
+              outcomesByKey.set(key, outcome);
+            }
+
             for (const raceId of batch) {
+              const key = raceKey(raceId);
+              if (outcomesByKey.has(key)) continue;
+
               let accepted: DnaRaceDocumentQuarantineOutcome | undefined;
               let stableQuarantine:
                 DnaRaceDocumentQuarantineOnlyOutcome | undefined;
@@ -422,7 +469,6 @@ export async function hydrateDnaRaceDocumentsWithQuarantine(input: {
                   "race-doc isolated verification is unavailable",
                 );
               }
-              const key = raceKey(raceId);
               if (outcomesByKey.has(key)) {
                 hydrationError(
                   "duplicate_document",
