@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
-import { dnaPopulationEntrantAuthorityRaceSetSha256 } from "@/lib/dna-population-entrant-authority-cohort";
+import {
+  buildDnaPopulationEntrantAuthorityChunk,
+} from "@/lib/dna-population-entrant-authority-archive";
+import {
+  dnaPopulationEntrantAuthorityRaceSetSha256,
+} from "@/lib/dna-population-entrant-authority-cohort";
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND_VERSION,
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_INTENT,
@@ -298,53 +302,55 @@ describe("population entrant authority bounded remediation", () => {
     async () => {
       const test = harness();
 
-    await expect(test.remediation.execute(invocation)).resolves.toMatchObject({
-      status: "committed_unpublished",
-      exactCodeHeadSha: HEAD,
-      selectedRaceCount: 20,
-      replacementRaceCount: 20,
-      quarantinedRaceCountBefore: 25,
-      quarantinedRaceCountAfterEvidence: 5,
-      providerRequestCount: 1,
-      storageStatus: "created",
-      aggregateRequestsPerMinute: 30,
-      persistentWritePerformed: true,
-      providerWritePerformed: false,
-      publicationActivated: false,
-      previewOnly: true,
-      paidUsageAllowed: false,
-      lastGoodBasePreserved: true,
-    });
-    expect(test.providerCalls).toHaveLength(1);
-    expect(test.providerCalls[0]).toHaveLength(20);
-    expect(test.capacityGate.assertFreshCurrentCapacity).toHaveBeenCalledTimes(
-      2,
-    );
-    expect(
-      test.capacityGate.assertFreshCurrentCapacity,
-    ).toHaveBeenNthCalledWith(1, expect.any(Object), 100);
-    expect(
-      test.capacityGate.assertFreshCurrentCapacity,
-    ).toHaveBeenNthCalledWith(2, expect.any(Object), 100);
+      await expect(test.remediation.execute(invocation)).resolves.toMatchObject({
+        status: "committed_unpublished",
+        exactCodeHeadSha: HEAD,
+        selectedRaceCount: 20,
+        replacementRaceCount: 20,
+        quarantinedRaceCountBefore: 25,
+        quarantinedRaceCountAfterEvidence: 5,
+        providerRequestCount: 1,
+        storageStatus: "created",
+        aggregateRequestsPerMinute: 30,
+        persistentWritePerformed: true,
+        providerWritePerformed: false,
+        publicationActivated: false,
+        previewOnly: true,
+        paidUsageAllowed: false,
+        lastGoodBasePreserved: true,
+      });
+      expect(test.providerCalls).toHaveLength(1);
+      expect(test.providerCalls[0]).toHaveLength(20);
+      expect(
+        test.capacityGate.assertFreshCurrentCapacity,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        test.capacityGate.assertFreshCurrentCapacity,
+      ).toHaveBeenNthCalledWith(1, expect.any(Object), 100);
+      expect(
+        test.capacityGate.assertFreshCurrentCapacity,
+      ).toHaveBeenNthCalledWith(2, expect.any(Object), 100);
 
-    await expect(test.remediation.verify()).resolves.toMatchObject({
-      status: "verified_replacements",
-      selectedRaceCount: 20,
-      replacementRaceCount: 20,
-      quarantinedRaceCountBefore: 25,
-      quarantinedRaceCountAfterEvidence: 5,
-      providerRequestPerformed: false,
-      persistentWritePerformed: false,
-      publicationActivated: false,
-      previewOnly: true,
-      paidUsageAllowed: false,
-    });
+      await expect(test.remediation.verify()).resolves.toMatchObject({
+        status: "verified_replacements",
+        selectedRaceCount: 20,
+        replacementRaceCount: 20,
+        quarantinedRaceCountBefore: 25,
+        quarantinedRaceCountAfterEvidence: 5,
+        providerRequestPerformed: false,
+        persistentWritePerformed: false,
+        publicationActivated: false,
+        previewOnly: true,
+        paidUsageAllowed: false,
+      });
       expect(test.raceDocumentReader.read).toHaveBeenCalledTimes(40);
     },
   );
 
-  it("replays an existing first cohort without another DNA request or write", async () => {
-    const test = harness();
+  it(
+    "replays an existing first cohort without another DNA request or write",
+    async () => {
+      const test = harness();
 
     await test.remediation.execute(invocation);
     const callsAfterFirst = test.providerCalls.length;
@@ -360,12 +366,15 @@ describe("population entrant authority bounded remediation", () => {
       storageStatus: "existing",
     });
     expect(test.providerCalls).toHaveLength(callsAfterFirst);
-    expect(
-      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
-    ).toHaveLength(putAfterFirst);
-  });
+      expect(
+        vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+      ).toHaveLength(putAfterFirst);
+    },
+  );
 
-  it("fails closed before provider access when exact main is not authorized", async () => {
+  it(
+    "fails closed before provider access when exact main is not authorized",
+    async () => {
     const test = harness();
 
     const error = await test.remediation
@@ -380,6 +389,9 @@ describe("population entrant authority bounded remediation", () => {
     );
     expect(error).toMatchObject({ diagnostic: "exact_head_mismatch" });
     expect(test.providerCalls).toHaveLength(0);
-    expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
-  });
+      expect(
+        test.capacityGate.assertFreshCurrentCapacity,
+      ).not.toHaveBeenCalled();
+    },
+  );
 });
