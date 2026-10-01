@@ -288,6 +288,32 @@ export function unavailableProLeagueExactFormatSupportingEvidence(input: {
   });
 }
 
+export function proLeagueExactFormatSupportingEvidence(input: {
+  winCount: number;
+  topThreeCount: number;
+  starEvidenceAvailable: boolean;
+  goldStarAssignedCount: number;
+  goldStarEligibleRaceCount: number;
+  blueStarAssignedCount: number;
+  blueStarOpportunityCount: number;
+}): RaceArchiveProLeagueExactFormatProfile["supportingEvidence"] {
+  const unavailable = unavailableProLeagueExactFormatSupportingEvidence(input);
+  if (!input.starEvidenceAvailable) return unavailable;
+  return Object.freeze({
+    ...unavailable,
+    goldStar: Object.freeze({
+      status: "available" as const,
+      assignedCount: input.goldStarAssignedCount,
+      eligibleRaceCount: input.goldStarEligibleRaceCount,
+    }),
+    blueStar: Object.freeze({
+      status: "available" as const,
+      assignedCount: input.blueStarAssignedCount,
+      opportunityCount: input.blueStarOpportunityCount,
+    }),
+  });
+}
+
 export function proLeagueExactFormatEvidenceFromRaceArchive(input: {
   observations: readonly RaceArchiveCoreAnalyticalObservation[];
   refreshedAt: string;
@@ -527,16 +553,32 @@ export function proLeagueExactFormatEvidenceFromRaceArchive(input: {
             ),
           }),
           populationBenchmark,
-          supportingEvidence: unavailableProLeagueExactFormatSupportingEvidence(
-            {
-              winCount: values.filter(
-                ({ observation }) => observation.finishPosition === 1,
-              ).length,
-              topThreeCount: values.filter(
-                ({ observation }) => observation.finishPosition <= 3,
-              ).length,
-            },
-          ),
+          supportingEvidence: proLeagueExactFormatSupportingEvidence({
+            winCount: values.filter(
+              ({ observation }) => observation.finishPosition === 1,
+            ).length,
+            topThreeCount: values.filter(
+              ({ observation }) => observation.finishPosition <= 3,
+            ).length,
+            starEvidenceAvailable: values.every(
+              ({ observation }) =>
+                observation.starDataStatus === "complete" &&
+                observation.goldStar !== null &&
+                observation.blueStar !== null &&
+                (!observation.goldStar || observation.gateCount > 3),
+            ),
+            goldStarAssignedCount: values.filter(
+              ({ observation }) =>
+                observation.gateCount > 3 && observation.goldStar === true,
+            ).length,
+            goldStarEligibleRaceCount: values.filter(
+              ({ observation }) => observation.gateCount > 3,
+            ).length,
+            blueStarAssignedCount: values.filter(
+              ({ observation }) => observation.blueStar === true,
+            ).length,
+            blueStarOpportunityCount: values.length,
+          }),
         }),
       ];
     },

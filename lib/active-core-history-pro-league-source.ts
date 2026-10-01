@@ -69,6 +69,9 @@ function observation(
       finishPosition: value.finishPosition,
       elapsedMilliseconds: value.elapsedMilliseconds,
       payoutMechanismSourceValue: race.payoutSourceValue ?? null,
+      goldStar: value.goldStar,
+      blueStar: value.blueStar,
+      starEvidenceStatus: value.starEvidenceStatus,
     });
   }
   if (
@@ -101,6 +104,9 @@ function observation(
     finishPosition: value.finishPosition,
     elapsedMilliseconds: value.elapsedMilliseconds,
     payoutMechanismSourceValue: value.payoutMechanismSourceValue,
+    goldStar: value.goldStar,
+    blueStar: value.blueStar,
+    starEvidenceStatus: value.starEvidenceStatus,
   });
 }
 

@@ -136,6 +136,9 @@ describe("active Core history Pro League source", () => {
         finishPosition: 1,
         elapsedMilliseconds: 40_000,
         payoutMechanismSourceValue: "Winner Take All",
+        goldStar: false,
+        blueStar: false,
+        starEvidenceStatus: "available",
       },
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);
@@ -192,6 +195,9 @@ describe("active Core history Pro League source", () => {
         gateCount: 12,
         finishPosition: 1,
         elapsedMilliseconds: 40_000,
+        goldStar: true,
+        blueStar: false,
+        starEvidenceStatus: "available",
       }),
       expect.objectContaining({ sourceCoreId: "102", finishPosition: 2 }),
     ]);

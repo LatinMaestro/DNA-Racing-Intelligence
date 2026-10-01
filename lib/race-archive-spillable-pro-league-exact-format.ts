@@ -11,9 +11,9 @@ import {
 import { exactSortedRaceArchiveStatistics } from "./race-archive-exact-sorted-statistics";
 import {
   proLeagueExactFormatBenchmarkAssessment,
+  proLeagueExactFormatSupportingEvidence,
   publishedProLeagueRaceTypeFromArchive,
   roundedProLeagueExactFormatMetric,
-  unavailableProLeagueExactFormatSupportingEvidence,
   type RaceArchiveProLeagueExactFormatBenchmark,
   type RaceArchiveProLeagueExactFormatProfile,
 } from "./race-archive-pro-league-exact-format";
@@ -42,6 +42,9 @@ export type ProLeagueExactFormatAnalyticalObservation = Readonly<{
   finishPosition: number;
   elapsedMilliseconds: number;
   payoutMechanismSourceValue: string | null;
+  goldStar: boolean | null;
+  blueStar: boolean | null;
+  starEvidenceStatus: "available" | "missing";
 }>;
 
 type AcceptedObservation = AcceptedProLeagueExactFormatObservation;
@@ -51,6 +54,11 @@ type CoreMetadata = Readonly<{
   raceCount: number;
   winCount: number;
   topThreeCount: number;
+  starEvidenceAvailable: boolean;
+  goldStarAssignedCount: number;
+  goldStarEligibleRaceCount: number;
+  blueStarAssignedCount: number;
+  blueStarOpportunityCount: number;
   dataCurrentThrough: string;
 }>;
 
@@ -298,6 +306,11 @@ async function coreMetadata(input: {
         raceCount: number;
         winCount: number;
         topThreeCount: number;
+        starEvidenceAvailable: boolean;
+        goldStarAssignedCount: number;
+        goldStarEligibleRaceCount: number;
+        blueStarAssignedCount: number;
+        blueStarOpportunityCount: number;
         dataCurrentThrough: string;
       }
     | undefined;
@@ -321,12 +334,32 @@ async function coreMetadata(input: {
         raceCount: 0,
         winCount: 0,
         topThreeCount: 0,
+        starEvidenceAvailable: true,
+        goldStarAssignedCount: 0,
+        goldStarEligibleRaceCount: 0,
+        blueStarAssignedCount: 0,
+        blueStarOpportunityCount: 0,
         dataCurrentThrough: eventAt,
       };
     }
     active.raceCount += 1;
     if (value.observation.finishPosition === 1) active.winCount += 1;
     if (value.observation.finishPosition <= 3) active.topThreeCount += 1;
+    const goldStarEligible = value.observation.gateCount > 3;
+    if (
+      value.observation.starEvidenceStatus !== "available" ||
+      value.observation.goldStar === null ||
+      value.observation.blueStar === null ||
+      (value.observation.goldStar && !goldStarEligible)
+    ) {
+      active.starEvidenceAvailable = false;
+    }
+    if (goldStarEligible) active.goldStarEligibleRaceCount += 1;
+    if (goldStarEligible && value.observation.goldStar === true) {
+      active.goldStarAssignedCount += 1;
+    }
+    if (value.observation.blueStar === true) active.blueStarAssignedCount += 1;
+    active.blueStarOpportunityCount += 1;
     if (eventAt > active.dataCurrentThrough)
       active.dataCurrentThrough = eventAt;
   }
@@ -544,11 +577,15 @@ function rowsFromSorted(input: {
                   ),
                 }),
                 populationBenchmark,
-                supportingEvidence:
-                  unavailableProLeagueExactFormatSupportingEvidence({
-                    winCount: core.winCount,
-                    topThreeCount: core.topThreeCount,
-                  }),
+                supportingEvidence: proLeagueExactFormatSupportingEvidence({
+                  winCount: core.winCount,
+                  topThreeCount: core.topThreeCount,
+                  starEvidenceAvailable: core.starEvidenceAvailable,
+                  goldStarAssignedCount: core.goldStarAssignedCount,
+                  goldStarEligibleRaceCount: core.goldStarEligibleRaceCount,
+                  blueStarAssignedCount: core.blueStarAssignedCount,
+                  blueStarOpportunityCount: core.blueStarOpportunityCount,
+                }),
               }),
             });
           }
@@ -637,6 +674,16 @@ export async function spillableProLeagueExactFormatEvidence(input: {
         normalizedTimestamp(value.eventAt, "observation.eventAt");
         positiveSafeInteger(value.distanceMetres, "observation.distanceMetres");
         positiveSafeInteger(value.gateCount, "observation.gateCount");
+        if (
+          !["available", "missing"].includes(value.starEvidenceStatus) ||
+          (value.starEvidenceStatus === "available" &&
+            (typeof value.goldStar !== "boolean" ||
+              typeof value.blueStar !== "boolean")) ||
+          (value.starEvidenceStatus === "missing" &&
+            (value.goldStar !== null || value.blueStar !== null))
+        ) {
+          throw new Error("observation star evidence is invalid");
+        }
         yield value;
       }
     })(),
@@ -811,6 +858,20 @@ export async function spillableProLeagueExactFormatEvidenceFromRaceArchive(input
         finishPosition: observation.finishPosition,
         elapsedMilliseconds: observation.elapsedMilliseconds,
         payoutMechanismSourceValue: observation.payoutMechanismSourceValue,
+        goldStar:
+          observation.starDataStatus === "complete"
+            ? observation.goldStar
+            : null,
+        blueStar:
+          observation.starDataStatus === "complete"
+            ? observation.blueStar
+            : null,
+        starEvidenceStatus:
+          observation.starDataStatus === "complete" &&
+          observation.goldStar !== null &&
+          observation.blueStar !== null
+            ? ("available" as const)
+            : ("missing" as const),
       }) satisfies ProLeagueExactFormatAnalyticalObservation;
     }
   })();
