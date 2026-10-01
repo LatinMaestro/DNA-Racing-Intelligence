@@ -2,10 +2,11 @@ import {
   DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES,
   type DnaOpenLabR2Usage,
 } from "./dna-open-lab-zero-cost-refresh-policy";
+import { DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS } from "./dna-population-entrant-authority-zero-cost-policy";
 import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD =
-  5_000_000 as const;
+  0 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB =
   1_000_000_000 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_STORAGE_MICRO_USD_PER_GB_MONTH =
@@ -221,8 +222,13 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
   }
 
   const allowed =
-    projectedPaidCostMicroUsd <=
-    DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD;
+    projectedPaidCostMicroUsd === 0 &&
+    projectedUsage.storageBytes <=
+      DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.storageBytes &&
+    projectedUsage.classAOperations <=
+      DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classAOperations &&
+    projectedUsage.classBOperations <=
+      DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS.classBOperations;
   return Object.freeze({
     allowed,
     currentUsage,
@@ -232,7 +238,7 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
     projectedPaidCostMicroUsd,
     maximumAuthorizedCostMicroUsd:
       DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD,
-    paidR2UsageAllowed: allowed,
+    paidR2UsageAllowed: false as const,
     paidUsageAllowed: false as const,
     preserveLastGood: true as const,
   });
