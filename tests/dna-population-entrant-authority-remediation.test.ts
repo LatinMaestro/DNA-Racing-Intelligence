@@ -352,20 +352,20 @@ describe("population entrant authority bounded remediation", () => {
     async () => {
       const test = harness();
 
-    await test.remediation.execute(invocation);
-    const callsAfterFirst = test.providerCalls.length;
-    const putAfterFirst = vi.mocked(
-      test.storage.storage.putObjectIfAbsent,
-    ).mock.calls.length;
+      await test.remediation.execute(invocation);
+      const callsAfterFirst = test.providerCalls.length;
+      const putAfterFirst = vi.mocked(
+        test.storage.storage.putObjectIfAbsent,
+      ).mock.calls.length;
 
-    await expect(test.remediation.execute(invocation)).resolves.toMatchObject({
-      status: "existing_verified",
-      selectedRaceCount: 20,
-      replacementRaceCount: 20,
-      persistentWritePerformed: false,
-      storageStatus: "existing",
-    });
-    expect(test.providerCalls).toHaveLength(callsAfterFirst);
+      await expect(test.remediation.execute(invocation)).resolves.toMatchObject({
+        status: "existing_verified",
+        selectedRaceCount: 20,
+        replacementRaceCount: 20,
+        persistentWritePerformed: false,
+        storageStatus: "existing",
+      });
+      expect(test.providerCalls).toHaveLength(callsAfterFirst);
       expect(
         vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
       ).toHaveLength(putAfterFirst);
@@ -375,20 +375,20 @@ describe("population entrant authority bounded remediation", () => {
   it(
     "fails closed before provider access when exact main is not authorized",
     async () => {
-    const test = harness();
+      const test = harness();
 
-    const error = await test.remediation
-      .execute({
-        ...invocation,
-        exactCodeHeadSha: "c".repeat(40),
-      })
-      .catch((caught: unknown) => caught);
+      const error = await test.remediation
+        .execute({
+          ...invocation,
+          exactCodeHeadSha: "c".repeat(40),
+        })
+        .catch((caught: unknown) => caught);
 
-    expect(error).toBeInstanceOf(
-      DnaPopulationEntrantAuthorityRemediationError,
-    );
-    expect(error).toMatchObject({ diagnostic: "exact_head_mismatch" });
-    expect(test.providerCalls).toHaveLength(0);
+      expect(error).toBeInstanceOf(
+        DnaPopulationEntrantAuthorityRemediationError,
+      );
+      expect(error).toMatchObject({ diagnostic: "exact_head_mismatch" });
+      expect(test.providerCalls).toHaveLength(0);
       expect(
         test.capacityGate.assertFreshCurrentCapacity,
       ).not.toHaveBeenCalled();
