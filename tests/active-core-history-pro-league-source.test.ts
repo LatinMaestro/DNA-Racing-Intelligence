@@ -57,6 +57,9 @@ function compactRow(ordinal: number): ActiveDnaCoreRaceHistoryGenerationRow {
     sourceRaceId: `race-${ordinal + 1}`,
     elapsedMilliseconds: 40_000 + ordinal,
     finishPosition: ordinal + 1,
+    goldStar: ordinal === 0,
+    blueStar: false,
+    starEvidenceStatus: "available" as const,
   });
   return Object.freeze({
     generationId: "a".repeat(64),
