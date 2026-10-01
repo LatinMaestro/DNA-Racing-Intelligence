@@ -5,7 +5,7 @@ import {
 import { DNA_POPULATION_RACE_INDEX_R2_CHUNK_MAXIMUM_ROWS } from "./dna-population-race-index-r2-chunk";
 
 export const DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD =
-  5_000_000 as const;
+  0 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_BYTES_PER_BILLABLE_GB =
   1_000_000_000 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_R2_STORAGE_MICRO_USD_PER_GB_MONTH =
@@ -221,7 +221,7 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
   }
 
   const allowed =
-    projectedPaidCostMicroUsd <=
+    projectedPaidCostMicroUsd ===
     DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD;
   return Object.freeze({
     allowed,
@@ -232,7 +232,7 @@ export function projectDnaPopulationEntrantAuthorityR2Cost(input: {
     projectedPaidCostMicroUsd,
     maximumAuthorizedCostMicroUsd:
       DNA_POPULATION_ENTRANT_AUTHORITY_MAXIMUM_R2_COST_MICRO_USD,
-    paidR2UsageAllowed: allowed,
+    paidR2UsageAllowed: false as const,
     paidUsageAllowed: false as const,
     preserveLastGood: true as const,
   });
