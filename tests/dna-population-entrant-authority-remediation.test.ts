@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
 import { dnaPopulationEntrantAuthorityRaceSetSha256 } from "@/lib/dna-population-entrant-authority-cohort";
 import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND_VERSION,
+  DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_INTENT,
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND_VERSION,
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND_VERSION,
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_INTENT,
@@ -32,6 +34,7 @@ const HEAD = "a".repeat(40);
 const STARTED_AT = "2026-10-01T00:00:00.000Z";
 const OBSERVED_AT = "2026-10-01T01:00:00.000Z";
 const CONTINUATION_OBSERVED_AT = "2026-10-01T02:00:00.000Z";
+const COHORT_3_OBSERVED_AT = "2026-10-01T03:00:00.000Z";
 
 function raceId(index: number): string {
   return `race-${String(index).padStart(4, "0")}`;
@@ -159,9 +162,9 @@ function memoryStorage() {
   return { storage, objects };
 }
 
-function harness() {
+function harness(raceCount = 25) {
   const raceIds = Object.freeze(
-    Array.from({ length: 25 }, (_, index) => raceId(index + 1)),
+    Array.from({ length: raceCount }, (_, index) => raceId(index + 1)),
   );
   const generationId = dnaPopulationEntrantAuthorityRaceSetSha256(raceIds);
   const authority = Object.freeze({
@@ -309,6 +312,15 @@ const continuationInvocation = Object.freeze({
   allowPersistentWrite: true as const,
   exactCodeHeadSha: HEAD,
   cohortObservedAt: CONTINUATION_OBSERVED_AT,
+});
+
+const cohort3Invocation = Object.freeze({
+  commandVersion:
+    DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND_VERSION,
+  intent: DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_INTENT,
+  allowPersistentWrite: true as const,
+  exactCodeHeadSha: HEAD,
+  cohortObservedAt: COHORT_3_OBSERVED_AT,
 });
 
 describe("population entrant authority bounded remediation", () => {
@@ -575,6 +587,135 @@ describe("population entrant authority bounded remediation", () => {
       test.remediation.executeContinuation({
         ...continuationInvocation,
         cohortObservedAt: OBSERVED_AT,
+      }),
+    ).rejects.toMatchObject({ diagnostic: "invalid_observation_time" });
+    expect(test.providerCalls).toHaveLength(providerCallsBefore);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBefore);
+  });
+
+  it("proves, persists and independently verifies exactly one third remediation cohort", async () => {
+    const test = harness(65);
+
+    await test.remediation.execute(invocation);
+    await test.remediation.executeContinuation(continuationInvocation);
+
+    const providerCallsBeforeReadiness = test.providerCalls.length;
+    const writesBeforeReadiness = vi.mocked(
+      test.storage.storage.putObjectIfAbsent,
+    ).mock.calls.length;
+    await expect(test.remediation.inspectCohort3Readiness()).resolves.toMatchObject({
+      status: "ready_for_cohort_3",
+      exactCodeHeadSha: HEAD,
+      completedCohortCount: 2,
+      nextCohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      priorReplacementRaceCount: 40,
+      nextSelectedRaceCount: 20,
+      quarantinedRaceCountBefore: 65,
+      remainingUnscannedQuarantineCount: 5,
+      aggregateRequestsPerMinute: 90,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBeforeReadiness);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBeforeReadiness);
+
+    await expect(
+      test.remediation.executeCohort3(cohort3Invocation),
+    ).resolves.toMatchObject({
+      status: "committed_unpublished",
+      exactCodeHeadSha: HEAD,
+      cohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      priorReplacementRaceCount: 40,
+      selectedRaceCount: 20,
+      replacementRaceCount: 20,
+      baseRecordSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      selectedRaceSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      replacementSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      quarantinedRaceCountBefore: 65,
+      quarantinedRaceCountAfterEvidence: 5,
+      providerRequestCount: 1,
+      storageStatus: "created",
+      aggregateRequestsPerMinute: 90,
+      persistentWritePerformed: true,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+
+    const providerCallsBeforeVerify = test.providerCalls.length;
+    const writesBeforeVerify = vi.mocked(test.storage.storage.putObjectIfAbsent)
+      .mock.calls.length;
+    await expect(test.remediation.verifyCohort3()).resolves.toMatchObject({
+      status: "verified_replacements",
+      exactCodeHeadSha: HEAD,
+      cohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      priorReplacementRaceCount: 40,
+      selectedRaceCount: 20,
+      replacementRaceCount: 20,
+      baseRecordSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      selectedRaceSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      replacementSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      quarantinedRaceCountBefore: 65,
+      quarantinedRaceCountAfterEvidence: 5,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBeforeVerify);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBeforeVerify);
+
+    const providerCallsBeforeReplay = test.providerCalls.length;
+    const writesBeforeReplay = vi.mocked(test.storage.storage.putObjectIfAbsent)
+      .mock.calls.length;
+    await expect(
+      test.remediation.executeCohort3(cohort3Invocation),
+    ).resolves.toMatchObject({
+      status: "existing_verified",
+      cohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      selectedRaceCount: 20,
+      replacementRaceCount: 20,
+      persistentWritePerformed: false,
+      storageStatus: "existing",
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBeforeReplay);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBeforeReplay);
+  });
+
+  it("rejects cohort 3 when its observation is not newer than cohort 2", async () => {
+    const test = harness(65);
+    await test.remediation.execute(invocation);
+    await test.remediation.executeContinuation(continuationInvocation);
+    const providerCallsBefore = test.providerCalls.length;
+    const writesBefore = vi.mocked(test.storage.storage.putObjectIfAbsent).mock
+      .calls.length;
+
+    await expect(
+      test.remediation.executeCohort3({
+        ...cohort3Invocation,
+        cohortObservedAt: CONTINUATION_OBSERVED_AT,
       }),
     ).rejects.toMatchObject({ diagnostic: "invalid_observation_time" });
     expect(test.providerCalls).toHaveLength(providerCallsBefore);
