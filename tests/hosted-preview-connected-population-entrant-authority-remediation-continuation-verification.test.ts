@@ -134,6 +134,9 @@ describeConnected(
           );
           expect(receipt.selectedRaceCount).toBeGreaterThan(0);
           expect(receipt.selectedRaceCount).toBeLessThanOrEqual(20);
+          expect(receipt.baseRecordSetSha256).toMatch(/^[a-f0-9]{64}$/u);
+          expect(receipt.selectedRaceSetSha256).toMatch(/^[a-f0-9]{64}$/u);
+          expect(receipt.replacementSetSha256).toMatch(/^[a-f0-9]{64}$/u);
           expect(receipt.replacementRaceCount).toBeGreaterThanOrEqual(0);
           expect(receipt.replacementRaceCount).toBeLessThanOrEqual(
             receipt.selectedRaceCount,
