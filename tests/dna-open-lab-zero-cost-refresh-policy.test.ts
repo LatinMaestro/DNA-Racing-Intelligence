@@ -17,7 +17,9 @@ describe("DNA Open Lab zero-cost refresh policy", () => {
     expect(
       DNA_OPEN_LAB_MAX_RECURRING_R2_OPERATIONS_PER_31_DAYS.classBOperations,
     ).toBeLessThan(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.classBOperations);
-    expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBe(9_500_000_000);
+    expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBe(
+      9_500_000_000,
+    );
     expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBeLessThan(
       DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.storageBytes,
     );
