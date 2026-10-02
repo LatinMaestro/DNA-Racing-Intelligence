@@ -27,6 +27,10 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain('"population-core-history-readiness"');
     expect(workflow).toContain("execute_read_only_readiness: true");
     expect(workflow).toContain(
+      "dna-open-lab-daily-refresh-provider-preflight.yml",
+    );
+    expect(workflow).toContain('"provider-capacity-preflight"');
+    expect(workflow).toContain(
       "dna-population-entrant-authority-readiness.yml",
     );
     expect(workflow).toContain(
