@@ -1752,9 +1752,14 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
   executeContinuation: (
     invocation: DnaPopulationEntrantAuthorityRemediationContinuationInvocation,
   ) => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReceipt>;
+  executeCohort3: (
+    invocation: DnaPopulationEntrantAuthorityRemediationCohort3Invocation,
+  ) => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Receipt>;
   verify: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
   verifyContinuation: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationVerification>;
+  verifyCohort3: () => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Verification>;
   inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReadiness>;
+  inspectCohort3Readiness: () => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Readiness>;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId");
   const runtimeCodeHeadSha = exactHead(input.runtimeCodeHeadSha);
