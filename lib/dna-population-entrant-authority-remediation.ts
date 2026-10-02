@@ -1098,6 +1098,148 @@ async function verifyManifest(input: {
   });
 }
 
+async function verifyContinuationManifest(input: {
+  ownerId: string;
+  exactCodeHeadSha: string;
+  authoritySource: DnaPopulationEntrantAuthorityLiveAuditSource;
+  checkpointRepository: Pick<
+    DnaPopulationEntrantAuthorityCheckpointRepository,
+    "read" | "listChunkManifests"
+  >;
+  r2Store: DnaPopulationEntrantAuthorityR2RecoveryPort;
+  manifestStore: ReturnType<
+    typeof createDnaPopulationEntrantAuthorityRemediationManifestStore
+  >;
+  raceDocumentReader: ReturnType<
+    typeof createDnaOpenLabR2CanonicalRaceDocumentReader
+  >;
+}): Promise<
+  Readonly<{
+    firstManifest: DnaPopulationEntrantAuthorityRemediationManifest;
+    manifest: DnaPopulationEntrantAuthorityRemediationContinuationManifest;
+    verification: DnaPopulationEntrantAuthorityRemediationContinuationVerification;
+  }>
+> {
+  const loaded = await loadBase(input);
+  const first = await verifyManifest(input);
+  const manifest = await input.manifestStore.readContinuation({
+    baseGenerationId: loaded.audit.authority.generationId,
+  });
+  if (manifest === null) remediationError("manifest_unavailable");
+
+  const selected = selectContinuationCohort(
+    loaded.base.records,
+    first.manifest.selectedRaceIds,
+  );
+  const selectedRaceIds = selected.map((record) => record.sourceRaceId);
+  if (
+    manifest.baseGenerationId !== loaded.audit.authority.generationId ||
+    manifest.baseRecordSetSha256 !== loaded.replay.recordSetSha256 ||
+    manifest.unresolvedRaceCount !==
+      loaded.audit.authority.unresolvedRaceCount ||
+    manifest.unresolvedRaceSetSha256 !==
+      loaded.audit.authority.unresolvedRaceSetSha256 ||
+    manifest.priorManifestSha256 !== digest(canonicalManifest(first.manifest)) ||
+    manifest.priorSelectedRaceSetSha256 !==
+      first.manifest.selectedRaceSetSha256 ||
+    Date.parse(manifest.observedAt) <= Date.parse(first.manifest.observedAt) ||
+    manifest.selectedRaceIds.length !== selectedRaceIds.length ||
+    manifest.selectedRaceIds.some(
+      (raceId, index) => raceId !== selectedRaceIds[index],
+    )
+  ) {
+    remediationError("verification_failed");
+  }
+
+  const firstSelected = new Set(first.manifest.selectedRaceIds);
+  const firstReplacements = new Set(
+    first.manifest.replacements.map((record) => record.sourceRaceId),
+  );
+  if (
+    manifest.selectedRaceIds.some((raceId) => firstSelected.has(raceId)) ||
+    manifest.replacements.some((record) =>
+      firstReplacements.has(record.sourceRaceId),
+    )
+  ) {
+    remediationError("verification_failed");
+  }
+
+  const baseByRaceId = new Map(
+    selected.map((record) => [record.sourceRaceId, record] as const),
+  );
+  for (const replacement of manifest.replacements) {
+    const previous = baseByRaceId.get(replacement.sourceRaceId);
+    if (
+      previous === undefined ||
+      replacement.observedAt !== manifest.observedAt ||
+      Date.parse(replacement.observedAt) <= Date.parse(previous.observedAt)
+    ) {
+      remediationError("verification_failed");
+    }
+    let evidence;
+    try {
+      evidence = await input.raceDocumentReader.read({
+        sourceRaceId: replacement.sourceRaceId,
+        observedAt: replacement.observedAt,
+        rawEvidenceSha256: replacement.rawEvidenceSha256,
+      });
+    } catch {
+      remediationError("verification_failed");
+    }
+    const reopened = exactResolvedRecord(
+      dnaPopulationEntrantAuthorityRecord(
+        evidence,
+      ) as DnaPopulationEntrantAuthorityResolvedRecord,
+    );
+    if (
+      dnaOpenLabRawEvidenceCanonicalJson(reopened) !==
+      dnaOpenLabRawEvidenceCanonicalJson(replacement)
+    ) {
+      remediationError("verification_failed");
+    }
+  }
+
+  const replacementRaceCount = manifest.replacements.length;
+  const totalReplacementRaceCount =
+    first.manifest.replacements.length + replacementRaceCount;
+  if (
+    totalReplacementRaceCount > loaded.replay.quarantinedRaceCount ||
+    new Set([
+      ...first.manifest.replacements.map((record) => record.sourceRaceId),
+      ...manifest.replacements.map((record) => record.sourceRaceId),
+    ]).size !== totalReplacementRaceCount
+  ) {
+    remediationError("verification_failed");
+  }
+
+  return Object.freeze({
+    firstManifest: first.manifest,
+    manifest,
+    verification: Object.freeze({
+      status:
+        replacementRaceCount > 0
+          ? ("verified_replacements" as const)
+          : ("verified_no_replacements" as const),
+      exactCodeHeadSha: input.exactCodeHeadSha,
+      cohortOrdinal: 2 as const,
+      priorSelectedRaceCount: first.manifest.selectedRaceIds.length,
+      priorReplacementRaceCount: first.manifest.replacements.length,
+      selectedRaceCount: manifest.selectedRaceIds.length,
+      replacementRaceCount,
+      quarantinedRaceCountBefore: loaded.replay.quarantinedRaceCount,
+      quarantinedRaceCountAfterEvidence:
+        loaded.replay.quarantinedRaceCount - totalReplacementRaceCount,
+      providerRequestPerformed: false as const,
+      persistentWritePerformed: false as const,
+      providerWritePerformed: false as const,
+      publicationActivated: false as const,
+      previewOnly: true as const,
+      paidUsageAllowed: false as const,
+      lastGoodBasePreserved: true as const,
+    }),
+  });
+}
+
 export function createDnaPopulationEntrantAuthorityRemediation(input: {
   ownerId: string;
   runtimeCodeHeadSha: string;
