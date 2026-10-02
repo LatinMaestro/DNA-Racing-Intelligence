@@ -156,6 +156,9 @@ describeConnected(
           expect(receipt.selectedRaceCount).toBeLessThanOrEqual(20);
           expect(receipt.providerRequestCount).toBeGreaterThanOrEqual(0);
           expect(receipt.providerRequestCount).toBeLessThanOrEqual(63);
+          expect(receipt.baseRecordSetSha256).toMatch(/^[a-f0-9]{64}$/u);
+          expect(receipt.selectedRaceSetSha256).toMatch(/^[a-f0-9]{64}$/u);
+          expect(receipt.replacementSetSha256).toMatch(/^[a-f0-9]{64}$/u);
           expect(receipt.replacementRaceCount).toBeGreaterThanOrEqual(0);
           expect(receipt.replacementRaceCount).toBeLessThanOrEqual(
             receipt.selectedRaceCount,
