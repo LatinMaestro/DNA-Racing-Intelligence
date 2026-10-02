@@ -81,6 +81,7 @@ describe("population Core history authority reconstruction", () => {
 
     expect(result.plan).toMatchObject({
       status: "ready_for_budget_measurement",
+      populationUniverseCompleteness: "complete_from_race_authority",
       raceDocumentCount: 3,
       raceCountByMode: { bike: 1, car: 1, horse: 1 },
       raceWithoutEntrantAuthorityByMode: { bike: 0, car: 0, horse: 0 },
@@ -160,9 +161,13 @@ describe("population Core history authority reconstruction", () => {
 
     expect(result.entrantReplay.quarantinedRaceCount).toBe(1);
     expect(result.plan).toMatchObject({
-      status: "held_incomplete_race_authority",
+      status: "ready_for_budget_measurement",
+      populationUniverseCompleteness: "partial_due_to_unresolved_races",
       unresolvedRaceCount: 1,
+      populationCoreCount: 1,
       missingPerformanceCoreCount: 1,
+      budgetMeasurementRequired: true,
     });
+    expect(result.plan.cohorts[0]?.coreIds).toEqual([101]);
   });
 });
