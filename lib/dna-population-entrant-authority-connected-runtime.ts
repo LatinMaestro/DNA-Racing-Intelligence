@@ -38,7 +38,10 @@ import {
 import {
   createDnaPopulationEntrantAuthorityRemediation,
   createDnaPopulationEntrantAuthorityRemediationManifestStore,
+  type DnaPopulationEntrantAuthorityRemediationContinuationInvocation,
   type DnaPopulationEntrantAuthorityRemediationContinuationReadiness,
+  type DnaPopulationEntrantAuthorityRemediationContinuationReceipt,
+  type DnaPopulationEntrantAuthorityRemediationContinuationVerification,
   type DnaPopulationEntrantAuthorityRemediationInvocation,
   type DnaPopulationEntrantAuthorityRemediationReceipt,
   type DnaPopulationEntrantAuthorityRemediationVerification,
@@ -104,9 +107,13 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectResolvedAuthority: () => Promise<DnaPopulationEntrantAuthorityResolution>;
       inspectRemediationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
       inspectRemediationContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReadiness>;
+      inspectRemediationContinuationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationVerification>;
       executeRemediation: (
         invocation: DnaPopulationEntrantAuthorityRemediationInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityRemediationReceipt>;
+      executeRemediationContinuation: (
+        invocation: DnaPopulationEntrantAuthorityRemediationContinuationInvocation,
+      ) => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReceipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -541,7 +548,10 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectRemediationVerification: remediation.verify,
       inspectRemediationContinuationReadiness:
         remediation.inspectContinuationReadiness,
+      inspectRemediationContinuationVerification:
+        remediation.verifyContinuation,
       executeRemediation: remediation.execute,
+      executeRemediationContinuation: remediation.executeContinuation,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
     });
