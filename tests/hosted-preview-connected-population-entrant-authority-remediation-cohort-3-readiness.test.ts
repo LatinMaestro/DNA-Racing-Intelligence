@@ -108,8 +108,7 @@ describeConnected(
           }
 
           stage = "inspect";
-          const receipt =
-            await runtime.inspectRemediationCohort3Readiness();
+          const receipt = await runtime.inspectRemediationCohort3Readiness();
           expect(receipt).toMatchObject({
             status: "ready_for_cohort_3",
             exactCodeHeadSha,
