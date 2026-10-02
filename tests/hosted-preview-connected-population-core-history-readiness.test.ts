@@ -358,8 +358,7 @@ describeConnected("hosted Preview population Core-history readiness", () => {
             population.plan.populationUniverseCompleteness,
           unresolvedRaceCount: population.plan.unresolvedRaceCount,
           unresolvedRaceSetSha256: population.plan.unresolvedRaceSetSha256,
-          quarantinedRaceCount:
-            population.entrantReplay.quarantinedRaceCount,
+          quarantinedRaceCount: population.entrantReplay.quarantinedRaceCount,
           quarantinedRaceCountByReason:
             population.entrantReplay.quarantinedRaceCountByReason,
           persistedPerformanceCoreCount:
