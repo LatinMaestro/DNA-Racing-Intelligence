@@ -96,28 +96,27 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationManifest =
     paidUsageAllowed: false;
   }>;
 
-export type DnaPopulationEntrantAuthorityRemediationCohort3Manifest =
-  Readonly<{
-    version: 1;
-    status: "retained_private_preview_remediation_cohort_3";
-    baseGenerationId: string;
-    baseRecordSetSha256: string;
-    unresolvedRaceCount: number;
-    unresolvedRaceSetSha256: string;
-    cohortOrdinal: 3;
-    priorManifestSha256: string;
-    priorSelectedRaceSetSha256: string;
-    observedAt: string;
-    selectedRaceIds: readonly string[];
-    selectedRaceSetSha256: string;
-    replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
-    providerRequestCount: number;
-    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
-    previewOnly: true;
-    publicationActivated: false;
-    lastGoodBasePreserved: true;
-    paidUsageAllowed: false;
-  }>;
+export type DnaPopulationEntrantAuthorityRemediationCohort3Manifest = Readonly<{
+  version: 1;
+  status: "retained_private_preview_remediation_cohort_3";
+  baseGenerationId: string;
+  baseRecordSetSha256: string;
+  unresolvedRaceCount: number;
+  unresolvedRaceSetSha256: string;
+  cohortOrdinal: 3;
+  priorManifestSha256: string;
+  priorSelectedRaceSetSha256: string;
+  observedAt: string;
+  selectedRaceIds: readonly string[];
+  selectedRaceSetSha256: string;
+  replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
+  providerRequestCount: number;
+  aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+  previewOnly: true;
+  publicationActivated: false;
+  lastGoodBasePreserved: true;
+  paidUsageAllowed: false;
+}>;
 
 export type DnaPopulationEntrantAuthorityRemediationVerification = Readonly<{
   status: "verified_replacements" | "verified_no_replacements";
@@ -267,30 +266,29 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationReceipt =
     lastGoodBasePreserved: true;
   }>;
 
-export type DnaPopulationEntrantAuthorityRemediationCohort3Receipt =
-  Readonly<{
-    status: "committed_unpublished" | "existing_verified";
-    exactCodeHeadSha: string;
-    cohortOrdinal: 3;
-    priorSelectedRaceCount: number;
-    priorReplacementRaceCount: number;
-    selectedRaceCount: number;
-    replacementRaceCount: number;
-    baseRecordSetSha256: string;
-    selectedRaceSetSha256: string;
-    replacementSetSha256: string;
-    quarantinedRaceCountBefore: number;
-    quarantinedRaceCountAfterEvidence: number;
-    providerRequestCount: number;
-    storageStatus: "created" | "existing";
-    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
-    persistentWritePerformed: boolean;
-    providerWritePerformed: false;
-    publicationActivated: false;
-    previewOnly: true;
-    paidUsageAllowed: false;
-    lastGoodBasePreserved: true;
-  }>;
+export type DnaPopulationEntrantAuthorityRemediationCohort3Receipt = Readonly<{
+  status: "committed_unpublished" | "existing_verified";
+  exactCodeHeadSha: string;
+  cohortOrdinal: 3;
+  priorSelectedRaceCount: number;
+  priorReplacementRaceCount: number;
+  selectedRaceCount: number;
+  replacementRaceCount: number;
+  baseRecordSetSha256: string;
+  selectedRaceSetSha256: string;
+  replacementSetSha256: string;
+  quarantinedRaceCountBefore: number;
+  quarantinedRaceCountAfterEvidence: number;
+  providerRequestCount: number;
+  storageStatus: "created" | "existing";
+  aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+  persistentWritePerformed: boolean;
+  providerWritePerformed: false;
+  publicationActivated: false;
+  previewOnly: true;
+  paidUsageAllowed: false;
+  lastGoodBasePreserved: true;
+}>;
 
 export type DnaPopulationEntrantAuthorityRemediationInvocation = Readonly<{
   commandVersion: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND_VERSION;
@@ -479,10 +477,7 @@ function continuationManifestKey(
   ].join("/");
 }
 
-function cohort3ManifestKey(
-  ownerId: string,
-  baseGenerationId: string,
-): string {
+function cohort3ManifestKey(ownerId: string, baseGenerationId: string): string {
   return [
     "dna-open-lab",
     "v1",
@@ -1102,7 +1097,8 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
       });
       if (
         reopened === null ||
-        canonicalCohort3Manifest(reopened) !== canonicalCohort3Manifest(manifest)
+        canonicalCohort3Manifest(reopened) !==
+          canonicalCohort3Manifest(manifest)
       ) {
         remediationError("manifest_conflict");
       }
@@ -2389,7 +2385,8 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       }
 
       if (
-        Date.parse(cohortObservedAt) <= Date.parse(second.manifest.observedAt) ||
+        Date.parse(cohortObservedAt) <=
+          Date.parse(second.manifest.observedAt) ||
         selected.some(
           (record) =>
             Date.parse(cohortObservedAt) <= Date.parse(record.observedAt),
