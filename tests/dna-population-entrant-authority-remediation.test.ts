@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
@@ -160,6 +161,76 @@ function memoryStorage() {
     });
 
   return { storage, objects };
+}
+
+function rewriteRetainedManifestRateToLegacy(
+  objects: Map<
+    string,
+    Readonly<{
+      body: Uint8Array;
+      contentType: string;
+      checksumSha256: string;
+      metadata: Readonly<Record<string, string>>;
+    }>
+  >,
+): void {
+  const entries = [...objects.entries()];
+  const firstEntry = entries.find(([key]) => key.endsWith("/000001.json"));
+  const secondEntry = entries.find(([key]) => key.endsWith("/000002.json"));
+  if (firstEntry === undefined || secondEntry === undefined) {
+    throw new Error("test remediation manifests are unavailable");
+  }
+
+  const rewrite = (
+    key: string,
+    stored: (typeof firstEntry)[1],
+    bodyText: string,
+  ): string => {
+    const body = new TextEncoder().encode(bodyText);
+    const checksumSha256 = createHash("sha256")
+      .update(bodyText, "utf8")
+      .digest("hex");
+    objects.set(
+      key,
+      Object.freeze({
+        body,
+        contentType: stored.contentType,
+        checksumSha256,
+        metadata: Object.freeze({
+          ...stored.metadata,
+          "dna-body-sha256": checksumSha256,
+        }),
+      }),
+    );
+    return checksumSha256;
+  };
+
+  const [firstKey, firstStored] = firstEntry;
+  const firstCurrent = new TextDecoder().decode(firstStored.body);
+  const firstLegacy = firstCurrent.replace(
+    '"aggregateRequestsPerMinute":90',
+    '"aggregateRequestsPerMinute":30',
+  );
+  if (firstLegacy === firstCurrent) {
+    throw new Error("test first manifest did not contain the current rate");
+  }
+  const firstLegacySha256 = rewrite(firstKey, firstStored, firstLegacy);
+
+  const [secondKey, secondStored] = secondEntry;
+  const secondCurrent = new TextDecoder().decode(secondStored.body);
+  const secondLegacy = secondCurrent
+    .replace(
+      '"aggregateRequestsPerMinute":90',
+      '"aggregateRequestsPerMinute":30',
+    )
+    .replace(
+      /"priorManifestSha256":"[a-f0-9]{64}"/u,
+      `"priorManifestSha256":"${firstLegacySha256}"`,
+    );
+  if (secondLegacy === secondCurrent) {
+    throw new Error("test continuation manifest was not rewritten");
+  }
+  rewrite(secondKey, secondStored, secondLegacy);
 }
 
 function harness(raceCount = 25) {
@@ -704,6 +775,38 @@ describe("population entrant authority bounded remediation", () => {
     expect(
       vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
     ).toHaveLength(writesBeforeReplay);
+  });
+
+  it("accepts immutable cohort 1 and 2 manifests retained under the legacy 30 aggregate limit", async () => {
+    const test = harness(65);
+
+    await test.remediation.execute(invocation);
+    await test.remediation.executeContinuation(continuationInvocation);
+    rewriteRetainedManifestRateToLegacy(test.storage.objects);
+
+    const providerCallsBefore = test.providerCalls.length;
+    const writesBefore = vi.mocked(test.storage.storage.putObjectIfAbsent).mock
+      .calls.length;
+
+    await expect(
+      test.remediation.inspectCohort3Readiness(),
+    ).resolves.toMatchObject({
+      status: "ready_for_cohort_3",
+      exactCodeHeadSha: HEAD,
+      completedCohortCount: 2,
+      nextCohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      nextSelectedRaceCount: 20,
+      aggregateRequestsPerMinute: 90,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+
+    expect(test.providerCalls).toHaveLength(providerCallsBefore);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBefore);
   });
 
   it("rejects cohort 3 when its observation is not newer than cohort 2", async () => {
