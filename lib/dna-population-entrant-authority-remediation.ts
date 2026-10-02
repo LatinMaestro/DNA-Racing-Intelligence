@@ -38,6 +38,10 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND_V
   "dna-population-entrant-authority-remediation-continuation-command/v1" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_INTENT =
   "retain_next_private_preview_entrant_remediation_evidence" as const;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND_VERSION =
+  "dna-population-entrant-authority-remediation-cohort-3-command/v1" as const;
+export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_INTENT =
+  "retain_third_private_preview_entrant_remediation_evidence" as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_RACES =
   20 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES =
@@ -92,6 +96,29 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationManifest =
     paidUsageAllowed: false;
   }>;
 
+export type DnaPopulationEntrantAuthorityRemediationCohort3Manifest =
+  Readonly<{
+    version: 1;
+    status: "retained_private_preview_remediation_cohort_3";
+    baseGenerationId: string;
+    baseRecordSetSha256: string;
+    unresolvedRaceCount: number;
+    unresolvedRaceSetSha256: string;
+    cohortOrdinal: 3;
+    priorManifestSha256: string;
+    priorSelectedRaceSetSha256: string;
+    observedAt: string;
+    selectedRaceIds: readonly string[];
+    selectedRaceSetSha256: string;
+    replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
+    providerRequestCount: number;
+    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+    previewOnly: true;
+    publicationActivated: false;
+    lastGoodBasePreserved: true;
+    paidUsageAllowed: false;
+  }>;
+
 export type DnaPopulationEntrantAuthorityRemediationVerification = Readonly<{
   status: "verified_replacements" | "verified_no_replacements";
   exactCodeHeadSha: string;
@@ -129,11 +156,56 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationReadiness =
     lastGoodBasePreserved: true;
   }>;
 
+export type DnaPopulationEntrantAuthorityRemediationCohort3Readiness =
+  Readonly<{
+    status: "ready_for_cohort_3";
+    exactCodeHeadSha: string;
+    completedCohortCount: 2;
+    nextCohortOrdinal: 3;
+    priorSelectedRaceCount: number;
+    priorReplacementRaceCount: number;
+    nextSelectedRaceCount: number;
+    quarantinedRaceCountBefore: number;
+    remainingUnscannedQuarantineCount: number;
+    capacityObservedAt: string;
+    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+    providerRequestPerformed: false;
+    persistentWritePerformed: false;
+    providerWritePerformed: false;
+    publicationActivated: false;
+    previewOnly: true;
+    paidUsageAllowed: false;
+    lastGoodBasePreserved: true;
+  }>;
+
 export type DnaPopulationEntrantAuthorityRemediationContinuationVerification =
   Readonly<{
     status: "verified_replacements" | "verified_no_replacements";
     exactCodeHeadSha: string;
     cohortOrdinal: 2;
+    priorSelectedRaceCount: number;
+    priorReplacementRaceCount: number;
+    selectedRaceCount: number;
+    replacementRaceCount: number;
+    baseRecordSetSha256: string;
+    selectedRaceSetSha256: string;
+    replacementSetSha256: string;
+    quarantinedRaceCountBefore: number;
+    quarantinedRaceCountAfterEvidence: number;
+    providerRequestPerformed: false;
+    persistentWritePerformed: false;
+    providerWritePerformed: false;
+    publicationActivated: false;
+    previewOnly: true;
+    paidUsageAllowed: false;
+    lastGoodBasePreserved: true;
+  }>;
+
+export type DnaPopulationEntrantAuthorityRemediationCohort3Verification =
+  Readonly<{
+    status: "verified_replacements" | "verified_no_replacements";
+    exactCodeHeadSha: string;
+    cohortOrdinal: 3;
     priorSelectedRaceCount: number;
     priorReplacementRaceCount: number;
     selectedRaceCount: number;
@@ -195,6 +267,31 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationReceipt =
     lastGoodBasePreserved: true;
   }>;
 
+export type DnaPopulationEntrantAuthorityRemediationCohort3Receipt =
+  Readonly<{
+    status: "committed_unpublished" | "existing_verified";
+    exactCodeHeadSha: string;
+    cohortOrdinal: 3;
+    priorSelectedRaceCount: number;
+    priorReplacementRaceCount: number;
+    selectedRaceCount: number;
+    replacementRaceCount: number;
+    baseRecordSetSha256: string;
+    selectedRaceSetSha256: string;
+    replacementSetSha256: string;
+    quarantinedRaceCountBefore: number;
+    quarantinedRaceCountAfterEvidence: number;
+    providerRequestCount: number;
+    storageStatus: "created" | "existing";
+    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+    persistentWritePerformed: boolean;
+    providerWritePerformed: false;
+    publicationActivated: false;
+    previewOnly: true;
+    paidUsageAllowed: false;
+    lastGoodBasePreserved: true;
+  }>;
+
 export type DnaPopulationEntrantAuthorityRemediationInvocation = Readonly<{
   commandVersion: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND_VERSION;
   intent: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_INTENT;
@@ -207,6 +304,15 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationInvocation =
   Readonly<{
     commandVersion: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND_VERSION;
     intent: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_INTENT;
+    allowPersistentWrite: true;
+    exactCodeHeadSha: string;
+    cohortObservedAt: string;
+  }>;
+
+export type DnaPopulationEntrantAuthorityRemediationCohort3Invocation =
+  Readonly<{
+    commandVersion: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND_VERSION;
+    intent: typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_INTENT;
     allowPersistentWrite: true;
     exactCodeHeadSha: string;
     cohortObservedAt: string;
