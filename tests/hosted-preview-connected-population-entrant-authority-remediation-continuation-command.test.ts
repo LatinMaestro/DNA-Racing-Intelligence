@@ -60,7 +60,9 @@ const remediationMainGuard = Object.freeze({
       .trim()
       .toLowerCase();
     if (currentMainSha !== expectedHeadSha) {
-      throw new Error("current main does not match remediation continuation authority");
+      throw new Error(
+        "current main does not match remediation continuation authority",
+      );
     }
     return Object.freeze({ currentMainSha });
   },
@@ -124,7 +126,9 @@ describeConnected(
               }),
             });
           if (runtime.status !== "ready") {
-            throw new Error("entrant remediation continuation runtime is unavailable");
+            throw new Error(
+              "entrant remediation continuation runtime is unavailable",
+            );
           }
 
           stage = "execute";
