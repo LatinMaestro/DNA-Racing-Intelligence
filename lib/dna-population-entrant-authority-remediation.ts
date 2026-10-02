@@ -48,6 +48,11 @@ export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_R
   100 as const;
 export const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_MAXIMUM_PROVIDER_REQUESTS =
   63 as const;
+const DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_LEGACY_AGGREGATE_REQUESTS_PER_MINUTE =
+  30 as const;
+type DnaPopulationEntrantAuthorityHistoricalRemediationRate =
+  | typeof DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_LEGACY_AGGREGATE_REQUESTS_PER_MINUTE
+  | typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
 
 export type DnaPopulationEntrantAuthorityRemediationStoragePort =
   DnaOpenLabR2CanonicalRaceDocumentStoragePort &
@@ -66,7 +71,7 @@ export type DnaPopulationEntrantAuthorityRemediationManifest = Readonly<{
   selectedRaceSetSha256: string;
   replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
   providerRequestCount: number;
-  aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+  aggregateRequestsPerMinute: DnaPopulationEntrantAuthorityHistoricalRemediationRate;
   previewOnly: true;
   publicationActivated: false;
   lastGoodBasePreserved: true;
@@ -89,7 +94,7 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationManifest =
     selectedRaceSetSha256: string;
     replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[];
     providerRequestCount: number;
-    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+    aggregateRequestsPerMinute: DnaPopulationEntrantAuthorityHistoricalRemediationRate;
     previewOnly: true;
     publicationActivated: false;
     lastGoodBasePreserved: true;
@@ -590,8 +595,24 @@ function exactResolvedRecord(
   });
 }
 
+function historicalRemediationRate(
+  value: number,
+  allowLegacyRate: boolean,
+): DnaPopulationEntrantAuthorityHistoricalRemediationRate {
+  if (
+    value === DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
+    (allowLegacyRate &&
+      value ===
+        DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_LEGACY_AGGREGATE_REQUESTS_PER_MINUTE)
+  ) {
+    return value;
+  }
+  remediationError("manifest_conflict");
+}
+
 function validateManifestShape(
   value: DnaPopulationEntrantAuthorityRemediationManifest,
+  allowLegacyRate = false,
 ): DnaPopulationEntrantAuthorityRemediationManifest {
   if (
     value.version !== 1 ||
@@ -603,8 +624,11 @@ function validateManifestShape(
     value.providerRequestCount < 0 ||
     value.providerRequestCount >
       DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_MAXIMUM_PROVIDER_REQUESTS ||
-    value.aggregateRequestsPerMinute !==
-      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
+    (value.aggregateRequestsPerMinute !==
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE &&
+      (!allowLegacyRate ||
+        value.aggregateRequestsPerMinute !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_LEGACY_AGGREGATE_REQUESTS_PER_MINUTE)) ||
     value.previewOnly !== true ||
     value.publicationActivated !== false ||
     value.lastGoodBasePreserved !== true ||
@@ -649,8 +673,10 @@ function validateManifestShape(
     selectedRaceSetSha256: sha256(value.selectedRaceSetSha256),
     replacements,
     providerRequestCount: value.providerRequestCount,
-    aggregateRequestsPerMinute:
-      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+    aggregateRequestsPerMinute: historicalRemediationRate(
+      value.aggregateRequestsPerMinute,
+      allowLegacyRate,
+    ),
     previewOnly: true as const,
     publicationActivated: false as const,
     lastGoodBasePreserved: true as const,
@@ -660,6 +686,7 @@ function validateManifestShape(
 
 function validateContinuationManifestShape(
   value: DnaPopulationEntrantAuthorityRemediationContinuationManifest,
+  allowLegacyRate = false,
 ): DnaPopulationEntrantAuthorityRemediationContinuationManifest {
   if (
     value.version !== 1 ||
@@ -671,8 +698,11 @@ function validateContinuationManifestShape(
     value.providerRequestCount < 0 ||
     value.providerRequestCount >
       DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_MAXIMUM_PROVIDER_REQUESTS ||
-    value.aggregateRequestsPerMinute !==
-      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
+    (value.aggregateRequestsPerMinute !==
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE &&
+      (!allowLegacyRate ||
+        value.aggregateRequestsPerMinute !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_LEGACY_AGGREGATE_REQUESTS_PER_MINUTE)) ||
     value.previewOnly !== true ||
     value.publicationActivated !== false ||
     value.lastGoodBasePreserved !== true ||
@@ -719,8 +749,10 @@ function validateContinuationManifestShape(
     selectedRaceSetSha256: sha256(value.selectedRaceSetSha256),
     replacements,
     providerRequestCount: value.providerRequestCount,
-    aggregateRequestsPerMinute:
-      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+    aggregateRequestsPerMinute: historicalRemediationRate(
+      value.aggregateRequestsPerMinute,
+      allowLegacyRate,
+    ),
     previewOnly: true as const,
     publicationActivated: false as const,
     lastGoodBasePreserved: true as const,
@@ -871,6 +903,7 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
     }
     const manifest = validateManifestShape(
       parsed as DnaPopulationEntrantAuthorityRemediationManifest,
+      true,
     );
     if (
       manifest.baseGenerationId !== baseGenerationId ||
@@ -920,6 +953,7 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
     }
     const manifest = validateContinuationManifestShape(
       parsed as DnaPopulationEntrantAuthorityRemediationContinuationManifest,
+      true,
     );
     if (
       manifest.baseGenerationId !== baseGenerationId ||
