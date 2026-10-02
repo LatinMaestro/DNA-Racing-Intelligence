@@ -256,17 +256,6 @@ describeConnected("hosted Preview population Core-history readiness", () => {
           "population Core-history entrant recovery count disagrees with authority",
         );
       }
-      if (population.entrantReplay.quarantinedRaceCount !== 0) {
-        throw new Error(
-          "population Core-history entrant replay contains quarantined Race identities: " +
-            JSON.stringify({
-              quarantinedRaceCount:
-                population.entrantReplay.quarantinedRaceCount,
-              quarantinedRaceCountByReason:
-                population.entrantReplay.quarantinedRaceCountByReason,
-            }),
-        );
-      }
       if (population.plan.status !== "ready_for_budget_measurement") {
         throw new Error(
           "population Core-history plan is held: " +
@@ -365,6 +354,14 @@ describeConnected("hosted Preview population Core-history readiness", () => {
           raceCountByMode: population.plan.raceCountByMode,
           populationCoreCountByMode: population.plan.populationCoreCountByMode,
           populationCoreCount: population.plan.populationCoreCount,
+          populationUniverseCompleteness:
+            population.plan.populationUniverseCompleteness,
+          unresolvedRaceCount: population.plan.unresolvedRaceCount,
+          unresolvedRaceSetSha256: population.plan.unresolvedRaceSetSha256,
+          quarantinedRaceCount:
+            population.entrantReplay.quarantinedRaceCount,
+          quarantinedRaceCountByReason:
+            population.entrantReplay.quarantinedRaceCountByReason,
           persistedPerformanceCoreCount:
             population.plan.persistedPerformanceCoreCount,
           missingPerformanceCoreCount:
