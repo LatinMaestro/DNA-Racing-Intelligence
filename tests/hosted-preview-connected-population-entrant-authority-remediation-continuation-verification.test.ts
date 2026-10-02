@@ -106,7 +106,9 @@ describeConnected(
               }),
             });
           if (runtime.status !== "ready") {
-            throw new Error("entrant remediation continuation runtime is unavailable");
+            throw new Error(
+              "entrant remediation continuation runtime is unavailable",
+            );
           }
 
           stage = "verify";
