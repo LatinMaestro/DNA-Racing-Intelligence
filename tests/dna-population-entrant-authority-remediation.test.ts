@@ -704,7 +704,8 @@ describe("population entrant authority bounded remediation", () => {
       vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
     ).toHaveLength(writesBeforeReadiness);
     expect(
-      test.authoritySource.load.mock.calls.length - authorityLoadsBeforeReadiness,
+      test.authoritySource.load.mock.calls.length -
+        authorityLoadsBeforeReadiness,
     ).toBe(2);
 
     await expect(
