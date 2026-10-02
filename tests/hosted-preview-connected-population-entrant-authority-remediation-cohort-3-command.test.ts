@@ -10,7 +10,7 @@ import {
 
 const connected =
   process.env
-    .DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND === "1";
+    .DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
