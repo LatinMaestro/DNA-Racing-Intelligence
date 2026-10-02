@@ -6,6 +6,8 @@ const commandPath =
   ".github/workflows/dna-population-entrant-authority-remediation-command.yml";
 const verificationPath =
   ".github/workflows/dna-population-entrant-authority-remediation-verification.yml";
+const continuationReadinessPath =
+  ".github/workflows/dna-population-entrant-authority-remediation-continuation-readiness.yml";
 
 describe("DNA population entrant remediation workflows", () => {
   it("keeps the first remediation command dispatch-only, exact-main, bounded and Preview-only", async () => {
@@ -52,6 +54,29 @@ describe("DNA population entrant remediation workflows", () => {
     );
     expect(workflow).not.toContain(
       "execute_first_private_preview_entrant_remediation",
+    );
+    expect(workflow).not.toMatch(/VERCEL|production/iu);
+  });
+
+  it("keeps remediation continuation readiness dispatch-only, exact-main and read-only", async () => {
+    const workflow = await readFile(continuationReadinessPath, "utf8");
+
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).not.toMatch(/\b(push|pull_request|schedule):/u);
+    expect(workflow).toContain("expected_main_sha:");
+    expect(workflow).toContain(
+      'DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_READINESS: "1"',
+    );
+    expect(workflow).toContain("environment: preview");
+    expect(workflow).toContain('GITHUB_REF" != "refs/heads/main"');
+    expect(workflow).toContain(
+      "hosted-preview-connected-population-entrant-authority-remediation-continuation-readiness.test.ts",
+    );
+    expect(workflow).not.toContain(
+      "execute_first_private_preview_entrant_remediation",
+    );
+    expect(workflow).not.toContain(
+      "execute_next_private_preview_entrant_remediation",
     );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
   });
