@@ -138,6 +138,9 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationVerification =
     priorReplacementRaceCount: number;
     selectedRaceCount: number;
     replacementRaceCount: number;
+    baseRecordSetSha256: string;
+    selectedRaceSetSha256: string;
+    replacementSetSha256: string;
     quarantinedRaceCountBefore: number;
     quarantinedRaceCountAfterEvidence: number;
     providerRequestPerformed: false;
@@ -176,6 +179,9 @@ export type DnaPopulationEntrantAuthorityRemediationContinuationReceipt =
     priorReplacementRaceCount: number;
     selectedRaceCount: number;
     replacementRaceCount: number;
+    baseRecordSetSha256: string;
+    selectedRaceSetSha256: string;
+    replacementSetSha256: string;
     quarantinedRaceCountBefore: number;
     quarantinedRaceCountAfterEvidence: number;
     providerRequestCount: number;
@@ -317,6 +323,19 @@ function raceSetSha256(raceIds: readonly string[]): string {
       "population_history",
       "entrant_remediation",
       ...raceIds,
+    ].join("\u0000"),
+  );
+}
+
+function replacementSetSha256(
+  replacements: readonly DnaPopulationEntrantAuthorityResolvedRecord[],
+): string {
+  return digest(
+    [
+      "dna_open_lab",
+      "population_history",
+      "entrant_remediation_replacements",
+      dnaOpenLabRawEvidenceCanonicalJson(replacements),
     ].join("\u0000"),
   );
 }
@@ -1085,6 +1104,9 @@ async function verifyManifest(input: {
       exactCodeHeadSha: input.exactCodeHeadSha,
       selectedRaceCount: manifest.selectedRaceIds.length,
       replacementRaceCount,
+      baseRecordSetSha256: manifest.baseRecordSetSha256,
+      selectedRaceSetSha256: manifest.selectedRaceSetSha256,
+      replacementSetSha256: replacementSetSha256(manifest.replacements),
       quarantinedRaceCountBefore: loaded.replay.quarantinedRaceCount,
       quarantinedRaceCountAfterEvidence:
         loaded.replay.quarantinedRaceCount - replacementRaceCount,
@@ -1321,6 +1343,9 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
           exactCodeHeadSha: requestedHead,
           selectedRaceCount: verified.verification.selectedRaceCount,
           replacementRaceCount: verified.verification.replacementRaceCount,
+          baseRecordSetSha256: verified.verification.baseRecordSetSha256,
+          selectedRaceSetSha256: verified.verification.selectedRaceSetSha256,
+          replacementSetSha256: verified.verification.replacementSetSha256,
           quarantinedRaceCountBefore:
             verified.verification.quarantinedRaceCountBefore,
           quarantinedRaceCountAfterEvidence:
@@ -1498,6 +1523,9 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         exactCodeHeadSha: requestedHead,
         selectedRaceCount: verified.verification.selectedRaceCount,
         replacementRaceCount: verified.verification.replacementRaceCount,
+        baseRecordSetSha256: verified.verification.baseRecordSetSha256,
+        selectedRaceSetSha256: verified.verification.selectedRaceSetSha256,
+        replacementSetSha256: verified.verification.replacementSetSha256,
         quarantinedRaceCountBefore:
           verified.verification.quarantinedRaceCountBefore,
         quarantinedRaceCountAfterEvidence:
