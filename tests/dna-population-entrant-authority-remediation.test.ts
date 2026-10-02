@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-entrant-authority-archive";
@@ -160,6 +161,54 @@ function memoryStorage() {
     });
 
   return { storage, objects };
+}
+
+function rewriteRetainedManifestRateToLegacy(
+  objects: Map<
+    string,
+    Readonly<{
+      body: Uint8Array;
+      contentType: string;
+      checksumSha256: string;
+      metadata: Readonly<Record<string, string>>;
+    }>
+  >,
+): void {
+  let rewritten = 0;
+  for (const [key, stored] of objects) {
+    const decoded = new TextDecoder().decode(stored.body);
+    if (
+      !decoded.includes('"cohortOrdinal":1') &&
+      !decoded.includes('"cohortOrdinal":2')
+    ) {
+      continue;
+    }
+    const legacy = decoded.replace(
+      '"aggregateRequestsPerMinute":90',
+      '"aggregateRequestsPerMinute":30',
+    );
+    if (legacy === decoded) {
+      throw new Error("test manifest did not contain the current rate");
+    }
+    const body = new TextEncoder().encode(legacy);
+    const checksumSha256 = createHash("sha256")
+      .update(legacy, "utf8")
+      .digest("hex");
+    objects.set(
+      key,
+      Object.freeze({
+        body,
+        contentType: stored.contentType,
+        checksumSha256,
+        metadata: Object.freeze({
+          ...stored.metadata,
+          "dna-body-sha256": checksumSha256,
+        }),
+      }),
+    );
+    rewritten += 1;
+  }
+  expect(rewritten).toBe(2);
 }
 
 function harness(raceCount = 25) {
@@ -704,6 +753,38 @@ describe("population entrant authority bounded remediation", () => {
     expect(
       vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
     ).toHaveLength(writesBeforeReplay);
+  });
+
+  it("accepts immutable cohort 1 and 2 manifests retained under the legacy 30 aggregate limit", async () => {
+    const test = harness(65);
+
+    await test.remediation.execute(invocation);
+    await test.remediation.executeContinuation(continuationInvocation);
+    rewriteRetainedManifestRateToLegacy(test.storage.objects);
+
+    const providerCallsBefore = test.providerCalls.length;
+    const writesBefore = vi.mocked(test.storage.storage.putObjectIfAbsent).mock
+      .calls.length;
+
+    await expect(
+      test.remediation.inspectCohort3Readiness(),
+    ).resolves.toMatchObject({
+      status: "ready_for_cohort_3",
+      exactCodeHeadSha: HEAD,
+      completedCohortCount: 2,
+      nextCohortOrdinal: 3,
+      priorSelectedRaceCount: 40,
+      nextSelectedRaceCount: 20,
+      aggregateRequestsPerMinute: 90,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      paidUsageAllowed: false,
+    });
+
+    expect(test.providerCalls).toHaveLength(providerCallsBefore);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBefore);
   });
 
   it("rejects cohort 3 when its observation is not newer than cohort 2", async () => {
