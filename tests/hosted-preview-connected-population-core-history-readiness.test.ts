@@ -334,7 +334,9 @@ describeConnected("hosted Preview population Core-history readiness", () => {
       });
       if (preflight.status !== "ready") {
         throw new Error(
-          "first population Core-history capacity is unavailable",
+          `first population Core-history capacity is unavailable: ${preflight.reason}:${
+            preflight.measurementFailureId ?? "none"
+          }:${preflight.blockerIds.join(",")}`,
         );
       }
 
