@@ -4,6 +4,8 @@ import { buildDnaPopulationEntrantAuthorityChunk } from "@/lib/dna-population-en
 import { dnaPopulationEntrantAuthorityRaceSetSha256 } from "@/lib/dna-population-entrant-authority-cohort";
 import {
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COMMAND_VERSION,
+  DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND_VERSION,
+  DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_INTENT,
   DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_INTENT,
   createDnaPopulationEntrantAuthorityRemediation,
   createDnaPopulationEntrantAuthorityRemediationManifestStore,
@@ -29,6 +31,7 @@ const OWNER = "private-owner";
 const HEAD = "a".repeat(40);
 const STARTED_AT = "2026-10-01T00:00:00.000Z";
 const OBSERVED_AT = "2026-10-01T01:00:00.000Z";
+const CONTINUATION_OBSERVED_AT = "2026-10-01T02:00:00.000Z";
 
 function raceId(index: number): string {
   return `race-${String(index).padStart(4, "0")}`;
@@ -299,6 +302,15 @@ const invocation = Object.freeze({
   cohortObservedAt: OBSERVED_AT,
 });
 
+const continuationInvocation = Object.freeze({
+  commandVersion:
+    DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_COMMAND_VERSION,
+  intent: DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_INTENT,
+  allowPersistentWrite: true as const,
+  exactCodeHeadSha: HEAD,
+  cohortObservedAt: CONTINUATION_OBSERVED_AT,
+});
+
 describe("population entrant authority bounded remediation", () => {
   it("persists one 20-Race private Preview remediation cohort and verifies its raw evidence", async () => {
     const test = harness();
@@ -454,5 +466,114 @@ describe("population entrant authority bounded remediation", () => {
     });
     expect(test.providerCalls).toHaveLength(0);
     expect(test.storage.storage.putObjectIfAbsent).not.toHaveBeenCalled();
+  });
+
+  it("persists and independently verifies exactly one continuation remediation cohort", async () => {
+    const test = harness();
+
+    await test.remediation.execute(invocation);
+    const providerCallsAfterFirst = test.providerCalls.length;
+    const writesAfterFirst = vi.mocked(test.storage.storage.putObjectIfAbsent)
+      .mock.calls.length;
+
+    await expect(
+      test.remediation.executeContinuation(continuationInvocation),
+    ).resolves.toMatchObject({
+      status: "committed_unpublished",
+      exactCodeHeadSha: HEAD,
+      cohortOrdinal: 2,
+      priorSelectedRaceCount: 20,
+      priorReplacementRaceCount: 20,
+      selectedRaceCount: 5,
+      replacementRaceCount: 5,
+      quarantinedRaceCountBefore: 25,
+      quarantinedRaceCountAfterEvidence: 0,
+      providerRequestCount: 1,
+      storageStatus: "created",
+      aggregateRequestsPerMinute: 30,
+      persistentWritePerformed: true,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsAfterFirst + 1);
+    expect(test.providerCalls.at(-1)).toHaveLength(5);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesAfterFirst + 1);
+
+    const providerCallsBeforeVerify = test.providerCalls.length;
+    const writesBeforeVerify = vi.mocked(test.storage.storage.putObjectIfAbsent)
+      .mock.calls.length;
+    await expect(test.remediation.verifyContinuation()).resolves.toMatchObject({
+      status: "verified_replacements",
+      exactCodeHeadSha: HEAD,
+      cohortOrdinal: 2,
+      priorSelectedRaceCount: 20,
+      priorReplacementRaceCount: 20,
+      selectedRaceCount: 5,
+      replacementRaceCount: 5,
+      quarantinedRaceCountBefore: 25,
+      quarantinedRaceCountAfterEvidence: 0,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBeforeVerify);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBeforeVerify);
+  });
+
+  it("replays an existing continuation cohort without another provider request or write", async () => {
+    const test = harness();
+
+    await test.remediation.execute(invocation);
+    await test.remediation.executeContinuation(continuationInvocation);
+    const providerCallsBeforeReplay = test.providerCalls.length;
+    const writesBeforeReplay = vi.mocked(test.storage.storage.putObjectIfAbsent)
+      .mock.calls.length;
+
+    await expect(
+      test.remediation.executeContinuation(continuationInvocation),
+    ).resolves.toMatchObject({
+      status: "existing_verified",
+      cohortOrdinal: 2,
+      priorSelectedRaceCount: 20,
+      selectedRaceCount: 5,
+      replacementRaceCount: 5,
+      persistentWritePerformed: false,
+      storageStatus: "existing",
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBeforeReplay);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBeforeReplay);
+  });
+
+  it("rejects a continuation observation that is not strictly newer than cohort 1", async () => {
+    const test = harness();
+
+    await test.remediation.execute(invocation);
+    const providerCallsBefore = test.providerCalls.length;
+    const writesBefore = vi.mocked(test.storage.storage.putObjectIfAbsent).mock
+      .calls.length;
+
+    await expect(
+      test.remediation.executeContinuation({
+        ...continuationInvocation,
+        cohortObservedAt: OBSERVED_AT,
+      }),
+    ).rejects.toMatchObject({ diagnostic: "invalid_observation_time" });
+    expect(test.providerCalls).toHaveLength(providerCallsBefore);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBefore);
   });
 });
