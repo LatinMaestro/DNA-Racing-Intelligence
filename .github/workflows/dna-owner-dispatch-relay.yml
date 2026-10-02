@@ -123,6 +123,14 @@ jobs:
                 execute_bounded_private_preview_index: true,
               };
               break;
+            case "population-core-history-readiness":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow = "dna-population-core-history-readiness.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                execute_read_only_readiness: true,
+              };
+              break;
             case "entrant-readiness":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-population-entrant-authority-readiness.yml";
