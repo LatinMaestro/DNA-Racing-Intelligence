@@ -8,11 +8,12 @@ export const DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES = Object.freeze({
 });
 
 /**
- * Operating budgets deliberately stop at 80% of the published R2 Standard
- * free allowances. They are safety limits, not targets.
+ * Storage deliberately stops at 95% of the published R2 Standard free
+ * allowance. Operation budgets retain the more conservative 80% reserve.
+ * These are safety limits, not targets.
  */
 export const DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS = Object.freeze({
-  storageBytes: 8_000_000_000,
+  storageBytes: 9_500_000_000,
   classAOperations: 800_000,
   classBOperations: 8_000_000,
 });
