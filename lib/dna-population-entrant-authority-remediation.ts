@@ -1161,7 +1161,8 @@ async function verifyContinuationManifest(input: {
       loaded.audit.authority.unresolvedRaceCount ||
     manifest.unresolvedRaceSetSha256 !==
       loaded.audit.authority.unresolvedRaceSetSha256 ||
-    manifest.priorManifestSha256 !== digest(canonicalManifest(first.manifest)) ||
+    manifest.priorManifestSha256 !==
+      digest(canonicalManifest(first.manifest)) ||
     manifest.priorSelectedRaceSetSha256 !==
       first.manifest.selectedRaceSetSha256 ||
     Date.parse(manifest.observedAt) <= Date.parse(first.manifest.observedAt) ||
@@ -1598,8 +1599,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
           status: "existing_verified" as const,
           exactCodeHeadSha: requestedHead,
           cohortOrdinal: 2 as const,
-          priorSelectedRaceCount:
-            verified.verification.priorSelectedRaceCount,
+          priorSelectedRaceCount: verified.verification.priorSelectedRaceCount,
           priorReplacementRaceCount:
             verified.verification.priorReplacementRaceCount,
           selectedRaceCount: verified.verification.selectedRaceCount,
@@ -1765,8 +1765,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       const manifest: DnaPopulationEntrantAuthorityRemediationContinuationManifest =
         Object.freeze({
           version: 1 as const,
-          status:
-            "retained_private_preview_remediation_continuation" as const,
+          status: "retained_private_preview_remediation_continuation" as const,
           baseGenerationId: loaded.audit.authority.generationId,
           baseRecordSetSha256: loaded.replay.recordSetSha256,
           unresolvedRaceCount: loaded.audit.authority.unresolvedRaceCount,
@@ -1812,8 +1811,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         status: "committed_unpublished" as const,
         exactCodeHeadSha: requestedHead,
         cohortOrdinal: 2 as const,
-        priorSelectedRaceCount:
-          verified.verification.priorSelectedRaceCount,
+        priorSelectedRaceCount: verified.verification.priorSelectedRaceCount,
         priorReplacementRaceCount:
           verified.verification.priorReplacementRaceCount,
         selectedRaceCount: verified.verification.selectedRaceCount,
