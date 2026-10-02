@@ -38,6 +38,7 @@ import {
 import {
   createDnaPopulationEntrantAuthorityRemediation,
   createDnaPopulationEntrantAuthorityRemediationManifestStore,
+  type DnaPopulationEntrantAuthorityRemediationContinuationReadiness,
   type DnaPopulationEntrantAuthorityRemediationInvocation,
   type DnaPopulationEntrantAuthorityRemediationReceipt,
   type DnaPopulationEntrantAuthorityRemediationVerification,
@@ -102,6 +103,7 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectAutonomousBoundary: () => Promise<DnaPopulationEntrantAuthorityAutonomousBoundary>;
       inspectResolvedAuthority: () => Promise<DnaPopulationEntrantAuthorityResolution>;
       inspectRemediationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
+      inspectRemediationContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReadiness>;
       executeRemediation: (
         invocation: DnaPopulationEntrantAuthorityRemediationInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityRemediationReceipt>;
@@ -537,6 +539,8 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
       inspectAutonomousBoundary: autonomousBoundary.inspect,
       inspectResolvedAuthority,
       inspectRemediationVerification: remediation.verify,
+      inspectRemediationContinuationReadiness:
+        remediation.inspectContinuationReadiness,
       executeRemediation: remediation.execute,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
