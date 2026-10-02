@@ -338,8 +338,30 @@ function manifestKey(ownerId: string, baseGenerationId: string): string {
   ].join("/");
 }
 
+function continuationManifestKey(
+  ownerId: string,
+  baseGenerationId: string,
+): string {
+  return [
+    "dna-open-lab",
+    "v1",
+    ownerPrefix(ownerId),
+    "population-entrant-authority",
+    "remediation",
+    baseGenerationId,
+    "cohorts",
+    "000002.json",
+  ].join("/");
+}
+
 function canonicalManifest(
   manifest: DnaPopulationEntrantAuthorityRemediationManifest,
+): string {
+  return dnaOpenLabRawEvidenceCanonicalJson(manifest);
+}
+
+function canonicalContinuationManifest(
+  manifest: DnaPopulationEntrantAuthorityRemediationContinuationManifest,
 ): string {
   return dnaOpenLabRawEvidenceCanonicalJson(manifest);
 }
@@ -494,6 +516,76 @@ function validateManifestShape(
   });
 }
 
+function validateContinuationManifestShape(
+  value: DnaPopulationEntrantAuthorityRemediationContinuationManifest,
+): DnaPopulationEntrantAuthorityRemediationContinuationManifest {
+  if (
+    value.version !== 1 ||
+    value.status !== "retained_private_preview_remediation_continuation" ||
+    value.cohortOrdinal !== 2 ||
+    !Number.isSafeInteger(value.unresolvedRaceCount) ||
+    value.unresolvedRaceCount < 1 ||
+    !Number.isSafeInteger(value.providerRequestCount) ||
+    value.providerRequestCount < 0 ||
+    value.providerRequestCount >
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_MAXIMUM_PROVIDER_REQUESTS ||
+    value.aggregateRequestsPerMinute !==
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE ||
+    value.previewOnly !== true ||
+    value.publicationActivated !== false ||
+    value.lastGoodBasePreserved !== true ||
+    value.paidUsageAllowed !== false ||
+    value.selectedRaceIds.length < 1 ||
+    value.selectedRaceIds.length >
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_RACES
+  ) {
+    remediationError("manifest_conflict");
+  }
+  const selectedRaceIds = Object.freeze(
+    value.selectedRaceIds.map((raceId) => safeText(raceId, "sourceRaceId")),
+  );
+  if (
+    new Set(selectedRaceIds).size !== selectedRaceIds.length ||
+    raceSetSha256(selectedRaceIds) !== value.selectedRaceSetSha256
+  ) {
+    remediationError("manifest_conflict");
+  }
+  const replacements = Object.freeze(
+    value.replacements.map(exactResolvedRecord),
+  );
+  if (
+    new Set(replacements.map((record) => record.sourceRaceId)).size !==
+      replacements.length ||
+    replacements.some(
+      (record) => !selectedRaceIds.includes(record.sourceRaceId),
+    )
+  ) {
+    remediationError("manifest_conflict");
+  }
+  return Object.freeze({
+    version: 1 as const,
+    status: "retained_private_preview_remediation_continuation" as const,
+    baseGenerationId: sha256(value.baseGenerationId),
+    baseRecordSetSha256: sha256(value.baseRecordSetSha256),
+    unresolvedRaceCount: value.unresolvedRaceCount,
+    unresolvedRaceSetSha256: sha256(value.unresolvedRaceSetSha256),
+    cohortOrdinal: 2 as const,
+    priorManifestSha256: sha256(value.priorManifestSha256),
+    priorSelectedRaceSetSha256: sha256(value.priorSelectedRaceSetSha256),
+    observedAt: timestamp(value.observedAt),
+    selectedRaceIds,
+    selectedRaceSetSha256: sha256(value.selectedRaceSetSha256),
+    replacements,
+    providerRequestCount: value.providerRequestCount,
+    aggregateRequestsPerMinute:
+      DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+    previewOnly: true as const,
+    publicationActivated: false as const,
+    lastGoodBasePreserved: true as const,
+    paidUsageAllowed: false as const,
+  });
+}
+
 export function createDnaPopulationEntrantAuthorityRemediationManifestStore(input: {
   ownerId: string;
   bucketName: string;
@@ -504,6 +596,12 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
   }) => Promise<DnaPopulationEntrantAuthorityRemediationManifest | null>;
   write: (
     manifest: DnaPopulationEntrantAuthorityRemediationManifest,
+  ) => Promise<Readonly<{ storageStatus: "created" | "existing" }>>;
+  readContinuation: (request: {
+    baseGenerationId: string;
+  }) => Promise<DnaPopulationEntrantAuthorityRemediationContinuationManifest | null>;
+  writeContinuation: (
+    manifest: DnaPopulationEntrantAuthorityRemediationContinuationManifest,
   ) => Promise<Readonly<{ storageStatus: "created" | "existing" }>>;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId");
@@ -565,8 +663,58 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
     return manifest;
   }
 
+  async function readContinuation(request: {
+    baseGenerationId: string;
+  }): Promise<DnaPopulationEntrantAuthorityRemediationContinuationManifest | null> {
+    const baseGenerationId = sha256(request.baseGenerationId);
+    const key = continuationManifestKey(ownerId, baseGenerationId);
+    await privateStorage();
+    const head = await input.storage.headObject({ bucketName, key });
+    if (head.status === "missing") return null;
+    if (
+      head.status !== "ready" ||
+      head.contentType !== JSON_CONTENT_TYPE ||
+      !Number.isSafeInteger(head.byteLength) ||
+      head.byteLength < 1 ||
+      head.byteLength > MAXIMUM_MANIFEST_BYTES ||
+      !SHA_256_PATTERN.test(head.checksumSha256) ||
+      head.metadata["dna-source"] !== "dna_open_lab" ||
+      head.metadata["dna-version"] !== "v1" ||
+      head.metadata["dna-purpose"] !== "entrant_remediation_continuation" ||
+      head.metadata["dna-base-generation"] !== baseGenerationId ||
+      head.metadata["dna-cohort-ordinal"] !== "2" ||
+      head.metadata["dna-body-sha256"] !== head.checksumSha256
+    ) {
+      remediationError("manifest_conflict");
+    }
+    const object = await input.storage.getObject({ bucketName, key });
+    if (object.status !== "ready") remediationError("manifest_unavailable");
+    const body = await collectBody(object.body, head.byteLength);
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(body);
+    if (digest(decoded) !== head.checksumSha256) {
+      remediationError("manifest_conflict");
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(decoded);
+    } catch {
+      remediationError("manifest_conflict");
+    }
+    const manifest = validateContinuationManifestShape(
+      parsed as DnaPopulationEntrantAuthorityRemediationContinuationManifest,
+    );
+    if (
+      manifest.baseGenerationId !== baseGenerationId ||
+      canonicalContinuationManifest(manifest) !== decoded
+    ) {
+      remediationError("manifest_conflict");
+    }
+    return manifest;
+  }
+
   return Object.freeze({
     read,
+    readContinuation,
     async write(manifestInput) {
       const manifest = validateManifestShape(manifestInput);
       const bodyText = canonicalManifest(manifest);
@@ -601,6 +749,47 @@ export function createDnaPopulationEntrantAuthorityRemediationManifestStore(inpu
       if (
         reopened === null ||
         canonicalManifest(reopened) !== canonicalManifest(manifest)
+      ) {
+        remediationError("manifest_conflict");
+      }
+      return Object.freeze({ storageStatus: stored.status });
+    },
+    async writeContinuation(manifestInput) {
+      const manifest = validateContinuationManifestShape(manifestInput);
+      const bodyText = canonicalContinuationManifest(manifest);
+      const body = bytes(bodyText);
+      if (body.byteLength < 1 || body.byteLength > MAXIMUM_MANIFEST_BYTES) {
+        remediationError("manifest_conflict");
+      }
+      const bodySha256 = digest(bodyText);
+      const key = continuationManifestKey(ownerId, manifest.baseGenerationId);
+      await privateStorage();
+      const stored = await input.storage.putObjectIfAbsent({
+        bucketName,
+        key,
+        body: oneChunk(body),
+        contentType: JSON_CONTENT_TYPE,
+        byteLength: body.byteLength,
+        checksumSha256: bodySha256,
+        metadata: Object.freeze({
+          "dna-source": "dna_open_lab",
+          "dna-version": "v1",
+          "dna-purpose": "entrant_remediation_continuation",
+          "dna-base-generation": manifest.baseGenerationId,
+          "dna-cohort-ordinal": "2",
+          "dna-body-sha256": bodySha256,
+        }),
+      });
+      if (stored.status !== "created" && stored.status !== "existing") {
+        remediationError("manifest_unavailable");
+      }
+      const reopened = await readContinuation({
+        baseGenerationId: manifest.baseGenerationId,
+      });
+      if (
+        reopened === null ||
+        canonicalContinuationManifest(reopened) !==
+          canonicalContinuationManifest(manifest)
       ) {
         remediationError("manifest_conflict");
       }
