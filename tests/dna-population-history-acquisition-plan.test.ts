@@ -30,6 +30,7 @@ describe("DNA all-mode population history acquisition plan", () => {
 
     expect(plan).toMatchObject({
       status: "ready_for_budget_measurement",
+      populationUniverseCompleteness: "complete_from_race_authority",
       raceDocumentCount: 4,
       raceCountByMode: { bike: 1, car: 1, horse: 2 },
       raceWithoutEntrantAuthorityByMode: { bike: 0, car: 0, horse: 0 },
@@ -72,7 +73,7 @@ describe("DNA all-mode population history acquisition plan", () => {
     expect(plan.cohorts[0]?.coreIds).toEqual([42]);
   });
 
-  it("holds rather than shrinking any mode when mode or entrant authority is incomplete", () => {
+  it("holds by default rather than shrinking any mode when mode or entrant authority is incomplete", () => {
     const plan = planDnaPopulationHistoryAcquisition({
       raceDocuments: [
         race("bike-complete", "bike", ["1"]),
@@ -83,6 +84,9 @@ describe("DNA all-mode population history acquisition plan", () => {
     });
 
     expect(plan.status).toBe("held_incomplete_race_authority");
+    expect(plan.populationUniverseCompleteness).toBe(
+      "partial_due_to_unresolved_races",
+    );
     expect(plan.raceWithoutEntrantAuthorityByMode).toEqual({
       bike: 0,
       car: 1,
@@ -91,6 +95,27 @@ describe("DNA all-mode population history acquisition plan", () => {
     expect(plan.raceWithUnknownModeCount).toBe(1);
     expect(plan.budgetMeasurementRequired).toBe(false);
     expect(plan.providerReadAllowed).toBe(false);
+  });
+
+  it("can enrich every known Core while keeping unresolved Race gaps explicit", () => {
+    const plan = planDnaPopulationHistoryAcquisition({
+      raceDocuments: [
+        race("bike-complete", "bike", ["1", "2"]),
+        race("car-missing", "car"),
+        race("unknown-mode", undefined, ["3"]),
+      ],
+      allowQuarantinedRaceGaps: true,
+    });
+
+    expect(plan).toMatchObject({
+      status: "ready_for_budget_measurement",
+      populationUniverseCompleteness: "partial_due_to_unresolved_races",
+      unresolvedRaceCount: 2,
+      populationCoreCount: 3,
+      missingPerformanceCoreCount: 3,
+      budgetMeasurementRequired: true,
+    });
+    expect(plan.cohorts[0]?.coreIds).toEqual([1, 2, 3]);
   });
 
   it("reports complete enrichment when every population Core is already persisted", () => {

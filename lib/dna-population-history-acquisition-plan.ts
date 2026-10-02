@@ -20,6 +20,8 @@ export type DnaPopulationHistoryAcquisitionPlan = Readonly<{
     | "ready_for_budget_measurement"
     | "held_incomplete_race_authority"
     | "complete_population_enrichment";
+  populationUniverseCompleteness:
+    "complete_from_race_authority" | "partial_due_to_unresolved_races";
   raceDocumentCount: number;
   raceCountByMode: Readonly<Record<RaceMode, number>>;
   raceWithoutEntrantAuthorityByMode: Readonly<Record<RaceMode, number>>;
@@ -103,6 +105,7 @@ function modeCoreSets(): Record<RaceMode, Set<number>> {
 export function planDnaPopulationHistoryAcquisition(input: {
   raceDocuments: readonly CanonicalRaceDocumentMetadata[];
   persistedPerformanceCoreIds?: readonly number[];
+  allowQuarantinedRaceGaps?: boolean;
 }): DnaPopulationHistoryAcquisitionPlan {
   const persisted = normalizedCoreIds(
     input.persistedPerformanceCoreIds ?? [],
@@ -127,23 +130,21 @@ export function planDnaPopulationHistoryAcquisition(input: {
     raceIds.add(document.sourceRaceId);
 
     const mode = document.mode;
-    if (mode === undefined) {
+    const modeKnown = mode !== undefined && MODES.includes(mode);
+    if (!modeKnown) {
       raceWithUnknownModeCount += 1;
       unresolvedRaceIds.add(document.sourceRaceId);
-      continue;
-    }
-    if (!MODES.includes(mode)) {
-      raceWithUnknownModeCount += 1;
-      unresolvedRaceIds.add(document.sourceRaceId);
-      continue;
+    } else {
+      raceCountByMode[mode] += 1;
     }
 
-    raceCountByMode[mode] += 1;
     if (
       document.entrantCoreIds === undefined ||
       document.entrantCoreIds.length === 0
     ) {
-      raceWithoutEntrantAuthorityByMode[mode] += 1;
+      if (modeKnown) {
+        raceWithoutEntrantAuthorityByMode[mode] += 1;
+      }
       unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
@@ -159,14 +160,20 @@ export function planDnaPopulationHistoryAcquisition(input: {
       raceEntrants.add(coreId);
     }
     if (!valid) {
-      raceWithoutEntrantAuthorityByMode[mode] += 1;
+      if (modeKnown) {
+        raceWithoutEntrantAuthorityByMode[mode] += 1;
+      }
       unresolvedRaceIds.add(document.sourceRaceId);
       continue;
     }
 
     for (const coreId of raceEntrants) {
-      populationByMode[mode].add(coreId);
-      population.add(coreId);
+      if (modeKnown) {
+        populationByMode[mode].add(coreId);
+      }
+      if (modeKnown || input.allowQuarantinedRaceGaps === true) {
+        population.add(coreId);
+      }
     }
   }
 
@@ -184,11 +191,17 @@ export function planDnaPopulationHistoryAcquisition(input: {
     raceWithUnknownModeCount > 0 ||
     MODES.some((mode) => raceWithoutEntrantAuthorityByMode[mode] > 0);
 
-  const status = incompleteAuthority
-    ? "held_incomplete_race_authority"
-    : missingPerformanceCoreIds.length === 0
-      ? "complete_population_enrichment"
-      : "ready_for_budget_measurement";
+  const tolerateQuarantine =
+    input.allowQuarantinedRaceGaps === true && populationIds.length > 0;
+  const status =
+    incompleteAuthority && !tolerateQuarantine
+      ? "held_incomplete_race_authority"
+      : missingPerformanceCoreIds.length === 0
+        ? "complete_population_enrichment"
+        : "ready_for_budget_measurement";
+  const populationUniverseCompleteness = incompleteAuthority
+    ? ("partial_due_to_unresolved_races" as const)
+    : ("complete_from_race_authority" as const);
 
   const cohorts =
     missingPerformanceCoreIds.length === 0
@@ -217,6 +230,7 @@ export function planDnaPopulationHistoryAcquisition(input: {
 
   return Object.freeze({
     status,
+    populationUniverseCompleteness,
     raceDocumentCount: raceIds.size,
     raceCountByMode: Object.freeze({ ...raceCountByMode }),
     raceWithoutEntrantAuthorityByMode: Object.freeze({
@@ -264,7 +278,8 @@ export function planDnaPopulationHistoryAcquisition(input: {
     structuralMaximumProviderRequestCount:
       missingPerformanceCoreIds.length * 10_000,
     budgetMeasurementRequired:
-      !incompleteAuthority && missingPerformanceCoreIds.length > 0,
+      status === "ready_for_budget_measurement" &&
+      missingPerformanceCoreIds.length > 0,
     providerReadAllowed: false,
     persistentWriteAllowed: false,
     paidUsageAllowed: false,

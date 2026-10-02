@@ -145,6 +145,7 @@ export function completeDnaPopulationCoreHistoryAuthority(input: {
   const plan = planDnaPopulationHistoryAcquisition({
     raceDocuments,
     persistedPerformanceCoreIds: input.persistedPerformanceCoreIds ?? [],
+    allowQuarantinedRaceGaps: true,
   });
 
   return Object.freeze({
