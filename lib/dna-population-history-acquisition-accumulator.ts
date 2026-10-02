@@ -145,6 +145,9 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
         : missingPerformanceCoreIds.length === 0
           ? ("complete_population_enrichment" as const)
           : ("ready_for_budget_measurement" as const);
+      const populationUniverseCompleteness = incompleteAuthority
+        ? ("partial_due_to_unresolved_races" as const)
+        : ("complete_from_race_authority" as const);
       const cohorts =
         missingPerformanceCoreIds.length === 0
           ? []
@@ -172,6 +175,7 @@ export function createDnaPopulationHistoryAcquisitionAccumulator(): Readonly<{
 
       return Object.freeze({
         status,
+        populationUniverseCompleteness,
         raceDocumentCount: raceIds.size,
         raceCountByMode: Object.freeze({ ...raceCountByMode }),
         raceWithoutEntrantAuthorityByMode: Object.freeze({
