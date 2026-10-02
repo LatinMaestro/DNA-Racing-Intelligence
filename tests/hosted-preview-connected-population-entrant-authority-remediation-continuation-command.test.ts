@@ -145,7 +145,7 @@ describeConnected(
             exactCodeHeadSha,
             cohortOrdinal: 2,
             priorSelectedRaceCount: 20,
-            aggregateRequestsPerMinute: 30,
+            aggregateRequestsPerMinute: 90,
             providerWritePerformed: false,
             publicationActivated: false,
             previewOnly: true,

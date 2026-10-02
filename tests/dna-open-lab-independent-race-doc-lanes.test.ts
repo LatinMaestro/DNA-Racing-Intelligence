@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createDnaOpenLabIndependentRaceDocRuntime } from "@/lib/dna-open-lab-independent-race-doc-lanes";
+import {
+  DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+  DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES,
+  DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
+} from "@/lib/dna-population-entrant-authority-cohort";
 import { createDnaOpenLabRequestBudget } from "@/lib/dna-open-lab-request-budget";
 import type {
   DnaOpenLabClient,
@@ -23,6 +28,58 @@ function response(): DnaOpenLabResponse<readonly DnaRaceDocument[]> {
 }
 
 describe("independent Race-doc API-key lanes", () => {
+  it("allows 90 requests per minute across three independent 30-RPM key lanes without a shared 30-RPM cap", async () => {
+    let now = 0;
+    const sleeps = [vi.fn(), vi.fn(), vi.fn()];
+    const calls = [vi.fn(), vi.fn(), vi.fn()];
+    const runtime = createDnaOpenLabIndependentRaceDocRuntime(
+      calls.map((call, index) =>
+        Object.freeze({
+          client: Object.freeze({
+            raceDocs: (async (raceIds) => {
+              call(raceIds);
+              return response();
+            }) satisfies Pick<DnaOpenLabClient, "raceDocs">["raceDocs"],
+          }),
+          requestBudget: createDnaOpenLabRequestBudget({
+            nowMilliseconds: () => now,
+            sleep: async (milliseconds) => {
+              sleeps[index]?.(milliseconds);
+              now += milliseconds;
+            },
+            initialRequestsPerMinute:
+              DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
+            maximumRequestsPerMinute:
+              DNA_POPULATION_ENTRANT_AUTHORITY_LANE_REQUESTS_PER_MINUTE,
+          }),
+        }),
+      ),
+    );
+
+    for (
+      let index = 0;
+      index < DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+      index += 1
+    ) {
+      await runtime.requestBudget.execute(() =>
+        runtime.client.raceDocs([index + 1]),
+      );
+    }
+
+    expect(DNA_POPULATION_ENTRANT_AUTHORITY_API_KEY_LANES).toBe(3);
+    expect(calls.map((call) => call.mock.calls.length)).toEqual([30, 30, 30]);
+    expect(sleeps.map((sleep) => sleep.mock.calls.length)).toEqual([0, 0, 0]);
+    expect(runtime.requestBudget.snapshot()).toMatchObject({
+      effectiveRequestsPerMinute: 90,
+      requestsInCurrentWindow: 90,
+    });
+
+    await runtime.requestBudget.execute(() => runtime.client.raceDocs([91]));
+
+    expect(sleeps.map((sleep) => sleep.mock.calls.length)).toEqual([1, 0, 0]);
+    expect(sleeps[0]).toHaveBeenCalledWith(60_000);
+  });
+
   it("round-robins requests while retaining one 30-RPM budget per key", async () => {
     const calls = [vi.fn(), vi.fn(), vi.fn()];
     const runtime = createDnaOpenLabIndependentRaceDocRuntime(

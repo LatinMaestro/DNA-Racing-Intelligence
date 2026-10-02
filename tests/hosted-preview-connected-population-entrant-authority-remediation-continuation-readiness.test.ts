@@ -116,7 +116,7 @@ describeConnected(
             completedCohortCount: 1,
             nextCohortOrdinal: 2,
             priorSelectedRaceCount: 20,
-            aggregateRequestsPerMinute: 30,
+            aggregateRequestsPerMinute: 90,
             providerRequestPerformed: false,
             persistentWritePerformed: false,
             providerWritePerformed: false,
