@@ -159,7 +159,7 @@ describe("DNA population entrant authority capacity gate", () => {
 
   it("keeps a 10% R2 operation reserve while allowing one bounded zero-cost cohort", async () => {
     expect(DNA_POPULATION_ENTRANT_AUTHORITY_ZERO_COST_R2_BUDGETS).toEqual({
-      storageBytes: 8_000_000_000,
+      storageBytes: 9_500_000_000,
       classAOperations: 900_000,
       classBOperations: 9_000_000,
     });
