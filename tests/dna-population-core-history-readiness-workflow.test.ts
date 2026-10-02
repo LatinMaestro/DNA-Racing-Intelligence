@@ -20,6 +20,12 @@ describe("population Core-history readiness workflow", () => {
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-core-history-readiness.test.ts",
     );
+    const connectedTest = await readFile(
+      "tests/hosted-preview-connected-population-core-history-readiness.test.ts",
+      "utf8",
+    );
+    expect(connectedTest).toContain('projectionHorizon: "single_refresh"');
+    expect(connectedTest).not.toContain('projectionHorizon: "billing_window"');
     expect(workflow).toContain("DNA_R2_STORAGE_CLASS: Standard");
     expect(workflow).not.toMatch(/push:\s*\n\s*branches:/u);
     expect(workflow).not.toContain("vercel");
