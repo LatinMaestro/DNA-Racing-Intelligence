@@ -124,16 +124,16 @@ function sources(input?: {
               classBOperations: 10_000_000,
             },
             r2Budgets: {
-              storageBytes: 8_000_000_000,
+              storageBytes: 9_500_000_000,
               classAOperations: 800_000,
               classBOperations: 8_000_000,
             },
             neonFreeAllowances: {
-              storageBytes: 536_870_912,
+              storageBytes: 1_000_000_000,
               computeMilliCuHours: 100_000,
             },
             neonBudgets: {
-              storageBytes: 500_000_000,
+              storageBytes: 950_000_000,
               computeMilliCuHours: 80_000,
             },
             paidUsageAllowed: false as const,
