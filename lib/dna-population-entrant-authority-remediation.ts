@@ -1354,13 +1354,14 @@ async function verifyManifest(input: {
   raceDocumentReader: ReturnType<
     typeof createDnaOpenLabR2CanonicalRaceDocumentReader
   >;
+  loaded?: Awaited<ReturnType<typeof loadBase>>;
 }): Promise<
   Readonly<{
     manifest: DnaPopulationEntrantAuthorityRemediationManifest;
     verification: DnaPopulationEntrantAuthorityRemediationVerification;
   }>
 > {
-  const loaded = await loadBase(input);
+  const loaded = input.loaded ?? (await loadBase(input));
   const manifest = await input.manifestStore.read({
     baseGenerationId: loaded.audit.authority.generationId,
   });
@@ -1459,6 +1460,7 @@ async function verifyContinuationManifest(input: {
   raceDocumentReader: ReturnType<
     typeof createDnaOpenLabR2CanonicalRaceDocumentReader
   >;
+  loaded?: Awaited<ReturnType<typeof loadBase>>;
 }): Promise<
   Readonly<{
     firstManifest: DnaPopulationEntrantAuthorityRemediationManifest;
@@ -1466,8 +1468,8 @@ async function verifyContinuationManifest(input: {
     verification: DnaPopulationEntrantAuthorityRemediationContinuationVerification;
   }>
 > {
-  const loaded = await loadBase(input);
-  const first = await verifyManifest(input);
+  const loaded = input.loaded ?? (await loadBase(input));
+  const first = await verifyManifest({ ...input, loaded });
   const manifest = await input.manifestStore.readContinuation({
     baseGenerationId: loaded.audit.authority.generationId,
   });
@@ -1605,6 +1607,7 @@ async function verifyCohort3Manifest(input: {
   raceDocumentReader: ReturnType<
     typeof createDnaOpenLabR2CanonicalRaceDocumentReader
   >;
+  loaded?: Awaited<ReturnType<typeof loadBase>>;
 }): Promise<
   Readonly<{
     firstManifest: DnaPopulationEntrantAuthorityRemediationManifest;
@@ -1613,8 +1616,8 @@ async function verifyCohort3Manifest(input: {
     verification: DnaPopulationEntrantAuthorityRemediationCohort3Verification;
   }>
 > {
-  const loaded = await loadBase(input);
-  const second = await verifyContinuationManifest(input);
+  const loaded = input.loaded ?? (await loadBase(input));
+  const second = await verifyContinuationManifest({ ...input, loaded });
   const firstManifest = second.firstManifest;
   const secondManifest = second.manifest;
   const manifest = await input.manifestStore.readCohort3({
@@ -2070,6 +2073,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded,
       });
       const selected = selectContinuationCohort(
         loaded.base.records,
@@ -2221,6 +2225,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded: currentBase,
       });
       if (
         canonicalManifest(currentFirst.manifest) !==
@@ -2365,6 +2370,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded,
       });
       const priorSelectedRaceIds = Object.freeze([
         ...second.firstManifest.selectedRaceIds,
@@ -2521,6 +2527,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded: currentBase,
       });
       if (
         canonicalContinuationManifest(currentSecond.manifest) !==
@@ -2701,6 +2708,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded,
       });
       const priorSelectedRaceIds = Object.freeze([
         ...second.firstManifest.selectedRaceIds,
@@ -2751,6 +2759,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         r2Store: input.r2Store,
         manifestStore: input.manifestStore,
         raceDocumentReader: input.raceDocumentReader,
+        loaded: currentBase,
       });
       if (
         canonicalContinuationManifest(currentSecond.manifest) !==

@@ -676,6 +676,8 @@ describe("population entrant authority bounded remediation", () => {
     const writesBeforeReadiness = vi.mocked(
       test.storage.storage.putObjectIfAbsent,
     ).mock.calls.length;
+    const authorityLoadsBeforeReadiness =
+      test.authoritySource.load.mock.calls.length;
     await expect(
       test.remediation.inspectCohort3Readiness(),
     ).resolves.toMatchObject({
@@ -701,6 +703,10 @@ describe("population entrant authority bounded remediation", () => {
     expect(
       vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
     ).toHaveLength(writesBeforeReadiness);
+    expect(
+      test.authoritySource.load.mock.calls.length -
+        authorityLoadsBeforeReadiness,
+    ).toBe(2);
 
     await expect(
       test.remediation.executeCohort3(cohort3Invocation),
