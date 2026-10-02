@@ -131,6 +131,11 @@ jobs:
                 execute_read_only_readiness: true,
               };
               break;
+            case "provider-capacity-preflight":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow = "dna-open-lab-daily-refresh-provider-preflight.yml";
+              inputs = {};
+              break;
             case "entrant-readiness":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-population-entrant-authority-readiness.yml";
