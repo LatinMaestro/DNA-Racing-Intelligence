@@ -2301,6 +2301,313 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
       });
     },
 
+    async executeCohort3(invocation) {
+      if (
+        invocation.commandVersion !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_COMMAND_VERSION ||
+        invocation.intent !==
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_3_INTENT ||
+        invocation.allowPersistentWrite !== true
+      ) {
+        remediationError("not_explicitly_armed");
+      }
+      const requestedHead = exactHead(invocation.exactCodeHeadSha);
+      if (requestedHead !== runtimeCodeHeadSha) {
+        remediationError("exact_head_mismatch");
+      }
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
+      const cohortObservedAt = timestamp(invocation.cohortObservedAt);
+      const loaded = await loadBase({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+      });
+      const second = await verifyContinuationManifest({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+        manifestStore: input.manifestStore,
+        raceDocumentReader: input.raceDocumentReader,
+      });
+      const priorSelectedRaceIds = Object.freeze([
+        ...second.firstManifest.selectedRaceIds,
+        ...second.manifest.selectedRaceIds,
+      ]);
+      const selected = selectContinuationCohort(
+        loaded.base.records,
+        priorSelectedRaceIds,
+      );
+      if (selected.length < 1) remediationError("no_quarantine_available");
+
+      const existing = await input.manifestStore.readCohort3({
+        baseGenerationId: loaded.audit.authority.generationId,
+      });
+      if (existing !== null) {
+        const verified = await verifyCohort3Manifest({
+          ownerId,
+          exactCodeHeadSha: requestedHead,
+          authoritySource: input.authoritySource,
+          checkpointRepository: input.checkpointRepository,
+          r2Store: input.r2Store,
+          manifestStore: input.manifestStore,
+          raceDocumentReader: input.raceDocumentReader,
+        });
+        return Object.freeze({
+          status: "existing_verified" as const,
+          exactCodeHeadSha: requestedHead,
+          cohortOrdinal: 3 as const,
+          priorSelectedRaceCount: verified.verification.priorSelectedRaceCount,
+          priorReplacementRaceCount:
+            verified.verification.priorReplacementRaceCount,
+          selectedRaceCount: verified.verification.selectedRaceCount,
+          replacementRaceCount: verified.verification.replacementRaceCount,
+          baseRecordSetSha256: verified.verification.baseRecordSetSha256,
+          selectedRaceSetSha256: verified.verification.selectedRaceSetSha256,
+          replacementSetSha256: verified.verification.replacementSetSha256,
+          quarantinedRaceCountBefore:
+            verified.verification.quarantinedRaceCountBefore,
+          quarantinedRaceCountAfterEvidence:
+            verified.verification.quarantinedRaceCountAfterEvidence,
+          providerRequestCount: existing.providerRequestCount,
+          storageStatus: "existing" as const,
+          aggregateRequestsPerMinute:
+            DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+          persistentWritePerformed: false,
+          providerWritePerformed: false as const,
+          publicationActivated: false as const,
+          previewOnly: true as const,
+          paidUsageAllowed: false as const,
+          lastGoodBasePreserved: true as const,
+        });
+      }
+
+      if (
+        Date.parse(cohortObservedAt) <= Date.parse(second.manifest.observedAt) ||
+        selected.some(
+          (record) =>
+            Date.parse(cohortObservedAt) <= Date.parse(record.observedAt),
+        )
+      ) {
+        remediationError("invalid_observation_time");
+      }
+
+      validateRequestBudget(input.requestBudget);
+      let capacity: Awaited<
+        ReturnType<
+          DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+        >
+      >;
+      try {
+        capacity = await input.capacityGate.assertFreshCurrentCapacity(
+          loaded.audit.authority,
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
+        );
+      } catch {
+        remediationError("capacity_unavailable");
+      }
+      validateCapacityApproval(capacity, loaded.audit.authority);
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
+
+      const providerCounter = { value: 0 };
+      let hydration: Awaited<
+        ReturnType<typeof hydrateDnaRaceDocumentsWithQuarantine>
+      >;
+      try {
+        hydration = await hydrateDnaRaceDocumentsWithQuarantine({
+          raceIds: selected.map((record) => record.sourceRaceId),
+          client: input.client,
+          requestBudget: boundedRequestBudget(
+            input.requestBudget,
+            providerCounter,
+          ),
+          observedAt: cohortObservedAt,
+        });
+      } catch (error) {
+        if (error instanceof DnaPopulationEntrantAuthorityRemediationError) {
+          throw error;
+        }
+        remediationError("hydration_unavailable");
+      }
+      if (
+        providerCounter.value !== hydration.providerRequestCount ||
+        hydration.requestedRaceCount !== selected.length ||
+        hydration.outcomes.length !== selected.length ||
+        providerCounter.value < 1 ||
+        providerCounter.value >
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_MAXIMUM_PROVIDER_REQUESTS
+      ) {
+        remediationError("hydration_unavailable");
+      }
+
+      const replacements = Object.freeze(
+        hydration.outcomes
+          .filter(
+            (
+              outcome,
+            ): outcome is Extract<
+              (typeof hydration.outcomes)[number],
+              { status: "resolved" }
+            > => outcome.status === "resolved",
+          )
+          .map((outcome) =>
+            exactResolvedRecord(
+              dnaPopulationEntrantAuthorityRecord(
+                outcome.evidence,
+              ) as DnaPopulationEntrantAuthorityResolvedRecord,
+            ),
+          ),
+      );
+
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
+      const currentBase = await loadBase({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+      });
+      if (!sameBaseAuthority(loaded, currentBase)) {
+        remediationError("authority_drift");
+      }
+      const currentSecond = await verifyContinuationManifest({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+        manifestStore: input.manifestStore,
+        raceDocumentReader: input.raceDocumentReader,
+      });
+      if (
+        canonicalContinuationManifest(currentSecond.manifest) !==
+          canonicalContinuationManifest(second.manifest) ||
+        canonicalManifest(currentSecond.firstManifest) !==
+          canonicalManifest(second.firstManifest)
+      ) {
+        remediationError("authority_drift");
+      }
+      const currentPriorSelectedRaceIds = Object.freeze([
+        ...currentSecond.firstManifest.selectedRaceIds,
+        ...currentSecond.manifest.selectedRaceIds,
+      ]);
+      const currentSelected = selectContinuationCohort(
+        currentBase.base.records,
+        currentPriorSelectedRaceIds,
+      );
+      if (
+        dnaOpenLabRawEvidenceCanonicalJson(currentSelected) !==
+        dnaOpenLabRawEvidenceCanonicalJson(selected)
+      ) {
+        remediationError("authority_drift");
+      }
+
+      try {
+        capacity = await input.capacityGate.assertFreshCurrentCapacity(
+          currentBase.audit.authority,
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
+        );
+      } catch {
+        remediationError("capacity_unavailable");
+      }
+      validateCapacityApproval(capacity, currentBase.audit.authority);
+      validateRequestBudget(input.requestBudget);
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: requestedHead,
+      });
+
+      const selectedRaceIds = Object.freeze(
+        selected.map((record) => record.sourceRaceId),
+      );
+      const manifest: DnaPopulationEntrantAuthorityRemediationCohort3Manifest =
+        Object.freeze({
+          version: 1 as const,
+          status: "retained_private_preview_remediation_cohort_3" as const,
+          baseGenerationId: loaded.audit.authority.generationId,
+          baseRecordSetSha256: loaded.replay.recordSetSha256,
+          unresolvedRaceCount: loaded.audit.authority.unresolvedRaceCount,
+          unresolvedRaceSetSha256:
+            loaded.audit.authority.unresolvedRaceSetSha256,
+          cohortOrdinal: 3 as const,
+          priorManifestSha256: digest(
+            canonicalContinuationManifest(second.manifest),
+          ),
+          priorSelectedRaceSetSha256: second.manifest.selectedRaceSetSha256,
+          observedAt: cohortObservedAt,
+          selectedRaceIds,
+          selectedRaceSetSha256: raceSetSha256(selectedRaceIds),
+          replacements,
+          providerRequestCount: providerCounter.value,
+          aggregateRequestsPerMinute:
+            DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+          previewOnly: true as const,
+          publicationActivated: false as const,
+          lastGoodBasePreserved: true as const,
+          paidUsageAllowed: false as const,
+        });
+
+      let stored;
+      try {
+        stored = await input.manifestStore.writeCohort3(manifest);
+      } catch (error) {
+        if (error instanceof DnaPopulationEntrantAuthorityRemediationError) {
+          throw error;
+        }
+        remediationError("manifest_unavailable");
+      }
+
+      const verified = await verifyCohort3Manifest({
+        ownerId,
+        exactCodeHeadSha: requestedHead,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+        manifestStore: input.manifestStore,
+        raceDocumentReader: input.raceDocumentReader,
+      });
+
+      return Object.freeze({
+        status: "committed_unpublished" as const,
+        exactCodeHeadSha: requestedHead,
+        cohortOrdinal: 3 as const,
+        priorSelectedRaceCount: verified.verification.priorSelectedRaceCount,
+        priorReplacementRaceCount:
+          verified.verification.priorReplacementRaceCount,
+        selectedRaceCount: verified.verification.selectedRaceCount,
+        replacementRaceCount: verified.verification.replacementRaceCount,
+        baseRecordSetSha256: verified.verification.baseRecordSetSha256,
+        selectedRaceSetSha256: verified.verification.selectedRaceSetSha256,
+        replacementSetSha256: verified.verification.replacementSetSha256,
+        quarantinedRaceCountBefore:
+          verified.verification.quarantinedRaceCountBefore,
+        quarantinedRaceCountAfterEvidence:
+          verified.verification.quarantinedRaceCountAfterEvidence,
+        providerRequestCount: providerCounter.value,
+        storageStatus: stored.storageStatus,
+        aggregateRequestsPerMinute:
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+        persistentWritePerformed: stored.storageStatus === "created",
+        providerWritePerformed: false as const,
+        publicationActivated: false as const,
+        previewOnly: true as const,
+        paidUsageAllowed: false as const,
+        lastGoodBasePreserved: true as const,
+      });
+    },
+
     async verifyContinuation() {
       await assertCurrentMain({
         mainGuard: input.mainGuard,
