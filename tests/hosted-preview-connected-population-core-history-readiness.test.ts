@@ -327,7 +327,8 @@ describeConnected("hosted Preview population Core-history readiness", () => {
         exactCodeHeadSha,
         refreshCycleId,
         budgetWindowId,
-        projectionHorizon: "billing_window",
+        // This proves one bounded persistent cohort, not a recurring daily refresh.
+        projectionHorizon: "single_refresh",
         plannedR2UsagePerRefresh: plannedR2Usage,
         plannedNeonUsagePerRefresh:
           DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
