@@ -167,6 +167,37 @@ jobs:
                 expected_main_sha: payload.expected_main_sha,
               };
               break;
+            case "entrant-remediation-continuation":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "cohort_observed_at",
+                "execute_next_private_preview_entrant_remediation",
+              ]);
+              if (
+                !exactTimestamp(payload.cohort_observed_at) ||
+                payload.execute_next_private_preview_entrant_remediation !== true
+              ) {
+                throw new Error(
+                  "Remediation continuation dispatch authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-population-entrant-authority-remediation-continuation-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                cohort_observed_at: payload.cohort_observed_at,
+                execute_next_private_preview_entrant_remediation: true,
+              };
+              break;
+            case "entrant-remediation-continuation-verify":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-entrant-authority-remediation-continuation-verification.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
             case "entrant-first-verify":
               exactKeys(["kind", "expected_main_sha"]);
               workflow =
