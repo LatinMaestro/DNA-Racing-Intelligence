@@ -174,25 +174,21 @@ function rewriteRetainedManifestRateToLegacy(
     }>
   >,
 ): void {
-  let rewritten = 0;
-  for (const [key, stored] of objects) {
-    const decoded = new TextDecoder().decode(stored.body);
-    if (
-      !decoded.includes('"cohortOrdinal":1') &&
-      !decoded.includes('"cohortOrdinal":2')
-    ) {
-      continue;
-    }
-    const legacy = decoded.replace(
-      '"aggregateRequestsPerMinute":90',
-      '"aggregateRequestsPerMinute":30',
-    );
-    if (legacy === decoded) {
-      throw new Error("test manifest did not contain the current rate");
-    }
-    const body = new TextEncoder().encode(legacy);
+  const entries = [...objects.entries()];
+  const firstEntry = entries.find(([key]) => key.endsWith("/000001.json"));
+  const secondEntry = entries.find(([key]) => key.endsWith("/000002.json"));
+  if (firstEntry === undefined || secondEntry === undefined) {
+    throw new Error("test remediation manifests are unavailable");
+  }
+
+  const rewrite = (
+    key: string,
+    stored: (typeof firstEntry)[1],
+    bodyText: string,
+  ): string => {
+    const body = new TextEncoder().encode(bodyText);
     const checksumSha256 = createHash("sha256")
-      .update(legacy, "utf8")
+      .update(bodyText, "utf8")
       .digest("hex");
     objects.set(
       key,
@@ -206,9 +202,35 @@ function rewriteRetainedManifestRateToLegacy(
         }),
       }),
     );
-    rewritten += 1;
+    return checksumSha256;
+  };
+
+  const [firstKey, firstStored] = firstEntry;
+  const firstCurrent = new TextDecoder().decode(firstStored.body);
+  const firstLegacy = firstCurrent.replace(
+    '"aggregateRequestsPerMinute":90',
+    '"aggregateRequestsPerMinute":30',
+  );
+  if (firstLegacy === firstCurrent) {
+    throw new Error("test first manifest did not contain the current rate");
   }
-  expect(rewritten).toBe(2);
+  const firstLegacySha256 = rewrite(firstKey, firstStored, firstLegacy);
+
+  const [secondKey, secondStored] = secondEntry;
+  const secondCurrent = new TextDecoder().decode(secondStored.body);
+  const secondLegacy = secondCurrent
+    .replace(
+      '"aggregateRequestsPerMinute":90',
+      '"aggregateRequestsPerMinute":30',
+    )
+    .replace(
+      /"priorManifestSha256":"[a-f0-9]{64}"/u,
+      `"priorManifestSha256":"${firstLegacySha256}"`,
+    );
+  if (secondLegacy === secondCurrent) {
+    throw new Error("test continuation manifest was not rewritten");
+  }
+  rewrite(secondKey, secondStored, secondLegacy);
 }
 
 function harness(raceCount = 25) {
