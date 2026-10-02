@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment } from "@/lib/dna-population-entrant-authority-connected-runtime";
 import { DnaPopulationEntrantAuthorityRemediationError } from "@/lib/dna-population-entrant-authority-remediation";
 
-const connected =
-  process.env.DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_READINESS ===
-  "1";
+const CONNECTED_ENVIRONMENT =
+  "DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_READINESS";
+const connected = process.env[CONNECTED_ENVIRONMENT] === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
@@ -50,10 +50,10 @@ const remediationMainGuard = Object.freeze({
 });
 
 describeConnected(
-  "hosted Preview population entrant remediation continuation readiness",
+  "hosted Preview entrant remediation continuation readiness",
   () => {
     it(
-      "proves the next bounded remediation cohort without DNA access or persistence",
+      "proves the next bounded cohort without DNA access or persistence",
       async () => {
         let stage = "environment";
         try {
@@ -131,9 +131,8 @@ describeConnected(
           );
           expect(receipt.nextSelectedRaceCount).toBeGreaterThan(0);
           expect(receipt.nextSelectedRaceCount).toBeLessThanOrEqual(20);
-          expect(
-            receipt.remainingUnscannedQuarantineCount,
-          ).toBeGreaterThanOrEqual(0);
+          const remaining = receipt.remainingUnscannedQuarantineCount;
+          expect(remaining).toBeGreaterThanOrEqual(0);
           expect(new Date(receipt.capacityObservedAt).toISOString()).toBe(
             receipt.capacityObservedAt,
           );
