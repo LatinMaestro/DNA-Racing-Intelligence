@@ -38,6 +38,10 @@ import {
 import {
   createDnaPopulationEntrantAuthorityRemediation,
   createDnaPopulationEntrantAuthorityRemediationManifestStore,
+  type DnaPopulationEntrantAuthorityRemediationCohort3Invocation,
+  type DnaPopulationEntrantAuthorityRemediationCohort3Readiness,
+  type DnaPopulationEntrantAuthorityRemediationCohort3Receipt,
+  type DnaPopulationEntrantAuthorityRemediationCohort3Verification,
   type DnaPopulationEntrantAuthorityRemediationContinuationInvocation,
   type DnaPopulationEntrantAuthorityRemediationContinuationReadiness,
   type DnaPopulationEntrantAuthorityRemediationContinuationReceipt,
@@ -108,12 +112,17 @@ export type DnaPopulationEntrantAuthorityConnectedRuntime =
       inspectRemediationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
       inspectRemediationContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReadiness>;
       inspectRemediationContinuationVerification: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationVerification>;
+      inspectRemediationCohort3Readiness: () => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Readiness>;
+      inspectRemediationCohort3Verification: () => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Verification>;
       executeRemediation: (
         invocation: DnaPopulationEntrantAuthorityRemediationInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityRemediationReceipt>;
       executeRemediationContinuation: (
         invocation: DnaPopulationEntrantAuthorityRemediationContinuationInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReceipt>;
+      executeRemediationCohort3: (
+        invocation: DnaPopulationEntrantAuthorityRemediationCohort3Invocation,
+      ) => Promise<DnaPopulationEntrantAuthorityRemediationCohort3Receipt>;
       execute: (
         invocation: DnaPopulationEntrantAuthorityCohortCommandInvocation,
       ) => Promise<DnaPopulationEntrantAuthorityCohortCommandSession>;
@@ -550,8 +559,11 @@ export function dnaPopulationEntrantAuthorityConnectedRuntimeFromEnvironment(inp
         remediation.inspectContinuationReadiness,
       inspectRemediationContinuationVerification:
         remediation.verifyContinuation,
+      inspectRemediationCohort3Readiness: remediation.inspectCohort3Readiness,
+      inspectRemediationCohort3Verification: remediation.verifyCohort3,
       executeRemediation: remediation.execute,
       executeRemediationContinuation: remediation.executeContinuation,
+      executeRemediationCohort3: remediation.executeCohort3,
       execute: command.execute,
       executeContinuation: continuationCommand.executeContinuation,
     });
