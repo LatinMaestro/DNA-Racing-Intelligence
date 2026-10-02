@@ -23,6 +23,9 @@ describe("DNA owner dispatch relay workflow", () => {
       "dna-population-race-index-private-preview-command.yml",
     );
     expect(workflow).toContain('"population-index-maintenance"');
+    expect(workflow).toContain("dna-population-core-history-readiness.yml");
+    expect(workflow).toContain('"population-core-history-readiness"');
+    expect(workflow).toContain("execute_read_only_readiness: true");
     expect(workflow).toContain(
       "dna-population-entrant-authority-readiness.yml",
     );
