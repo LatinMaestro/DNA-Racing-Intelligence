@@ -66,7 +66,7 @@ describe("DNA Open Lab current-state operator", () => {
     const result = await runDnaCurrentStateOperatorStep({
       ...baseInput,
       currentR2Usage: {
-        storageBytes: 8_000_000_000,
+        storageBytes: 9_500_000_000,
         classAOperations: 800_000,
         classBOperations: 8_000_000,
       },

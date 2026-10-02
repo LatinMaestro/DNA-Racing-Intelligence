@@ -43,6 +43,9 @@ const safe = {
 describe("DNA Open Lab zero-cost provider capacity", () => {
   it("keeps recurring Neon budgets below the free allowances", () => {
     expect(DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS).toBe("Standard");
+    expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBe(9_500_000_000);
+    expect(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.storageBytes).toBe(1_000_000_000);
+    expect(DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes).toBe(950_000_000);
     expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBeLessThan(
       DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.storageBytes,
     );
@@ -178,7 +181,7 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
       measuredAt: "2026-09-28T00:00:00.000Z",
       neonMeasuredAt: "2026-10-02T00:00:00.000Z",
       currentR2Usage: {
-        storageBytes: 7_999_999_998,
+        storageBytes: 9_499_999_998,
         classAOperations: 799_998,
         classBOperations: 7_999_998,
       },
@@ -188,7 +191,7 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
         classBOperations: 1,
       },
       currentNeonUsage: {
-        storageBytes: 499_999_998,
+        storageBytes: 949_999_998,
         computeMilliCuHours: 79_998,
       },
       plannedNeonUsagePerRefresh: {

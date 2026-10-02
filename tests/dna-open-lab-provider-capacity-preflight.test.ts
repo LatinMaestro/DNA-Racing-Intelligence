@@ -279,7 +279,7 @@ describe("DNA Open Lab provider capacity preflight", () => {
       measured: {
         ...measurement,
         currentNeonUsage: {
-          storageBytes: 499_999_999,
+          storageBytes: 949_999_999,
           computeMilliCuHours: 79_999,
         },
       },

@@ -161,7 +161,7 @@ describe("population entrant hydration read-only measurement", () => {
         providerCapacity: {
           ...capacity(),
           currentNeonUsage: {
-            storageBytes: 500_000_000,
+            storageBytes: 950_000_000,
             computeMilliCuHours: 1_000,
           },
         },

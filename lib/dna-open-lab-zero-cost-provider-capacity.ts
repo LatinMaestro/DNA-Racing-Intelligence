@@ -10,17 +10,17 @@ import {
 export const DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS = "Standard" as const;
 
 export const DNA_OPEN_LAB_NEON_FREE_ALLOWANCES = Object.freeze({
-  storageBytes: 536_870_912,
+  storageBytes: 1_000_000_000,
   computeMilliCuHours: 100_000,
 });
 
 /**
- * Recurring operation stops below Neon's published free allowances. The
- * storage margin protects migrations and indexes; the compute margin protects
- * interactive private-site reads and recovery work.
+ * Recurring operation stops at 95% of Neon's 1 GB/project Free storage
+ * allowance. The storage margin protects migrations and indexes; the compute
+ * margin protects interactive private-site reads and recovery work.
  */
 export const DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS = Object.freeze({
-  storageBytes: 500_000_000,
+  storageBytes: 950_000_000,
   computeMilliCuHours: 80_000,
 });
 
