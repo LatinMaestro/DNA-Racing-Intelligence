@@ -198,6 +198,45 @@ jobs:
                 expected_main_sha: payload.expected_main_sha,
               };
               break;
+            case "entrant-remediation-cohort-3-readiness":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-entrant-authority-remediation-cohort-3-readiness.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
+            case "entrant-remediation-cohort-3":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "cohort_observed_at",
+                "execute_private_preview_entrant_remediation_cohort_3",
+              ]);
+              if (
+                !exactTimestamp(payload.cohort_observed_at) ||
+                payload.execute_private_preview_entrant_remediation_cohort_3 !== true
+              ) {
+                throw new Error(
+                  "Remediation cohort 3 dispatch authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-population-entrant-authority-remediation-cohort-3-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                cohort_observed_at: payload.cohort_observed_at,
+                execute_private_preview_entrant_remediation_cohort_3: true,
+              };
+              break;
+            case "entrant-remediation-cohort-3-verify":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-entrant-authority-remediation-cohort-3-verification.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+              };
+              break;
             case "entrant-first-verify":
               exactKeys(["kind", "expected_main_sha"]);
               workflow =
