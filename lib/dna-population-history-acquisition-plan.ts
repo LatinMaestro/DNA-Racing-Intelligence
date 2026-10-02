@@ -21,8 +21,7 @@ export type DnaPopulationHistoryAcquisitionPlan = Readonly<{
     | "held_incomplete_race_authority"
     | "complete_population_enrichment";
   populationUniverseCompleteness:
-    | "complete_from_race_authority"
-    | "partial_due_to_unresolved_races";
+    "complete_from_race_authority" | "partial_due_to_unresolved_races";
   raceDocumentCount: number;
   raceCountByMode: Readonly<Record<RaceMode, number>>;
   raceWithoutEntrantAuthorityByMode: Readonly<Record<RaceMode, number>>;
