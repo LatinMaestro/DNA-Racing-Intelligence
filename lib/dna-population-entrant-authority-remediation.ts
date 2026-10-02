@@ -80,6 +80,28 @@ export type DnaPopulationEntrantAuthorityRemediationVerification = Readonly<{
   lastGoodBasePreserved: true;
 }>;
 
+export type DnaPopulationEntrantAuthorityRemediationContinuationReadiness =
+  Readonly<{
+    status: "ready_for_continuation";
+    exactCodeHeadSha: string;
+    completedCohortCount: 1;
+    nextCohortOrdinal: 2;
+    priorSelectedRaceCount: number;
+    priorReplacementRaceCount: number;
+    nextSelectedRaceCount: number;
+    quarantinedRaceCountBefore: number;
+    remainingUnscannedQuarantineCount: number;
+    capacityObservedAt: string;
+    aggregateRequestsPerMinute: typeof DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE;
+    providerRequestPerformed: false;
+    persistentWritePerformed: false;
+    providerWritePerformed: false;
+    publicationActivated: false;
+    previewOnly: true;
+    paidUsageAllowed: false;
+    lastGoodBasePreserved: true;
+  }>;
+
 export type DnaPopulationEntrantAuthorityRemediationReceipt = Readonly<{
   status: "committed_unpublished" | "existing_verified";
   exactCodeHeadSha: string;
@@ -520,7 +542,7 @@ const QUARANTINE_PRIORITY = Object.freeze({
   >
 >);
 
-function selectFirstCohort(
+function orderedQuarantines(
   records: readonly (
     | DnaPopulationEntrantAuthorityQuarantineRecord
     | DnaPopulationEntrantAuthorityResolvedRecord
@@ -539,7 +561,40 @@ function selectFirstCohort(
           : left.sourceRaceId > right.sourceRaceId
             ? 1
             : 0;
-      })
+      }),
+  );
+}
+
+function selectFirstCohort(
+  records: readonly (
+    | DnaPopulationEntrantAuthorityQuarantineRecord
+    | DnaPopulationEntrantAuthorityResolvedRecord
+  )[],
+): readonly DnaPopulationEntrantAuthorityQuarantineRecord[] {
+  return Object.freeze(
+    orderedQuarantines(records).slice(
+      0,
+      DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_RACES,
+    ),
+  );
+}
+
+function selectContinuationCohort(
+  records: readonly (
+    | DnaPopulationEntrantAuthorityQuarantineRecord
+    | DnaPopulationEntrantAuthorityResolvedRecord
+  )[],
+  priorSelectedRaceIds: readonly string[],
+): readonly DnaPopulationEntrantAuthorityQuarantineRecord[] {
+  const excluded = new Set(
+    priorSelectedRaceIds.map((raceId) => safeText(raceId, "sourceRaceId")),
+  );
+  if (excluded.size !== priorSelectedRaceIds.length) {
+    remediationError("manifest_conflict");
+  }
+  return Object.freeze(
+    orderedQuarantines(records)
+      .filter((record) => !excluded.has(record.sourceRaceId))
       .slice(0, DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_COHORT_RACES),
   );
 }
@@ -800,6 +855,7 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
     invocation: DnaPopulationEntrantAuthorityRemediationInvocation,
   ) => Promise<DnaPopulationEntrantAuthorityRemediationReceipt>;
   verify: () => Promise<DnaPopulationEntrantAuthorityRemediationVerification>;
+  inspectContinuationReadiness: () => Promise<DnaPopulationEntrantAuthorityRemediationContinuationReadiness>;
 }> {
   const ownerId = safeText(input.ownerId, "ownerId");
   const runtimeCodeHeadSha = exactHead(input.runtimeCodeHeadSha);
@@ -1057,6 +1113,109 @@ export function createDnaPopulationEntrantAuthorityRemediation(input: {
         raceDocumentReader: input.raceDocumentReader,
       });
       return verified.verification;
+    },
+
+    async inspectContinuationReadiness() {
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: runtimeCodeHeadSha,
+      });
+      const loaded = await loadBase({
+        ownerId,
+        exactCodeHeadSha: runtimeCodeHeadSha,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+      });
+      const first = await verifyManifest({
+        ownerId,
+        exactCodeHeadSha: runtimeCodeHeadSha,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+        manifestStore: input.manifestStore,
+        raceDocumentReader: input.raceDocumentReader,
+      });
+      const nextSelected = selectContinuationCohort(
+        loaded.base.records,
+        first.manifest.selectedRaceIds,
+      );
+      if (nextSelected.length < 1) {
+        remediationError("no_quarantine_available");
+      }
+
+      let capacity: Awaited<
+        ReturnType<
+          DnaPopulationEntrantAuthorityCapacityGate["assertFreshCurrentCapacity"]
+        >
+      >;
+      try {
+        capacity = await input.capacityGate.assertFreshCurrentCapacity(
+          loaded.audit.authority,
+          DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CAPACITY_RESERVATION_RACES,
+        );
+      } catch {
+        remediationError("capacity_unavailable");
+      }
+      validateCapacityApproval(capacity, loaded.audit.authority);
+
+      await assertCurrentMain({
+        mainGuard: input.mainGuard,
+        expectedHeadSha: runtimeCodeHeadSha,
+      });
+      const currentBase = await loadBase({
+        ownerId,
+        exactCodeHeadSha: runtimeCodeHeadSha,
+        authoritySource: input.authoritySource,
+        checkpointRepository: input.checkpointRepository,
+        r2Store: input.r2Store,
+      });
+      if (!sameBaseAuthority(loaded, currentBase)) {
+        remediationError("authority_drift");
+      }
+      const currentNextSelected = selectContinuationCohort(
+        currentBase.base.records,
+        first.manifest.selectedRaceIds,
+      );
+      if (
+        dnaOpenLabRawEvidenceCanonicalJson(currentNextSelected) !==
+        dnaOpenLabRawEvidenceCanonicalJson(nextSelected)
+      ) {
+        remediationError("authority_drift");
+      }
+
+      const remainingUnscannedQuarantineCount =
+        loaded.replay.quarantinedRaceCount -
+        first.manifest.selectedRaceIds.length -
+        nextSelected.length;
+      if (
+        !Number.isSafeInteger(remainingUnscannedQuarantineCount) ||
+        remainingUnscannedQuarantineCount < 0
+      ) {
+        remediationError("verification_failed");
+      }
+
+      return Object.freeze({
+        status: "ready_for_continuation" as const,
+        exactCodeHeadSha: runtimeCodeHeadSha,
+        completedCohortCount: 1 as const,
+        nextCohortOrdinal: 2 as const,
+        priorSelectedRaceCount: first.manifest.selectedRaceIds.length,
+        priorReplacementRaceCount: first.verification.replacementRaceCount,
+        nextSelectedRaceCount: nextSelected.length,
+        quarantinedRaceCountBefore: loaded.replay.quarantinedRaceCount,
+        remainingUnscannedQuarantineCount,
+        capacityObservedAt: capacity.observedAt,
+        aggregateRequestsPerMinute:
+          DNA_POPULATION_ENTRANT_AUTHORITY_AGGREGATE_REQUESTS_PER_MINUTE,
+        providerRequestPerformed: false as const,
+        persistentWritePerformed: false as const,
+        providerWritePerformed: false as const,
+        publicationActivated: false as const,
+        previewOnly: true as const,
+        paidUsageAllowed: false as const,
+        lastGoodBasePreserved: true as const,
+      });
     },
   });
 }

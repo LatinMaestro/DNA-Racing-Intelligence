@@ -348,6 +348,41 @@ describe("population entrant authority bounded remediation", () => {
     expect(test.raceDocumentReader.read).toHaveBeenCalledTimes(40);
   });
 
+  it("proves the next remediation cohort read-only without rescanning the first cohort", async () => {
+    const test = harness();
+
+    await test.remediation.execute(invocation);
+    const providerCallsBefore = test.providerCalls.length;
+    const writesBefore = vi.mocked(test.storage.storage.putObjectIfAbsent).mock
+      .calls.length;
+
+    await expect(
+      test.remediation.inspectContinuationReadiness(),
+    ).resolves.toMatchObject({
+      status: "ready_for_continuation",
+      exactCodeHeadSha: HEAD,
+      completedCohortCount: 1,
+      nextCohortOrdinal: 2,
+      priorSelectedRaceCount: 20,
+      priorReplacementRaceCount: 20,
+      nextSelectedRaceCount: 5,
+      quarantinedRaceCountBefore: 25,
+      remainingUnscannedQuarantineCount: 0,
+      aggregateRequestsPerMinute: 30,
+      providerRequestPerformed: false,
+      persistentWritePerformed: false,
+      providerWritePerformed: false,
+      publicationActivated: false,
+      previewOnly: true,
+      paidUsageAllowed: false,
+      lastGoodBasePreserved: true,
+    });
+    expect(test.providerCalls).toHaveLength(providerCallsBefore);
+    expect(
+      vi.mocked(test.storage.storage.putObjectIfAbsent).mock.calls,
+    ).toHaveLength(writesBefore);
+  });
+
   it("replays an existing first cohort without another DNA request or write", async () => {
     const test = harness();
 
