@@ -605,7 +605,9 @@ describe("population entrant authority bounded remediation", () => {
     const writesBeforeReadiness = vi.mocked(
       test.storage.storage.putObjectIfAbsent,
     ).mock.calls.length;
-    await expect(test.remediation.inspectCohort3Readiness()).resolves.toMatchObject({
+    await expect(
+      test.remediation.inspectCohort3Readiness(),
+    ).resolves.toMatchObject({
       status: "ready_for_cohort_3",
       exactCodeHeadSha: HEAD,
       completedCohortCount: 2,
