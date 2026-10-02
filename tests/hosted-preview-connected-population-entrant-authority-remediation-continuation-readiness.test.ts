@@ -6,8 +6,7 @@ import { DnaPopulationEntrantAuthorityRemediationError } from "@/lib/dna-populat
 
 const connected =
   process.env
-    .DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_READINESS ===
-  "1";
+    .DNA_POPULATION_ENTRANT_AUTHORITY_REMEDIATION_CONTINUATION_READINESS === "1";
 const describeConnected = connected ? describe : describe.skip;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const RUNTIME_ROLE = "dna_app_runtime";
@@ -132,9 +131,9 @@ describeConnected(
           );
           expect(receipt.nextSelectedRaceCount).toBeGreaterThan(0);
           expect(receipt.nextSelectedRaceCount).toBeLessThanOrEqual(20);
-          expect(receipt.remainingUnscannedQuarantineCount).toBeGreaterThanOrEqual(
-            0,
-          );
+          expect(
+            receipt.remainingUnscannedQuarantineCount,
+          ).toBeGreaterThanOrEqual(0);
           expect(new Date(receipt.capacityObservedAt).toISOString()).toBe(
             receipt.capacityObservedAt,
           );
