@@ -29,7 +29,16 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - run: npm run format
+      - name: Show exact Prettier planner diff
+        shell: bash
+        run: |
+          npx prettier --write \
+            lib/dna-population-history-acquisition-plan.ts \
+            tests/hosted-preview-connected-population-core-history-readiness.test.ts
+          git diff -- \
+            lib/dna-population-history-acquisition-plan.ts \
+            tests/hosted-preview-connected-population-core-history-readiness.test.ts
+          exit 1
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
