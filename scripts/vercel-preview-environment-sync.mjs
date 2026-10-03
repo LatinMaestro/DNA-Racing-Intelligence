@@ -58,6 +58,40 @@ export function previewEnvironmentSpecification(environment) {
   }
 
   const databaseOwnerId = requiredValue(environment, "DNA_DATABASE_OWNER_ID");
+  const cloudflareAccountId = requiredValue(
+    environment,
+    "CLOUDFLARE_ACCOUNT_ID",
+  );
+  if (!/^[a-f0-9]{32}$/u.test(cloudflareAccountId)) {
+    throw new Error("CLOUDFLARE_ACCOUNT_ID is invalid");
+  }
+  const cloudflareApiToken = requiredValue(environment, "CLOUDFLARE_API_TOKEN");
+  const r2AccessKeyId = requiredValue(environment, "DNA_R2_ACCESS_KEY_ID");
+  const r2SecretAccessKey = requiredValue(
+    environment,
+    "DNA_R2_SECRET_ACCESS_KEY",
+  );
+  const boundedConfiguration = [
+    ["DNA_R2_BUCKET_NAME", "dna-racing-import-preview"],
+    ["DNA_IMPORT_QUEUE_ID", "df7408e1d697475db4dbcdda1aa3e247"],
+    ["DNA_IMPORT_QUEUE_NAME", "dna-racing-import-preview"],
+    ["DNA_IMPORT_DEAD_LETTER_QUEUE_NAME", "dna-racing-import-preview-dlq"],
+    ["DNA_IMPORT_LIMIT_R2_STORAGE_BYTES", "9500000000"],
+    ["DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS", "800000"],
+    ["DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS", "8000000"],
+    ["DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES", "950000000"],
+    ["DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES", "1"],
+    ["DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS", "0"],
+    ["DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS", "300000"],
+  ].map(([name, expected]) => {
+    const value = requiredValue(environment, name);
+    if (value !== expected) {
+      throw new Error(
+        `${name} does not match the commissioned Preview boundary`,
+      );
+    }
+    return { name, value };
+  });
   const previewAccess = requiredValue(environment, "ENABLE_PHASE0_REVIEW");
   if (previewAccess !== "true") {
     throw new Error(
@@ -81,6 +115,31 @@ export function previewEnvironmentSpecification(environment) {
       value: databaseOwnerId,
       visibility: "secret",
     },
+    {
+      name: "CLOUDFLARE_API_TOKEN",
+      value: cloudflareApiToken,
+      visibility: "secret",
+    },
+    {
+      name: "DNA_R2_ACCESS_KEY_ID",
+      value: r2AccessKeyId,
+      visibility: "secret",
+    },
+    {
+      name: "DNA_R2_SECRET_ACCESS_KEY",
+      value: r2SecretAccessKey,
+      visibility: "secret",
+    },
+    {
+      name: "CLOUDFLARE_ACCOUNT_ID",
+      value: cloudflareAccountId,
+      visibility: "config",
+    },
+    ...boundedConfiguration.map(({ name, value }) => ({
+      name,
+      value,
+      visibility: "config",
+    })),
     {
       name: "DNA_DATABASE_RUNTIME_ROLE",
       value: runtimeRole,

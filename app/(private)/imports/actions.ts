@@ -25,6 +25,10 @@ import {
 import { type ImportUploadCandidate } from "@/lib/import-upload-intake-service";
 
 const UPLOAD_TARGET_LIFETIME_MILLISECONDS = 15 * 60 * 1000;
+const RACE_MERGE_SOURCE_EVIDENCE_PREFIX = "race-merge-outcome-source-v1";
+const RACE_MERGE_SOURCE_EVIDENCE_FILE_COUNT = 8;
+const RACE_MERGE_SOURCE_EVIDENCE_MAXIMUM_FILE_BYTES = 100_000_000;
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 
 function ownerActionDependencies(): ImportOwnerActionDependencies {
   const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID;
@@ -182,6 +186,45 @@ export async function beginImportUploadAction(
   }>,
 ) {
   return beginOwnerImportUpload(input, ownerActionDependencies());
+}
+
+export async function beginRaceMergeOutcomeSourceUploadAction(
+  input: Readonly<{
+    ordinal: number;
+    originalFileName: string;
+    byteLength: number;
+    sha256: string;
+  }>,
+) {
+  if (
+    !Number.isSafeInteger(input.ordinal) ||
+    input.ordinal < 1 ||
+    input.ordinal > RACE_MERGE_SOURCE_EVIDENCE_FILE_COUNT ||
+    !Number.isSafeInteger(input.byteLength) ||
+    input.byteLength < 1 ||
+    input.byteLength > RACE_MERGE_SOURCE_EVIDENCE_MAXIMUM_FILE_BYTES ||
+    !SHA_256_PATTERN.test(input.sha256)
+  ) {
+    throw new Error("Race Merge source evidence metadata is invalid.");
+  }
+  const ordinal = String(input.ordinal).padStart(2, "0");
+  const identity = `${RACE_MERGE_SOURCE_EVIDENCE_PREFIX}-${ordinal}-${input.sha256.slice(0, 16)}`;
+  return beginOwnerImportUpload(
+    {
+      idempotencyKey: `${RACE_MERGE_SOURCE_EVIDENCE_PREFIX}-${ordinal}-${input.sha256.slice(0, 32)}`,
+      files: [
+        {
+          clientFileId: identity,
+          sourceFamily: "race_merge",
+          originalFileName: input.originalFileName,
+          contentType: "text/csv",
+          byteLength: input.byteLength,
+          sha256: input.sha256,
+        },
+      ],
+    },
+    ownerActionDependencies(),
+  );
 }
 
 export async function completeImportUploadAction(
