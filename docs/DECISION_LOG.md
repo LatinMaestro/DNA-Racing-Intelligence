@@ -2819,3 +2819,18 @@ After the private Pro League milestone, continue in this order:
   preflight blocked solely by Neon storage may run this storage-negative relief
   operation. R2, compute, measurement and billing guards remain fail-closed;
   paid use remains disabled and Production is unchanged.
+
+## 2026-10-03 — Bind the first population Core-history slice to readiness
+
+- Reconstruct the exact deterministic Core slice used by the read-only
+  population measurement so a later persistent command cannot substitute the
+  owner-serving Core set or select a fresh population after readiness.
+- Permit first-cohort authority only for one completely measured Core whose
+  acquisition, selected-set and measurement-slice identities still match the
+  current quarantine-tolerant population plan. Plan drift, incomplete
+  measurement, more than 30 aggregate requests/minute, or any write/paid-use
+  signal fails closed.
+- Keep this boundary pure and non-executing. It returns no provider or
+  persistent-write permission, requires a fresh capacity preflight, preserves
+  partial-universe disclosure for quarantined Races, and changes neither
+  Preview nor Production data.
