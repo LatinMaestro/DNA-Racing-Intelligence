@@ -29,25 +29,7 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - name: TEMP print exact Prettier output for Race Merge files
-        shell: bash
-        run: |
-          files=(
-            "app/api/internal/race-merge-source-target/route.ts"
-            "lib/race-merge-source-evidence-bridge.ts"
-            "proxy.ts"
-            "tests/hosted-preview-connected-race-merge-core-outcome-first-cohort.test.ts"
-            "tests/proxy-access.test.ts"
-            "tests/race-merge-source-evidence-bridge.test.ts"
-          )
-          npx prettier --write "${files[@]}"
-          for file in "${files[@]}"; do
-            echo "PRETTIER_FILE_BEGIN:${file}"
-            base64 -w 0 "${file}"
-            echo
-            echo "PRETTIER_FILE_END:${file}"
-          done
-          exit 1
+      - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
