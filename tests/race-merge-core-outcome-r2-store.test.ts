@@ -40,7 +40,7 @@ async function collect(body: AsyncIterable<Uint8Array>): Promise<Uint8Array> {
   return output;
 }
 
-function storage(existing = false) {
+function storage(existing = false, privateBucket = true) {
   const objects = new Map<
     string,
     {
@@ -53,7 +53,7 @@ function storage(existing = false) {
 
   const value: RaceMergeCoreOutcomeR2StoragePort = {
     readBucketPrivacy: vi.fn(async () => ({
-      publicAccessDisabled: true,
+      publicAccessDisabled: privateBucket,
       r2DevDisabled: true,
       customDomainCount: 0,
     })),
@@ -210,12 +210,7 @@ describe("Race Merge Core outcome R2 store", () => {
   });
 
   it("fails closed when the bucket is not private", async () => {
-    const target = storage();
-    target.value.readBucketPrivacy = vi.fn(async () => ({
-      publicAccessDisabled: false,
-      r2DevDisabled: true,
-      customDomainCount: 0,
-    }));
+    const target = storage(false, false);
     const store = createRaceMergeCoreOutcomeR2Store({
       ownerId: "private-owner",
       bucketName: "private-preview",
