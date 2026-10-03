@@ -37,6 +37,8 @@ describe("DNA owner dispatch relay workflow", () => {
       "dna-open-lab-daily-refresh-provider-preflight.yml",
     );
     expect(workflow).toContain('"provider-capacity-preflight"');
+    expect(workflow).toContain("dna-open-lab-r2-budget-ledger-diagnostic.yml");
+    expect(workflow).toContain('"r2-budget-ledger-diagnostic"');
     expect(workflow).toContain(
       "dna-population-entrant-authority-readiness.yml",
     );
