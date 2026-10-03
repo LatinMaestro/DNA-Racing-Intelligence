@@ -16,7 +16,9 @@ describe("expired R2 budget recovery workflows", () => {
     expect(workflow).toContain("apply_private_preview_migration:");
     expect(workflow).toContain("environment: preview");
     expect(workflow).toContain("git rev-parse origin/main");
-    expect(workflow).toContain("0120_dna_open_lab_r2_expired_budget_recovery.up.sql");
+    expect(workflow).toContain(
+      "0120_dna_open_lab_r2_expired_budget_recovery.up.sql",
+    );
     expect(workflow).toContain(
       "0120_dna_open_lab_r2_expired_budget_recovery.smoke.sql",
     );
