@@ -70,6 +70,9 @@ export function RaceMergeSourceEvidenceUploader() {
           throw new Error("Private source reservation is unavailable.");
         }
         const target = reservation.targets[0];
+        if (target === undefined) {
+          throw new Error("Private source upload target disappeared.");
+        }
         setStatus(
           `Uploading source file ${index + 1} of ${EXPECTED_FILE_COUNT}…`,
         );
