@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest, type NextFetchEvent } from "next/server";
-import { proxy, resolveProxyOwnerAccess, resolveRaceMergeSourceBridgeAccess } from "../proxy";
+import {
+  proxy,
+  resolveProxyOwnerAccess,
+  resolveRaceMergeSourceBridgeAccess,
+} from "../proxy";
 
 const originalEnvironment = {
   vercelEnv: process.env.VERCEL_ENV,
@@ -43,7 +47,9 @@ const event = {
 } as unknown as NextFetchEvent;
 
 describe("deployment and Clerk proxy composition", () => {
-  it("preserves the Production 404 before Clerk configuration is evaluated", async () => {
+  it(
+    "preserves the Production 404 before Clerk configuration is evaluated",
+    async () => {
     process.env.VERCEL_ENV = "production";
     delete process.env.ALLOW_PRODUCTION_DEPLOYMENT;
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_partial";
@@ -52,8 +58,9 @@ describe("deployment and Clerk proxy composition", () => {
     const response = await proxy(request, event);
 
     expect(response?.status).toBe(404);
-    expect(response?.headers.get("X-Robots-Tag")).toContain("noindex");
-  });
+      expect(response?.headers.get("X-Robots-Tag")).toContain("noindex");
+    },
+  );
 
   it("denies an otherwise allowed request while Clerk is unconfigured", async () => {
     delete process.env.VERCEL_ENV;
