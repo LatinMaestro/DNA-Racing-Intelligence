@@ -125,6 +125,7 @@ jobs:
       - name: Prove exact expired reservation state
         shell: bash
         run: |
+          set -euo pipefail
           psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
             --set owner_id="${DNA_DATABASE_OWNER_ID}" \
             --set expected_end="${EXPECTED_LEDGER_WINDOW_END_AT}" \
@@ -146,14 +147,18 @@ jobs:
           \gset
           \if :exact_expired_state
           \else
-            \echo 'Expired R2 budget recovery state drifted.'
-            \quit 3
+            DO $state$
+            BEGIN
+              RAISE EXCEPTION 'expired R2 budget recovery state drifted';
+            END
+            $state$;
           \endif
           ROLLBACK;
           SQL
       - name: Account full reserved upper bound and close expired window
         shell: bash
         run: |
+          set -euo pipefail
           psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
             --set owner_id="${DNA_DATABASE_OWNER_ID}" \
             --set expected_storage="${EXPECTED_RESERVED_STORAGE_BYTES}" \
@@ -176,16 +181,22 @@ jobs:
           \gset
           \if :recovery_matches
           \else
-            \echo 'Expired R2 budget recovery receipt drifted.'
-            \quit 4
+            DO $receipt$
+            BEGIN
+              RAISE EXCEPTION 'expired R2 budget recovery receipt drifted';
+            END
+            $receipt$;
           \endif
           SELECT count(*) = 0 AS old_window_closed
           FROM dna.read_dna_open_lab_r2_budget_window(:'owner_id'::uuid)
           \gset
           \if :old_window_closed
           \else
-            \echo 'Expired R2 budget window remained open.'
-            \quit 5
+            DO $window$
+            BEGIN
+              RAISE EXCEPTION 'expired R2 budget window remained open';
+            END
+            $window$;
           \endif
           COMMIT;
           SQL

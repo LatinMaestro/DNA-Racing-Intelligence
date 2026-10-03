@@ -47,7 +47,10 @@ describe("expired R2 budget recovery workflows", () => {
       "dna.reconcile_expired_dna_open_lab_r2_budget_window",
     );
     expect(workflow).toContain("reconciled_reservation_count > 0");
-    expect(workflow).toContain("count(*) = 0 AS old_window_closed");
+    expect(workflow).toContain("RAISE EXCEPTION");
+    expect(workflow).toContain("expired R2 budget recovery state drifted");
+    expect(workflow).toContain("expired R2 budget recovery receipt drifted");
+    expect(workflow).not.toContain("\\quit");
     expect(workflow).toContain("BEGIN ISOLATION LEVEL SERIALIZABLE");
     expect(workflow).toContain("git rev-parse origin/main");
     expect(workflow).not.toContain("CLOUDFLARE_API_TOKEN");
