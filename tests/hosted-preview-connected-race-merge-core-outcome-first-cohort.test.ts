@@ -48,12 +48,16 @@ function positiveInteger(value: unknown): number {
   return parsed as number;
 }
 
-async function sourceReferences(): Promise<readonly RaceMergeOutcomeImportReference[]> {
+async function sourceReferences(): Promise<
+  readonly RaceMergeOutcomeImportReference[]
+> {
   const databaseUrl = required("DATABASE_URL");
   const databaseOwnerId = required("DNA_DATABASE_OWNER_ID");
   const session = await createDefaultNeonImportPersistenceSession(databaseUrl);
   try {
-    await session.client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    await session.client.query(
+      "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    );
     await session.client.query("SELECT set_config('app.owner_id',$1,true)", [
       databaseOwnerId,
     ]);
@@ -85,7 +89,9 @@ async function sourceReferences(): Promise<readonly RaceMergeOutcomeImportRefere
       [databaseOwnerId],
     );
     if (result.rows.length !== 8) {
-      throw new Error("Accepted Race Merge source reservation set is incomplete");
+      throw new Error(
+        "Accepted Race Merge source reservation set is incomplete",
+      );
     }
     const observedOrdinals = new Set<number>();
     let totalBytes = 0;
@@ -105,7 +111,9 @@ async function sourceReferences(): Promise<readonly RaceMergeOutcomeImportRefere
         !SHA_256_PATTERN.test(expectedSha256) ||
         expectedByteLength > 100_000_000
       ) {
-        throw new Error("Accepted Race Merge source reservation authority drifted");
+        throw new Error(
+          "Accepted Race Merge source reservation authority drifted",
+        );
       }
       observedOrdinals.add(ordinal);
       totalBytes += expectedByteLength;
