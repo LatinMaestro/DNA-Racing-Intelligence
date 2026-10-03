@@ -89,8 +89,7 @@ function parsePayload(input: {
   }
   const value = parsed as Record<string, unknown>;
   if (
-    Object.keys(value).sort().join(",") !==
-    "byteLength,head,ordinal,sha256"
+    Object.keys(value).sort().join(",") !== "byteLength,head,ordinal,sha256"
   ) {
     bridgeError("payload shape is invalid");
   }
@@ -119,14 +118,16 @@ function parsePayload(input: {
   });
 }
 
-export async function createRaceMergeSourceEvidenceUploadTarget(input: Readonly<{
-  encryptedPayload: string;
-  bridgeNonce: string;
-  exactDeploymentSha: string;
-  ownerId: string;
-  now: Date;
-  capabilities: ImportUploadIntakeCapabilities;
-}>): Promise<RaceMergeSourceEvidenceBridgeResult> {
+export async function createRaceMergeSourceEvidenceUploadTarget(
+  input: Readonly<{
+    encryptedPayload: string;
+    bridgeNonce: string;
+    exactDeploymentSha: string;
+    ownerId: string;
+    now: Date;
+    capabilities: ImportUploadIntakeCapabilities;
+  }>,
+): Promise<RaceMergeSourceEvidenceBridgeResult> {
   const ownerId = input.ownerId.trim();
   if (ownerId.length < 1 || ownerId.length > 512) {
     bridgeError("owner authority is invalid");
