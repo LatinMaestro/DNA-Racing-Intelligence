@@ -1,0 +1,10 @@
+BEGIN;
+DROP FUNCTION IF EXISTS dna.read_race_merge_core_outcome_r2_manifests(uuid,text,integer,bigint,integer);
+DROP FUNCTION IF EXISTS dna.finalize_race_merge_core_outcome_r2_generation(uuid,text,integer,text,timestamptz);
+DROP FUNCTION IF EXISTS dna.register_race_merge_core_outcome_r2_manifest(uuid,text,integer,jsonb,timestamptz);
+DROP FUNCTION IF EXISTS dna.begin_race_merge_core_outcome_r2_generation(uuid,jsonb,timestamptz);
+DROP TRIGGER IF EXISTS immutable_race_merge_core_outcome_r2_manifest ON dna.race_merge_core_outcome_r2_manifest;
+DROP FUNCTION IF EXISTS dna.reject_race_merge_core_outcome_r2_manifest_mutation();
+DROP TABLE IF EXISTS dna.race_merge_core_outcome_r2_manifest;
+DROP TABLE IF EXISTS dna.race_merge_core_outcome_r2_generation;
+COMMIT;
