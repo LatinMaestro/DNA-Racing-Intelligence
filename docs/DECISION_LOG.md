@@ -2834,3 +2834,17 @@ After the private Pro League milestone, continue in this order:
   persistent-write permission, requires a fresh capacity preflight, preserves
   partial-universe disclosure for quarantined Races, and changes neither
   Preview nor Production data.
+
+## 2026-10-03 — Separate first-cohort collection from publication
+
+- Execute the authorized population Core-history proof, when separately armed,
+  as one exact-main, single-Core acquisition cycle linked to the existing
+  complete history lineage. Stop at collection completion; do not reuse the
+  owner-serving command path that can also publish a generation.
+- Bind the command to every readiness digest, require a fresh A$0 provider
+  capacity receipt before collection, retain the 30 aggregate request/minute
+  Core-history limit and recheck receipt expiry before every step.
+- Verify the stored lineage independently: the predecessor union must match the
+  readiness authority, the delta must contain only the selected Core, and the
+  before/after counts and digests must be reproducible. Duplicate population
+  coverage, publication, paid use or last-good drift fails closed.

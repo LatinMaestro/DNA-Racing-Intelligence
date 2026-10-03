@@ -76,6 +76,17 @@ function coreSetSha256(label: string, coreIds: readonly number[]): string {
   return sha256(["dna_open_lab", "population_history", label, ...coreIds]);
 }
 
+export function dnaPopulationPersistedCoreSetSha256(
+  coreIds: readonly number[],
+): string | null {
+  const normalized = [
+    ...normalizedCoreIds(coreIds, "persisted performance"),
+  ].sort((left, right) => left - right);
+  return normalized.length === 0
+    ? null
+    : coreSetSha256("persisted", normalized);
+}
+
 function modeCounts(): Record<RaceMode, number> {
   return { bike: 0, car: 0, horse: 0 };
 }
@@ -265,10 +276,9 @@ export function planDnaPopulationHistoryAcquisition(input: {
       populationIds.length === 0
         ? null
         : coreSetSha256("population", populationIds),
-    persistedPerformanceCoreSetSha256:
-      persistedPopulationIds.length === 0
-        ? null
-        : coreSetSha256("persisted", persistedPopulationIds),
+    persistedPerformanceCoreSetSha256: dnaPopulationPersistedCoreSetSha256(
+      persistedPopulationIds,
+    ),
     missingPerformanceCoreSetSha256:
       missingPerformanceCoreIds.length === 0
         ? null

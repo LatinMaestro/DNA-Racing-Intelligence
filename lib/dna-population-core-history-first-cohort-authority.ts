@@ -18,6 +18,8 @@ export type DnaPopulationCoreHistoryFirstCohortAuthority = Readonly<{
   cohortOrdinal: 0;
   cohortOffset: 0;
   coreIds: readonly [number];
+  populationCoreCount: number;
+  persistedPerformanceCoreCount: number;
   populationCoreSetSha256: string;
   persistedPerformanceCoreSetSha256: string;
   acquisitionCoreSetSha256: string;
@@ -107,6 +109,8 @@ export function createDnaPopulationCoreHistoryFirstCohortAuthority(input: {
     cohortOrdinal: 0 as const,
     cohortOffset: 0 as const,
     coreIds: Object.freeze([coreId]) as readonly [number],
+    populationCoreCount: input.plan.populationCoreCount,
+    persistedPerformanceCoreCount: input.plan.persistedPerformanceCoreCount,
     populationCoreSetSha256: input.plan.populationCoreSetSha256,
     persistedPerformanceCoreSetSha256:
       input.plan.persistedPerformanceCoreSetSha256,
