@@ -117,6 +117,22 @@ function timestamp(value: string, field: string): string {
   return parsed.toISOString();
 }
 
+function durableBudgetWindowId(input: {
+  ownerId: string;
+  startAt: string;
+  endAt: string;
+}): string {
+  const startAt = timestamp(input.startAt, "R2 billing window start");
+  const endAt = timestamp(input.endAt, "R2 billing window end");
+  if (Date.parse(startAt) >= Date.parse(endAt)) {
+    commandError("R2 billing window is invalid");
+  }
+  return dnaOpenLabRawEvidenceSha256({
+    domain: "dna-open-lab-r2-budget-window/v1",
+    value: Object.freeze({ ownerId: input.ownerId, startAt, endAt }),
+  });
+}
+
 function addUsage(
   left: Readonly<{
     storageBytes: number;
@@ -302,8 +318,8 @@ export function createDnaPopulationCoreHistoryFirstCohortCommand(input: {
         measurementSliceSha256: input.authority.measurementSliceSha256,
         evaluatedAt,
       });
-      const budgetWindowId = dnaOpenLabRawEvidenceSha256({
-        domain: "population-core-history-first-cohort-command-budget/v1",
+      const capacityProbeBudgetWindowId = dnaOpenLabRawEvidenceSha256({
+        domain: "population-core-history-first-cohort-command-budget-probe/v1",
         refreshCycleId,
       });
       const plannedR2Usage = addUsage(
@@ -314,18 +330,39 @@ export function createDnaPopulationCoreHistoryFirstCohortCommand(input: {
           classBOperations: 7,
         }),
       );
-      const capacity = await input.capacityPreflight.inspect({
-        preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
-        intent: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
-        authenticatedOwnerId: ownerId,
-        exactCodeHeadSha: input.authority.exactCodeHeadSha,
-        refreshCycleId,
-        budgetWindowId,
-        projectionHorizon: "single_refresh",
-        plannedR2UsagePerRefresh: plannedR2Usage,
-        plannedNeonUsagePerRefresh:
-          DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
+      const inspectCapacity = (budgetWindowId: string) =>
+        input.capacityPreflight.inspect({
+          preflightVersion: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_VERSION,
+          intent: DNA_OPEN_LAB_PROVIDER_CAPACITY_PREFLIGHT_INTENT,
+          authenticatedOwnerId: ownerId,
+          exactCodeHeadSha: input.authority.exactCodeHeadSha,
+          refreshCycleId,
+          budgetWindowId,
+          projectionHorizon: "single_refresh",
+          plannedR2UsagePerRefresh: plannedR2Usage,
+          plannedNeonUsagePerRefresh:
+            DNA_OPEN_LAB_PRIVATE_DAILY_REFRESH_PLANNED_NEON_USAGE,
+        });
+      const capacityProbe = await inspectCapacity(capacityProbeBudgetWindowId);
+      if (capacityProbe.status !== "ready") {
+        return heldReceipt({
+          authority: input.authority,
+          evaluatedAt,
+          refreshCycleId,
+          budgetWindowId: capacityProbeBudgetWindowId,
+          terminalKind: `provider_capacity_held:${capacityProbe.reason}`,
+          stepCount: 0,
+        });
+      }
+      const budgetWindowId = durableBudgetWindowId({
+        ownerId,
+        startAt: capacityProbe.projection.billingWindowStartAt,
+        endAt: capacityProbe.projection.billingWindowEndAt,
       });
+      const capacity =
+        budgetWindowId === capacityProbeBudgetWindowId
+          ? capacityProbe
+          : await inspectCapacity(budgetWindowId);
       if (capacity.status !== "ready") {
         return heldReceipt({
           authority: input.authority,
@@ -340,6 +377,11 @@ export function createDnaPopulationCoreHistoryFirstCohortCommand(input: {
         capacity.exactCodeHeadSha !== input.authority.exactCodeHeadSha ||
         capacity.refreshCycleId !== refreshCycleId ||
         capacity.budgetWindowId !== budgetWindowId ||
+        durableBudgetWindowId({
+          ownerId,
+          startAt: capacity.projection.billingWindowStartAt,
+          endAt: capacity.projection.billingWindowEndAt,
+        }) !== budgetWindowId ||
         capacity.readyForRefresh !== true ||
         capacity.persistentWritePerformed !== false ||
         capacity.providerWritePerformed !== false ||
