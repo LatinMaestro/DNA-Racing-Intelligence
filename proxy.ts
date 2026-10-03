@@ -10,7 +10,10 @@ import {
 } from "@/lib/clerk-owner-session";
 import { resolveDeploymentAccess } from "@/lib/deployment-access";
 
-type ProxyOwnerAccessDecision = "allowed" | "sign_in_required" | "not_found";
+type ProxyOwnerAccessDecision =
+  | "allowed"
+  | "sign_in_required"
+  | "not_found";
 type BridgeAccessDecision = "not_bridge" | "allowed" | "not_found";
 const RACE_MERGE_SOURCE_BRIDGE_PATH =
   "/api/internal/race-merge-source-target";
