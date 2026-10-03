@@ -39,6 +39,30 @@ export type RaceMergeCoreOutcomeR2Write = Readonly<{
   storageStatus: "created" | "existing";
 }>;
 
+export type RaceMergeCoreOutcomeR2PreparedWrite = Readonly<{
+  receipt: RaceMergeCoreOutcomeR2Receipt;
+  body: Uint8Array;
+}>;
+
+export type RaceMergeCoreOutcomeR2Store = Readonly<{
+  prepare: (request: {
+    generationId: string;
+    sourceCoreId: number;
+    observations: readonly RaceMergeOutcomeEvidenceRow[];
+  }) => RaceMergeCoreOutcomeR2PreparedWrite;
+  commit: (
+    prepared: RaceMergeCoreOutcomeR2PreparedWrite,
+  ) => Promise<RaceMergeCoreOutcomeR2Write>;
+  write: (request: {
+    generationId: string;
+    sourceCoreId: number;
+    observations: readonly RaceMergeOutcomeEvidenceRow[];
+  }) => Promise<RaceMergeCoreOutcomeR2Write>;
+  read: (
+    receipt: RaceMergeCoreOutcomeR2Receipt,
+  ) => Promise<readonly DnaCompactCoreOutcomeEvidence[]>;
+}>;
+
 type Provenance = Readonly<{
   sourceObjectSha256: string;
   sourceRowNumber: number;
@@ -74,8 +98,8 @@ function canonicalJson(value: unknown): string {
     .join(",")}}`;
 }
 
-function sha256(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
+function sha256(value: string | Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function safeText(value: unknown, field: string, maximum: number): string {
@@ -412,16 +436,7 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
   ownerId: string;
   bucketName: string;
   storage: RaceMergeCoreOutcomeR2StoragePort;
-}): Readonly<{
-  write: (request: {
-    generationId: string;
-    sourceCoreId: number;
-    observations: readonly RaceMergeOutcomeEvidenceRow[];
-  }) => Promise<RaceMergeCoreOutcomeR2Write>;
-  read: (
-    receipt: RaceMergeCoreOutcomeR2Receipt,
-  ) => Promise<readonly DnaCompactCoreOutcomeEvidence[]>;
-}> {
+}): RaceMergeCoreOutcomeR2Store {
   const ownerId = safeText(input.ownerId, "ownerId", 512);
   const bucketName = safeText(input.bucketName, "bucketName", 255);
   const prefix = ownerPrefix(ownerId);
@@ -434,8 +449,8 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
     await privacy;
   }
 
-  return Object.freeze({
-    async write(request) {
+  const store: RaceMergeCoreOutcomeR2Store = {
+    prepare(request) {
       const generation = generationId(request.generationId);
       const sourceCoreId = positiveInteger(
         request.sourceCoreId,
@@ -470,12 +485,28 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         firstSourceRaceId: prepared.outcomes[0]!.sourceRaceId,
         lastSourceRaceId: prepared.outcomes.at(-1)!.sourceRaceId,
       });
+      return Object.freeze({
+        receipt,
+        body: prepared.body,
+      });
+    },
+
+    async commit(preparedInput) {
+      const receipt = validateReceipt(preparedInput.receipt);
+      if (
+        !(preparedInput.body instanceof Uint8Array) ||
+        preparedInput.body.byteLength !== receipt.byteLength ||
+        sha256(preparedInput.body) !== receipt.bodySha256 ||
+        receipt.objectKey !== expectedObjectKey(prefix, receipt)
+      ) {
+        fail("prepared Core outcome object conflicts with its receipt");
+      }
       const metadata = exactMetadata(receipt);
       await privateStorage();
       const stored = await input.storage.putObjectIfAbsent({
         bucketName,
         key: receipt.objectKey,
-        body: oneChunk(prepared.body),
+        body: oneChunk(preparedInput.body),
         contentType: CONTENT_TYPE,
         byteLength: receipt.byteLength,
         checksumSha256: receipt.bodySha256,
@@ -497,6 +528,10 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         fail("stored Core outcome object conflicts with its receipt");
       }
       return Object.freeze({ receipt, storageStatus: stored.status });
+    },
+
+    async write(request) {
+      return store.commit(store.prepare(request));
     },
 
     async read(receiptInput) {
@@ -644,5 +679,6 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
       }
       return Object.freeze(outcomes);
     },
-  });
+  };
+  return Object.freeze(store);
 }
