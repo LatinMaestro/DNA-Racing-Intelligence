@@ -1,0 +1,143 @@
+name: DNA population Core-history first-cohort command
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to collect
+        required: true
+        type: string
+      cohort_observed_at:
+        description: Canonical UTC observation timestamp for this one cohort
+        required: true
+        type: string
+      execute_first_private_preview_population_core_history:
+        description: Confirm exactly one persistent private Preview population Core-history cohort
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-core-history-first-cohort-persistence
+  cancel-in-progress: false
+
+jobs:
+  exact-main-first-private-preview-cohort:
+    name: Exact-main first private Preview population Core-history cohort
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: preview
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_POPULATION_CORE_HISTORY_EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_COMMAND: "1"
+      DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_OBSERVED_AT: ${{ inputs.cohort_observed_at }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main and explicit singleton write arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Population Core-history collection may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_first_private_preview_population_core_history }}" != "true" ]]; then
+            echo "The first private Preview population Core-history cohort was not explicitly armed."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+            echo "The expected main commit does not match the dispatched commit."
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          const value = process.env.DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_OBSERVED_AT;
+          const parsed = new Date(value ?? "");
+          if (
+            !value ||
+            Number.isNaN(parsed.getTime()) ||
+            parsed.toISOString() !== value ||
+            parsed.getTime() > Date.now()
+          ) {
+            throw new Error("The cohort observation time must be a canonical past UTC timestamp.");
+          }
+          NODE
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The population Core-history command head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private Preview configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_POPULATION_CORE_HISTORY_EXPECTED_MAIN_SHA",
+            "DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_OBSERVED_AT",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid private settings: " + invalid.join(", "));
+          }
+          if (process.env.DNA_R2_STORAGE_CLASS !== "Standard") {
+            throw new Error("Only R2 Standard storage is allowed.");
+          }
+          if (process.env.DNA_POPULATION_CORE_HISTORY_EXPECTED_MAIN_SHA !== process.env.GITHUB_SHA) {
+            throw new Error("The exact main commit binding is invalid.");
+          }
+          console.log("Validated private Preview settings without printing values.");
+          NODE
+      - name: Execute and independently verify one guarded population Core-history cohort
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-core-history-first-cohort-command.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during the population Core-history first-cohort command."
+            exit 1
+          fi
