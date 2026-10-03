@@ -1,0 +1,150 @@
+name: DNA Race Merge Core outcome R2 Preview migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit containing the reviewed migration
+        required: true
+        type: string
+      apply_private_preview_migration:
+        description: Confirm reviewed Race Merge Core-outcome R2 manifest migration apply to private Preview
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-race-merge-core-outcome-r2-preview-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migration:
+    name: Apply reviewed Race Merge Core-outcome R2 migration to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main and explicit private Preview migration arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]] ||
+             [[ ! "${EXPECTED_MAIN_SHA}" =~ ^[a-f0-9]{40}$ ]] ||
+             [[ "${EXPECTED_MAIN_SHA}" != "${GITHUB_SHA}" ]] ||
+             [[ "${{ inputs.apply_private_preview_migration }}" != "true" ]]; then
+            echo "Race Merge private Preview migration authority is invalid."
+            exit 1
+          fi
+      - name: Checkout exact accepted head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+          fetch-depth: 0
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
+      - name: Validate private Preview database binding without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          for (const name of ["DATABASE_URL", "NEON_API_KEY", "NEON_PROJECT_ID"]) {
+            const value = process.env[name] ?? "";
+            if (value === "" || value.trim() !== value || value.length > 4096) {
+              throw new Error("Private Preview migration configuration is incomplete.");
+            }
+          }
+          NODE
+      - name: Install PostgreSQL client and pinned Neon CLI
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(database) ||
+              !/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("Preview runtime database identity is invalid.");
+          }
+          process.stdout.write(database + "\t" + endpoint);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api             "/projects/${NEON_PROJECT_ID}/endpoints"             --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("Preview runtime branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}"             --project-id "${NEON_PROJECT_ID}"             --role-name neondb_owner             --database-name "${database_name}"             --no-color 2>/dev/null)"
+          if [[ ! "${migration_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "Short-lived Preview migration binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${migration_url}"
+          echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
+      - name: Fail closed on partial or prior Race Merge R2 schema
+        shell: bash
+        run: |
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          DECLARE v_present integer;
+          BEGIN
+            SELECT count(*) INTO v_present
+            FROM (VALUES
+              (to_regclass('dna.race_merge_core_outcome_r2_generation') IS NOT NULL),
+              (to_regclass('dna.race_merge_core_outcome_r2_manifest') IS NOT NULL),
+              (to_regprocedure('dna.begin_race_merge_core_outcome_r2_generation(uuid,jsonb,timestamp with time zone)') IS NOT NULL),
+              (to_regprocedure('dna.register_race_merge_core_outcome_r2_manifest(uuid,text,integer,jsonb,timestamp with time zone)') IS NOT NULL),
+              (to_regprocedure('dna.finalize_race_merge_core_outcome_r2_generation(uuid,text,integer,text,timestamp with time zone)') IS NOT NULL)
+            ) AS checks(present)
+            WHERE present;
+            IF v_present <> 0 THEN
+              RAISE EXCEPTION 'Race Merge Core-outcome R2 schema is not absent';
+            END IF;
+          END
+          $contract$;
+          SQL
+      - name: Apply and smoke reviewed Race Merge R2 manifest migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file             database/migrations/0123_race_merge_core_outcome_r2_manifest.up.sql
+          if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file             database/migrations/0123_race_merge_core_outcome_r2_manifest.smoke.sql; then
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file               database/migrations/0123_race_merge_core_outcome_r2_manifest.down.sql
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file               database/migrations/0123_race_merge_core_outcome_r2_manifest.removal.sql
+            exit 1
+          fi
+      - name: Clear short-lived Preview migration binding
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
