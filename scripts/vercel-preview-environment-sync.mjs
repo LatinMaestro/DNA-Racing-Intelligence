@@ -65,10 +65,7 @@ export function previewEnvironmentSpecification(environment) {
   if (!/^[a-f0-9]{32}$/u.test(cloudflareAccountId)) {
     throw new Error("CLOUDFLARE_ACCOUNT_ID is invalid");
   }
-  const cloudflareApiToken = requiredValue(
-    environment,
-    "CLOUDFLARE_API_TOKEN",
-  );
+  const cloudflareApiToken = requiredValue(environment, "CLOUDFLARE_API_TOKEN");
   const r2AccessKeyId = requiredValue(environment, "DNA_R2_ACCESS_KEY_ID");
   const r2SecretAccessKey = requiredValue(
     environment,
