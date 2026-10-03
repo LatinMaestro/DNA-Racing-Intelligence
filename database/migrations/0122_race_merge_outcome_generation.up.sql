@@ -312,8 +312,9 @@ BEGIN
   SET appended_row_count = appended_row_count + v_row_count
   WHERE stored.object_key = v_object.object_key;
   UPDATE dna.race_merge_outcome_generation stored
-  SET source_row_count = source_row_count + v_row_count,
-    exact_replay_count = exact_replay_count + (v_row_count - v_inserted)
+  SET source_row_count = stored.source_row_count + v_row_count,
+    exact_replay_count =
+      stored.exact_replay_count + (v_row_count - v_inserted)
   WHERE stored.generation_key = v_generation.generation_key;
   RETURN QUERY SELECT v_inserted, v_row_count - v_inserted;
 END
