@@ -131,6 +131,29 @@ jobs:
                 execute_read_only_readiness: true,
               };
               break;
+            case "population-core-history-first-cohort":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "cohort_observed_at",
+                "execute_first_private_preview_population_core_history",
+              ]);
+              if (
+                !exactTimestamp(payload.cohort_observed_at) ||
+                payload.execute_first_private_preview_population_core_history !== true
+              ) {
+                throw new Error(
+                  "Population Core-history first-cohort dispatch authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-population-core-history-first-cohort-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                cohort_observed_at: payload.cohort_observed_at,
+                execute_first_private_preview_population_core_history: true,
+              };
+              break;
             case "provider-capacity-preflight":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-open-lab-daily-refresh-provider-preflight.yml";
