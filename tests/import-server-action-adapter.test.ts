@@ -10,6 +10,7 @@ vi.mock("../lib/clerk-owner-session", () => ({
 
 import {
   beginImportUploadAction,
+  beginRaceMergeOutcomeSourceUploadAction,
   confirmImportUpdateAction,
   completeImportUploadAction,
   retryAggregateRefreshAction,
@@ -51,6 +52,29 @@ describe("import server action adapter", () => {
         secretKey: undefined,
       },
     });
+  });
+
+  it("keeps Race Merge source evidence bounded and owner-gated", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce(null);
+
+    await expect(
+      beginRaceMergeOutcomeSourceUploadAction({
+        ordinal: 1,
+        originalFileName: "owner-race-merge.csv",
+        byteLength: 1024,
+        sha256: "c".repeat(64),
+      }),
+    ).resolves.toEqual({ status: "identity_not_connected" });
+
+    await expect(
+      beginRaceMergeOutcomeSourceUploadAction({
+        ordinal: 9,
+        originalFileName: "owner-race-merge.csv",
+        byteLength: 1024,
+        sha256: "c".repeat(64),
+      }),
+    ).rejects.toThrow("metadata is invalid");
   });
 
   it("rejects a signed-in non-owner before any unavailable provider is used", async () => {
