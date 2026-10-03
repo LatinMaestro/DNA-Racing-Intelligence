@@ -331,6 +331,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0119_dna_population_entrant_authority_successor_checkpoint.up.sql
       - name: Run population entrant authority successor checkpoint smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0119_dna_population_entrant_authority_successor_checkpoint.smoke.sql
+      - name: Apply expired R2 budget recovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.up.sql
+      - name: Run expired R2 budget recovery smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.smoke.sql
+      - name: Reverse expired R2 budget recovery migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.down.sql
+      - name: Verify expired R2 budget recovery removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.removal.sql
       - name: Reverse population entrant authority successor checkpoint migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0119_dna_population_entrant_authority_successor_checkpoint.down.sql
       - name: Verify population entrant authority successor checkpoint removal
