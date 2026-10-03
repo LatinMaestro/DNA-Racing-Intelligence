@@ -8,7 +8,10 @@ import {
   DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_COMMAND_INTENT,
   DNA_POPULATION_CORE_HISTORY_FIRST_COHORT_COMMAND_VERSION,
 } from "@/lib/dna-population-core-history-first-cohort-command";
-import { dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment } from "@/lib/dna-population-core-history-first-cohort-environment";
+import {
+  dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment,
+  dnaPopulationCoreHistoryFirstCohortGenerationId,
+} from "@/lib/dna-population-core-history-first-cohort-environment";
 import type { DnaOpenLabProviderCapacityMeasurement } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import type { DnaOpenLabR2BudgetRepository } from "@/lib/dna-open-lab-r2-budget-repository";
 
@@ -120,6 +123,21 @@ function budget() {
 }
 
 describe("DNA population Core-history first-cohort environment", () => {
+  it("derives a stable acquisition UUID from the selected measurement slice", () => {
+    const generationId = dnaPopulationCoreHistoryFirstCohortGenerationId(
+      "5".repeat(64),
+    );
+    expect(generationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
+    expect(
+      dnaPopulationCoreHistoryFirstCohortGenerationId("5".repeat(64)),
+    ).toBe(generationId);
+    expect(
+      dnaPopulationCoreHistoryFirstCohortGenerationId("6".repeat(64)),
+    ).not.toBe(generationId);
+  });
+
   it("stays unavailable until every private persistence boundary is configured", () => {
     expect(
       dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment(
