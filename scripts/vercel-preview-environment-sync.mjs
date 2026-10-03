@@ -58,11 +58,17 @@ export function previewEnvironmentSpecification(environment) {
   }
 
   const databaseOwnerId = requiredValue(environment, "DNA_DATABASE_OWNER_ID");
-  const cloudflareAccountId = requiredValue(environment, "CLOUDFLARE_ACCOUNT_ID");
+  const cloudflareAccountId = requiredValue(
+    environment,
+    "CLOUDFLARE_ACCOUNT_ID",
+  );
   if (!/^[a-f0-9]{32}$/u.test(cloudflareAccountId)) {
     throw new Error("CLOUDFLARE_ACCOUNT_ID is invalid");
   }
-  const cloudflareApiToken = requiredValue(environment, "CLOUDFLARE_API_TOKEN");
+  const cloudflareApiToken = requiredValue(
+    environment,
+    "CLOUDFLARE_API_TOKEN",
+  );
   const r2AccessKeyId = requiredValue(environment, "DNA_R2_ACCESS_KEY_ID");
   const r2SecretAccessKey = requiredValue(
     environment,
@@ -83,7 +89,9 @@ export function previewEnvironmentSpecification(environment) {
   ].map(([name, expected]) => {
     const value = requiredValue(environment, name);
     if (value !== expected) {
-      throw new Error(`${name} does not match the commissioned Preview boundary`);
+      throw new Error(
+        `${name} does not match the commissioned Preview boundary`,
+      );
     }
     return { name, value };
   });
