@@ -2861,3 +2861,6 @@ After the private Pro League milestone, continue in this order:
   the existing 30 aggregate request/minute Core-history budget. This adapter
   does not add a workflow, dispatch authority, publication path or connected
   write by itself.
+- Derive the acquisition generation UUID deterministically from the bound
+  measurement-slice digest so the existing UUID-validated lineage repository
+  accepts the population authority without weakening its identity contract.

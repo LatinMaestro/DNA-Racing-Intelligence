@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
   type CloudflareNeonDnaOpenLabProviderCapacityEnvironment,
@@ -50,6 +52,22 @@ type Dependencies = Readonly<{
 function configured(value: string | undefined): string | null {
   const normalized = value?.trim() ?? "";
   return normalized === "" ? null : normalized;
+}
+
+export function dnaPopulationCoreHistoryFirstCohortGenerationId(
+  measurementSliceSha256: string,
+): string {
+  const bytes = createHash("sha256")
+    .update(
+      `population-core-history-first-cohort-generation/v1\u0000${measurementSliceSha256}`,
+      "utf8",
+    )
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Buffer.from(bytes).toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function trackedMeasurementSource(input: {
@@ -172,7 +190,9 @@ export function dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment(
             Object.freeze(
               request.authority.coreIds.map((coreId) =>
                 Object.freeze({
-                  generationId: request.authority.measurementSliceSha256,
+                  generationId: dnaPopulationCoreHistoryFirstCohortGenerationId(
+                    request.authority.measurementSliceSha256,
+                  ),
                   canonical: Object.freeze({ sourceCoreId: String(coreId) }),
                 }),
               ),
