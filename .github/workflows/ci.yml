@@ -29,13 +29,7 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - name: Produce pinned Prettier output for PR files
-        shell: bash
-        run: |
-          npx prettier --write lib/race-merge-core-outcome-r2-store.ts tests/race-merge-core-outcome-r2-store.test.ts
-          echo "PRETTIER_STORE_BASE64=$(base64 -w0 lib/race-merge-core-outcome-r2-store.ts)"
-          echo "PRETTIER_TEST_BASE64=$(base64 -w0 tests/race-merge-core-outcome-r2-store.test.ts)"
-          git diff --check
+      - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
