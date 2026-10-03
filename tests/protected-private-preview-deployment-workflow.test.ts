@@ -49,9 +49,7 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain(
       "DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}",
     );
-    expect(workflow).toContain(
-      "DNA_R2_BUCKET_NAME: dna-racing-import-preview",
-    );
+    expect(workflow).toContain("DNA_R2_BUCKET_NAME: dna-racing-import-preview");
     expect(workflow).toContain(
       'DNA_IMPORT_LIMIT_R2_STORAGE_BYTES: "9500000000"',
     );
@@ -64,9 +62,7 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain(
       'DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES: "950000000"',
     );
-    expect(workflow).toContain(
-      'DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES: "1"',
-    );
+    expect(workflow).toContain('DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES: "1"');
     expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "true"');
     expect(workflow).toContain("synchronize_preview_runtime");
     expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
