@@ -64,11 +64,7 @@ function sourceRaceId(value: unknown): string {
       : typeof value === "string"
         ? value.trim()
         : "";
-  if (
-    text.length < 1 ||
-    text.length > 512 ||
-    CONTROL_PATTERN.test(text)
-  ) {
+  if (text.length < 1 || text.length > 512 || CONTROL_PATTERN.test(text)) {
     planError("source Race identity is invalid");
   }
   return text;
@@ -131,6 +127,17 @@ function elapsedMilliseconds(value: unknown): number {
   return Number(milliseconds);
 }
 
+function positiveElapsedMilliseconds(value: unknown): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 1
+  ) {
+    planError("elapsed milliseconds are invalid");
+  }
+  return value;
+}
+
 function mode(value: unknown): RaceMode {
   if (typeof value !== "string" || !MODES.includes(value as RaceMode)) {
     planError("linked Race mode is invalid");
@@ -138,7 +145,10 @@ function mode(value: unknown): RaceMode {
   return value as RaceMode;
 }
 
-function naturalKey(sourceCoreIdValue: number, sourceRaceIdValue: string): string {
+function naturalKey(
+  sourceCoreIdValue: number,
+  sourceRaceIdValue: string,
+): string {
   return `${sourceCoreIdValue}\u0000${sourceRaceIdValue}`;
 }
 
@@ -173,7 +183,7 @@ function validateOutcome(
   const coreId = sourceCoreId(input.sourceCoreId);
   const raceId = sourceRaceId(input.sourceRaceId);
   const position = finishPosition(input.finishPosition);
-  const elapsed = elapsedMilliseconds(input.elapsedMilliseconds / 1_000);
+  const elapsed = positiveElapsedMilliseconds(input.elapsedMilliseconds);
   if (coreId !== requestedCoreId) {
     planError("outcome changed requested Core identity");
   }
