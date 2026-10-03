@@ -170,6 +170,12 @@ export function dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment(
           databaseOwnerId,
           ownerId,
           runtimeRole,
+          populationAuthority: {
+            generationId: dnaPopulationCoreHistoryFirstCohortGenerationId(
+              authority.measurementSliceSha256,
+            ),
+            coreIds: authority.coreIds,
+          },
           ...(dependencies.sessionFactory === undefined
             ? {}
             : { sessionFactory: dependencies.sessionFactory }),
