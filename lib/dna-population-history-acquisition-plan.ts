@@ -104,10 +104,12 @@ function modeCoreSets(): Record<RaceMode, Set<number>> {
  * global Race documents.
  *
  * The finished-race archive is already the race-level historical authority.
- * This planner identifies only population Cores whose complete per-Core result
- * history has not yet been persisted. The provider history endpoint is Core
+ * Core-to-Race linked history is already derivable from entrantCoreIds in this
+ * canonical authority and must not wait for this plan. This planner identifies
+ * only population Cores whose finish-position/elapsed-time performance
+ * enrichment has not yet been persisted. The provider history endpoint is Core
  * scoped and returns all modes, so a Core appearing in Bike, Car and Horse
- * races is acquired once and then reused by every analytical module.
+ * races is enriched once and then reused by every analytical module.
  *
  * This is planning only. It never calls DNA Open Lab, writes R2/Neon, or
  * authorizes paid use. Any race with unknown mode or incomplete entrant
