@@ -51,10 +51,22 @@ export type DnaPopulationCoreOutcomeGapPlanDependencies = Readonly<{
   loadPersistedApiOutcomes: (
     sourceCoreId: number,
   ) => Promise<readonly DnaCompactCoreOutcomeEvidence[]>;
+  bounds: Readonly<{
+    maximumLinkedCores: number;
+    maximumRequiredMemberships: number;
+    maximumOutcomesPerSourcePerCore: number;
+  }>;
 }>;
 
 function planError(message: string): never {
   throw new Error(`DNA population Core outcome reconciliation: ${message}`);
+}
+
+function positiveBound(value: number, field: string, maximum: number): number {
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    planError(`${field} is outside its bound`);
+  }
+  return value;
 }
 
 function sourceRaceId(value: unknown): string {
@@ -217,6 +229,21 @@ export function adaptDnaRaceMergeOutcomeSourceRow(
 export async function planDnaPopulationCoreOutcomeGapAcquisition(
   input: DnaPopulationCoreOutcomeGapPlanDependencies,
 ): Promise<DnaPopulationCoreOutcomeGapPlan> {
+  const maximumLinkedCores = positiveBound(
+    input.bounds.maximumLinkedCores,
+    "maximumLinkedCores",
+    1_000_000,
+  );
+  const maximumRequiredMemberships = positiveBound(
+    input.bounds.maximumRequiredMemberships,
+    "maximumRequiredMemberships",
+    100_000_000,
+  );
+  const maximumOutcomesPerSourcePerCore = positiveBound(
+    input.bounds.maximumOutcomesPerSourcePerCore,
+    "maximumOutcomesPerSourcePerCore",
+    1_000_000,
+  );
   const requiredDigest = createHash("sha256");
   const coveredDigest = createHash("sha256");
   const missingDigest = createHash("sha256");
@@ -240,6 +267,9 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     }
     previousCoreId = coreId;
     linkedCoreCount += 1;
+    if (linkedCoreCount > maximumLinkedCores) {
+      planError("linked Core count exceeds its bound");
+    }
 
     const required = new Map<string, RaceMode>();
     for (const candidateMode of MODES) {
@@ -252,6 +282,9 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
         }
         required.set(raceId, raceMode);
         requiredMembershipCount += 1;
+        if (requiredMembershipCount > maximumRequiredMemberships) {
+          planError("required membership count exceeds its bound");
+        }
         requiredDigest.update(
           `${membershipIdentity({
             sourceCoreId: coreId,
@@ -269,7 +302,11 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     const selected = new Map<string, DnaCompactCoreOutcomeEvidence>();
     const raceMergeSeen = new Map<string, DnaCompactCoreOutcomeEvidence>();
 
-    for (const rawOutcome of await input.loadRaceMergeOutcomes(coreId)) {
+    const raceMergeOutcomes = await input.loadRaceMergeOutcomes(coreId);
+    if (raceMergeOutcomes.length > maximumOutcomesPerSourcePerCore) {
+      planError("Race Merge outcomes exceed the per-Core bound");
+    }
+    for (const rawOutcome of raceMergeOutcomes) {
       const outcome = validateOutcome(rawOutcome, "race_merge", coreId);
       const key = naturalKey(coreId, outcome.sourceRaceId);
       const previous = raceMergeSeen.get(key);
@@ -290,7 +327,11 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     }
 
     const apiSeen = new Map<string, DnaCompactCoreOutcomeEvidence>();
-    for (const rawOutcome of await input.loadPersistedApiOutcomes(coreId)) {
+    const persistedApiOutcomes = await input.loadPersistedApiOutcomes(coreId);
+    if (persistedApiOutcomes.length > maximumOutcomesPerSourcePerCore) {
+      planError("API outcomes exceed the per-Core bound");
+    }
+    for (const rawOutcome of persistedApiOutcomes) {
       const outcome = validateOutcome(rawOutcome, "core_history_api", coreId);
       const key = naturalKey(coreId, outcome.sourceRaceId);
       const previousApi = apiSeen.get(key);
