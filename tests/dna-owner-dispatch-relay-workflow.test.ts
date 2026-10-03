@@ -40,6 +40,18 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("dna-open-lab-r2-budget-ledger-diagnostic.yml");
     expect(workflow).toContain('"r2-budget-ledger-diagnostic"');
     expect(workflow).toContain(
+      "dna-open-lab-r2-expired-budget-recovery-preview-migration.yml",
+    );
+    expect(workflow).toContain('"r2-expired-budget-recovery-migration"');
+    expect(workflow).toContain("dna-open-lab-r2-expired-budget-recovery.yml");
+    expect(workflow).toContain('"r2-expired-budget-recovery"');
+    expect(workflow).toContain(
+      "payload.execute_expired_r2_budget_recovery !== true",
+    );
+    expect(workflow).toContain("expected_reserved_storage_bytes");
+    expect(workflow).toContain("expected_reserved_class_a_operations");
+    expect(workflow).toContain("expected_reserved_class_b_operations");
+    expect(workflow).toContain(
       "dna-population-entrant-authority-readiness.yml",
     );
     expect(workflow).toContain(

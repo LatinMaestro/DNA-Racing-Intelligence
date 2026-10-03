@@ -1,0 +1,199 @@
+name: DNA expired R2 budget recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to recover
+        required: true
+        type: string
+      expected_ledger_window_end_at:
+        description: Exact expired ledger window end from fresh diagnostic
+        required: true
+        type: string
+      expected_reserved_storage_bytes:
+        description: Exact reserved storage bytes from fresh diagnostic
+        required: true
+        type: string
+      expected_reserved_class_a_operations:
+        description: Exact reserved Class A operations from fresh diagnostic
+        required: true
+        type: string
+      expected_reserved_class_b_operations:
+        description: Exact reserved Class B operations from fresh diagnostic
+        required: true
+        type: string
+      execute_expired_r2_budget_recovery:
+        description: Account the full expired reserved upper bound and close the old window
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-expired-r2-budget-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-private-preview-ledger:
+    name: Recover expired private Preview R2 budget ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      EXPECTED_LEDGER_WINDOW_END_AT: ${{ inputs.expected_ledger_window_end_at }}
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      EXPECTED_RESERVED_CLASS_A_OPERATIONS: ${{ inputs.expected_reserved_class_a_operations }}
+      EXPECTED_RESERVED_CLASS_B_OPERATIONS: ${{ inputs.expected_reserved_class_b_operations }}
+      EXPECTED_RESERVED_STORAGE_BYTES: ${{ inputs.expected_reserved_storage_bytes }}
+    steps:
+      - name: Require exact main dispatch and explicit recovery arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Expired R2 budget recovery may only run from main."
+            exit 1
+          fi
+          if [[ ! "${EXPECTED_MAIN_SHA}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${EXPECTED_MAIN_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "The supplied exact main commit is invalid or stale."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_expired_r2_budget_recovery }}" != "true" ]]; then
+            echo "Expired R2 budget recovery was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
+      - name: Validate bounded recovery authority without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const uuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const timestamp = (value) => {
+            const parsed = new Date(value);
+            return (
+              typeof value === "string" &&
+              !Number.isNaN(parsed.getTime()) &&
+              parsed.toISOString() === value &&
+              parsed.getTime() <= Date.now()
+            );
+          };
+          const count = (value) =>
+            typeof value === "string" &&
+            /^[1-9]\d*$/.test(value) &&
+            Number.isSafeInteger(Number(value));
+          if (
+            !process.env.DATABASE_URL ||
+            process.env.DATABASE_URL.trim() !== process.env.DATABASE_URL ||
+            process.env.DATABASE_URL.length > 4096 ||
+            !uuid.test(process.env.DNA_DATABASE_OWNER_ID ?? "") ||
+            !timestamp(process.env.EXPECTED_LEDGER_WINDOW_END_AT) ||
+            !count(process.env.EXPECTED_RESERVED_STORAGE_BYTES) ||
+            !count(process.env.EXPECTED_RESERVED_CLASS_A_OPERATIONS) ||
+            !count(process.env.EXPECTED_RESERVED_CLASS_B_OPERATIONS)
+          ) {
+            throw new Error("Expired R2 budget recovery authority is invalid.");
+          }
+          if (
+            Number(process.env.EXPECTED_RESERVED_STORAGE_BYTES) > 9_500_000_000 ||
+            Number(process.env.EXPECTED_RESERVED_CLASS_A_OPERATIONS) > 800_000 ||
+            Number(process.env.EXPECTED_RESERVED_CLASS_B_OPERATIONS) > 8_000_000
+          ) {
+            throw new Error("Expected expired reservation exceeds an operating ceiling.");
+          }
+          console.log("Validated bounded expired R2 budget recovery authority.");
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Prove exact expired reservation state
+        shell: bash
+        run: |
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" \
+            --set expected_end="${EXPECTED_LEDGER_WINDOW_END_AT}" \
+            --set expected_storage="${EXPECTED_RESERVED_STORAGE_BYTES}" \
+            --set expected_a="${EXPECTED_RESERVED_CLASS_A_OPERATIONS}" \
+            --set expected_b="${EXPECTED_RESERVED_CLASS_B_OPERATIONS}" <<'SQL'
+          BEGIN;
+          SELECT set_config('app.owner_id', :'owner_id', true) AS configured \gset
+          SELECT (
+            count(*) = 1
+            AND bool_and(
+              window_end_at = :'expected_end'::timestamptz
+              AND reserved_storage_bytes = :'expected_storage'::bigint
+              AND reserved_class_a_operations = :'expected_a'::bigint
+              AND reserved_class_b_operations = :'expected_b'::bigint
+            )
+          ) AS exact_expired_state
+          FROM dna.read_dna_open_lab_r2_budget_window(:'owner_id'::uuid)
+          \gset
+          \if :exact_expired_state
+          \else
+            \echo 'Expired R2 budget recovery state drifted.'
+            \quit 3
+          \endif
+          ROLLBACK;
+          SQL
+      - name: Account full reserved upper bound and close expired window
+        shell: bash
+        run: |
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set owner_id="${DNA_DATABASE_OWNER_ID}" \
+            --set expected_storage="${EXPECTED_RESERVED_STORAGE_BYTES}" \
+            --set expected_a="${EXPECTED_RESERVED_CLASS_A_OPERATIONS}" \
+            --set expected_b="${EXPECTED_RESERVED_CLASS_B_OPERATIONS}" <<'SQL'
+          BEGIN ISOLATION LEVEL SERIALIZABLE;
+          SELECT set_config('app.owner_id', :'owner_id', true) AS configured \gset
+          SELECT (
+            recovered
+            AND reconciled_reservation_count > 0
+            AND reconciled_storage_bytes = :'expected_storage'::bigint
+            AND reconciled_class_a_operations = :'expected_a'::bigint
+            AND reconciled_class_b_operations = :'expected_b'::bigint
+            AND closed_window_end_at IS NOT NULL
+            AND closed_window_revision IS NOT NULL
+          ) AS recovery_matches
+          FROM dna.reconcile_expired_dna_open_lab_r2_budget_window(
+            :'owner_id'::uuid
+          )
+          \gset
+          \if :recovery_matches
+          \else
+            \echo 'Expired R2 budget recovery receipt drifted.'
+            \quit 4
+          \endif
+          SELECT count(*) = 0 AS old_window_closed
+          FROM dna.read_dna_open_lab_r2_budget_window(:'owner_id'::uuid)
+          \gset
+          \if :old_window_closed
+          \else
+            \echo 'Expired R2 budget window remained open.'
+            \quit 5
+          \endif
+          COMMIT;
+          SQL
+          echo "Expired R2 budget recovery completed with full planned upper-bound accounting."
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
