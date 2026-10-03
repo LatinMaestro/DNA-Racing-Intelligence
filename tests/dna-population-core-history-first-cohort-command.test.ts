@@ -23,6 +23,7 @@ import {
   type DnaPopulationCoreHistoryFirstCohortCommandReceipt,
 } from "@/lib/dna-population-core-history-first-cohort-command";
 import type { DnaOpenLabProviderCapacityPreflight } from "@/lib/dna-open-lab-provider-capacity-preflight";
+import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
 import { dnaPopulationPersistedCoreSetSha256 } from "@/lib/dna-population-history-acquisition-plan";
 
 const HEAD = "a".repeat(40);
@@ -113,7 +114,10 @@ function capacity(
             preflightSha256: "8".repeat(64),
             checkedAt: NOW,
             validUntil: "2026-10-03T00:06:00.000Z",
-            projection: {},
+            projection: {
+              billingWindowStartAt: "2026-10-01T00:00:00.000Z",
+              billingWindowEndAt: "2026-11-01T00:00:00.000Z",
+            },
             persistentWritePerformed: false as const,
             providerWritePerformed: false as const,
             paidUsageAllowed: false as const,
@@ -296,6 +300,20 @@ describe("population Core-history first-cohort command", () => {
       previewOnly: true,
     });
     expect(runCollectionStep).toHaveBeenCalledTimes(2);
+    const expectedBudgetWindowId = dnaOpenLabRawEvidenceSha256({
+      domain: "dna-open-lab-r2-budget-window/v1",
+      value: {
+        ownerId: "owner",
+        startAt: "2026-10-01T00:00:00.000Z",
+        endAt: "2026-11-01T00:00:00.000Z",
+      },
+    });
+    expect(receipt.budgetWindowId).toBe(expectedBudgetWindowId);
+    expect(
+      runCollectionStep.mock.calls.every(
+        ([request]) => request.budgetWindowId === expectedBudgetWindowId,
+      ),
+    ).toBe(true);
     expect(
       runCollectionStep.mock.calls.every(
         ([request]) =>
