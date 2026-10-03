@@ -132,6 +132,14 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       'payload.accepted_boundary_status !== "ready_for_continuation"',
     );
+    expect(workflow).toContain("protected-private-preview-deployment.yml");
+    expect(workflow).toContain('"protected-preview-deployment"');
+    expect(workflow).toContain(
+      "payload.deploy_protected_preview !== true",
+    );
+    expect(workflow).toContain(
+      "payload.synchronize_preview_runtime !== true",
+    );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
