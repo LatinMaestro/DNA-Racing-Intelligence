@@ -57,7 +57,9 @@ function capabilities(): ImportUploadIntakeCapabilities {
 }
 
 describe("Race Merge source evidence bridge", () => {
-  it("decrypts exact-head metadata and returns one private upload target", async () => {
+  it(
+    "decrypts exact-head metadata and returns one private upload target",
+    async () => {
     const ready = capabilities();
     const result = await createRaceMergeSourceEvidenceUploadTarget({
       encryptedPayload: encrypt({
@@ -80,16 +82,16 @@ describe("Race Merge source evidence bridge", () => {
       expiresAt: "2026-10-04T00:15:00.000Z",
     });
     if (ready.status !== "ready") throw new Error("expected ready");
-    expect(ready.capacityGate.assertWithinApprovedCapacity).toHaveBeenCalledWith(
-      {
+      expect(
+        ready.capacityGate.assertWithinApprovedCapacity,
+      ).toHaveBeenCalledWith({
         ownerId: OWNER,
         fileCount: 1,
         totalByteLength: 74_000_000,
         sourceFamilies: ["race_merge"],
-      },
-    );
-    expect(ready.repository.reserveUploadBatch).toHaveBeenCalledWith(
-      expect.objectContaining({
+      });
+      expect(ready.repository.reserveUploadBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
         ownerId: OWNER,
         idempotencyKey: expect.stringMatching(
           /^race-merge-outcome-source-v1-03-[a-f0-9]{32}$/u,
@@ -101,12 +103,15 @@ describe("Race Merge source evidence bridge", () => {
             byteLength: 74_000_000,
             sha256: "d".repeat(64),
           }),
-        ],
-      }),
-    );
-  });
+          ],
+        }),
+      );
+    },
+  );
 
-  it("fails before capacity or persistence on tampering or head drift", async () => {
+  it(
+    "fails before capacity or persistence on tampering or head drift",
+    async () => {
     const ready = capabilities();
     const encrypted = encrypt({
       head: HEAD,
@@ -140,11 +145,16 @@ describe("Race Merge source evidence bridge", () => {
     ).rejects.toThrow("payload authority is invalid");
 
     if (ready.status !== "ready") throw new Error("expected ready");
-    expect(ready.capacityGate.assertWithinApprovedCapacity).not.toHaveBeenCalled();
-    expect(ready.repository.reserveUploadBatch).not.toHaveBeenCalled();
-  });
+      expect(
+        ready.capacityGate.assertWithinApprovedCapacity,
+      ).not.toHaveBeenCalled();
+      expect(ready.repository.reserveUploadBatch).not.toHaveBeenCalled();
+    },
+  );
 
-  it("stays unavailable when the hosted provider composition is absent", async () => {
+  it(
+    "stays unavailable when the hosted provider composition is absent",
+    async () => {
     await expect(
       createRaceMergeSourceEvidenceUploadTarget({
         encryptedPayload: encrypt({
@@ -159,6 +169,7 @@ describe("Race Merge source evidence bridge", () => {
         now: new Date(),
         capabilities: { status: "not_configured" },
       }),
-    ).resolves.toEqual({ status: "not_configured" });
-  });
+      ).resolves.toEqual({ status: "not_configured" });
+    },
+  );
 });
