@@ -53,6 +53,15 @@ export type DnaPopulationCoreHistoryReadOnlyMeasurement = ReadinessSafety &
     aggregateRequestsPerMinute: number;
   }>;
 
+export type DnaPopulationCoreHistoryReadOnlySlice = Readonly<{
+  cohortOrdinal: number;
+  cohortOffset: number;
+  coreIds: readonly number[];
+  acquisitionCoreSetSha256: string;
+  selectedCoreSetSha256: string;
+  measurementSliceSha256: string;
+}>;
+
 const SAFE = Object.freeze({
   persistentWritePerformed: false as const,
   providerWritePerformed: false as const,
@@ -108,6 +117,79 @@ function selectedCoreSetSha256(coreIds: readonly number[]): string {
     "readiness_core_set",
     ...coreIds,
   ]);
+}
+
+/**
+ * Reconstructs the exact Core identities covered by a read-only measurement.
+ * Persistent commands must use this same deterministic slice instead of
+ * substituting the owner-serving Core set or selecting a fresh population.
+ */
+export function selectDnaPopulationCoreHistoryReadOnlySlice(input: {
+  plan: DnaPopulationHistoryAcquisitionPlan;
+  cohortOrdinal: number;
+  cohortOffset?: number;
+  maximumCoreCount: number;
+  maximumPagesPerCore: number;
+}): DnaPopulationCoreHistoryReadOnlySlice {
+  if (
+    input.plan.status !== "ready_for_budget_measurement" ||
+    input.plan.missingPerformanceCoreSetSha256 === null ||
+    input.plan.missingPerformanceCoreCount < 1
+  ) {
+    readinessError("acquisition plan is not ready for selection");
+  }
+  const cohortOrdinal = boundedInteger(
+    input.cohortOrdinal,
+    "cohortOrdinal",
+    0,
+    Math.max(0, input.plan.cohorts.length - 1),
+  );
+  const cohortOffset = boundedInteger(
+    input.cohortOffset ?? 0,
+    "cohortOffset",
+    0,
+    Number.MAX_SAFE_INTEGER,
+  );
+  const maximumCoreCount = boundedInteger(
+    input.maximumCoreCount,
+    "maximumCoreCount",
+    1,
+    DNA_POPULATION_CORE_HISTORY_READINESS_MAXIMUM_CORES,
+  );
+  const maximumPagesPerCore = boundedInteger(
+    input.maximumPagesPerCore,
+    "maximumPagesPerCore",
+    1,
+    Math.min(
+      DNA_POPULATION_CORE_HISTORY_READINESS_MAXIMUM_PAGES_PER_CORE,
+      DNA_CORE_RACE_HISTORY_MAXIMUM_PAGES_PER_CORE,
+    ),
+  );
+  const cohort = input.plan.cohorts[cohortOrdinal];
+  if (cohort === undefined || cohortOffset >= cohort.coreIds.length) {
+    readinessError("measurement slice is outside its cohort");
+  }
+  const coreIds = Object.freeze(
+    cohort.coreIds.slice(cohortOffset, cohortOffset + maximumCoreCount),
+  );
+  if (coreIds.length < 1) {
+    readinessError("measurement slice is empty");
+  }
+  const selectedHash = selectedCoreSetSha256(coreIds);
+  return Object.freeze({
+    cohortOrdinal,
+    cohortOffset,
+    coreIds,
+    acquisitionCoreSetSha256: input.plan.missingPerformanceCoreSetSha256,
+    selectedCoreSetSha256: selectedHash,
+    measurementSliceSha256: measurementSliceSha256({
+      acquisitionCoreSetSha256: input.plan.missingPerformanceCoreSetSha256,
+      cohortOrdinal,
+      cohortOffset,
+      maximumPagesPerCore,
+      selectedCoreSetSha256: selectedHash,
+    }),
+  });
 }
 
 function measurementSliceSha256(input: {
@@ -273,21 +355,16 @@ export async function measureDnaPopulationCoreHistoryReadOnly(input: {
     });
   }
 
-  const cohort = input.plan.cohorts[cohortOrdinal];
-  if (cohort === undefined || cohortOffset >= cohort.coreIds.length) {
-    readinessError("measurement slice is outside its cohort");
-  }
-  const coreIds = Object.freeze(
-    cohort.coreIds.slice(cohortOffset, cohortOffset + maximumCoreCount),
-  );
-  const selectedHash = selectedCoreSetSha256(coreIds);
-  const sliceHash = measurementSliceSha256({
-    acquisitionCoreSetSha256: input.plan.missingPerformanceCoreSetSha256,
+  const selected = selectDnaPopulationCoreHistoryReadOnlySlice({
+    plan: input.plan,
     cohortOrdinal,
     cohortOffset,
+    maximumCoreCount,
     maximumPagesPerCore,
-    selectedCoreSetSha256: selectedHash,
   });
+  const coreIds = selected.coreIds;
+  const selectedHash = selected.selectedCoreSetSha256;
+  const sliceHash = selected.measurementSliceSha256;
 
   let completeCoreCount = 0;
   let providerRequestCount = 0;
