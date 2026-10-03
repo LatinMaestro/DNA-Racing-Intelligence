@@ -34,6 +34,10 @@ describe("DNA owner dispatch relay workflow", () => {
       "payload.execute_first_private_preview_population_core_history !== true",
     );
     expect(workflow).toContain(
+      "dna-population-core-history-authority-preview-migration.yml",
+    );
+    expect(workflow).toContain('"population-core-history-authority-migration"');
+    expect(workflow).toContain(
       "dna-open-lab-daily-refresh-provider-preflight.yml",
     );
     expect(workflow).toContain('"provider-capacity-preflight"');

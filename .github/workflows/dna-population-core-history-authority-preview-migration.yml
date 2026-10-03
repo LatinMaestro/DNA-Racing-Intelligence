@@ -1,0 +1,168 @@
+name: DNA population Core-history authority Preview migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit containing the reviewed migration
+        required: true
+        type: string
+      apply_private_preview_migration:
+        description: Confirm reviewed population Core-history authority migration apply to private Preview
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-core-history-authority-preview-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migration:
+    name: Apply reviewed population Core-history authority migration to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit Preview migration arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This migration may only run from main."
+            exit 1
+          fi
+          if [[ ! "${EXPECTED_MAIN_SHA}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${EXPECTED_MAIN_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "The supplied exact main commit is invalid or stale."
+            exit 1
+          fi
+          if [[ "${{ inputs.apply_private_preview_migration }}" != "true" ]]; then
+            echo "The private Preview migration was not explicitly armed."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
+      - name: Validate private Preview database binding without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = ["DATABASE_URL", "NEON_API_KEY", "NEON_PROJECT_ID"];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error(
+              "Missing or invalid private Preview migration settings: " +
+                invalid.join(", "),
+            );
+          }
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(name)) {
+            throw new Error("The private Preview database name is invalid.");
+          }
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("The private Preview endpoint identity is invalid.");
+          }
+          process.stdout.write(`${name}\t${endpoint}`);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api \
+            "/projects/${NEON_PROJECT_ID}/endpoints" \
+            --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("The runtime Preview branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}" \
+            --project-id "${NEON_PROJECT_ID}" \
+            --role-name neondb_owner \
+            --database-name "${database_name}" \
+            --no-color 2>/dev/null)"
+          if [[ ! "${migration_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "The short-lived Preview migration binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${migration_url}"
+          echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
+      - name: Fail closed unless population authority is absent
+        shell: bash
+        run: |
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          BEGIN
+            IF to_regclass(
+                 'dna.dna_population_core_history_authority'
+               ) IS NOT NULL
+               OR to_regprocedure(
+                 'dna.begin_dna_population_core_history_acquisition_attempt(uuid,jsonb,jsonb)'
+               ) IS NOT NULL THEN
+              RAISE EXCEPTION 'population Core-history authority is not absent';
+            END IF;
+          END
+          $contract$;
+          SQL
+      - name: Apply and prove population Core-history authority migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
+            database/migrations/0121_dna_population_core_history_authority.up.sql
+          if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 --file \
+            database/migrations/0121_dna_population_core_history_authority.smoke.sql; then
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0121_dna_population_core_history_authority.down.sql
+            psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0121_dna_population_core_history_authority.removal.sql
+            exit 1
+          fi
+      - name: Clear short-lived Preview migration binding
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"

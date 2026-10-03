@@ -335,6 +335,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.up.sql
       - name: Run expired R2 budget recovery smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.smoke.sql
+      - name: Apply population Core-history authority migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.up.sql
+      - name: Run population Core-history authority smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.smoke.sql
+      - name: Reverse population Core-history authority migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.down.sql
+      - name: Verify population Core-history authority removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.removal.sql
       - name: Reverse expired R2 budget recovery migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0120_dna_open_lab_r2_expired_budget_recovery.down.sql
       - name: Verify expired R2 budget recovery removal

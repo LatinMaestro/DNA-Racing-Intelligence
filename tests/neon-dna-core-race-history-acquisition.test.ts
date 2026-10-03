@@ -35,9 +35,12 @@ function isolation(overrides: Record<string, unknown> = {}) {
     checkpoint_force_rls: true,
     receipt_rls: true,
     receipt_force_rls: true,
+    population_rls: true,
+    population_force_rls: true,
     runtime_can_read_tables: false,
     runtime_can_write_tables: false,
     runtime_can_save_attempt: true,
+    runtime_can_begin_population: true,
     runtime_can_save_page: true,
     runtime_can_read_attempt: true,
     runtime_can_read_latest: true,
@@ -56,7 +59,15 @@ function isolation(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function harness(rows: readonly (readonly unknown[])[]) {
+function harness(
+  rows: readonly (readonly unknown[])[],
+  options: Readonly<{
+    populationAuthority?: Readonly<{
+      generationId: string;
+      coreIds: readonly number[];
+    }>;
+  }> = {},
+) {
   const events: string[] = [];
   let index = 0;
   const query = vi.fn(
@@ -85,6 +96,7 @@ function harness(rows: readonly (readonly unknown[])[]) {
     databaseOwnerId,
     ownerId,
     runtimeRole,
+    ...options,
     sessionFactory: sessionFactory as NeonImportPersistenceSessionFactory,
   });
   return { events, query, repository };
@@ -108,6 +120,62 @@ describe("Neon DNA Core race history acquisition", () => {
       JSON.stringify(cycle),
     ]);
     expect(test.events.slice(-2)).toEqual(["COMMIT", "close"]);
+  });
+
+  it("atomically registers and begins an exact population authority", async () => {
+    const test = harness(
+      [
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ revision: "1", cycle }],
+      ],
+      {
+        populationAuthority: {
+          generationId: cycle.currentStateGenerationId,
+          coreIds: cycle.coreIds,
+        },
+      },
+    );
+
+    await expect(
+      test.repository.saveAttempt({ expectedRevision: null, cycle }),
+    ).resolves.toEqual({ revision: "1", cycle });
+    expect(test.query.mock.calls[3]?.[0]).toContain(
+      "begin_dna_population_core_history_acquisition_attempt",
+    );
+    expect(test.query.mock.calls[3]?.[1]).toEqual([
+      databaseOwnerId,
+      JSON.stringify({
+        version: 1,
+        generationId: cycle.currentStateGenerationId,
+        coreSetSha256: cycle.coreSetSha256,
+        coreIds: cycle.coreIds,
+      }),
+      JSON.stringify(cycle),
+    ]);
+  });
+
+  it("does not widen a mismatched population authority", async () => {
+    const test = harness(
+      [
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ revision: "1", cycle }],
+      ],
+      {
+        populationAuthority: {
+          generationId: cycle.currentStateGenerationId,
+          coreIds: [43],
+        },
+      },
+    );
+
+    await expect(
+      test.repository.saveAttempt({ expectedRevision: null, cycle }),
+    ).resolves.toEqual({ revision: "1", cycle });
+    expect(test.query.mock.calls[3]?.[0]).toContain(
+      "save_dna_core_race_history_acquisition_attempt",
+    );
   });
 
   it("loads the next durable Core cursor and atomically binds its page receipt", async () => {

@@ -1,4 +1,5 @@
 import {
+  dnaCoreRaceHistoryCoreSetSha256,
   validateDnaCoreRaceHistoryAcquisitionCycle,
   validateDnaCoreRaceHistoryCoreCheckpoint,
   validateDnaCoreRaceHistoryPageReceipt,
@@ -33,14 +34,19 @@ const VERIFY_ISOLATION_SQL = [
   "  attempt.relrowsecurity AS attempt_rls, attempt.relforcerowsecurity AS attempt_force_rls,",
   "  checkpoint.relrowsecurity AS checkpoint_rls, checkpoint.relforcerowsecurity AS checkpoint_force_rls,",
   "  receipt.relrowsecurity AS receipt_rls, receipt.relforcerowsecurity AS receipt_force_rls,",
+  "  population.relrowsecurity AS population_rls, population.relforcerowsecurity AS population_force_rls,",
   "  (has_table_privilege(session_user, 'dna.dna_core_race_history_acquisition_cycle', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_acquisition_attempt', 'SELECT')",
   "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_core_checkpoint', 'SELECT')",
-  "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_page_receipt', 'SELECT')) AS runtime_can_read_tables,",
+  "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_page_receipt', 'SELECT')",
+  "    OR has_table_privilege(session_user, 'dna.dna_population_core_history_authority', 'SELECT')) AS runtime_can_read_tables,",
   "  (has_table_privilege(session_user, 'dna.dna_core_race_history_acquisition_cycle', 'INSERT,UPDATE,DELETE')",
   "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_acquisition_attempt', 'INSERT,UPDATE,DELETE')",
   "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_core_checkpoint', 'INSERT,UPDATE,DELETE')",
-  "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_page_receipt', 'INSERT,UPDATE,DELETE')) AS runtime_can_write_tables,",
+  "    OR has_table_privilege(session_user, 'dna.dna_core_race_history_page_receipt', 'INSERT,UPDATE,DELETE')",
+  "    OR has_table_privilege(session_user, 'dna.dna_population_core_history_authority', 'INSERT,UPDATE,DELETE')) AS runtime_can_write_tables,",
+  "  has_function_privilege(session_user,",
+  "    'dna.begin_dna_population_core_history_acquisition_attempt(uuid,jsonb,jsonb)', 'EXECUTE') AS runtime_can_begin_population,",
   "  has_function_privilege(session_user,",
   "    'dna.save_dna_core_race_history_acquisition_attempt(uuid,bigint,jsonb)', 'EXECUTE') AS runtime_can_save_attempt,",
   "  has_function_privilege(session_user,",
@@ -69,6 +75,8 @@ const VERIFY_ISOLATION_SQL = [
   "  ON checkpoint.oid = 'dna.dna_core_race_history_core_checkpoint'::regclass",
   "JOIN pg_catalog.pg_class receipt",
   "  ON receipt.oid = 'dna.dna_core_race_history_page_receipt'::regclass",
+  "JOIN pg_catalog.pg_class population",
+  "  ON population.oid = 'dna.dna_population_core_history_authority'::regclass",
   "JOIN pg_catalog.pg_roles role ON role.rolname = session_user",
   "WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2",
 ].join("\n");
@@ -202,6 +210,8 @@ function verifyIsolation(
     "checkpoint_force_rls",
     "receipt_rls",
     "receipt_force_rls",
+    "population_rls",
+    "population_force_rls",
   ]) {
     if (!bool(row[field], field)) {
       throw new Error(
@@ -219,6 +229,7 @@ function verifyIsolation(
   }
   for (const field of [
     "runtime_can_save_attempt",
+    "runtime_can_begin_population",
     "runtime_can_save_page",
     "runtime_can_read_attempt",
     "runtime_can_read_latest",
@@ -257,6 +268,10 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
   databaseOwnerId: string;
   ownerId: string;
   runtimeRole: string;
+  populationAuthority?: Readonly<{
+    generationId: string;
+    coreIds: readonly number[];
+  }>;
   sessionFactory?: NeonImportPersistenceSessionFactory;
 }): DnaCoreRaceHistoryAcquisitionRepository {
   const databaseUrl = input.databaseUrl.trim();
@@ -264,6 +279,19 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
   const ownerId = owner(input.ownerId);
   const runtimeRole = role(input.runtimeRole);
+  const populationAuthority =
+    input.populationAuthority === undefined
+      ? null
+      : Object.freeze({
+          generationId: uuid(
+            input.populationAuthority.generationId,
+            "populationAuthority.generationId",
+          ),
+          coreIds: Object.freeze([...input.populationAuthority.coreIds]),
+          coreSetSha256: dnaCoreRaceHistoryCoreSetSha256(
+            input.populationAuthority.coreIds,
+          ),
+        });
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
 
@@ -386,10 +414,35 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
       return transaction({
         readOnly: false,
         async run(client) {
-          const result = await client.query(
-            "SELECT revision::text, cycle FROM dna.save_dna_core_race_history_acquisition_attempt($1::uuid,$2::bigint,$3::jsonb)",
-            [databaseOwnerId, expectedRevision, JSON.stringify(cycle)],
-          );
+          const usePopulationBootstrap =
+            expectedRevision === null &&
+            populationAuthority !== null &&
+            cycle.attemptNumber === 1 &&
+            cycle.currentStateGenerationId ===
+              populationAuthority.generationId &&
+            cycle.coreSetSha256 === populationAuthority.coreSetSha256 &&
+            cycle.coreIds.length === populationAuthority.coreIds.length &&
+            cycle.coreIds.every(
+              (coreId, index) => coreId === populationAuthority.coreIds[index],
+            );
+          const result = usePopulationBootstrap
+            ? await client.query(
+                "SELECT revision::text, cycle FROM dna.begin_dna_population_core_history_acquisition_attempt($1::uuid,$2::jsonb,$3::jsonb)",
+                [
+                  databaseOwnerId,
+                  JSON.stringify({
+                    version: 1,
+                    generationId: populationAuthority.generationId,
+                    coreSetSha256: populationAuthority.coreSetSha256,
+                    coreIds: populationAuthority.coreIds,
+                  }),
+                  JSON.stringify(cycle),
+                ],
+              )
+            : await client.query(
+                "SELECT revision::text, cycle FROM dna.save_dna_core_race_history_acquisition_attempt($1::uuid,$2::bigint,$3::jsonb)",
+                [databaseOwnerId, expectedRevision, JSON.stringify(cycle)],
+              );
           const stored = storedCycle(
             oneRow(result, "DNA Core history acquisition attempt save"),
           );
