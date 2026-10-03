@@ -56,7 +56,8 @@ function fail(message: string): never {
 }
 
 function canonicalJson(value: unknown): string {
-  if (value === null || typeof value === "boolean") return JSON.stringify(value);
+  if (value === null || typeof value === "boolean")
+    return JSON.stringify(value);
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "number") {
     if (!Number.isFinite(value)) fail("body contains a non-finite number");
@@ -97,7 +98,11 @@ function generationId(value: string): string {
   return normalized;
 }
 
-function positiveInteger(value: unknown, field: string, maximum: number): number {
+function positiveInteger(
+  value: unknown,
+  field: string,
+  maximum: number,
+): number {
   if (
     typeof value !== "number" ||
     !Number.isSafeInteger(value) ||
@@ -159,11 +164,16 @@ function normalizedOutcomes(
   >();
 
   for (const observation of observations) {
-    if (observation.source !== "race_merge") fail("source authority is invalid");
+    if (observation.source !== "race_merge")
+      fail("source authority is invalid");
     if (observation.sourceCoreId !== sourceCoreId) {
       fail("source Core identity changed within one object");
     }
-    const sourceRaceId = safeText(observation.sourceRaceId, "sourceRaceId", 512);
+    const sourceRaceId = safeText(
+      observation.sourceRaceId,
+      "sourceRaceId",
+      512,
+    );
     const finishPosition = positiveInteger(
       observation.finishPosition,
       "finishPosition",
@@ -227,8 +237,9 @@ function normalizedOutcomes(
           provenance: Object.freeze(
             [...value.provenance.values()].sort(
               (left, right) =>
-                left.sourceObjectSha256.localeCompare(right.sourceObjectSha256) ||
-                left.sourceRowNumber - right.sourceRowNumber,
+                left.sourceObjectSha256.localeCompare(
+                  right.sourceObjectSha256,
+                ) || left.sourceRowNumber - right.sourceRowNumber,
             ),
           ),
         }),
@@ -335,14 +346,20 @@ async function collectExactBody(input: {
   const digest = createHash("sha256");
   let offset = 0;
   for await (const chunk of input.body) {
-    if (!(chunk instanceof Uint8Array) || offset + chunk.byteLength > input.byteLength) {
+    if (
+      !(chunk instanceof Uint8Array) ||
+      offset + chunk.byteLength > input.byteLength
+    ) {
       fail("stored body is invalid");
     }
     output.set(chunk, offset);
     digest.update(chunk);
     offset += chunk.byteLength;
   }
-  if (offset !== input.byteLength || digest.digest("hex") !== input.checksumSha256) {
+  if (
+    offset !== input.byteLength ||
+    digest.digest("hex") !== input.checksumSha256
+  ) {
     fail("stored body checksum disagrees");
   }
   return output;
@@ -379,7 +396,11 @@ function validateReceipt(receipt: RaceMergeCoreOutcomeR2Receipt) {
       "firstSourceRaceId",
       512,
     ),
-    lastSourceRaceId: safeText(receipt.lastSourceRaceId, "lastSourceRaceId", 512),
+    lastSourceRaceId: safeText(
+      receipt.lastSourceRaceId,
+      "lastSourceRaceId",
+      512,
+    ),
   });
   if (accepted.version !== RACE_MERGE_CORE_OUTCOME_R2_VERSION) {
     fail("receipt version is invalid");
@@ -407,7 +428,9 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
   let privacy: Promise<void> | null = null;
 
   async function privateStorage(): Promise<void> {
-    privacy ??= input.storage.readBucketPrivacy({ bucketName }).then(assertPrivateBucket);
+    privacy ??= input.storage
+      .readBucketPrivacy({ bucketName })
+      .then(assertPrivateBucket);
     await privacy;
   }
 
@@ -467,7 +490,9 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         head.contentType !== CONTENT_TYPE ||
         head.byteLength !== receipt.byteLength ||
         head.checksumSha256 !== receipt.bodySha256 ||
-        Object.entries(metadata).some(([key, value]) => head.metadata[key] !== value)
+        Object.entries(metadata).some(
+          ([key, value]) => head.metadata[key] !== value,
+        )
       ) {
         fail("stored Core outcome object conflicts with its receipt");
       }
@@ -494,7 +519,9 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         head.contentType !== CONTENT_TYPE ||
         head.byteLength !== receipt.byteLength ||
         head.checksumSha256 !== receipt.bodySha256 ||
-        Object.entries(metadata).some(([key, value]) => head.metadata[key] !== value)
+        Object.entries(metadata).some(
+          ([key, value]) => head.metadata[key] !== value,
+        )
       ) {
         fail("stored Core outcome head conflicts with its receipt");
       }
@@ -502,7 +529,8 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         bucketName,
         key: receipt.objectKey,
       });
-      if (stored.status !== "ready") fail("stored Core outcome body is unavailable");
+      if (stored.status !== "ready")
+        fail("stored Core outcome body is unavailable");
       const bytes = await collectExactBody({
         body: stored.body,
         byteLength: receipt.byteLength,
@@ -510,7 +538,9 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
       });
       let parsed: unknown;
       try {
-        parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+        parsed = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+        );
       } catch {
         fail("stored Core outcome body is not valid UTF-8 JSON");
       }
@@ -539,7 +569,9 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
       );
       if (
         new Set(sourceObjects).size !== sourceObjects.length ||
-        sourceObjects.some((value, index) => index > 0 && sourceObjects[index - 1]! >= value)
+        sourceObjects.some(
+          (value, index) => index > 0 && sourceObjects[index - 1]! >= value,
+        )
       ) {
         fail("stored source object index is invalid");
       }
