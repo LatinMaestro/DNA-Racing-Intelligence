@@ -66,7 +66,9 @@ function storage(existing = false, privateBucket = true) {
           metadata: input.metadata,
         });
       }
-      return { status: existing ? ("existing" as const) : ("created" as const) };
+      return {
+        status: existing ? ("existing" as const) : ("created" as const),
+      };
     }),
     headObject: vi.fn(async ({ key }) => {
       const object = objects.get(key);
@@ -183,9 +185,7 @@ describe("Race Merge Core outcome R2 store", () => {
       store.write({
         generationId: "generation-1",
         sourceCoreId: 101,
-        observations: [
-          observation(202, "race-1", 1, 9_500, "a".repeat(64), 1),
-        ],
+        observations: [observation(202, "race-1", 1, 9_500, "a".repeat(64), 1)],
       }),
     ).rejects.toThrow("source Core identity changed");
   });
@@ -202,9 +202,7 @@ describe("Race Merge Core outcome R2 store", () => {
       store.write({
         generationId: "generation-1",
         sourceCoreId: 101,
-        observations: [
-          observation(101, "race-1", 1, 9_500, "a".repeat(64), 1),
-        ],
+        observations: [observation(101, "race-1", 1, 9_500, "a".repeat(64), 1)],
       }),
     ).resolves.toMatchObject({ storageStatus: "existing" });
   });
@@ -221,9 +219,7 @@ describe("Race Merge Core outcome R2 store", () => {
       store.write({
         generationId: "generation-1",
         sourceCoreId: 101,
-        observations: [
-          observation(101, "race-1", 1, 9_500, "a".repeat(64), 1),
-        ],
+        observations: [observation(101, "race-1", 1, 9_500, "a".repeat(64), 1)],
       }),
     ).rejects.toThrow("R2 bucket is not private");
     expect(target.objects.size).toBe(0);
