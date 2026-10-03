@@ -63,6 +63,12 @@ describe("protected private Preview deployment workflow", () => {
       'DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES: "950000000"',
     );
     expect(workflow).toContain('DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES: "1"');
+    expect(workflow).toContain(
+      'DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED: "true"',
+    );
+    expect(workflow).toContain("openssl rand -hex 32");
+    expect(workflow).toContain("::add-mask::");
+    expect(workflow).toContain("DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE=");
     expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "true"');
     expect(workflow).toContain("synchronize_preview_runtime");
     expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
