@@ -4,8 +4,7 @@ import { createDefaultNeonImportPersistenceSession } from "@/lib/neon-import-per
 import { raceMergeCoreOutcomeConnectedRuntimeFromEnvironment } from "@/lib/race-merge-core-outcome-connected-runtime";
 import type { RaceMergeOutcomeImportReference } from "@/lib/race-merge-outcome-ingestion-service";
 
-const connected =
-  process.env.DNA_RACE_MERGE_CORE_OUTCOME_FIRST_COHORT === "1";
+const connected = process.env.DNA_RACE_MERGE_CORE_OUTCOME_FIRST_COHORT === "1";
 const describeConnected = connected ? describe : describe.skip;
 const SOURCE_CLIENT_PATTERN =
   /^race-merge-outcome-source-v1-(\d{2})-[a-f0-9]{16}$/u;
@@ -152,9 +151,7 @@ describeConnected("hosted Preview Race Merge first Core-outcome cohort", () => {
         exactCodeHeadSha,
         cloudflareAccountId: required("CLOUDFLARE_ACCOUNT_ID"),
         cloudflareApiToken: required("CLOUDFLARE_API_TOKEN"),
-        cloudflareAnalyticsApiToken: required(
-          "CLOUDFLARE_ANALYTICS_API_TOKEN",
-        ),
+        cloudflareAnalyticsApiToken: required("CLOUDFLARE_ANALYTICS_API_TOKEN"),
         r2BucketName: required("DNA_R2_BUCKET_NAME"),
         r2StorageClass: required("DNA_R2_STORAGE_CLASS"),
         r2AccessKeyId: required("DNA_R2_ACCESS_KEY_ID"),
