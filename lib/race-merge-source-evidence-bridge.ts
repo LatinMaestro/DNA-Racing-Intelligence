@@ -75,7 +75,7 @@ function parsePayload(input: {
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(plaintext.toString("utf8"));
+    parsed = JSON.parse(plaintext.toString());
   } catch {
     return bridgeError("payload is invalid");
   }
