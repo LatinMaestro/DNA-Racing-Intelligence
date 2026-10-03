@@ -1,9 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { RaceMode } from "@/domain/import-contract";
-import type {
-  DnaPopulationCoreLinkedHistory,
-} from "./dna-population-core-race-link-index";
+import type { DnaPopulationCoreLinkedHistory } from "./dna-population-core-race-link-index";
 
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
 const POSITIVE_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/u;
@@ -130,11 +128,7 @@ function elapsedMilliseconds(value: unknown): number {
 }
 
 function positiveElapsedMilliseconds(value: unknown): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 1
-  ) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
     planError("elapsed milliseconds are invalid");
   }
   return value;
