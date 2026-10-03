@@ -150,25 +150,26 @@ function timestamp(value: unknown, field: string): string {
   return parsed.toISOString();
 }
 
-function receiptSetSha256(
+export function raceMergeCoreOutcomeR2ReceiptSetSha256(
   receipts: readonly RaceMergeCoreOutcomeR2Receipt[],
 ): string {
   const digest = createHash("sha256");
   for (const receipt of receipts) {
-    digest.update(
-      [
-        receipt.version,
-        receipt.generationId,
-        receipt.sourceCoreId,
-        receipt.objectKey,
-        receipt.bodySha256,
-        receipt.byteLength,
-        receipt.uniqueOutcomeCount,
-        receipt.sourceObservationCount,
-        receipt.firstSourceRaceId,
-        receipt.lastSourceRaceId,
-      ].join("\u0000"),
-    );
+    for (const value of [
+      receipt.version,
+      receipt.generationId,
+      receipt.sourceCoreId,
+      receipt.objectKey,
+      receipt.bodySha256,
+      receipt.byteLength,
+      receipt.uniqueOutcomeCount,
+      receipt.sourceObservationCount,
+      receipt.firstSourceRaceId,
+      receipt.lastSourceRaceId,
+    ]) {
+      const field = String(value);
+      digest.update(`${Buffer.byteLength(field, "utf8")}:${field}`);
+    }
     digest.update("\n");
   }
   return digest.digest("hex");
@@ -236,7 +237,7 @@ function authorityFor(input: {
     uniqueOutcomeCount: sum("uniqueOutcomeCount"),
     sourceObservationCount: sum("sourceObservationCount"),
     retainedR2Bytes,
-    receiptSetSha256: receiptSetSha256(input.receipts),
+    receiptSetSha256: raceMergeCoreOutcomeR2ReceiptSetSha256(input.receipts),
   });
 }
 
@@ -487,7 +488,8 @@ export async function commitRaceMergeCoreOutcomeR2Generation(input: {
     finalManifests.some(
       (manifest, index) => !sameReceipt(manifest, receipts[index]!),
     ) ||
-    receiptSetSha256(finalManifests) !== authority.receiptSetSha256
+    raceMergeCoreOutcomeR2ReceiptSetSha256(finalManifests) !==
+      authority.receiptSetSha256
   ) {
     fail("final durable manifests disagree with R2");
   }

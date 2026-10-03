@@ -343,6 +343,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.up.sql
       - name: Run Race Merge outcome generation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.smoke.sql
+      - name: Apply Race Merge Core outcome R2 manifest migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.up.sql
+      - name: Run Race Merge Core outcome R2 manifest smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.smoke.sql
+      - name: Reverse Race Merge Core outcome R2 manifest migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.down.sql
+      - name: Verify Race Merge Core outcome R2 manifest removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.removal.sql
       - name: Reverse Race Merge outcome generation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.down.sql
       - name: Verify Race Merge outcome generation removal
