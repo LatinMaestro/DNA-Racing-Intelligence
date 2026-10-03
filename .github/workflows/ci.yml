@@ -339,6 +339,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.up.sql
       - name: Run population Core-history authority smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.smoke.sql
+      - name: Apply Race Merge outcome generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.up.sql
+      - name: Run Race Merge outcome generation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.smoke.sql
+      - name: Reverse Race Merge outcome generation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.down.sql
+      - name: Verify Race Merge outcome generation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0122_race_merge_outcome_generation.removal.sql
       - name: Reverse population Core-history authority migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0121_dna_population_core_history_authority.down.sql
       - name: Verify population Core-history authority removal

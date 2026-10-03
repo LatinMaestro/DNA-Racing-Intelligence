@@ -2864,3 +2864,18 @@ After the private Pro League milestone, continue in this order:
 - Derive the acquisition generation UUID deterministically from the bound
   measurement-slice digest so the existing UUID-validated lineage repository
   accepts the population authority without weakening its identity contract.
+
+## 2026-10-03 — Persist Race Merge outcomes as an owner-scoped generation
+
+- Keep owner-supplied source CSV objects in the existing private R2 archive and
+  persist only compact Race ID + Core ID + finish-position + elapsed-time rows,
+  object receipts and generation integrity metadata in Neon. Race metadata
+  remains canonical elsewhere and is reconstructed by joins.
+- Commit each checksum-verified source object atomically. Resume an exact
+  completed object without rereading it; count exact Race/Core/value replays as
+  idempotent evidence; reject a different position or time for the same natural
+  key before publication.
+- Expose only completed owner-scoped generations to the Race Merge-first gap
+  planner. The runtime receives function-only access behind forced RLS, while a
+  fresh A$0 projection remains mandatory before the ingestion service opens a
+  private object or starts this durable write path.
