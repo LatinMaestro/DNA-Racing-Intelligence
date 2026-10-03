@@ -74,11 +74,9 @@ describe("Race Merge outcome zero-cost capacity gate", () => {
       },
       plannedNeonUsagePerRefresh: {
         storageBytes:
-          3_945_562 *
-            RACE_MERGE_OUTCOME_MAXIMUM_NEON_BYTES_PER_SOURCE_ROW +
+          3_945_562 * RACE_MERGE_OUTCOME_MAXIMUM_NEON_BYTES_PER_SOURCE_ROW +
           RACE_MERGE_OUTCOME_FIXED_NEON_BYTES,
-        computeMilliCuHours:
-          RACE_MERGE_OUTCOME_MAXIMUM_COMPUTE_MILLI_CU_HOURS,
+        computeMilliCuHours: RACE_MERGE_OUTCOME_MAXIMUM_COMPUTE_MILLI_CU_HOURS,
       },
     });
     expect(result).toEqual({
