@@ -28,7 +28,9 @@ export function RaceMergeSourceEvidenceUploader() {
   async function upload() {
     if (busy) return;
     if (files.length !== EXPECTED_FILE_COUNT) {
-      setStatus("Exactly eight Race Merge CSVs are required for this source set.");
+      setStatus(
+        "Exactly eight Race Merge CSVs are required for this source set.",
+      );
       return;
     }
     const ordered = [...files].sort((left, right) =>
@@ -51,7 +53,9 @@ export function RaceMergeSourceEvidenceUploader() {
     setBusy(true);
     try {
       for (const [index, file] of ordered.entries()) {
-        setStatus(`Verifying source file ${index + 1} of ${EXPECTED_FILE_COUNT}…`);
+        setStatus(
+          `Verifying source file ${index + 1} of ${EXPECTED_FILE_COUNT}…`,
+        );
         const digest = await sha256(file);
         const reservation = await beginRaceMergeOutcomeSourceUploadAction({
           ordinal: index + 1,
@@ -59,11 +63,16 @@ export function RaceMergeSourceEvidenceUploader() {
           byteLength: file.size,
           sha256: digest,
         });
-        if (reservation.status !== "ready" || reservation.targets.length !== 1) {
+        if (
+          reservation.status !== "ready" ||
+          reservation.targets.length !== 1
+        ) {
           throw new Error("Private source reservation is unavailable.");
         }
         const target = reservation.targets[0];
-        setStatus(`Uploading source file ${index + 1} of ${EXPECTED_FILE_COUNT}…`);
+        setStatus(
+          `Uploading source file ${index + 1} of ${EXPECTED_FILE_COUNT}…`,
+        );
         const response = await fetch(target.targetToken, {
           method: target.method,
           headers: { "Content-Type": "text/csv" },
