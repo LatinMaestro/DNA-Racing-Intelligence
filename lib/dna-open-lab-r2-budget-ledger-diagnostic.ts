@@ -1,6 +1,12 @@
-import type { DnaOpenLabProviderCapacityMeasurement } from "./dna-open-lab-provider-capacity-preflight";
-import type { DnaOpenLabR2BudgetWindow } from "./dna-open-lab-r2-budget-repository";
-import type { DnaOpenLabR2Usage } from "./dna-open-lab-zero-cost-refresh-policy";
+import type {
+  DnaOpenLabProviderCapacityMeasurement,
+} from "./dna-open-lab-provider-capacity-preflight";
+import type {
+  DnaOpenLabR2BudgetWindow,
+} from "./dna-open-lab-r2-budget-repository";
+import type {
+  DnaOpenLabR2Usage,
+} from "./dna-open-lab-zero-cost-refresh-policy";
 
 export const DNA_OPEN_LAB_R2_BUDGET_LEDGER_DIAGNOSTIC_VERSION =
   "dna-open-lab-r2-budget-ledger-diagnostic/v1" as const;
@@ -103,7 +109,10 @@ export function diagnoseDnaOpenLabR2BudgetLedger(input: {
     "ledger window start",
   );
   const ledgerWindowEndAt = instant(window.windowEndAt, "ledger window end");
-  const ledgerMeasuredAt = instant(window.measuredAt, "ledger measurement time");
+  const ledgerMeasuredAt = instant(
+    window.measuredAt,
+    "ledger measurement time",
+  );
   if (
     Date.parse(ledgerWindowStartAt) >= Date.parse(ledgerWindowEndAt) ||
     Date.parse(ledgerMeasuredAt) < Date.parse(ledgerWindowStartAt) ||
