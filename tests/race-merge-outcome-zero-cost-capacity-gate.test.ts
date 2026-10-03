@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  DnaOpenLabProviderCapacityPreflight,
-} from "@/lib/dna-open-lab-provider-capacity-preflight";
+import type { DnaOpenLabProviderCapacityPreflight } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import {
   createRaceMergeOutcomeZeroCostCapacityGate,
   RACE_MERGE_OUTCOME_FIXED_NEON_BYTES,
