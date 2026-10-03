@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
-} from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
-import {
-  diagnoseDnaOpenLabR2BudgetLedger,
-} from "@/lib/dna-open-lab-r2-budget-ledger-diagnostic";
-import {
-  neonDnaOpenLabR2BudgetRepositoryFromEnvironment,
-} from "@/lib/neon-dna-open-lab-r2-budget-repository";
+import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
+import { diagnoseDnaOpenLabR2BudgetLedger } from "@/lib/dna-open-lab-r2-budget-ledger-diagnostic";
+import { neonDnaOpenLabR2BudgetRepositoryFromEnvironment } from "@/lib/neon-dna-open-lab-r2-budget-repository";
 
 const connected = process.env.DNA_R2_BUDGET_LEDGER_DIAGNOSTIC === "1";
 const describeConnected = connected ? describe : describe.skip;
