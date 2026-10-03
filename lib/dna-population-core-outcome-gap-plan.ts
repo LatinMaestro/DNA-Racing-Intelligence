@@ -58,16 +58,20 @@ function planError(message: string): never {
 }
 
 function sourceRaceId(value: unknown): string {
+  const text =
+    typeof value === "number" && Number.isSafeInteger(value) && value > 0
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim()
+        : "";
   if (
-    typeof value !== "string" ||
-    value.trim() !== value ||
-    value.length < 1 ||
-    value.length > 512 ||
-    CONTROL_PATTERN.test(value)
+    text.length < 1 ||
+    text.length > 512 ||
+    CONTROL_PATTERN.test(text)
   ) {
     planError("source Race identity is invalid");
   }
-  return value;
+  return text;
 }
 
 function sourceCoreId(value: unknown): number {
@@ -188,7 +192,7 @@ export function adaptDnaRaceMergeOutcomeSourceRow(
   return Object.freeze({
     source: "race_merge" as const,
     sourceCoreId: sourceCoreId(row.token_id),
-    sourceRaceId: sourceRaceId(String(row.event_id).trim()),
+    sourceRaceId: sourceRaceId(row.event_id),
     finishPosition: finishPosition(row.pos),
     elapsedMilliseconds: elapsedMilliseconds(row.time),
   });
