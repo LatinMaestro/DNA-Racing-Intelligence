@@ -2848,3 +2848,16 @@ After the private Pro League milestone, continue in this order:
   readiness authority, the delta must contain only the selected Core, and the
   before/after counts and digests must be reproducible. Duplicate population
   coverage, publication, paid use or last-good drift fails closed.
+
+## 2026-10-03 — Connect the population proof only to private collection ports
+
+- Adapt the first population Core-history command to the owner-scoped Preview
+  acquisition repository, private R2 evidence store and durable zero-cost R2
+  budget without accepting a Core identity from environment configuration.
+- Track the exact fresh provider measurement used by the command preflight and
+  open only its fail-closed budget window before the first collection step.
+  A held A$0 decision opens no window and performs no collection.
+- Present the selected singleton as an isolated acquisition generation and keep
+  the existing 30 aggregate request/minute Core-history budget. This adapter
+  does not add a workflow, dispatch authority, publication path or connected
+  write by itself.
