@@ -20,6 +20,8 @@ const validEnvironment = {
   CLOUDFLARE_API_TOKEN: "cloudflare-private-token",
   DNA_R2_ACCESS_KEY_ID: "private-r2-access-key",
   DNA_R2_SECRET_ACCESS_KEY: "private-r2-secret-key",
+  DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED: "true",
+  DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE: "b".repeat(64),
   DNA_R2_BUCKET_NAME: "dna-racing-import-preview",
   DNA_IMPORT_QUEUE_ID: "df7408e1d697475db4dbcdda1aa3e247",
   DNA_IMPORT_QUEUE_NAME: "dna-racing-import-preview",
@@ -69,6 +71,8 @@ describe("Vercel Preview environment synchronization", () => {
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",
       "CLOUDFLARE_ACCOUNT_ID",
+      "DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED",
+      "DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE",
       "DNA_R2_BUCKET_NAME",
       "DNA_IMPORT_QUEUE_ID",
       "DNA_IMPORT_QUEUE_NAME",
@@ -139,8 +143,8 @@ describe("Vercel Preview environment synchronization", () => {
       fetcher,
     });
 
-    expect(result).toHaveLength(22);
-    expect(runner).toHaveBeenCalledTimes(20);
+    expect(result).toHaveLength(24);
+    expect(runner).toHaveBeenCalledTimes(22);
     expect(fetcher).toHaveBeenCalledTimes(4);
     for (const [index, call] of runner.mock.calls.entries()) {
       expect(call[0]).toBe("vercel");
@@ -190,7 +194,7 @@ describe("Vercel Preview environment synchronization", () => {
         fetcher,
         validateOnly: true,
       }),
-    ).resolves.toHaveLength(22);
+    ).resolves.toHaveLength(24);
     expect(runner).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[1]?.method).toBeUndefined();
@@ -222,6 +226,18 @@ describe("Vercel Preview environment synchronization", () => {
         ENABLE_PHASE0_REVIEW: "1",
       }),
     ).toThrow("explicitly enable Preview");
+    expect(() =>
+      previewEnvironmentSpecification({
+        ...validEnvironment,
+        DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE: "invalid",
+      }),
+    ).toThrow("BRIDGE_NONCE");
+    expect(() =>
+      previewEnvironmentSpecification({
+        ...validEnvironment,
+        DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED: "false",
+      }),
+    ).toThrow("explicitly arm");
   });
 
   it("redacts every direct environment value if Vercel rejects a transfer", async () => {
