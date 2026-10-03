@@ -14,6 +14,7 @@ import {
 } from "@/lib/dna-population-core-history-first-cohort-environment";
 import type { DnaOpenLabProviderCapacityMeasurement } from "@/lib/dna-open-lab-provider-capacity-preflight";
 import type { DnaOpenLabR2BudgetRepository } from "@/lib/dna-open-lab-r2-budget-repository";
+import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
 
 const HEAD = "a".repeat(40);
 const EVALUATED_AT = "2026-10-03T00:00:00.000Z";
@@ -106,8 +107,12 @@ function invocation(source = authority()) {
   });
 }
 
-function budget() {
-  const readWindow = vi.fn(async () => null);
+function budget(existingWindowId?: string) {
+  const readWindow = vi.fn(async () =>
+    existingWindowId === undefined
+      ? null
+      : ({ windowId: existingWindowId } as never),
+  );
   const openWindow = vi.fn(async (request) => request as never);
   return Object.freeze({
     readWindow,
@@ -213,7 +218,7 @@ describe("DNA population Core-history first-cohort environment", () => {
       preserveLastGood: true,
       previewOnly: true,
     });
-    expect(measure).toHaveBeenCalledTimes(1);
+    expect(measure).toHaveBeenCalledTimes(2);
     expect(repository.readWindow).toHaveBeenCalledWith("owner");
     expect(repository.openWindow).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -224,6 +229,44 @@ describe("DNA population Core-history first-cohort environment", () => {
         baselineUsage: measurement().currentR2Usage,
       }),
     );
+    expect(runCollectionStep).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses the measured billing window when another conservative reservation is still open", async () => {
+    const expectedBudgetWindowId = dnaOpenLabRawEvidenceSha256({
+      domain: "dna-open-lab-r2-budget-window/v1",
+      value: {
+        ownerId: "owner",
+        startAt: "2026-10-01T00:00:00.000Z",
+        endAt: "2026-11-01T00:00:00.000Z",
+      },
+    });
+    const repository = budget(expectedBudgetWindowId);
+    const runCollectionStep = vi.fn(async (request) => {
+      expect(request.budgetWindowId).toBe(expectedBudgetWindowId);
+      return { kind: "collection_complete", stored: {} } as never;
+    });
+    const adapter = dnaPopulationCoreHistoryFirstCohortCommandFromEnvironment(
+      environment(),
+      authority(),
+      {
+        now: () => new Date(NOW),
+        measurementSource: {
+          status: "ready",
+          measure: vi.fn(async () => measurement()),
+        },
+        budgetRepository: repository.value,
+        runCollectionStep,
+      },
+    );
+    if (adapter.status !== "ready") throw new Error("adapter unavailable");
+
+    await expect(adapter.command.execute(invocation())).resolves.toMatchObject({
+      status: "complete",
+      budgetWindowId: expectedBudgetWindowId,
+    });
+    expect(repository.readWindow).toHaveBeenCalledWith("owner");
+    expect(repository.openWindow).not.toHaveBeenCalled();
     expect(runCollectionStep).toHaveBeenCalledTimes(1);
   });
 });
