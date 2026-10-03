@@ -29,17 +29,7 @@ jobs:
             echo "A tracked file contains a credential-like value."
             exit 1
           fi
-      - name: Print exact Prettier patch for PR #866
-        run: |
-          npx prettier --write \
-            scripts/vercel-preview-environment-sync.mjs \
-            tests/dna-owner-dispatch-relay-workflow.test.ts \
-            tests/protected-private-preview-deployment-workflow.test.ts
-          git diff -- \
-            scripts/vercel-preview-environment-sync.mjs \
-            tests/dna-owner-dispatch-relay-workflow.test.ts \
-            tests/protected-private-preview-deployment-workflow.test.ts
-          exit 1
+      - run: npm run format
       - run: npm run lint
       - run: npm run typecheck
       - name: Verify generated Cloudflare Worker bindings
