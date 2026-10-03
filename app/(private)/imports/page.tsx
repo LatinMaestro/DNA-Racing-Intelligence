@@ -1,4 +1,5 @@
 import { ImportWorkspacePanel } from "@/components/import-workspace";
+import { RaceMergeSourceEvidenceUploader } from "@/components/race-merge-source-evidence-uploader";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { loadImportWorkspacePageState } from "@/lib/import-workspace-service";
 import { importBatchRepositoryFromEnvironment } from "@/lib/neon-import-batch-repository";
@@ -23,9 +24,14 @@ export default async function ImportsPage() {
   });
 
   return (
-    <ImportWorkspacePanel
-      connectionStatus={state.connectionStatus}
-      workspace={state.workspace}
-    />
+    <div className="space-y-8">
+      <ImportWorkspacePanel
+        connectionStatus={state.connectionStatus}
+        workspace={state.workspace}
+      />
+      {state.connectionStatus === "read_model_connected" ? (
+        <RaceMergeSourceEvidenceUploader />
+      ) : null}
+    </div>
   );
 }
