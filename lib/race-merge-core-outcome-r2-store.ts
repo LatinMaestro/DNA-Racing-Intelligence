@@ -11,6 +11,8 @@ const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export const RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_BYTES = 8 * 1024 * 1024;
 export const RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_OUTCOMES = 50_000;
+export const RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_SOURCE_OBSERVATIONS =
+  RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_OUTCOMES * 24;
 export const RACE_MERGE_CORE_OUTCOME_R2_VERSION = 1 as const;
 
 export type RaceMergeCoreOutcomeR2StoragePort = Pick<
@@ -143,7 +145,7 @@ function normalizedOutcomes(
 ): readonly NormalizedOutcome[] {
   if (
     observations.length < 1 ||
-    observations.length > RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_OUTCOMES * 4
+    observations.length > RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_SOURCE_OBSERVATIONS
   ) {
     fail("source observation count is invalid");
   }
@@ -287,6 +289,25 @@ function bodyFor(input: {
   });
 }
 
+function expectedObjectKey(
+  prefix: string,
+  receipt: Pick<
+    RaceMergeCoreOutcomeR2Receipt,
+    "generationId" | "sourceCoreId" | "bodySha256"
+  >,
+): string {
+  return [
+    "dna-open-lab",
+    "v1",
+    prefix,
+    "race-merge-core-outcomes",
+    "generations",
+    receipt.generationId,
+    "cores",
+    `${receipt.sourceCoreId}-${receipt.bodySha256}.json`,
+  ].join("/");
+}
+
 function exactMetadata(receipt: RaceMergeCoreOutcomeR2Receipt) {
   return Object.freeze({
     "dna-source": "race_merge",
@@ -351,7 +372,7 @@ function validateReceipt(receipt: RaceMergeCoreOutcomeR2Receipt) {
     sourceObservationCount: positiveInteger(
       receipt.sourceObservationCount,
       "sourceObservationCount",
-      RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_OUTCOMES * 4,
+      RACE_MERGE_CORE_OUTCOME_R2_MAXIMUM_SOURCE_OBSERVATIONS,
     ),
     firstSourceRaceId: safeText(
       receipt.firstSourceRaceId,
@@ -414,16 +435,11 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
         version: RACE_MERGE_CORE_OUTCOME_R2_VERSION,
         generationId: generation,
         sourceCoreId,
-        objectKey: [
-          "dna-open-lab",
-          "v1",
-          prefix,
-          "race-merge-core-outcomes",
-          "generations",
-          generation,
-          "cores",
-          `${sourceCoreId}-${bodySha256}.json`,
-        ].join("/"),
+        objectKey: expectedObjectKey(prefix, {
+          generationId: generation,
+          sourceCoreId,
+          bodySha256,
+        }),
         bodySha256,
         byteLength: prepared.body.byteLength,
         uniqueOutcomeCount: prepared.outcomes.length,
@@ -461,6 +477,7 @@ export function createRaceMergeCoreOutcomeR2Store(input: {
     async read(receiptInput) {
       const receipt = validateReceipt(receiptInput);
       if (
+        receipt.objectKey !== expectedObjectKey(prefix, receipt) ||
         receipt.sourceObservationCount < receipt.uniqueOutcomeCount ||
         receipt.firstSourceRaceId > receipt.lastSourceRaceId
       ) {
