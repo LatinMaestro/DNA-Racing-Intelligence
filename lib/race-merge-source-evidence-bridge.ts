@@ -64,17 +64,12 @@ function parsePayload(input: {
   const iv = encrypted.subarray(0, 12);
   const tag = encrypted.subarray(encrypted.byteLength - 16);
   const ciphertext = encrypted.subarray(12, encrypted.byteLength - 16);
-  const key = createHash("sha256")
-    .update(`${DOMAIN}\u0000${nonce}`)
-    .digest();
+  const key = createHash("sha256").update(`${DOMAIN}\u0000${nonce}`).digest();
   let plaintext: Buffer;
   try {
     const decipher = createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(tag);
-    plaintext = Buffer.concat([
-      decipher.update(ciphertext),
-      decipher.final(),
-    ]);
+    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   } catch {
     return bridgeError("encrypted payload authentication failed");
   }
