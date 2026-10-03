@@ -19,6 +19,7 @@ import type {
   PrivateRawImportSourceFamily,
   RawImportObjectFailureCode,
 } from "./private-raw-import-object-stream";
+import { StreamingCsvRecordDecoder } from "./streaming-csv-record-decoder";
 
 export type DurablePreviewStagedRow = Readonly<{
   sourceRowNumber: number;
@@ -136,97 +137,6 @@ function rowIdentity(row: AdaptedSourceRow): {
   };
 }
 
-class CsvRecordDecoder {
-  private readonly emit: (values: readonly string[]) => Promise<void>;
-  private value = "";
-  private row: string[] = [];
-  private quoted = false;
-  private afterQuote = false;
-  private pending: Promise<void> = Promise.resolve();
-
-  constructor(emit: (values: readonly string[]) => Promise<void>) {
-    this.emit = emit;
-  }
-
-  push(text: string): void {
-    for (let index = 0; index < text.length; index += 1) {
-      const character = text[index];
-      if (character === undefined) continue;
-      if (this.quoted) {
-        if (character === '"') {
-          if (text[index + 1] === '"') {
-            this.value += '"';
-            index += 1;
-          } else {
-            this.quoted = false;
-            this.afterQuote = true;
-          }
-        } else {
-          this.value += character;
-        }
-        continue;
-      }
-      if (this.afterQuote) {
-        if (character === '"') {
-          this.value += '"';
-          this.quoted = true;
-          this.afterQuote = false;
-          continue;
-        }
-        if (character === ",") {
-          this.finishValue();
-          continue;
-        }
-        if (character === "\n" || character === "\r") {
-          this.finishValue();
-          this.finishRow();
-          if (character === "\r" && text[index + 1] === "\n") index += 1;
-          continue;
-        }
-        throw new Error("CSV contains characters after a closing quote");
-      }
-      if (character === '"') {
-        if (this.value !== "") throw new Error("CSV quote is misplaced");
-        this.quoted = true;
-      } else if (character === ",") {
-        this.finishValue();
-      } else if (character === "\n" || character === "\r") {
-        this.finishValue();
-        this.finishRow();
-        if (character === "\r" && text[index + 1] === "\n") index += 1;
-      } else {
-        this.value += character;
-      }
-    }
-  }
-
-  async finish(): Promise<void> {
-    if (this.quoted) throw new Error("CSV has an unterminated quoted value");
-    if (this.value !== "" || this.row.length > 0 || this.afterQuote) {
-      this.finishValue();
-      this.finishRow();
-    }
-    await this.pending;
-  }
-
-  async settled(): Promise<void> {
-    await this.pending;
-  }
-
-  private finishValue(): void {
-    this.row.push(this.value);
-    this.value = "";
-    this.afterQuote = false;
-  }
-
-  private finishRow(): void {
-    const row = this.row;
-    this.row = [];
-    if (row.length === 1 && row[0] === "") return;
-    this.pending = this.pending.then(() => this.emit(row));
-  }
-}
-
 function previewSummary(input: {
   uploadManifestFingerprintSha256: string;
   objects: readonly StagedImportPreviewObject[];
@@ -327,7 +237,7 @@ export function createDurableImportPreviewStagingSink(input: {
       }
       let header = new Uint8Array();
       let decoder: TextDecoder | null = null;
-      let csv: CsvRecordDecoder | null = null;
+      let csv: StreamingCsvRecordDecoder | null = null;
       let schema: StagedSourceSchema | null = null;
       let rowNumber = 0;
       let pendingRows: DurablePreviewStagedRow[] = [];
@@ -360,7 +270,7 @@ export function createDurableImportPreviewStagingSink(input: {
           schema.encoding === "windows_1252" ? "windows-1252" : "utf-8",
           { fatal: true },
         );
-        const initializedCsv = new CsvRecordDecoder(emit);
+        const initializedCsv = new StreamingCsvRecordDecoder(emit);
         decoder = initializedDecoder;
         csv = initializedCsv;
         return { decoder: initializedDecoder, csv: initializedCsv };
