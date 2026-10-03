@@ -16,6 +16,21 @@ const validEnvironment = {
   DNA_DATABASE_OWNER_ID: "database-owner-id",
   DNA_DATABASE_RUNTIME_ROLE: "dna_app_runtime",
   ENABLE_PHASE0_REVIEW: "true",
+  CLOUDFLARE_ACCOUNT_ID: "a".repeat(32),
+  CLOUDFLARE_API_TOKEN: "cloudflare-private-token",
+  DNA_R2_ACCESS_KEY_ID: "private-r2-access-key",
+  DNA_R2_SECRET_ACCESS_KEY: "private-r2-secret-key",
+  DNA_R2_BUCKET_NAME: "dna-racing-import-preview",
+  DNA_IMPORT_QUEUE_ID: "df7408e1d697475db4dbcdda1aa3e247",
+  DNA_IMPORT_QUEUE_NAME: "dna-racing-import-preview",
+  DNA_IMPORT_DEAD_LETTER_QUEUE_NAME: "dna-racing-import-preview-dlq",
+  DNA_IMPORT_LIMIT_R2_STORAGE_BYTES: "9500000000",
+  DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS: "800000",
+  DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS: "8000000",
+  DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES: "950000000",
+  DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES: "1",
+  DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS: "0",
+  DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS: "300000",
   VERCEL_TOKEN: "vercel-private-token",
   VERCEL_ORG_ID: "team_example",
   VERCEL_PROJECT_ID: "prj_example",
@@ -45,24 +60,40 @@ function response(payload: unknown, status = 200) {
 
 describe("Vercel Preview environment synchronization", () => {
   it("keeps direct Preview bindings bounded and secret where required", () => {
-    expect(previewEnvironmentSpecification(validEnvironment)).toEqual([
-      expect.objectContaining({
-        name: "AUTHORIZED_CLERK_USER_ID",
-        visibility: "secret",
-      }),
-      expect.objectContaining({ name: "DATABASE_URL", visibility: "secret" }),
-      expect.objectContaining({
-        name: "DNA_DATABASE_OWNER_ID",
-        visibility: "secret",
-      }),
-      expect.objectContaining({
-        name: "DNA_DATABASE_RUNTIME_ROLE",
-        visibility: "config",
-      }),
-      expect.objectContaining({
-        name: "ENABLE_PHASE0_REVIEW",
-        visibility: "config",
-      }),
+    const specification = previewEnvironmentSpecification(validEnvironment);
+    expect(specification.map(({ name }) => name)).toEqual([
+      "AUTHORIZED_CLERK_USER_ID",
+      "DATABASE_URL",
+      "DNA_DATABASE_OWNER_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "DNA_R2_ACCESS_KEY_ID",
+      "DNA_R2_SECRET_ACCESS_KEY",
+      "CLOUDFLARE_ACCOUNT_ID",
+      "DNA_R2_BUCKET_NAME",
+      "DNA_IMPORT_QUEUE_ID",
+      "DNA_IMPORT_QUEUE_NAME",
+      "DNA_IMPORT_DEAD_LETTER_QUEUE_NAME",
+      "DNA_IMPORT_LIMIT_R2_STORAGE_BYTES",
+      "DNA_IMPORT_LIMIT_R2_CLASS_A_OPERATIONS",
+      "DNA_IMPORT_LIMIT_R2_CLASS_B_OPERATIONS",
+      "DNA_IMPORT_LIMIT_NEON_STORAGE_BYTES",
+      "DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES",
+      "DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS",
+      "DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS",
+      "DNA_DATABASE_RUNTIME_ROLE",
+      "ENABLE_PHASE0_REVIEW",
+    ]);
+    expect(
+      specification
+        .filter(({ visibility }) => visibility === "secret")
+        .map(({ name }) => name),
+    ).toEqual([
+      "AUTHORIZED_CLERK_USER_ID",
+      "DATABASE_URL",
+      "DNA_DATABASE_OWNER_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "DNA_R2_ACCESS_KEY_ID",
+      "DNA_R2_SECRET_ACCESS_KEY",
     ]);
   });
 
@@ -108,15 +139,15 @@ describe("Vercel Preview environment synchronization", () => {
       fetcher,
     });
 
-    expect(result).toHaveLength(7);
-    expect(runner).toHaveBeenCalledTimes(5);
+    expect(result).toHaveLength(22);
+    expect(runner).toHaveBeenCalledTimes(20);
     expect(fetcher).toHaveBeenCalledTimes(4);
     for (const [index, call] of runner.mock.calls.entries()) {
       expect(call[0]).toBe("vercel");
       expect(call[1]).toContain("preview");
       expect(call[1]).toContain("--force");
       expect(call[1]).not.toContain("--yes");
-      if (index < 3) {
+      if (index < 6) {
         expect(call[1]).toContain("--sensitive");
       } else {
         expect(call[1]).not.toContain("--sensitive");
@@ -159,7 +190,7 @@ describe("Vercel Preview environment synchronization", () => {
         fetcher,
         validateOnly: true,
       }),
-    ).resolves.toHaveLength(7);
+    ).resolves.toHaveLength(22);
     expect(runner).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[1]?.method).toBeUndefined();
