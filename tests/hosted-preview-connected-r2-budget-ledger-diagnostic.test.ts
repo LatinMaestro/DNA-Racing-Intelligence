@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 
 import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
@@ -13,7 +12,7 @@ function requiredEnvironment(name: string): string {
   if (
     value === "" ||
     value.length > 4096 ||
-    /[\\u0000-\\u001f\\u007f-\\u009f]/u.test(value)
+    /[\u0000-\u001f\u007f-\u009f]/u.test(value)
   ) {
     throw new Error(name + " is missing or invalid");
   }
