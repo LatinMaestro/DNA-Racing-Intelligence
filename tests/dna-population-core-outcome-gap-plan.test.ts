@@ -7,6 +7,12 @@ import {
   type DnaCompactCoreOutcomeEvidence,
 } from "@/lib/dna-population-core-outcome-gap-plan";
 
+const BOUNDS = Object.freeze({
+  maximumLinkedCores: 100,
+  maximumRequiredMemberships: 1_000,
+  maximumOutcomesPerSourcePerCore: 1_000,
+});
+
 function histories(
   values: readonly DnaPopulationCoreLinkedHistory[],
 ): AsyncIterable<DnaPopulationCoreLinkedHistory> {
@@ -121,6 +127,7 @@ describe("DNA population Core outcome gap plan", () => {
               }),
             ]
           : [],
+      bounds: BOUNDS,
     });
 
     expect(plan).toMatchObject({
@@ -164,6 +171,7 @@ describe("DNA population Core outcome gap plan", () => {
             elapsedMilliseconds: 60000,
           }),
         ],
+        bounds: BOUNDS,
       }),
     ).rejects.toThrow("Race Merge and API outcomes conflict");
   });
@@ -180,6 +188,7 @@ describe("DNA population Core outcome gap plan", () => {
       linkedHistories: histories([history({ coreId: 10, bike: ["race-1"] })]),
       loadRaceMergeOutcomes: async () => [exact, exact],
       loadPersistedApiOutcomes: async () => [],
+      bounds: BOUNDS,
     });
     expect(plan.replayDuplicateCount).toBe(1);
     expect(plan.missingMembershipCount).toBe(0);
@@ -198,7 +207,26 @@ describe("DNA population Core outcome gap plan", () => {
           }),
         ],
         loadPersistedApiOutcomes: async () => [],
+        bounds: BOUNDS,
       }),
     ).rejects.toThrow("Race Merge replay conflicts");
+  });
+
+  it("fails closed before an outcome source can exceed its per-Core bound", async () => {
+    const required = outcome({
+      source: "race_merge",
+      coreId: 10,
+      raceId: "race-1",
+      position: 1,
+      elapsedMilliseconds: 60_000,
+    });
+    await expect(
+      planDnaPopulationCoreOutcomeGapAcquisition({
+        linkedHistories: histories([history({ coreId: 10, bike: ["race-1"] })]),
+        loadRaceMergeOutcomes: async () => [required, required],
+        loadPersistedApiOutcomes: async () => [],
+        bounds: { ...BOUNDS, maximumOutcomesPerSourcePerCore: 1 },
+      }),
+    ).rejects.toThrow("Race Merge outcomes exceed the per-Core bound");
   });
 });
