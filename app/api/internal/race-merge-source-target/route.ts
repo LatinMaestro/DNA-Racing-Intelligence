@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  hostedImportUploadIntakeRuntime,
-} from "@/lib/hosted-import-upload-intake-runtime";
-import {
-  createRaceMergeSourceEvidenceUploadTarget,
-} from "@/lib/race-merge-source-evidence-bridge";
+import { hostedImportUploadIntakeRuntime } from "@/lib/hosted-import-upload-intake-runtime";
+import { createRaceMergeSourceEvidenceUploadTarget } from "@/lib/race-merge-source-evidence-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +24,8 @@ export async function GET(request: NextRequest) {
     return unavailable();
   }
   const ownerId = process.env.AUTHORIZED_CLERK_USER_ID?.trim() ?? "";
-  const nonce =
-    process.env.DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE?.trim() ?? "";
-  const exactDeploymentSha =
-    process.env.VERCEL_GIT_COMMIT_SHA?.trim() ?? "";
+  const nonce = process.env.DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE?.trim() ?? "";
+  const exactDeploymentSha = process.env.VERCEL_GIT_COMMIT_SHA?.trim() ?? "";
   const encryptedPayload = request.nextUrl.searchParams.get("payload") ?? "";
   if (
     ownerId === "" ||
