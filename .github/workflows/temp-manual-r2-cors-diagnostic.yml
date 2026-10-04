@@ -1,0 +1,115 @@
+name: TEMP verify manual R2 browser CORS
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify-manual-r2-cors:
+    if: github.head_ref == 'codex/verify-manual-r2-cors'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: preview
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DNA_R2_BUCKET_NAME: ${{ secrets.DNA_R2_BUCKET_NAME }}
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      PREVIEW_ORIGIN: https://dna-racing-website-6r7857z1a-latinmaestros-projects.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify exact-origin browser PUT preflight without writing
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+          const bucketName = process.env.DNA_R2_BUCKET_NAME ?? "";
+          const accessKeyId = process.env.DNA_R2_ACCESS_KEY_ID ?? "";
+          const secretAccessKey = process.env.DNA_R2_SECRET_ACCESS_KEY ?? "";
+          const origin = process.env.PREVIEW_ORIGIN ?? "";
+          if (
+            !/^[a-f0-9]{32}$/u.test(accountId) ||
+            bucketName.trim() === "" ||
+            accessKeyId.trim() === "" ||
+            secretAccessKey.trim() === "" ||
+            !/^https:\/\/dna-racing-website-[a-z0-9-]+-latinmaestros-projects\.vercel\.app$/u.test(origin)
+          ) {
+            throw new Error("Manual R2 CORS diagnostic configuration is invalid.");
+          }
+
+          const s3 = new S3Client({
+            region: "auto",
+            endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+            forcePathStyle: true,
+            requestChecksumCalculation: "WHEN_REQUIRED",
+            responseChecksumValidation: "WHEN_REQUIRED",
+            credentials: { accessKeyId, secretAccessKey },
+          });
+          const presigned = await getSignedUrl(
+            s3,
+            new PutObjectCommand({
+              Bucket: bucketName,
+              Key: `quarantine/cors-diagnostic/${process.env.GITHUB_RUN_ID}.csv`,
+              ContentType: "text/csv",
+            }),
+            { expiresIn: 600 },
+          );
+
+          let lastStatus = 0;
+          let lastOrigin = "";
+          let lastMethods = [];
+          let lastHeaders = [];
+          for (let attempt = 0; attempt < 6; attempt += 1) {
+            const response = await fetch(presigned, {
+              method: "OPTIONS",
+              headers: {
+                Origin: origin,
+                "Access-Control-Request-Method": "PUT",
+                "Access-Control-Request-Headers": "content-type",
+              },
+            });
+            lastStatus = response.status;
+            lastOrigin = response.headers.get("access-control-allow-origin") ?? "";
+            lastMethods =
+              response.headers
+                .get("access-control-allow-methods")
+                ?.split(",")
+                .map((value) => value.trim().toUpperCase()) ?? [];
+            lastHeaders =
+              response.headers
+                .get("access-control-allow-headers")
+                ?.split(",")
+                .map((value) => value.trim().toLowerCase()) ?? [];
+            if (
+              response.ok &&
+              lastOrigin === origin &&
+              lastMethods.includes("PUT") &&
+              lastHeaders.includes("content-type")
+            ) {
+              console.log("PASS manual R2 browser CORS preflight.");
+              process.exit(0);
+            }
+            if (attempt < 5) {
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+          }
+          console.log(JSON.stringify({
+            status: lastStatus,
+            originMatched: lastOrigin === origin,
+            putAllowed: lastMethods.includes("PUT"),
+            contentTypeAllowed: lastHeaders.includes("content-type"),
+          }));
+          throw new Error("Manual R2 browser CORS preflight is not active.");
+          NODE
