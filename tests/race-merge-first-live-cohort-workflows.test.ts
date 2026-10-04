@@ -79,7 +79,9 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).toContain(
       "DNA_RACE_MERGE_CORE_OUTCOME_PREVIOUS_COHORT_ORDINAL",
     );
-    expect(workflow).toContain("Acquire masked short-lived Preview owner binding");
+    expect(workflow).toContain(
+      "Acquire masked short-lived Preview owner binding",
+    );
     expect(workflow).toContain("neon@6.0.0 connection-string");
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain('echo "::add-mask::${migration_url}"');
@@ -87,7 +89,9 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).toContain(
       "dna.race_merge_core_outcome_r2_generation",
     );
-    expect(workflow).toContain("generation_id = 'owner-race-merge-outcomes-v1'");
+    expect(workflow).toContain(
+      "generation_id = 'owner-race-merge-outcomes-v1'",
+    );
     expect(workflow).toContain("state = 'complete'");
     expect(workflow).toContain("state = 'writing'");
     expect(workflow).toContain(
