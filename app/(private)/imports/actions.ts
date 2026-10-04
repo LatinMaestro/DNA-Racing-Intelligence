@@ -58,8 +58,7 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
           secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
         },
         cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
-        cloudflareAnalyticsApiToken:
-          process.env.CLOUDFLARE_ANALYTICS_API_TOKEN,
+        cloudflareAnalyticsApiToken: process.env.CLOUDFLARE_ANALYTICS_API_TOKEN,
         queueId: process.env.DNA_IMPORT_QUEUE_ID,
         capacity: {
           approvedLimits: {
