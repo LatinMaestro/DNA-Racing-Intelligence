@@ -137,12 +137,12 @@ describe("Cloudflare and Neon import capacity port", () => {
         bucketName: "dna-private-imports",
       });
     }
-    expect(
-      JSON.parse(String(operationsCall[1]?.body)).query,
-    ).toContain("DnaImportCapacityOperations");
-    expect(
-      JSON.parse(String(storageCall[1]?.body)).query,
-    ).toContain("DnaImportCapacityStorage");
+    expect(JSON.parse(String(operationsCall[1]?.body)).query).toContain(
+      "DnaImportCapacityOperations",
+    );
+    expect(JSON.parse(String(storageCall[1]?.body)).query).toContain(
+      "DnaImportCapacityStorage",
+    );
     expect(fetcher.mock.calls[2]?.[0]).toBe(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/queue-1/metrics`,
     );
@@ -181,7 +181,9 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(readNeonStorageBytes).not.toHaveBeenCalled();
   });
 
-  it("conservatively charges unknown R2 actions against both operation guards", async () => {
+  it(
+    "conservatively charges unknown R2 actions against both operation guards",
+    async () => {
     const fetcher = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(response(r2Data("FutureBillableAction")))
@@ -221,10 +223,12 @@ describe("Cloudflare and Neon import capacity port", () => {
           projectedIncrement: 2,
         },
       ]),
-    });
-  });
+    },
+  );
 
-  it("classifies split R2 operations transport failure without exposing provider detail", async () => {
+  it(
+    "classifies split R2 operations transport failure without exposing provider detail",
+    async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       if (String(input).endsWith("/client/v4/graphql")) {
         const body = JSON.parse(String(init?.body)) as { query: string };
@@ -259,7 +263,8 @@ describe("Cloudflare and Neon import capacity port", () => {
         code: "capacity_r2_operations_transport_failed",
       }),
     );
-  });
+    },
+  );
 
   it("classifies split R2 storage response failure separately", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
