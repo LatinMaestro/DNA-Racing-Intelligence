@@ -49,40 +49,14 @@ function decodeBase64Url(value: string): Buffer {
   }
 }
 
-function parsePayload(input: {
-  encryptedPayload: string;
-  bridgeNonce: string;
-  exactDeploymentSha: string;
-}): BridgePayload {
-  const nonce = input.bridgeNonce.trim().toLowerCase();
-  const exactDeploymentSha = input.exactDeploymentSha.trim().toLowerCase();
-  if (!NONCE_PATTERN.test(nonce) || !GIT_SHA_PATTERN.test(exactDeploymentSha)) {
+function authorizePayload(
+  value: Record<string, unknown>,
+  exactDeploymentShaInput: string,
+): BridgePayload {
+  const exactDeploymentSha = exactDeploymentShaInput.trim().toLowerCase();
+  if (!GIT_SHA_PATTERN.test(exactDeploymentSha)) {
     bridgeError("authority is invalid");
   }
-  const encrypted = decodeBase64Url(input.encryptedPayload);
-  if (encrypted.byteLength <= 28) bridgeError("encrypted payload is invalid");
-  const iv = encrypted.subarray(0, 12);
-  const tag = encrypted.subarray(encrypted.byteLength - 16);
-  const ciphertext = encrypted.subarray(12, encrypted.byteLength - 16);
-  const key = createHash("sha256").update(`${DOMAIN}\u0000${nonce}`).digest();
-  let plaintext: Buffer;
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(tag);
-    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  } catch {
-    return bridgeError("encrypted payload authentication failed");
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(plaintext.toString());
-  } catch {
-    return bridgeError("payload is invalid");
-  }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    bridgeError("payload is invalid");
-  }
-  const value = parsed as Record<string, unknown>;
   if (
     Object.keys(value).sort().join(",") !== "byteLength,head,ordinal,sha256"
   ) {
@@ -113,16 +87,50 @@ function parsePayload(input: {
   });
 }
 
-export async function createRaceMergeSourceEvidenceUploadTarget(
-  input: Readonly<{
-    encryptedPayload: string;
-    bridgeNonce: string;
-    exactDeploymentSha: string;
-    ownerId: string;
-    now: Date;
-    capabilities: ImportUploadIntakeCapabilities;
-  }>,
-): Promise<RaceMergeSourceEvidenceBridgeResult> {
+function parsePayload(input: {
+  encryptedPayload: string;
+  bridgeNonce: string;
+  exactDeploymentSha: string;
+}): BridgePayload {
+  const nonce = input.bridgeNonce.trim().toLowerCase();
+  if (!NONCE_PATTERN.test(nonce)) {
+    bridgeError("authority is invalid");
+  }
+  const encrypted = decodeBase64Url(input.encryptedPayload);
+  if (encrypted.byteLength <= 28) bridgeError("encrypted payload is invalid");
+  const iv = encrypted.subarray(0, 12);
+  const tag = encrypted.subarray(encrypted.byteLength - 16);
+  const ciphertext = encrypted.subarray(12, encrypted.byteLength - 16);
+  const key = createHash("sha256").update(`${DOMAIN}\u0000${nonce}`).digest();
+  let plaintext: Buffer;
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  } catch {
+    return bridgeError("encrypted payload authentication failed");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(plaintext.toString());
+  } catch {
+    return bridgeError("payload is invalid");
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    bridgeError("payload is invalid");
+  }
+  return authorizePayload(
+    parsed as Record<string, unknown>,
+    input.exactDeploymentSha,
+  );
+}
+
+async function createUploadTarget(input: Readonly<{
+  payload: BridgePayload;
+  ownerId: string;
+  now: Date;
+  capabilities: ImportUploadIntakeCapabilities;
+}>): Promise<RaceMergeSourceEvidenceBridgeResult> {
   const ownerId = input.ownerId.trim();
   if (ownerId.length < 1 || ownerId.length > 512) {
     bridgeError("owner authority is invalid");
@@ -130,21 +138,20 @@ export async function createRaceMergeSourceEvidenceUploadTarget(
   if (input.capabilities.status === "not_configured") {
     return Object.freeze({ status: "not_configured" as const });
   }
-  const payload = parsePayload(input);
-  const ordinal = String(payload.ordinal).padStart(2, "0");
+  const ordinal = String(input.payload.ordinal).padStart(2, "0");
   const prefix = "race-merge-outcome-source-v1";
   const result = await beginPrivateImportUpload({
     authenticatedOwnerId: ownerId,
     configuredOwnerId: ownerId,
-    idempotencyKey: `${prefix}-${ordinal}-${payload.sha256.slice(0, 32)}`,
+    idempotencyKey: `${prefix}-${ordinal}-${input.payload.sha256.slice(0, 32)}`,
     files: [
       {
-        clientFileId: `${prefix}-${ordinal}-${payload.sha256.slice(0, 16)}`,
+        clientFileId: `${prefix}-${ordinal}-${input.payload.sha256.slice(0, 16)}`,
         sourceFamily: "race_merge",
         originalFileName: `race-merge-source-${ordinal}.csv`,
         contentType: "text/csv",
-        byteLength: payload.byteLength,
-        sha256: payload.sha256,
+        byteLength: input.payload.byteLength,
+        sha256: input.payload.sha256,
       },
     ],
     now: input.now,
@@ -162,5 +169,51 @@ export async function createRaceMergeSourceEvidenceUploadTarget(
     objectId: result.targets[0].uploadFileId,
     targetToken: result.targets[0].targetToken,
     expiresAt: result.expiresAt,
+  });
+}
+
+export async function createRaceMergeSourceEvidenceUploadTarget(
+  input: Readonly<{
+    encryptedPayload: string;
+    bridgeNonce: string;
+    exactDeploymentSha: string;
+    ownerId: string;
+    now: Date;
+    capabilities: ImportUploadIntakeCapabilities;
+  }>,
+): Promise<RaceMergeSourceEvidenceBridgeResult> {
+  return createUploadTarget({
+    payload: parsePayload(input),
+    ownerId: input.ownerId,
+    now: input.now,
+    capabilities: input.capabilities,
+  });
+}
+
+export async function createRaceMergeSourceEvidenceUploadTargetFromMetadata(
+  input: Readonly<{
+    head: string;
+    ordinal: number;
+    byteLength: number;
+    sha256: string;
+    exactDeploymentSha: string;
+    ownerId: string;
+    now: Date;
+    capabilities: ImportUploadIntakeCapabilities;
+  }>,
+): Promise<RaceMergeSourceEvidenceBridgeResult> {
+  return createUploadTarget({
+    payload: authorizePayload(
+      {
+        head: input.head,
+        ordinal: input.ordinal,
+        byteLength: input.byteLength,
+        sha256: input.sha256,
+      },
+      input.exactDeploymentSha,
+    ),
+    ownerId: input.ownerId,
+    now: input.now,
+    capabilities: input.capabilities,
   });
 }
