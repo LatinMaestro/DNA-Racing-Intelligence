@@ -197,7 +197,7 @@ describe("Vercel Preview environment synchronization", () => {
         fetcher,
         validateOnly: true,
       }),
-    ).resolves.toHaveLength(24);
+    ).resolves.toHaveLength(25);
     expect(runner).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[1]?.method).toBeUndefined();
