@@ -172,7 +172,8 @@ describe("Cloudflare and Neon import capacity port", () => {
     const port = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
-      cloudflareApiToken: "read-only-token",
+      cloudflareApiToken: "operational-token",
+      cloudflareAnalyticsApiToken: "analytics-token",
       r2BucketName: "dna-private-imports",
       queueId: "queue-1",
       now: () => now,
@@ -191,7 +192,8 @@ describe("Cloudflare and Neon import capacity port", () => {
     const privateFailure = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
-      cloudflareApiToken: "read-only-token",
+      cloudflareApiToken: "operational-token",
+      cloudflareAnalyticsApiToken: "analytics-token",
       r2BucketName: "dna-private-imports",
       queueId: "queue-1",
       now: () => now,
