@@ -50,7 +50,8 @@ function ready() {
   const port = createCloudflareNeonImportCapacityPort({
     authorizedOwnerId: "owner-1",
     cloudflareAccountId: accountId,
-    cloudflareApiToken: "read-only-token",
+    cloudflareApiToken: "operational-token",
+    cloudflareAnalyticsApiToken: "analytics-token",
     r2BucketName: "dna-private-imports",
     queueId: "queue-1",
     now: () => now,
@@ -107,7 +108,13 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
     const graphqlCall = fetcher.mock.calls[0]!;
     expect(graphqlCall[0]).toBe("https://api.cloudflare.com/client/v4/graphql");
-    expect(graphqlCall[1]).toMatchObject({ method: "POST", cache: "no-store" });
+    expect(graphqlCall[1]).toMatchObject({
+      method: "POST",
+      cache: "no-store",
+      headers: expect.objectContaining({
+        Authorization: "Bearer analytics-token",
+      }),
+    });
     const body = JSON.parse(String(graphqlCall[1]?.body)) as {
       variables: Record<string, string>;
     };
@@ -120,6 +127,13 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(fetcher.mock.calls[1]?.[0]).toBe(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/queue-1/metrics`,
     );
+    expect(fetcher.mock.calls[1]?.[1]).toMatchObject({
+      method: "GET",
+      cache: "no-store",
+      headers: expect.objectContaining({
+        Authorization: "Bearer operational-token",
+      }),
+    });
   });
 
   it("denies another owner before any provider access", async () => {
@@ -204,7 +218,8 @@ describe("Cloudflare and Neon import capacity port", () => {
       createCloudflareNeonImportCapacityPort({
         authorizedOwnerId: "owner-1",
         cloudflareAccountId: "invalid",
-        cloudflareApiToken: "read-only-token",
+        cloudflareApiToken: "operational-token",
+        cloudflareAnalyticsApiToken: "analytics-token",
         r2BucketName: "dna-private-imports",
         queueId: "queue-1",
         fetch: fetcher,
