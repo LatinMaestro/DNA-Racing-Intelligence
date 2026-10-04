@@ -135,9 +135,7 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "dna-import-workspace-runtime-grants-preview-migration.yml",
     );
-    expect(workflow).toContain(
-      '"import-workspace-runtime-grants-migration"',
-    );
+    expect(workflow).toContain('"import-workspace-runtime-grants-migration"');
     expect(workflow).toContain(
       "dna-race-merge-core-outcome-r2-preview-migration.yml",
     );
