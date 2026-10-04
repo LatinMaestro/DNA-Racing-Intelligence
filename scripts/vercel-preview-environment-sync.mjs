@@ -66,6 +66,10 @@ export function previewEnvironmentSpecification(environment) {
     throw new Error("CLOUDFLARE_ACCOUNT_ID is invalid");
   }
   const cloudflareApiToken = requiredValue(environment, "CLOUDFLARE_API_TOKEN");
+  const cloudflareAnalyticsApiToken = requiredValue(
+    environment,
+    "CLOUDFLARE_ANALYTICS_API_TOKEN",
+  );
   const r2AccessKeyId = requiredValue(environment, "DNA_R2_ACCESS_KEY_ID");
   const r2SecretAccessKey = requiredValue(
     environment,
@@ -134,6 +138,11 @@ export function previewEnvironmentSpecification(environment) {
     {
       name: "CLOUDFLARE_API_TOKEN",
       value: cloudflareApiToken,
+      visibility: "secret",
+    },
+    {
+      name: "CLOUDFLARE_ANALYTICS_API_TOKEN",
+      value: cloudflareAnalyticsApiToken,
       visibility: "secret",
     },
     {

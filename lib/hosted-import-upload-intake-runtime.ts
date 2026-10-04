@@ -22,6 +22,7 @@ export type HostedImportUploadIntakeRuntimeEnvironment =
           secretAccessKey: string | undefined;
         }>;
       cloudflareApiToken: string | undefined;
+      cloudflareAnalyticsApiToken: string | undefined;
       queueId: string | undefined;
     }>;
 
@@ -58,6 +59,9 @@ export function hostedImportUploadIntakeRuntime(input: {
     input.environment.database.databaseOwnerId?.trim() ?? "";
   const runtimeRole = input.environment.database.runtimeRole?.trim() ?? "";
   const cloudflareApiToken = secret(input.environment.cloudflareApiToken);
+  const cloudflareAnalyticsApiToken = secret(
+    input.environment.cloudflareAnalyticsApiToken,
+  );
   const r2AccessKeyId = secret(input.environment.r2.accessKeyId);
   const r2SecretAccessKey = secret(input.environment.r2.secretAccessKey);
   const queueId = identifier(input.environment.queueId);
@@ -68,6 +72,7 @@ export function hostedImportUploadIntakeRuntime(input: {
     databaseOwnerId === "" ||
     runtimeRole === "" ||
     cloudflareApiToken === null ||
+    cloudflareAnalyticsApiToken === null ||
     r2AccessKeyId === null ||
     r2SecretAccessKey === null ||
     queueId === null
@@ -96,7 +101,7 @@ export function hostedImportUploadIntakeRuntime(input: {
         createCloudflareNeonImportCapacityPort({
           authorizedOwnerId: ownerId,
           cloudflareAccountId: input.environment.r2.accountId ?? "",
-          cloudflareApiToken,
+          cloudflareApiToken: cloudflareAnalyticsApiToken,
           r2BucketName: input.environment.r2.bucketName ?? "",
           queueId,
           now,

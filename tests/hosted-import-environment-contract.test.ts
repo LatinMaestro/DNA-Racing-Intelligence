@@ -38,6 +38,7 @@ describe("hosted import environment contract", () => {
       "DNA_DATABASE_RUNTIME_ROLE",
       "CLOUDFLARE_ACCOUNT_ID",
       "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ANALYTICS_API_TOKEN",
       "DNA_R2_BUCKET_NAME",
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",

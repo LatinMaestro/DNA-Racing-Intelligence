@@ -25,6 +25,7 @@ function environment(): HostedImportUploadIntakeRuntimeEnvironment {
       secretAccessKey: "private-secret-key",
     },
     cloudflareApiToken: "read-only-cloudflare-token",
+    cloudflareAnalyticsApiToken: "analytics-cloudflare-token",
     queueId: "dna-import-preview",
     capacity: {
       approvedLimits,
@@ -55,6 +56,13 @@ describe("hosted upload-intake runtime", () => {
       (value: HostedImportUploadIntakeRuntimeEnvironment) => ({
         ...value,
         cloudflareApiToken: "token\nwith-control-character",
+      }),
+    ],
+    [
+      "Cloudflare analytics API token",
+      (value: HostedImportUploadIntakeRuntimeEnvironment) => ({
+        ...value,
+        cloudflareAnalyticsApiToken: "token\nwith-control-character",
       }),
     ],
     [

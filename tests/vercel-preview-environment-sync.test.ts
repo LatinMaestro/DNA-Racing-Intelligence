@@ -18,6 +18,7 @@ const validEnvironment = {
   ENABLE_PHASE0_REVIEW: "true",
   CLOUDFLARE_ACCOUNT_ID: "a".repeat(32),
   CLOUDFLARE_API_TOKEN: "cloudflare-private-token",
+  CLOUDFLARE_ANALYTICS_API_TOKEN: "cloudflare-analytics-private-token",
   DNA_R2_ACCESS_KEY_ID: "private-r2-access-key",
   DNA_R2_SECRET_ACCESS_KEY: "private-r2-secret-key",
   DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED: "true",
@@ -68,6 +69,7 @@ describe("Vercel Preview environment synchronization", () => {
       "DATABASE_URL",
       "DNA_DATABASE_OWNER_ID",
       "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ANALYTICS_API_TOKEN",
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",
       "CLOUDFLARE_ACCOUNT_ID",
@@ -96,6 +98,7 @@ describe("Vercel Preview environment synchronization", () => {
       "DATABASE_URL",
       "DNA_DATABASE_OWNER_ID",
       "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ANALYTICS_API_TOKEN",
       "DNA_R2_ACCESS_KEY_ID",
       "DNA_R2_SECRET_ACCESS_KEY",
     ]);
@@ -143,15 +146,15 @@ describe("Vercel Preview environment synchronization", () => {
       fetcher,
     });
 
-    expect(result).toHaveLength(24);
-    expect(runner).toHaveBeenCalledTimes(22);
+    expect(result).toHaveLength(25);
+    expect(runner).toHaveBeenCalledTimes(23);
     expect(fetcher).toHaveBeenCalledTimes(4);
     for (const [index, call] of runner.mock.calls.entries()) {
       expect(call[0]).toBe("vercel");
       expect(call[1]).toContain("preview");
       expect(call[1]).toContain("--force");
       expect(call[1]).not.toContain("--yes");
-      if (index < 6) {
+      if (index < 7) {
         expect(call[1]).toContain("--sensitive");
       } else {
         expect(call[1]).not.toContain("--sensitive");
@@ -194,7 +197,7 @@ describe("Vercel Preview environment synchronization", () => {
         fetcher,
         validateOnly: true,
       }),
-    ).resolves.toHaveLength(24);
+    ).resolves.toHaveLength(25);
     expect(runner).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[1]?.method).toBeUndefined();
