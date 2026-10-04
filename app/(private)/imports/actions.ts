@@ -58,6 +58,8 @@ function ownerActionDependencies(): ImportOwnerActionDependencies {
           secretAccessKey: process.env.DNA_R2_SECRET_ACCESS_KEY,
         },
         cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN,
+        cloudflareAnalyticsApiToken:
+          process.env.CLOUDFLARE_ANALYTICS_API_TOKEN,
         queueId: process.env.DNA_IMPORT_QUEUE_ID,
         capacity: {
           approvedLimits: {
@@ -123,6 +125,7 @@ function confirmationActionDependencies(): ImportConfirmationActionDependencies 
         cloudflare: {
           accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
           apiToken: process.env.CLOUDFLARE_API_TOKEN,
+          analyticsApiToken: process.env.CLOUDFLARE_ANALYTICS_API_TOKEN,
           r2BucketName: process.env.DNA_R2_BUCKET_NAME,
           queueId: process.env.DNA_IMPORT_QUEUE_ID,
           queueName: process.env.DNA_IMPORT_QUEUE_NAME,
