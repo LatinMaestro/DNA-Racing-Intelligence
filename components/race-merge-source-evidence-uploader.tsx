@@ -29,6 +29,18 @@ function serverFailureText(code: RaceMergeSourceUploadFailureCode): string {
       return "Cloudflare rejected the R2 analytics capacity request";
     case "capacity_r2_analytics_response_invalid":
       return "Cloudflare returned an unusable R2 analytics capacity response";
+    case "capacity_r2_operations_transport_failed":
+      return "the server could not reach Cloudflare R2 operations analytics";
+    case "capacity_r2_operations_http_rejected":
+      return "Cloudflare rejected the R2 operations analytics request";
+    case "capacity_r2_operations_response_invalid":
+      return "Cloudflare returned an unusable R2 operations analytics response";
+    case "capacity_r2_storage_transport_failed":
+      return "the server could not reach Cloudflare R2 storage analytics";
+    case "capacity_r2_storage_http_rejected":
+      return "Cloudflare rejected the R2 storage analytics request";
+    case "capacity_r2_storage_response_invalid":
+      return "Cloudflare returned an unusable R2 storage analytics response";
     case "capacity_queue_metrics_transport_failed":
       return "the server could not reach Cloudflare Queue metrics";
     case "capacity_queue_metrics_http_rejected":
