@@ -318,10 +318,8 @@ export function raceMergeCoreOutcomeConnectedRuntimeFromEnvironment(
         const next = await execute({
           generationId: input.generationId,
           cohortOrdinal: input.previousCohortOrdinal + 1,
-          afterSourceCoreId:
-            previousGeneration.authority.lastSourceCoreId,
-          maximumCores:
-            RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
+          afterSourceCoreId: previousGeneration.authority.lastSourceCoreId,
+          maximumCores: RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
           references: input.references,
           bounds: input.bounds,
         });
