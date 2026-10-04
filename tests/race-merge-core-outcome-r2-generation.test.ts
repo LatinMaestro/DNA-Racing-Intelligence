@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   commitRaceMergeCoreOutcomeR2Generation,
+  raceMergeCoreOutcomeR2ReceiptSetSha256,
+  readCompleteRaceMergeCoreOutcomeR2Generation,
   type RaceMergeCoreOutcomeR2CapacityGate,
   type RaceMergeCoreOutcomeR2GenerationAuthority,
   type RaceMergeCoreOutcomeR2GenerationCheckpoint,
@@ -422,4 +424,108 @@ describe("Race Merge Core outcome R2 generation", () => {
     expect(test.capacityGate.assertFreshCurrentCapacity).not.toHaveBeenCalled();
     expect(test.objects.size).toBe(0);
   });
+  it("derives continuation only from one complete durable 100-Core page", async () => {
+    const manifests = Object.freeze(
+      Array.from({ length: 100 }, (_, index) => {
+        const sourceCoreId = index + 1;
+        const sourceRaceId = `race-${String(sourceCoreId).padStart(3, "0")}`;
+        return Object.freeze({
+          version: 1 as const,
+          generationId: "race-merge-generation-1",
+          sourceCoreId,
+          objectKey: `private/outcomes/${sourceCoreId}.jsonl`,
+          bodySha256: sourceCoreId.toString(16).padStart(64, "0"),
+          byteLength: 10,
+          uniqueOutcomeCount: 1,
+          sourceObservationCount: 1,
+          firstSourceRaceId: sourceRaceId,
+          lastSourceRaceId: sourceRaceId,
+          registeredAt: REGISTERED_AT,
+        });
+      }),
+    );
+    const receiptSetSha256 =
+      raceMergeCoreOutcomeR2ReceiptSetSha256(manifests);
+    const begin = vi.fn(async (_ownerId, request) =>
+      Object.freeze({
+        ...request.authority,
+        status: "complete" as const,
+        registeredCoreCount: 100,
+        registeredUniqueOutcomeCount: 100,
+        registeredSourceObservationCount: 100,
+        registeredR2Bytes: 1_000,
+        lastRegisteredSourceCoreId: 100,
+        completedReceiptSetSha256: receiptSetSha256,
+        startedAt: STARTED_AT,
+        updatedAt: REGISTERED_AT,
+      }),
+    );
+    const repository: RaceMergeCoreOutcomeR2GenerationRepository =
+      Object.freeze({
+        begin,
+        async registerCore() {
+          throw new Error("unexpected register");
+        },
+        async finalize() {
+          throw new Error("unexpected finalize");
+        },
+        async listManifests(_ownerId, request) {
+          return manifests
+            .filter(
+              (manifest) =>
+                manifest.sourceCoreId > request.afterSourceCoreId,
+            )
+            .slice(0, request.limit);
+        },
+      });
+
+    const result =
+      await readCompleteRaceMergeCoreOutcomeR2Generation({
+        ownerId: "private-owner",
+        generationId: "race-merge-generation-1",
+        cohortOrdinal: 1,
+        repository,
+      });
+
+    expect(result.authority).toMatchObject({
+      cohortOrdinal: 1,
+      firstSourceCoreId: 1,
+      lastSourceCoreId: 100,
+      coreCount: 100,
+      uniqueOutcomeCount: 100,
+      sourceObservationCount: 100,
+      retainedR2Bytes: 1_000,
+      receiptSetSha256,
+    });
+    expect(result.checkpoint.status).toBe("complete");
+    expect(begin).toHaveBeenCalledOnce();
+  });
+
+  it("refuses continuation from an incomplete predecessor page", async () => {
+    const begin = vi.fn();
+    const repository: RaceMergeCoreOutcomeR2GenerationRepository =
+      Object.freeze({
+        begin,
+        async registerCore() {
+          throw new Error("unexpected register");
+        },
+        async finalize() {
+          throw new Error("unexpected finalize");
+        },
+        async listManifests() {
+          return [];
+        },
+      });
+
+    await expect(
+      readCompleteRaceMergeCoreOutcomeR2Generation({
+        ownerId: "private-owner",
+        generationId: "race-merge-generation-1",
+        cohortOrdinal: 1,
+        repository,
+      }),
+    ).rejects.toThrow("previous cohort is not a complete bounded page");
+    expect(begin).not.toHaveBeenCalled();
+  });
+
 });
