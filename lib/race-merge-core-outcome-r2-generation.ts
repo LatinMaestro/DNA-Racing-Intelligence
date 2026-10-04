@@ -344,14 +344,19 @@ export async function commitRaceMergeCoreOutcomeR2Generation(input: {
   store: RaceMergeCoreOutcomeR2GenerationStore;
   repository: RaceMergeCoreOutcomeR2GenerationRepository;
   startedAt: string;
-  registeredAt: string;
+  registeredAt?: string;
+  registrationClock?: () => Date;
 }): Promise<RaceMergeCoreOutcomeR2GenerationResult> {
   const ownerId = identifier(input.ownerId, "ownerId");
   const generationId = identifier(input.generationId, "generationId");
   const cohortOrdinal = positiveInteger(input.cohortOrdinal, "cohortOrdinal");
   const startedAt = timestamp(input.startedAt, "startedAt");
-  const registeredAt = timestamp(input.registeredAt, "registeredAt");
-  if (registeredAt < startedAt) fail("registeredAt precedes startedAt");
+  if (
+    (input.registeredAt === undefined) ===
+    (input.registrationClock === undefined)
+  ) {
+    fail("registration time authority is invalid");
+  }
 
   const orderedCores = [...input.cores].sort(
     (left, right) => left.sourceCoreId - right.sourceCoreId,
@@ -387,6 +392,22 @@ export async function commitRaceMergeCoreOutcomeR2Generation(input: {
     await input.capacityGate.assertFreshCurrentCapacity(authority);
   const measuredAt = timestamp(approval.measuredAt, "capacity measuredAt");
   const validUntil = timestamp(approval.validUntil, "capacity validUntil");
+  let registeredAt: string;
+  if (input.registrationClock !== undefined) {
+    let value: Date;
+    try {
+      value = input.registrationClock();
+    } catch {
+      fail("registration clock is invalid");
+    }
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+      fail("registration clock is invalid");
+    }
+    registeredAt = value.toISOString();
+  } else {
+    registeredAt = timestamp(input.registeredAt, "registeredAt");
+  }
+  if (registeredAt < startedAt) fail("registeredAt precedes startedAt");
   if (
     approval.version !== 1 ||
     approval.generationId !== generationId ||

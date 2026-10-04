@@ -179,8 +179,9 @@ describe("Race Merge source evidence bridge", () => {
       byteLength: 1024,
       sha256: "e".repeat(64),
     });
-    const tampered =
-      encrypted.slice(0, -1) + (encrypted.endsWith("A") ? "B" : "A");
+    const tamperedBytes = Buffer.from(encrypted, "base64url");
+    tamperedBytes[Math.floor(tamperedBytes.length / 2)] ^= 0x01;
+    const tampered = tamperedBytes.toString("base64url");
 
     await expect(
       createRaceMergeSourceEvidenceUploadTarget({

@@ -320,6 +320,52 @@ describe("Race Merge Core outcome R2 generation", () => {
     ).toHaveLength(1);
   });
 
+  it("captures the durable registration timestamp after fresh capacity approval", async () => {
+    const test = harness();
+    vi.mocked(
+      test.capacityGate.assertFreshCurrentCapacity,
+    ).mockImplementationOnce(async (authority) => {
+      test.events.push("capacity-late");
+      return {
+        version: 1,
+        generationId: authority.generationId,
+        cohortOrdinal: authority.cohortOrdinal,
+        receiptSetSha256: authority.receiptSetSha256,
+        retainedR2Bytes: authority.retainedR2Bytes,
+        measuredAt: "2026-10-03T10:00:30.000Z",
+        validUntil: "2026-10-03T10:05:00.000Z",
+        capacityAllowed: true,
+        projectedPaidCostAud: 0,
+      };
+    });
+    const fixed = request(test);
+    const registrationClock = vi.fn(() => {
+      test.events.push("registration-clock");
+      return new Date(REGISTERED_AT);
+    });
+
+    const result = await commitRaceMergeCoreOutcomeR2Generation({
+      ownerId: fixed.ownerId,
+      generationId: fixed.generationId,
+      cohortOrdinal: fixed.cohortOrdinal,
+      cores: fixed.cores,
+      capacityGate: fixed.capacityGate,
+      store: fixed.store,
+      repository: fixed.repository,
+      startedAt: fixed.startedAt,
+      registrationClock,
+    });
+
+    expect(result.capacityMeasuredAt).toBe("2026-10-03T10:00:30.000Z");
+    expect(registrationClock).toHaveBeenCalledOnce();
+    expect(test.events.indexOf("registration-clock")).toBeGreaterThan(
+      test.events.indexOf("capacity-late"),
+    );
+    expect(test.events.indexOf("registration-clock")).toBeLessThan(
+      test.events.indexOf("r2-101"),
+    );
+  });
+
   it("fails before R2 and checkpoints when fresh capacity does not bind exact bytes", async () => {
     const test = harness();
     vi.mocked(
