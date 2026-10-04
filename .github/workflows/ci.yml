@@ -347,6 +347,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.up.sql
       - name: Run Race Merge Core outcome R2 manifest smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.smoke.sql
+      - name: Apply Imports dataset version read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_dataset_version_read.up.sql
+      - name: Run Imports dataset version read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_dataset_version_read.smoke.sql
+      - name: Reverse Imports dataset version read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_dataset_version_read.down.sql
+      - name: Verify Imports dataset version read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_dataset_version_read.removal.sql
       - name: Reverse Race Merge Core outcome R2 manifest migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.down.sql
       - name: Verify Race Merge Core outcome R2 manifest removal
