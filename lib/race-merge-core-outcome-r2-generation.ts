@@ -323,6 +323,71 @@ async function manifests(input: {
   return Object.freeze(output);
 }
 
+export type RaceMergeCoreOutcomeR2CompletedBoundary = Readonly<{
+  authority: RaceMergeCoreOutcomeR2GenerationAuthority;
+  checkpoint: RaceMergeCoreOutcomeR2GenerationCheckpoint;
+  manifests: readonly RaceMergeCoreOutcomeR2Manifest[];
+}>;
+
+/**
+ * Reconstructs and verifies one completed, full predecessor cohort from its
+ * immutable manifests. The idempotent begin boundary returns the existing
+ * checkpoint and fails closed if the manifest-derived authority disagrees.
+ */
+export async function readCompleteRaceMergeCoreOutcomeR2Generation(input: {
+  ownerId: string;
+  generationId: string;
+  cohortOrdinal: number;
+  repository: RaceMergeCoreOutcomeR2GenerationRepository;
+}): Promise<RaceMergeCoreOutcomeR2CompletedBoundary> {
+  const ownerId = identifier(input.ownerId, "ownerId");
+  const generationId = identifier(input.generationId, "generationId");
+  const cohortOrdinal = positiveInteger(
+    input.cohortOrdinal,
+    "cohortOrdinal",
+  );
+  const existing = await input.repository.listManifests(ownerId, {
+    generationId,
+    cohortOrdinal,
+    afterSourceCoreId: 0,
+    limit: RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
+  });
+  if (
+    existing.length !== RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES
+  ) {
+    fail("previous cohort is not a complete bounded page");
+  }
+  const tail = await input.repository.listManifests(ownerId, {
+    generationId,
+    cohortOrdinal,
+    afterSourceCoreId: existing.at(-1)!.sourceCoreId,
+    limit: 1,
+  });
+  if (tail.length !== 0) {
+    fail("previous cohort exceeds its bounded page");
+  }
+  const authority = authorityFor({
+    generationId,
+    cohortOrdinal,
+    receipts: existing,
+  });
+  const checkpoint = await input.repository.begin(ownerId, {
+    authority,
+    startedAt: existing[0]!.registeredAt,
+  });
+  validateCheckpoint({
+    checkpoint,
+    authority,
+    expectedReceipts: existing,
+    expectedStatus: "complete",
+  });
+  return Object.freeze({
+    authority,
+    checkpoint,
+    manifests: Object.freeze([...existing]),
+  });
+}
+
 /**
  * Commits one exact, bounded Race Merge Core-outcome cohort.
  *
