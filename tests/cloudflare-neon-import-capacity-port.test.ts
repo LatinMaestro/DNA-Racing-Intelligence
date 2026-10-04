@@ -46,6 +46,7 @@ function ready() {
   const fetcher = vi
     .fn<typeof globalThis.fetch>()
     .mockResolvedValueOnce(response(r2Data()))
+    .mockResolvedValueOnce(response(r2Data()))
     .mockResolvedValueOnce(
       response({ success: true, result: { backlog_count: 4 } }),
     );
@@ -108,29 +109,44 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(readNeonStorageBytes).toHaveBeenCalledExactlyOnceWith({
       ownerId: "owner-1",
     });
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    const graphqlCall = fetcher.mock.calls[0]!;
-    expect(graphqlCall[0]).toBe("https://api.cloudflare.com/client/v4/graphql");
-    expect(graphqlCall[1]).toMatchObject({
-      method: "POST",
-      cache: "no-store",
-      headers: expect.objectContaining({
-        Authorization: "Bearer analytics-token",
-      }),
-    });
-    const body = JSON.parse(String(graphqlCall[1]?.body)) as {
-      variables: Record<string, string>;
-    };
-    expect(body.variables).toEqual({
-      accountTag: accountId,
-      startDate: "2026-08-01T00:00:00.000Z",
-      endDate: now.toISOString(),
-      bucketName: "dna-private-imports",
-    });
-    expect(fetcher.mock.calls[1]?.[0]).toBe(
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    const operationsCall = fetcher.mock.calls[0]!;
+    const storageCall = fetcher.mock.calls[1]!;
+    expect(operationsCall[0]).toBe(
+      "https://api.cloudflare.com/client/v4/graphql",
+    );
+    expect(storageCall[0]).toBe(
+      "https://api.cloudflare.com/client/v4/graphql",
+    );
+    for (const graphqlCall of [operationsCall, storageCall]) {
+      expect(graphqlCall[1]).toMatchObject({
+        method: "POST",
+        cache: "no-store",
+        headers: expect.objectContaining({
+          Authorization: "Bearer analytics-token",
+        }),
+      });
+      const body = JSON.parse(String(graphqlCall[1]?.body)) as {
+        query: string;
+        variables: Record<string, string>;
+      };
+      expect(body.variables).toEqual({
+        accountTag: accountId,
+        startDate: "2026-08-01T00:00:00.000Z",
+        endDate: now.toISOString(),
+        bucketName: "dna-private-imports",
+      });
+    }
+    expect(
+      JSON.parse(String(operationsCall[1]?.body)).query,
+    ).toContain("DnaImportCapacityOperations");
+    expect(
+      JSON.parse(String(storageCall[1]?.body)).query,
+    ).toContain("DnaImportCapacityStorage");
+    expect(fetcher.mock.calls[2]?.[0]).toBe(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/queue-1/metrics`,
     );
-    expect(fetcher.mock.calls[1]?.[1]).toMatchObject({
+    expect(fetcher.mock.calls[2]?.[1]).toMatchObject({
       method: "GET",
       cache: "no-store",
       headers: expect.objectContaining({
@@ -165,14 +181,15 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(readNeonStorageBytes).not.toHaveBeenCalled();
   });
 
-  it("classifies R2 analytics failures without exposing provider detail", async () => {
-    const unknownFetcher = vi
+  it("conservatively charges unknown R2 actions against both operation guards", async () => {
+    const fetcher = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(response(r2Data("UnknownOperation")))
+      .mockResolvedValueOnce(response(r2Data("FutureBillableAction")))
+      .mockResolvedValueOnce(response(r2Data()))
       .mockResolvedValueOnce(
         response({ success: true, result: { backlog_count: 0 } }),
       );
-    const invalidResponse = createCloudflareNeonImportCapacityPort({
+    const port = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
       cloudflareApiToken: "operational-token",
@@ -180,22 +197,45 @@ describe("Cloudflare and Neon import capacity port", () => {
       r2BucketName: "dna-private-imports",
       queueId: "queue-1",
       now: () => now,
-      fetch: unknownFetcher,
+      fetch: fetcher,
       readNeonStorageBytes: async () => 0,
     });
+
     await expect(
-      invalidResponse.measureUploadProjection({
+      port.measureUploadProjection({
         ownerId: "owner-1",
         fileCount: 1,
         totalByteLength: 1,
         sourceFamilies: ["core_details"],
       }),
-    ).rejects.toMatchObject({
-      name: "HostedImportCapacityMeasurementError",
-      code: "capacity_r2_analytics_response_invalid",
+    ).resolves.toMatchObject({
+      resources: expect.arrayContaining([
+        {
+          resource: "r2_class_a_operations",
+          currentUsage: 11,
+          projectedIncrement: 1,
+        },
+        {
+          resource: "r2_class_b_operations",
+          currentUsage: 18,
+          projectedIncrement: 2,
+        },
+      ]),
     });
+  });
 
-    const transportFailure = createCloudflareNeonImportCapacityPort({
+  it("classifies split R2 operations transport failure without exposing provider detail", async () => {
+    const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      if (String(input).endsWith("/client/v4/graphql")) {
+        const body = JSON.parse(String(init?.body)) as { query: string };
+        if (body.query.includes("DnaImportCapacityOperations")) {
+          throw new Error("private provider detail");
+        }
+        return response(r2Data());
+      }
+      return response({ success: true, result: { backlog_count: 0 } });
+    });
+    const port = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
       cloudflareApiToken: "operational-token",
@@ -203,16 +243,12 @@ describe("Cloudflare and Neon import capacity port", () => {
       r2BucketName: "dna-private-imports",
       queueId: "queue-1",
       now: () => now,
-      fetch: vi.fn(async (input) => {
-        if (String(input).endsWith("/client/v4/graphql")) {
-          throw new Error("private provider detail");
-        }
-        return response({ success: true, result: { backlog_count: 0 } });
-      }),
+      fetch: fetcher,
       readNeonStorageBytes: async () => 0,
     });
+
     await expect(
-      transportFailure.measureUploadProjection({
+      port.measureUploadProjection({
         ownerId: "owner-1",
         fileCount: 1,
         totalByteLength: 1,
@@ -220,9 +256,43 @@ describe("Cloudflare and Neon import capacity port", () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining<Partial<HostedImportCapacityMeasurementError>>({
-        code: "capacity_r2_analytics_transport_failed",
+        code: "capacity_r2_operations_transport_failed",
       }),
     );
+  });
+
+  it("classifies split R2 storage response failure separately", async () => {
+    const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      if (String(input).endsWith("/client/v4/graphql")) {
+        const body = JSON.parse(String(init?.body)) as { query: string };
+        return body.query.includes("DnaImportCapacityStorage")
+          ? response({ data: { viewer: { accounts: [] } } })
+          : response(r2Data());
+      }
+      return response({ success: true, result: { backlog_count: 0 } });
+    });
+    const port = createCloudflareNeonImportCapacityPort({
+      authorizedOwnerId: "owner-1",
+      cloudflareAccountId: accountId,
+      cloudflareApiToken: "operational-token",
+      cloudflareAnalyticsApiToken: "analytics-token",
+      r2BucketName: "dna-private-imports",
+      queueId: "queue-1",
+      now: () => now,
+      fetch: fetcher,
+      readNeonStorageBytes: async () => 0,
+    });
+
+    await expect(
+      port.measureUploadProjection({
+        ownerId: "owner-1",
+        fileCount: 1,
+        totalByteLength: 1,
+        sourceFamilies: ["race_merge"],
+      }),
+    ).rejects.toMatchObject({
+      code: "capacity_r2_storage_response_invalid",
+    });
   });
 
   it("classifies Queue metrics rejection separately", async () => {
@@ -259,6 +329,7 @@ describe("Cloudflare and Neon import capacity port", () => {
   it("classifies Neon runtime storage measurement failure separately", async () => {
     const fetcher = vi
       .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(response(r2Data()))
       .mockResolvedValueOnce(response(r2Data()))
       .mockResolvedValueOnce(
         response({ success: true, result: { backlog_count: 0 } }),
