@@ -152,6 +152,45 @@ describe("Race Merge Core outcome R2 store", () => {
     ]);
   });
 
+  it("uses the same binary Race ID order for storage and integrity checks", async () => {
+    const target = storage();
+    const store = createRaceMergeCoreOutcomeR2Store({
+      ownerId: "private-owner",
+      bucketName: "private-preview",
+      storage: target.value,
+    });
+
+    const write = await store.write({
+      generationId: "generation-1",
+      sourceCoreId: 101,
+      observations: [
+        observation(101, "race-a", 1, 9_500, "a".repeat(64), 2),
+        observation(101, "race-Z", 2, 12_345, "a".repeat(64), 1),
+      ],
+    });
+
+    expect(write.receipt).toMatchObject({
+      firstSourceRaceId: "race-Z",
+      lastSourceRaceId: "race-a",
+    });
+    await expect(store.read(write.receipt)).resolves.toEqual([
+      {
+        source: "race_merge",
+        sourceCoreId: 101,
+        sourceRaceId: "race-Z",
+        finishPosition: 2,
+        elapsedMilliseconds: 12_345,
+      },
+      {
+        source: "race_merge",
+        sourceCoreId: 101,
+        sourceRaceId: "race-a",
+        finishPosition: 1,
+        elapsedMilliseconds: 9_500,
+      },
+    ]);
+  });
+
   it("rejects conflicting Race/Core evidence before writing R2", async () => {
     const target = storage();
     const store = createRaceMergeCoreOutcomeR2Store({
