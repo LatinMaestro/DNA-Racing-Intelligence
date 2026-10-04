@@ -2,7 +2,10 @@ import { createCipheriv, createHash, randomBytes } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { createRaceMergeSourceEvidenceUploadTarget } from "@/lib/race-merge-source-evidence-bridge";
+import {
+  createRaceMergeSourceEvidenceUploadTarget,
+  createRaceMergeSourceEvidenceUploadTargetFromMetadata,
+} from "@/lib/race-merge-source-evidence-bridge";
 import type { ImportUploadIntakeCapabilities } from "@/lib/import-upload-intake-service";
 
 const OWNER = "owner-1";
@@ -102,6 +105,70 @@ describe("Race Merge source evidence bridge", () => {
         ],
       }),
     );
+  });
+
+  it("accepts exact deployment-protected metadata without the bridge nonce", async () => {
+    const ready = capabilities();
+    const result = await createRaceMergeSourceEvidenceUploadTargetFromMetadata({
+      head: HEAD,
+      ordinal: 4,
+      byteLength: 71_629_215,
+      sha256: "a".repeat(64),
+      exactDeploymentSha: HEAD,
+      ownerId: OWNER,
+      now: new Date("2026-10-04T00:00:00.000Z"),
+      capabilities: ready,
+    });
+
+    expect(result).toMatchObject({
+      status: "ready",
+      objectId: "upload-file-1",
+      targetToken: expect.stringContaining("X-Amz-Signature="),
+    });
+    if (ready.status !== "ready") throw new Error("expected ready");
+    expect(
+      ready.capacityGate.assertWithinApprovedCapacity,
+    ).toHaveBeenCalledWith({
+      ownerId: OWNER,
+      fileCount: 1,
+      totalByteLength: 71_629_215,
+      sourceFamilies: ["race_merge"],
+    });
+  });
+
+  it("fails direct metadata before capacity on head or bound drift", async () => {
+    const ready = capabilities();
+    await expect(
+      createRaceMergeSourceEvidenceUploadTargetFromMetadata({
+        head: HEAD,
+        ordinal: 9,
+        byteLength: 1024,
+        sha256: "a".repeat(64),
+        exactDeploymentSha: HEAD,
+        ownerId: OWNER,
+        now: new Date(),
+        capabilities: ready,
+      }),
+    ).rejects.toThrow("payload authority is invalid");
+
+    await expect(
+      createRaceMergeSourceEvidenceUploadTargetFromMetadata({
+        head: HEAD,
+        ordinal: 1,
+        byteLength: 1024,
+        sha256: "a".repeat(64),
+        exactDeploymentSha: "f".repeat(40),
+        ownerId: OWNER,
+        now: new Date(),
+        capabilities: ready,
+      }),
+    ).rejects.toThrow("payload authority is invalid");
+
+    if (ready.status !== "ready") throw new Error("expected ready");
+    expect(
+      ready.capacityGate.assertWithinApprovedCapacity,
+    ).not.toHaveBeenCalled();
+    expect(ready.repository.reserveUploadBatch).not.toHaveBeenCalled();
   });
 
   it("fails before capacity or persistence on tampering or head drift", async () => {
