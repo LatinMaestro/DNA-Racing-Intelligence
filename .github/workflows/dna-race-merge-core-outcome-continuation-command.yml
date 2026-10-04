@@ -1,6 +1,8 @@
 name: DNA Race Merge Core-outcome continuation
 
 on:
+  schedule:
+    - cron: "41 * * * *"
   workflow_dispatch:
     inputs:
       expected_main_sha:
@@ -28,8 +30,11 @@ jobs:
   continuation:
     name: Execute next bounded Race Merge Core-outcome cohort
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment: preview
+    outputs:
+      terminal_status: ${{ steps.terminal.outputs.status }}
+      latest_cohort_ordinal: ${{ steps.terminal.outputs.ordinal }}
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -43,32 +48,43 @@ jobs:
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
       DNA_R2_STORAGE_CLASS: Standard
       DNA_RACE_MERGE_CORE_OUTCOME_CONTINUATION: "1"
-      DNA_RACE_MERGE_CORE_OUTCOME_PREVIOUS_COHORT_ORDINAL: ${{ inputs.previous_cohort_ordinal }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
-      - name: Require exact main and explicit continuation arm
+      - name: Require current main and authorized continuation trigger
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" != "refs/heads/main" ]] ||
-             [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] ||
-             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]] ||
-             [[ ! "${{ inputs.previous_cohort_ordinal }}" =~ ^[1-9][0-9]*$ ]] ||
-             [[ "${{ inputs.execute_next_private_preview_race_merge_cohort }}" != "true" ]]; then
-            echo "Race Merge continuation authority is invalid."
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Race Merge continuation may only run from main."
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] ||
+               [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]] ||
+               [[ ! "${{ inputs.previous_cohort_ordinal }}" =~ ^[1-9][0-9]*$ ]] ||
+               [[ "${{ inputs.execute_next_private_preview_race_merge_cohort }}" != "true" ]]; then
+              echo "Race Merge continuation authority is invalid."
+              exit 1
+            fi
+          elif [[ "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            echo "Race Merge continuation trigger is not authorized."
             exit 1
           fi
       - name: Checkout exact accepted head
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.expected_main_sha }}
           fetch-depth: 0
-      - name: Prove dispatch head is current main
+      - name: Prove trigger head is current main
         shell: bash
         run: |
           git fetch --no-tags origin main
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           test "$(git rev-parse origin/main)" = "${GITHUB_SHA}"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
       - name: Validate connected private configuration without exposure
         shell: bash
         run: |
@@ -91,24 +107,237 @@ jobs:
             const value = process.env[name] ?? "";
             return value === "" || value.trim() !== value || value.length > 4096;
           });
-          if (invalid.length > 0 ||
-              process.env.DNA_R2_BUCKET_NAME !== "dna-racing-import-preview" ||
-              process.env.DNA_R2_STORAGE_CLASS !== "Standard") {
+          if (
+            invalid.length > 0 ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+              process.env.DNA_DATABASE_OWNER_ID ?? "",
+            ) ||
+            process.env.DNA_R2_BUCKET_NAME !== "dna-racing-import-preview" ||
+            process.env.DNA_R2_STORAGE_CLASS !== "Standard"
+          ) {
             throw new Error("Race Merge continuation configuration is invalid.");
           }
           console.log("Validated private Race Merge continuation configuration.");
           NODE
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview owner binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(name)) {
+            throw new Error("The private Preview database name is invalid.");
+          }
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("The private Preview endpoint identity is invalid.");
+          }
+          process.stdout.write(`${name}\t${endpoint}`);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api             "/projects/${NEON_PROJECT_ID}/endpoints"             --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("The runtime Preview branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}"             --project-id "${NEON_PROJECT_ID}"             --role-name neondb_owner             --database-name "${database_name}"             --no-color 2>/dev/null)"
+          if [[ ! "${migration_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "The short-lived Preview owner binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${migration_url}"
+          echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
+      - name: Resolve durable predecessor cohort
+        id: predecessor
+        shell: bash
+        env:
+          DISPATCH_PREVIOUS_COHORT_ORDINAL: ${{ inputs.previous_cohort_ordinal }}
+        run: |
+          state_json="$(PGOPTIONS="-c app.owner_id=${DNA_DATABASE_OWNER_ID}"             psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1             --set owner_id="${DNA_DATABASE_OWNER_ID}" <<'SQL'
+          WITH latest_complete AS (
+            SELECT cohort_ordinal, core_count
+            FROM dna.race_merge_core_outcome_r2_generation
+            WHERE owner_id = :'owner_id'::uuid
+              AND generation_id = 'owner-race-merge-outcomes-v1'
+              AND state = 'complete'
+            ORDER BY cohort_ordinal DESC
+            LIMIT 1
+          ),
+          writing AS (
+            SELECT count(*)::integer AS writing_count,
+                   min(cohort_ordinal)::integer AS writing_min_ordinal,
+                   max(cohort_ordinal)::integer AS writing_max_ordinal
+            FROM dna.race_merge_core_outcome_r2_generation
+            WHERE owner_id = :'owner_id'::uuid
+              AND generation_id = 'owner-race-merge-outcomes-v1'
+              AND state = 'writing'
+          )
+          SELECT json_build_object(
+            'completeOrdinal', latest_complete.cohort_ordinal,
+            'completeCoreCount', latest_complete.core_count,
+            'writingCount', writing.writing_count,
+            'writingMinOrdinal', writing.writing_min_ordinal,
+            'writingMaxOrdinal', writing.writing_max_ordinal
+          )::text
+          FROM latest_complete
+          CROSS JOIN writing;
+          SQL
+          )"
+          STATE_JSON="${state_json}" node --input-type=module <<'NODE' >> "${GITHUB_OUTPUT}"
+          const raw = process.env.STATE_JSON ?? "";
+          if (raw === "") throw new Error("No complete Race Merge cohort exists.");
+          const state = JSON.parse(raw);
+          const integer = (value, field, minimum, maximum) => {
+            if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+              throw new Error(`Invalid ${field}.`);
+            }
+            return value;
+          };
+          const ordinal = integer(
+            state.completeOrdinal,
+            "complete cohort ordinal",
+            1,
+            Number.MAX_SAFE_INTEGER,
+          );
+          const coreCount = integer(state.completeCoreCount, "complete Core count", 1, 100);
+          const writingCount = integer(state.writingCount, "writing count", 0, 1);
+          if (writingCount === 1) {
+            const minimum = integer(
+              state.writingMinOrdinal,
+              "writing minimum ordinal",
+              1,
+              Number.MAX_SAFE_INTEGER,
+            );
+            const maximum = integer(
+              state.writingMaxOrdinal,
+              "writing maximum ordinal",
+              1,
+              Number.MAX_SAFE_INTEGER,
+            );
+            if (minimum !== ordinal + 1 || maximum !== ordinal + 1) {
+              throw new Error("The durable Race Merge writing checkpoint drifted.");
+            }
+          } else if (
+            state.writingMinOrdinal !== null ||
+            state.writingMaxOrdinal !== null
+          ) {
+            throw new Error("The durable Race Merge writing checkpoint is inconsistent.");
+          }
+          if (coreCount < 100 && writingCount !== 0) {
+            throw new Error("A terminal Race Merge cohort has an unexpected writer.");
+          }
+          if (process.env.GITHUB_EVENT_NAME === "workflow_dispatch") {
+            const dispatched = Number(process.env.DISPATCH_PREVIOUS_COHORT_ORDINAL ?? "");
+            if (!Number.isSafeInteger(dispatched) || dispatched !== ordinal) {
+              throw new Error("The dispatched predecessor is no longer the durable latest cohort.");
+            }
+          }
+          console.log(`ordinal=${ordinal}`);
+          console.log(`status=${coreCount < 100 ? "complete" : "ready"}`);
+          NODE
       - name: Install exact dependencies
+        if: steps.predecessor.outputs.status == 'ready'
         run: npm ci --ignore-scripts
       - name: Execute next capacity-gated Race Merge Core-outcome cohort
+        if: steps.predecessor.outputs.status == 'ready'
+        env:
+          DNA_RACE_MERGE_CORE_OUTCOME_PREVIOUS_COHORT_ORDINAL: ${{ steps.predecessor.outputs.ordinal }}
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-race-merge-core-outcome-continuation.test.ts
+      - name: Verify durable continuation result
+        id: result
+        if: steps.predecessor.outputs.status == 'ready'
+        shell: bash
+        env:
+          PREVIOUS_COHORT_ORDINAL: ${{ steps.predecessor.outputs.ordinal }}
+        run: |
+          state_json="$(PGOPTIONS="-c app.owner_id=${DNA_DATABASE_OWNER_ID}"             psql "${DNA_MIGRATION_DATABASE_URL}" -At --set ON_ERROR_STOP=1             --set owner_id="${DNA_DATABASE_OWNER_ID}" <<'SQL'
+          WITH latest_complete AS (
+            SELECT cohort_ordinal, core_count
+            FROM dna.race_merge_core_outcome_r2_generation
+            WHERE owner_id = :'owner_id'::uuid
+              AND generation_id = 'owner-race-merge-outcomes-v1'
+              AND state = 'complete'
+            ORDER BY cohort_ordinal DESC
+            LIMIT 1
+          ),
+          writing AS (
+            SELECT count(*)::integer AS writing_count
+            FROM dna.race_merge_core_outcome_r2_generation
+            WHERE owner_id = :'owner_id'::uuid
+              AND generation_id = 'owner-race-merge-outcomes-v1'
+              AND state = 'writing'
+          )
+          SELECT json_build_object(
+            'completeOrdinal', latest_complete.cohort_ordinal,
+            'completeCoreCount', latest_complete.core_count,
+            'writingCount', writing.writing_count
+          )::text
+          FROM latest_complete
+          CROSS JOIN writing;
+          SQL
+          )"
+          STATE_JSON="${state_json}" node --input-type=module <<'NODE' >> "${GITHUB_OUTPUT}"
+          const state = JSON.parse(process.env.STATE_JSON ?? "");
+          const previous = Number(process.env.PREVIOUS_COHORT_ORDINAL ?? "");
+          if (
+            !Number.isSafeInteger(previous) ||
+            !Number.isSafeInteger(state.completeOrdinal) ||
+            state.completeOrdinal !== previous + 1 ||
+            !Number.isSafeInteger(state.completeCoreCount) ||
+            state.completeCoreCount < 1 ||
+            state.completeCoreCount > 100 ||
+            state.writingCount !== 0
+          ) {
+            throw new Error("The durable Race Merge continuation result is inconsistent.");
+          }
+          console.log(`ordinal=${state.completeOrdinal}`);
+          console.log(`status=${state.completeCoreCount < 100 ? "complete" : "advanced"}`);
+          NODE
+      - name: Select continuation status
+        id: terminal
+        if: always()
+        shell: bash
+        env:
+          PREDECESSOR_STATUS: ${{ steps.predecessor.outputs.status }}
+          PREDECESSOR_ORDINAL: ${{ steps.predecessor.outputs.ordinal }}
+          RESULT_STATUS: ${{ steps.result.outputs.status }}
+          RESULT_ORDINAL: ${{ steps.result.outputs.ordinal }}
+        run: |
+          if [[ "${PREDECESSOR_STATUS}" == "complete" ]]; then
+            status="complete"
+            ordinal="${PREDECESSOR_ORDINAL}"
+          elif [[ "${PREDECESSOR_STATUS}" == "ready" ]] &&
+               [[ "${RESULT_STATUS}" =~ ^(advanced|complete)$ ]] &&
+               [[ "${RESULT_ORDINAL}" =~ ^[1-9][0-9]*$ ]]; then
+            status="${RESULT_STATUS}"
+            ordinal="${RESULT_ORDINAL}"
+          else
+            echo "The Race Merge continuation status is unavailable."
+            exit 1
+          fi
+          echo "status=${status}" >> "${GITHUB_OUTPUT}"
+          echo "ordinal=${ordinal}" >> "${GITHUB_OUTPUT}"
+      - name: Remove owner binding from subsequent steps
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
@@ -116,3 +345,59 @@ jobs:
           git fetch --no-tags origin main
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           test "$(git rev-parse origin/main)" = "${GITHUB_SHA}"
+
+  requeue-continuation:
+    name: Requeue unfinished Race Merge continuation
+    needs: continuation
+    if: >-
+      ${{ needs.continuation.result == 'success' &&
+          needs.continuation.outputs.terminal_status == 'advanced' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Wait before bounded continuation
+        shell: bash
+        run: |
+          echo "Waiting 60 seconds before the next bounded Race Merge cohort."
+          sleep 60
+      - name: Requeue only unchanged main without a competing run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST_COHORT_ORDINAL: ${{ needs.continuation.outputs.latest_cohort_ordinal }}
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] ||
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed before Race Merge continuation; the next schedule will restart from durable state."
+            exit 0
+          fi
+          if [[ ! "${LATEST_COHORT_ORDINAL}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "The durable Race Merge cohort ordinal is unavailable."
+            exit 1
+          fi
+
+          active_other_count="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-race-merge-core-outcome-continuation-command.yml/runs?per_page=20"             --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID} and .status != \"completed\")] | length")"
+          if [[ ! "${active_other_count}" =~ ^[0-9]+$ ]]; then
+            echo "The competing-run proof was invalid."
+            exit 1
+          fi
+          if (( active_other_count > 0 )); then
+            echo "Another Race Merge continuation run is already active; no duplicate continuation was dispatched."
+            exit 0
+          fi
+
+          jq -n             --arg sha "${GITHUB_SHA}"             --arg ordinal "${LATEST_COHORT_ORDINAL}"             '{
+              ref: "main",
+              inputs: {
+                expected_main_sha: $sha,
+                previous_cohort_ordinal: $ordinal,
+                execute_next_private_preview_race_merge_cohort: "true"
+              }
+            }' | gh api --method POST               "/repos/${GITHUB_REPOSITORY}/actions/workflows/dna-race-merge-core-outcome-continuation-command.yml/dispatches"               --input -
+          echo "Dispatched the next exact-main bounded Race Merge cohort."
