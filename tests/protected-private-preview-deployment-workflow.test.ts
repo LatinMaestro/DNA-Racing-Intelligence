@@ -83,6 +83,30 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain(
       "The Preview did not fail closed to an unauthenticated request",
     );
+    expect(workflow).toContain(
+      "Configure exact-origin private R2 browser upload CORS",
+    );
+    expect(workflow).toContain(
+      'const ruleId = "dna-private-preview-browser-put-v1";',
+    );
+    expect(workflow).toContain("origins: [origin]");
+    expect(workflow).toContain('methods: ["PUT"]');
+    expect(workflow).toContain('headers: ["Content-Type"]');
+    expect(workflow).toContain('exposeHeaders: ["ETag"]');
+    expect(workflow).toContain("maxAgeSeconds: 3600");
+    expect(workflow).toContain('cloudflare("/cors", { method: "GET" })');
+    expect(workflow).toContain('method: "OPTIONS"');
+    expect(workflow).toContain('"Access-Control-Request-Method": "PUT"');
+    expect(workflow).toContain(
+      '"Access-Control-Request-Headers": "content-type"',
+    );
+    expect(workflow).toContain("managed?.enabled !== false");
+    expect(workflow).toContain("custom.domains.length !== 0");
+    expect(workflow).toContain(
+      "R2 browser CORS preflight verification failed.",
+    );
+    expect(workflow).not.toContain('origins: ["*"]');
+    expect(workflow).not.toContain('methods: ["GET", "PUT"]');
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY/u);
