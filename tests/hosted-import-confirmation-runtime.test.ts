@@ -21,6 +21,7 @@ function environment(): HostedImportConfirmationRuntimeEnvironment {
     cloudflare: {
       accountId: "a".repeat(32),
       apiToken: "least-privilege-cloudflare-token",
+      analyticsApiToken: "analytics-cloudflare-token",
       r2BucketName: "dna-private-imports",
       queueId: "b".repeat(32),
       queueName: "dna-import-preview",
@@ -59,6 +60,16 @@ describe("hosted import confirmation runtime", () => {
       (value: HostedImportConfirmationRuntimeEnvironment) => ({
         ...value,
         cloudflare: { ...value.cloudflare, apiToken: "token\ninvalid" },
+      }),
+    ],
+    [
+      "Cloudflare analytics API token",
+      (value: HostedImportConfirmationRuntimeEnvironment) => ({
+        ...value,
+        cloudflare: {
+          ...value.cloudflare,
+          analyticsApiToken: "token\ninvalid",
+        },
       }),
     ],
     [
