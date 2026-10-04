@@ -54,6 +54,7 @@ jobs:
       DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES: "1"
       DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS: "0"
       DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS: "300000"
+      DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED: "true"
       ENABLE_PHASE0_REVIEW: "true"
     steps:
       - name: Require exact main and explicit Preview deployment arm
@@ -101,6 +102,16 @@ jobs:
             echo "The accepted checkout is not clean."
             exit 1
           fi
+      - name: Generate masked ephemeral Race Merge bridge nonce
+        shell: bash
+        run: |
+          nonce="$(openssl rand -hex 32)"
+          if [[ ! "${nonce}" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "Could not create a valid ephemeral bridge nonce."
+            exit 1
+          fi
+          echo "::add-mask::${nonce}"
+          echo "DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE=${nonce}" >> "${GITHUB_ENV}"
       - name: Validate protected Preview provider settings without exposure
         shell: bash
         run: |
@@ -117,7 +128,8 @@ jobs:
             DNA_IMPORT_LIMIT_QUEUE_BACKLOG_MESSAGES \
             DNA_IMPORT_MINIMUM_HEADROOM_BASIS_POINTS \
             DNA_IMPORT_MAXIMUM_MEASUREMENT_AGE_MILLISECONDS \
-            ENABLE_PHASE0_REVIEW; do
+            DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED \
+            DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE ENABLE_PHASE0_REVIEW; do
             value="${!name:-}"
             if [[ -z "${value}" ]] || [[ "${value}" != "${value# }" ]] || \
                [[ "${value}" != "${value% }" ]] || [[ ${#value} -gt 4096 ]]; then

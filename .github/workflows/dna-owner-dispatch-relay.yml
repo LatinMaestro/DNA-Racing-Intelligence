@@ -527,6 +527,44 @@ jobs:
                 execute_first_private_preview_entrant_cohort: true,
               };
               break;
+            case "race-merge-r2-manifest-migration":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "apply_private_preview_migration",
+              ]);
+              if (payload.apply_private_preview_migration !== true) {
+                throw new Error(
+                  "Race Merge R2 manifest migration authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-race-merge-core-outcome-r2-preview-migration.yml";
+              inputs = {
+                exact_main_sha: payload.expected_main_sha,
+                apply_private_preview_migration: true,
+              };
+              break;
+            case "race-merge-first-core-outcome-cohort":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "execute_first_private_preview_race_merge_cohort",
+              ]);
+              if (
+                payload.execute_first_private_preview_race_merge_cohort !== true
+              ) {
+                throw new Error(
+                  "Race Merge first Core-outcome cohort authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-race-merge-core-outcome-first-cohort-command.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                execute_first_private_preview_race_merge_cohort: true,
+              };
+              break;
             case "protected-preview-deployment":
               exactKeys([
                 "kind",

@@ -71,6 +71,22 @@ export function previewEnvironmentSpecification(environment) {
     environment,
     "DNA_R2_SECRET_ACCESS_KEY",
   );
+  const bridgeEnabled = requiredValue(
+    environment,
+    "DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED",
+  );
+  if (bridgeEnabled !== "true") {
+    throw new Error(
+      "DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED must explicitly arm the private Preview bridge",
+    );
+  }
+  const bridgeNonce = requiredValue(
+    environment,
+    "DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE",
+  );
+  if (!/^[a-f0-9]{64}$/u.test(bridgeNonce)) {
+    throw new Error("DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE is invalid");
+  }
   const boundedConfiguration = [
     ["DNA_R2_BUCKET_NAME", "dna-racing-import-preview"],
     ["DNA_IMPORT_QUEUE_ID", "df7408e1d697475db4dbcdda1aa3e247"],
@@ -133,6 +149,16 @@ export function previewEnvironmentSpecification(environment) {
     {
       name: "CLOUDFLARE_ACCOUNT_ID",
       value: cloudflareAccountId,
+      visibility: "config",
+    },
+    {
+      name: "DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED",
+      value: bridgeEnabled,
+      visibility: "config",
+    },
+    {
+      name: "DNA_RACE_MERGE_EVIDENCE_BRIDGE_NONCE",
+      value: bridgeNonce,
       visibility: "config",
     },
     ...boundedConfiguration.map(({ name, value }) => ({

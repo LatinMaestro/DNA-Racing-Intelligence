@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest, type NextFetchEvent } from "next/server";
-import { proxy, resolveProxyOwnerAccess } from "../proxy";
+import {
+  proxy,
+  resolveProxyOwnerAccess,
+  resolveRaceMergeSourceBridgeAccess,
+} from "../proxy";
 
 const originalEnvironment = {
   vercelEnv: process.env.VERCEL_ENV,
@@ -9,6 +13,7 @@ const originalEnvironment = {
   publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   secretKey: process.env.CLERK_SECRET_KEY,
   authorizedOwnerId: process.env.AUTHORIZED_CLERK_USER_ID,
+  bridgeEnabled: process.env.DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED,
 };
 
 function restore(name: string, value: string | undefined) {
@@ -29,6 +34,10 @@ afterEach(() => {
   );
   restore("CLERK_SECRET_KEY", originalEnvironment.secretKey);
   restore("AUTHORIZED_CLERK_USER_ID", originalEnvironment.authorizedOwnerId);
+  restore(
+    "DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED",
+    originalEnvironment.bridgeEnabled,
+  );
 });
 
 const request = new NextRequest("https://synthetic.invalid/imports");
@@ -82,6 +91,41 @@ describe("deployment and Clerk proxy composition", () => {
 
     expect(response?.status).toBe(404);
     expect(response?.headers.get("X-Robots-Tag")).toContain("noindex");
+  });
+});
+
+describe("temporary Race Merge bridge proxy boundary", () => {
+  it("allows only the exact internal path on explicitly armed Preview", () => {
+    expect(
+      resolveRaceMergeSourceBridgeAccess({
+        pathname: "/api/internal/race-merge-source-target",
+        vercelEnv: "preview",
+        previewAccess: "true",
+        bridgeEnabled: "true",
+      }),
+    ).toBe("allowed");
+    expect(
+      resolveRaceMergeSourceBridgeAccess({
+        pathname: "/imports",
+        vercelEnv: "preview",
+        previewAccess: "true",
+        bridgeEnabled: "true",
+      }),
+    ).toBe("not_bridge");
+  });
+
+  it.each([
+    { vercelEnv: "production", previewAccess: "true", bridgeEnabled: "true" },
+    { vercelEnv: "preview", previewAccess: "false", bridgeEnabled: "true" },
+    { vercelEnv: "preview", previewAccess: "true", bridgeEnabled: "false" },
+    { vercelEnv: "preview", previewAccess: "true", bridgeEnabled: undefined },
+  ])("fails closed when bridge authority is incomplete %#", (input) => {
+    expect(
+      resolveRaceMergeSourceBridgeAccess({
+        pathname: "/api/internal/race-merge-source-target",
+        ...input,
+      }),
+    ).toBe("not_found");
   });
 });
 

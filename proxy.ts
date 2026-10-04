@@ -11,6 +11,8 @@ import {
 import { resolveDeploymentAccess } from "@/lib/deployment-access";
 
 type ProxyOwnerAccessDecision = "allowed" | "sign_in_required" | "not_found";
+type BridgeAccessDecision = "not_bridge" | "allowed" | "not_found";
+const RACE_MERGE_SOURCE_BRIDGE_PATH = "/api/internal/race-merge-source-target";
 
 function privateNotFound(): NextResponse {
   return new NextResponse("Not Found", {
@@ -51,6 +53,25 @@ export function resolveProxyOwnerAccess(
   return "allowed";
 }
 
+export function resolveRaceMergeSourceBridgeAccess(
+  input: Readonly<{
+    pathname: string;
+    vercelEnv: string | undefined;
+    previewAccess: string | undefined;
+    bridgeEnabled: string | undefined;
+  }>,
+): BridgeAccessDecision {
+  if (input.pathname !== RACE_MERGE_SOURCE_BRIDGE_PATH) return "not_bridge";
+  if (
+    input.vercelEnv !== "preview" ||
+    input.previewAccess !== "true" ||
+    input.bridgeEnabled !== "true"
+  ) {
+    return "not_found";
+  }
+  return "allowed";
+}
+
 const clerkProxy = clerkMiddleware(async (auth, request) => {
   const session = await auth();
   const decision = resolveProxyOwnerAccess({
@@ -76,6 +97,20 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   });
 
   if (!decision.allowed) return privateNotFound();
+
+  const bridgeAccess = resolveRaceMergeSourceBridgeAccess({
+    pathname: request.nextUrl.pathname,
+    vercelEnv: process.env.VERCEL_ENV,
+    previewAccess: process.env.ENABLE_PHASE0_REVIEW,
+    bridgeEnabled: process.env.DNA_RACE_MERGE_EVIDENCE_BRIDGE_ENABLED,
+  });
+  if (bridgeAccess === "not_found") return privateNotFound();
+  if (bridgeAccess === "allowed") {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    return response;
+  }
 
   let clerkConfiguration: ClerkOwnerSessionConfiguration;
   try {
