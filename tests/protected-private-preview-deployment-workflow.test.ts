@@ -89,19 +89,19 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain(
       'const ruleId = "dna-private-preview-browser-put-v1";',
     );
-    expect(workflow).toContain('origins: [origin]');
+    expect(workflow).toContain("origins: [origin]");
     expect(workflow).toContain('methods: ["PUT"]');
     expect(workflow).toContain('headers: ["Content-Type"]');
     expect(workflow).toContain('exposeHeaders: ["ETag"]');
-    expect(workflow).toContain('maxAgeSeconds: 3600');
+    expect(workflow).toContain("maxAgeSeconds: 3600");
     expect(workflow).toContain('cloudflare("/cors", { method: "GET" })');
     expect(workflow).toContain('method: "OPTIONS"');
     expect(workflow).toContain('"Access-Control-Request-Method": "PUT"');
     expect(workflow).toContain(
       '"Access-Control-Request-Headers": "content-type"',
     );
-    expect(workflow).toContain('managed?.enabled !== false');
-    expect(workflow).toContain('custom.domains.length !== 0');
+    expect(workflow).toContain("managed?.enabled !== false");
+    expect(workflow).toContain("custom.domains.length !== 0");
     expect(workflow).toContain(
       "R2 browser CORS preflight verification failed.",
     );
