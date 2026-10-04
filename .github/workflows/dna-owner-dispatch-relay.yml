@@ -527,6 +527,24 @@ jobs:
                 execute_first_private_preview_entrant_cohort: true,
               };
               break;
+            case "import-workspace-runtime-grants-migration":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "apply_private_preview_migration",
+              ]);
+              if (payload.apply_private_preview_migration !== true) {
+                throw new Error(
+                  "Import workspace runtime grants migration authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-import-workspace-runtime-grants-preview-migration.yml";
+              inputs = {
+                exact_main_sha: payload.expected_main_sha,
+                apply_private_preview_migration: true,
+              };
+              break;
             case "race-merge-r2-manifest-migration":
               exactKeys([
                 "kind",

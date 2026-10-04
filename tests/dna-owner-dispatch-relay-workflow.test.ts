@@ -133,6 +133,10 @@ describe("DNA owner dispatch relay workflow", () => {
       'payload.accepted_boundary_status !== "ready_for_continuation"',
     );
     expect(workflow).toContain(
+      "dna-import-workspace-runtime-grants-preview-migration.yml",
+    );
+    expect(workflow).toContain('"import-workspace-runtime-grants-migration"');
+    expect(workflow).toContain(
       "dna-race-merge-core-outcome-r2-preview-migration.yml",
     );
     expect(workflow).toContain('"race-merge-r2-manifest-migration"');
