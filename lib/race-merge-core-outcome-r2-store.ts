@@ -252,7 +252,7 @@ function normalizedOutcomes(
 
   return Object.freeze(
     [...byRace.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([sourceRaceId, value]) =>
         Object.freeze({
           sourceRaceId,
