@@ -7,6 +7,7 @@ import { maxImportUploadFilesPerBatch } from "./import-upload-intake-service";
 const CLOUDFLARE_API_ORIGIN = "https://api.cloudflare.com";
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
+const R2_ACTION_TYPE_PATTERN = /^[A-Za-z][A-Za-z0-9]{0,127}$/;
 const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
 const NEON_STAGING_MULTIPLIER = 2;
 
@@ -71,6 +72,12 @@ export const hostedImportCapacityFailureCodes = [
   "capacity_r2_analytics_transport_failed",
   "capacity_r2_analytics_http_rejected",
   "capacity_r2_analytics_response_invalid",
+  "capacity_r2_operations_transport_failed",
+  "capacity_r2_operations_http_rejected",
+  "capacity_r2_operations_response_invalid",
+  "capacity_r2_storage_transport_failed",
+  "capacity_r2_storage_http_rejected",
+  "capacity_r2_storage_response_invalid",
   "capacity_queue_metrics_transport_failed",
   "capacity_queue_metrics_http_rejected",
   "capacity_queue_metrics_response_invalid",
@@ -153,47 +160,77 @@ function startOfUtcMonth(date: Date): string {
   ).toISOString();
 }
 
-function parseR2Usage(value: unknown): Readonly<{
-  storageBytes: number;
+function addSafeInteger(left: number, right: number): number {
+  const value = left + right;
+  if (!Number.isSafeInteger(value)) {
+    throw new Error("Hosted provider capacity response is invalid.");
+  }
+  return value;
+}
+
+function cloudflareAccount(value: unknown): Record<string, unknown> {
+  const data = record(value);
+  const viewer = record(data.viewer);
+  const accounts = array(viewer.accounts);
+  if (accounts.length !== 1) {
+    throw new Error("Hosted provider capacity response is invalid.");
+  }
+  return record(accounts[0]);
+}
+
+function parseR2Operations(value: unknown): Readonly<{
   classAOperations: number;
   classBOperations: number;
 }> {
-  const data = record(value);
-  const viewer = record(data.viewer);
-  const account = record(array(viewer.accounts)[0]);
+  const account = cloudflareAccount(value);
+  const groups = array(account.r2OperationsAdaptiveGroups);
+  let classAOperations = 0;
+  let classBOperations = 0;
+  const observedActions = new Set<string>();
+
+  for (const groupValue of groups) {
+    const group = record(groupValue);
+    const actionType = record(group.dimensions).actionType;
+    if (
+      typeof actionType !== "string" ||
+      !R2_ACTION_TYPE_PATTERN.test(actionType) ||
+      observedActions.has(actionType)
+    ) {
+      throw new Error("Hosted provider capacity response is invalid.");
+    }
+    observedActions.add(actionType);
+
+    const requests = safeInteger(record(group.sum).requests);
+    if (CLASS_A_ACTIONS.has(actionType)) {
+      classAOperations = addSafeInteger(classAOperations, requests);
+    } else if (CLASS_B_ACTIONS.has(actionType)) {
+      classBOperations = addSafeInteger(classBOperations, requests);
+    } else if (!FREE_ACTIONS.has(actionType)) {
+      // Cloudflare may expose an analytics action before its pricing class is
+      // represented here. Charge an unknown non-free action against both
+      // guards so the zero-cost projection cannot be understated.
+      classAOperations = addSafeInteger(classAOperations, requests);
+      classBOperations = addSafeInteger(classBOperations, requests);
+    }
+  }
+
+  return { classAOperations, classBOperations };
+}
+
+function parseR2Storage(value: unknown): number {
+  const account = cloudflareAccount(value);
   const storageGroups = array(account.r2StorageAdaptiveGroups);
+  if (storageGroups.length > 1) {
+    throw new Error("Hosted provider capacity response is invalid.");
+  }
   const storage =
     storageGroups.length === 0
       ? { payloadSize: 0, metadataSize: 0 }
       : record(record(storageGroups[0]).max);
-  const storageBytes =
-    safeInteger(storage.payloadSize) + safeInteger(storage.metadataSize);
-  if (!Number.isSafeInteger(storageBytes)) {
-    throw new Error("Hosted provider capacity response is invalid.");
-  }
-
-  let classAOperations = 0;
-  let classBOperations = 0;
-  for (const groupValue of array(account.r2OperationsAdaptiveGroups)) {
-    const group = record(groupValue);
-    const actionType = record(group.dimensions).actionType;
-    if (typeof actionType !== "string") {
-      throw new Error("Hosted provider capacity response is invalid.");
-    }
-    const requests = safeInteger(record(group.sum).requests);
-    if (CLASS_A_ACTIONS.has(actionType)) classAOperations += requests;
-    else if (CLASS_B_ACTIONS.has(actionType)) classBOperations += requests;
-    else if (!FREE_ACTIONS.has(actionType)) {
-      throw new Error("Hosted provider capacity response is invalid.");
-    }
-    if (
-      !Number.isSafeInteger(classAOperations) ||
-      !Number.isSafeInteger(classBOperations)
-    ) {
-      throw new Error("Hosted provider capacity response is invalid.");
-    }
-  }
-  return { storageBytes, classAOperations, classBOperations };
+  return addSafeInteger(
+    safeInteger(storage.payloadSize),
+    safeInteger(storage.metadataSize),
+  );
 }
 
 function parseQueueBacklog(value: unknown): number {
@@ -201,11 +238,11 @@ function parseQueueBacklog(value: unknown): number {
   return safeInteger(result.backlog_count);
 }
 
-const R2_CAPACITY_QUERY = `query DnaImportCapacity(
+const R2_OPERATIONS_QUERY = `query DnaImportCapacityOperations(
   $accountTag: string!
-  $startDate: Time!
-  $endDate: Time!
-  $bucketName: string!
+  $startDate: Time
+  $endDate: Time
+  $bucketName: string
 ) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
@@ -220,6 +257,18 @@ const R2_CAPACITY_QUERY = `query DnaImportCapacity(
         sum { requests }
         dimensions { actionType }
       }
+    }
+  }
+}`;
+
+const R2_STORAGE_QUERY = `query DnaImportCapacityStorage(
+  $accountTag: string!
+  $startDate: Time
+  $endDate: Time
+  $bucketName: string
+) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
       r2StorageAdaptiveGroups(
         limit: 1
         filter: {
@@ -230,6 +279,7 @@ const R2_CAPACITY_QUERY = `query DnaImportCapacity(
         orderBy: [datetime_DESC]
       ) {
         max { payloadSize metadataSize }
+        dimensions { datetime }
       }
     }
   }
@@ -279,7 +329,14 @@ export function createCloudflareNeonImportCapacityPort(
       Authorization: `Bearer ${apiToken}`,
     };
 
-    const readR2Usage = async () => {
+    const readR2Dataset = async (
+      query: string,
+      failureCodes: Readonly<{
+        transport: HostedImportCapacityFailureCode;
+        http: HostedImportCapacityFailureCode;
+        response: HostedImportCapacityFailureCode;
+      }>,
+    ): Promise<unknown> => {
       let response: Response;
       try {
         response = await fetcher(`${CLOUDFLARE_API_ORIGIN}/client/v4/graphql`, {
@@ -290,7 +347,7 @@ export function createCloudflareNeonImportCapacityPort(
           },
           cache: "no-store",
           body: JSON.stringify({
-            query: R2_CAPACITY_QUERY,
+            query,
             variables: {
               accountTag: accountId,
               startDate: startOfUtcMonth(measuredAt),
@@ -300,25 +357,55 @@ export function createCloudflareNeonImportCapacityPort(
           }),
         });
       } catch {
-        return capacityFailure("capacity_r2_analytics_transport_failed");
+        return capacityFailure(failureCodes.transport);
       }
       if (!response.ok) {
-        return capacityFailure("capacity_r2_analytics_http_rejected");
+        return capacityFailure(failureCodes.http);
       }
       let envelope: CloudflareGraphqlEnvelope;
       try {
         envelope = (await response.json()) as CloudflareGraphqlEnvelope;
       } catch {
-        return capacityFailure("capacity_r2_analytics_response_invalid");
+        return capacityFailure(failureCodes.response);
       }
-      if (envelope.errors !== undefined || envelope.data === undefined) {
-        return capacityFailure("capacity_r2_analytics_response_invalid");
+      if (
+        (envelope.errors !== undefined &&
+          envelope.errors !== null &&
+          (!Array.isArray(envelope.errors) || envelope.errors.length > 0)) ||
+        envelope.data === undefined
+      ) {
+        return capacityFailure(failureCodes.response);
       }
+      return envelope.data;
+    };
+
+    const readR2Usage = async () => {
+      const [operationsData, storageData] = await Promise.all([
+        readR2Dataset(R2_OPERATIONS_QUERY, {
+          transport: "capacity_r2_operations_transport_failed",
+          http: "capacity_r2_operations_http_rejected",
+          response: "capacity_r2_operations_response_invalid",
+        }),
+        readR2Dataset(R2_STORAGE_QUERY, {
+          transport: "capacity_r2_storage_transport_failed",
+          http: "capacity_r2_storage_http_rejected",
+          response: "capacity_r2_storage_response_invalid",
+        }),
+      ]);
+
+      let operations: ReturnType<typeof parseR2Operations>;
       try {
-        return parseR2Usage(envelope.data);
+        operations = parseR2Operations(operationsData);
       } catch {
-        return capacityFailure("capacity_r2_analytics_response_invalid");
+        return capacityFailure("capacity_r2_operations_response_invalid");
       }
+      let storageBytes: number;
+      try {
+        storageBytes = parseR2Storage(storageData);
+      } catch {
+        return capacityFailure("capacity_r2_storage_response_invalid");
+      }
+      return { storageBytes, ...operations };
     };
 
     const readQueueBacklog = async () => {
