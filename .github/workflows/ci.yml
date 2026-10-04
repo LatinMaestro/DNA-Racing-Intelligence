@@ -347,6 +347,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.up.sql
       - name: Run Race Merge Core outcome R2 manifest smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.smoke.sql
+      - name: Apply import workspace runtime read grants migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.up.sql
+      - name: Run import workspace runtime read grants smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.smoke.sql
+      - name: Reverse import workspace runtime read grants migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.down.sql
+      - name: Verify import workspace runtime read grants removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.removal.sql
       - name: Reverse Race Merge Core outcome R2 manifest migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0123_race_merge_core_outcome_r2_manifest.down.sql
       - name: Verify Race Merge Core outcome R2 manifest removal
