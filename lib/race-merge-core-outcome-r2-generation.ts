@@ -342,19 +342,14 @@ export async function readCompleteRaceMergeCoreOutcomeR2Generation(input: {
 }): Promise<RaceMergeCoreOutcomeR2CompletedBoundary> {
   const ownerId = identifier(input.ownerId, "ownerId");
   const generationId = identifier(input.generationId, "generationId");
-  const cohortOrdinal = positiveInteger(
-    input.cohortOrdinal,
-    "cohortOrdinal",
-  );
+  const cohortOrdinal = positiveInteger(input.cohortOrdinal, "cohortOrdinal");
   const existing = await input.repository.listManifests(ownerId, {
     generationId,
     cohortOrdinal,
     afterSourceCoreId: 0,
     limit: RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
   });
-  if (
-    existing.length !== RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES
-  ) {
+  if (existing.length !== RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES) {
     fail("previous cohort is not a complete bounded page");
   }
   const tail = await input.repository.listManifests(ownerId, {
