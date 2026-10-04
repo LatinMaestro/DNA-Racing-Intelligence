@@ -67,6 +67,33 @@ type CloudflareRestEnvelope = Readonly<{
   result?: unknown;
 }>;
 
+export const hostedImportCapacityFailureCodes = [
+  "capacity_r2_analytics_transport_failed",
+  "capacity_r2_analytics_http_rejected",
+  "capacity_r2_analytics_response_invalid",
+  "capacity_queue_metrics_transport_failed",
+  "capacity_queue_metrics_http_rejected",
+  "capacity_queue_metrics_response_invalid",
+  "capacity_neon_storage_failed",
+] as const;
+
+export type HostedImportCapacityFailureCode =
+  (typeof hostedImportCapacityFailureCodes)[number];
+
+export class HostedImportCapacityMeasurementError extends Error {
+  readonly code: HostedImportCapacityFailureCode;
+
+  constructor(code: HostedImportCapacityFailureCode) {
+    super(code);
+    this.name = "HostedImportCapacityMeasurementError";
+    this.code = code;
+  }
+}
+
+function capacityFailure(code: HostedImportCapacityFailureCode): never {
+  throw new HostedImportCapacityMeasurementError(code);
+}
+
 function record(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Hosted provider capacity response is invalid.");
@@ -251,9 +278,11 @@ export function createCloudflareNeonImportCapacityPort(
       Accept: "application/json",
       Authorization: `Bearer ${apiToken}`,
     };
-    try {
-      const [r2Response, queueResponse, neonStorageValue] = await Promise.all([
-        fetcher(`${CLOUDFLARE_API_ORIGIN}/client/v4/graphql`, {
+
+    const readR2Usage = async () => {
+      let response: Response;
+      try {
+        response = await fetcher(`${CLOUDFLARE_API_ORIGIN}/client/v4/graphql`, {
           method: "POST",
           headers: {
             ...analyticsHeaders,
@@ -269,39 +298,83 @@ export function createCloudflareNeonImportCapacityPort(
               bucketName,
             },
           }),
-        }),
-        fetcher(
+        });
+      } catch {
+        return capacityFailure("capacity_r2_analytics_transport_failed");
+      }
+      if (!response.ok) {
+        return capacityFailure("capacity_r2_analytics_http_rejected");
+      }
+      let envelope: CloudflareGraphqlEnvelope;
+      try {
+        envelope = (await response.json()) as CloudflareGraphqlEnvelope;
+      } catch {
+        return capacityFailure("capacity_r2_analytics_response_invalid");
+      }
+      if (envelope.errors !== undefined || envelope.data === undefined) {
+        return capacityFailure("capacity_r2_analytics_response_invalid");
+      }
+      try {
+        return parseR2Usage(envelope.data);
+      } catch {
+        return capacityFailure("capacity_r2_analytics_response_invalid");
+      }
+    };
+
+    const readQueueBacklog = async () => {
+      let response: Response;
+      try {
+        response = await fetcher(
           `${CLOUDFLARE_API_ORIGIN}/client/v4/accounts/${accountId}/queues/${encodeURIComponent(queueId)}/metrics`,
           {
             method: "GET",
             headers: operationalHeaders,
             cache: "no-store",
           },
-        ),
-        configuration.readNeonStorageBytes({ ownerId }),
-      ]);
-      if (!r2Response.ok || !queueResponse.ok) {
-        throw new Error("provider rejected capacity measurement");
+        );
+      } catch {
+        return capacityFailure("capacity_queue_metrics_transport_failed");
       }
-      const r2Envelope = (await r2Response.json()) as CloudflareGraphqlEnvelope;
-      if (r2Envelope.errors !== undefined || r2Envelope.data === undefined) {
-        throw new Error("provider returned invalid capacity measurement");
+      if (!response.ok) {
+        return capacityFailure("capacity_queue_metrics_http_rejected");
       }
-      const queueEnvelope =
-        (await queueResponse.json()) as CloudflareRestEnvelope;
-      if (queueEnvelope.success !== true) {
-        throw new Error("provider returned invalid capacity measurement");
+      let envelope: CloudflareRestEnvelope;
+      try {
+        envelope = (await response.json()) as CloudflareRestEnvelope;
+      } catch {
+        return capacityFailure("capacity_queue_metrics_response_invalid");
       }
-      const r2 = parseR2Usage(r2Envelope.data);
-      return {
-        measuredAt: measuredAt.toISOString(),
-        r2,
-        neonStorageBytes: safeInteger(neonStorageValue),
-        queueBacklogMessages: parseQueueBacklog(queueEnvelope.result),
-      };
-    } catch {
-      throw new Error("Hosted provider capacity measurement failed.");
-    }
+      if (envelope.success !== true) {
+        return capacityFailure("capacity_queue_metrics_response_invalid");
+      }
+      try {
+        return parseQueueBacklog(envelope.result);
+      } catch {
+        return capacityFailure("capacity_queue_metrics_response_invalid");
+      }
+    };
+
+    const readNeonStorage = async () => {
+      try {
+        return safeInteger(
+          await configuration.readNeonStorageBytes({ ownerId }),
+        );
+      } catch {
+        return capacityFailure("capacity_neon_storage_failed");
+      }
+    };
+
+    const [r2, queueBacklogMessages, neonStorageBytes] = await Promise.all([
+      readR2Usage(),
+      readQueueBacklog(),
+      readNeonStorage(),
+    ]);
+    return {
+      measuredAt: measuredAt.toISOString(),
+      r2,
+      neonStorageBytes,
+      queueBacklogMessages,
+    };
   }
 
   return Object.freeze({
