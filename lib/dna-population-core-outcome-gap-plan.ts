@@ -128,7 +128,18 @@ function elapsedMilliseconds(value: unknown): number {
   }
   const [integerPart = "", fractionalPart = ""] = text.split(".");
   if (fractionalPart.length > 3 && !/^0*$/u.test(fractionalPart.slice(3))) {
-    planError("elapsed time precision is unsupported");
+    const seconds = Number(text);
+    const scaledMilliseconds = seconds * 1_000;
+    const nearestMillisecond = Math.round(scaledMilliseconds);
+    if (
+      !Number.isFinite(seconds) ||
+      !Number.isSafeInteger(nearestMillisecond) ||
+      nearestMillisecond < 1 ||
+      Math.abs(scaledMilliseconds - nearestMillisecond) > 0.000001
+    ) {
+      planError("elapsed time precision is unsupported");
+    }
+    return nearestMillisecond;
   }
   const milliseconds =
     BigInt(integerPart) * 1_000n +
