@@ -60,8 +60,11 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY(?:_|:|\s)/u);
     expect(workflow).not.toMatch(/VERCEL|production/iu);
   });
-  it("keeps continuation bound to a complete predecessor and fresh capacity", async () => {
+
+  it("keeps continuation autonomous, durable, bounded and capacity-gated", async () => {
     const workflow = await readFile(continuationWorkflow, "utf8");
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain('cron: "41 * * * *"');
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("expected_main_sha:");
     expect(workflow).toContain("previous_cohort_ordinal:");
@@ -76,6 +79,46 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).toContain(
       "DNA_RACE_MERGE_CORE_OUTCOME_PREVIOUS_COHORT_ORDINAL",
     );
+    expect(workflow).toContain("Acquire masked short-lived Preview owner binding");
+    expect(workflow).toContain("neon@6.0.0 connection-string");
+    expect(workflow).toContain("--role-name neondb_owner");
+    expect(workflow).toContain('echo "::add-mask::${migration_url}"');
+    expect(workflow).toContain("Resolve durable predecessor cohort");
+    expect(workflow).toContain(
+      "dna.race_merge_core_outcome_r2_generation",
+    );
+    expect(workflow).toContain("generation_id = 'owner-race-merge-outcomes-v1'");
+    expect(workflow).toContain("state = 'complete'");
+    expect(workflow).toContain("state = 'writing'");
+    expect(workflow).toContain(
+      "The durable Race Merge writing checkpoint drifted.",
+    );
+    expect(workflow).toContain(
+      "The dispatched predecessor is no longer the durable latest cohort.",
+    );
+    expect(workflow).toContain("Verify durable continuation result");
+    expect(workflow).toContain(
+      "The durable Race Merge continuation result is inconsistent.",
+    );
+    expect(workflow).toContain("coreCount < 100");
+    expect(workflow).toContain("completeCoreCount < 100");
+    expect(workflow).toContain("terminal_status:");
+    expect(workflow).toContain("latest_cohort_ordinal:");
+    expect(workflow).toContain("requeue-continuation:");
+    expect(workflow).toContain("actions: write");
+    expect(workflow).toContain("sleep 60");
+    expect(workflow).toContain("outputs.terminal_status == 'advanced'");
+    expect(workflow).toContain(
+      "no duplicate continuation was dispatched",
+    );
+    expect(workflow).toContain(
+      "dna-race-merge-core-outcome-continuation-command.yml/dispatches",
+    );
+    expect(workflow).toContain(
+      "execute_next_private_preview_race_merge_cohort",
+    );
+    expect(workflow).toContain("Remove owner binding from subsequent steps");
+    expect(workflow).toContain("cancel-in-progress: false");
     for (const setting of [
       "CLOUDFLARE_ANALYTICS_API_TOKEN",
       "CLOUDFLARE_API_TOKEN",
@@ -86,6 +129,7 @@ describe("Race Merge first live cohort workflows", () => {
     ]) {
       expect(workflow).toContain(setting);
     }
+    expect(workflow).not.toMatch(/\b(push|pull_request):/u);
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY(?:_|:|\s)/u);
     expect(workflow).not.toMatch(/VERCEL|production/iu);
   });
