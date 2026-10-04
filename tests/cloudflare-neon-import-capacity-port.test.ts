@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createCloudflareNeonImportCapacityPort } from "../lib/cloudflare-neon-import-capacity-port";
+import {
+  createCloudflareNeonImportCapacityPort,
+  HostedImportCapacityMeasurementError,
+} from "../lib/cloudflare-neon-import-capacity-port";
 
 const accountId = "a".repeat(32);
 const now = new Date("2026-08-10T02:30:00.000Z");
@@ -162,14 +165,14 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(readNeonStorageBytes).not.toHaveBeenCalled();
   });
 
-  it("fails closed on unknown operation classes and sanitizes provider errors", async () => {
+  it("classifies R2 analytics failures without exposing provider detail", async () => {
     const unknownFetcher = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(response(r2Data("UnknownOperation")))
       .mockResolvedValueOnce(
         response({ success: true, result: { backlog_count: 0 } }),
       );
-    const port = createCloudflareNeonImportCapacityPort({
+    const invalidResponse = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
       cloudflareApiToken: "operational-token",
@@ -181,15 +184,18 @@ describe("Cloudflare and Neon import capacity port", () => {
       readNeonStorageBytes: async () => 0,
     });
     await expect(
-      port.measureUploadProjection({
+      invalidResponse.measureUploadProjection({
         ownerId: "owner-1",
         fileCount: 1,
         totalByteLength: 1,
         sourceFamilies: ["core_details"],
       }),
-    ).rejects.toThrow("Hosted provider capacity measurement failed");
+    ).rejects.toMatchObject({
+      name: "HostedImportCapacityMeasurementError",
+      code: "capacity_r2_analytics_response_invalid",
+    });
 
-    const privateFailure = createCloudflareNeonImportCapacityPort({
+    const transportFailure = createCloudflareNeonImportCapacityPort({
       authorizedOwnerId: "owner-1",
       cloudflareAccountId: accountId,
       cloudflareApiToken: "operational-token",
@@ -197,21 +203,90 @@ describe("Cloudflare and Neon import capacity port", () => {
       r2BucketName: "dna-private-imports",
       queueId: "queue-1",
       now: () => now,
-      fetch: vi.fn(async () => {
-        throw new Error("private provider detail");
+      fetch: vi.fn(async (input) => {
+        if (String(input).endsWith("/client/v4/graphql")) {
+          throw new Error("private provider detail");
+        }
+        return response({ success: true, result: { backlog_count: 0 } });
       }),
-      readNeonStorageBytes: async () => {
-        throw new Error("private database detail");
-      },
+      readNeonStorageBytes: async () => 0,
     });
     await expect(
-      privateFailure.measureUploadProjection({
+      transportFailure.measureUploadProjection({
         ownerId: "owner-1",
         fileCount: 1,
         totalByteLength: 1,
         sourceFamilies: ["current_arena"],
       }),
-    ).rejects.not.toThrow(/private provider|private database/);
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<HostedImportCapacityMeasurementError>>({
+        code: "capacity_r2_analytics_transport_failed",
+      }),
+    );
+  });
+
+  it("classifies Queue metrics rejection separately", async () => {
+    const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
+      if (String(input).endsWith("/client/v4/graphql")) {
+        return response(r2Data());
+      }
+      return response({ success: false, errors: [] }, 403);
+    });
+    const port = createCloudflareNeonImportCapacityPort({
+      authorizedOwnerId: "owner-1",
+      cloudflareAccountId: accountId,
+      cloudflareApiToken: "operational-token",
+      cloudflareAnalyticsApiToken: "analytics-token",
+      r2BucketName: "dna-private-imports",
+      queueId: "queue-1",
+      now: () => now,
+      fetch: fetcher,
+      readNeonStorageBytes: async () => 0,
+    });
+
+    await expect(
+      port.measureUploadProjection({
+        ownerId: "owner-1",
+        fileCount: 1,
+        totalByteLength: 1,
+        sourceFamilies: ["race_merge"],
+      }),
+    ).rejects.toMatchObject({
+      code: "capacity_queue_metrics_http_rejected",
+    });
+  });
+
+  it("classifies Neon runtime storage measurement failure separately", async () => {
+    const fetcher = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(response(r2Data()))
+      .mockResolvedValueOnce(
+        response({ success: true, result: { backlog_count: 0 } }),
+      );
+    const port = createCloudflareNeonImportCapacityPort({
+      authorizedOwnerId: "owner-1",
+      cloudflareAccountId: accountId,
+      cloudflareApiToken: "operational-token",
+      cloudflareAnalyticsApiToken: "analytics-token",
+      r2BucketName: "dna-private-imports",
+      queueId: "queue-1",
+      now: () => now,
+      fetch: fetcher,
+      readNeonStorageBytes: async () => {
+        throw new Error("private database detail");
+      },
+    });
+
+    await expect(
+      port.measureUploadProjection({
+        ownerId: "owner-1",
+        fileCount: 1,
+        totalByteLength: 1,
+        sourceFamilies: ["race_merge"],
+      }),
+    ).rejects.toMatchObject({
+      code: "capacity_neon_storage_failed",
+    });
   });
 
   it("rejects malformed configuration before provider access", () => {
