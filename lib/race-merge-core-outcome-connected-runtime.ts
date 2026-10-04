@@ -260,7 +260,6 @@ export function raceMergeCoreOutcomeConnectedRuntimeFromEnvironment(
           maximumCores: input.maximumCores,
           bounds: input.bounds,
         });
-        const registeredAt = now().toISOString();
         const generation = await commitGeneration({
           ownerId,
           generationId: input.generationId,
@@ -270,7 +269,7 @@ export function raceMergeCoreOutcomeConnectedRuntimeFromEnvironment(
           store: outcomeStore,
           repository,
           startedAt,
-          registeredAt,
+          registrationClock: now,
         });
         assertSameCohort(source, generation);
         return Object.freeze({
