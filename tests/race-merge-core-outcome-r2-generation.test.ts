@@ -444,8 +444,7 @@ describe("Race Merge Core outcome R2 generation", () => {
         });
       }),
     );
-    const receiptSetSha256 =
-      raceMergeCoreOutcomeR2ReceiptSetSha256(manifests);
+    const receiptSetSha256 = raceMergeCoreOutcomeR2ReceiptSetSha256(manifests);
     const begin = vi.fn(async (_ownerId, request) =>
       Object.freeze({
         ...request.authority,
@@ -472,20 +471,18 @@ describe("Race Merge Core outcome R2 generation", () => {
         async listManifests(_ownerId, request) {
           return manifests
             .filter(
-              (manifest) =>
-                manifest.sourceCoreId > request.afterSourceCoreId,
+              (manifest) => manifest.sourceCoreId > request.afterSourceCoreId,
             )
             .slice(0, request.limit);
         },
       });
 
-    const result =
-      await readCompleteRaceMergeCoreOutcomeR2Generation({
-        ownerId: "private-owner",
-        generationId: "race-merge-generation-1",
-        cohortOrdinal: 1,
-        repository,
-      });
+    const result = await readCompleteRaceMergeCoreOutcomeR2Generation({
+      ownerId: "private-owner",
+      generationId: "race-merge-generation-1",
+      cohortOrdinal: 1,
+      repository,
+    });
 
     expect(result.authority).toMatchObject({
       cohortOrdinal: 1,
@@ -527,5 +524,4 @@ describe("Race Merge Core outcome R2 generation", () => {
     ).rejects.toThrow("previous cohort is not a complete bounded page");
     expect(begin).not.toHaveBeenCalled();
   });
-
 });
