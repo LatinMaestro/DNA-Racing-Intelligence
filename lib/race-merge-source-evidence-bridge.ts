@@ -125,12 +125,14 @@ function parsePayload(input: {
   );
 }
 
-async function createUploadTarget(input: Readonly<{
-  payload: BridgePayload;
-  ownerId: string;
-  now: Date;
-  capabilities: ImportUploadIntakeCapabilities;
-}>): Promise<RaceMergeSourceEvidenceBridgeResult> {
+async function createUploadTarget(
+  input: Readonly<{
+    payload: BridgePayload;
+    ownerId: string;
+    now: Date;
+    capabilities: ImportUploadIntakeCapabilities;
+  }>,
+): Promise<RaceMergeSourceEvidenceBridgeResult> {
   const ownerId = input.ownerId.trim();
   if (ownerId.length < 1 || ownerId.length > 512) {
     bridgeError("owner authority is invalid");
