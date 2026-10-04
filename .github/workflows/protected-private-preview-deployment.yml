@@ -196,7 +196,12 @@ jobs:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         run: |
           node --input-type=module <<'NODE'
-          import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          import {
+            GetBucketCorsCommand,
+            PutBucketCorsCommand,
+            PutObjectCommand,
+            S3Client,
+          } from "@aws-sdk/client-s3";
           import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
@@ -224,101 +229,127 @@ jobs:
           }
 
           const origin = previewUrl.origin;
-          const apiBase =
+          const ruleId = "dna-private-preview-browser-put-v1";
+          const desiredRule = {
+            ID: ruleId,
+            AllowedOrigins: [origin],
+            AllowedMethods: ["PUT"],
+            AllowedHeaders: ["Content-Type"],
+            ExposeHeaders: ["ETag"],
+            MaxAgeSeconds: 3600,
+          };
+
+          const s3 = new S3Client({
+            region: "auto",
+            endpoint:
+              "https://" + accountId + ".r2.cloudflarestorage.com",
+            forcePathStyle: true,
+            requestChecksumCalculation: "WHEN_REQUIRED",
+            responseChecksumValidation: "WHEN_REQUIRED",
+            credentials: { accessKeyId, secretAccessKey },
+          });
+
+          async function readCorsRules() {
+            try {
+              const result = await s3.send(
+                new GetBucketCorsCommand({ Bucket: bucketName }),
+              );
+              return Array.isArray(result.CORSRules) ? result.CORSRules : [];
+            } catch (error) {
+              const candidate =
+                error !== null && typeof error === "object" ? error : {};
+              const name =
+                typeof candidate.name === "string" ? candidate.name : "";
+              const status =
+                typeof candidate.$metadata?.httpStatusCode === "number"
+                  ? candidate.$metadata.httpStatusCode
+                  : 0;
+              if (name === "NoSuchCORSConfiguration" || status === 404) {
+                return [];
+              }
+              throw new Error("R2 S3 CORS read authority is unavailable.");
+            }
+          }
+
+          function sameStableShape(rule) {
+            const existingOrigin = rule?.AllowedOrigins?.[0] ?? "";
+            return (
+              rule?.ID === ruleId &&
+              Array.isArray(rule?.AllowedOrigins) &&
+              rule.AllowedOrigins.length === 1 &&
+              /^https:\/\/dna-racing-website-[a-z0-9-]+-latinmaestros-projects\.vercel\.app$/u.test(
+                existingOrigin,
+              ) &&
+              JSON.stringify(rule?.AllowedMethods ?? []) ===
+                JSON.stringify(["PUT"]) &&
+              JSON.stringify(rule?.AllowedHeaders ?? []) ===
+                JSON.stringify(["Content-Type"]) &&
+              JSON.stringify(rule?.ExposeHeaders ?? []) ===
+                JSON.stringify(["ETag"]) &&
+              Number(rule?.MaxAgeSeconds) === 3600
+            );
+          }
+
+          const before = await readCorsRules();
+          if (
+            before.length > 1 ||
+            (before.length === 1 && !sameStableShape(before[0]))
+          ) {
+            throw new Error("Unexpected R2 CORS policy drift.");
+          }
+
+          try {
+            await s3.send(
+              new PutBucketCorsCommand({
+                Bucket: bucketName,
+                CORSConfiguration: { CORSRules: [desiredRule] },
+              }),
+            );
+          } catch {
+            throw new Error("R2 S3 CORS write authority is unavailable.");
+          }
+
+          const after = await readCorsRules();
+          if (
+            after.length !== 1 ||
+            !sameStableShape(after[0]) ||
+            JSON.stringify(after[0]?.AllowedOrigins ?? []) !==
+              JSON.stringify([origin])
+          ) {
+            throw new Error("R2 CORS verification failed.");
+          }
+
+          const privacyApiBase =
             "https://api.cloudflare.com/client/v4/accounts/" +
             accountId +
             "/r2/buckets/" +
             encodeURIComponent(bucketName);
-
-          const headers = {
+          const privacyHeaders = {
             Accept: "application/json",
             Authorization: "Bearer " + apiToken,
-            "Content-Type": "application/json",
           };
 
-          async function cloudflare(path, init = {}) {
-            const response = await fetch(apiBase + path, {
-              ...init,
-              headers: { ...headers, ...(init.headers ?? {}) },
+          async function readPrivacy(path) {
+            const response = await fetch(privacyApiBase + path, {
+              method: "GET",
+              headers: privacyHeaders,
               cache: "no-store",
             });
             let body;
             try {
               body = await response.json();
             } catch {
-              throw new Error("Cloudflare R2 CORS response is invalid.");
+              throw new Error("Cloudflare R2 privacy response is invalid.");
             }
             if (!response.ok || body?.success !== true) {
-              throw new Error("Cloudflare R2 CORS request was rejected.");
+              throw new Error("Cloudflare R2 privacy verification failed.");
             }
             return body.result;
           }
 
-          const ruleId = "dna-private-preview-browser-put-v1";
-          const desiredRule = {
-            id: ruleId,
-            allowed: {
-              origins: [origin],
-              methods: ["PUT"],
-              headers: ["Content-Type"],
-            },
-            exposeHeaders: ["ETag"],
-            maxAgeSeconds: 3600,
-          };
-
-          const before = await cloudflare("/cors", { method: "GET" });
-          const existingRules = Array.isArray(before?.rules) ? before.rules : [];
-          if (existingRules.length > 1) {
-            throw new Error("Unexpected R2 CORS policy drift.");
-          }
-          if (existingRules.length === 1) {
-            const existing = existingRules[0];
-            const existingOrigin = existing?.allowed?.origins?.[0] ?? "";
-            const stableShape =
-              existing?.id === ruleId &&
-              Array.isArray(existing?.allowed?.origins) &&
-              existing.allowed.origins.length === 1 &&
-              /^https:\/\/dna-racing-website-[a-z0-9-]+-latinmaestros-projects\.vercel\.app$/u.test(
-                existingOrigin,
-              ) &&
-              JSON.stringify(existing?.allowed?.methods ?? []) ===
-                JSON.stringify(["PUT"]) &&
-              JSON.stringify(existing?.allowed?.headers ?? []) ===
-                JSON.stringify(["Content-Type"]) &&
-              JSON.stringify(existing?.exposeHeaders ?? []) ===
-                JSON.stringify(["ETag"]) &&
-              Number(existing?.maxAgeSeconds) === 3600;
-            if (!stableShape) {
-              throw new Error("Unexpected R2 CORS policy drift.");
-            }
-          }
-
-          await cloudflare("/cors", {
-            method: "PUT",
-            body: JSON.stringify({ rules: [desiredRule] }),
-          });
-
-          const after = await cloudflare("/cors", { method: "GET" });
-          const rules = Array.isArray(after?.rules) ? after.rules : [];
-          if (
-            rules.length !== 1 ||
-            rules[0]?.id !== ruleId ||
-            JSON.stringify(rules[0]?.allowed?.origins ?? []) !==
-              JSON.stringify([origin]) ||
-            JSON.stringify(rules[0]?.allowed?.methods ?? []) !==
-              JSON.stringify(["PUT"]) ||
-            JSON.stringify(rules[0]?.allowed?.headers ?? []) !==
-              JSON.stringify(["Content-Type"]) ||
-            JSON.stringify(rules[0]?.exposeHeaders ?? []) !==
-              JSON.stringify(["ETag"]) ||
-            Number(rules[0]?.maxAgeSeconds) !== 3600
-          ) {
-            throw new Error("R2 CORS verification failed.");
-          }
-
           const [managed, custom] = await Promise.all([
-            cloudflare("/domains/managed", { method: "GET" }),
-            cloudflare("/domains/custom", { method: "GET" }),
+            readPrivacy("/domains/managed"),
+            readPrivacy("/domains/custom"),
           ]);
           if (
             managed?.enabled !== false ||
@@ -330,13 +361,6 @@ jobs:
             );
           }
 
-          const s3 = new S3Client({
-            region: "auto",
-            endpoint:
-              "https://" + accountId + ".r2.cloudflarestorage.com",
-            forcePathStyle: true,
-            credentials: { accessKeyId, secretAccessKey },
-          });
           const presigned = await getSignedUrl(
             s3,
             new PutObjectCommand({
