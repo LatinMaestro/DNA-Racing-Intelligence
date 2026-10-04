@@ -232,21 +232,15 @@ describeConnected("hosted Preview Race Merge Core-outcome continuation", () => {
           sourceByteLength: result.next.source.sourceByteLength,
           sourceRowCount: result.next.source.sourceRowCount,
           selectedCoreCount: result.next.source.selectedCoreCount,
-          selectedObservationCount:
-            result.next.source.selectedObservationCount,
+          selectedObservationCount: result.next.source.selectedObservationCount,
           selectedUniqueOutcomeCount:
             result.next.source.selectedUniqueOutcomeCount,
-          selectedExactReplayCount:
-            result.next.selectedExactReplayCount,
-          firstSourceCoreId:
-            result.next.generation.authority.firstSourceCoreId,
-          lastSourceCoreId:
-            result.next.generation.authority.lastSourceCoreId,
-          retainedR2Bytes:
-            result.next.generation.authority.retainedR2Bytes,
+          selectedExactReplayCount: result.next.selectedExactReplayCount,
+          firstSourceCoreId: result.next.generation.authority.firstSourceCoreId,
+          lastSourceCoreId: result.next.generation.authority.lastSourceCoreId,
+          retainedR2Bytes: result.next.generation.authority.retainedR2Bytes,
           sourceManifestSha256: result.next.sourceManifestSha256,
-          receiptSetSha256:
-            result.next.generation.authority.receiptSetSha256,
+          receiptSetSha256: result.next.generation.authority.receiptSetSha256,
           dnaProviderRequestCount: result.next.dnaProviderRequestCount,
           paidUsageAllowed: result.next.paidUsageAllowed,
         }),
