@@ -28,6 +28,7 @@ export type HostedImportConfirmationRuntimeEnvironment = Readonly<{
   cloudflare: Readonly<{
     accountId: string | undefined;
     apiToken: string | undefined;
+    analyticsApiToken: string | undefined;
     r2BucketName: string | undefined;
     queueId: string | undefined;
     queueName: string | undefined;
@@ -73,11 +74,15 @@ export function hostedImportConfirmationRuntime(input: {
   const accountId = providerId(input.environment.cloudflare.accountId);
   const queueId = providerId(input.environment.cloudflare.queueId);
   const cloudflareApiToken = secret(input.environment.cloudflare.apiToken);
+  const cloudflareAnalyticsApiToken = secret(
+    input.environment.cloudflare.analyticsApiToken,
+  );
   if (
     ownerId === "" ||
     accountId === null ||
     queueId === null ||
-    cloudflareApiToken === null
+    cloudflareApiToken === null ||
+    cloudflareAnalyticsApiToken === null
   ) {
     return unavailableImportActivationCapabilities;
   }
@@ -99,7 +104,7 @@ export function hostedImportConfirmationRuntime(input: {
           createCloudflareNeonImportCapacityPort({
             authorizedOwnerId: ownerId,
             cloudflareAccountId: accountId,
-            cloudflareApiToken,
+            cloudflareApiToken: cloudflareAnalyticsApiToken,
             r2BucketName: input.environment.cloudflare.r2BucketName ?? "",
             queueId,
             now,
