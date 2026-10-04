@@ -190,6 +190,209 @@ jobs:
           fi
           echo "url=${url}" >> "${GITHUB_OUTPUT}"
           echo "Created the isolated protected Preview deployment."
+      - name: Configure exact-origin private R2 browser upload CORS
+        shell: bash
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+          const apiToken = process.env.CLOUDFLARE_API_TOKEN ?? "";
+          const bucketName = process.env.DNA_R2_BUCKET_NAME ?? "";
+          const accessKeyId = process.env.DNA_R2_ACCESS_KEY_ID ?? "";
+          const secretAccessKey = process.env.DNA_R2_SECRET_ACCESS_KEY ?? "";
+          const previewUrl = new URL(process.env.PREVIEW_URL ?? "");
+
+          if (
+            !/^[a-f0-9]{32}$/u.test(accountId) ||
+            apiToken.length < 1 ||
+            bucketName !== "dna-racing-import-preview" ||
+            accessKeyId.length < 1 ||
+            secretAccessKey.length < 1 ||
+            previewUrl.protocol !== "https:" ||
+            !/^dna-racing-website-[a-z0-9-]+-latinmaestros-projects\.vercel\.app$/u.test(
+              previewUrl.hostname,
+            ) ||
+            previewUrl.pathname !== "/" ||
+            previewUrl.search !== "" ||
+            previewUrl.hash !== ""
+          ) {
+            throw new Error("Protected Preview R2 CORS authority is invalid.");
+          }
+
+          const origin = previewUrl.origin;
+          const apiBase =
+            "https://api.cloudflare.com/client/v4/accounts/" +
+            accountId +
+            "/r2/buckets/" +
+            encodeURIComponent(bucketName);
+
+          const headers = {
+            Accept: "application/json",
+            Authorization: "Bearer " + apiToken,
+            "Content-Type": "application/json",
+          };
+
+          async function cloudflare(path, init = {}) {
+            const response = await fetch(apiBase + path, {
+              ...init,
+              headers: { ...headers, ...(init.headers ?? {}) },
+              cache: "no-store",
+            });
+            let body;
+            try {
+              body = await response.json();
+            } catch {
+              throw new Error("Cloudflare R2 CORS response is invalid.");
+            }
+            if (!response.ok || body?.success !== true) {
+              throw new Error("Cloudflare R2 CORS request was rejected.");
+            }
+            return body.result;
+          }
+
+          const ruleId = "dna-private-preview-browser-put-v1";
+          const desiredRule = {
+            id: ruleId,
+            allowed: {
+              origins: [origin],
+              methods: ["PUT"],
+              headers: ["Content-Type"],
+            },
+            exposeHeaders: ["ETag"],
+            maxAgeSeconds: 3600,
+          };
+
+          const before = await cloudflare("/cors", { method: "GET" });
+          const existingRules = Array.isArray(before?.rules) ? before.rules : [];
+          if (existingRules.length > 1) {
+            throw new Error("Unexpected R2 CORS policy drift.");
+          }
+          if (existingRules.length === 1) {
+            const existing = existingRules[0];
+            const existingOrigin = existing?.allowed?.origins?.[0] ?? "";
+            const stableShape =
+              existing?.id === ruleId &&
+              Array.isArray(existing?.allowed?.origins) &&
+              existing.allowed.origins.length === 1 &&
+              /^https:\/\/dna-racing-website-[a-z0-9-]+-latinmaestros-projects\.vercel\.app$/u.test(
+                existingOrigin,
+              ) &&
+              JSON.stringify(existing?.allowed?.methods ?? []) ===
+                JSON.stringify(["PUT"]) &&
+              JSON.stringify(existing?.allowed?.headers ?? []) ===
+                JSON.stringify(["Content-Type"]) &&
+              JSON.stringify(existing?.exposeHeaders ?? []) ===
+                JSON.stringify(["ETag"]) &&
+              Number(existing?.maxAgeSeconds) === 3600;
+            if (!stableShape) {
+              throw new Error("Unexpected R2 CORS policy drift.");
+            }
+          }
+
+          await cloudflare("/cors", {
+            method: "PUT",
+            body: JSON.stringify({ rules: [desiredRule] }),
+          });
+
+          const after = await cloudflare("/cors", { method: "GET" });
+          const rules = Array.isArray(after?.rules) ? after.rules : [];
+          if (
+            rules.length !== 1 ||
+            rules[0]?.id !== ruleId ||
+            JSON.stringify(rules[0]?.allowed?.origins ?? []) !==
+              JSON.stringify([origin]) ||
+            JSON.stringify(rules[0]?.allowed?.methods ?? []) !==
+              JSON.stringify(["PUT"]) ||
+            JSON.stringify(rules[0]?.allowed?.headers ?? []) !==
+              JSON.stringify(["Content-Type"]) ||
+            JSON.stringify(rules[0]?.exposeHeaders ?? []) !==
+              JSON.stringify(["ETag"]) ||
+            Number(rules[0]?.maxAgeSeconds) !== 3600
+          ) {
+            throw new Error("R2 CORS verification failed.");
+          }
+
+          const [managed, custom] = await Promise.all([
+            cloudflare("/domains/managed", { method: "GET" }),
+            cloudflare("/domains/custom", { method: "GET" }),
+          ]);
+          if (
+            managed?.enabled !== false ||
+            !Array.isArray(custom?.domains) ||
+            custom.domains.length !== 0
+          ) {
+            throw new Error(
+              "R2 bucket privacy changed while configuring browser upload CORS.",
+            );
+          }
+
+          const s3 = new S3Client({
+            region: "auto",
+            endpoint:
+              "https://" + accountId + ".r2.cloudflarestorage.com",
+            forcePathStyle: true,
+            credentials: { accessKeyId, secretAccessKey },
+          });
+          const presigned = await getSignedUrl(
+            s3,
+            new PutObjectCommand({
+              Bucket: bucketName,
+              Key:
+                "quarantine/cors-preflight/" +
+                process.env.GITHUB_RUN_ID +
+                ".csv",
+              ContentType: "text/csv",
+            }),
+            { expiresIn: 600 },
+          );
+
+          let verified = false;
+          for (let attempt = 0; attempt < 6; attempt += 1) {
+            const response = await fetch(presigned, {
+              method: "OPTIONS",
+              headers: {
+                Origin: origin,
+                "Access-Control-Request-Method": "PUT",
+                "Access-Control-Request-Headers": "content-type",
+              },
+            });
+            const allowedOrigin =
+              response.headers.get("access-control-allow-origin");
+            const methods =
+              response.headers
+                .get("access-control-allow-methods")
+                ?.split(",")
+                .map((value) => value.trim().toUpperCase()) ?? [];
+            const allowedHeaders =
+              response.headers
+                .get("access-control-allow-headers")
+                ?.split(",")
+                .map((value) => value.trim().toLowerCase()) ?? [];
+            if (
+              response.ok &&
+              allowedOrigin === origin &&
+              methods.includes("PUT") &&
+              allowedHeaders.includes("content-type")
+            ) {
+              verified = true;
+              break;
+            }
+            if (attempt < 5) {
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+          }
+          if (!verified) {
+            throw new Error("R2 browser CORS preflight verification failed.");
+          }
+
+          console.log(
+            "Configured and verified exact-origin private R2 browser PUT CORS.",
+          );
+          NODE
       - name: Verify deployment is ready and private
         shell: bash
         env:
