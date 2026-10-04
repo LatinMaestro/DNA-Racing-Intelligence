@@ -6,6 +6,10 @@ import {
   type AggregateRetryActionDependencies,
   unavailableAggregateRetryCapabilities,
 } from "@/lib/import-aggregate-retry-action-service";
+import {
+  HostedImportCapacityMeasurementError,
+  type HostedImportCapacityFailureCode,
+} from "@/lib/cloudflare-neon-import-capacity-port";
 import { hostedImportConfirmationRuntime } from "@/lib/hosted-import-confirmation-runtime";
 import { hostedImportUploadCompletionRuntime } from "@/lib/hosted-import-upload-completion-runtime";
 import { hostedImportUploadIntakeRuntime } from "@/lib/hosted-import-upload-intake-runtime";
@@ -29,6 +33,61 @@ const RACE_MERGE_SOURCE_EVIDENCE_PREFIX = "race-merge-outcome-source-v1";
 const RACE_MERGE_SOURCE_EVIDENCE_FILE_COUNT = 8;
 const RACE_MERGE_SOURCE_EVIDENCE_MAXIMUM_FILE_BYTES = 100_000_000;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
+
+export type RaceMergeSourceUploadFailureCode =
+  | HostedImportCapacityFailureCode
+  | "capacity_evidence_invalid"
+  | "capacity_limit_r2_storage_bytes"
+  | "capacity_limit_r2_class_a_operations"
+  | "capacity_limit_r2_class_b_operations"
+  | "capacity_limit_neon_storage_bytes"
+  | "capacity_limit_queue_backlog_messages"
+  | "owner_authentication_unavailable"
+  | "owner_access_denied"
+  | "reservation_inconsistent"
+  | "target_creation_failed"
+  | "unexpected_server_failure";
+
+function raceMergeSourceUploadFailureCode(
+  error: unknown,
+): RaceMergeSourceUploadFailureCode {
+  if (error instanceof HostedImportCapacityMeasurementError) {
+    return error.code;
+  }
+  if (!(error instanceof Error)) return "unexpected_server_failure";
+
+  const capacityResource =
+    /^Provider capacity unavailable for (r2_storage_bytes|r2_class_a_operations|r2_class_b_operations|neon_storage_bytes|queue_backlog_messages)\.$/u.exec(
+      error.message,
+    )?.[1];
+  if (capacityResource !== undefined) {
+    return `capacity_limit_${capacityResource}` as RaceMergeSourceUploadFailureCode;
+  }
+
+  if (
+    error.message === "Provider capacity evidence is stale or invalid." ||
+    error.message === "Provider capacity evidence source is invalid." ||
+    error.message === "Provider capacity resource set is invalid." ||
+    error.message === "Provider capacity evidence is incomplete."
+  ) {
+    return "capacity_evidence_invalid";
+  }
+  if (error.message === "Owner authentication is unavailable.") {
+    return "owner_authentication_unavailable";
+  }
+  if (error.message === "Private import upload access denied.") {
+    return "owner_access_denied";
+  }
+  if (
+    error.message === "Reserved private upload identity set is inconsistent."
+  ) {
+    return "reservation_inconsistent";
+  }
+  if (error.message === "Private import upload target creation failed.") {
+    return "target_creation_failed";
+  }
+  return "unexpected_server_failure";
+}
 
 function ownerActionDependencies(): ImportOwnerActionDependencies {
   const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID;
@@ -211,22 +270,29 @@ export async function beginRaceMergeOutcomeSourceUploadAction(
   }
   const ordinal = String(input.ordinal).padStart(2, "0");
   const identity = `${RACE_MERGE_SOURCE_EVIDENCE_PREFIX}-${ordinal}-${input.sha256.slice(0, 16)}`;
-  return beginOwnerImportUpload(
-    {
-      idempotencyKey: `${RACE_MERGE_SOURCE_EVIDENCE_PREFIX}-${ordinal}-${input.sha256.slice(0, 32)}`,
-      files: [
-        {
-          clientFileId: identity,
-          sourceFamily: "race_merge",
-          originalFileName: input.originalFileName,
-          contentType: "text/csv",
-          byteLength: input.byteLength,
-          sha256: input.sha256,
-        },
-      ],
-    },
-    ownerActionDependencies(),
-  );
+  try {
+    return await beginOwnerImportUpload(
+      {
+        idempotencyKey: `${RACE_MERGE_SOURCE_EVIDENCE_PREFIX}-${ordinal}-${input.sha256.slice(0, 32)}`,
+        files: [
+          {
+            clientFileId: identity,
+            sourceFamily: "race_merge",
+            originalFileName: input.originalFileName,
+            contentType: "text/csv",
+            byteLength: input.byteLength,
+            sha256: input.sha256,
+          },
+        ],
+      },
+      ownerActionDependencies(),
+    );
+  } catch (error) {
+    return {
+      status: "failed" as const,
+      errorCode: raceMergeSourceUploadFailureCode(error),
+    };
+  }
 }
 
 export async function completeImportUploadAction(
