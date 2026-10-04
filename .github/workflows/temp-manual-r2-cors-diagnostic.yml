@@ -16,7 +16,7 @@ jobs:
     environment: preview
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DNA_R2_BUCKET_NAME: ${{ secrets.DNA_R2_BUCKET_NAME }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
       PREVIEW_ORIGIN: https://dna-racing-website-6r7857z1a-latinmaestros-projects.vercel.app
