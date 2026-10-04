@@ -19,7 +19,10 @@ import {
 } from "./race-merge-core-outcome-r2-capacity-gate";
 import {
   commitRaceMergeCoreOutcomeR2Generation,
+  RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
+  readCompleteRaceMergeCoreOutcomeR2Generation,
   type RaceMergeCoreOutcomeR2CapacityGate,
+  type RaceMergeCoreOutcomeR2CompletedBoundary,
   type RaceMergeCoreOutcomeR2GenerationRepository,
   type RaceMergeCoreOutcomeR2GenerationResult,
 } from "./race-merge-core-outcome-r2-generation";
@@ -53,19 +56,34 @@ export type RaceMergeCoreOutcomeConnectedResult = Readonly<{
   paidUsageAllowed: false;
 }>;
 
+export type RaceMergeCoreOutcomeConnectedContinuationResult = Readonly<{
+  previousGeneration: RaceMergeCoreOutcomeR2CompletedBoundary;
+  next: RaceMergeCoreOutcomeConnectedResult;
+}>;
+
+type ExecuteInput = Readonly<{
+  generationId: string;
+  cohortOrdinal: number;
+  afterSourceCoreId: number;
+  maximumCores: number;
+  references: readonly RaceMergeOutcomeImportReference[];
+  bounds: RaceMergeCoreOutcomeCohortSourceBounds;
+}>;
+
 export type RaceMergeCoreOutcomeConnectedRuntime =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
       exactCodeHeadSha: string;
-      execute: (input: {
+      execute: (
+        input: ExecuteInput,
+      ) => Promise<RaceMergeCoreOutcomeConnectedResult>;
+      executeNext: (input: {
         generationId: string;
-        cohortOrdinal: number;
-        afterSourceCoreId: number;
-        maximumCores: number;
+        previousCohortOrdinal: number;
         references: readonly RaceMergeOutcomeImportReference[];
         bounds: RaceMergeCoreOutcomeCohortSourceBounds;
-      }) => Promise<RaceMergeCoreOutcomeConnectedResult>;
+      }) => Promise<RaceMergeCoreOutcomeConnectedContinuationResult>;
     }>;
 
 type Dependencies = Readonly<{
@@ -79,6 +97,7 @@ type Dependencies = Readonly<{
   sessionFactory?: NeonImportPersistenceSessionFactory;
   materializeSource?: typeof materializeRaceMergeCoreOutcomeSourceCohort;
   commitGeneration?: typeof commitRaceMergeCoreOutcomeR2Generation;
+  readCompleteGeneration?: typeof readCompleteRaceMergeCoreOutcomeR2Generation;
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
 }>;
@@ -245,42 +264,66 @@ export function raceMergeCoreOutcomeConnectedRuntimeFromEnvironment(
       materializeRaceMergeCoreOutcomeSourceCohort;
     const commitGeneration =
       dependencies.commitGeneration ?? commitRaceMergeCoreOutcomeR2Generation;
+    const readCompleteGeneration =
+      dependencies.readCompleteGeneration ??
+      readCompleteRaceMergeCoreOutcomeR2Generation;
+
+    const execute = async (
+      input: ExecuteInput,
+    ): Promise<RaceMergeCoreOutcomeConnectedResult> => {
+      const startedAt = now().toISOString();
+      const source = await materializeSource({
+        ownerId,
+        generationId: input.generationId,
+        references: input.references,
+        objectStore: sourceObjectStore,
+        afterSourceCoreId: input.afterSourceCoreId,
+        maximumCores: input.maximumCores,
+        bounds: input.bounds,
+      });
+      const generation = await commitGeneration({
+        ownerId,
+        generationId: input.generationId,
+        cohortOrdinal: input.cohortOrdinal,
+        cores: source.cores,
+        capacityGate,
+        store: outcomeStore,
+        repository,
+        startedAt,
+        registrationClock: now,
+      });
+      assertSameCohort(source, generation);
+      return Object.freeze({
+        source,
+        generation,
+        sourceManifestSha256: source.sourceManifestSha256,
+        selectedExactReplayCount: source.selectedExactReplayCount,
+        dnaProviderRequestCount: 0 as const,
+        persistentWritePerformed: true as const,
+        paidUsageAllowed: false as const,
+      });
+    };
 
     return Object.freeze({
       status: "ready" as const,
       exactCodeHeadSha,
-      async execute(input) {
-        const startedAt = now().toISOString();
-        const source = await materializeSource({
+      execute,
+      async executeNext(input) {
+        const previousGeneration = await readCompleteGeneration({
           ownerId,
           generationId: input.generationId,
+          cohortOrdinal: input.previousCohortOrdinal,
+          repository,
+        });
+        const next = await execute({
+          generationId: input.generationId,
+          cohortOrdinal: input.previousCohortOrdinal + 1,
+          afterSourceCoreId: previousGeneration.authority.lastSourceCoreId,
+          maximumCores: RACE_MERGE_CORE_OUTCOME_R2_COHORT_MAXIMUM_CORES,
           references: input.references,
-          objectStore: sourceObjectStore,
-          afterSourceCoreId: input.afterSourceCoreId,
-          maximumCores: input.maximumCores,
           bounds: input.bounds,
         });
-        const generation = await commitGeneration({
-          ownerId,
-          generationId: input.generationId,
-          cohortOrdinal: input.cohortOrdinal,
-          cores: source.cores,
-          capacityGate,
-          store: outcomeStore,
-          repository,
-          startedAt,
-          registrationClock: now,
-        });
-        assertSameCohort(source, generation);
-        return Object.freeze({
-          source,
-          generation,
-          sourceManifestSha256: source.sourceManifestSha256,
-          selectedExactReplayCount: source.selectedExactReplayCount,
-          dnaProviderRequestCount: 0 as const,
-          persistentWritePerformed: true as const,
-          paidUsageAllowed: false as const,
-        });
+        return Object.freeze({ previousGeneration, next });
       },
     });
   } catch {
