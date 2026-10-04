@@ -115,9 +115,7 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(operationsCall[0]).toBe(
       "https://api.cloudflare.com/client/v4/graphql",
     );
-    expect(storageCall[0]).toBe(
-      "https://api.cloudflare.com/client/v4/graphql",
-    );
+    expect(storageCall[0]).toBe("https://api.cloudflare.com/client/v4/graphql");
     for (const graphqlCall of [operationsCall, storageCall]) {
       expect(graphqlCall[1]).toMatchObject({
         method: "POST",
@@ -181,91 +179,85 @@ describe("Cloudflare and Neon import capacity port", () => {
     expect(readNeonStorageBytes).not.toHaveBeenCalled();
   });
 
-  it(
-    "conservatively charges unknown R2 actions against both operation guards",
-    async () => {
-      const fetcher = vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValueOnce(response(r2Data("FutureBillableAction")))
-        .mockResolvedValueOnce(response(r2Data()))
-        .mockResolvedValueOnce(
-          response({ success: true, result: { backlog_count: 0 } }),
-        );
-      const port = createCloudflareNeonImportCapacityPort({
-        authorizedOwnerId: "owner-1",
-        cloudflareAccountId: accountId,
-        cloudflareApiToken: "operational-token",
-        cloudflareAnalyticsApiToken: "analytics-token",
-        r2BucketName: "dna-private-imports",
-        queueId: "queue-1",
-        now: () => now,
-        fetch: fetcher,
-        readNeonStorageBytes: async () => 0,
-      });
+  it("conservatively charges unknown R2 actions against both operation guards", async () => {
+  const fetcher = vi
+    .fn<typeof globalThis.fetch>()
+    .mockResolvedValueOnce(response(r2Data("FutureBillableAction")))
+    .mockResolvedValueOnce(response(r2Data()))
+    .mockResolvedValueOnce(
+      response({ success: true, result: { backlog_count: 0 } }),
+    );
+  const port = createCloudflareNeonImportCapacityPort({
+    authorizedOwnerId: "owner-1",
+    cloudflareAccountId: accountId,
+    cloudflareApiToken: "operational-token",
+    cloudflareAnalyticsApiToken: "analytics-token",
+    r2BucketName: "dna-private-imports",
+    queueId: "queue-1",
+    now: () => now,
+    fetch: fetcher,
+    readNeonStorageBytes: async () => 0,
+  });
 
-      await expect(
-        port.measureUploadProjection({
-          ownerId: "owner-1",
-          fileCount: 1,
-          totalByteLength: 1,
-          sourceFamilies: ["core_details"],
-        }),
-      ).resolves.toMatchObject({
-        resources: expect.arrayContaining([
-          {
-            resource: "r2_class_a_operations",
-            currentUsage: 11,
-            projectedIncrement: 1,
-          },
-          {
-            resource: "r2_class_b_operations",
-            currentUsage: 18,
-            projectedIncrement: 2,
-          },
-        ]),
-      });
-    },
+  await expect(
+    port.measureUploadProjection({
+      ownerId: "owner-1",
+      fileCount: 1,
+      totalByteLength: 1,
+      sourceFamilies: ["core_details"],
+    }),
+  ).resolves.toMatchObject({
+    resources: expect.arrayContaining([
+      {
+        resource: "r2_class_a_operations",
+        currentUsage: 11,
+        projectedIncrement: 1,
+      },
+      {
+        resource: "r2_class_b_operations",
+        currentUsage: 18,
+        projectedIncrement: 2,
+      },
+    ]),
+  });
+  });
+
+  it("classifies split R2 operations transport failure without exposing provider detail", async () => {
+  const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+    if (String(input).endsWith("/client/v4/graphql")) {
+      const body = JSON.parse(String(init?.body)) as { query: string };
+      if (body.query.includes("DnaImportCapacityOperations")) {
+        throw new Error("private provider detail");
+      }
+      return response(r2Data());
+    }
+    return response({ success: true, result: { backlog_count: 0 } });
+  });
+  const port = createCloudflareNeonImportCapacityPort({
+    authorizedOwnerId: "owner-1",
+    cloudflareAccountId: accountId,
+    cloudflareApiToken: "operational-token",
+    cloudflareAnalyticsApiToken: "analytics-token",
+    r2BucketName: "dna-private-imports",
+    queueId: "queue-1",
+    now: () => now,
+    fetch: fetcher,
+    readNeonStorageBytes: async () => 0,
+  });
+
+  await expect(
+    port.measureUploadProjection({
+      ownerId: "owner-1",
+      fileCount: 1,
+      totalByteLength: 1,
+      sourceFamilies: ["current_arena"],
+    }),
+  ).rejects.toEqual(
+    expect.objectContaining<Partial<HostedImportCapacityMeasurementError>>({
+      code: "capacity_r2_operations_transport_failed",
+    }),
   );
-
-  it(
-    "classifies split R2 operations transport failure without exposing provider detail",
-    async () => {
-      const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
-        if (String(input).endsWith("/client/v4/graphql")) {
-          const body = JSON.parse(String(init?.body)) as { query: string };
-          if (body.query.includes("DnaImportCapacityOperations")) {
-            throw new Error("private provider detail");
-          }
-          return response(r2Data());
-        }
-        return response({ success: true, result: { backlog_count: 0 } });
-      });
-      const port = createCloudflareNeonImportCapacityPort({
-        authorizedOwnerId: "owner-1",
-        cloudflareAccountId: accountId,
-        cloudflareApiToken: "operational-token",
-        cloudflareAnalyticsApiToken: "analytics-token",
-        r2BucketName: "dna-private-imports",
-        queueId: "queue-1",
-        now: () => now,
-        fetch: fetcher,
-        readNeonStorageBytes: async () => 0,
-      });
-
-      await expect(
-        port.measureUploadProjection({
-          ownerId: "owner-1",
-          fileCount: 1,
-          totalByteLength: 1,
-          sourceFamilies: ["current_arena"],
-        }),
-      ).rejects.toEqual(
-        expect.objectContaining<Partial<HostedImportCapacityMeasurementError>>({
-          code: "capacity_r2_operations_transport_failed",
-        }),
-      );
-    },
-  );
+  });
 
   it("classifies split R2 storage response failure separately", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
