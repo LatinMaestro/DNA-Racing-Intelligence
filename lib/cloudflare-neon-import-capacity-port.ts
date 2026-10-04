@@ -49,6 +49,7 @@ export type CloudflareNeonImportCapacityConfiguration = Readonly<{
   authorizedOwnerId: string;
   cloudflareAccountId: string;
   cloudflareApiToken: string;
+  cloudflareAnalyticsApiToken: string;
   r2BucketName: string;
   queueId: string;
   now?: () => Date;
@@ -219,6 +220,10 @@ export function createCloudflareNeonImportCapacityPort(
     configuration.cloudflareApiToken,
     "cloudflareApiToken",
   );
+  const analyticsApiToken = secret(
+    configuration.cloudflareAnalyticsApiToken,
+    "cloudflareAnalyticsApiToken",
+  );
   const bucketName = identifier(configuration.r2BucketName, "r2BucketName");
   const queueId = identifier(configuration.queueId, "queueId");
   const now = configuration.now ?? (() => new Date());
@@ -238,7 +243,11 @@ export function createCloudflareNeonImportCapacityPort(
     if (Number.isNaN(measuredAt.getTime())) {
       throw new Error("Hosted provider capacity time is invalid.");
     }
-    const headers = {
+    const analyticsHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${analyticsApiToken}`,
+    };
+    const operationalHeaders = {
       Accept: "application/json",
       Authorization: `Bearer ${apiToken}`,
     };
@@ -246,7 +255,10 @@ export function createCloudflareNeonImportCapacityPort(
       const [r2Response, queueResponse, neonStorageValue] = await Promise.all([
         fetcher(`${CLOUDFLARE_API_ORIGIN}/client/v4/graphql`, {
           method: "POST",
-          headers: { ...headers, "Content-Type": "application/json" },
+          headers: {
+            ...analyticsHeaders,
+            "Content-Type": "application/json",
+          },
           cache: "no-store",
           body: JSON.stringify({
             query: R2_CAPACITY_QUERY,
@@ -260,7 +272,11 @@ export function createCloudflareNeonImportCapacityPort(
         }),
         fetcher(
           `${CLOUDFLARE_API_ORIGIN}/client/v4/accounts/${accountId}/queues/${encodeURIComponent(queueId)}/metrics`,
-          { method: "GET", headers, cache: "no-store" },
+          {
+            method: "GET",
+            headers: operationalHeaders,
+            cache: "no-store",
+          },
         ),
         configuration.readNeonStorageBytes({ ownerId }),
       ]);

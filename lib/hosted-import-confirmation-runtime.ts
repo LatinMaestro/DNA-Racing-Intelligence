@@ -104,7 +104,8 @@ export function hostedImportConfirmationRuntime(input: {
           createCloudflareNeonImportCapacityPort({
             authorizedOwnerId: ownerId,
             cloudflareAccountId: accountId,
-            cloudflareApiToken: cloudflareAnalyticsApiToken,
+            cloudflareApiToken,
+            cloudflareAnalyticsApiToken,
             r2BucketName: input.environment.cloudflare.r2BucketName ?? "",
             queueId,
             now,

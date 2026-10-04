@@ -101,7 +101,8 @@ export function hostedImportUploadIntakeRuntime(input: {
         createCloudflareNeonImportCapacityPort({
           authorizedOwnerId: ownerId,
           cloudflareAccountId: input.environment.r2.accountId ?? "",
-          cloudflareApiToken: cloudflareAnalyticsApiToken,
+          cloudflareApiToken,
+          cloudflareAnalyticsApiToken,
           r2BucketName: input.environment.r2.bucketName ?? "",
           queueId,
           now,
