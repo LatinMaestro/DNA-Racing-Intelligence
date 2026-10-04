@@ -416,5 +416,4 @@ describe("Race Merge Core outcome connected runtime", () => {
       paidUsageAllowed: false,
     });
   });
-
 });
