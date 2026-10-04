@@ -89,5 +89,4 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY(?:_|:|\s)/u);
     expect(workflow).not.toMatch(/VERCEL|production/iu);
   });
-
 });
