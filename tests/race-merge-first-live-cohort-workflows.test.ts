@@ -86,9 +86,7 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain('echo "::add-mask::${migration_url}"');
     expect(workflow).toContain("Resolve durable predecessor cohort");
-    expect(workflow).toContain(
-      "dna.race_merge_core_outcome_r2_generation",
-    );
+    expect(workflow).toContain("dna.race_merge_core_outcome_r2_generation");
     expect(workflow).toContain(
       "generation_id = 'owner-race-merge-outcomes-v1'",
     );
@@ -112,9 +110,7 @@ describe("Race Merge first live cohort workflows", () => {
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("sleep 60");
     expect(workflow).toContain("outputs.terminal_status == 'advanced'");
-    expect(workflow).toContain(
-      "no duplicate continuation was dispatched",
-    );
+    expect(workflow).toContain("no duplicate continuation was dispatched");
     expect(workflow).toContain(
       "dna-race-merge-core-outcome-continuation-command.yml/dispatches",
     );
