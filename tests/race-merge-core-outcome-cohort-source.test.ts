@@ -123,6 +123,28 @@ describe("Race Merge Core outcome cohort source", () => {
     ]);
   });
 
+  it("normalizes a binary floating-point time artifact through the streaming source path", async () => {
+    const result = await materializeRaceMergeCoreOutcomeSourceCohort(
+      request({
+        source:
+          "event_id,token_id,pos,time\ne9ea19f1f9,10,4,131.51399999999998\n",
+      }),
+    );
+
+    expect(result.cores).toEqual([
+      expect.objectContaining({
+        sourceCoreId: 10,
+        observations: [
+          expect.objectContaining({
+            sourceRaceId: "e9ea19f1f9",
+            finishPosition: 4,
+            elapsedMilliseconds: 131_514,
+          }),
+        ],
+      }),
+    ]);
+  });
+
   it("evicts a larger early Core when a smaller identity appears later", async () => {
     const result = await materializeRaceMergeCoreOutcomeSourceCohort(
       request(

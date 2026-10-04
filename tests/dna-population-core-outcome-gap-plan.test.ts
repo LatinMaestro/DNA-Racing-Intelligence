@@ -75,6 +75,41 @@ describe("DNA population Core outcome gap plan", () => {
     });
   });
 
+  it("normalizes only binary floating-point artifacts that land on an exact millisecond", () => {
+    expect(
+      adaptDnaRaceMergeOutcomeSourceRow({
+        event_id: "e9ea19f1f9",
+        token_id: "10",
+        pos: "4",
+        time: "131.51399999999998",
+      }),
+    ).toEqual({
+      source: "race_merge",
+      sourceCoreId: 10,
+      sourceRaceId: "e9ea19f1f9",
+      finishPosition: 4,
+      elapsedMilliseconds: 131514,
+    });
+
+    expect(() =>
+      adaptDnaRaceMergeOutcomeSourceRow({
+        event_id: "race-sub-ms",
+        token_id: "10",
+        pos: "4",
+        time: "131.5135",
+      }),
+    ).toThrow("elapsed time precision is unsupported");
+
+    expect(() =>
+      adaptDnaRaceMergeOutcomeSourceRow({
+        event_id: "race-near-but-not-artifact",
+        token_id: "10",
+        pos: "4",
+        time: "131.513999",
+      }),
+    ).toThrow("elapsed time precision is unsupported");
+  });
+
   it("uses Race Merge first, persisted API second, and requests only true gap Cores", async () => {
     const plan = await planDnaPopulationCoreOutcomeGapAcquisition({
       linkedHistories: histories([
