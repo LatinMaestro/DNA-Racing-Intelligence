@@ -2,9 +2,7 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  DnaCoreRaceHistoryPublishedGeneration,
-} from "@/lib/dna-core-race-history-generation";
+import type { DnaCoreRaceHistoryPublishedGeneration } from "@/lib/dna-core-race-history-generation";
 import {
   readDnaPersistedApiOutcomeDurableSource,
   readDnaRaceMergeOutcomeDurableSource,
@@ -101,9 +99,7 @@ function apiGeneration(
 }
 
 describe("DNA population Core outcome durable sources", () => {
-  it(
-    "reopens full cohorts plus a bounded terminal cohort without writes or DNA calls",
-    async () => {
+  it("reopens full cohorts plus a bounded terminal cohort without writes or DNA calls", async () => {
     const cohortOne = Array.from({ length: 100 }, (_, index) =>
       manifest(index + 1, 1),
     );
@@ -126,9 +122,7 @@ describe("DNA population Core outcome durable sources", () => {
                 : [];
           return Object.freeze(
             source
-              .filter(
-                (value) => value.sourceCoreId > request.afterSourceCoreId,
-              )
+              .filter((value) => value.sourceCoreId > request.afterSourceCoreId)
               .slice(0, request.limit),
           );
         },
@@ -198,18 +192,14 @@ describe("DNA population Core outcome durable sources", () => {
     ).rejects.toThrow("manifest count");
   });
 
-  it(
-    "reopens the published API generation, verifies its digest and indexes outcomes by Core",
-    async () => {
+  it("reopens the published API generation, verifies its digest and indexes outcomes by Core", async () => {
     const rows = [apiRow(0, 101), apiRow(1, 101), apiRow(2, 202)];
     const active = apiGeneration(rows);
     const repository: ActiveDnaCoreRaceHistoryGenerationReadRepository = {
       readActiveGeneration: vi.fn(async () => active),
       readActiveRows: vi.fn(async (_ownerId, afterOrdinal, limit) =>
         Object.freeze(
-          rows
-            .filter((row) => row.ordinal > afterOrdinal)
-            .slice(0, limit),
+          rows.filter((row) => row.ordinal > afterOrdinal).slice(0, limit),
         ),
       ),
     };
