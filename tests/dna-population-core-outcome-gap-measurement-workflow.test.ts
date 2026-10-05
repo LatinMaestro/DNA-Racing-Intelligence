@@ -29,4 +29,21 @@ describe("DNA population Core-outcome exact-gap workflow", () => {
     expect(workflow).not.toMatch(/DNA_(?:OPEN_LAB_)?API_KEY/u);
     expect(workflow).not.toMatch(/deploy|migration|production/iu);
   });
+
+  it("preflights fresh provider capacity before opening the terminal Race Merge source", async () => {
+    const connectedTest = await readFile(
+      "tests/hosted-preview-connected-population-core-outcome-gap-measurement.test.ts",
+      "utf8",
+    );
+    const capacityIndex = connectedTest.indexOf(
+      "const capacity = await capacitySource.measure({ ownerId });",
+    );
+    const raceMergeReadIndex = connectedTest.indexOf(
+      "const raceMergeSource = await readDnaRaceMergeOutcomeDurableSource({",
+    );
+
+    expect(capacityIndex).toBeGreaterThanOrEqual(0);
+    expect(raceMergeReadIndex).toBeGreaterThanOrEqual(0);
+    expect(capacityIndex).toBeLessThan(raceMergeReadIndex);
+  });
 });
