@@ -115,7 +115,7 @@ function mergedRuns<T>(input: {
       const heads = await Promise.all(
         iterators.map((iterator) => iterator.next()),
       );
-      for (let iteratorIndex = 0; iteratorIndex < heads.length; iteratorIndex += 1) {
+      for (\n        let iteratorIndex = 0;\n        iteratorIndex < heads.length;\n        iteratorIndex += 1\n      ) {
         const head = heads[iteratorIndex];
         if (head !== undefined && !head.done) {
           push(Object.freeze({ iteratorIndex, value: head.value }));
