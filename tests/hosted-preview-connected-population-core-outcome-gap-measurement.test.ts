@@ -60,7 +60,7 @@ function requiredEnvironment(name: string): string {
 }
 
 function raceDocuments(
-  documents: readonly Parameters<
+  documents: Parameters<
     typeof completeDnaPopulationCoreHistoryAuthority
   >[0]["baseRaceDocuments"],
 ) {
@@ -359,10 +359,35 @@ describeConnected(
             domain: "dna-population-core-outcome-api-gap-core-set/v1",
             coreIds: reconciliation.outcomeCoverage.apiGapCoreIds,
           });
-          const {
-            apiGapCoreIds: _privateGapCoreIds,
-            ...sanitizedCoverage
-          } = reconciliation.outcomeCoverage;
+          const sanitizedCoverage = Object.freeze({
+            version: reconciliation.outcomeCoverage.version,
+            status: reconciliation.outcomeCoverage.status,
+            linkedCoreCount: reconciliation.outcomeCoverage.linkedCoreCount,
+            requiredMembershipCount:
+              reconciliation.outcomeCoverage.requiredMembershipCount,
+            coveredMembershipCount:
+              reconciliation.outcomeCoverage.coveredMembershipCount,
+            raceMergeCoveredMembershipCount:
+              reconciliation.outcomeCoverage.raceMergeCoveredMembershipCount,
+            apiCoveredMembershipCount:
+              reconciliation.outcomeCoverage.apiCoveredMembershipCount,
+            exactCrossSourceOverlapCount:
+              reconciliation.outcomeCoverage.exactCrossSourceOverlapCount,
+            replayDuplicateCount:
+              reconciliation.outcomeCoverage.replayDuplicateCount,
+            extraOutcomeCount: reconciliation.outcomeCoverage.extraOutcomeCount,
+            missingMembershipCount:
+              reconciliation.outcomeCoverage.missingMembershipCount,
+            apiGapCoreCount: reconciliation.outcomeCoverage.apiGapCoreCount,
+            requiredMembershipSetSha256:
+              reconciliation.outcomeCoverage.requiredMembershipSetSha256,
+            coveredMembershipSetSha256:
+              reconciliation.outcomeCoverage.coveredMembershipSetSha256,
+            missingMembershipSetSha256:
+              reconciliation.outcomeCoverage.missingMembershipSetSha256,
+            dnaProviderRequestCount:
+              reconciliation.outcomeCoverage.dnaProviderRequestCount,
+          });
           const report = Object.freeze({
             version: 1,
             status: "complete" as const,
@@ -438,8 +463,8 @@ describeConnected(
           ]) {
             expect(serialized).not.toContain(secret);
           }
+          expect(serialized).not.toContain('"apiGapCoreIds"');
           for (const coreId of reconciliation.outcomeCoverage.apiGapCoreIds) {
-            expect(serialized).not.toContain(`"apiGapCoreIds"`);
             expect(serialized).not.toContain(`"sourceCoreId":${coreId}`);
           }
           console.log(
