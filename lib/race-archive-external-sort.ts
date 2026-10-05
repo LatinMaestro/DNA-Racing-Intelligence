@@ -57,44 +57,93 @@ function mergedRuns<T>(input: {
   compare: (left: T, right: T) => number;
 }): AsyncIterable<T> {
   return (async function* () {
+    type HeapEntry = Readonly<{ iteratorIndex: number; value: T }>;
+
     const iterators = input.runIds.map((runId) =>
       input.store.readRun({ runId })[Symbol.asyncIterator](),
     );
-    const heads: Array<IteratorResult<T> | undefined> = [];
-    try {
-      for (const iterator of iterators) heads.push(await iterator.next());
+    const heap: HeapEntry[] = [];
+    const precedes = (left: HeapEntry, right: HeapEntry): boolean => {
+      const comparison = input.compare(left.value, right.value);
+      return (
+        comparison < 0 ||
+        (comparison === 0 && left.iteratorIndex < right.iteratorIndex)
+      );
+    };
+    const push = (entry: HeapEntry): void => {
+      let index = heap.length;
+      heap.push(entry);
+      while (index > 0) {
+        const parentIndex = Math.floor((index - 1) / 2);
+        const parent = heap[parentIndex];
+        if (parent === undefined || !precedes(entry, parent)) break;
+        heap[index] = parent;
+        index = parentIndex;
+      }
+      heap[index] = entry;
+    };
+    const pop = (): HeapEntry => {
+      const root = heap[0];
+      const tail = heap.pop();
+      if (root === undefined || tail === undefined) {
+        throw new Error("Race archive external-sort merge heap is empty.");
+      }
+      if (heap.length === 0) return root;
+
+      let index = 0;
       while (true) {
-        let selectedIndex = -1;
-        for (let index = 0; index < heads.length; index += 1) {
-          const head = heads[index];
-          if (head === undefined || head.done) continue;
-          if (selectedIndex < 0) {
-            selectedIndex = index;
-            continue;
-          }
-          const selectedHead = heads[selectedIndex];
-          if (selectedHead === undefined || selectedHead.done) {
-            throw new Error(
-              "Race archive external-sort merge state is invalid.",
-            );
-          }
-          if (input.compare(head.value, selectedHead.value) < 0) {
-            selectedIndex = index;
-          }
+        const leftIndex = index * 2 + 1;
+        if (leftIndex >= heap.length) break;
+        const rightIndex = leftIndex + 1;
+        const left = heap[leftIndex];
+        const right = heap[rightIndex];
+        if (left === undefined) {
+          throw new Error("Race archive external-sort merge heap is invalid.");
         }
-        if (selectedIndex < 0) return;
-        const selectedHead = heads[selectedIndex];
-        if (selectedHead === undefined || selectedHead.done) {
-          throw new Error("Race archive external-sort merge state is invalid.");
+        const childIndex =
+          right !== undefined && precedes(right, left) ? rightIndex : leftIndex;
+        const child = heap[childIndex];
+        if (child === undefined || !precedes(child, tail)) break;
+        heap[index] = child;
+        index = childIndex;
+      }
+      heap[index] = tail;
+      return root;
+    };
+
+    try {
+      const heads = await Promise.all(
+        iterators.map((iterator) => iterator.next()),
+      );
+      for (
+        let iteratorIndex = 0;
+        iteratorIndex < heads.length;
+        iteratorIndex += 1
+      ) {
+        const head = heads[iteratorIndex];
+        if (head !== undefined && !head.done) {
+          push(Object.freeze({ iteratorIndex, value: head.value }));
         }
-        yield selectedHead.value;
-        const iterator = iterators[selectedIndex];
+      }
+
+      while (heap.length > 0) {
+        const selected = pop();
+        yield selected.value;
+        const iterator = iterators[selected.iteratorIndex];
         if (iterator === undefined) {
           throw new Error(
             "Race archive external-sort iterator is unavailable.",
           );
         }
-        heads[selectedIndex] = await iterator.next();
+        const next = await iterator.next();
+        if (!next.done) {
+          push(
+            Object.freeze({
+              iteratorIndex: selected.iteratorIndex,
+              value: next.value,
+            }),
+          );
+        }
       }
     } finally {
       await closeIterators(iterators);

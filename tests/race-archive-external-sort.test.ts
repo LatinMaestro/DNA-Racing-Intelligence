@@ -132,6 +132,33 @@ describe("Race archive external sort", () => {
     await result.cleanup();
   });
 
+  it("merges high-fan-in runs with logarithmic comparison growth", async () => {
+    const storage = memoryStore<number>();
+    const recordCount = 4_096;
+    let comparisonCount = 0;
+    const result = await spillExactSortedRaceArchiveRecords({
+      records: asyncValues(
+        Array.from({ length: recordCount }, (_, index) => recordCount - index),
+      ),
+      store: storage.store,
+      compare: (left, right) => {
+        comparisonCount += 1;
+        return left - right;
+      },
+      runPrefix: "refresh-3/heap",
+      maximumRecordsInMemory: 1,
+      mergeFanIn: 64,
+      maximumInputRecords: recordCount,
+      maximumRunObjects: 5_000,
+    });
+
+    expect(await collect(result.read())).toEqual(
+      Array.from({ length: recordCount }, (_, index) => index + 1),
+    );
+    expect(comparisonCount).toBeLessThan(150_000);
+    await result.cleanup();
+  });
+
   it("deduplicates identical replays after external natural-key ordering", async () => {
     const storage = memoryStore<RaceArchiveCoreAnalyticalObservation>();
     const first = observation({

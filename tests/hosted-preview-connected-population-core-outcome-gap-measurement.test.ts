@@ -180,6 +180,7 @@ describeConnected(
           ownerId,
           exactCodeHeadSha,
         });
+        console.log("DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=race-audit-loaded");
 
         const checkpointRepository =
           createNeonDnaPopulationEntrantAuthorityCheckpointRepository({
@@ -232,6 +233,9 @@ describeConnected(
           expectedUnresolvedRaceSetSha256:
             audit.authority.unresolvedRaceSetSha256,
         });
+        console.log(
+          "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=entrant-authority-loaded",
+        );
 
         const raceMergeRepository =
           createNeonRaceMergeCoreOutcomeR2GenerationRepository({
@@ -289,6 +293,7 @@ describeConnected(
         ) {
           throw new Error("read-only scan exceeds A$0 Neon capacity");
         }
+        console.log("DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=capacity-verified");
 
         const raceMergeSource = await readDnaRaceMergeOutcomeDurableSource({
           ownerId,
@@ -302,6 +307,9 @@ describeConnected(
         if (raceMergeSource.manifestCount !== expectedRaceMergeManifestCount) {
           throw new Error("Race Merge terminal manifest authority drifted");
         }
+        console.log(
+          "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=race-merge-source-loaded",
+        );
 
         const persistedApiSource =
           await readDnaPersistedApiOutcomeDurableSource({
@@ -315,10 +323,16 @@ describeConnected(
               }),
           });
 
+        console.log(
+          "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=persisted-api-source-loaded",
+        );
         const scratchRoot = await mkdtemp(
           join(tmpdir(), "dna-population-core-outcome-gap-"),
         );
         try {
+          console.log(
+            "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=reconciliation-started",
+          );
           const reconciliation = await reconcileDnaPopulationCoreOutcomeGap({
             documents: raceDocuments(population.raceDocuments),
             scratchStore:
@@ -346,6 +360,9 @@ describeConnected(
             persistedApiSource,
           });
 
+          console.log(
+            "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=reconciliation-complete",
+          );
           expect(reconciliation).toMatchObject({
             status: "complete",
             dnaProviderRequestCount: 0,
