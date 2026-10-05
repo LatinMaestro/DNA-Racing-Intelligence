@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { DnaCoreRaceHistoryPublishedGeneration } from "@/lib/dna-core-race-history-generation";
+import type {\n  DnaCoreRaceHistoryPublishedGeneration,\n} from "@/lib/dna-core-race-history-generation";
 import {
   readDnaPersistedApiOutcomeDurableSource,
   readDnaRaceMergeOutcomeDurableSource,
@@ -16,7 +16,7 @@ import type { RaceMergeCoreOutcomeR2Manifest } from "@/lib/race-merge-core-outco
 
 const GENERATION = "owner-race-merge-outcomes-v1";
 
-function manifest(core: number, cohort: number): RaceMergeCoreOutcomeR2Manifest {
+function manifest(\n  core: number,\n  cohort: number,\n): RaceMergeCoreOutcomeR2Manifest {
   return Object.freeze({
     version: 1 as const,
     generationId: GENERATION,
@@ -32,7 +32,7 @@ function manifest(core: number, cohort: number): RaceMergeCoreOutcomeR2Manifest 
   });
 }
 
-function apiRow(ordinal: number, core: number): ActiveDnaCoreRaceHistoryGenerationRow {
+function apiRow(\n  ordinal: number,\n  core: number,\n): ActiveDnaCoreRaceHistoryGenerationRow {
   const payload = Object.freeze({
     sourceType: "core_race_history_outcome" as const,
     payloadVersion: 1 as const,
@@ -93,7 +93,7 @@ function apiGeneration(
 }
 
 describe("DNA population Core outcome durable sources", () => {
-  it("reopens full cohorts plus a bounded terminal cohort without writes or DNA calls", async () => {
+  it(\n    "reopens full cohorts plus a bounded terminal cohort without writes or DNA calls",\n    async () => {
     const cohortOne = Array.from({ length: 100 }, (_, index) =>
       manifest(index + 1, 1),
     );
@@ -188,7 +188,7 @@ describe("DNA population Core outcome durable sources", () => {
     ).rejects.toThrow("manifest count");
   });
 
-  it("reopens the published API generation, verifies its digest and indexes outcomes by Core", async () => {
+  it(\n    "reopens the published API generation, verifies its digest and indexes outcomes by Core",\n    async () => {
     const rows = [apiRow(0, 101), apiRow(1, 101), apiRow(2, 202)];
     const active = apiGeneration(rows);
     const repository: ActiveDnaCoreRaceHistoryGenerationReadRepository = {
@@ -235,7 +235,7 @@ describe("DNA population Core outcome durable sources", () => {
 
   it("fails closed on API payload digest drift", async () => {
     const rows = [apiRow(0, 101)];
-    const active = { ...apiGeneration(rows), payloadSha256: "f".repeat(64) };
+    const active = {\n      ...apiGeneration(rows),\n      payloadSha256: "f".repeat(64),\n    };
     const repository: ActiveDnaCoreRaceHistoryGenerationReadRepository = {
       readActiveGeneration: vi.fn(async () => active),
       readActiveRows: vi.fn(async () => rows),
