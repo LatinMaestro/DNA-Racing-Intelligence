@@ -365,10 +365,12 @@ describeConnected(
           const reconciliation = await reconcileDnaPopulationCoreOutcomeGap({
             documents: raceDocuments(population.raceDocuments),
             scratchStore:
-              createEphemeralJsonlExternalSortedRunStore<DnaPopulationCoreRaceLink>({
+              createEphemeralJsonlExternalSortedRunStore<DnaPopulationCoreRaceLink>(
+                {
                   rootDirectory: scratchRoot,
                   namespace: "population-core-outcome-gap",
-              }),
+                },
+              ),
             runPrefix: "population-core-outcome-gap",
             linkIndexBounds: {
               maximumRecordsInMemory: 50_000,
