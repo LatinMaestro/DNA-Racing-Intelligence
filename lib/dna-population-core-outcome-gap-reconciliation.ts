@@ -63,20 +63,19 @@ export async function reconcileDnaPopulationCoreOutcomeGap(input: {
   });
 
   try {
-    const outcomeCoverage =
-      await planDnaPopulationCoreOutcomeGapAcquisition({
-        linkedHistories: index.read(),
-        loadRaceMergeOutcomes: input.raceMergeSource.loadOutcomes,
-        loadPersistedApiOutcomes:
-          input.persistedApiSource?.loadOutcomes ?? (async () => Object.freeze([])),
-        bounds: input.planBounds,
-        ...(input.maximumConcurrentCoreLoads === undefined
-          ? {}
-          : {
-              maximumConcurrentCoreLoads:
-                input.maximumConcurrentCoreLoads,
-            }),
-      });
+    const outcomeCoverage = await planDnaPopulationCoreOutcomeGapAcquisition({
+      linkedHistories: index.read(),
+      loadRaceMergeOutcomes: input.raceMergeSource.loadOutcomes,
+      loadPersistedApiOutcomes:
+        input.persistedApiSource?.loadOutcomes ??
+        (async () => Object.freeze([])),
+      bounds: input.planBounds,
+      ...(input.maximumConcurrentCoreLoads === undefined
+        ? {}
+        : {
+            maximumConcurrentCoreLoads: input.maximumConcurrentCoreLoads,
+          }),
+    });
 
     if (
       outcomeCoverage.linkedCoreCount !== index.linkedCoreCount ||
