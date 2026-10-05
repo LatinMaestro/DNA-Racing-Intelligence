@@ -4,33 +4,77 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
-import { createCloudflareDnaOpenLabP5R2S3ListBinding } from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
-import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
-import { completeDnaPopulationCoreHistoryAuthority } from "@/lib/dna-population-core-history-authority";
-import { loadDnaPopulationCoreHistoryEntrantAuthority } from "@/lib/dna-population-core-history-entrant-source";
+import {
+  cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment,
+} from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
+import {
+  createCloudflareDnaOpenLabP5R2S3ListBinding,
+} from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
+import {
+  createCloudflareR2DatasetEvidencePort,
+} from "@/lib/cloudflare-r2-dataset-evidence-port";
+import {
+  completeDnaPopulationCoreHistoryAuthority,
+} from "@/lib/dna-population-core-history-authority";
+import {
+  loadDnaPopulationCoreHistoryEntrantAuthority,
+} from "@/lib/dna-population-core-history-entrant-source";
 import {
   readDnaPersistedApiOutcomeDurableSource,
   readDnaRaceMergeOutcomeDurableSource,
 } from "@/lib/dna-population-core-outcome-durable-sources";
-import { reconcileDnaPopulationCoreOutcomeGap } from "@/lib/dna-population-core-outcome-gap-reconciliation";
-import type {\n  DnaPopulationCoreRaceLink,\n} from "@/lib/dna-population-core-race-link-index";
-import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
-import { projectDnaPopulationEntrantAuthorityR2Cost } from "@/lib/dna-population-entrant-authority-r2-cost-policy";
-import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "@/lib/dna-population-entrant-authority-r2-store";
-import { createDnaOpenLabP5FirstBackfillR2EvidenceWriter } from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
-import { DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET } from "@/lib/dna-open-lab-p5-first-backfill-approval";
+import {
+  reconcileDnaPopulationCoreOutcomeGap,
+} from "@/lib/dna-population-core-outcome-gap-reconciliation";
+import type {
+  DnaPopulationCoreRaceLink,
+} from "@/lib/dna-population-core-race-link-index";
+import {
+  createDnaPopulationEntrantAuthorityLiveAuditSource,
+} from "@/lib/dna-population-entrant-authority-live-audit-source";
+import {
+  projectDnaPopulationEntrantAuthorityR2Cost,
+} from "@/lib/dna-population-entrant-authority-r2-cost-policy";
+import {
+  createDnaPopulationEntrantAuthorityR2ChunkStore,
+} from "@/lib/dna-population-entrant-authority-r2-store";
+import {
+  createDnaOpenLabP5FirstBackfillR2EvidenceWriter,
+} from "@/lib/dna-open-lab-p5-first-backfill-r2-evidence";
+import {
+  DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+} from "@/lib/dna-open-lab-p5-first-backfill-approval";
 import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
-import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "@/lib/dna-open-lab-zero-cost-provider-capacity";
-import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
-import { createEphemeralJsonlExternalSortedRunStore } from "@/lib/ephemeral-jsonl-external-sorted-run-store";
-import { createNeonActiveDnaCoreRaceHistoryGenerationReadRepository } from "@/lib/neon-active-dna-core-race-history-generation";
-import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
-import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "@/lib/neon-dna-population-entrant-authority-checkpoint";
-import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
-import { createNeonDnaOpenLabSyncPublicationRepository } from "@/lib/neon-dna-open-lab-sync-publication";
-import { createNeonRaceMergeCoreOutcomeR2GenerationRepository } from "@/lib/neon-race-merge-core-outcome-r2-generation";
-import { createRaceMergeCoreOutcomeR2Store } from "@/lib/race-merge-core-outcome-r2-store";
+import {
+  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
+} from "@/lib/dna-open-lab-zero-cost-provider-capacity";
+import {
+  createDnaPopulationRaceIndexR2ChunkStore,
+} from "@/lib/dna-population-race-index-r2-chunk";
+import {
+  createEphemeralJsonlExternalSortedRunStore,
+} from "@/lib/ephemeral-jsonl-external-sorted-run-store";
+import {
+  createNeonActiveDnaCoreRaceHistoryGenerationReadRepository,
+} from "@/lib/neon-active-dna-core-race-history-generation";
+import {
+  createNeonDnaOpenLabP5FirstBackfillLedger,
+} from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
+import {
+  createNeonDnaPopulationEntrantAuthorityCheckpointRepository,
+} from "@/lib/neon-dna-population-entrant-authority-checkpoint";
+import {
+  createNeonDnaPopulationRaceIndexGenerationRepository,
+} from "@/lib/neon-dna-population-race-index-generation";
+import {
+  createNeonDnaOpenLabSyncPublicationRepository,
+} from "@/lib/neon-dna-open-lab-sync-publication";
+import {
+  createNeonRaceMergeCoreOutcomeR2GenerationRepository,
+} from "@/lib/neon-race-merge-core-outcome-r2-generation";
+import {
+  createRaceMergeCoreOutcomeR2Store,
+} from "@/lib/race-merge-core-outcome-r2-store";
 
 const connected =
   process.env.DNA_POPULATION_CORE_OUTCOME_GAP_MEASUREMENT === "1";
@@ -75,7 +119,9 @@ describeConnected(
     it(
       "reconciles canonical Race/Core membership against durable local outcomes without DNA calls or writes",
       async () => {
-        const exactCodeHeadSha = requiredEnvironment(\n          "GITHUB_SHA",\n        ).toLowerCase();
+        const exactCodeHeadSha = requiredEnvironment(
+          "GITHUB_SHA",
+        ).toLowerCase();
         if (!COMMIT_PATTERN.test(exactCodeHeadSha)) {
           throw new Error("exact main commit is unavailable");
         }
@@ -129,7 +175,8 @@ describeConnected(
           databaseOwnerId,
           ownerId,
           runtimeRole: RUNTIME_ROLE,
-          approvalPacket:\n            DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+          approvalPacket:
+            DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
         });
         const populationIndex =
           createNeonDnaPopulationRaceIndexGenerationRepository({
