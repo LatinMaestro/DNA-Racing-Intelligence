@@ -43,6 +43,7 @@ const RACE_MERGE_TERMINAL_COHORT_ORDINAL = 199;
 const RACE_MERGE_TERMINAL_CORE_COUNT = 26;
 const RACE_MERGE_FULL_COHORT_SIZE = 100;
 const MAXIMUM_CONCURRENT_CORE_LOADS = 128;
+const MAXIMUM_CONCURRENT_COHORT_LOADS = 32;
 const MAXIMUM_NEON_READ_COMPUTE_MILLI_CU_HOURS = 5_000;
 
 function requiredEnvironment(name: string): string {
@@ -294,6 +295,7 @@ describeConnected(
           generationId: RACE_MERGE_GENERATION_ID,
           terminalCohortOrdinal: RACE_MERGE_TERMINAL_COHORT_ORDINAL,
           terminalCoreCount: RACE_MERGE_TERMINAL_CORE_COUNT,
+          maximumConcurrentCohortLoads: MAXIMUM_CONCURRENT_COHORT_LOADS,
           repository: raceMergeRepository,
           store: raceMergeStore,
         });
@@ -438,6 +440,7 @@ describeConnected(
             }),
             safety: Object.freeze({
               maximumConcurrentCoreLoads: MAXIMUM_CONCURRENT_CORE_LOADS,
+              maximumConcurrentCohortLoads: MAXIMUM_CONCURRENT_COHORT_LOADS,
               dnaProviderRequestCount: 0 as const,
               persistentWritePerformed: false as const,
               providerWritePerformed: false as const,
