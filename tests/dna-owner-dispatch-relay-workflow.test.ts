@@ -155,6 +155,11 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "payload.execute_next_private_preview_race_merge_cohort !== true",
     );
+    expect(workflow).toContain(
+      "dna-population-core-outcome-gap-measurement.yml",
+    );
+    expect(workflow).toContain('"population-core-outcome-gap-measurement"');
+    expect(workflow).toContain("execute_read_only_measurement: true");
     expect(workflow).toContain("protected-private-preview-deployment.yml");
     expect(workflow).toContain('"protected-preview-deployment"');
     expect(workflow).toContain("payload.deploy_protected_preview !== true");
