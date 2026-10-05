@@ -175,6 +175,80 @@ describe("DNA population Core outcome durable sources", () => {
     await expect(source.loadOutcomes(999)).resolves.toEqual([]);
   });
 
+  it("loads manifest cohorts with bounded concurrency and reduces them in ordinal order", async () => {
+    const cohorts = new Map(
+      [1, 2, 3].map((cohortOrdinal) => [
+        cohortOrdinal,
+        Array.from({ length: 100 }, (_, index) =>
+          manifest((cohortOrdinal - 1) * 100 + index + 1, cohortOrdinal),
+        ),
+      ]),
+    );
+    cohorts.set(4, [manifest(301, 4)]);
+    let activeLoads = 0;
+    let peakActiveLoads = 0;
+    const repository = {
+      listManifests: vi.fn(
+        async (
+          _ownerId: string,
+          request: {
+            cohortOrdinal: number;
+            afterSourceCoreId: number;
+            limit: number;
+          },
+        ) => {
+          const source = cohorts.get(request.cohortOrdinal) ?? [];
+          if (request.afterSourceCoreId === 0) {
+            activeLoads += 1;
+            peakActiveLoads = Math.max(peakActiveLoads, activeLoads);
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            activeLoads -= 1;
+          }
+          return Object.freeze(
+            source
+              .filter((value) => value.sourceCoreId > request.afterSourceCoreId)
+              .slice(0, request.limit),
+          );
+        },
+      ),
+    };
+
+    const source = await readDnaRaceMergeOutcomeDurableSource({
+      ownerId: "private-owner",
+      generationId: GENERATION,
+      terminalCohortOrdinal: 4,
+      terminalCoreCount: 1,
+      maximumConcurrentCohortLoads: 3,
+      repository,
+      store: { read: vi.fn() },
+    });
+
+    expect(peakActiveLoads).toBe(3);
+    expect(repository.listManifests).toHaveBeenCalledTimes(8);
+    expect(source).toMatchObject({
+      manifestCount: 301,
+      firstSourceCoreId: 1,
+      lastSourceCoreId: 301,
+    });
+  });
+
+  it.each([0, 65])(
+    "rejects invalid manifest cohort concurrency %s",
+    async (maximumConcurrentCohortLoads) => {
+      await expect(
+        readDnaRaceMergeOutcomeDurableSource({
+          ownerId: "private-owner",
+          generationId: GENERATION,
+          terminalCohortOrdinal: 1,
+          terminalCoreCount: 1,
+          maximumConcurrentCohortLoads,
+          repository: { listManifests: vi.fn() },
+          store: { read: vi.fn() },
+        }),
+      ).rejects.toThrow("maximumConcurrentCohortLoads");
+    },
+  );
+
   it("fails closed when a non-terminal cohort is not exactly 100 Cores", async () => {
     const repository = {
       listManifests: vi.fn(async () =>

@@ -12,6 +12,7 @@ import type {
 import type { RaceMergeCoreOutcomeR2Store } from "./race-merge-core-outcome-r2-store";
 
 const MAXIMUM_COHORT_CORES = 100;
+const MAXIMUM_CONCURRENT_COHORT_LOADS = 64;
 const MAXIMUM_API_PAGE_SIZE = 250;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -111,6 +112,7 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
   generationId: string;
   terminalCohortOrdinal: number;
   terminalCoreCount: number;
+  maximumConcurrentCohortLoads?: number;
   repository: Pick<RaceMergeCoreOutcomeR2GenerationRepository, "listManifests">;
   store: Pick<RaceMergeCoreOutcomeR2Store, "read">;
 }): Promise<DnaRaceMergeOutcomeDurableSource> {
@@ -128,6 +130,66 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
     sourceError("terminalCoreCount exceeds bounded cohort");
   }
 
+  const maximumConcurrentCohortLoads = input.maximumConcurrentCohortLoads ?? 1;
+  if (
+    !Number.isSafeInteger(maximumConcurrentCohortLoads) ||
+    maximumConcurrentCohortLoads < 1 ||
+    maximumConcurrentCohortLoads > MAXIMUM_CONCURRENT_COHORT_LOADS
+  ) {
+    sourceError("maximumConcurrentCohortLoads is invalid");
+  }
+
+  const loadedCohorts: Array<
+    | Readonly<{
+        cohortOrdinal: number;
+        manifests: readonly RaceMergeCoreOutcomeR2Manifest[];
+      }>
+    | undefined
+  > = new Array(terminalCohortOrdinal);
+  let nextCohortOrdinal = 1;
+
+  async function loadNextCohort(): Promise<void> {
+    while (nextCohortOrdinal <= terminalCohortOrdinal) {
+      const cohortOrdinal = nextCohortOrdinal;
+      nextCohortOrdinal += 1;
+      const expectedCoreCount =
+        cohortOrdinal === terminalCohortOrdinal
+          ? terminalCoreCount
+          : MAXIMUM_COHORT_CORES;
+      const manifests = await input.repository.listManifests(ownerId, {
+        generationId,
+        cohortOrdinal,
+        afterSourceCoreId: 0,
+        limit: MAXIMUM_COHORT_CORES,
+      });
+      if (manifests.length !== expectedCoreCount) {
+        sourceError("cohort manifest count disagrees with durable authority");
+      }
+      const tail = await input.repository.listManifests(ownerId, {
+        generationId,
+        cohortOrdinal,
+        afterSourceCoreId: manifests.at(-1)!.sourceCoreId,
+        limit: 1,
+      });
+      if (tail.length !== 0) {
+        sourceError("cohort manifest range exceeds durable authority");
+      }
+      loadedCohorts[cohortOrdinal - 1] = Object.freeze({
+        cohortOrdinal,
+        manifests,
+      });
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      {
+        length: Math.min(maximumConcurrentCohortLoads, terminalCohortOrdinal),
+      },
+      () => loadNextCohort(),
+    ),
+  );
+
   const manifestByCore = new Map<number, RaceMergeCoreOutcomeR2Manifest>();
   let uniqueOutcomeCount = 0;
   let sourceObservationCount = 0;
@@ -139,30 +201,12 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
     cohortOrdinal <= terminalCohortOrdinal;
     cohortOrdinal += 1
   ) {
-    const expectedCoreCount =
-      cohortOrdinal === terminalCohortOrdinal
-        ? terminalCoreCount
-        : MAXIMUM_COHORT_CORES;
-    const manifests = await input.repository.listManifests(ownerId, {
-      generationId,
-      cohortOrdinal,
-      afterSourceCoreId: 0,
-      limit: MAXIMUM_COHORT_CORES,
-    });
-    if (manifests.length !== expectedCoreCount) {
-      sourceError("cohort manifest count disagrees with durable authority");
-    }
-    const tail = await input.repository.listManifests(ownerId, {
-      generationId,
-      cohortOrdinal,
-      afterSourceCoreId: manifests.at(-1)!.sourceCoreId,
-      limit: 1,
-    });
-    if (tail.length !== 0) {
-      sourceError("cohort manifest range exceeds durable authority");
+    const loaded = loadedCohorts[cohortOrdinal - 1];
+    if (loaded === undefined || loaded.cohortOrdinal !== cohortOrdinal) {
+      sourceError("cohort manifest coverage is incomplete");
     }
 
-    for (const manifest of manifests) {
+    for (const manifest of loaded.manifests) {
       const coreId = positiveInteger(manifest.sourceCoreId, "manifest Core");
       if (
         manifest.generationId !== generationId ||
