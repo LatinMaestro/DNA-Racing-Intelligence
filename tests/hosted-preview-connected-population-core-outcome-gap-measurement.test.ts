@@ -14,7 +14,7 @@ import {
   readDnaRaceMergeOutcomeDurableSource,
 } from "@/lib/dna-population-core-outcome-durable-sources";
 import { reconcileDnaPopulationCoreOutcomeGap } from "@/lib/dna-population-core-outcome-gap-reconciliation";
-import type { DnaPopulationCoreRaceLink } from "@/lib/dna-population-core-race-link-index";
+import type {\n  DnaPopulationCoreRaceLink,\n} from "@/lib/dna-population-core-race-link-index";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
 import { projectDnaPopulationEntrantAuthorityR2Cost } from "@/lib/dna-population-entrant-authority-r2-cost-policy";
 import { createDnaPopulationEntrantAuthorityR2ChunkStore } from "@/lib/dna-population-entrant-authority-r2-store";
@@ -75,7 +75,7 @@ describeConnected(
     it(
       "reconciles canonical Race/Core membership against durable local outcomes without DNA calls or writes",
       async () => {
-        const exactCodeHeadSha = requiredEnvironment("GITHUB_SHA").toLowerCase();
+        const exactCodeHeadSha = requiredEnvironment(\n          "GITHUB_SHA",\n        ).toLowerCase();
         if (!COMMIT_PATTERN.test(exactCodeHeadSha)) {
           throw new Error("exact main commit is unavailable");
         }
@@ -129,7 +129,7 @@ describeConnected(
           databaseOwnerId,
           ownerId,
           runtimeRole: RUNTIME_ROLE,
-          approvalPacket: DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
+          approvalPacket:\n            DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
         });
         const populationIndex =
           createNeonDnaPopulationRaceIndexGenerationRepository({
@@ -144,22 +144,21 @@ describeConnected(
             databaseOwnerId,
             runtimeRole: RUNTIME_ROLE,
           });
-        const baselineEvidence = createDnaOpenLabP5FirstBackfillR2EvidenceWriter(
-          {
+        const baselineEvidence =
+          createDnaOpenLabP5FirstBackfillR2EvidenceWriter({
             ownerId,
             bucketName,
             storage,
             approvalPacket:
               DNA_OPEN_LAB_CURRENT_P5_FIRST_BACKFILL_APPROVAL_PACKET,
-          },
-        );
+          });
         const populationChunkStore = createDnaPopulationRaceIndexR2ChunkStore({
           ownerId,
           bucketName,
           storage,
         });
-        const authoritySource = createDnaPopulationEntrantAuthorityLiveAuditSource(
-          {
+        const authoritySource =
+          createDnaPopulationEntrantAuthorityLiveAuditSource({
             configuredOwnerId: ownerId,
             exactCodeHeadSha,
             bucketName,
@@ -173,8 +172,7 @@ describeConnected(
             chunkStore: populationChunkStore,
             storage,
             capacitySource,
-          },
-        );
+          });
         const audit = await authoritySource.load({
           ownerId,
           exactCodeHeadSha,
@@ -320,12 +318,10 @@ describeConnected(
           const reconciliation = await reconcileDnaPopulationCoreOutcomeGap({
             documents: raceDocuments(population.raceDocuments),
             scratchStore:
-              createEphemeralJsonlExternalSortedRunStore<DnaPopulationCoreRaceLink>(
-                {
+              createEphemeralJsonlExternalSortedRunStore<DnaPopulationCoreRaceLink>({
                   rootDirectory: scratchRoot,
                   namespace: "population-core-outcome-gap",
-                },
-              ),
+              }),
             runPrefix: "population-core-outcome-gap",
             linkIndexBounds: {
               maximumRecordsInMemory: 50_000,
