@@ -244,30 +244,19 @@ describeConnected(
           bucketName,
           storage,
         });
-        const raceMergeSource = await readDnaRaceMergeOutcomeDurableSource({
-          ownerId,
-          generationId: RACE_MERGE_GENERATION_ID,
-          terminalCohortOrdinal: RACE_MERGE_TERMINAL_COHORT_ORDINAL,
-          terminalCoreCount: RACE_MERGE_TERMINAL_CORE_COUNT,
-          repository: raceMergeRepository,
-          store: raceMergeStore,
-        });
         const expectedRaceMergeManifestCount =
           (RACE_MERGE_TERMINAL_COHORT_ORDINAL - 1) *
             RACE_MERGE_FULL_COHORT_SIZE +
           RACE_MERGE_TERMINAL_CORE_COUNT;
-        if (raceMergeSource.manifestCount !== expectedRaceMergeManifestCount) {
-          throw new Error("Race Merge terminal manifest authority drifted");
+        const plannedRaceMergeReadClassBOperations =
+          expectedRaceMergeManifestCount * 2;
+        if (!Number.isSafeInteger(plannedRaceMergeReadClassBOperations)) {
+          throw new Error("Race Merge read operation projection is invalid");
         }
 
         const capacity = await capacitySource.measure({ ownerId });
         if (capacity.r2StorageClass !== "Standard") {
           throw new Error("R2 storage class is not eligible");
-        }
-        const plannedRaceMergeReadClassBOperations =
-          raceMergeSource.manifestCount * 2;
-        if (!Number.isSafeInteger(plannedRaceMergeReadClassBOperations)) {
-          throw new Error("Race Merge read operation projection is invalid");
         }
         const r2Projection = projectDnaPopulationEntrantAuthorityR2Cost({
           currentUsage: capacity.currentR2Usage,
@@ -298,6 +287,18 @@ describeConnected(
             DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
         ) {
           throw new Error("read-only scan exceeds A$0 Neon capacity");
+        }
+
+        const raceMergeSource = await readDnaRaceMergeOutcomeDurableSource({
+          ownerId,
+          generationId: RACE_MERGE_GENERATION_ID,
+          terminalCohortOrdinal: RACE_MERGE_TERMINAL_COHORT_ORDINAL,
+          terminalCoreCount: RACE_MERGE_TERMINAL_CORE_COUNT,
+          repository: raceMergeRepository,
+          store: raceMergeStore,
+        });
+        if (raceMergeSource.manifestCount !== expectedRaceMergeManifestCount) {
+          throw new Error("Race Merge terminal manifest authority drifted");
         }
 
         const persistedApiSource =
