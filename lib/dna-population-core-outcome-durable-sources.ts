@@ -113,7 +113,10 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
   generationId: string;
   terminalCohortOrdinal: number;
   terminalCoreCount: number;
-  repository: Pick<\n    RaceMergeCoreOutcomeR2GenerationRepository,\n    "listManifests"\n  >;
+  repository: Pick<
+    RaceMergeCoreOutcomeR2GenerationRepository,
+    "listManifests"
+  >;
   store: Pick<RaceMergeCoreOutcomeR2Store, "read">;
 }): Promise<DnaRaceMergeOutcomeDurableSource> {
   const ownerId = safeText(input.ownerId, "ownerId");
@@ -196,7 +199,8 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
     }
   }
 
-  if (manifestByCore.size < 1)\n    sourceError("Race Merge outcome source is empty");
+  if (manifestByCore.size < 1)
+    sourceError("Race Merge outcome source is empty");
 
   return Object.freeze({
     generationId,
@@ -337,7 +341,9 @@ export async function readDnaPersistedApiOutcomeDurableSource(input: {
     payloadSha256: generation.payloadSha256,
     async loadOutcomes(sourceCoreIdInput) {
       const sourceCoreId = positiveInteger(sourceCoreIdInput, "requested Core");
-      return Object.freeze([\n        ...(byCore.get(sourceCoreId)?.values() ?? []),\n      ]);
+      return Object.freeze([
+        ...(byCore.get(sourceCoreId)?.values() ?? []),
+      ]);
     },
     dnaProviderRequestCount: 0 as const,
     persistentWritePerformed: false as const,
