@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  DnaCompactCoreOutcomeEvidence,
-} from "./dna-population-core-outcome-gap-plan";
+import type { DnaCompactCoreOutcomeEvidence } from "./dna-population-core-outcome-gap-plan";
 import type {
   ActiveDnaCoreRaceHistoryGenerationReadRepository,
   ActiveDnaCoreRaceHistoryGenerationRow,
@@ -113,10 +111,7 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
   generationId: string;
   terminalCohortOrdinal: number;
   terminalCoreCount: number;
-  repository: Pick<
-    RaceMergeCoreOutcomeR2GenerationRepository,
-    "listManifests"
-  >;
+  repository: Pick<RaceMergeCoreOutcomeR2GenerationRepository, "listManifests">;
   store: Pick<RaceMergeCoreOutcomeR2Store, "read">;
 }): Promise<DnaRaceMergeOutcomeDurableSource> {
   const ownerId = safeText(input.ownerId, "ownerId");
@@ -341,9 +336,7 @@ export async function readDnaPersistedApiOutcomeDurableSource(input: {
     payloadSha256: generation.payloadSha256,
     async loadOutcomes(sourceCoreIdInput) {
       const sourceCoreId = positiveInteger(sourceCoreIdInput, "requested Core");
-      return Object.freeze([
-        ...(byCore.get(sourceCoreId)?.values() ?? []),
-      ]);
+      return Object.freeze([...(byCore.get(sourceCoreId)?.values() ?? [])]);
     },
     dnaProviderRequestCount: 0 as const,
     persistentWritePerformed: false as const,
