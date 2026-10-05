@@ -56,6 +56,7 @@ export type DnaPopulationCoreOutcomeGapPlanDependencies = Readonly<{
     maximumRequiredMemberships: number;
     maximumOutcomesPerSourcePerCore: number;
   }>;
+  maximumConcurrentCoreLoads?: number;
 }>;
 
 function planError(message: string): never {
@@ -227,6 +228,70 @@ export function adaptDnaRaceMergeOutcomeSourceRow(
   });
 }
 
+type PreloadedCoreHistory = Readonly<{
+  history: DnaPopulationCoreLinkedHistory;
+  sourceCoreId: number;
+  raceMergeOutcomes: readonly DnaCompactCoreOutcomeEvidence[];
+  persistedApiOutcomes: readonly DnaCompactCoreOutcomeEvidence[];
+}>;
+
+type PreloadResult =
+  | Readonly<{ status: "fulfilled"; value: PreloadedCoreHistory }>
+  | Readonly<{ status: "rejected"; reason: unknown }>;
+
+function preloadCoreHistory(
+  input: DnaPopulationCoreOutcomeGapPlanDependencies,
+  history: DnaPopulationCoreLinkedHistory,
+): Promise<PreloadResult> {
+  const coreId = sourceCoreId(history.sourceCoreId);
+  return Promise.all([
+    input.loadRaceMergeOutcomes(coreId),
+    input.loadPersistedApiOutcomes(coreId),
+  ]).then(
+    ([raceMergeOutcomes, persistedApiOutcomes]) =>
+      Object.freeze({
+        status: "fulfilled" as const,
+        value: Object.freeze({
+          history,
+          sourceCoreId: coreId,
+          raceMergeOutcomes,
+          persistedApiOutcomes,
+        }),
+      }),
+    (reason: unknown) =>
+      Object.freeze({
+        status: "rejected" as const,
+        reason,
+      }),
+  );
+}
+
+async function* preloadCoreHistories(
+  input: DnaPopulationCoreOutcomeGapPlanDependencies,
+  maximumConcurrentCoreLoads: number,
+): AsyncIterable<PreloadedCoreHistory> {
+  const queue: Promise<PreloadResult>[] = [];
+  const next = async (): Promise<PreloadedCoreHistory> => {
+    const pending = queue.shift();
+    if (pending === undefined) {
+      planError("preload queue is unexpectedly empty");
+    }
+    const result = await pending;
+    if (result.status === "rejected") throw result.reason;
+    return result.value;
+  };
+
+  for await (const history of input.linkedHistories) {
+    queue.push(preloadCoreHistory(input, history));
+    if (queue.length >= maximumConcurrentCoreLoads) {
+      yield await next();
+    }
+  }
+  while (queue.length > 0) {
+    yield await next();
+  }
+}
+
 /**
  * Reconciles performance outcomes without making any DNA request.
  *
@@ -255,6 +320,11 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     "maximumOutcomesPerSourcePerCore",
     1_000_000,
   );
+  const maximumConcurrentCoreLoads = positiveBound(
+    input.maximumConcurrentCoreLoads ?? 1,
+    "maximumConcurrentCoreLoads",
+    128,
+  );
   const requiredDigest = createHash("sha256");
   const coveredDigest = createHash("sha256");
   const missingDigest = createHash("sha256");
@@ -271,8 +341,12 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
   let missingMembershipCount = 0;
   let previousCoreId = 0;
 
-  for await (const history of input.linkedHistories) {
-    const coreId = sourceCoreId(history.sourceCoreId);
+  for await (const preloaded of preloadCoreHistories(
+    input,
+    maximumConcurrentCoreLoads,
+  )) {
+    const history = preloaded.history;
+    const coreId = preloaded.sourceCoreId;
     if (coreId <= previousCoreId) {
       planError("linked Core history ordering is invalid");
     }
@@ -313,7 +387,7 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     const selected = new Map<string, DnaCompactCoreOutcomeEvidence>();
     const raceMergeSeen = new Map<string, DnaCompactCoreOutcomeEvidence>();
 
-    const raceMergeOutcomes = await input.loadRaceMergeOutcomes(coreId);
+    const raceMergeOutcomes = preloaded.raceMergeOutcomes;
     if (raceMergeOutcomes.length > maximumOutcomesPerSourcePerCore) {
       planError("Race Merge outcomes exceed the per-Core bound");
     }
@@ -338,7 +412,7 @@ export async function planDnaPopulationCoreOutcomeGapAcquisition(
     }
 
     const apiSeen = new Map<string, DnaCompactCoreOutcomeEvidence>();
-    const persistedApiOutcomes = await input.loadPersistedApiOutcomes(coreId);
+    const persistedApiOutcomes = preloaded.persistedApiOutcomes;
     if (persistedApiOutcomes.length > maximumOutcomesPerSourcePerCore) {
       planError("API outcomes exceed the per-Core bound");
     }
