@@ -130,8 +130,7 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
     sourceError("terminalCoreCount exceeds bounded cohort");
   }
 
-  const maximumConcurrentCohortLoads =
-    input.maximumConcurrentCohortLoads ?? 1;
+  const maximumConcurrentCohortLoads = input.maximumConcurrentCohortLoads ?? 1;
   if (
     !Number.isSafeInteger(maximumConcurrentCohortLoads) ||
     maximumConcurrentCohortLoads < 1 ||
@@ -185,10 +184,7 @@ export async function readDnaRaceMergeOutcomeDurableSource(input: {
   await Promise.all(
     Array.from(
       {
-        length: Math.min(
-          maximumConcurrentCohortLoads,
-          terminalCohortOrdinal,
-        ),
+        length: Math.min(maximumConcurrentCohortLoads, terminalCohortOrdinal),
       },
       () => loadNextCohort(),
     ),
