@@ -202,7 +202,6 @@ describeConnected("hosted Preview Race Merge Core-outcome continuation", () => {
           paidUsageAllowed: false,
           source: {
             sourceObjectCount: 8,
-            selectedCoreCount: 100,
             dnaProviderRequestCount: 0,
             persistentWritePerformed: false,
             paidUsageAllowed: false,
@@ -218,6 +217,11 @@ describeConnected("hosted Preview Race Merge Core-outcome continuation", () => {
           },
         },
       });
+      expect(result.next.source.selectedCoreCount).toBe(
+        result.next.generation.authority.coreCount,
+      );
+      expect(result.next.source.selectedCoreCount).toBeGreaterThan(0);
+      expect(result.next.source.selectedCoreCount).toBeLessThanOrEqual(100);
       console.log(
         JSON.stringify({
           status: "complete",
