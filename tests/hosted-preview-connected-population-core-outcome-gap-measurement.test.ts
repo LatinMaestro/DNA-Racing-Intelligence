@@ -45,6 +45,9 @@ const RACE_MERGE_FULL_COHORT_SIZE = 100;
 const MAXIMUM_CONCURRENT_CORE_LOADS = 128;
 const MAXIMUM_CONCURRENT_COHORT_LOADS = 32;
 const MAXIMUM_NEON_READ_COMPUTE_MILLI_CU_HOURS = 5_000;
+const MAXIMUM_MEMBERSHIPS = 10_000_000;
+const MAXIMUM_RECORDS_IN_MEMORY = 320_000;
+const MERGE_FAN_IN = 32;
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
@@ -344,15 +347,15 @@ describeConnected(
               ),
             runPrefix: "population-core-outcome-gap",
             linkIndexBounds: {
-              maximumRecordsInMemory: 50_000,
-              mergeFanIn: 32,
-              maximumMemberships: 10_000_000,
+              maximumRecordsInMemory: MAXIMUM_RECORDS_IN_MEMORY,
+              mergeFanIn: MERGE_FAN_IN,
+              maximumMemberships: MAXIMUM_MEMBERSHIPS,
               maximumRunObjects: 1_000,
               maximumRacesPerCore: 1_000_000,
             },
             planBounds: {
               maximumLinkedCores: 100_000,
-              maximumRequiredMemberships: 10_000_000,
+              maximumRequiredMemberships: MAXIMUM_MEMBERSHIPS,
               maximumOutcomesPerSourcePerCore: 1_000_000,
             },
             maximumConcurrentCoreLoads: MAXIMUM_CONCURRENT_CORE_LOADS,
