@@ -13,6 +13,7 @@ import type {
   ActiveDnaCoreRaceHistoryGenerationRow,
 } from "@/lib/neon-active-dna-core-race-history-generation";
 import type { RaceMergeCoreOutcomeR2Manifest } from "@/lib/race-merge-core-outcome-r2-generation";
+import type { RaceMergeCoreOutcomeR2Receipt } from "@/lib/race-merge-core-outcome-r2-store";
 
 const GENERATION = "owner-race-merge-outcomes-v1";
 
@@ -129,7 +130,7 @@ describe("DNA population Core outcome durable sources", () => {
       ),
     };
     const store = {
-      read: vi.fn(async (receipt: RaceMergeCoreOutcomeR2Manifest) =>
+      read: vi.fn(async (receipt: RaceMergeCoreOutcomeR2Receipt) =>
         Object.freeze([
           Object.freeze({
             source: "race_merge" as const,
