@@ -323,5 +323,4 @@ describe("DNA population Core outcome gap plan", () => {
       }),
     ).rejects.toThrow("maximumConcurrentCoreLoads is outside its bound");
   });
-
 });
