@@ -606,6 +606,15 @@ jobs:
                 execute_next_private_preview_race_merge_cohort: true,
               };
               break;
+            case "population-core-outcome-gap-measurement":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-core-outcome-gap-measurement.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                execute_read_only_measurement: true,
+              };
+              break;
             case "protected-preview-deployment":
               exactKeys([
                 "kind",
