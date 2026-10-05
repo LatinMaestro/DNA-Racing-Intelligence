@@ -264,4 +264,63 @@ describe("DNA population Core outcome gap plan", () => {
       }),
     ).rejects.toThrow("Race Merge outcomes exceed the per-Core bound");
   });
+  it("preloads independent Core outcome reads concurrently while preserving deterministic reduction order", async () => {
+    const values = [1, 2, 3, 4].map((coreId) =>
+      history({ coreId, car: [`race-${coreId}`] }),
+    );
+    let inFlight = 0;
+    let peakInFlight = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const planPromise = planDnaPopulationCoreOutcomeGapAcquisition({
+      linkedHistories: histories(values),
+      loadRaceMergeOutcomes: async (coreId) => {
+        inFlight += 1;
+        peakInFlight = Math.max(peakInFlight, inFlight);
+        if (peakInFlight === 3) release();
+        await gate;
+        inFlight -= 1;
+        return [
+          outcome({
+            source: "race_merge",
+            coreId,
+            raceId: `race-${coreId}`,
+            position: 1,
+            elapsedMilliseconds: 50_000 + coreId,
+          }),
+        ];
+      },
+      loadPersistedApiOutcomes: async () => [],
+      bounds: BOUNDS,
+      maximumConcurrentCoreLoads: 3,
+    });
+
+    const plan = await planPromise;
+    expect(peakInFlight).toBe(3);
+    expect(plan).toMatchObject({
+      linkedCoreCount: 4,
+      requiredMembershipCount: 4,
+      coveredMembershipCount: 4,
+      raceMergeCoveredMembershipCount: 4,
+      apiCoveredMembershipCount: 0,
+      missingMembershipCount: 0,
+      apiGapCoreCount: 0,
+      dnaProviderRequestCount: 0,
+    });
+  });
+
+  it("rejects unsafe local-read concurrency bounds", async () => {
+    await expect(
+      planDnaPopulationCoreOutcomeGapAcquisition({
+        linkedHistories: histories([history({ coreId: 1, bike: ["race-1"] })]),
+        loadRaceMergeOutcomes: async () => [],
+        loadPersistedApiOutcomes: async () => [],
+        bounds: BOUNDS,
+        maximumConcurrentCoreLoads: 129,
+      }),
+    ).rejects.toThrow("maximumConcurrentCoreLoads is outside its bound");
+  });
 });
