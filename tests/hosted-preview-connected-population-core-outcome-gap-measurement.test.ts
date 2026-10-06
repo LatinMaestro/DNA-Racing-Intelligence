@@ -7,12 +7,17 @@ import { describe, expect, it } from "vitest";
 import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
 import { createCloudflareDnaOpenLabP5R2S3ListBinding } from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
 import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
+import {
+  createDnaCoreRaceHistoryAcquisitionCycle,
+  dnaCoreRaceHistoryCoreSetSha256,
+} from "@/lib/dna-core-race-history-acquisition-cycle";
 import { completeDnaPopulationCoreHistoryAuthority } from "@/lib/dna-population-core-history-authority";
 import { loadDnaPopulationCoreHistoryEntrantAuthority } from "@/lib/dna-population-core-history-entrant-source";
 import {
   readDnaPersistedApiOutcomeDurableSource,
   readDnaRaceMergeOutcomeDurableSource,
 } from "@/lib/dna-population-core-outcome-durable-sources";
+import { createDnaPopulationCoreOutcomeGapAcquisitionAuthority } from "@/lib/dna-population-core-outcome-gap-acquisition-authority";
 import { reconcileDnaPopulationCoreOutcomeGap } from "@/lib/dna-population-core-outcome-gap-reconciliation";
 import type { DnaPopulationCoreRaceLink } from "@/lib/dna-population-core-race-link-index";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
@@ -25,6 +30,7 @@ import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "@/lib/dna-open-lab-zero-cos
 import { createDnaPopulationRaceIndexR2ChunkStore } from "@/lib/dna-population-race-index-r2-chunk";
 import { createEphemeralJsonlExternalSortedRunStore } from "@/lib/ephemeral-jsonl-external-sorted-run-store";
 import { createNeonActiveDnaCoreRaceHistoryGenerationReadRepository } from "@/lib/neon-active-dna-core-race-history-generation";
+import { createNeonDnaCoreRaceHistoryAcquisitionRepository } from "@/lib/neon-dna-core-race-history-acquisition";
 import { createNeonDnaOpenLabP5FirstBackfillLedger } from "@/lib/neon-dna-open-lab-p5-first-backfill-ledger";
 import { createNeonDnaPopulationEntrantAuthorityCheckpointRepository } from "@/lib/neon-dna-population-entrant-authority-checkpoint";
 import { createNeonDnaPopulationRaceIndexGenerationRepository } from "@/lib/neon-dna-population-race-index-generation";
@@ -48,6 +54,10 @@ const MAXIMUM_NEON_READ_COMPUTE_MILLI_CU_HOURS = 5_000;
 const MAXIMUM_MEMBERSHIPS = 10_000_000;
 const MAXIMUM_RECORDS_IN_MEMORY = 320_000;
 const MERGE_FAN_IN = 32;
+const GAP_BOOTSTRAP_BASE_NEON_STORAGE_BYTES = 16 * 1024 * 1024;
+const GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES = 16 * 1024;
+const GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS = 1_000;
+const HARD_NEON_STORAGE_BYTES = 1_000_000_000;
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
@@ -491,6 +501,137 @@ describeConnected(
           console.log(
             "DNA_POPULATION_CORE_OUTCOME_GAP_MEASUREMENT=" + serialized,
           );
+
+          if (process.env.DNA_POPULATION_CORE_OUTCOME_GAP_BOOTSTRAP === "1") {
+            const expectedApiGapCoreCount = Number(
+              requiredEnvironment(
+                "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_COUNT",
+              ),
+            );
+            const authority =
+              createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
+                evaluatedAt: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_EVALUATED_AT",
+                ),
+                apiGapCoreIds: reconciliation.outcomeCoverage.apiGapCoreIds,
+                expectedApiGapCoreCount,
+                expectedApiGapCoreSetSha256: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_SET_SHA256",
+                ),
+                expectedMissingMembershipSetSha256: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_MISSING_MEMBERSHIP_SET_SHA256",
+                ),
+              });
+            expect(authority.apiGapCoreCount).toBe(
+              reconciliation.outcomeCoverage.apiGapCoreCount,
+            );
+            expect(authority.coreSetSha256).toBe(
+              dnaCoreRaceHistoryCoreSetSha256(
+                reconciliation.outcomeCoverage.apiGapCoreIds,
+              ),
+            );
+
+            const freshCapacity = await capacitySource.measure({ ownerId });
+            const freshR2Projection =
+              projectDnaPopulationEntrantAuthorityR2Cost({
+                currentUsage: freshCapacity.currentR2Usage,
+                plannedUsage: {
+                  storageBytes: 0,
+                  classAOperations: 0,
+                  classBOperations: 0,
+                },
+              });
+            if (
+              !freshR2Projection.allowed ||
+              freshR2Projection.projectedPaidCostMicroUsd !== 0 ||
+              freshR2Projection.paidUsageAllowed !== false
+            ) {
+              throw new Error(
+                "exact-gap acquisition bootstrap exceeds A$0 R2 capacity",
+              );
+            }
+
+            const plannedNeonStorageBytes =
+              GAP_BOOTSTRAP_BASE_NEON_STORAGE_BYTES +
+              authority.apiGapCoreCount *
+                GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES;
+            const projectedBootstrapNeonStorageBytes =
+              freshCapacity.currentNeonUsage.storageBytes +
+              plannedNeonStorageBytes;
+            const projectedBootstrapNeonComputeMilliCuHours =
+              freshCapacity.currentNeonUsage.computeMilliCuHours +
+              GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS;
+            if (
+              !Number.isSafeInteger(plannedNeonStorageBytes) ||
+              !Number.isSafeInteger(projectedBootstrapNeonStorageBytes) ||
+              !Number.isSafeInteger(
+                projectedBootstrapNeonComputeMilliCuHours,
+              ) ||
+              projectedBootstrapNeonStorageBytes >
+                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
+              projectedBootstrapNeonStorageBytes > HARD_NEON_STORAGE_BYTES ||
+              projectedBootstrapNeonComputeMilliCuHours >
+                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
+            ) {
+              throw new Error(
+                "exact-gap acquisition bootstrap exceeds A$0 Neon capacity",
+              );
+            }
+
+            const acquisitionRepository =
+              createNeonDnaCoreRaceHistoryAcquisitionRepository({
+                databaseUrl,
+                databaseOwnerId,
+                ownerId,
+                runtimeRole: RUNTIME_ROLE,
+                populationAuthority: {
+                  generationId: authority.generationId,
+                  coreIds: authority.coreIds,
+                },
+              });
+            const latestComplete =
+              await acquisitionRepository.loadLatestComplete();
+            const cycle = createDnaCoreRaceHistoryAcquisitionCycle({
+              previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
+              currentStateGenerationId: authority.generationId,
+              evaluatedAt: authority.evaluatedAt,
+              coreIds: authority.coreIds,
+            });
+            const stored = await acquisitionRepository.saveAttempt({
+              expectedRevision: null,
+              cycle,
+            });
+            expect(stored.cycle.coreSetSha256).toBe(authority.coreSetSha256);
+            expect(stored.cycle.coreIds.length).toBe(authority.apiGapCoreCount);
+
+            const bootstrapReport = Object.freeze({
+              version: 1,
+              status: "ready_for_targeted_acquisition" as const,
+              exactCodeHeadSha,
+              apiGapCoreCount: authority.apiGapCoreCount,
+              apiGapCoreSetSha256: authority.apiGapCoreSetSha256,
+              missingMembershipSetSha256: authority.missingMembershipSetSha256,
+              coreSetSha256: authority.coreSetSha256,
+              currentNeonStorageBytes:
+                freshCapacity.currentNeonUsage.storageBytes,
+              projectedBootstrapNeonStorageBytes,
+              dnaProviderRequestCount: 0 as const,
+              persistentWritePerformed: true as const,
+              providerWritePerformed: false as const,
+              paidUsageAllowed: false as const,
+            });
+            const bootstrapSerialized = JSON.stringify(bootstrapReport);
+            expect(bootstrapSerialized).not.toContain('"coreIds"');
+            for (const coreId of authority.coreIds) {
+              expect(bootstrapSerialized).not.toContain(
+                `"sourceCoreId":${coreId}`,
+              );
+            }
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_BOOTSTRAP=" +
+                bootstrapSerialized,
+            );
+          }
         } finally {
           await rm(scratchRoot, { recursive: true, force: true });
         }
