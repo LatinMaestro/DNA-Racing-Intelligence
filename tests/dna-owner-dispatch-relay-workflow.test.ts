@@ -160,6 +160,15 @@ describe("DNA owner dispatch relay workflow", () => {
     );
     expect(workflow).toContain('"population-core-outcome-gap-measurement"');
     expect(workflow).toContain("execute_read_only_measurement: true");
+    expect(workflow).toContain(
+      "dna-population-core-outcome-gap-acquisition-bootstrap.yml",
+    );
+    expect(workflow).toContain('"population-core-outcome-gap-bootstrap"');
+    expect(workflow).toContain("acquisition_evaluated_at");
+    expect(workflow).toContain("expected_gap_core_count");
+    expect(workflow).toContain("expected_gap_core_set_sha256");
+    expect(workflow).toContain("expected_missing_membership_set_sha256");
+    expect(workflow).toContain("bootstrap_exact_gap_acquisition: true");
     expect(workflow).toContain("protected-private-preview-deployment.yml");
     expect(workflow).toContain('"protected-preview-deployment"');
     expect(workflow).toContain("payload.deploy_protected_preview !== true");
