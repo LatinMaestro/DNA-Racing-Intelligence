@@ -1,0 +1,161 @@
+name: DNA population Core-outcome exact-gap first API page
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to acquire from
+        required: true
+        type: string
+      acquisition_evaluated_at:
+        description: Stable timestamp of the persisted exact-gap cohort
+        required: true
+        type: string
+      expected_gap_core_count:
+        description: Accepted complete exact-gap Core count
+        required: true
+        type: string
+      expected_gap_core_set_sha256:
+        description: Accepted complete exact-gap Core-set digest
+        required: true
+        type: string
+      expected_missing_membership_set_sha256:
+        description: Accepted missing-membership-set digest
+        required: true
+        type: string
+      execute_first_exact_gap_api_page:
+        description: Verify cohort-1 checkpoint and advance one API page
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-core-outcome-gap-acquisition-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  exact-main-first-gap-api-page:
+    name: Verify checkpoint and advance first targeted Core-history page
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    env:
+      AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_POPULATION_CORE_OUTCOME_GAP_ACQUISITION_EVALUATED_AT: ${{ inputs.acquisition_evaluated_at }}
+      DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_COUNT: ${{ inputs.expected_gap_core_count }}
+      DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_SET_SHA256: ${{ inputs.expected_gap_core_set_sha256 }}
+      DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_MISSING_MEMBERSHIP_SET_SHA256: ${{ inputs.expected_missing_membership_set_sha256 }}
+      DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE: "1"
+      DNA_POPULATION_CORE_OUTCOME_GAP_MEASUREMENT: "1"
+      DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
+      DNA_R2_BUCKET_NAME: dna-racing-import-preview
+      DNA_R2_SECRET_ACCESS_KEY: ${{ secrets.DNA_R2_SECRET_ACCESS_KEY }}
+      DNA_R2_STORAGE_CLASS: Standard
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main and explicit first-page arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Exact-gap acquisition may only run from main."
+            exit 1
+          fi
+          if [[ "${{ inputs.execute_first_exact_gap_api_page }}" != "true" ]]; then
+            echo "Exact-gap first API page was not explicitly armed."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${{ inputs.expected_main_sha }}" != "${GITHUB_SHA}" ]]; then
+            echo "The expected main commit does not match the dispatched commit."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_gap_core_count }}" =~ ^[1-9][0-9]*$ ]] || \
+             [[ ! "${{ inputs.expected_gap_core_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]] || \
+             [[ ! "${{ inputs.expected_missing_membership_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "Accepted exact-gap authority is invalid."
+            exit 1
+          fi
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove acquisition head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]] || \
+             [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "The exact-gap acquisition head is no longer current main."
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate private configuration without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = [
+            "AUTHORIZED_CLERK_USER_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+            "CLOUDFLARE_ANALYTICS_API_TOKEN",
+            "CLOUDFLARE_API_TOKEN",
+            "DATABASE_URL",
+            "DNA_DATABASE_OWNER_ID",
+            "DNA_POPULATION_CORE_OUTCOME_GAP_ACQUISITION_EVALUATED_AT",
+            "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_COUNT",
+            "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_SET_SHA256",
+            "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_MISSING_MEMBERSHIP_SET_SHA256",
+            "DNA_R2_ACCESS_KEY_ID",
+            "DNA_R2_BUCKET_NAME",
+            "DNA_R2_SECRET_ACCESS_KEY",
+            "DNA_R2_STORAGE_CLASS",
+            "NEON_API_KEY",
+            "NEON_PROJECT_ID",
+          ];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error("Missing or invalid private settings: " + invalid.join(", "));
+          }
+          const evaluatedAt = new Date(
+            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_ACQUISITION_EVALUATED_AT,
+          );
+          if (
+            Number.isNaN(evaluatedAt.getTime()) ||
+            evaluatedAt.toISOString() !==
+              process.env.DNA_POPULATION_CORE_OUTCOME_GAP_ACQUISITION_EVALUATED_AT ||
+            evaluatedAt.getTime() > Date.now()
+          ) {
+            throw new Error("Exact-gap acquisition timestamp is invalid.");
+          }
+          if (process.env.DNA_R2_STORAGE_CLASS !== "Standard") {
+            throw new Error("Only R2 Standard storage is allowed.");
+          }
+          console.log("Validated private exact-gap acquisition settings without printing values.");
+          NODE
+      - name: Reconcile, verify checkpoint and advance one targeted API page
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-preview-connected-population-core-outcome-gap-measurement.test.ts
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed during exact-gap acquisition."
+            exit 1
+          fi
