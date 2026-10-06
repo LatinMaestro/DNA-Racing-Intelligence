@@ -569,8 +569,7 @@ describeConnected(
               ) ||
               projectedBootstrapNeonStorageBytes >
                 DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
-              projectedBootstrapNeonStorageBytes >
-                HARD_NEON_STORAGE_BYTES ||
+              projectedBootstrapNeonStorageBytes > HARD_NEON_STORAGE_BYTES ||
               projectedBootstrapNeonComputeMilliCuHours >
                 DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
             ) {
@@ -593,8 +592,7 @@ describeConnected(
             const latestComplete =
               await acquisitionRepository.loadLatestComplete();
             const cycle = createDnaCoreRaceHistoryAcquisitionCycle({
-              previousCompletedCycleId:
-                latestComplete?.cycle.cycleId ?? null,
+              previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
               currentStateGenerationId: authority.generationId,
               evaluatedAt: authority.evaluatedAt,
               coreIds: authority.coreIds,
@@ -612,8 +610,7 @@ describeConnected(
               exactCodeHeadSha,
               apiGapCoreCount: authority.apiGapCoreCount,
               apiGapCoreSetSha256: authority.apiGapCoreSetSha256,
-              missingMembershipSetSha256:
-                authority.missingMembershipSetSha256,
+              missingMembershipSetSha256: authority.missingMembershipSetSha256,
               coreSetSha256: authority.coreSetSha256,
               currentNeonStorageBytes:
                 freshCapacity.currentNeonUsage.storageBytes,
