@@ -615,6 +615,15 @@ jobs:
                 execute_read_only_measurement: true,
               };
               break;
+            case "population-core-outcome-gap-first-api-page":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow =
+                "dna-population-core-outcome-gap-first-api-page.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                execute_first_exact_gap_api_page: true,
+              };
+              break;
             case "protected-preview-deployment":
               exactKeys([
                 "kind",
