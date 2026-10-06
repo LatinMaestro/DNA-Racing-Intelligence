@@ -685,6 +685,41 @@ jobs:
                 execute_first_exact_gap_api_page: true,
               };
               break;
+            case "population-core-outcome-gap-continuation-api-page":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "acquisition_evaluated_at",
+                "expected_gap_core_count",
+                "expected_gap_core_set_sha256",
+                "expected_missing_membership_set_sha256",
+                "execute_next_exact_gap_api_page",
+              ]);
+              if (
+                !exactTimestamp(payload.acquisition_evaluated_at) ||
+                !positiveCount(payload.expected_gap_core_count) ||
+                !sha64(payload.expected_gap_core_set_sha256) ||
+                !sha64(payload.expected_missing_membership_set_sha256) ||
+                payload.execute_next_exact_gap_api_page !== true
+              ) {
+                throw new Error(
+                  "Population Core-outcome continuation API page authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-population-core-outcome-gap-continuation-api-page.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                acquisition_evaluated_at:
+                  payload.acquisition_evaluated_at,
+                expected_gap_core_count: payload.expected_gap_core_count,
+                expected_gap_core_set_sha256:
+                  payload.expected_gap_core_set_sha256,
+                expected_missing_membership_set_sha256:
+                  payload.expected_missing_membership_set_sha256,
+                execute_next_exact_gap_api_page: true,
+              };
+              break;
             case "protected-preview-deployment":
               exactKeys([
                 "kind",
