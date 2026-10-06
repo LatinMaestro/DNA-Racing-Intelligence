@@ -615,6 +615,41 @@ jobs:
                 execute_read_only_measurement: true,
               };
               break;
+            case "population-core-outcome-gap-bootstrap":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "acquisition_evaluated_at",
+                "expected_gap_core_count",
+                "expected_gap_core_set_sha256",
+                "expected_missing_membership_set_sha256",
+                "bootstrap_exact_gap_acquisition",
+              ]);
+              if (
+                !exactTimestamp(payload.acquisition_evaluated_at) ||
+                !positiveCount(payload.expected_gap_core_count) ||
+                !sha64(payload.expected_gap_core_set_sha256) ||
+                !sha64(payload.expected_missing_membership_set_sha256) ||
+                payload.bootstrap_exact_gap_acquisition !== true
+              ) {
+                throw new Error(
+                  "Population Core-outcome gap bootstrap authority is invalid.",
+                );
+              }
+              workflow =
+                "dna-population-core-outcome-gap-acquisition-bootstrap.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                acquisition_evaluated_at:
+                  payload.acquisition_evaluated_at,
+                expected_gap_core_count: payload.expected_gap_core_count,
+                expected_gap_core_set_sha256:
+                  payload.expected_gap_core_set_sha256,
+                expected_missing_membership_set_sha256:
+                  payload.expected_missing_membership_set_sha256,
+                bootstrap_exact_gap_acquisition: true,
+              };
+              break;
             case "protected-preview-deployment":
               exactKeys([
                 "kind",
