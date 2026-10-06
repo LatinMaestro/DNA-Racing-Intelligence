@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { dnaCoreRaceHistoryCoreSetSha256 } from "./dna-core-race-history-acquisition-cycle";
+import {
+  DNA_CORE_RACE_HISTORY_MAXIMUM_CORES,
+  dnaCoreRaceHistoryCoreSetSha256,
+} from "./dna-core-race-history-acquisition-cycle";
 import { dnaOpenLabRawEvidenceSha256 } from "./dna-open-lab-v1-adapters";
 
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -15,6 +18,16 @@ export type DnaPopulationCoreOutcomeGapAcquisitionAuthority = Readonly<{
   apiGapCoreCount: number;
   apiGapCoreSetSha256: string;
   missingMembershipSetSha256: string;
+  coreIds: readonly number[];
+}>;
+
+export type DnaPopulationCoreOutcomeGapAcquisitionCohort = Readonly<{
+  authorityGenerationId: string;
+  evaluatedAt: string;
+  cohortOrdinal: number;
+  cohortCount: number;
+  coreCount: number;
+  remainingCoreCount: number;
   coreSetSha256: string;
   coreIds: readonly number[];
 }>;
@@ -112,6 +125,39 @@ export function createDnaPopulationCoreOutcomeGapAcquisitionAuthority(input: {
     apiGapCoreCount: coreIds.length,
     apiGapCoreSetSha256,
     missingMembershipSetSha256,
+    coreIds,
+  });
+}
+
+export function selectDnaPopulationCoreOutcomeGapAcquisitionCohort(input: {
+  authority: DnaPopulationCoreOutcomeGapAcquisitionAuthority;
+  cohortOrdinal: number;
+}): DnaPopulationCoreOutcomeGapAcquisitionCohort {
+  const cohortCount = Math.ceil(
+    input.authority.apiGapCoreCount / DNA_CORE_RACE_HISTORY_MAXIMUM_CORES,
+  );
+  if (
+    !Number.isSafeInteger(input.cohortOrdinal) ||
+    input.cohortOrdinal < 1 ||
+    input.cohortOrdinal > cohortCount
+  ) {
+    fail("cohortOrdinal is outside the exact-gap cohort plan");
+  }
+
+  const start = (input.cohortOrdinal - 1) * DNA_CORE_RACE_HISTORY_MAXIMUM_CORES;
+  const end = Math.min(
+    start + DNA_CORE_RACE_HISTORY_MAXIMUM_CORES,
+    input.authority.apiGapCoreCount,
+  );
+  const coreIds = Object.freeze(input.authority.coreIds.slice(start, end));
+
+  return Object.freeze({
+    authorityGenerationId: input.authority.generationId,
+    evaluatedAt: input.authority.evaluatedAt,
+    cohortOrdinal: input.cohortOrdinal,
+    cohortCount,
+    coreCount: coreIds.length,
+    remainingCoreCount: input.authority.apiGapCoreCount - end,
     coreSetSha256: dnaCoreRaceHistoryCoreSetSha256(coreIds),
     coreIds,
   });

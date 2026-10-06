@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createDnaPopulationCoreOutcomeGapAcquisitionAuthority } from "@/lib/dna-population-core-outcome-gap-acquisition-authority";
+import { DNA_CORE_RACE_HISTORY_MAXIMUM_CORES } from "@/lib/dna-core-race-history-acquisition-cycle";
+import {
+  createDnaPopulationCoreOutcomeGapAcquisitionAuthority,
+  selectDnaPopulationCoreOutcomeGapAcquisitionCohort,
+} from "@/lib/dna-population-core-outcome-gap-acquisition-authority";
 import { dnaOpenLabRawEvidenceSha256 } from "@/lib/dna-open-lab-v1-adapters";
 
 describe("DNA population Core outcome gap acquisition authority", () => {
@@ -27,7 +31,6 @@ describe("DNA population Core outcome gap acquisition authority", () => {
     expect(authority.generationId).toMatch(
       /^[a-f0-9]{8}-[a-f0-9]{4}-5[a-f0-9]{3}-8[a-f0-9]{3}-[a-f0-9]{12}$/u,
     );
-    expect(authority.coreSetSha256).toMatch(/^[a-f0-9]{64}$/u);
   });
 
   it("fails closed when the measured gap identity drifts", () => {
@@ -56,5 +59,75 @@ describe("DNA population Core outcome gap acquisition authority", () => {
         expectedMissingMembershipSetSha256: "a".repeat(64),
       }),
     ).toThrow("strictly increasing");
+  });
+
+  it("partitions an accepted gap into deterministic bounded acquisition cohorts", () => {
+    const coreIds = Array.from(
+      { length: DNA_CORE_RACE_HISTORY_MAXIMUM_CORES + 4 },
+      (_, index) => index + 1,
+    );
+    const gapCoreSetSha256 = dnaOpenLabRawEvidenceSha256({
+      domain: "dna-population-core-outcome-api-gap-core-set/v1",
+      coreIds,
+    });
+    const authority = createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
+      evaluatedAt: "2026-10-06T00:30:00.000Z",
+      apiGapCoreIds: coreIds,
+      expectedApiGapCoreCount: coreIds.length,
+      expectedApiGapCoreSetSha256: gapCoreSetSha256,
+      expectedMissingMembershipSetSha256: "a".repeat(64),
+    });
+
+    const first = selectDnaPopulationCoreOutcomeGapAcquisitionCohort({
+      authority,
+      cohortOrdinal: 1,
+    });
+    const second = selectDnaPopulationCoreOutcomeGapAcquisitionCohort({
+      authority,
+      cohortOrdinal: 2,
+    });
+
+    expect(first).toMatchObject({
+      authorityGenerationId: authority.generationId,
+      cohortOrdinal: 1,
+      cohortCount: 2,
+      coreCount: DNA_CORE_RACE_HISTORY_MAXIMUM_CORES,
+      remainingCoreCount: 4,
+    });
+    expect(first.coreIds).toEqual(
+      coreIds.slice(0, DNA_CORE_RACE_HISTORY_MAXIMUM_CORES),
+    );
+    expect(second).toMatchObject({
+      authorityGenerationId: authority.generationId,
+      cohortOrdinal: 2,
+      cohortCount: 2,
+      coreCount: 4,
+      remainingCoreCount: 0,
+    });
+    expect(second.coreIds).toEqual(
+      coreIds.slice(DNA_CORE_RACE_HISTORY_MAXIMUM_CORES),
+    );
+    expect(first.coreSetSha256).not.toBe(second.coreSetSha256);
+  });
+
+  it("rejects a cohort ordinal outside the accepted plan", () => {
+    const coreIds = [20, 40] as const;
+    const authority = createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
+      evaluatedAt: "2026-10-06T00:30:00.000Z",
+      apiGapCoreIds: coreIds,
+      expectedApiGapCoreCount: coreIds.length,
+      expectedApiGapCoreSetSha256: dnaOpenLabRawEvidenceSha256({
+        domain: "dna-population-core-outcome-api-gap-core-set/v1",
+        coreIds,
+      }),
+      expectedMissingMembershipSetSha256: "a".repeat(64),
+    });
+
+    expect(() =>
+      selectDnaPopulationCoreOutcomeGapAcquisitionCohort({
+        authority,
+        cohortOrdinal: 2,
+      }),
+    ).toThrow("outside the exact-gap cohort plan");
   });
 });
