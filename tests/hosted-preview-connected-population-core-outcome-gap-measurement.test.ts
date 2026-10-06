@@ -7,17 +7,17 @@ import { describe, expect, it } from "vitest";
 import { cloudflareNeonDnaOpenLabProviderCapacitySourceFromEnvironment } from "@/lib/cloudflare-neon-dna-open-lab-provider-capacity-source";
 import { createCloudflareDnaOpenLabP5R2S3ListBinding } from "@/lib/cloudflare-dna-open-lab-p5-r2-s3-list-binding";
 import { createCloudflareR2DatasetEvidencePort } from "@/lib/cloudflare-r2-dataset-evidence-port";
-import {
-  createDnaCoreRaceHistoryAcquisitionCycle,
-  dnaCoreRaceHistoryCoreSetSha256,
-} from "@/lib/dna-core-race-history-acquisition-cycle";
+import { createDnaCoreRaceHistoryAcquisitionCycle } from "@/lib/dna-core-race-history-acquisition-cycle";
 import { completeDnaPopulationCoreHistoryAuthority } from "@/lib/dna-population-core-history-authority";
 import { loadDnaPopulationCoreHistoryEntrantAuthority } from "@/lib/dna-population-core-history-entrant-source";
 import {
   readDnaPersistedApiOutcomeDurableSource,
   readDnaRaceMergeOutcomeDurableSource,
 } from "@/lib/dna-population-core-outcome-durable-sources";
-import { createDnaPopulationCoreOutcomeGapAcquisitionAuthority } from "@/lib/dna-population-core-outcome-gap-acquisition-authority";
+import {
+  createDnaPopulationCoreOutcomeGapAcquisitionAuthority,
+  selectDnaPopulationCoreOutcomeGapAcquisitionCohort,
+} from "@/lib/dna-population-core-outcome-gap-acquisition-authority";
 import { reconcileDnaPopulationCoreOutcomeGap } from "@/lib/dna-population-core-outcome-gap-reconciliation";
 import type { DnaPopulationCoreRaceLink } from "@/lib/dna-population-core-race-link-index";
 import { createDnaPopulationEntrantAuthorityLiveAuditSource } from "@/lib/dna-population-entrant-authority-live-audit-source";
@@ -525,11 +525,10 @@ describeConnected(
             expect(authority.apiGapCoreCount).toBe(
               reconciliation.outcomeCoverage.apiGapCoreCount,
             );
-            expect(authority.coreSetSha256).toBe(
-              dnaCoreRaceHistoryCoreSetSha256(
-                reconciliation.outcomeCoverage.apiGapCoreIds,
-              ),
-            );
+            const cohort = selectDnaPopulationCoreOutcomeGapAcquisitionCohort({
+              authority,
+              cohortOrdinal: 1,
+            });
 
             const freshCapacity = await capacitySource.measure({ ownerId });
             const freshR2Projection =
@@ -553,8 +552,7 @@ describeConnected(
 
             const plannedNeonStorageBytes =
               GAP_BOOTSTRAP_BASE_NEON_STORAGE_BYTES +
-              authority.apiGapCoreCount *
-                GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES;
+              cohort.coreCount * GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES;
             const projectedBootstrapNeonStorageBytes =
               freshCapacity.currentNeonUsage.storageBytes +
               plannedNeonStorageBytes;
@@ -585,24 +583,24 @@ describeConnected(
                 ownerId,
                 runtimeRole: RUNTIME_ROLE,
                 populationAuthority: {
-                  generationId: authority.generationId,
-                  coreIds: authority.coreIds,
+                  generationId: cohort.authorityGenerationId,
+                  coreIds: cohort.coreIds,
                 },
               });
             const latestComplete =
               await acquisitionRepository.loadLatestComplete();
             const cycle = createDnaCoreRaceHistoryAcquisitionCycle({
               previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
-              currentStateGenerationId: authority.generationId,
-              evaluatedAt: authority.evaluatedAt,
-              coreIds: authority.coreIds,
+              currentStateGenerationId: cohort.authorityGenerationId,
+              evaluatedAt: cohort.evaluatedAt,
+              coreIds: cohort.coreIds,
             });
             const stored = await acquisitionRepository.saveAttempt({
               expectedRevision: null,
               cycle,
             });
-            expect(stored.cycle.coreSetSha256).toBe(authority.coreSetSha256);
-            expect(stored.cycle.coreIds.length).toBe(authority.apiGapCoreCount);
+            expect(stored.cycle.coreSetSha256).toBe(cohort.coreSetSha256);
+            expect(stored.cycle.coreIds.length).toBe(cohort.coreCount);
 
             const bootstrapReport = Object.freeze({
               version: 1,
@@ -611,7 +609,11 @@ describeConnected(
               apiGapCoreCount: authority.apiGapCoreCount,
               apiGapCoreSetSha256: authority.apiGapCoreSetSha256,
               missingMembershipSetSha256: authority.missingMembershipSetSha256,
-              coreSetSha256: authority.coreSetSha256,
+              cohortOrdinal: cohort.cohortOrdinal,
+              cohortCount: cohort.cohortCount,
+              cohortCoreCount: cohort.coreCount,
+              remainingCoreCount: cohort.remainingCoreCount,
+              cohortCoreSetSha256: cohort.coreSetSha256,
               currentNeonStorageBytes:
                 freshCapacity.currentNeonUsage.storageBytes,
               projectedBootstrapNeonStorageBytes,
@@ -622,7 +624,7 @@ describeConnected(
             });
             const bootstrapSerialized = JSON.stringify(bootstrapReport);
             expect(bootstrapSerialized).not.toContain('"coreIds"');
-            for (const coreId of authority.coreIds) {
+            for (const coreId of cohort.coreIds) {
               expect(bootstrapSerialized).not.toContain(
                 `"sourceCoreId":${coreId}`,
               );
