@@ -20,7 +20,9 @@ export type DnaPopulationCoreOutcomeGapAcquisitionAuthority = Readonly<{
 }>;
 
 function fail(message: string): never {
-  throw new Error(`DNA population Core outcome gap acquisition authority: ${message}`);
+  throw new Error(
+    `DNA population Core outcome gap acquisition authority: ${message}`,
+  );
 }
 
 function sha256(value: string, field: string): string {

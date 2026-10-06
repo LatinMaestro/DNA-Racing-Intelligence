@@ -502,9 +502,7 @@ describeConnected(
             "DNA_POPULATION_CORE_OUTCOME_GAP_MEASUREMENT=" + serialized,
           );
 
-          if (
-            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_BOOTSTRAP === "1"
-          ) {
+          if (process.env.DNA_POPULATION_CORE_OUTCOME_GAP_BOOTSTRAP === "1") {
             const expectedApiGapCoreCount = Number(
               requiredEnvironment(
                 "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_COUNT",
@@ -534,16 +532,15 @@ describeConnected(
             );
 
             const freshCapacity = await capacitySource.measure({ ownerId });
-            const freshR2Projection = projectDnaPopulationEntrantAuthorityR2Cost(
-              {
+            const freshR2Projection =
+              projectDnaPopulationEntrantAuthorityR2Cost({
                 currentUsage: freshCapacity.currentR2Usage,
                 plannedUsage: {
                   storageBytes: 0,
                   classAOperations: 0,
                   classBOperations: 0,
                 },
-              },
-            );
+              });
             if (
               !freshR2Projection.allowed ||
               freshR2Projection.projectedPaidCostMicroUsd !== 0 ||
