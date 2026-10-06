@@ -23,13 +23,19 @@ on:
         description: Accepted missing-membership-set digest
         required: true
         type: string
+      maximum_pages:
+        description: Maximum checkpointed pages to advance in this batch
+        required: true
+        default: "300"
+        type: string
       execute_next_exact_gap_api_page:
-        description: Verify persisted progress and advance one API page
+        description: Verify persisted progress and advance a bounded page batch
         required: true
         default: false
         type: boolean
 
 permissions:
+  actions: write
   contents: read
 
 concurrency:
@@ -53,6 +59,7 @@ jobs:
       DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_SET_SHA256: ${{ inputs.expected_gap_core_set_sha256 }}
       DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_MISSING_MEMBERSHIP_SET_SHA256: ${{ inputs.expected_missing_membership_set_sha256 }}
       DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE: "1"
+      DNA_POPULATION_CORE_OUTCOME_GAP_MAXIMUM_PAGES: ${{ inputs.maximum_pages }}
       DNA_POPULATION_CORE_OUTCOME_GAP_MEASUREMENT: "1"
       DNA_R2_ACCESS_KEY_ID: ${{ secrets.DNA_R2_ACCESS_KEY_ID }}
       DNA_R2_BUCKET_NAME: dna-racing-import-preview
@@ -78,6 +85,8 @@ jobs:
             exit 1
           fi
           if [[ ! "${{ inputs.expected_gap_core_count }}" =~ ^[1-9][0-9]*$ ]] || \
+             [[ ! "${{ inputs.maximum_pages }}" =~ ^[1-9][0-9]*$ ]] || \
+             (( 10#${{ inputs.maximum_pages }} > 300 )) || \
              [[ ! "${{ inputs.expected_gap_core_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]] || \
              [[ ! "${{ inputs.expected_missing_membership_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]]; then
             echo "Accepted exact-gap authority is invalid."
@@ -146,7 +155,8 @@ jobs:
           }
           console.log("Validated private exact-gap continuation settings without printing values.");
           NODE
-      - name: Reconcile, verify progress and advance one targeted API page
+      - name: Reconcile once and advance a bounded checkpointed page batch
+        id: acquire
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-population-core-outcome-gap-measurement.test.ts
@@ -159,3 +169,24 @@ jobs:
             echo "Main changed during exact-gap acquisition."
             exit 1
           fi
+
+      - name: Requeue unfinished exact-gap acquisition
+        if: success() && steps.acquire.outputs.batch_status == 'advanced'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo "Main changed before exact-gap continuation requeue."
+            exit 1
+          fi
+          gh workflow run dna-population-core-outcome-gap-continuation-api-page.yml \
+            --ref main \
+            -f expected_main_sha="${GITHUB_SHA}" \
+            -f acquisition_evaluated_at="${{ inputs.acquisition_evaluated_at }}" \
+            -f expected_gap_core_count="${{ inputs.expected_gap_core_count }}" \
+            -f expected_gap_core_set_sha256="${{ inputs.expected_gap_core_set_sha256 }}" \
+            -f expected_missing_membership_set_sha256="${{ inputs.expected_missing_membership_set_sha256 }}" \
+            -f maximum_pages="${{ inputs.maximum_pages }}" \
+            -f execute_next_exact_gap_api_page=true
