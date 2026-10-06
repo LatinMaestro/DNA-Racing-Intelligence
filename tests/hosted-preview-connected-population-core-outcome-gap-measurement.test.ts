@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -668,6 +668,20 @@ describeConnected(
             "1";
           if (firstExactGapApiPage || continueExactGapApiPage) {
             expect(firstExactGapApiPage && continueExactGapApiPage).toBe(false);
+            const maximumPages = firstExactGapApiPage
+              ? 1
+              : Number(
+                  requiredEnvironment(
+                    "DNA_POPULATION_CORE_OUTCOME_GAP_MAXIMUM_PAGES",
+                  ),
+                );
+            if (
+              !Number.isSafeInteger(maximumPages) ||
+              maximumPages < 1 ||
+              maximumPages > 300
+            ) {
+              throw new Error("exact-gap maximum page count is invalid");
+            }
             const authority =
               createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
                 evaluatedAt: requiredEnvironment(
@@ -787,48 +801,6 @@ describeConnected(
               );
             }
 
-            const freshCapacity = await capacitySource.measure({ ownerId });
-            if (freshCapacity.r2StorageClass !== "Standard") {
-              throw new Error("R2 storage class is not eligible");
-            }
-            const firstStepR2Projection =
-              projectDnaPopulationEntrantAuthorityR2Cost({
-                currentUsage: freshCapacity.currentR2Usage,
-                plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
-              });
-            if (
-              !firstStepR2Projection.allowed ||
-              firstStepR2Projection.projectedPaidCostMicroUsd !== 0 ||
-              firstStepR2Projection.paidUsageAllowed !== false
-            ) {
-              throw new Error(
-                "first exact-gap API page exceeds A$0 R2 capacity",
-              );
-            }
-
-            const projectedFirstPageNeonStorageBytes =
-              freshCapacity.currentNeonUsage.storageBytes +
-              GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES;
-            const projectedFirstPageNeonComputeMilliCuHours =
-              freshCapacity.currentNeonUsage.computeMilliCuHours +
-              GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS;
-            if (
-              !Number.isSafeInteger(projectedFirstPageNeonStorageBytes) ||
-              !Number.isSafeInteger(
-                projectedFirstPageNeonComputeMilliCuHours,
-              ) ||
-              projectedFirstPageNeonStorageBytes > OWNER_NEON_STORAGE_BYTES ||
-              projectedFirstPageNeonStorageBytes > HARD_NEON_STORAGE_BYTES ||
-              projectedFirstPageNeonStorageBytes >
-                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
-              projectedFirstPageNeonComputeMilliCuHours >
-                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
-            ) {
-              throw new Error(
-                "first exact-gap API page exceeds A$0 Neon capacity",
-              );
-            }
-
             const budgetRepository =
               neonDnaOpenLabR2BudgetRepositoryFromEnvironment({
                 databaseUrl,
@@ -838,72 +810,151 @@ describeConnected(
             if (budgetRepository.status !== "ready") {
               throw new Error("R2 budget repository is unavailable");
             }
-            const budgetWindowId = r2BudgetWindowId({
-              ownerId,
-              startAt: freshCapacity.billingWindowStartAt,
-              endAt: freshCapacity.billingWindowEndAt,
+
+            const client = createDnaCoreRaceHistoryClient();
+            const requestBudget = createDnaOpenLabRequestBudget({
+              initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
             });
-            const existingWindow = await budgetRepository.readWindow(ownerId);
-            if (existingWindow?.windowId !== budgetWindowId) {
-              await budgetRepository.openWindow({
+            const evidenceStore = createDnaCoreRaceHistoryR2EvidenceStore({
+              ownerId,
+              bucketName,
+              storage,
+            });
+            let pagesAdvanced = 0;
+            let batchStatus: "advanced" | "complete" = "advanced";
+            let resultKind: "page_advanced" | "collection_complete" =
+              "page_advanced";
+            let resultSource: "recovered" | "provider" | null = null;
+            let lastFreshCapacity: Awaited<
+              ReturnType<typeof capacitySource.measure>
+            > | null = null;
+            let lastProjectedR2StorageBytes: number | null = null;
+            let lastProjectedNeonStorageBytes: number | null = null;
+
+            for (let pageIndex = 0; pageIndex < maximumPages; pageIndex += 1) {
+              // Capacity is remeasured before every material page write. This
+              // deliberately trades a little throughput for a hard A$0 stop.
+              const freshCapacity = await capacitySource.measure({ ownerId });
+              if (freshCapacity.r2StorageClass !== "Standard") {
+                throw new Error("R2 storage class is not eligible");
+              }
+              const stepR2Projection =
+                projectDnaPopulationEntrantAuthorityR2Cost({
+                  currentUsage: freshCapacity.currentR2Usage,
+                  plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+                });
+              if (
+                !stepR2Projection.allowed ||
+                stepR2Projection.projectedPaidCostMicroUsd !== 0 ||
+                stepR2Projection.paidUsageAllowed !== false
+              ) {
+                throw new Error("exact-gap API page exceeds A$0 R2 capacity");
+              }
+
+              const projectedNeonStorageBytes =
+                freshCapacity.currentNeonUsage.storageBytes +
+                GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES;
+              const projectedNeonComputeMilliCuHours =
+                freshCapacity.currentNeonUsage.computeMilliCuHours +
+                GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS;
+              if (
+                !Number.isSafeInteger(projectedNeonStorageBytes) ||
+                !Number.isSafeInteger(projectedNeonComputeMilliCuHours) ||
+                projectedNeonStorageBytes > OWNER_NEON_STORAGE_BYTES ||
+                projectedNeonStorageBytes > HARD_NEON_STORAGE_BYTES ||
+                projectedNeonStorageBytes >
+                  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
+                projectedNeonComputeMilliCuHours >
+                  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
+              ) {
+                throw new Error("exact-gap API page exceeds A$0 Neon capacity");
+              }
+
+              const budgetWindowId = r2BudgetWindowId({
                 ownerId,
-                windowId: budgetWindowId,
-                windowStartAt: freshCapacity.billingWindowStartAt,
-                windowEndAt: freshCapacity.billingWindowEndAt,
-                measuredAt: freshCapacity.measuredAt,
-                baselineUsage: freshCapacity.currentR2Usage,
+                startAt: freshCapacity.billingWindowStartAt,
+                endAt: freshCapacity.billingWindowEndAt,
               });
+              const existingWindow = await budgetRepository.readWindow(ownerId);
+              if (existingWindow?.windowId !== budgetWindowId) {
+                await budgetRepository.openWindow({
+                  ownerId,
+                  windowId: budgetWindowId,
+                  windowStartAt: freshCapacity.billingWindowStartAt,
+                  windowEndAt: freshCapacity.billingWindowEndAt,
+                  measuredAt: freshCapacity.measuredAt,
+                  baselineUsage: freshCapacity.currentR2Usage,
+                });
+              }
+
+              const attemptedAt = new Date(
+                Math.max(Date.now(), Date.parse(cohort.evaluatedAt)),
+              ).toISOString();
+              const acquisition =
+                await runDnaCoreRaceHistoryPrivateCollectorStep({
+                  ownerId,
+                  budgetWindowId,
+                  evaluatedAt: cohort.evaluatedAt,
+                  attemptedAt,
+                  loadServingCores: async () =>
+                    Object.freeze(
+                      cohort.coreIds.map((coreId) =>
+                        Object.freeze({
+                          generationId: cohort.authorityGenerationId,
+                          canonical: Object.freeze({
+                            sourceCoreId: String(coreId),
+                          }),
+                        }),
+                      ),
+                    ),
+                  acquisitionRepository,
+                  budgetRepository,
+                  client,
+                  requestBudget,
+                  evidenceStore,
+                });
+
+              lastFreshCapacity = freshCapacity;
+              lastProjectedR2StorageBytes =
+                stepR2Projection.projectedUsage.storageBytes;
+              lastProjectedNeonStorageBytes = projectedNeonStorageBytes;
+              if (acquisition.kind === "page_advanced") {
+                pagesAdvanced += 1;
+                resultKind = acquisition.kind;
+                resultSource = acquisition.source;
+                continue;
+              }
+              if (acquisition.kind === "collection_complete") {
+                batchStatus = "complete";
+                resultKind = acquisition.kind;
+                resultSource = null;
+                break;
+              }
+              throw new Error(
+                `exact-gap acquisition stopped with ${acquisition.kind}`,
+              );
             }
 
-            const attemptedAt = new Date(
-              Math.max(Date.now(), Date.parse(cohort.evaluatedAt)),
-            ).toISOString();
-            const acquisition = await runDnaCoreRaceHistoryPrivateCollectorStep(
-              {
-                ownerId,
-                budgetWindowId,
-                evaluatedAt: cohort.evaluatedAt,
-                attemptedAt,
-                loadServingCores: async () =>
-                  Object.freeze(
-                    cohort.coreIds.map((coreId) =>
-                      Object.freeze({
-                        generationId: cohort.authorityGenerationId,
-                        canonical: Object.freeze({
-                          sourceCoreId: String(coreId),
-                        }),
-                      }),
-                    ),
-                  ),
-                acquisitionRepository,
-                budgetRepository,
-                client: createDnaCoreRaceHistoryClient(),
-                requestBudget: createDnaOpenLabRequestBudget({
-                  initialRequestsPerMinute:
-                    DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-                  maximumRequestsPerMinute:
-                    DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-                }),
-                evidenceStore: createDnaCoreRaceHistoryR2EvidenceStore({
-                  ownerId,
-                  bucketName,
-                  storage,
-                }),
-              },
-            );
-            expect(acquisition.kind).toBe("page_advanced");
+            if (
+              lastFreshCapacity === null ||
+              lastProjectedR2StorageBytes === null ||
+              lastProjectedNeonStorageBytes === null
+            ) {
+              throw new Error("exact-gap batch produced no capacity evidence");
+            }
             const persistedCoresAfter = await acquisitionRepository.loadCores({
               cycleId: expectedCycle.cycleId,
               attemptNumber: 1,
             });
             const progressAfter = progress(persistedCoresAfter);
             expect(progressAfter.completedPageCount).toBe(
-              progressBefore.completedPageCount + 1,
+              progressBefore.completedPageCount + pagesAdvanced,
             );
 
             const acquisitionReport = Object.freeze({
-              version: 1,
-              status: "advanced" as const,
+              version: 2,
+              status: batchStatus,
               exactCodeHeadSha,
               apiGapCoreCount: authority.apiGapCoreCount,
               missingMembershipCount:
@@ -916,30 +967,30 @@ describeConnected(
               cohortCoreSetSha256: cohort.coreSetSha256,
               maximumAggregateRequestsPerMinute:
                 DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-              resultKind: acquisition.kind,
-              resultSource:
-                acquisition.kind === "page_advanced"
-                  ? acquisition.source
-                  : null,
+              maximumPages,
+              pagesAdvanced,
+              resultKind,
+              resultSource,
               progress: Object.freeze({
                 before: progressBefore,
                 after: progressAfter,
               }),
               capacity: Object.freeze({
-                measuredAt: freshCapacity.measuredAt,
+                measuredAt: lastFreshCapacity.measuredAt,
                 currentR2StorageBytes:
-                  freshCapacity.currentR2Usage.storageBytes,
-                projectedFirstStepR2StorageBytes:
-                  firstStepR2Projection.projectedUsage.storageBytes,
+                  lastFreshCapacity.currentR2Usage.storageBytes,
+                projectedNextStepR2StorageBytes: lastProjectedR2StorageBytes,
                 currentNeonStorageBytes:
-                  freshCapacity.currentNeonUsage.storageBytes,
-                projectedFirstPageNeonStorageBytes,
+                  lastFreshCapacity.currentNeonUsage.storageBytes,
+                projectedNextPageNeonStorageBytes:
+                  lastProjectedNeonStorageBytes,
               }),
               safety: Object.freeze({
                 persistedCheckpointReadBack: true as const,
                 exactGapCohortOnly: true as const,
-                persistentCheckpointWritePerformed: true as const,
-                privateEvidenceWriteMayBePerformed: true as const,
+                capacityMeasuredBeforeEveryPage: true as const,
+                persistentCheckpointWritePerformed: pagesAdvanced > 0,
+                privateEvidenceWriteMayBePerformed: pagesAdvanced > 0,
                 providerWritePerformed: false as const,
                 paidUsageAllowed: false as const,
                 previewOnly: true as const,
@@ -973,6 +1024,13 @@ describeConnected(
                 : "DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE=") +
                 acquisitionSerialized,
             );
+            if (continueExactGapApiPage && process.env.GITHUB_OUTPUT) {
+              await appendFile(
+                process.env.GITHUB_OUTPUT,
+                `batch_status=${batchStatus}\npages_advanced=${pagesAdvanced}\n`,
+                "utf8",
+              );
+            }
           }
         } finally {
           await rm(scratchRoot, { recursive: true, force: true });

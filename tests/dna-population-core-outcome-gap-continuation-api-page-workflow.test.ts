@@ -6,10 +6,12 @@ const workflowPath =
   ".github/workflows/dna-population-core-outcome-gap-continuation-api-page.yml";
 
 describe("DNA population Core-outcome exact-gap continuation API page workflow", () => {
-  it("rereads durable progress, takes fresh capacity and advances only one page", () => {
+  it("reconciles once, advances a bounded page batch and requeues safely", () => {
     const workflow = readFileSync(workflowPath, "utf8");
 
     expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("maximum_pages:");
+    expect(workflow).toContain('default: "300"');
     expect(workflow).toContain("execute_next_exact_gap_api_page:");
     expect(workflow).toContain(
       'DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE: "1"',
@@ -25,6 +27,14 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
     );
     expect(workflow).toContain(
       "tests/hosted-preview-connected-population-core-outcome-gap-measurement.test.ts",
+    );
+    expect(workflow).toContain("actions: write");
+    expect(workflow).toContain("id: acquire");
+    expect(workflow).toContain(
+      "steps.acquire.outputs.batch_status == 'advanced'",
+    );
+    expect(workflow).toContain(
+      "gh workflow run dna-population-core-outcome-gap-continuation-api-page.yml",
     );
     expect(workflow).toContain(
       "group: dna-population-core-outcome-gap-acquisition-bootstrap",

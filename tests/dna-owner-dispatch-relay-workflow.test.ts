@@ -182,6 +182,7 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "dna-population-core-outcome-gap-continuation-api-page.yml",
     );
+    expect(workflow).toContain('maximum_pages: "300"');
     expect(workflow).toContain(
       '"population-core-outcome-gap-continuation-api-page"',
     );

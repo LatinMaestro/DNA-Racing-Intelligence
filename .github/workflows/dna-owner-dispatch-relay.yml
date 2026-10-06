@@ -722,6 +722,7 @@ jobs:
                   payload.expected_gap_core_set_sha256,
                 expected_missing_membership_set_sha256:
                   payload.expected_missing_membership_set_sha256,
+                maximum_pages: "300",
                 execute_next_exact_gap_api_page: true,
               };
               break;
