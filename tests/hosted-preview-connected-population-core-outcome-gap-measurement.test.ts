@@ -661,9 +661,13 @@ describeConnected(
             );
           }
 
-          if (
-            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE === "1"
-          ) {
+          const firstExactGapApiPage =
+            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE === "1";
+          const continueExactGapApiPage =
+            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE ===
+            "1";
+          if (firstExactGapApiPage || continueExactGapApiPage) {
+            expect(firstExactGapApiPage && continueExactGapApiPage).toBe(false);
             const authority =
               createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
                 evaluatedAt: requiredEnvironment(
@@ -721,18 +725,67 @@ describeConnected(
                 persistedCores.map((stored) => stored.checkpoint.coreId),
               ),
             ).toBe(cohort.coreSetSha256);
-            expect(
-              persistedCores.every(
-                ({ checkpoint }) =>
-                  checkpoint.status === "running" &&
-                  checkpoint.nextPage === 1 &&
-                  checkpoint.completedPageCount === 0 &&
-                  checkpoint.sourceRowCount === 0 &&
-                  checkpoint.acceptedResultCount === 0 &&
-                  checkpoint.quarantineCount === 0 &&
-                  checkpoint.replayDuplicateCount === 0,
-              ),
-            ).toBe(true);
+            const progress = (
+              cores: typeof persistedCores,
+            ): Readonly<{
+              completedPageCount: number;
+              sourceRowCount: number;
+              acceptedResultCount: number;
+              quarantineCount: number;
+              replayDuplicateCount: number;
+              completedCoreCount: number;
+            }> =>
+              Object.freeze(
+                cores.reduce(
+                  (total, { checkpoint }) => ({
+                    completedPageCount:
+                      total.completedPageCount + checkpoint.completedPageCount,
+                    sourceRowCount:
+                      total.sourceRowCount + checkpoint.sourceRowCount,
+                    acceptedResultCount:
+                      total.acceptedResultCount +
+                      checkpoint.acceptedResultCount,
+                    quarantineCount:
+                      total.quarantineCount + checkpoint.quarantineCount,
+                    replayDuplicateCount:
+                      total.replayDuplicateCount +
+                      checkpoint.replayDuplicateCount,
+                    completedCoreCount:
+                      total.completedCoreCount +
+                      (checkpoint.status === "complete" ? 1 : 0),
+                  }),
+                  {
+                    completedPageCount: 0,
+                    sourceRowCount: 0,
+                    acceptedResultCount: 0,
+                    quarantineCount: 0,
+                    replayDuplicateCount: 0,
+                    completedCoreCount: 0,
+                  },
+                ),
+              );
+            const progressBefore = progress(persistedCores);
+            if (firstExactGapApiPage) {
+              expect(progressBefore).toEqual({
+                completedPageCount: 0,
+                sourceRowCount: 0,
+                acceptedResultCount: 0,
+                quarantineCount: 0,
+                replayDuplicateCount: 0,
+                completedCoreCount: 0,
+              });
+              expect(
+                persistedCores.every(
+                  ({ checkpoint }) =>
+                    checkpoint.status === "running" &&
+                    checkpoint.nextPage === 1,
+                ),
+              ).toBe(true);
+            } else {
+              expect(progressBefore.completedPageCount).toBeGreaterThanOrEqual(
+                1,
+              );
+            }
 
             const freshCapacity = await capacitySource.measure({ ownerId });
             if (freshCapacity.r2StorageClass !== "Standard") {
@@ -839,6 +892,14 @@ describeConnected(
               },
             );
             expect(acquisition.kind).toBe("page_advanced");
+            const persistedCoresAfter = await acquisitionRepository.loadCores({
+              cycleId: expectedCycle.cycleId,
+              attemptNumber: 1,
+            });
+            const progressAfter = progress(persistedCoresAfter);
+            expect(progressAfter.completedPageCount).toBe(
+              progressBefore.completedPageCount + 1,
+            );
 
             const acquisitionReport = Object.freeze({
               version: 1,
@@ -860,6 +921,10 @@ describeConnected(
                 acquisition.kind === "page_advanced"
                   ? acquisition.source
                   : null,
+              progress: Object.freeze({
+                before: progressBefore,
+                after: progressAfter,
+              }),
               capacity: Object.freeze({
                 measuredAt: freshCapacity.measuredAt,
                 currentR2StorageBytes:
@@ -903,7 +968,9 @@ describeConnected(
               );
             }
             console.log(
-              "DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE=" +
+              (firstExactGapApiPage
+                ? "DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE="
+                : "DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE=") +
                 acquisitionSerialized,
             );
           }
