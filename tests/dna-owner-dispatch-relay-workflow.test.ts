@@ -19,6 +19,11 @@ describe("DNA owner dispatch relay workflow", () => {
     );
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
+    expect(workflow).toContain('case "exact-main-ci"');
+    expect(workflow).toContain('workflow = "ci.yml"');
+    expect(workflow).toContain(
+      "inputs = { expected_main_sha: payload.expected_main_sha }",
+    );
     expect(workflow).toContain(
       "dna-population-race-index-private-preview-command.yml",
     );
