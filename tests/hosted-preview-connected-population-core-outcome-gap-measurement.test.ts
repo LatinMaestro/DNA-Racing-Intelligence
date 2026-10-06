@@ -556,6 +556,251 @@ describeConnected(
               cohortOrdinal: 1,
             });
 
+            const freshCapacity = await capacitySource.measure({ ownerId });
+            const freshR2Projection =
+              projectDnaPopulationEntrantAuthorityR2Cost({
+                currentUsage: freshCapacity.currentR2Usage,
+                plannedUsage: {
+                  storageBytes: 0,
+                  classAOperations: 0,
+                  classBOperations: 0,
+                },
+              });
+            if (
+              !freshR2Projection.allowed ||
+              freshR2Projection.projectedPaidCostMicroUsd !== 0 ||
+              freshR2Projection.paidUsageAllowed !== false
+            ) {
+              throw new Error(
+                "exact-gap acquisition bootstrap exceeds A$0 R2 capacity",
+              );
+            }
+
+            const plannedNeonStorageBytes =
+              GAP_BOOTSTRAP_BASE_NEON_STORAGE_BYTES +
+              cohort.coreCount * GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES;
+            const projectedBootstrapNeonStorageBytes =
+              freshCapacity.currentNeonUsage.storageBytes +
+              plannedNeonStorageBytes;
+            const projectedBootstrapNeonComputeMilliCuHours =
+              freshCapacity.currentNeonUsage.computeMilliCuHours +
+              GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS;
+            if (
+              !Number.isSafeInteger(plannedNeonStorageBytes) ||
+              !Number.isSafeInteger(projectedBootstrapNeonStorageBytes) ||
+              !Number.isSafeInteger(
+                projectedBootstrapNeonComputeMilliCuHours,
+              ) ||
+              projectedBootstrapNeonStorageBytes >
+                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes ||
+              projectedBootstrapNeonStorageBytes > HARD_NEON_STORAGE_BYTES ||
+              projectedBootstrapNeonComputeMilliCuHours >
+                DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
+            ) {
+              throw new Error(
+                "exact-gap acquisition bootstrap exceeds A$0 Neon capacity",
+              );
+            }
+
+            const acquisitionRepository =
+              createNeonDnaCoreRaceHistoryAcquisitionRepository({
+                databaseUrl,
+                databaseOwnerId,
+                ownerId,
+                runtimeRole: RUNTIME_ROLE,
+                populationAuthority: {
+                  generationId: cohort.authorityGenerationId,
+                  coreIds: cohort.coreIds,
+                },
+              });
+            const latestComplete =
+              await acquisitionRepository.loadLatestComplete();
+            const cycle = createDnaCoreRaceHistoryAcquisitionCycle({
+              previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
+              currentStateGenerationId: cohort.authorityGenerationId,
+              evaluatedAt: cohort.evaluatedAt,
+              coreIds: cohort.coreIds,
+            });
+            const stored = await acquisitionRepository.saveAttempt({
+              expectedRevision: null,
+              cycle,
+            });
+            expect(stored.cycle.coreSetSha256).toBe(cohort.coreSetSha256);
+            expect(stored.cycle.coreIds.length).toBe(cohort.coreCount);
+
+            const bootstrapReport = Object.freeze({
+              version: 1,
+              status: "ready_for_targeted_acquisition" as const,
+              exactCodeHeadSha,
+              apiGapCoreCount: authority.apiGapCoreCount,
+              apiGapCoreSetSha256: authority.apiGapCoreSetSha256,
+              missingMembershipSetSha256: authority.missingMembershipSetSha256,
+              cohortOrdinal: cohort.cohortOrdinal,
+              cohortCount: cohort.cohortCount,
+              cohortCoreCount: cohort.coreCount,
+              remainingCoreCount: cohort.remainingCoreCount,
+              cohortCoreSetSha256: cohort.coreSetSha256,
+              currentNeonStorageBytes:
+                freshCapacity.currentNeonUsage.storageBytes,
+              projectedBootstrapNeonStorageBytes,
+              dnaProviderRequestCount: 0 as const,
+              persistentWritePerformed: true as const,
+              providerWritePerformed: false as const,
+              paidUsageAllowed: false as const,
+            });
+            const bootstrapSerialized = JSON.stringify(bootstrapReport);
+            expect(bootstrapSerialized).not.toContain('"coreIds"');
+            for (const coreId of cohort.coreIds) {
+              expect(bootstrapSerialized).not.toContain(
+                `"sourceCoreId":${coreId}`,
+              );
+            }
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_BOOTSTRAP=" +
+                bootstrapSerialized,
+            );
+          }
+
+          const firstExactGapApiPage =
+            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_FIRST_API_PAGE === "1";
+          const continueExactGapApiPage =
+            process.env.DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE ===
+            "1";
+          if (firstExactGapApiPage || continueExactGapApiPage) {
+            expect(firstExactGapApiPage && continueExactGapApiPage).toBe(false);
+            const maximumPages = firstExactGapApiPage
+              ? 1
+              : Number(
+                  requiredEnvironment(
+                    "DNA_POPULATION_CORE_OUTCOME_GAP_MAXIMUM_PAGES",
+                  ),
+                );
+            if (
+              !Number.isSafeInteger(maximumPages) ||
+              maximumPages < 1 ||
+              maximumPages > 300
+            ) {
+              throw new Error("exact-gap maximum page count is invalid");
+            }
+            const authority =
+              createDnaPopulationCoreOutcomeGapAcquisitionAuthority({
+                evaluatedAt: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_ACQUISITION_EVALUATED_AT",
+                ),
+                apiGapCoreIds: reconciliation.outcomeCoverage.apiGapCoreIds,
+                expectedApiGapCoreCount: Number(
+                  requiredEnvironment(
+                    "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_COUNT",
+                  ),
+                ),
+                expectedApiGapCoreSetSha256: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_CORE_SET_SHA256",
+                ),
+                expectedMissingMembershipSetSha256: requiredEnvironment(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_EXPECTED_MISSING_MEMBERSHIP_SET_SHA256",
+                ),
+              });
+            const cohort = selectDnaPopulationCoreOutcomeGapAcquisitionCohort({
+              authority,
+              cohortOrdinal: 1,
+            });
+            const acquisitionRepository =
+              createNeonDnaCoreRaceHistoryAcquisitionRepository({
+                databaseUrl,
+                databaseOwnerId,
+                ownerId,
+                runtimeRole: RUNTIME_ROLE,
+                populationAuthority: {
+                  generationId: cohort.authorityGenerationId,
+                  coreIds: cohort.coreIds,
+                },
+              });
+            const latestComplete =
+              await acquisitionRepository.loadLatestComplete();
+            const expectedCycle = createDnaCoreRaceHistoryAcquisitionCycle({
+              previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
+              currentStateGenerationId: cohort.authorityGenerationId,
+              evaluatedAt: cohort.evaluatedAt,
+              coreIds: cohort.coreIds,
+            });
+
+            const persistedAttempt = await acquisitionRepository.loadAttempt({
+              cycleId: expectedCycle.cycleId,
+              attemptNumber: 1,
+            });
+            expect(persistedAttempt?.cycle).toEqual(expectedCycle);
+            const persistedCores = await acquisitionRepository.loadCores({
+              cycleId: expectedCycle.cycleId,
+              attemptNumber: 1,
+            });
+            expect(persistedCores).toHaveLength(cohort.coreCount);
+            expect(
+              dnaCoreRaceHistoryCoreSetSha256(
+                persistedCores.map((stored) => stored.checkpoint.coreId),
+              ),
+            ).toBe(cohort.coreSetSha256);
+            const progress = (
+              cores: typeof persistedCores,
+            ): Readonly<{
+              completedPageCount: number;
+              sourceRowCount: number;
+              acceptedResultCount: number;
+              quarantineCount: number;
+              replayDuplicateCount: number;
+              completedCoreCount: number;
+            }> =>
+              Object.freeze(
+                cores.reduce(
+                  (total, { checkpoint }) => ({
+                    completedPageCount:
+                      total.completedPageCount + checkpoint.completedPageCount,
+                    sourceRowCount:
+                      total.sourceRowCount + checkpoint.sourceRowCount,
+                    acceptedResultCount:
+                      total.acceptedResultCount +
+                      checkpoint.acceptedResultCount,
+                    quarantineCount:
+                      total.quarantineCount + checkpoint.quarantineCount,
+                    replayDuplicateCount:
+                      total.replayDuplicateCount +
+                      checkpoint.replayDuplicateCount,
+                    completedCoreCount:
+                      total.completedCoreCount +
+                      (checkpoint.status === "complete" ? 1 : 0),
+                  }),
+                  {
+                    completedPageCount: 0,
+                    sourceRowCount: 0,
+                    acceptedResultCount: 0,
+                    quarantineCount: 0,
+                    replayDuplicateCount: 0,
+                    completedCoreCount: 0,
+                  },
+                ),
+              );
+            const progressBefore = progress(persistedCores);
+            if (firstExactGapApiPage) {
+              expect(progressBefore).toEqual({
+                completedPageCount: 0,
+                sourceRowCount: 0,
+                acceptedResultCount: 0,
+                quarantineCount: 0,
+                replayDuplicateCount: 0,
+                completedCoreCount: 0,
+              });
+              expect(
+                persistedCores.every(
+                  ({ checkpoint }) =>
+                    checkpoint.status === "running" &&
+                    checkpoint.nextPage === 1,
+                ),
+              ).toBe(true);
+            } else {
+              expect(progressBefore.completedPageCount).toBeGreaterThanOrEqual(
+                1,
+              );
+            }
+
             const budgetRepository =
               neonDnaOpenLabR2BudgetRepositoryFromEnvironment({
                 databaseUrl,
@@ -568,10 +813,8 @@ describeConnected(
 
             const client = createDnaCoreRaceHistoryClient();
             const requestBudget = createDnaOpenLabRequestBudget({
-              initialRequestsPerMinute:
-                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
-              maximumRequestsPerMinute:
-                DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
             });
             const evidenceStore = createDnaCoreRaceHistoryR2EvidenceStore({
               ownerId,
@@ -583,9 +826,9 @@ describeConnected(
             let resultKind: "page_advanced" | "collection_complete" =
               "page_advanced";
             let resultSource: "recovered" | "provider" | null = null;
-            let lastFreshCapacity:
-              | Awaited<ReturnType<typeof capacitySource.measure>>
-              | null = null;
+            let lastFreshCapacity: Awaited<
+              ReturnType<typeof capacitySource.measure>
+            > | null = null;
             let lastProjectedR2StorageBytes: number | null = null;
             let lastProjectedNeonStorageBytes: number | null = null;
 
@@ -606,9 +849,7 @@ describeConnected(
                 stepR2Projection.projectedPaidCostMicroUsd !== 0 ||
                 stepR2Projection.paidUsageAllowed !== false
               ) {
-                throw new Error(
-                  "exact-gap API page exceeds A$0 R2 capacity",
-                );
+                throw new Error("exact-gap API page exceeds A$0 R2 capacity");
               }
 
               const projectedNeonStorageBytes =
@@ -627,9 +868,7 @@ describeConnected(
                 projectedNeonComputeMilliCuHours >
                   DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours
               ) {
-                throw new Error(
-                  "exact-gap API page exceeds A$0 Neon capacity",
-                );
+                throw new Error("exact-gap API page exceeds A$0 Neon capacity");
               }
 
               const budgetWindowId = r2BudgetWindowId({
@@ -740,8 +979,7 @@ describeConnected(
                 measuredAt: lastFreshCapacity.measuredAt,
                 currentR2StorageBytes:
                   lastFreshCapacity.currentR2Usage.storageBytes,
-                projectedNextStepR2StorageBytes:
-                  lastProjectedR2StorageBytes,
+                projectedNextStepR2StorageBytes: lastProjectedR2StorageBytes,
                 currentNeonStorageBytes:
                   lastFreshCapacity.currentNeonUsage.storageBytes,
                 projectedNextPageNeonStorageBytes:
@@ -751,10 +989,8 @@ describeConnected(
                 persistedCheckpointReadBack: true as const,
                 exactGapCohortOnly: true as const,
                 capacityMeasuredBeforeEveryPage: true as const,
-                persistentCheckpointWritePerformed:
-                  pagesAdvanced > 0,
-                privateEvidenceWriteMayBePerformed:
-                  pagesAdvanced > 0,
+                persistentCheckpointWritePerformed: pagesAdvanced > 0,
+                privateEvidenceWriteMayBePerformed: pagesAdvanced > 0,
                 providerWritePerformed: false as const,
                 paidUsageAllowed: false as const,
                 previewOnly: true as const,
