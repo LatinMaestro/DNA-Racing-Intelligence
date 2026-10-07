@@ -22,11 +22,11 @@ When the upstream reference changes:
 
 The documented TierBadge ladder is:
 
-| Minimum `tot_score` | Rate |
-|---:|---:|
-| 2.5 | 150 requests/minute |
-| 2 | 80 requests/minute |
-| 1 | 30 requests/minute |
+| Minimum `tot_score` |                Rate |
+| ------------------: | ------------------: |
+|                 2.5 | 150 requests/minute |
+|                   2 |  80 requests/minute |
+|                   1 |  30 requests/minute |
 
 A vault may have at most three active keys. Rate headers are `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `X-RateLimit-Class`, with `Retry-After` on 429.
 
