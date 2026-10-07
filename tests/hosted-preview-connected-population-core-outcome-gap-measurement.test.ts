@@ -71,6 +71,7 @@ const GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES = 16 * 1024;
 const GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS = 1_000;
 const HARD_NEON_STORAGE_BYTES = 1_000_000_000;
 const OWNER_NEON_STORAGE_BYTES = 950_000_000;
+const ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 110 * 60_000;
 const GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES = 128 * 1024 * 1024;
 const GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS = 5_000;
 
@@ -115,6 +116,7 @@ describeConnected(
     it(
       "reconciles canonical Race/Core membership against durable local outcomes without DNA calls or writes",
       async () => {
+        const connectedRunStartedAt = Date.now();
         const exactCodeHeadSha =
           requiredEnvironment("GITHUB_SHA").toLowerCase();
         if (!COMMIT_PATTERN.test(exactCodeHeadSha)) {
@@ -831,8 +833,16 @@ describeConnected(
             > | null = null;
             let lastProjectedR2StorageBytes: number | null = null;
             let lastProjectedNeonStorageBytes: number | null = null;
+            let runtimeCutoffReached = false;
 
             for (let pageIndex = 0; pageIndex < maximumPages; pageIndex += 1) {
+              if (
+                Date.now() - connectedRunStartedAt >=
+                ACQUISITION_BATCH_RUNTIME_CUTOFF_MS
+              ) {
+                runtimeCutoffReached = true;
+                break;
+              }
               // Capacity is remeasured before every material page write. This
               // deliberately trades a little throughput for a hard A$0 stop.
               const freshCapacity = await capacitySource.measure({ ownerId });
@@ -936,6 +946,11 @@ describeConnected(
               );
             }
 
+            if (runtimeCutoffReached && pagesAdvanced === 0) {
+              throw new Error(
+                "exact-gap reconciliation left no bounded time for a page",
+              );
+            }
             if (
               lastFreshCapacity === null ||
               lastProjectedR2StorageBytes === null ||
@@ -969,6 +984,7 @@ describeConnected(
                 DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
               maximumPages,
               pagesAdvanced,
+              runtimeCutoffReached,
               resultKind,
               resultSource,
               progress: Object.freeze({
