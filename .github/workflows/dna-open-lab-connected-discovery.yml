@@ -59,6 +59,10 @@ jobs:
           }
           console.log("Validated private DNA Open Lab connected-discovery inputs without printing values.");
           NODE
+      - name: Verify live public llm reference and open test contract
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-dna-open-lab-reference-source.test.ts
       - name: Run read-only redacted DNA API discovery
         run: >-
           npx vitest run --no-file-parallelism
