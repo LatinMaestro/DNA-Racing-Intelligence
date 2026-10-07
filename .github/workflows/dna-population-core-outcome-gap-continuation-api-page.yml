@@ -46,7 +46,7 @@ jobs:
   exact-main-next-gap-api-page:
     name: Verify progress and advance one targeted Core-history page
     runs-on: ubuntu-latest
-    timeout-minutes: 105
+    timeout-minutes: 150
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

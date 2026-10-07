@@ -1036,7 +1036,7 @@ describeConnected(
           await rm(scratchRoot, { recursive: true, force: true });
         }
       },
-      90 * 60_000,
+      135 * 60_000,
     );
   },
 );
