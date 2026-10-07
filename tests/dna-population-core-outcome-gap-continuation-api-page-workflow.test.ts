@@ -15,7 +15,7 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
 
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("maximum_pages:");
-    expect(workflow).toContain('default: "300"');
+    expect(workflow).toContain('default: "600"');
     expect(workflow).toContain("execute_next_exact_gap_api_page:");
     expect(workflow).toContain(
       'DNA_POPULATION_CORE_OUTCOME_GAP_CONTINUE_API_PAGE: "1"',
@@ -33,10 +33,10 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
       "tests/hosted-preview-connected-population-core-outcome-gap-measurement.test.ts",
     );
     expect(workflow).toContain("actions: write");
-    expect(workflow).toContain("timeout-minutes: 150");
-    expect(connectedTest).toContain("135 * 60_000");
+    expect(workflow).toContain("timeout-minutes: 300");
+    expect(connectedTest).toContain("285 * 60_000");
     expect(connectedTest).toContain(
-      "ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 110 * 60_000",
+      "ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 260 * 60_000",
     );
     expect(connectedTest).toContain("runtimeCutoffReached = true");
     expect(connectedTest).toContain(
