@@ -35,6 +35,13 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("timeout-minutes: 150");
     expect(connectedTest).toContain("135 * 60_000");
+    expect(connectedTest).toContain(
+      "ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 110 * 60_000",
+    );
+    expect(connectedTest).toContain("runtimeCutoffReached = true");
+    expect(connectedTest).toContain(
+      "exact-gap reconciliation left no bounded time for a page",
+    );
     expect(workflow).toContain("id: acquire");
     expect(workflow).toContain(
       "steps.acquire.outputs.batch_status == 'advanced'",
