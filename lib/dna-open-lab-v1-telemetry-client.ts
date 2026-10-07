@@ -7,9 +7,10 @@ import {
 } from "./dna-open-lab-v1-client";
 
 /**
- * DNA added the telemetry endpoints after the original v1 LLM reference.
- * Their payload schema and analytical meaning are intentionally left unknown
- * until connected read-only P3 inspection proves the real contract.
+ * The current DNA API Reference exposes telemetry, telemetry_bulk and
+ * telemetry_benchmark as part of the 19-live Core surface. Keep transport
+ * handling conservative here; richer payload typing is promoted only after
+ * connected read-only contract verification.
  */
 export type DnaTelemetryPayload = unknown;
 
