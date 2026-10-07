@@ -26,7 +26,7 @@ on:
       maximum_pages:
         description: Maximum checkpointed pages to advance in this batch
         required: true
-        default: "300"
+        default: "600"
         type: string
       execute_next_exact_gap_api_page:
         description: Verify persisted progress and advance a bounded page batch
@@ -46,7 +46,7 @@ jobs:
   exact-main-next-gap-api-page:
     name: Verify progress and advance one targeted Core-history page
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 300
     env:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -86,7 +86,7 @@ jobs:
           fi
           if [[ ! "${{ inputs.expected_gap_core_count }}" =~ ^[1-9][0-9]*$ ]] || \
              [[ ! "${{ inputs.maximum_pages }}" =~ ^[1-9][0-9]*$ ]] || \
-             (( 10#${{ inputs.maximum_pages }} > 300 )) || \
+             (( 10#${{ inputs.maximum_pages }} > 600 )) || \
              [[ ! "${{ inputs.expected_gap_core_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]] || \
              [[ ! "${{ inputs.expected_missing_membership_set_sha256 }}" =~ ^[a-f0-9]{64}$ ]]; then
             echo "Accepted exact-gap authority is invalid."
