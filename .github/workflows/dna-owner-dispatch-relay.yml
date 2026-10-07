@@ -118,6 +118,11 @@ jobs:
               workflow = "dna-open-lab-throughput-probe.yml";
               inputs = { expected_main_sha: payload.expected_main_sha };
               break;
+            case "dna-open-lab-connected-discovery":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow = "dna-open-lab-connected-discovery.yml";
+              inputs = {};
+              break;
             case "population-index-maintenance":
               exactKeys(["kind", "expected_main_sha"]);
               workflow =
