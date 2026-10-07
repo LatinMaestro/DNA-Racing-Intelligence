@@ -30,12 +30,7 @@ export const DNA_OPEN_LAB_REFERENCE_LIMITS = Object.freeze({
 } as const);
 
 export type DnaOpenLabReferenceScope =
-  | "open"
-  | "vault"
-  | "races"
-  | "cores"
-  | "tokens"
-  | "splice";
+  "open" | "vault" | "races" | "cores" | "tokens" | "splice";
 
 export type DnaOpenLabReferenceEndpoint = Readonly<{
   id: string;
