@@ -23,9 +23,6 @@ describeConnected("hosted DNA Open Lab public reference source", () => {
       "/races/docs",
       "/races/fills",
       "/cores/info_bulk",
-      "/cores/telemetry",
-      "/cores/telemetry_bulk",
-      "/cores/telemetry_benchmark",
       "/tokens/prices",
       "/splice/pair_validate",
       "150",
@@ -36,6 +33,10 @@ describeConnected("hosted DNA Open Lab public reference source", () => {
     ]) {
       expect(text).toContain(marker);
     }
+
+    // Telemetry is additive evidence from the owner's live API Reference
+    // recording. The connected discovery suite probes it separately; it is not
+    // currently published in llm.txt and must not gate this source-contract test.
 
     const ping = await fetch(`${DNA_OPEN_LAB_V1_REFERENCE_BASE_URL}/test`, {
       headers: { Accept: "application/json" },
