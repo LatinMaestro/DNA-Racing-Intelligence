@@ -71,7 +71,7 @@ const GAP_BOOTSTRAP_PER_CORE_NEON_STORAGE_BYTES = 16 * 1024;
 const GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS = 1_000;
 const HARD_NEON_STORAGE_BYTES = 1_000_000_000;
 const OWNER_NEON_STORAGE_BYTES = 950_000_000;
-const ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 110 * 60_000;
+const ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 260 * 60_000;
 const GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES = 128 * 1024 * 1024;
 const GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS = 5_000;
 
@@ -680,7 +680,7 @@ describeConnected(
             if (
               !Number.isSafeInteger(maximumPages) ||
               maximumPages < 1 ||
-              maximumPages > 300
+              maximumPages > 600
             ) {
               throw new Error("exact-gap maximum page count is invalid");
             }
@@ -1052,7 +1052,7 @@ describeConnected(
           await rm(scratchRoot, { recursive: true, force: true });
         }
       },
-      135 * 60_000,
+      285 * 60_000,
     );
   },
 );
