@@ -21,9 +21,10 @@ The product must improve decisions without presenting uncertain inferences as kn
 When sources conflict, use this order:
 
 1. The repository owner’s explicit written clarification in `docs/GAME_RULES.md`, `docs/STAR_SIGNAL_SPECIFICATION.md`, `docs/OPEN_RACE_WORKFLOW.md`, `docs/VAULT_PERFORMANCE_ACCOUNTING.md` and `docs/DECISION_LOG.md`.
-2. Current DNA Open Lab API observations and accepted observable historical data.
-3. Official DNA Racing documentation or screenshots recorded in the repository.
-4. Modelled or inferred rules, which must be labelled with confidence.
+2. The current DNA Open Lab v1 published API contract at `https://api.dnaracing.run/fbike/pub/v1/llm.txt`, mirrored in `docs/DNA_OPEN_LAB_API_REFERENCE.md` and `lib/dna-open-lab-api-reference.ts`, for endpoint shapes, request bounds, scopes, rate headers and best practices.
+3. Current connected DNA Open Lab API observations and accepted observable historical data. Connected observations may prove additive fields or capabilities but must not silently relax stricter published request bounds.
+4. Official DNA Racing documentation or screenshots recorded in the repository.
+5. Modelled or inferred rules, which must be labelled with confidence.
 
 Never silently replace an owner-confirmed rule with an internet source or a statistical inference.
 
@@ -37,6 +38,7 @@ Before changing code or data models, read:
 - `docs/OPEN_RACE_WORKFLOW.md`
 - `docs/ANALYTICS_METHOD.md`
 - `docs/DATA_CONTRACT.md`
+- `docs/DNA_OPEN_LAB_API_REFERENCE.md`
 - `docs/DATA_UPDATE_WORKFLOW.md`
 - `docs/AGGREGATE_SOURCE_PROFILE.md`
 - `docs/VAULT_PERFORMANCE_ACCOUNTING.md`
@@ -63,6 +65,7 @@ Before changing code or data models, read:
 - Raw exports, processed data, economic records and recommendations are confidential.
 - Do not commit private CSV exports, database dumps, credentials or generated personal vault data to Git.
 - DNA Open Lab is the sole game-data source on the current delivery critical path. CSV import/equivalence work is benched as an optional future integration and must not block API persistence, Pro League commissioning or private website commissioning.
+- Treat the upstream `llm.txt` reference and the checked-in machine-readable endpoint registry as mandatory API-contract authority. Never exceed a documented request limit merely because a connected probe accepts a larger payload; prove and document upstream contract changes first.
 - If an API fact is unavailable, expose the limitation; do not fabricate it or silently reintroduce CSV as a dependency.
 - Use synthetic fixtures for tests.
 - Do not scrape authenticated game pages or bypass access controls.
