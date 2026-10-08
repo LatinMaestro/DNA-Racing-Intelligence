@@ -28,6 +28,13 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       'workflow = "dna-core-race-history-three-key-probe.yml"',
     );
+    expect(workflow).toContain('case "owner-car-1v1-tournament-refresh"');
+    expect(workflow).toContain(
+      'workflow = "dna-owner-car-1v1-tournament-refresh.yml"',
+    );
+    expect(workflow).toContain(
+      "execute_read_only_tournament_refresh: true",
+    );
     expect(workflow).toContain(
       "dna-population-race-index-private-preview-command.yml",
     );
