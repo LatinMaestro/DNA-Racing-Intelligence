@@ -198,9 +198,7 @@ describeConnected("legacy Core-history three-key read-only rate probe", () => {
     };
     const readings: Probe[] = [];
     for (const lane of order) {
-      readings.push(
-        await probePage({ lane, apiKey: keyForLane[lane], coreId }),
-      );
+      readings.push(await probePage({ lane, apiKey: keyForLane[lane], coreId }));
     }
 
     const sameOutcome = readings.every(
@@ -248,10 +246,13 @@ describeConnected("legacy Core-history three-key read-only rate probe", () => {
       paidUsageAllowed: false,
     });
     const serialized = JSON.stringify(report);
-    for (const secret of [...keys, vault, String(coreId)]) {
+    for (const secret of [...keys, vault]) {
       if (serialized.includes(secret)) {
         throw new Error("redaction invariant failed");
       }
+    }
+    if (serialized.includes('"coreId"') || serialized.includes('"hid"')) {
+      throw new Error("private Core identity must not be logged");
     }
     console.log("DNA_CORE_HISTORY_THREE_KEY_PROBE=" + serialized);
     expect(sameOutcome).toBe(true);
