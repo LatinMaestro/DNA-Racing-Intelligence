@@ -24,6 +24,10 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "inputs = { expected_main_sha: payload.expected_main_sha }",
     );
+    expect(workflow).toContain('case "dna-core-history-three-key-probe"');
+    expect(workflow).toContain(
+      'workflow = "dna-core-race-history-three-key-probe.yml"',
+    );
     expect(workflow).toContain(
       "dna-population-race-index-private-preview-command.yml",
     );
