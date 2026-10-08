@@ -107,12 +107,22 @@ function stats(samples: readonly Sample[]) {
   const war = samples.filter((sample) => sample.war);
   return Object.freeze({
     sampleCount: elapsed.length,
+    meanSeconds: rounded(fullMean),
     medianSeconds: rounded(percentile(elapsed, 0.5)),
     trimmedMeanSeconds: rounded(mean),
     iqrSeconds: rounded(percentile(elapsed, 0.75) - percentile(elapsed, 0.25)),
     sdSeconds: rounded(Math.sqrt(variance)),
     p10Seconds: rounded(percentile(elapsed, 0.1)),
     fastestSeconds: rounded(elapsed[0]!),
+    quantilesSeconds: Object.freeze({
+      p05: rounded(percentile(elapsed, 0.05)),
+      p10: rounded(percentile(elapsed, 0.1)),
+      p25: rounded(percentile(elapsed, 0.25)),
+      p50: rounded(percentile(elapsed, 0.5)),
+      p75: rounded(percentile(elapsed, 0.75)),
+      p90: rounded(percentile(elapsed, 0.9)),
+      p95: rounded(percentile(elapsed, 0.95)),
+    }),
     latestEventAt: [...samples]
       .map((sample) => sample.eventAt)
       .sort()
