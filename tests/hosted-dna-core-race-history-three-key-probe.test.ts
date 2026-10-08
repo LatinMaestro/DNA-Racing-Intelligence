@@ -218,10 +218,11 @@ describeConnected("legacy Core-history three-key read-only rate probe", () => {
     );
     const independentCandidate =
       headersComplete && drops.every((drop) => drop === 1);
+    const anonymousDrop = drops[0] ?? null;
     const sharedCandidate =
       headersComplete &&
-      drops[0] !== null &&
-      drops[0] >= 7 &&
+      anonymousDrop !== null &&
+      anonymousDrop >= 7 &&
       drops.slice(1).every((drop) => drop !== null && drop >= 3);
     const verdict = independentCandidate
       ? "independent_counter_candidate_requires_provider_review"
