@@ -243,7 +243,9 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
         const hid = positiveInteger(core.hid);
         const name = typeof core.name === "string" ? core.name.trim() : "";
         const rawElement =
-          typeof core.element === "string" ? core.element.trim().toLowerCase() : "";
+          typeof core.element === "string"
+            ? core.element.trim().toLowerCase()
+            : "";
         const element = (
           {
             metal: "Metal",
