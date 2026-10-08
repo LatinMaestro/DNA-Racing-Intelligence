@@ -1,0 +1,62 @@
+name: DNA Core-history three-key read-only probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to inspect, after active acquisition is held
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# The probe cannot overlap any Core-history acquisition job. No cancellation.
+concurrency:
+  group: dna-population-core-outcome-gap-acquisition-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Verify legacy Core-history key buckets without writes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DNA_CORE_RACE_HISTORY_THREE_KEY_PROBE: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_API_KEY_2: ${{ secrets.DNA_OPEN_LAB_API_KEY_2 }}
+      DNA_OPEN_LAB_API_KEY_3: ${{ secrets.DNA_OPEN_LAB_API_KEY_3 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Require exact main and an explicit bounded dispatch
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${{ inputs.expected_main_sha }}" == "$GITHUB_SHA" ]]
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove main is unchanged before provider reads
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$GITHUB_SHA" ]]
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Run nine-request redacted read-only probe
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-dna-core-race-history-three-key-probe.test.ts
+      - name: Prove main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse origin/main)" == "$GITHUB_SHA" ]]
