@@ -352,7 +352,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
               );
             }
             if (row.rvmode !== "car") continue;
-            const eventAt = timestamps[index];
+            const eventAt = timestamps[index] ?? null;
             if (eventAt === null) continue;
             if (latestCarEventAt === null || eventAt > latestCarEventAt) {
               latestCarEventAt = eventAt;
