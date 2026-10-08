@@ -133,12 +133,22 @@ function stats(samples: readonly Sample[]) {
     twoGateSampleCount: twoGate.length,
     twoGateMedianSeconds:
       twoGate.length > 0
-        ? rounded(percentile(twoGate.map((sample) => sample.elapsed), 0.5))
+        ? rounded(
+            percentile(
+              twoGate.map((sample) => sample.elapsed),
+              0.5,
+            ),
+          )
         : null,
     warSampleCount: war.length,
     warMedianSeconds:
       war.length > 0
-        ? rounded(percentile(war.map((sample) => sample.elapsed), 0.5))
+        ? rounded(
+            percentile(
+              war.map((sample) => sample.elapsed),
+              0.5,
+            ),
+          )
         : null,
   });
 }
@@ -350,8 +360,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
             if (Date.parse(eventAt) <= cutoffMs) continue;
             postBoundaryCarObservationCount += 1;
             const cb = positiveInteger(row.cb);
-            const distance =
-              cb === null ? null : cb < 100 ? cb * 100 : cb;
+            const distance = cb === null ? null : cb < 100 ? cb * 100 : cb;
             if (
               distance === null ||
               !TARGET_DISTANCES.includes(
@@ -365,14 +374,12 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
             const gateCount = positiveInteger(row.rgate);
             const format =
               typeof row.format === "string" ? row.format.trim() : "";
-            const accumulator =
-              candidates.get(hid) ?? {
-                coreId: hid,
-                name: coreNames.get(hid)!,
-                byDistance: new Map<number, Sample[]>(),
-              };
-            const distanceSamples =
-              accumulator.byDistance.get(distance) ?? [];
+            const accumulator = candidates.get(hid) ?? {
+              coreId: hid,
+              name: coreNames.get(hid)!,
+              byDistance: new Map<number, Sample[]>(),
+            };
+            const distanceSamples = accumulator.byDistance.get(distance) ?? [];
             distanceSamples.push(
               Object.freeze({
                 elapsed,
