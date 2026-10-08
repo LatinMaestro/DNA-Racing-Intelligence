@@ -242,13 +242,21 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
         const core = record(value, "Vault Core");
         const hid = positiveInteger(core.hid);
         const name = typeof core.name === "string" ? core.name.trim() : "";
-        const element =
-          typeof core.element === "string" ? core.element.trim() : "";
+        const rawElement =
+          typeof core.element === "string" ? core.element.trim().toLowerCase() : "";
+        const element = (
+          {
+            metal: "Metal",
+            fire: "Fire",
+            earth: "Earth",
+            water: "Water",
+          } as const
+        )[rawElement as "metal" | "fire" | "earth" | "water"];
         if (
           hid === null ||
           name.length < 1 ||
           name.length > 256 ||
-          !["Metal", "Fire", "Earth", "Water"].includes(element) ||
+          element === undefined ||
           coreMetadata.has(hid)
         ) {
           throw new Error(
