@@ -123,6 +123,14 @@ jobs:
               workflow = "dna-core-race-history-three-key-probe.yml";
               inputs = { expected_main_sha: payload.expected_main_sha };
               break;
+            case "owner-car-1v1-tournament-refresh":
+              exactKeys(["kind", "expected_main_sha"]);
+              workflow = "dna-owner-car-1v1-tournament-refresh.yml";
+              inputs = {
+                expected_main_sha: payload.expected_main_sha,
+                execute_read_only_tournament_refresh: true,
+              };
+              break;
             case "dna-open-lab-connected-discovery":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-open-lab-connected-discovery.yml";
