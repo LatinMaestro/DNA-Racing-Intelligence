@@ -471,6 +471,16 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           orderingFallbackCoreCount,
           latestCarEventAt,
         }),
+        currentVaultCores: Object.freeze(
+          coreIds.map((coreId) =>
+            Object.freeze({
+              coreId,
+              name: coreMetadata.get(coreId)!.name,
+              element: coreMetadata.get(coreId)!.element,
+              carCareerRaceCount: carCareerCounts.get(coreId)!,
+            }),
+          ),
+        ),
         distanceCandidates,
         privateNormalizedSamples: Object.freeze(
           [...candidates.values()]
