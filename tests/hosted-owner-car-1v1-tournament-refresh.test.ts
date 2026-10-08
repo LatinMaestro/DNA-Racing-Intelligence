@@ -12,7 +12,9 @@ const PAGE_SIZE = 50;
 const MAXIMUM_PAGES_PER_CORE = 40;
 const MAXIMUM_LEGACY_REQUESTS = 700;
 const MINIMUM_REQUEST_INTERVAL_MS = 2_050;
-const TARGET_DISTANCES = Object.freeze([1200, 1600, 2000] as const);
+const TARGET_DISTANCES = Object.freeze([
+  1000, 1200, 1400, 1600, 1800, 2000, 2200,
+] as const);
 const API_KEY_PATTERN = /^dna_[A-Za-z0-9_-]{43}$/u;
 
 type AnyRecord = Record<string, unknown>;
@@ -27,6 +29,7 @@ type Sample = Readonly<{
 type CandidateAccumulator = {
   coreId: number;
   name: string;
+  element: string;
   byDistance: Map<number, Sample[]>;
 };
 
@@ -231,26 +234,32 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
       ) {
         throw new Error("current Vault Core inventory is invalid");
       }
-      const coreNames = new Map<number, string>();
+      const coreMetadata = new Map<
+        number,
+        Readonly<{ name: string; element: string }>
+      >();
       for (const value of coresRaw) {
         const core = record(value, "Vault Core");
         const hid = positiveInteger(core.hid);
         const name = typeof core.name === "string" ? core.name.trim() : "";
+        const element =
+          typeof core.element === "string" ? core.element.trim() : "";
         if (
           hid === null ||
           name.length < 1 ||
           name.length > 256 ||
-          coreNames.has(hid)
+          !["Metal", "Fire", "Earth", "Water"].includes(element) ||
+          coreMetadata.has(hid)
         ) {
           throw new Error(
             "current Vault Core inventory contains invalid identity",
           );
         }
-        coreNames.set(hid, name);
+        coreMetadata.set(hid, Object.freeze({ name, element }));
       }
 
       const carCareerCounts = new Map<number, number>();
-      const coreIds = [...coreNames.keys()].sort((a, b) => a - b);
+      const coreIds = [...coreMetadata.keys()].sort((a, b) => a - b);
       for (let offset = 0; offset < coreIds.length; offset += 20) {
         const batch = coreIds.slice(offset, offset + 20);
         const result = await v1("/cores/racing_stats_bulk", {
@@ -269,7 +278,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           const races = Number(career.races_n);
           if (
             hid === null ||
-            !coreNames.has(hid) ||
+            !coreMetadata.has(hid) ||
             !Number.isSafeInteger(races) ||
             races < 0
           ) {
@@ -278,7 +287,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           carCareerCounts.set(hid, races);
         }
       }
-      if (carCareerCounts.size !== coreNames.size) {
+      if (carCareerCounts.size !== coreMetadata.size) {
         throw new Error("Car career coverage is incomplete");
       }
 
@@ -422,6 +431,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
             return Object.freeze({
               coreId: candidate.coreId,
               name: candidate.name,
+              element: candidate.element,
               ...stats(samples),
             });
           })
@@ -431,8 +441,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
               left.medianSeconds - right.medianSeconds ||
               right.sampleCount - left.sampleCount ||
               left.coreId - right.coreId,
-          )
-          .slice(0, 40);
+          );
         distanceCandidates[String(distance)] = ranked;
       }
 
@@ -449,7 +458,8 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           rawProviderPayloadsIncluded: false,
         }),
         coverage: Object.freeze({
-          currentVaultCoreCount: coreNames.size,
+          currentVaultCoreCount: coreMetadata.size,
+          distanceCount: TARGET_DISTANCES.length,
           carCareerCoreCount: [...carCareerCounts.values()].filter(
             (count) => count > 0,
           ).length,
@@ -461,6 +471,25 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           latestCarEventAt,
         }),
         distanceCandidates,
+        privateNormalizedSamples: Object.freeze(
+          [...candidates.values()]
+            .sort((left, right) => left.coreId - right.coreId)
+            .map((candidate) =>
+              Object.freeze({
+                coreId: candidate.coreId,
+                name: candidate.name,
+                element: candidate.element,
+                byDistance: Object.fromEntries(
+                  TARGET_DISTANCES.map((distance) => [
+                    String(distance),
+                    Object.freeze([
+                      ...(candidate.byDistance.get(distance) ?? []),
+                    ]),
+                  ]),
+                ),
+              }),
+            ),
+        ),
       });
 
       await writeFile(
