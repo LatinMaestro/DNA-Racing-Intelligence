@@ -4,8 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const workflowPath =
   ".github/workflows/dna-owner-car-1v1-tournament-refresh.yml";
-const connectedPath =
-  "tests/hosted-owner-car-1v1-tournament-refresh.test.ts";
+const connectedPath = "tests/hosted-owner-car-1v1-tournament-refresh.test.ts";
 
 describe("owner Car 1v1 tournament refresh workflow", () => {
   it("is exact-main, Preview-only, read-only and does not expose raw race evidence", async () => {
