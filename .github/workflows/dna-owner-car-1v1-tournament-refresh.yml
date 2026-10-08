@@ -1,0 +1,72 @@
+name: Owner Car 1v1 tournament refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact current main commit to inspect
+        required: true
+        type: string
+      execute_read_only_tournament_refresh:
+        description: Run the bounded owner Car history refresh
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dna-population-core-outcome-gap-acquisition-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh owner Car tournament evidence without writes
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: preview
+    env:
+      DNA_OWNER_CAR_1V1_TOURNAMENT_REFRESH: "1"
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Require exact main and explicit read-only arm
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "${{ inputs.expected_main_sha }}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${{ inputs.expected_main_sha }}" == "$GITHUB_SHA" ]]
+          [[ "${{ inputs.execute_read_only_tournament_refresh }}" == "true" ]]
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Prove main is unchanged before API reads
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$GITHUB_SHA" ]]
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Run bounded read-only Car tournament refresh
+        run: >-
+          npx vitest run --no-file-parallelism
+          tests/hosted-owner-car-1v1-tournament-refresh.test.ts
+      - name: Upload private aggregate tournament report
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-car-1v1-tournament-refresh
+          path: owner-car-1v1-tournament-refresh.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Prove main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse origin/main)" == "$GITHUB_SHA" ]]
