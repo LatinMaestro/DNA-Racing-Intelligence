@@ -38,7 +38,9 @@ function required(name: string): string {
     value.length > 4096 ||
     /[\u0000-\u001f\u007f-\u009f]/u.test(value)
   ) {
-    throw new Error("required protected tournament configuration is unavailable");
+    throw new Error(
+      "required protected tournament configuration is unavailable",
+    );
   }
   return value;
 }
@@ -99,7 +101,8 @@ function stats(samples: readonly Sample[]) {
   const trimmed =
     trim > 0 ? elapsed.slice(trim, elapsed.length - trim) : elapsed;
   const mean = trimmed.reduce((sum, value) => sum + value, 0) / trimmed.length;
-  const fullMean = elapsed.reduce((sum, value) => sum + value, 0) / elapsed.length;
+  const fullMean =
+    elapsed.reduce((sum, value) => sum + value, 0) / elapsed.length;
   const variance =
     elapsed.reduce((sum, value) => sum + (value - fullMean) ** 2, 0) /
     elapsed.length;
@@ -179,7 +182,11 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           throw new Error(`${label} returned non-JSON content`);
         }
         const envelope = record(body, label);
-        if (!response.ok || envelope.status !== "success" || !("result" in envelope)) {
+        if (
+          !response.ok ||
+          envelope.status !== "success" ||
+          !("result" in envelope)
+        ) {
           throw new Error(`${label} was rejected`);
         }
         return envelope.result;
@@ -198,14 +205,20 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           signal: AbortSignal.timeout(20_000),
         });
         if (response.status === 429) {
-          throw new Error("tournament refresh reached the keyed API rate limit");
+          throw new Error(
+            "tournament refresh reached the keyed API rate limit",
+          );
         }
         return readEnvelope(response, "DNA Open Lab");
       };
 
       const encodedVault = encodeURIComponent(vault);
       const coresRaw = await v1(`/vault/${encodedVault}/cores_full`);
-      if (!Array.isArray(coresRaw) || coresRaw.length < 1 || coresRaw.length > 500) {
+      if (
+        !Array.isArray(coresRaw) ||
+        coresRaw.length < 1 ||
+        coresRaw.length > 500
+      ) {
         throw new Error("current Vault Core inventory is invalid");
       }
       const coreNames = new Map<number, string>();
@@ -213,8 +226,15 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
         const core = record(value, "Vault Core");
         const hid = positiveInteger(core.hid);
         const name = typeof core.name === "string" ? core.name.trim() : "";
-        if (hid === null || name.length < 1 || name.length > 256 || coreNames.has(hid)) {
-          throw new Error("current Vault Core inventory contains invalid identity");
+        if (
+          hid === null ||
+          name.length < 1 ||
+          name.length > 256 ||
+          coreNames.has(hid)
+        ) {
+          throw new Error(
+            "current Vault Core inventory contains invalid identity",
+          );
         }
         coreNames.set(hid, name);
       }
@@ -275,7 +295,9 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           signal: AbortSignal.timeout(20_000),
         });
         if (response.status === 429) {
-          throw new Error("tournament refresh reached the legacy history rate limit");
+          throw new Error(
+            "tournament refresh reached the legacy history rate limit",
+          );
         }
         const result = await readEnvelope(response, "DNA Core history");
         if (!Array.isArray(result) || result.length > PAGE_SIZE) {
@@ -315,7 +337,9 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
             const row = pageRows[index]!;
             const rowHid = positiveInteger(row.hid);
             if (rowHid !== hid) {
-              throw new Error("legacy history returned a different Core identity");
+              throw new Error(
+                "legacy history returned a different Core identity",
+              );
             }
             if (row.rvmode !== "car") continue;
             const eventAt = timestamps[index];
@@ -376,7 +400,9 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
         }
         if (!orderingCertain) orderingFallbackCoreCount += 1;
         if (!reachedBoundary) {
-          throw new Error("one Core exceeded the bounded post-May history window");
+          throw new Error(
+            "one Core exceeded the bounded post-May history window",
+          );
         }
       }
 
