@@ -441,8 +441,7 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
               left.medianSeconds - right.medianSeconds ||
               right.sampleCount - left.sampleCount ||
               left.coreId - right.coreId,
-          )
-          .slice(0, 40);
+          );
         distanceCandidates[String(distance)] = ranked;
       }
 
@@ -472,6 +471,25 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
           latestCarEventAt,
         }),
         distanceCandidates,
+        privateNormalizedSamples: Object.freeze(
+          [...candidates.values()]
+            .sort((left, right) => left.coreId - right.coreId)
+            .map((candidate) =>
+              Object.freeze({
+                coreId: candidate.coreId,
+                name: candidate.name,
+                element: candidate.element,
+                byDistance: Object.fromEntries(
+                  TARGET_DISTANCES.map((distance) => [
+                    String(distance),
+                    Object.freeze([
+                      ...(candidate.byDistance.get(distance) ?? []),
+                    ]),
+                  ]),
+                ),
+              }),
+            ),
+        ),
       });
 
       await writeFile(
