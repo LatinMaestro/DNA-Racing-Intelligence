@@ -385,7 +385,8 @@ describeConnected("owner Car 1v1 tournament refresh", () => {
               typeof row.format === "string" ? row.format.trim() : "";
             const accumulator = candidates.get(hid) ?? {
               coreId: hid,
-              name: coreNames.get(hid)!,
+              name: coreMetadata.get(hid)!.name,
+              element: coreMetadata.get(hid)!.element,
               byDistance: new Map<number, Sample[]>(),
             };
             const distanceSamples = accumulator.byDistance.get(distance) ?? [];
