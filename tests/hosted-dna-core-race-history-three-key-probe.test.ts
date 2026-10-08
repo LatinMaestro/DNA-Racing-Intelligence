@@ -125,10 +125,7 @@ async function probePage(input: {
   return Object.freeze({ lane: input.lane, rate, digest });
 }
 
-function remainingDrop(
-  readings: readonly Probe[],
-  lane: Lane,
-): number | null {
+function remainingDrop(readings: readonly Probe[], lane: Lane): number | null {
   const matches = readings.filter((entry) => entry.lane === lane);
   if (matches.length !== 2) return null;
   const first = matches[0]!.rate;
@@ -198,7 +195,9 @@ describeConnected("legacy Core-history three-key read-only rate probe", () => {
     };
     const readings: Probe[] = [];
     for (const lane of order) {
-      readings.push(await probePage({ lane, apiKey: keyForLane[lane], coreId }));
+      readings.push(
+        await probePage({ lane, apiKey: keyForLane[lane], coreId }),
+      );
     }
 
     const sameOutcome = readings.every(
