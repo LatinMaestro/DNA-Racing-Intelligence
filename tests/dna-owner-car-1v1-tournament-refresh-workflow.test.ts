@@ -31,7 +31,9 @@ describe("owner Car 1v1 tournament refresh workflow", () => {
     expect(workflow).not.toContain("DNA_R2_ACCESS_KEY_ID");
     expect(workflow).not.toContain("actions: write");
 
-    expect(connected).toContain('const CUTOFF_EXCLUSIVE = "2026-05-23T18:12:51.787Z"');
+    expect(connected).toContain(
+      'const CUTOFF_EXCLUSIVE = "2026-05-23T18:12:51.787Z"',
+    );
     expect(connected).toContain("MAXIMUM_LEGACY_REQUESTS = 700");
     expect(connected).toContain("MINIMUM_REQUEST_INTERVAL_MS = 2_050");
     expect(connected).toContain("aggregateRequestsPerMinuteCeiling: 30");
