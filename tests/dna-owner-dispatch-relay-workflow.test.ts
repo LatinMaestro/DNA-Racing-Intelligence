@@ -28,9 +28,7 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       'workflow = "dna-core-race-history-three-key-probe.yml"',
     );
-    expect(workflow).toContain(
-      'case "owner-car-1v1-tournament-refresh"',
-    );
+    expect(workflow).toContain('case "owner-car-1v1-tournament-refresh"');
     expect(workflow).toContain(
       'workflow = "dna-owner-car-1v1-tournament-refresh.yml"',
     );
