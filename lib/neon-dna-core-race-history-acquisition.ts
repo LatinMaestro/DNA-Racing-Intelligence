@@ -324,7 +324,7 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
       try {
         await session.client.query(
           request.readOnly
-            ? "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"
+            ? "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE"
             : "BEGIN ISOLATION LEVEL SERIALIZABLE",
         );
         begun = true;
