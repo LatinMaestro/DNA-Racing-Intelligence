@@ -718,8 +718,14 @@ describeConnected(
                   coreIds: cohort.coreIds,
                 },
               });
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-latest-complete-read-started",
+            );
             const latestComplete =
               await acquisitionRepository.loadLatestComplete();
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-latest-complete-read-complete",
+            );
             const expectedCycle = createDnaCoreRaceHistoryAcquisitionCycle({
               previousCompletedCycleId: latestComplete?.cycle.cycleId ?? null,
               currentStateGenerationId: cohort.authorityGenerationId,
@@ -727,15 +733,27 @@ describeConnected(
               coreIds: cohort.coreIds,
             });
 
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-attempt-read-started",
+            );
             const persistedAttempt = await acquisitionRepository.loadAttempt({
               cycleId: expectedCycle.cycleId,
               attemptNumber: 1,
             });
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-attempt-read-complete",
+            );
             expect(persistedAttempt?.cycle).toEqual(expectedCycle);
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-cores-read-started",
+            );
             const persistedCores = await acquisitionRepository.loadCores({
               cycleId: expectedCycle.cycleId,
               attemptNumber: 1,
             });
+            console.log(
+              "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-cores-read-complete",
+            );
             expect(persistedCores).toHaveLength(cohort.coreCount);
             expect(
               dnaCoreRaceHistoryCoreSetSha256(
