@@ -324,7 +324,7 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
       try {
         await session.client.query(
           request.readOnly
-            ? "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE"
+            ? "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY"
             : "BEGIN ISOLATION LEVEL SERIALIZABLE",
         );
         begun = true;
@@ -347,8 +347,9 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
           isSerializationFailure(error) &&
           attempt < MAXIMUM_SERIALIZATION_ATTEMPTS
         ) {
-          // A concurrent writer may still be active; immediate retries can
-          // exhaust all attempts against the same transaction conflict.
+          // Write transactions retain serializable isolation. Read-only
+          // acquisition-state transactions use repeatable-read snapshots so
+          // concurrent writers do not repeatedly abort safe observation reads.
           await new Promise<void>((resolve) =>
             setTimeout(resolve, attempt * 1_000),
           );
