@@ -121,6 +121,30 @@ describe("DNA Open Lab request budget", () => {
     expect(budget.snapshot().effectiveRequestsPerMinute).toBe(80);
   });
 
+  it("spaces the conservative collector ceiling at two seconds per request", async () => {
+    const clock = fakeClock();
+    const budget = createDnaOpenLabRequestBudget({
+      nowMilliseconds: clock.nowMilliseconds,
+      sleep: clock.sleep,
+      initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+      maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+      scheduling: "token_bucket",
+    });
+    const starts: number[] = [];
+
+    await Promise.all(
+      Array.from({ length: 4 }, () =>
+        budget.execute(async () => {
+          starts.push(clock.now());
+          return response({ ok: true });
+        }),
+      ),
+    );
+
+    expect(starts).toEqual([0, 2_000, 4_000, 6_000]);
+    expect(clock.sleep).toHaveBeenCalledTimes(3);
+  });
+
   it("honours a zero-remaining reset window before the next request", async () => {
     const clock = fakeClock();
     const budget = createDnaOpenLabRequestBudget({

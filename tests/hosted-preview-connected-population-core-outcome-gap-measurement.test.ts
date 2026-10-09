@@ -817,6 +817,7 @@ describeConnected(
             const requestBudget = createDnaOpenLabRequestBudget({
               initialRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
               maximumRequestsPerMinute: DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              scheduling: "token_bucket",
             });
             const evidenceStore = createDnaCoreRaceHistoryR2EvidenceStore({
               ownerId,

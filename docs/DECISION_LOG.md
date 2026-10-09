@@ -2879,3 +2879,18 @@ After the private Pro League milestone, continue in this order:
   planner. The runtime receives function-only access behind forced RLS, while a
   fresh A$0 projection remains mandatory before the ingestion service opens a
   private object or starts this durable write path.
+
+## 2026-10-09 — Pace exact-gap requests with a real token bucket
+
+- Keep the legacy Core-history acquisition ceiling at 30 aggregate requests
+  per minute. The three-key read-only probe is not authority for 90 aggregate
+  requests per minute.
+- Select an explicit one-token, continuously refilling scheduler for the
+  exact-gap collector. It spaces request starts at two seconds under the
+  approved ceiling and permits responses or later independent-Core work to
+  overlap without an initial 30-request burst.
+- Retain the existing sliding-window behavior for unrelated callers until each
+  workload deliberately adopts and tests the token-bucket scheduler. This
+  change performs no provider request, storage write, deployment, cost-bearing
+  action or game action; independent-Core concurrency remains a separate
+  fail-closed implementation step.
