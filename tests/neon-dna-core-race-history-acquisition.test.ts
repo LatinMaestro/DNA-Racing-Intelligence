@@ -210,7 +210,7 @@ describe("Neon DNA Core race history acquisition", () => {
       }),
     ).resolves.toEqual({ revision: "1", checkpoint: initial });
     expect(load.events[0]).toBe(
-      "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE",
+      "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
     );
 
     const receipt = createDnaCoreRaceHistoryPageReceipt({
@@ -256,7 +256,7 @@ describe("Neon DNA Core race history acquisition", () => {
     ]);
   });
 
-  it("retries a bounded transient serialization failure without escaping the repository transaction", async () => {
+  it("retains bounded retry around non-conflicting repeatable-read state snapshots", async () => {
     const test = harness(
       [
         [{ owner_scope: databaseOwnerId }],
@@ -274,7 +274,7 @@ describe("Neon DNA Core race history acquisition", () => {
     });
     expect(
       test.events.filter((event) =>
-        event.startsWith("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"),
+        event.startsWith("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY"),
       ),
     ).toHaveLength(2);
     expect(test.events).toContain("ROLLBACK");
