@@ -209,7 +209,9 @@ describe("Neon DNA Core race history acquisition", () => {
         attemptNumber: 1,
       }),
     ).resolves.toEqual({ revision: "1", checkpoint: initial });
-    expect(load.events[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY");
+    expect(load.events[0]).toBe(
+      "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE",
+    );
 
     const receipt = createDnaCoreRaceHistoryPageReceipt({
       cycleId: cycle.cycleId,
