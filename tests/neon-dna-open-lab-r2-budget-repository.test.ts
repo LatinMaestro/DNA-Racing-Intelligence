@@ -77,9 +77,12 @@ function harness(sequence: readonly (readonly unknown[])[]) {
       statements.push(normalized);
       values.push(queryValues ?? []);
       if (
-        ["BEGIN ISOLATION LEVEL SERIALIZABLE", "COMMIT", "ROLLBACK"].includes(
-          normalized,
-        )
+        [
+          "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY",
+          "BEGIN ISOLATION LEVEL SERIALIZABLE",
+          "COMMIT",
+          "ROLLBACK",
+        ].includes(normalized)
       ) {
         return { rows: [] };
       }
@@ -126,6 +129,9 @@ describe("Neon DNA Open Lab R2 budget repository", () => {
       reservedUsage: { classBOperations: 20 },
       revision: 3,
     });
+    expect(test.statements[0]).toBe(
+      "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY",
+    );
     expect(
       test.statements.some((entry) => entry.includes("relforcerowsecurity")),
     ).toBe(true);
@@ -167,6 +173,7 @@ describe("Neon DNA Open Lab R2 budget repository", () => {
       paidUsageAllowed: false,
       preserveLastGood: true,
     });
+    expect(test.statements[0]).toBe("BEGIN ISOLATION LEVEL SERIALIZABLE");
     const call = test.statements.find((entry) =>
       entry.includes("reserve_dna_open_lab_r2_budget"),
     );
