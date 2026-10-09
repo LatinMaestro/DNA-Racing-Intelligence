@@ -39,6 +39,11 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
       "ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 260 * 60_000",
     );
     expect(connectedTest).toContain('scheduling: "token_bucket"');
+    expect(connectedTest).toContain("MAXIMUM_CONCURRENT_CORE_PAGES = 3");
+    expect(connectedTest).toContain("targetCoreId:");
+    expect(connectedTest).toContain("deferCollectionCompletion: true");
+    expect(connectedTest).toContain("await Promise.all(");
+    expect(connectedTest).toContain("pageOrderPreservedWithinEachCore: true");
     expect(connectedTest).toContain("runtimeCutoffReached = true");
     expect(connectedTest).toContain(
       "exact-gap reconciliation left no bounded time for a page",

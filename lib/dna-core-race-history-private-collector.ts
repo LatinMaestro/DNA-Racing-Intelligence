@@ -312,6 +312,8 @@ export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
   client: DnaCoreRaceHistoryClient;
   requestBudget: DnaOpenLabRequestBudget;
   evidenceStore: DnaCoreRaceHistoryR2EvidenceStore;
+  targetCoreId?: number;
+  deferCollectionCompletion?: boolean;
 }): Promise<DnaCoreRaceHistoryPrivateCollectorResult> {
   const evaluatedAt = timestamp(input.evaluatedAt, "evaluatedAt");
   const attemptedAt = timestamp(input.attemptedAt, "attemptedAt");
@@ -376,6 +378,12 @@ export async function runDnaCoreRaceHistoryPrivateCollectorStep(input: {
     client: input.client,
     requestBudget: input.requestBudget,
     evidenceStore: input.evidenceStore,
+    ...(input.targetCoreId === undefined
+      ? {}
+      : { targetCoreId: input.targetCoreId }),
+    ...(input.deferCollectionCompletion === undefined
+      ? {}
+      : { deferCollectionCompletion: input.deferCollectionCompletion }),
     authorizeEvidenceBudget: createEvidenceBudgetAuthorizer({
       ownerId: input.ownerId,
       budgetWindowId: input.budgetWindowId,

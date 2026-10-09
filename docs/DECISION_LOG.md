@@ -2894,3 +2894,18 @@ After the private Pro League milestone, continue in this order:
   change performs no provider request, storage write, deployment, cost-bearing
   action or game action; independent-Core concurrency remains a separate
   fail-closed implementation step.
+
+## 2026-10-09 — Bound exact-gap concurrency across independent Cores
+
+- Advance at most three distinct Core-history pages concurrently while keeping
+  each Core bound to one ordered page cursor. Never issue two pages for the same
+  Core in one wave.
+- Continue sharing the single 30 aggregate RPM token bucket across every worker;
+  concurrency overlaps provider latency and evidence processing but does not
+  raise the approved request ceiling.
+- Obtain a separate fresh provider-capacity measurement for every prepared page,
+  include cumulative worst-case R2 and Neon usage for the whole wave, and retain
+  the durable per-page R2 reservation/accounting gate before any write.
+- Defer collection completion until the concurrent wave is fully persisted, then
+  finalize once from the reconciled durable checkpoints. Any worker pause,
+  conflict, capacity block or malformed response remains fail-closed.

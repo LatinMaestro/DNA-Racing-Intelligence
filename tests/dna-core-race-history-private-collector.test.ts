@@ -336,6 +336,8 @@ function request(input: {
   requestBudget: ReturnType<typeof createDnaOpenLabRequestBudget>;
   rows?: readonly DnaCoreRaceHistoryServingAuthorityRow[];
   runAttemptedAt?: string;
+  targetCoreId?: number;
+  deferCollectionCompletion?: boolean;
 }) {
   return runDnaCoreRaceHistoryPrivateCollectorStep({
     ownerId: "private_owner",
@@ -348,6 +350,12 @@ function request(input: {
     client: input.client,
     requestBudget: input.requestBudget,
     evidenceStore: input.evidenceStore,
+    ...(input.targetCoreId === undefined
+      ? {}
+      : { targetCoreId: input.targetCoreId }),
+    ...(input.deferCollectionCompletion === undefined
+      ? {}
+      : { deferCollectionCompletion: input.deferCollectionCompletion }),
   });
 }
 
@@ -394,6 +402,50 @@ describe("DNA Core race history private collector", () => {
       vi.mocked(acquisition.repository.savePage).mock.invocationCallOrder[0]!,
     );
     expect(source.client.page).toHaveBeenCalledTimes(1);
+  });
+
+  it("advances distinct targeted Cores concurrently while preserving each Core page cursor", async () => {
+    const acquisition = acquisitionRepository();
+    const budget = readyBudget();
+    const source = sources();
+
+    const results = await Promise.all([
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+        targetCoreId: 42,
+        deferCollectionCompletion: true,
+      }),
+      request({
+        repository: acquisition.repository,
+        budgetRepository: budget.repository,
+        ...source,
+        targetCoreId: 84,
+        deferCollectionCompletion: true,
+      }),
+    ]);
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        kind: "page_advanced",
+        stored: expect.objectContaining({
+          checkpoint: expect.objectContaining({ coreId: 42, nextPage: 2 }),
+        }),
+      }),
+      expect.objectContaining({
+        kind: "page_advanced",
+        stored: expect.objectContaining({
+          checkpoint: expect.objectContaining({ coreId: 84, nextPage: 2 }),
+        }),
+      }),
+    ]);
+    expect(source.client.page).toHaveBeenCalledTimes(2);
+    expect(source.client.page).toHaveBeenCalledWith({ coreId: 42, page: 1 });
+    expect(source.client.page).toHaveBeenCalledWith({ coreId: 84, page: 1 });
+    expect(acquisition.repository.loadNextCore).not.toHaveBeenCalled();
+    expect(acquisition.cores.get(42)?.checkpoint.nextPage).toBe(2);
+    expect(acquisition.cores.get(84)?.checkpoint.nextPage).toBe(2);
   });
 
   it("replays one evaluated cycle with a distinct durable reservation per invocation", async () => {
