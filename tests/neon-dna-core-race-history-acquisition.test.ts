@@ -87,7 +87,9 @@ function harness(
       }
       if (
         serializationFailuresRemaining > 0 &&
-        normalized.includes("read_latest_complete_dna_core_race_history_acquisition")
+        normalized.startsWith(
+          "SELECT revision::text, cycle FROM dna.read_latest_complete_dna_core_race_history_acquisition",
+        )
       ) {
         serializationFailuresRemaining -= 1;
         const error = new Error(

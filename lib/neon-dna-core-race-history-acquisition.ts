@@ -354,7 +354,9 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
         await session.close();
       }
     }
-    throw new Error("DNA Core history acquisition serialization retry exhausted.");
+    throw new Error(
+      "DNA Core history acquisition serialization retry exhausted.",
+    );
   }
 
   return Object.freeze({
