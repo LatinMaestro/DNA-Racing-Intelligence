@@ -347,6 +347,11 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
           isSerializationFailure(error) &&
           attempt < MAXIMUM_SERIALIZATION_ATTEMPTS
         ) {
+          // A concurrent writer may still be active; immediate retries can
+          // exhaust all attempts against the same transaction conflict.
+          await new Promise<void>((resolve) =>
+            setTimeout(resolve, attempt * 1_000),
+          );
           continue;
         }
         throw error;
