@@ -305,6 +305,7 @@ async function applyEvidence(input: {
   checkpoint: StoredDnaCoreRaceHistoryCoreCheckpoint;
   repository: DnaCoreRaceHistoryAcquisitionRepository;
   attemptedAt: string;
+  deferCollectionCompletion?: boolean;
 }): Promise<DnaCoreRaceHistoryAcquisitionStepResult> {
   if (input.evidence.status === "held_conflict") {
     return pause({
@@ -323,11 +324,13 @@ async function applyEvidence(input: {
     checkpoint,
     receipt: input.evidence.receipt,
   });
-  const completed = await completeIfReady({
-    stored: input.attempt,
-    repository: input.repository,
-    completedAt: input.attemptedAt,
-  });
+  const completed = input.deferCollectionCompletion
+    ? null
+    : await completeIfReady({
+        stored: input.attempt,
+        repository: input.repository,
+        completedAt: input.attemptedAt,
+      });
   return (
     completed ??
     Object.freeze({
@@ -366,6 +369,8 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     request: DnaCoreRaceHistoryEvidenceBudgetRequest,
     actualUsage: DnaOpenLabR2Usage,
   ) => Promise<void>;
+  targetCoreId?: number;
+  deferCollectionCompletion?: boolean;
 }): Promise<DnaCoreRaceHistoryAcquisitionStepResult> {
   const attemptedAt = timestamp(input.attemptedAt, "attemptedAt");
   const stored = await input.repository.loadAttempt({
@@ -390,11 +395,35 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     return runnerError("attemptedAt predates the cycle evaluation");
   }
 
-  const checkpoint = await input.repository.loadNextCore({
-    cycleId: stored.cycle.cycleId,
-    attemptNumber: stored.cycle.attemptNumber,
-  });
+  const targetCoreId = input.targetCoreId;
+  if (
+    targetCoreId !== undefined &&
+    (!Number.isSafeInteger(targetCoreId) ||
+      targetCoreId < 1 ||
+      !stored.cycle.coreIds.includes(targetCoreId))
+  ) {
+    return runnerError("target Core is outside the acquisition authority");
+  }
+  const checkpoint =
+    targetCoreId === undefined
+      ? await input.repository.loadNextCore({
+          cycleId: stored.cycle.cycleId,
+          attemptNumber: stored.cycle.attemptNumber,
+        })
+      : ((
+          await input.repository.loadCores({
+            cycleId: stored.cycle.cycleId,
+            attemptNumber: stored.cycle.attemptNumber,
+          })
+        ).find(
+          (entry) =>
+            entry.checkpoint.coreId === targetCoreId &&
+            entry.checkpoint.status === "running",
+        ) ?? null);
   if (checkpoint === null) {
+    if (targetCoreId !== undefined) {
+      return runnerError("target Core has no running checkpoint");
+    }
     const completed = await completeIfReady({
       stored,
       repository: input.repository,
@@ -471,6 +500,9 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
       checkpoint,
       repository: input.repository,
       attemptedAt,
+      ...(input.deferCollectionCompletion === undefined
+        ? {}
+        : { deferCollectionCompletion: input.deferCollectionCompletion }),
     });
   }
 
@@ -534,5 +566,8 @@ export async function runDnaCoreRaceHistoryAcquisitionStep(input: {
     checkpoint,
     repository: input.repository,
     attemptedAt,
+    ...(input.deferCollectionCompletion === undefined
+      ? {}
+      : { deferCollectionCompletion: input.deferCollectionCompletion }),
   });
 }

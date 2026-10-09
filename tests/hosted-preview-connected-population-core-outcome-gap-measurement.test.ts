@@ -72,6 +72,7 @@ const GAP_BOOTSTRAP_NEON_COMPUTE_MILLI_CU_HOURS = 1_000;
 const HARD_NEON_STORAGE_BYTES = 1_000_000_000;
 const OWNER_NEON_STORAGE_BYTES = 950_000_000;
 const ACQUISITION_BATCH_RUNTIME_CUTOFF_MS = 260 * 60_000;
+const MAXIMUM_CONCURRENT_CORE_PAGES = 3;
 const GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES = 128 * 1024 * 1024;
 const GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS = 5_000;
 
@@ -836,24 +837,34 @@ describeConnected(
             let lastProjectedNeonStorageBytes: number | null = null;
             let runtimeCutoffReached = false;
 
-            for (let pageIndex = 0; pageIndex < maximumPages; pageIndex += 1) {
-              if (
-                Date.now() - connectedRunStartedAt >=
-                ACQUISITION_BATCH_RUNTIME_CUTOFF_MS
-              ) {
-                runtimeCutoffReached = true;
-                break;
-              }
-              // Capacity is remeasured before every material page write. This
-              // deliberately trades a little throughput for a hard A$0 stop.
+            const preparePage = async (input: {
+              targetCoreId?: number;
+              concurrentPageOrdinal: number;
+            }) => {
+              // Each independent Core page receives its own fresh provider
+              // measurement before any page in the wave may write. Cumulative
+              // worst-case projections include every earlier prepared page in
+              // the same wave; the durable R2 ledger then reserves each page
+              // independently before its immutable evidence write.
               const freshCapacity = await capacitySource.measure({ ownerId });
               if (freshCapacity.r2StorageClass !== "Standard") {
                 throw new Error("R2 storage class is not eligible");
               }
+              const cumulativePlannedR2Usage = Object.freeze({
+                storageBytes:
+                  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.storageBytes *
+                  input.concurrentPageOrdinal,
+                classAOperations:
+                  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.classAOperations *
+                  input.concurrentPageOrdinal,
+                classBOperations:
+                  DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE.classBOperations *
+                  input.concurrentPageOrdinal,
+              });
               const stepR2Projection =
                 projectDnaPopulationEntrantAuthorityR2Cost({
                   currentUsage: freshCapacity.currentR2Usage,
-                  plannedUsage: DNA_CORE_RACE_HISTORY_STEP_PLANNED_R2_USAGE,
+                  plannedUsage: cumulativePlannedR2Usage,
                 });
               if (
                 !stepR2Projection.allowed ||
@@ -865,10 +876,12 @@ describeConnected(
 
               const projectedNeonStorageBytes =
                 freshCapacity.currentNeonUsage.storageBytes +
-                GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES;
+                GAP_FIRST_PAGE_NEON_STORAGE_RESERVE_BYTES *
+                  input.concurrentPageOrdinal;
               const projectedNeonComputeMilliCuHours =
                 freshCapacity.currentNeonUsage.computeMilliCuHours +
-                GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS;
+                GAP_FIRST_PAGE_NEON_COMPUTE_RESERVE_MILLI_CU_HOURS *
+                  input.concurrentPageOrdinal;
               if (
                 !Number.isSafeInteger(projectedNeonStorageBytes) ||
                 !Number.isSafeInteger(projectedNeonComputeMilliCuHours) ||
@@ -899,52 +912,119 @@ describeConnected(
                 });
               }
 
-              const attemptedAt = new Date(
-                Math.max(Date.now(), Date.parse(cohort.evaluatedAt)),
-              ).toISOString();
-              const acquisition =
-                await runDnaCoreRaceHistoryPrivateCollectorStep({
-                  ownerId,
-                  budgetWindowId,
-                  evaluatedAt: cohort.evaluatedAt,
-                  attemptedAt,
-                  loadServingCores: async () =>
-                    Object.freeze(
-                      cohort.coreIds.map((coreId) =>
-                        Object.freeze({
-                          generationId: cohort.authorityGenerationId,
-                          canonical: Object.freeze({
-                            sourceCoreId: String(coreId),
+              return Object.freeze({
+                freshCapacity,
+                projectedR2StorageBytes:
+                  stepR2Projection.projectedUsage.storageBytes,
+                projectedNeonStorageBytes,
+                execute: () => {
+                  const attemptedAt = new Date(
+                    Math.max(Date.now(), Date.parse(cohort.evaluatedAt)),
+                  ).toISOString();
+                  return runDnaCoreRaceHistoryPrivateCollectorStep({
+                    ownerId,
+                    budgetWindowId,
+                    evaluatedAt: cohort.evaluatedAt,
+                    attemptedAt,
+                    loadServingCores: async () =>
+                      Object.freeze(
+                        cohort.coreIds.map((coreId) =>
+                          Object.freeze({
+                            generationId: cohort.authorityGenerationId,
+                            canonical: Object.freeze({
+                              sourceCoreId: String(coreId),
+                            }),
                           }),
-                        }),
+                        ),
                       ),
-                    ),
-                  acquisitionRepository,
-                  budgetRepository,
-                  client,
-                  requestBudget,
-                  evidenceStore,
-                });
+                    acquisitionRepository,
+                    budgetRepository,
+                    client,
+                    requestBudget,
+                    evidenceStore,
+                    ...(input.targetCoreId === undefined
+                      ? {}
+                      : {
+                          targetCoreId: input.targetCoreId,
+                          deferCollectionCompletion: true,
+                        }),
+                  });
+                },
+              });
+            };
 
-              lastFreshCapacity = freshCapacity;
-              lastProjectedR2StorageBytes =
-                stepR2Projection.projectedUsage.storageBytes;
-              lastProjectedNeonStorageBytes = projectedNeonStorageBytes;
-              if (acquisition.kind === "page_advanced") {
-                pagesAdvanced += 1;
-                resultKind = acquisition.kind;
-                resultSource = acquisition.source;
-                continue;
+            while (pagesAdvanced < maximumPages) {
+              if (
+                Date.now() - connectedRunStartedAt >=
+                ACQUISITION_BATCH_RUNTIME_CUTOFF_MS
+              ) {
+                runtimeCutoffReached = true;
+                break;
               }
-              if (acquisition.kind === "collection_complete") {
+              const currentCores = await acquisitionRepository.loadCores({
+                cycleId: expectedCycle.cycleId,
+                attemptNumber: 1,
+              });
+              const runningCores = currentCores
+                .filter(({ checkpoint }) => checkpoint.status === "running")
+                .sort(
+                  (left, right) =>
+                    left.checkpoint.coreOrdinal - right.checkpoint.coreOrdinal,
+                );
+              const remainingPageCapacity = maximumPages - pagesAdvanced;
+              const targets = runningCores.slice(
+                0,
+                Math.min(MAXIMUM_CONCURRENT_CORE_PAGES, remainingPageCapacity),
+              );
+
+              if (targets.length === 0) {
+                const prepared = await preparePage({
+                  concurrentPageOrdinal: 1,
+                });
+                const acquisition = await prepared.execute();
+                lastFreshCapacity = prepared.freshCapacity;
+                lastProjectedR2StorageBytes = prepared.projectedR2StorageBytes;
+                lastProjectedNeonStorageBytes =
+                  prepared.projectedNeonStorageBytes;
+                if (acquisition.kind !== "collection_complete") {
+                  throw new Error(
+                    `exact-gap acquisition stopped with ${acquisition.kind}`,
+                  );
+                }
                 batchStatus = "complete";
                 resultKind = acquisition.kind;
                 resultSource = null;
                 break;
               }
-              throw new Error(
-                `exact-gap acquisition stopped with ${acquisition.kind}`,
+
+              const preparedPages = [];
+              for (const [index, target] of targets.entries()) {
+                preparedPages.push(
+                  await preparePage({
+                    targetCoreId: target.checkpoint.coreId,
+                    concurrentPageOrdinal: index + 1,
+                  }),
+                );
+              }
+              const acquisitions = await Promise.all(
+                preparedPages.map((prepared) => prepared.execute()),
               );
+              const lastPrepared = preparedPages.at(-1)!;
+              lastFreshCapacity = lastPrepared.freshCapacity;
+              lastProjectedR2StorageBytes =
+                lastPrepared.projectedR2StorageBytes;
+              lastProjectedNeonStorageBytes =
+                lastPrepared.projectedNeonStorageBytes;
+              for (const acquisition of acquisitions) {
+                if (acquisition.kind !== "page_advanced") {
+                  throw new Error(
+                    `exact-gap acquisition stopped with ${acquisition.kind}`,
+                  );
+                }
+                pagesAdvanced += 1;
+                resultKind = acquisition.kind;
+                resultSource = acquisition.source;
+              }
             }
 
             if (runtimeCutoffReached && pagesAdvanced === 0) {
@@ -983,6 +1063,7 @@ describeConnected(
               cohortCoreSetSha256: cohort.coreSetSha256,
               maximumAggregateRequestsPerMinute:
                 DNA_OPEN_LAB_BASE_REQUESTS_PER_MINUTE,
+              maximumConcurrentCorePages: MAXIMUM_CONCURRENT_CORE_PAGES,
               maximumPages,
               pagesAdvanced,
               runtimeCutoffReached,
@@ -1006,6 +1087,7 @@ describeConnected(
                 persistedCheckpointReadBack: true as const,
                 exactGapCohortOnly: true as const,
                 capacityMeasuredBeforeEveryPage: true as const,
+                pageOrderPreservedWithinEachCore: true as const,
                 persistentCheckpointWritePerformed: pagesAdvanced > 0,
                 privateEvidenceWriteMayBePerformed: pagesAdvanced > 0,
                 providerWritePerformed: false as const,
