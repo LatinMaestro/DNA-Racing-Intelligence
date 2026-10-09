@@ -66,10 +66,12 @@ function harness(
       generationId: string;
       coreIds: readonly number[];
     }>;
+    serializationFailures?: number;
   }> = {},
 ) {
   const events: string[] = [];
   let index = 0;
+  let serializationFailuresRemaining = options.serializationFailures ?? 0;
   const query = vi.fn(
     async (statement: string, values?: readonly unknown[]) => {
       const normalized = statement.replace(/\s+/gu, " ").trim();
@@ -82,6 +84,19 @@ function harness(
         normalized === "ROLLBACK"
       ) {
         return { rows: [] };
+      }
+      if (
+        serializationFailuresRemaining > 0 &&
+        normalized.startsWith(
+          "SELECT revision::text, cycle FROM dna.read_latest_complete_dna_core_race_history_acquisition",
+        )
+      ) {
+        serializationFailuresRemaining -= 1;
+        const error = new Error(
+          "could not serialize access due to concurrent update",
+        );
+        Object.assign(error, { code: "40001" });
+        throw error;
       }
       return { rows: rows[index++] ?? [] };
     },
@@ -237,6 +252,32 @@ describe("Neon DNA Core race history acquisition", () => {
       JSON.stringify(complete),
       JSON.stringify(receipt),
     ]);
+  });
+
+  it("retries a bounded transient serialization failure without escaping the repository transaction", async () => {
+    const test = harness(
+      [
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ revision: "1", cycle }],
+      ],
+      { serializationFailures: 1 },
+    );
+
+    await expect(test.repository.loadLatestComplete()).resolves.toEqual({
+      revision: "1",
+      cycle,
+    });
+    expect(
+      test.events.filter((event) =>
+        event.startsWith("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"),
+      ),
+    ).toHaveLength(2);
+    expect(test.events).toContain("ROLLBACK");
+    expect(test.events.at(-2)).toBe("COMMIT");
+    expect(test.events.at(-1)).toBe("close");
   });
 
   it("rolls back before data access when least-privilege isolation drifts", async () => {

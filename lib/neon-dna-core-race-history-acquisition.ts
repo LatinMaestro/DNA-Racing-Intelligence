@@ -20,6 +20,19 @@ const ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/u;
 const REVISION_PATTERN = /^[1-9][0-9]*$/u;
 const CONTROL_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
+const SERIALIZATION_FAILURE_CODE = "40001";
+const MAXIMUM_SERIALIZATION_ATTEMPTS = 3;
+
+function isSerializationFailure(error: unknown): boolean {
+  if (error === null || typeof error !== "object") return false;
+  const code = "code" in error ? (error as { code?: unknown }).code : null;
+  if (code === SERIALIZATION_FAILURE_CODE) return true;
+  return (
+    error instanceof Error &&
+    /could not serialize access due to concurrent update/iu.test(error.message)
+  );
+}
+
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 type DbRow = Record<string, unknown>;
 
@@ -301,33 +314,49 @@ export function createNeonDnaCoreRaceHistoryAcquisitionRepository(input: {
       client: Awaited<ReturnType<typeof sessionFactory>>["client"],
     ) => Promise<T>;
   }): Promise<T> {
-    const session = await sessionFactory(databaseUrl);
-    let begun = false;
-    try {
-      await session.client.query(
-        request.readOnly
-          ? "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"
-          : "BEGIN ISOLATION LEVEL SERIALIZABLE",
-      );
-      begun = true;
-      await session.client.query(SET_OWNER_SCOPE_SQL, [databaseOwnerId]);
-      verifyIsolation(
-        await session.client.query(VERIFY_ISOLATION_SQL, [
-          databaseOwnerId,
-          ownerId,
-        ]),
-        { databaseOwnerId, ownerId, runtimeRole },
-      );
-      const result = await request.run(session.client);
-      await session.client.query("COMMIT");
-      begun = false;
-      return result;
-    } catch (error) {
-      if (begun) await session.client.query("ROLLBACK").catch(() => undefined);
-      throw error;
-    } finally {
-      await session.close();
+    for (
+      let attempt = 1;
+      attempt <= MAXIMUM_SERIALIZATION_ATTEMPTS;
+      attempt += 1
+    ) {
+      const session = await sessionFactory(databaseUrl);
+      let begun = false;
+      try {
+        await session.client.query(
+          request.readOnly
+            ? "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY"
+            : "BEGIN ISOLATION LEVEL SERIALIZABLE",
+        );
+        begun = true;
+        await session.client.query(SET_OWNER_SCOPE_SQL, [databaseOwnerId]);
+        verifyIsolation(
+          await session.client.query(VERIFY_ISOLATION_SQL, [
+            databaseOwnerId,
+            ownerId,
+          ]),
+          { databaseOwnerId, ownerId, runtimeRole },
+        );
+        const result = await request.run(session.client);
+        await session.client.query("COMMIT");
+        begun = false;
+        return result;
+      } catch (error) {
+        if (begun)
+          await session.client.query("ROLLBACK").catch(() => undefined);
+        if (
+          isSerializationFailure(error) &&
+          attempt < MAXIMUM_SERIALIZATION_ATTEMPTS
+        ) {
+          continue;
+        }
+        throw error;
+      } finally {
+        await session.close();
+      }
     }
+    throw new Error(
+      "DNA Core history acquisition serialization retry exhausted.",
+    );
   }
 
   return Object.freeze({
