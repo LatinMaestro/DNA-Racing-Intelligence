@@ -282,10 +282,9 @@ describe("Neon DNA Open Lab R2 budget repository", () => {
         query: vi.fn(async (statement: string) => {
           const normalized = statement.replace(/\s+/gu, " ").trim();
           if (
-            [
-              "BEGIN ISOLATION LEVEL SERIALIZABLE",
-              "ROLLBACK",
-            ].includes(normalized)
+            ["BEGIN ISOLATION LEVEL SERIALIZABLE", "ROLLBACK"].includes(
+              normalized,
+            )
           ) {
             return { rows: [] };
           }
