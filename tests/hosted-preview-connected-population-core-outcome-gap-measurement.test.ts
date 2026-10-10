@@ -949,17 +949,17 @@ describeConnected(
                 );
               const pageBudgetRepository = Object.freeze({
                 ...budgetRepository,
-                async reserve(request: Parameters<
-                  typeof budgetRepository.reserve
-                >[0]) {
+                async reserve(
+                  request: Parameters<typeof budgetRepository.reserve>[0],
+                ) {
                   pagePhase("budget-reserve-started");
                   const result = await budgetRepository.reserve(request);
                   pagePhase("budget-reserve-complete");
                   return result;
                 },
-                async account(request: Parameters<
-                  typeof budgetRepository.account
-                >[0]) {
+                async account(
+                  request: Parameters<typeof budgetRepository.account>[0],
+                ) {
                   pagePhase("budget-account-started");
                   const result = await budgetRepository.account(request);
                   pagePhase("budget-account-complete");
@@ -968,9 +968,9 @@ describeConnected(
               });
               const pageAcquisitionRepository = Object.freeze({
                 ...acquisitionRepository,
-                async savePage(request: Parameters<
-                  typeof acquisitionRepository.savePage
-                >[0]) {
+                async savePage(
+                  request: Parameters<typeof acquisitionRepository.savePage>[0],
+                ) {
                   pagePhase("checkpoint-save-started");
                   const result = await acquisitionRepository.savePage(request);
                   pagePhase("checkpoint-save-complete");
