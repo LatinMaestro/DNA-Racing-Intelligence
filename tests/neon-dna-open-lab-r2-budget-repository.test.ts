@@ -181,6 +181,154 @@ describe("Neon DNA Open Lab R2 budget repository", () => {
     expect(call).not.toContain("timestamptz");
   });
 
+  it("retries bounded serializable write conflicts with spaced attempts", async () => {
+    let serializationFailuresRemaining = 2;
+    const statements: string[] = [];
+    const closes: ReturnType<typeof vi.fn>[] = [];
+    const sleep = vi.fn(async (_milliseconds: number) => undefined);
+    const sessionFactory = vi.fn(async () => {
+      const close = vi.fn(async () => undefined);
+      closes.push(close);
+      const client: NeonImportPersistenceClient = {
+        query: vi.fn(async (statement: string) => {
+          const normalized = statement.replace(/\s+/gu, " ").trim();
+          statements.push(normalized);
+          if (
+            [
+              "BEGIN ISOLATION LEVEL SERIALIZABLE",
+              "COMMIT",
+              "ROLLBACK",
+            ].includes(normalized)
+          ) {
+            return { rows: [] };
+          }
+          if (normalized.includes("set_config('app.owner_id'")) {
+            return { rows: [{}] };
+          }
+          if (normalized.includes("FROM dna.app_owner owner")) {
+            return { rows: [ownerEvidence()] };
+          }
+          if (normalized.includes("reserve_dna_open_lab_r2_budget")) {
+            if (serializationFailuresRemaining > 0) {
+              serializationFailuresRemaining -= 1;
+              const error = new Error(
+                "could not serialize access due to concurrent update",
+              );
+              Object.assign(error, { code: "40001" });
+              throw error;
+            }
+            return {
+              rows: [
+                {
+                  allowed: true,
+                  blocker_ids: [],
+                  projected_storage_bytes: "2000",
+                  projected_class_a_operations: "110",
+                  projected_class_b_operations: "220",
+                  reservation_status: "reserved",
+                },
+              ],
+            };
+          }
+          throw new Error("unexpected test query");
+        }),
+      };
+      return { client, close };
+    }) as unknown as NeonImportPersistenceSessionFactory;
+    const subject = createNeonDnaOpenLabR2BudgetRepository({
+      databaseUrl: "postgresql://private.example/dna",
+      databaseOwnerId,
+      runtimeRole: "dna_app_runtime",
+      sessionFactory,
+      sleep,
+    });
+    if (subject.status !== "ready") throw new Error("repository not ready");
+
+    await expect(
+      subject.reserve({
+        ownerId,
+        windowId: hash("a"),
+        refreshCycleId: hash("b"),
+        requestSha256: hash("c"),
+        plannedUsage: {
+          storageBytes: 1000,
+          classAOperations: 10,
+          classBOperations: 20,
+        },
+      }),
+    ).resolves.toMatchObject({
+      allowed: true,
+      reservationStatus: "reserved",
+      paidUsageAllowed: false,
+    });
+    expect(sessionFactory).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls).toEqual([[1000], [2000]]);
+    expect(
+      statements.filter(
+        (entry) => entry === "BEGIN ISOLATION LEVEL SERIALIZABLE",
+      ),
+    ).toHaveLength(3);
+    expect(statements.filter((entry) => entry === "ROLLBACK")).toHaveLength(2);
+    expect(statements.filter((entry) => entry === "COMMIT")).toHaveLength(1);
+    expect(closes).toHaveLength(3);
+    for (const close of closes) expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry non-serialization write failures", async () => {
+    const sleep = vi.fn(async (_milliseconds: number) => undefined);
+    const failure = new Error("budget write failed");
+    const sessionFactory = vi.fn(async () => ({
+      client: {
+        query: vi.fn(async (statement: string) => {
+          const normalized = statement.replace(/\s+/gu, " ").trim();
+          if (
+            [
+              "BEGIN ISOLATION LEVEL SERIALIZABLE",
+              "ROLLBACK",
+            ].includes(normalized)
+          ) {
+            return { rows: [] };
+          }
+          if (normalized.includes("set_config('app.owner_id'")) {
+            return { rows: [{}] };
+          }
+          if (normalized.includes("FROM dna.app_owner owner")) {
+            return { rows: [ownerEvidence()] };
+          }
+          if (normalized.includes("reserve_dna_open_lab_r2_budget")) {
+            throw failure;
+          }
+          throw new Error("unexpected test query");
+        }),
+      },
+      close: vi.fn(async () => undefined),
+    })) as unknown as NeonImportPersistenceSessionFactory;
+    const subject = createNeonDnaOpenLabR2BudgetRepository({
+      databaseUrl: "postgresql://private.example/dna",
+      databaseOwnerId,
+      runtimeRole: "dna_app_runtime",
+      sessionFactory,
+      sleep,
+    });
+    if (subject.status !== "ready") throw new Error("repository not ready");
+
+    await expect(
+      subject.reserve({
+        ownerId,
+        windowId: hash("a"),
+        refreshCycleId: hash("b"),
+        requestSha256: hash("c"),
+        plannedUsage: {
+          storageBytes: 1000,
+          classAOperations: 10,
+          classBOperations: 20,
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(sessionFactory).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
   it("accounts only bounded usage through the restart-safe function", async () => {
     const test = harness([[{}], [ownerEvidence()], [reservationRow()]]);
     const subject = repository(test);
