@@ -24,6 +24,18 @@ const BLOCKERS = new Set<DnaOpenLabZeroCostBlockerId>([
   "class_a_budget_exhausted",
   "class_b_budget_exhausted",
 ]);
+const SERIALIZATION_FAILURE_CODE = "40001";
+const MAXIMUM_SERIALIZATION_ATTEMPTS = 3;
+
+function isSerializationFailure(error: unknown): boolean {
+  if (error === null || typeof error !== "object") return false;
+  const code = "code" in error ? (error as { code?: unknown }).code : null;
+  if (code === SERIALIZATION_FAILURE_CODE) return true;
+  return (
+    error instanceof Error &&
+    /could not serialize access due to concurrent update/iu.test(error.message)
+  );
+}
 
 type Row = Record<string, unknown>;
 type Environment = Readonly<{
@@ -175,6 +187,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
     databaseOwnerId: string;
     runtimeRole: string;
     sessionFactory?: NeonImportPersistenceSessionFactory;
+    sleep?: (milliseconds: number) => Promise<void>;
   }>,
 ): DnaOpenLabR2BudgetRepository {
   const databaseUrl = input.databaseUrl.trim();
@@ -189,6 +202,10 @@ export function createNeonDnaOpenLabR2BudgetRepository(
   }
   const sessionFactory =
     input.sessionFactory ?? createDefaultNeonImportPersistenceSession;
+  const sleep =
+    input.sleep ??
+    ((milliseconds: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
 
   async function transact<T>(
     ownerId: string,
@@ -200,21 +217,26 @@ export function createNeonDnaOpenLabR2BudgetRepository(
       ) => Promise<{ rows: readonly unknown[] }>,
     ) => Promise<T>,
   ): Promise<T> {
-    const session = await sessionFactory(databaseUrl);
-    let started = false;
-    try {
-      await session.client.query(
-        readOnly
-          ? "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY"
-          : "BEGIN ISOLATION LEVEL SERIALIZABLE",
-      );
-      started = true;
-      await session.client.query(
-        "SELECT set_config('app.owner_id', $1, true)",
-        [databaseOwnerId],
-      );
-      const verified = await session.client.query(
-        `SELECT owner.id::text AS owner_id, owner.clerk_user_id,
+    for (
+      let attempt = 1;
+      attempt <= MAXIMUM_SERIALIZATION_ATTEMPTS;
+      attempt += 1
+    ) {
+      const session = await sessionFactory(databaseUrl);
+      let started = false;
+      try {
+        await session.client.query(
+          readOnly
+            ? "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY"
+            : "BEGIN ISOLATION LEVEL SERIALIZABLE",
+        );
+        started = true;
+        await session.client.query(
+          "SELECT set_config('app.owner_id', $1, true)",
+          [databaseOwnerId],
+        );
+        const verified = await session.client.query(
+          `SELECT owner.id::text AS owner_id, owner.clerk_user_id,
         budget.relrowsecurity AS budget_rls,
         budget.relforcerowsecurity AS budget_force_rls,
         reservation.relrowsecurity AS reservation_rls,
@@ -228,38 +250,48 @@ export function createNeonDnaOpenLabR2BudgetRepository(
           ON reservation.oid = 'dna.dna_open_lab_r2_budget_reservation'::regclass
         JOIN pg_catalog.pg_roles role ON role.rolname = session_user
         WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2`,
-        [databaseOwnerId, ownerId],
-      );
-      const evidence =
-        verified.rows.length === 1 ? row(verified.rows[0]) : null;
-      if (
-        evidence === null ||
-        evidence.owner_id !== databaseOwnerId ||
-        evidence.clerk_user_id !== ownerId ||
-        evidence.budget_rls !== true ||
-        evidence.budget_force_rls !== true ||
-        evidence.reservation_rls !== true ||
-        evidence.reservation_force_rls !== true ||
-        evidence.session_user_name !== runtimeRole ||
-        evidence.current_user_name !== runtimeRole ||
-        evidence.rolsuper !== false ||
-        evidence.rolbypassrls !== false
-      ) {
-        throw new Error("DNA Open Lab R2 budget owner isolation denied");
+          [databaseOwnerId, ownerId],
+        );
+        const evidence =
+          verified.rows.length === 1 ? row(verified.rows[0]) : null;
+        if (
+          evidence === null ||
+          evidence.owner_id !== databaseOwnerId ||
+          evidence.clerk_user_id !== ownerId ||
+          evidence.budget_rls !== true ||
+          evidence.budget_force_rls !== true ||
+          evidence.reservation_rls !== true ||
+          evidence.reservation_force_rls !== true ||
+          evidence.session_user_name !== runtimeRole ||
+          evidence.current_user_name !== runtimeRole ||
+          evidence.rolsuper !== false ||
+          evidence.rolbypassrls !== false
+        ) {
+          throw new Error("DNA Open Lab R2 budget owner isolation denied");
+        }
+        const result = await work((sql, values = []) =>
+          session.client.query(sql, values),
+        );
+        await session.client.query("COMMIT");
+        started = false;
+        return result;
+      } catch (error) {
+        if (started)
+          await session.client.query("ROLLBACK").catch(() => undefined);
+        if (
+          !readOnly &&
+          isSerializationFailure(error) &&
+          attempt < MAXIMUM_SERIALIZATION_ATTEMPTS
+        ) {
+          await sleep(attempt * 1_000);
+          continue;
+        }
+        throw error;
+      } finally {
+        await session.close();
       }
-      const result = await work((sql, values = []) =>
-        session.client.query(sql, values),
-      );
-      await session.client.query("COMMIT");
-      started = false;
-      return result;
-    } catch (error) {
-      if (started)
-        await session.client.query("ROLLBACK").catch(() => undefined);
-      throw error;
-    } finally {
-      await session.close();
     }
+    throw new Error("DNA Open Lab R2 budget serialization retry exhausted");
   }
 
   return {
