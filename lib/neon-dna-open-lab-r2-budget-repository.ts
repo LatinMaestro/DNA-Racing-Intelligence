@@ -192,6 +192,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
 
   async function transact<T>(
     ownerId: string,
+    readOnly: boolean,
     work: (
       query: (
         sql: string,
@@ -202,7 +203,11 @@ export function createNeonDnaOpenLabR2BudgetRepository(
     const session = await sessionFactory(databaseUrl);
     let started = false;
     try {
-      await session.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+      await session.client.query(
+        readOnly
+          ? "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY"
+          : "BEGIN ISOLATION LEVEL SERIALIZABLE",
+      );
       started = true;
       await session.client.query(
         "SELECT set_config('app.owner_id', $1, true)",
@@ -260,7 +265,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
   return {
     status: "ready",
     readWindow: (ownerId) =>
-      transact(ownerId, async (query) => {
+      transact(ownerId, true, async (query) => {
         const result = await query(
           "SELECT * FROM dna.read_dna_open_lab_r2_budget_window($1::uuid)",
           [databaseOwnerId],
@@ -271,7 +276,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
       }),
     openWindow: (request) => {
       assertHash(request.windowId, "windowId");
-      return transact(request.ownerId, async (query) => {
+      return transact(request.ownerId, false, async (query) => {
         const result = await query(
           "SELECT * FROM dna.open_dna_open_lab_r2_budget_window($1::uuid,$2::text,$3::timestamptz,$4::timestamptz,$5::timestamptz,$6::bigint,$7::bigint,$8::bigint)",
           [
@@ -294,7 +299,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
       assertHash(request.windowId, "windowId");
       assertHash(request.refreshCycleId, "refreshCycleId");
       assertHash(request.requestSha256, "requestSha256");
-      return transact(request.ownerId, async (query) => {
+      return transact(request.ownerId, false, async (query) => {
         const result = await query(
           "SELECT * FROM dna.reserve_dna_open_lab_r2_budget($1::uuid,$2::text,$3::text,$4::text,$5::bigint,$6::bigint,$7::bigint)",
           [
@@ -316,7 +321,7 @@ export function createNeonDnaOpenLabR2BudgetRepository(
       assertHash(request.windowId, "windowId");
       assertHash(request.refreshCycleId, "refreshCycleId");
       assertHash(request.requestSha256, "requestSha256");
-      return transact(request.ownerId, async (query) => {
+      return transact(request.ownerId, false, async (query) => {
         const result = await query(
           "SELECT * FROM dna.account_dna_open_lab_r2_budget($1::uuid,$2::text,$3::text,$4::text,$5::bigint,$6::bigint,$7::bigint)",
           [

@@ -918,8 +918,17 @@ describeConnected(
                 startAt: freshCapacity.billingWindowStartAt,
                 endAt: freshCapacity.billingWindowEndAt,
               });
+              console.log(
+                "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-budget-read-started",
+              );
               const existingWindow = await budgetRepository.readWindow(ownerId);
+              console.log(
+                "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-budget-read-complete",
+              );
               if (existingWindow?.windowId !== budgetWindowId) {
+                console.log(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-budget-open-started",
+                );
                 await budgetRepository.openWindow({
                   ownerId,
                   windowId: budgetWindowId,
@@ -928,6 +937,9 @@ describeConnected(
                   measuredAt: freshCapacity.measuredAt,
                   baselineUsage: freshCapacity.currentR2Usage,
                 });
+                console.log(
+                  "DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-budget-open-complete",
+                );
               }
 
               return Object.freeze({
