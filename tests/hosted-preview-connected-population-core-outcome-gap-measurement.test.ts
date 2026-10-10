@@ -854,6 +854,17 @@ describeConnected(
             let lastProjectedR2StorageBytes: number | null = null;
             let lastProjectedNeonStorageBytes: number | null = null;
             let runtimeCutoffReached = false;
+            let budgetWriteQueue = Promise.resolve();
+            const serializeBudgetWrite = <Result>(
+              operation: () => Promise<Result>,
+            ): Promise<Result> => {
+              const result = budgetWriteQueue.then(operation, operation);
+              budgetWriteQueue = result.then(
+                () => undefined,
+                () => undefined,
+              );
+              return result;
+            };
 
             const preparePage = async (input: {
               targetCoreId?: number;
@@ -953,7 +964,9 @@ describeConnected(
                   request: Parameters<typeof budgetRepository.reserve>[0],
                 ) {
                   pagePhase("budget-reserve-started");
-                  const result = await budgetRepository.reserve(request);
+                  const result = await serializeBudgetWrite(() =>
+                    budgetRepository.reserve(request),
+                  );
                   pagePhase("budget-reserve-complete");
                   return result;
                 },
@@ -961,7 +974,9 @@ describeConnected(
                   request: Parameters<typeof budgetRepository.account>[0],
                 ) {
                   pagePhase("budget-account-started");
-                  const result = await budgetRepository.account(request);
+                  const result = await serializeBudgetWrite(() =>
+                    budgetRepository.account(request),
+                  );
                   pagePhase("budget-account-complete");
                   return result;
                 },

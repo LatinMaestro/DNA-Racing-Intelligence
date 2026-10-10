@@ -40,6 +40,10 @@ describe("DNA population Core-outcome exact-gap continuation API page workflow",
     );
     expect(connectedTest).toContain('scheduling: "token_bucket"');
     expect(connectedTest).toContain("MAXIMUM_CONCURRENT_CORE_PAGES = 3");
+    expect(connectedTest).toContain("serializeBudgetWrite");
+    expect(connectedTest).toContain(
+      "budgetWriteQueue.then(operation, operation)",
+    );
     expect(connectedTest).toContain("targetCoreId:");
     expect(connectedTest).toContain("deferCollectionCompletion: true");
     expect(connectedTest).toContain("await Promise.all(");
