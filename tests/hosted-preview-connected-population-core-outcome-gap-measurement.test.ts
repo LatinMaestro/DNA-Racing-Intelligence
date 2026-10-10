@@ -858,6 +858,7 @@ describeConnected(
             const preparePage = async (input: {
               targetCoreId?: number;
               concurrentPageOrdinal: number;
+              batchPageOrdinal: number;
             }) => {
               // Each independent Core page receives its own fresh provider
               // measurement before any page in the wave may write. Cumulative
@@ -942,43 +943,82 @@ describeConnected(
                 );
               }
 
+              const pagePhase = (phase: string) =>
+                console.log(
+                  `DNA_POPULATION_CORE_OUTCOME_GAP_PHASE=acquisition-page-${input.batchPageOrdinal}-${phase}`,
+                );
+              const pageBudgetRepository = Object.freeze({
+                ...budgetRepository,
+                async reserve(request: Parameters<
+                  typeof budgetRepository.reserve
+                >[0]) {
+                  pagePhase("budget-reserve-started");
+                  const result = await budgetRepository.reserve(request);
+                  pagePhase("budget-reserve-complete");
+                  return result;
+                },
+                async account(request: Parameters<
+                  typeof budgetRepository.account
+                >[0]) {
+                  pagePhase("budget-account-started");
+                  const result = await budgetRepository.account(request);
+                  pagePhase("budget-account-complete");
+                  return result;
+                },
+              });
+              const pageAcquisitionRepository = Object.freeze({
+                ...acquisitionRepository,
+                async savePage(request: Parameters<
+                  typeof acquisitionRepository.savePage
+                >[0]) {
+                  pagePhase("checkpoint-save-started");
+                  const result = await acquisitionRepository.savePage(request);
+                  pagePhase("checkpoint-save-complete");
+                  return result;
+                },
+              });
+
               return Object.freeze({
                 freshCapacity,
                 projectedR2StorageBytes:
                   stepR2Projection.projectedUsage.storageBytes,
                 projectedNeonStorageBytes,
-                execute: () => {
+                async execute() {
                   const attemptedAt = new Date(
                     Math.max(Date.now(), Date.parse(cohort.evaluatedAt)),
                   ).toISOString();
-                  return runDnaCoreRaceHistoryPrivateCollectorStep({
-                    ownerId,
-                    budgetWindowId,
-                    evaluatedAt: cohort.evaluatedAt,
-                    attemptedAt,
-                    loadServingCores: async () =>
-                      Object.freeze(
-                        cohort.coreIds.map((coreId) =>
-                          Object.freeze({
-                            generationId: cohort.authorityGenerationId,
-                            canonical: Object.freeze({
-                              sourceCoreId: String(coreId),
+                  pagePhase("execute-started");
+                  const result =
+                    await runDnaCoreRaceHistoryPrivateCollectorStep({
+                      ownerId,
+                      budgetWindowId,
+                      evaluatedAt: cohort.evaluatedAt,
+                      attemptedAt,
+                      loadServingCores: async () =>
+                        Object.freeze(
+                          cohort.coreIds.map((coreId) =>
+                            Object.freeze({
+                              generationId: cohort.authorityGenerationId,
+                              canonical: Object.freeze({
+                                sourceCoreId: String(coreId),
+                              }),
                             }),
-                          }),
+                          ),
                         ),
-                      ),
-                    acquisitionRepository,
-                    budgetRepository,
-                    client,
-                    requestBudget,
-                    evidenceStore,
-                    ...(input.targetCoreId === undefined
-                      ? {}
-                      : {
-                          targetCoreId: input.targetCoreId,
-                          deferCollectionCompletion: true,
-                        }),
-                  });
+                      acquisitionRepository: pageAcquisitionRepository,
+                      budgetRepository: pageBudgetRepository,
+                      client,
+                      requestBudget,
+                      evidenceStore,
+                      ...(input.targetCoreId === undefined
+                        ? {}
+                        : {
+                            targetCoreId: input.targetCoreId,
+                            deferCollectionCompletion: true,
+                          }),
+                    });
+                  pagePhase("execute-complete");
+                  return result;
                 },
               });
             };
@@ -1010,6 +1050,7 @@ describeConnected(
               if (targets.length === 0) {
                 const prepared = await preparePage({
                   concurrentPageOrdinal: 1,
+                  batchPageOrdinal: pagesAdvanced + 1,
                 });
                 const acquisition = await prepared.execute();
                 lastFreshCapacity = prepared.freshCapacity;
@@ -1033,6 +1074,7 @@ describeConnected(
                   await preparePage({
                     targetCoreId: target.checkpoint.coreId,
                     concurrentPageOrdinal: index + 1,
+                    batchPageOrdinal: pagesAdvanced + index + 1,
                   }),
                 );
               }
