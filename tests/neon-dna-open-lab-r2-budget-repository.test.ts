@@ -181,7 +181,7 @@ describe("Neon DNA Open Lab R2 budget repository", () => {
     expect(call).not.toContain("timestamptz");
   });
 
-  it("retries bounded serializable write conflicts with spaced attempts", async () => {
+  it("retries serializable writes with spaced attempts", async () => {
     let serializationFailuresRemaining = 2;
     const statements: string[] = [];
     const closes: ReturnType<typeof vi.fn>[] = [];
