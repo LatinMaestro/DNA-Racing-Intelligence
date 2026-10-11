@@ -122,7 +122,7 @@ export function TournamentWorkspace({
           ))}
         </dl>
         <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          The owner's 50% Car 1v1 P(win) screening rule is not evaluated here.
+          The owner&apos;s 50% Car 1v1 P(win) screening rule is not evaluated here.
           It differs from the 50% race-gate occupancy cap and does not, by
           itself, establish positive expected value without fee/prize evidence.
         </p>
