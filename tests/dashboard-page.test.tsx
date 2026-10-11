@@ -20,7 +20,11 @@ describe("private dashboard operating status", () => {
     expect(markup).toContain("Race snapshot");
     expect(markup).toContain("Arena snapshot");
     expect(markup).not.toContain("Vault snapshot");
-    expect(markup).toContain("Awaiting first accepted import");
+    expect(markup.match(/Freshness and coverage unverified/g)).toHaveLength(3);
+    expect(markup).toContain("missing receipts do not mean no history");
+    expect(markup).toContain("Missing timestamps do not mean no imports");
+    expect(markup).not.toContain("Awaiting first accepted import");
+    expect(markup).not.toContain("No accepted import is connected yet");
     expect(markup).toContain("Data current through");
     expect(markup).toContain("Not available");
     expect(markup).not.toContain("Phase 0");
