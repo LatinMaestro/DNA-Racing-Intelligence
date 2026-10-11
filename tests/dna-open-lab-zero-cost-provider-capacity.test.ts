@@ -45,7 +45,13 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
     expect(DNA_OPEN_LAB_REQUIRED_R2_STORAGE_CLASS).toBe("Standard");
     expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBe(9_500_000_000);
     expect(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.storageBytes).toBe(1_000_000_000);
+    expect(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.dataTransferBytes).toBe(
+      5_000_000_000,
+    );
     expect(DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.storageBytes).toBe(950_000_000);
+    expect(DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes).toBe(
+      4_750_000_000,
+    );
     expect(DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS.storageBytes).toBeLessThan(
       DNA_OPEN_LAB_R2_STANDARD_FREE_ALLOWANCES.storageBytes,
     );
@@ -55,6 +61,9 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
     expect(
       DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours,
     ).toBeLessThan(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.computeMilliCuHours);
+    expect(
+      DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes,
+    ).toBeLessThan(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.dataTransferBytes);
   });
 
   it("projects the complete remaining daily cadence from measured usage", () => {
