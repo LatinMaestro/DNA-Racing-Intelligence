@@ -32,6 +32,7 @@ Never silently replace an owner-confirmed rule with an internet source or a stat
 
 Before changing code or data models, read:
 
+- `docs/ANALYTICAL_METHOD_AUTHORITY_MATRIX.md` — mandatory existing-method lookup and cross-module test map
 - `docs/MASTER_SPECIFICATION.md`
 - `docs/GAME_RULES.md`
 - `docs/STAR_SIGNAL_SPECIFICATION.md`
@@ -46,6 +47,10 @@ Before changing code or data models, read:
 - `docs/REVIEW_GATES.md`
 - `docs/DEFINITION_OF_DONE.md`
 - `docs/DECISION_LOG.md`
+
+## Mandatory methodology-first analytical changes
+
+Before changing Discovery, tournament candidate selection, Pro League, Maiden, Open Race, breeding, lifecycle, accounting or Dashboard analysis, review the complete existing feature-specific methodology and newest relevant owner amendments in Issue #120, the domain implementation, supporting services/website wiring and regression tests. Use `docs/ANALYTICAL_METHOD_AUTHORITY_MATRIX.md` as a navigation and traceability checklist. Reuse approved mathematics and policy first; do not invent a new ranking score, coefficient, threshold, statistical assumption or rule merely because a UI is unfinished. Distinguish existing partial historical-ranking implementations from the complete owner-approved tournament probability/EV methodology. Missing authoritative information remains unknown, provisional or review-required, not inferred; material new analytical assumptions require recorded evidence and explicit owner approval. Every changed analytical feature must identify which previously accepted formula and tests it preserves. The matrix is guidance, not a claim that every feature is commissioned.
 
 ## Delivery mode
 
