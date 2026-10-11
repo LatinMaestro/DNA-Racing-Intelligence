@@ -111,6 +111,7 @@ function neonData(overrides: Record<string, unknown> = {}) {
       consumption_period_start: "2026-09-05T00:00:00.000Z",
       consumption_period_end: "2026-10-05T00:00:00.000Z",
       compute_time_seconds: 18_001,
+      data_transfer_bytes: 1_000_000_000,
       owner_id: "private-provider-identifier",
       ...overrides,
     },
@@ -184,6 +185,7 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         storageBytes: 28_082_176,
         computeMilliCuHours: 5_001,
       },
+      neonDataTransferBytes: 1_000_000_000,
     });
     expect(fixture.fetcher).toHaveBeenCalledTimes(5);
     const calls = vi.mocked(fixture.fetcher).mock.calls;
@@ -404,6 +406,24 @@ describe("Cloudflare and Neon DNA Open Lab provider capacity source", () => {
         consumption_period_end: "2026-09-05T00:00:00.000Z",
       }),
       "neon_project_window_invalid",
+    ],
+    [
+      "missing Neon data transfer",
+      cloudflareData(),
+      neonData({ data_transfer_bytes: undefined }),
+      "neon_project_data_transfer_invalid",
+    ],
+    [
+      "invalid Neon data transfer",
+      cloudflareData(),
+      neonData({ data_transfer_bytes: -1 }),
+      "neon_project_data_transfer_invalid",
+    ],
+    [
+      "exhausted Neon data transfer",
+      cloudflareData(),
+      neonData({ data_transfer_bytes: 4_750_000_001 }),
+      "neon_data_transfer_budget_exhausted",
     ],
   ])("fails closed on %s", async (_label, cloudflare, neon, failureId) => {
     const fixture = source({
