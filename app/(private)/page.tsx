@@ -7,11 +7,11 @@ import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-se
 const readiness = [
   [
     "Recommendations",
-    "Unavailable until accepted imports and validated analytical evidence are connected.",
+    "Dashboard recommendations remain withheld without validated analytical evidence and source coverage.",
   ],
   [
     "Economic reporting",
-    "No figures are shown until validated ledger records exist.",
+    "Dashboard totals remain withheld without verified asset-separated ledgers and reconciled coverage.",
   ],
   [
     "Hosting",
@@ -47,9 +47,9 @@ export default async function DashboardPage() {
           Evidence before recommendations.
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--muted)]">
-          The private workspace is online. Recommendations and financial totals
-          remain evidence-gated until accepted imports and validated aggregates
-          are connected.
+          The private workspace reports verified owner evidence where connected.
+          Core, Race and Arena freshness has no accepted source receipt linked to
+          this dashboard; missing receipts do not mean no history.
         </p>
       </header>
       <div className="grid gap-4 xl:grid-cols-2">
