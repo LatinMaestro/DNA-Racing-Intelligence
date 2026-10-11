@@ -61,9 +61,9 @@ describe("DNA Open Lab zero-cost provider capacity", () => {
     expect(
       DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.computeMilliCuHours,
     ).toBeLessThan(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.computeMilliCuHours);
-    expect(
-      DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes,
-    ).toBeLessThan(DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.dataTransferBytes);
+    expect(DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes).toBeLessThan(
+      DNA_OPEN_LAB_NEON_FREE_ALLOWANCES.dataTransferBytes,
+    );
   });
 
   it("projects the complete remaining daily cadence from measured usage", () => {
