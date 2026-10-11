@@ -97,6 +97,7 @@ A phase or feature is complete only when all applicable items pass.
 - Imported-data pages are tested for freshness and non-live wording.
 - Open Race stage transitions and observation reconciliation are tested.
 - Accessibility and responsive behaviour are checked.
+- Private primary navigation identifies the current module visibly and with `aria-current="page"` for exact or nested module routes, without marking unrelated routes as current.
 - Security-sensitive values are not logged.
 
 ## Delivery

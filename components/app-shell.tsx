@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { modules } from "@/lib/modules";
+import { PrimaryNavigation } from "@/components/primary-navigation";
 
 export function AppShell({
   children,
@@ -16,20 +15,7 @@ export function AppShell({
           </p>
           <p className="mt-2 text-xl font-semibold">DNA Racing</p>
         </div>
-        <nav
-          aria-label="Primary"
-          className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible"
-        >
-          {modules.map((item) => (
-            <Link
-              className="min-w-max rounded-lg border border-transparent px-3 py-2 text-sm text-[var(--muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
-              href={item.href}
-              key={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <PrimaryNavigation />
       </aside>
       <main className="p-5 sm:p-8 lg:p-12" id="main-content">
         {children}
