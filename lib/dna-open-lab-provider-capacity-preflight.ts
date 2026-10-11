@@ -44,6 +44,8 @@ export const DNA_OPEN_LAB_PROVIDER_CAPACITY_MEASUREMENT_FAILURE_IDS = [
   "neon_project_identity_invalid",
   "neon_project_window_invalid",
   "neon_project_compute_invalid",
+  "neon_project_data_transfer_invalid",
+  "neon_data_transfer_budget_exhausted",
   "neon_branches_shape_invalid",
   "neon_branches_empty",
   "neon_branches_page_incomplete",
@@ -85,6 +87,7 @@ export type DnaOpenLabProviderCapacityMeasurement = Readonly<{
   neonBillingWindowStartAt: string;
   neonBillingWindowEndAt: string;
   currentNeonUsage: DnaOpenLabNeonUsage;
+  neonDataTransferBytes?: number;
 }>;
 
 export type DnaOpenLabProviderCapacityMeasurementSource =
