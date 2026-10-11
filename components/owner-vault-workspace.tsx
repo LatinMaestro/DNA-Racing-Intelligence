@@ -251,6 +251,14 @@ export function OwnerVaultWorkspace({
                   </dl>
 
                   <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+                    <Link
+                      className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
+                      href={`/search-core?q=${encodeURIComponent(
+                        core.sourceCoreId,
+                      )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                    >
+                      View race evidence
+                    </Link>
                     {core.inMyVault ? (
                       <>
                         {mutationForm(core, "remove", "Remove from My Vault")}
