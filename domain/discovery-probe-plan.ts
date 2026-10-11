@@ -368,20 +368,24 @@ function normalize(
   }
   if (input.freshness === "stale") warnings.add("DATA_STALE");
 
+  // Known older evidence still supports as-of planning, but never authorises
+  // a current race action. Missing cutoffs and unresolved Maiden state do not.
   const unusable =
     dataCurrentThrough === null ||
-    ["stale", "unknown"].includes(input.freshness) ||
+    input.freshness === "unknown" ||
     ["unknown", "invalid"].includes(input.maidenState);
+  const historicalOnly = input.freshness === "stale";
   const strategic =
     input.tournamentRelevance === "priority" ||
     input.maidenState === "eligible";
   const oppositionAdjustedStarSupport =
     starEvidence?.oppositionAdjusted?.support === "strong_support" ||
     starEvidence?.oppositionAdjusted?.support === "supporting";
-  const actionable = !unusable && observationsToMinimum > 0;
-  const recommendedInitialProbeSize = actionable
-    ? Math.min(3, observationsToMinimum)
-    : 0;
+  const actionable = !unusable && !historicalOnly && observationsToMinimum > 0;
+  const recommendedInitialProbeSize =
+    !unusable && observationsToMinimum > 0
+      ? Math.min(3, observationsToMinimum)
+      : 0;
 
   return {
     coreId,
@@ -396,7 +400,7 @@ function normalize(
       directTimeEvidence,
       starEvidence,
       freshness: input.freshness,
-      unusable,
+      unusable: unusable || historicalOnly,
     }),
     observationsToMinimum,
     recommendedInitialProbeSize,

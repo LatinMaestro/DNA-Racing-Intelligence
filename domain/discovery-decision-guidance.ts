@@ -98,7 +98,7 @@ export function deriveDiscoveryDecisionGuidance(
           1,
           candidate.observationsToMinimum,
         ),
-        decisionActionable: true,
+        decisionActionable: candidate.actionable,
       };
     }
 

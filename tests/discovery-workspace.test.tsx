@@ -197,4 +197,50 @@ describe("Discovery workspace", () => {
     expect(html).toContain("3 races");
     expect(html).toContain("Lineage or population evidence");
   });
+
+  it("discloses historical-only preview with the existing as-of probe calculation", () => {
+    const candidates = deriveDiscoveryDecisionGuidance(
+      attachDiscoveryBenchmarks(
+        buildDiscoveryProbePlan([
+          {
+            coreId: "synthetic-stale-core",
+            coreName: "Historical Core",
+            mode: "car",
+            distanceMetres: 1_200,
+            directRaceCount: 3,
+            directTimeEvidence: {
+              bestMilliseconds: 58_000,
+              medianMilliseconds: 59_000,
+              meanMilliseconds: 59_100,
+              standardDeviationMilliseconds: 800,
+            },
+            starEvidence: null,
+            lineageRelationship: null,
+            lineageResolved: true,
+            lineageRaceCount: 0,
+            tournamentRelevance: "none",
+            maidenState: "not_eligible",
+            freshness: "stale",
+            dataCurrentThrough: "2026-07-10T00:00:00.000Z",
+          },
+        ]),
+        [],
+      ),
+    );
+    const html = renderToStaticMarkup(
+      <DiscoveryWorkspace
+        candidates={candidates}
+        connectionStatus="read_model_connected"
+        lastImportedAt="2026-07-20T01:00:00.000Z"
+      />,
+    );
+
+    expect(candidates[0]?.decisionActionable).toBe(false);
+    expect(html).toContain("Historical snapshot preview only");
+    expect(html).toContain("Historical probe estimate");
+    expect(html).toContain("Recorded exact-distance sample");
+    expect(html).toContain("3 races");
+    expect(html).toContain("Data Stale");
+    expect(html).toContain("Do not enter races, spend assets or stop testing");
+  });
 });

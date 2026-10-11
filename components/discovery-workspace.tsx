@@ -27,6 +27,11 @@ const connectionCopy: Record<
   },
 };
 
+const historicalSnapshotDisclosure =
+  "Historical snapshot preview only. This planning result uses the recorded " +
+  "cutoff, not today's complete race field. Do not enter races, spend assets " +
+  "or stop testing based on this outdated snapshot.";
+
 function label(value: string): string {
   return value
     .split("_")
@@ -236,10 +241,19 @@ export function DiscoveryWorkspace({
                   </div>
                 </div>
 
+                {candidate.freshness === "stale" ? (
+                  <p
+                    className="mt-4 text-sm leading-6 text-[var(--warning)]"
+                    role="status"
+                  >
+                    {historicalSnapshotDisclosure}
+                  </p>
+                ) : null}
+
                 <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-[var(--muted)]">
-                      Current exact-distance sample
+                      Recorded exact-distance sample
                     </dt>
                     <dd className="mt-1 font-semibold">
                       {candidate.directRaceCount.toLocaleString("en-AU")} races
@@ -253,7 +267,9 @@ export function DiscoveryWorkspace({
                   </div>
                   <div>
                     <dt className="text-[var(--muted)]">
-                      Recommended next probe
+                      {candidate.freshness === "stale"
+                        ? "Historical probe estimate"
+                        : "Recommended next probe"}
                     </dt>
                     <dd className="mt-1 font-semibold">
                       {candidate.recommendedDecisionProbeSize === 0

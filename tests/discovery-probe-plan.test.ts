@@ -135,7 +135,30 @@ describe("discovery probe plan", () => {
     expect(result?.actionable).toBe(true);
   });
 
-  it("defers stale, unknown-cutoff and unresolved-Maiden evidence", () => {
+  it("keeps a historical as-of plan without enabling stale race actions", () => {
+    const [snapshot] = buildDiscoveryProbePlan([
+      candidate({
+        freshness: "stale",
+        dataCurrentThrough: "2026-07-10T00:00:00.000Z",
+      }),
+    ]);
+
+    expect(snapshot).toEqual(
+      expect.objectContaining({
+        reviewPriority: "high",
+        confidence: "low",
+        observationsToMinimum: 6,
+        recommendedInitialProbeSize: 3,
+        guidance: "continue_targeted_probe",
+        actionable: false,
+        automaticEntryAllowed: false,
+        automaticStopAllowed: false,
+        warnings: expect.arrayContaining(["DATA_STALE"]),
+      }),
+    );
+  });
+
+  it("still defers unknown-cutoff and unresolved-Maiden evidence", () => {
     const plan = buildDiscoveryProbePlan([
       candidate({
         freshness: "stale",

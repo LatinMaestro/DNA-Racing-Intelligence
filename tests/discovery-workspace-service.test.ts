@@ -144,7 +144,7 @@ describe("Discovery workspace service", () => {
     ["2026-07-18T00:00:00.000Z", "current", "high"],
     ["2026-07-17T00:00:00.000Z", "ageing", "high"],
     ["2026-07-14T00:00:00.000Z", "ageing", "high"],
-    ["2026-07-13T00:00:00.000Z", "stale", "defer"],
+    ["2026-07-13T00:00:00.000Z", "stale", "high"],
   ] as const)(
     "derives the %s cutoff boundary as %s",
     async (dataCurrentThrough, freshness, reviewPriority) => {
@@ -168,7 +168,15 @@ describe("Discovery workspace service", () => {
           now,
         }),
       ).resolves.toMatchObject({
-        candidates: [{ freshness, reviewPriority }],
+        candidates: [
+          {
+            freshness,
+            reviewPriority,
+            actionable: freshness !== "stale",
+            recommendedInitialProbeSize: 3,
+            decisionGuidance: "continue_targeted_probe",
+          },
+        ],
       });
     },
   );

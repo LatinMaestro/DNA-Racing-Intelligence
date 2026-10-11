@@ -166,22 +166,49 @@ describe("Discovery decision guidance", () => {
     );
   });
 
-  it("preserves stale deferral and the ten-race review boundary", () => {
-    expect(
-      guidance(
-        candidate({
-          freshness: "stale",
-        }),
-      ),
-    ).toEqual(
-      expect.objectContaining({
-        decisionGuidance: "defer_stale_or_unresolved",
-        decisionReason: "evidence_stale_or_unresolved",
-        recommendedDecisionProbeSize: 0,
-        decisionActionable: false,
+  it("preserves as-of stale analysis without approving a current probe", () => {
+    const snapshot = guidance(
+      candidate({
+        freshness: "stale",
+        directTimeEvidence: {
+          bestMilliseconds: 51_000,
+          medianMilliseconds: 51_250,
+          meanMilliseconds: 51_500,
+          standardDeviationMilliseconds: 500,
+        },
       }),
     );
+    expect(snapshot).toEqual(
+      expect.objectContaining({
+        decisionGuidance: "continue_targeted_probe",
+        decisionReason: "competitive_winner_range",
+        recommendedDecisionProbeSize: 3,
+        decisionActionable: false,
+        automaticEntryAllowed: false,
+        automaticStopAllowed: false,
+      }),
+    );
+    expect(snapshot.warnings).toContain("DATA_STALE");
 
+    const smallSample = guidance(
+      candidate({
+        freshness: "stale",
+        directRaceCount: 3,
+      }),
+    );
+    expect(smallSample).toMatchObject({
+      decisionGuidance: "continue_single_confirmation",
+      recommendedDecisionProbeSize: 1,
+      decisionActionable: false,
+    });
+    expect(guidance(candidate({ freshness: "unknown" }))).toMatchObject({
+      decisionGuidance: "defer_stale_or_unresolved",
+      recommendedDecisionProbeSize: 0,
+      decisionActionable: false,
+    });
+  });
+
+  it("preserves the ten-race review boundary", () => {
     expect(
       guidance(
         candidate({
