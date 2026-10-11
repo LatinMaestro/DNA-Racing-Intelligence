@@ -33,6 +33,7 @@ describe("Tournament workspace", () => {
     expect(html).toContain("No accepted tournament evidence");
     expect(html).toContain("Tournament entry unavailable");
     expect(html).toContain("Gate C not passed");
+    expect(html).toContain("Calibrated tournament optimiser not commissioned");
     expect(html).not.toContain("Recommended entry");
   });
 
@@ -76,6 +77,27 @@ describe("Tournament workspace", () => {
           coreId: "preserved-core",
           maidenModeDisposition: "preserve_for_stronger_mode",
         },
+        {
+          ...common,
+          coreId: "stale-core",
+          freshness: "stale",
+          dataCurrentThrough: "2026-07-10T00:00:00.000Z",
+          maidenState: "not_eligible",
+          maidenModeDisposition: "not_applicable",
+        },
+        {
+          ...common,
+          coreId: "unknown-core",
+          eligibility: "review_required",
+          metricStatus: "unavailable",
+          metricRank: null,
+          metricEvidenceLabel: null,
+          dataCurrentThrough: null,
+          lastImported: null,
+          freshness: "unknown",
+          maidenState: "unknown",
+          maidenModeDisposition: "unresolved",
+        },
       ],
     });
     const html = renderToStaticMarkup(
@@ -98,5 +120,22 @@ describe("Tournament workspace", () => {
     expect(html).toContain("equal metric ranks remain ties");
     expect(html).toContain("50% race gate is a hard cap");
     expect(html).toContain("Historical tournament evidence connected");
+    expect(html).toContain("Calibrated tournament optimiser not commissioned");
+    expect(html).toContain("1v1 opponent-field P(win)");
+    expect(html).toContain("Configured qualification probability");
+    expect(html).toContain("Same-element top-10% stress P(win)");
+    expect(html).toContain("Actual fee/prize economic break-even");
+    expect(html).toContain("Per-race and campaign expected value");
+    expect(html.match(/Not computed/g)).toHaveLength(5);
+    expect(html).toContain("Historical freshness");
+    expect(html).toContain("Data current through");
+    expect(html).toContain("Last imported");
+    expect(html).toContain('dateTime="2026-07-20T00:00:00.000Z"');
+    expect(html).toContain('dateTime="2026-07-10T00:00:00.000Z"');
+    expect(html).toContain("Stale");
+    expect(html).toContain("Unknown");
+    expect(html).toContain("Not available");
+    expect(html).toContain("50% Car 1v1 P(win) screening rule");
+    expect(html).not.toContain("Positive-EV recommendation");
   });
 });
