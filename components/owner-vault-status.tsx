@@ -1,12 +1,21 @@
 import Link from "next/link";
 
-import type { OwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
+import {
+  OWNER_VAULT_LIST_LIMIT,
+  type OwnerVaultCataloguePageState,
+} from "@/lib/owner-vault-catalogue-service";
+
+const cappedResultsNotice =
+  `The owner-scoped Vault list reached its ${OWNER_VAULT_LIST_LIMIT.toLocaleString("en-AU")}-core limit. ` +
+  "Active and ME-eligible counts describe returned records, not verified totals; additional owned cores may be omitted.";
 
 export function OwnerVaultStatus({
   state,
 }: Readonly<{ state: OwnerVaultCataloguePageState }>) {
   const connected = state.connectionStatus === "connected";
   const meEligible = state.cores.filter((core) => core.meEligible).length;
+  const atResultLimit =
+    connected && state.cores.length >= OWNER_VAULT_LIST_LIMIT;
 
   return (
     <section
@@ -28,7 +37,7 @@ export function OwnerVaultStatus({
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-[var(--muted)]">Active cores</dt>
+          <dt className="text-[var(--muted)]">Active cores shown</dt>
           <dd className="mt-1 font-medium">
             {connected
               ? state.cores.length.toLocaleString("en-AU")
@@ -36,12 +45,20 @@ export function OwnerVaultStatus({
           </dd>
         </div>
         <div>
-          <dt className="text-[var(--muted)]">ME eligible</dt>
+          <dt className="text-[var(--muted)]">ME eligible shown</dt>
           <dd className="mt-1 font-medium">
             {connected ? meEligible.toLocaleString("en-AU") : "Not available"}
           </dd>
         </div>
       </dl>
+      {atResultLimit ? (
+        <p
+          className="mt-4 text-xs leading-5 text-[var(--warning)]"
+          role="status"
+        >
+          {cappedResultsNotice}
+        </p>
+      ) : null}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
         This private registry is the current-state authority. It is maintained
         in the website and is not inferred from historical races or a Vault CSV.

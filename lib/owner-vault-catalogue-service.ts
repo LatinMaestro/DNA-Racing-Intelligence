@@ -1,3 +1,5 @@
+export const OWNER_VAULT_LIST_LIMIT = 500;
+
 export const ownerVaultElements = ["Metal", "Fire", "Earth", "Water"] as const;
 export type OwnerVaultElement = (typeof ownerVaultElements)[number];
 
