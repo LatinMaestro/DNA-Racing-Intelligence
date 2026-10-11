@@ -416,8 +416,7 @@ function parseNeonUsage(
     throw measurementFailure("neon_project_data_transfer_invalid");
   }
   if (
-    dataTransferBytes >
-    DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes
+    dataTransferBytes > DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes
   ) {
     throw measurementFailure("neon_data_transfer_budget_exhausted");
   }
