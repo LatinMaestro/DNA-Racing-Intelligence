@@ -19,6 +19,9 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("Normal last imported");
     expect(html).toContain("Esports last synced");
     expect(html).toContain("omitted Esports profile coverage");
+    expect(html).toContain("Historical snapshot coverage boundary");
+    expect(html).toContain("Outstanding historical backfill");
+    expect(html).toContain("absence is unknown, not zero");
     expect(html).not.toContain("0.000 s");
     expect(html).not.toContain("0.000 m/s");
   });
@@ -84,6 +87,7 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("0 / 1");
     expect(html).toContain("Yellow-eligible races (source Gold)");
     expect(html).toContain("Normal-racing exact-distance profiles");
+    expect(html).toContain("This is not a lifetime-total or live-game view");
     expect(html).toContain("Experimental");
     expect(html).toContain('dateTime="2026-07-20T01:00:00Z"');
     expect(html).toContain('dateTime="2026-07-20T00:00:00Z"');
