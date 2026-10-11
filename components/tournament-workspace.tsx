@@ -42,11 +42,7 @@ function timestamp(value: string | null) {
   if (value === null) return "Not available";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Not available";
-  return (
-    <time dateTime={value}>
-      {timestampFormatter.format(parsed)} UTC
-    </time>
-  );
+  return <time dateTime={value}>{timestampFormatter.format(parsed)} UTC</time>;
 }
 
 const missingOptimizerEvidence = [
