@@ -107,10 +107,7 @@ export function TournamentWorkspace({
         aria-labelledby="tournament-optimizer-status"
         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
       >
-        <h2
-          className="text-lg font-semibold"
-          id="tournament-optimizer-status"
-        >
+        <h2 className="text-lg font-semibold" id="tournament-optimizer-status">
           Calibrated tournament optimiser not commissioned
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
