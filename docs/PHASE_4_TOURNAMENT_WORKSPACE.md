@@ -26,6 +26,16 @@ does not scan raw Race Merge history on a routine request.
 - Unknown or missing evidence is unavailable, never favourable or zero.
 - Every candidate remains experimental and non-actionable while Gate C is
   unpassed.
+- Candidate cards disclose their own accepted historical cutoff, last import
+  timestamp and freshness, including stale/unknown, rather than implying one
+  tournament-wide dataset is complete or continuously live.
+- The calibrated same-group tournament-field P(win), probability of achieving
+  the configured qualification metric, same-element top-10% stress case,
+  actual fee/prize break-even and per-race/campaign EV are **not computed** by
+  this preliminary ranking. The owner 50% Car 1v1 P(win) screening rule is
+  distinct from the 50% race-gate occupancy cap and does not prove positive EV.
+  The UI labels these steps unavailable until their existing approved method
+  is connected and tested; it does not silently fabricate output.
 
 ## Fail-closed boundary
 

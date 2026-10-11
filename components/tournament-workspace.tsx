@@ -32,16 +32,31 @@ function label(value: string): string {
     .join(" ");
 }
 
-function timestamp(value: string | null): string {
+const timestampFormatter = new Intl.DateTimeFormat("en-AU", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
+
+function timestamp(value: string | null) {
   if (value === null) return "Not available";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-AU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(parsed);
+  return <time dateTime={value}>{timestampFormatter.format(parsed)} UTC</time>;
 }
+
+const missingOptimizerEvidence = [
+  "1v1 opponent-field P(win)",
+  "Configured qualification probability",
+  "Same-element top-10% stress P(win)",
+  "Actual fee/prize economic break-even",
+  "Per-race and campaign expected value",
+] as const;
+
+const carOneVOneScreeningDisclosure =
+  "The owner's 50% Car 1v1 P(win) screening rule is not evaluated here. " +
+  "It differs from the 50% race-gate occupancy cap and does not, by " +
+  "itself, establish positive expected value without fee/prize evidence.";
 
 export function TournamentWorkspace({
   brackets,
@@ -87,6 +102,33 @@ export function TournamentWorkspace({
         >
           Tournament entry unavailable
         </button>
+      </section>
+
+      <section
+        aria-labelledby="tournament-optimizer-status"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <h2 className="text-lg font-semibold" id="tournament-optimizer-status">
+          Calibrated tournament optimiser not commissioned
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          These historical, group-scoped metric ranks are preliminary review
+          evidence, not calculated tournament-strength probabilities or profit
+          recommendations. The approved same-mode, exact-distance, gate, format
+          and element opponent-distribution methodology is not yet connected to
+          this ranking view.
+        </p>
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          {missingOptimizerEvidence.map((metric) => (
+            <div key={metric}>
+              <dt className="text-[var(--muted)]">{metric}</dt>
+              <dd className="mt-1 font-semibold">Not computed</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+          {carOneVOneScreeningDisclosure}
+        </p>
       </section>
 
       <section aria-labelledby="tournament-candidates">
@@ -233,6 +275,30 @@ export function TournamentWorkspace({
                                   </dt>
                                   <dd className="mt-1 font-semibold">
                                     {label(candidate.maidenState)}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[var(--muted)]">
+                                    Data current through
+                                  </dt>
+                                  <dd className="mt-1 font-semibold">
+                                    {timestamp(candidate.dataCurrentThrough)}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[var(--muted)]">
+                                    Last imported
+                                  </dt>
+                                  <dd className="mt-1 font-semibold">
+                                    {timestamp(candidate.lastImported)}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[var(--muted)]">
+                                    Historical freshness
+                                  </dt>
+                                  <dd className="mt-1 font-semibold">
+                                    {label(candidate.freshness)}
                                   </dd>
                                 </div>
                               </dl>
