@@ -98,6 +98,7 @@ A phase or feature is complete only when all applicable items pass.
 - Open Race stage transitions and observation reconciliation are tested.
 - Accessibility and responsive behaviour are checked.
 - Private primary navigation identifies the current module visibly and with `aria-current="page"` for exact or nested module routes, without marking unrelated routes as current.
+- Failed private pages offer a generic accessible recovery view without revealing exception messages, digests or stacks, and warn that interrupted writes may still have completed.
 - Security-sensitive values are not logged.
 
 ## Delivery
