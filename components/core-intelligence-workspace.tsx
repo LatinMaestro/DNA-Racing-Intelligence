@@ -72,6 +72,22 @@ function EmptyEvidence({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
+function SnapshotCoverageBoundary() {
+  return (
+    <aside
+      aria-label="Historical snapshot coverage boundary"
+      className="mt-4 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-4 text-sm leading-6 text-[var(--muted)]"
+    >
+      <p>
+        Counts cover only accepted, materialized evidence through the displayed
+        cutoffs. Outstanding historical backfill, unresolved entrants and
+        unavailable source rows remain outside these totals; absence is unknown,
+        not zero. This is not a lifetime-total or live-game view.
+      </p>
+    </aside>
+  );
+}
+
 function NormalEvidence({
   profiles,
 }: {
@@ -379,6 +395,7 @@ export function CoreIntelligenceWorkspace({
             Normal last imported <Timestamp value={lastImportedAt} /> · Esports
             last synced <Timestamp value={esportsLastSyncedAt} />
           </p>
+          <SnapshotCoverageBoundary />
           {coverage.length === 0 ? (
             <EmptyEvidence>
               <h3 className="font-semibold">No commissioned Core evidence</h3>
@@ -437,6 +454,7 @@ export function CoreIntelligenceWorkspace({
             Historical snapshot · Last imported{" "}
             <Timestamp value={lastImportedAt} />
           </p>
+          <SnapshotCoverageBoundary />
           <NormalEvidence profiles={profiles} />
         </section>
       ) : (
