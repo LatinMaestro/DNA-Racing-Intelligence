@@ -9,8 +9,9 @@ import { modules } from "@/lib/modules";
 
 function currentHrefs(markup: string): string[] {
   return [...markup.matchAll(/<a\b([^>]*)>/g)]
-    .filter(([, attributes]) => attributes.includes('aria-current="page"'))
-    .map(([, attributes]) => attributes.match(/href="([^"]+)"/)?.[1] ?? "");
+    .map((match) => match[1] ?? "")
+    .filter((attributes) => attributes.includes('aria-current="page"'))
+    .map((attributes) => attributes.match(/href="([^"]+)"/)?.[1] ?? "");
 }
 
 describe("private primary navigation", () => {
