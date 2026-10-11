@@ -27,6 +27,11 @@ const connectionCopy: Record<
   },
 };
 
+const historicalSnapshotDisclosure =
+  "Historical snapshot preview only. This planning result uses the recorded " +
+  "cutoff, not today's complete race field. Do not enter races, spend assets " +
+  "or stop testing based on this outdated snapshot.";
+
 function label(value: string): string {
   return value
     .split("_")
@@ -241,10 +246,7 @@ export function DiscoveryWorkspace({
                     className="mt-4 text-sm leading-6 text-[var(--warning)]"
                     role="status"
                   >
-                    Historical snapshot preview only. This planning result
-                    uses the recorded cutoff, not today's complete race field.
-                    Do not enter races, spend assets or stop testing based on
-                    this outdated snapshot.
+                    {historicalSnapshotDisclosure}
                   </p>
                 ) : null}
 

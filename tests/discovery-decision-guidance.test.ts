@@ -201,9 +201,7 @@ describe("Discovery decision guidance", () => {
       recommendedDecisionProbeSize: 1,
       decisionActionable: false,
     });
-    expect(
-      guidance(candidate({ freshness: "unknown" })),
-    ).toMatchObject({
+    expect(guidance(candidate({ freshness: "unknown" }))).toMatchObject({
       decisionGuidance: "defer_stale_or_unresolved",
       recommendedDecisionProbeSize: 0,
       decisionActionable: false,

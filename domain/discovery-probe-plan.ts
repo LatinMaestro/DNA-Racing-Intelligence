@@ -381,8 +381,7 @@ function normalize(
   const oppositionAdjustedStarSupport =
     starEvidence?.oppositionAdjusted?.support === "strong_support" ||
     starEvidence?.oppositionAdjusted?.support === "supporting";
-  const actionable =
-    !unusable && !historicalOnly && observationsToMinimum > 0;
+  const actionable = !unusable && !historicalOnly && observationsToMinimum > 0;
   const recommendedInitialProbeSize =
     !unusable && observationsToMinimum > 0
       ? Math.min(3, observationsToMinimum)
