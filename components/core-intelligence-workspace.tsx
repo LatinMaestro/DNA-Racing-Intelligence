@@ -72,22 +72,6 @@ function EmptyEvidence({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-function SnapshotCoverageBoundary() {
-  return (
-    <aside
-      aria-label="Historical snapshot coverage boundary"
-      className="mt-4 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-4 text-sm leading-6 text-[var(--muted)]"
-    >
-      <p>
-        Counts cover only accepted, materialized evidence through the displayed
-        cutoffs. Outstanding historical backfill, unresolved entrants and
-        unavailable source rows remain outside these totals; absence is unknown,
-        not zero. This is not a lifetime-total or live-game view.
-      </p>
-    </aside>
-  );
-}
-
 function NormalEvidence({
   profiles,
 }: {
@@ -342,17 +326,19 @@ export function CoreIntelligenceWorkspace({
         </p>
       </header>
 
-      <section
-        aria-labelledby="core-connection"
-        className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
-      >
-        <h2 className="text-lg font-semibold" id="core-connection">
-          {connection.heading}
-        </h2>
-        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-          {connection.detail}
-        </p>
-      </section>
+      {connectionStatus !== "read_model_connected" ? (
+        <section
+          aria-labelledby="core-connection"
+          className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
+        >
+          <h2 className="text-lg font-semibold" id="core-connection">
+            {connection.heading}
+          </h2>
+          <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+            {connection.detail}
+          </p>
+        </section>
+      ) : null}
 
       <nav aria-label="Core evidence views" className="flex flex-wrap gap-2">
         {coreIntelligenceEvidenceViews.map((view) => (
@@ -371,31 +357,15 @@ export function CoreIntelligenceWorkspace({
         ))}
       </nav>
 
-      <section
-        aria-labelledby="analytical-boundary"
-        className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
-      >
-        <h2 className="text-lg font-semibold" id="analytical-boundary">
-          Experimental evidence boundary
-        </h2>
-        <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
-          Esports is included in Core analysis but never silently pooled across
-          unlike race formats, distances or opposition. Raw win and Top-3 rates
-          remain descriptive; authoritative time, speed, consistency, sample,
-          freshness and field quality stay primary.
-        </p>
-      </section>
-
       {selectedEvidenceView === "overview" ? (
         <section aria-labelledby="all-evidence-heading">
           <h2 className="text-xl font-semibold" id="all-evidence-heading">
-            All analysed evidence
+            Analysed evidence
           </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Normal last imported <Timestamp value={lastImportedAt} /> · Esports
             last synced <Timestamp value={esportsLastSyncedAt} />
           </p>
-          <SnapshotCoverageBoundary />
           {coverage.length === 0 ? (
             <EmptyEvidence>
               <h3 className="font-semibold">No commissioned Core evidence</h3>
@@ -416,9 +386,7 @@ export function CoreIntelligenceWorkspace({
                   </h3>
                   <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
                     <div>
-                      <dt className="text-[var(--muted)]">
-                        All analysed races
-                      </dt>
+                      <dt className="text-[var(--muted)]">Analysed races</dt>
                       <dd className="mt-1 font-semibold">
                         {item.allAnalysedRaceCount.toLocaleString("en-AU")}
                       </dd>
@@ -454,7 +422,6 @@ export function CoreIntelligenceWorkspace({
             Historical snapshot · Last imported{" "}
             <Timestamp value={lastImportedAt} />
           </p>
-          <SnapshotCoverageBoundary />
           <NormalEvidence profiles={profiles} />
         </section>
       ) : (
