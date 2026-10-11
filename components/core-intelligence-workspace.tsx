@@ -386,9 +386,7 @@ export function CoreIntelligenceWorkspace({
                   </h3>
                   <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
                     <div>
-                      <dt className="text-[var(--muted)]">
-                        Analysed races
-                      </dt>
+                      <dt className="text-[var(--muted)]">Analysed races</dt>
                       <dd className="mt-1 font-semibold">
                         {item.allAnalysedRaceCount.toLocaleString("en-AU")}
                       </dd>
