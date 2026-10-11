@@ -4,6 +4,7 @@ import type {
   DnaOpenLabProviderCapacityMeasurementSource,
 } from "./dna-open-lab-provider-capacity-preflight";
 import { DnaOpenLabProviderCapacityMeasurementError } from "./dna-open-lab-provider-capacity-preflight";
+import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "./dna-open-lab-zero-cost-provider-capacity";
 
 const CLOUDFLARE_GRAPHQL_URL = "https://api.cloudflare.com/client/v4/graphql";
 const NEON_API_ORIGIN = "https://console.neon.tech/api/v2";
@@ -371,6 +372,7 @@ function parseNeonUsage(
   billingWindowEndAt: string;
   storageBytes: number;
   computeMilliCuHours: number;
+  dataTransferBytes: number;
 }> {
   let project: ProviderRecord;
   try {
@@ -406,6 +408,18 @@ function parseNeonUsage(
   const computeMilliCuHours = Math.ceil((computeSeconds * 1_000) / 3_600);
   if (!Number.isSafeInteger(computeMilliCuHours)) {
     throw measurementFailure("neon_project_compute_invalid");
+  }
+  let dataTransferBytes: number;
+  try {
+    dataTransferBytes = safeInteger(project.data_transfer_bytes);
+  } catch {
+    throw measurementFailure("neon_project_data_transfer_invalid");
+  }
+  if (
+    dataTransferBytes >
+    DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS.dataTransferBytes
+  ) {
+    throw measurementFailure("neon_data_transfer_budget_exhausted");
   }
   let branchesEnvelope: ProviderRecord;
   let branches: unknown[];
@@ -472,14 +486,15 @@ function parseNeonUsage(
     billingWindowEndAt,
     storageBytes,
     computeMilliCuHours,
+    dataTransferBytes,
   });
 }
 
 /**
  * Read-only, server-only provider measurement source for the recurring refresh.
  * Cloudflare supplies the bucket storage/operation counters and Neon supplies
- * project-wide storage, CU-weighted compute and its exact consumption window.
- * Only normalized totals and timestamps cross this boundary.
+ * project-wide storage, CU-weighted compute, network transfer and its exact
+ * consumption window. Only normalized totals and timestamps cross this boundary.
  */
 export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
   configuration: CloudflareNeonDnaOpenLabProviderCapacityConfiguration,
@@ -723,6 +738,7 @@ export function createCloudflareNeonDnaOpenLabProviderCapacitySource(
             storageBytes: neon.storageBytes,
             computeMilliCuHours: neon.computeMilliCuHours,
           }),
+          neonDataTransferBytes: neon.dataTransferBytes,
         });
       } catch (error) {
         if (error instanceof DnaOpenLabProviderCapacityMeasurementError) {
