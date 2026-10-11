@@ -109,9 +109,9 @@ export function TournamentWorkspace({
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
           These historical, group-scoped metric ranks are preliminary review
           evidence, not calculated tournament-strength probabilities or profit
-          recommendations. The approved same-mode, exact-distance, gate,
-          format and element opponent-distribution methodology is not yet
-          connected to this ranking view.
+          recommendations. The approved same-mode, exact-distance, gate, format
+          and element opponent-distribution methodology is not yet connected to
+          this ranking view.
         </p>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           {missingOptimizerEvidence.map((metric) => (
