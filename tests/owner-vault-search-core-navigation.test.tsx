@@ -47,17 +47,17 @@ const connectedState: OwnerVaultCataloguePageState = {
 };
 
 describe("My Vault to existing Search Core navigation", () => {
-  it("links owned and catalogue cards to their own encoded read-only Core evidence", () => {
+  it("links both Vault cards to their selected Core evidence", () => {
     const html = renderToStaticMarkup(
       <OwnerVaultWorkspace state={connectedState} />,
     );
 
-    expect(html).toContain(
+    const evidenceLinks =
+      html.match(/href="\/search-core\?[^"]+"/g) ?? [];
+    expect(evidenceLinks).toEqual([
       'href="/search-core?q=core-7&amp;coreId=core-7"',
-    );
-    expect(html).toContain(
       'href="/search-core?q=core%3A8&amp;coreId=core%3A8"',
-    );
+    ]);
     expect(html.match(/View race evidence/g)).toHaveLength(2);
     expect(html).toContain("In My Vault");
     expect(html).toContain("Not in My Vault");
