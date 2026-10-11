@@ -14,11 +14,11 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
             {source} snapshot
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            No accepted import is connected yet.
+            This dashboard has no verified {source.toLowerCase()} snapshot receipt connected.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-          Awaiting first accepted import
+          Freshness and coverage unverified
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
@@ -36,8 +36,9 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
         </div>
       </dl>
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        Accepted imports are labelled as historical snapshots, never as live
-        game state.
+        Historical results may exist without a connected dashboard receipt.
+        Missing timestamps do not mean no imports or zero races; they also do
+        not confirm complete coverage or live game state.
       </p>
     </section>
   );
