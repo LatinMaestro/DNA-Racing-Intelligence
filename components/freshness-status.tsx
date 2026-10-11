@@ -14,7 +14,7 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
             {source} snapshot
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            This dashboard has no verified {source.toLowerCase()} snapshot receipt connected.
+            No linked {source.toLowerCase()} receipt for this card.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
@@ -36,9 +36,7 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
         </div>
       </dl>
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        Historical results may exist without a connected dashboard receipt.
-        Missing timestamps do not mean no imports or zero races; they also do
-        not confirm complete coverage or live game state.
+        Missing timestamps do not mean no imports or live data.
       </p>
     </section>
   );
