@@ -52,8 +52,7 @@ describe("My Vault to existing Search Core navigation", () => {
       <OwnerVaultWorkspace state={connectedState} />,
     );
 
-    const evidenceLinks =
-      html.match(/href="\/search-core\?[^"]+"/g) ?? [];
+    const evidenceLinks = html.match(/href="\/search-core\?[^"]+"/g) ?? [];
     expect(evidenceLinks).toEqual([
       'href="/search-core?q=core-7&amp;coreId=core-7"',
       'href="/search-core?q=core%3A8&amp;coreId=core%3A8"',
