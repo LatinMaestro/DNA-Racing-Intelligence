@@ -65,7 +65,9 @@ inferred format fit from proven direct format performance.
   merely because the first distance was wrong.
 - Raise review priority for tournament relevance or Maiden preservation without
   authorising an entry.
-- Defer stale, unknown-cutoff and unresolved-Maiden evidence.
+- Display accepted stale results as historical planning previews with their
+  original cutoff, same approved review method and explicit no-action warning.
+- Defer unknown-cutoff, unknown-freshness and unresolved-Maiden evidence.
 - Preserve every Gate C, freshness, lineage and Maiden warning.
 
 Every candidate remains experimental, non-actionable and unable to authorise
@@ -101,7 +103,9 @@ as the accepted sample grows.
 
 The route is a dynamic Server Component with no client-side persistence path.
 The page displays historical import and data cutoffs separately, labels Gate C
-as not passed and keeps race entry disabled.
+as not passed and keeps race entry disabled. A historical snapshot may still
+populate the same calculated planning rows while identifying their actual
+cutoff; it is not a current-day race or automatic action recommendation.
 
 The additive normal-Free study interface provides mode and audit filters, a
 candidate matrix and per-distance table contracts with visually distinct

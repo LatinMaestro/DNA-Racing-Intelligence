@@ -14,14 +14,20 @@ asset, stop Discovery or consume Maiden eligibility.
   cannot substitute for direct observations.
 - Tournament relevance and Maiden eligibility may raise review priority, but
   cannot authorise an entry.
-- Stale data, unknown cutoffs and unresolved Maiden state are deferred.
+- Known, accepted but stale cutoffs still produce the same bounded historical
+  review priorities, exact-distance benchmarks and probe-size estimates.
+  Outputs remain low-confidence historical previews, never current race advice.
+- Unknown cutoffs, unknown freshness and unresolved Maiden state are deferred.
 - Maiden-eligible candidates carry an explicit commitment-review warning.
 
 ## Gate boundary
 
-Every output is experimental and non-actionable. Automatic entry and automatic
-stop remain disabled until Gate C holdout, baseline and calibration evidence
-passes. The output describes coverage work for review, not a racing instruction.
+Every output is experimental. A stale historical-only plan explicitly has
+`actionable: false` and `decisionActionable: false`, even if its as-of
+recommendation and historical probe estimate can be calculated. Automatic entry
+and automatic stop remain disabled until Gate C holdout, baseline and
+calibration evidence passes. The output describes coverage work for review, not
+a racing instruction.
 
 ## Validation
 
