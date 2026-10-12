@@ -47,7 +47,9 @@ export default async function DashboardPage() {
           Evidence before recommendations.
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--muted)]">
-          These cards are unverified; missing receipts do not mean no history.
+          Browse your Vault and linked historical evidence workspaces. The
+          snapshot dates shown on this Dashboard are available only where a
+          source receipt is connected.
         </p>
       </header>
       <div className="grid gap-4 xl:grid-cols-2">
