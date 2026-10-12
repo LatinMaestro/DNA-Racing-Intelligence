@@ -22,16 +22,12 @@ function evidenceView(
   );
 }
 
-function selectedMode(
-  value: string | string[] | undefined,
-): RaceMode | "all" {
+function selectedMode(value: string | string[] | undefined): RaceMode | "all" {
   const selected = Array.isArray(value) ? value[0] : value;
   return raceModes.find((mode) => mode === selected) ?? "all";
 }
 
-function selectedDistance(
-  value: string | string[] | undefined,
-): number | null {
+function selectedDistance(value: string | string[] | undefined): number | null {
   const selected = Array.isArray(value) ? value[0] : value;
   if (selected === undefined || !/^[1-9][0-9]*$/.test(selected)) {
     return null;
