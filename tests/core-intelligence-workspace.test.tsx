@@ -95,7 +95,6 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain('dateTime="2026-07-20T00:00:00Z"');
   });
 
-
   it("filters accepted normal profiles by Bike, Car, Horse and exact distance", () => {
     const eventAt = "2026-07-20T00:00:00Z";
     const profiles = buildCorePerformanceProfiles(
@@ -136,7 +135,10 @@ describe("Core Intelligence historical workspace", () => {
       [],
       new Date("2026-07-23T00:00:00Z"),
     );
-    const render = (mode: "all" | "bike" | "car" | "horse", distance: number | null) =>
+    const render = (
+      mode: "all" | "bike" | "car" | "horse",
+      distance: number | null,
+    ) =>
       renderToStaticMarkup(
         <CoreIntelligenceWorkspace
           connectionStatus="read_model_connected"
