@@ -11,9 +11,7 @@ describe("private page loading status", () => {
     expect(markup).toContain('aria-live="polite"');
     expect(markup).toContain('aria-atomic="true"');
     expect(markup).toContain('aria-busy="true"');
-    expect(markup).toContain(
-      'aria-labelledby="private-page-loading-title"',
-    );
+    expect(markup).toContain('aria-labelledby="private-page-loading-title"');
     expect(markup).toContain("Loading private page");
     expect(markup).toContain("latest available private snapshot");
     expect(markup).toContain(
