@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type {
   OpenRaceWorkspaceConnectionStatus,
   OpenRaceWorkspaceSession,
@@ -42,6 +44,22 @@ function timestamp(value: string): string {
     timeStyle: "short",
     timeZone: "UTC",
   }).format(parsed);
+}
+
+function CoreHistoryLink({
+  coreId,
+  children,
+}: Readonly<{ coreId: string; children: string }>) {
+  const encodedCoreId = encodeURIComponent(coreId);
+  return (
+    <Link
+      aria-label={`View Core ${coreId} history`}
+      className="font-semibold text-[var(--accent)] hover:underline"
+      href={`/search-core?q=${encodedCoreId}&coreId=${encodedCoreId}`}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function SessionCard({
@@ -125,9 +143,9 @@ function SessionCard({
                   className="flex justify-between gap-3"
                   key={candidate.coreId}
                 >
-                  <span>
-                    {candidate.rank}. Core {candidate.coreId}
-                  </span>
+                  <CoreHistoryLink coreId={candidate.coreId}>
+                    {`${candidate.rank}. Core ${candidate.coreId}`}
+                  </CoreHistoryLink>
                   <span className="font-mono text-[var(--muted)]">
                     {candidate.medianTimeMs.toLocaleString("en-AU")} ms
                   </span>
@@ -146,8 +164,11 @@ function SessionCard({
             </p>
             {session.lock === null ? null : (
               <p className="mt-2 text-xs text-[var(--muted)]">
-                Committed core {session.lock.selectedOwnedCoreId} · Frozen
-                ranking {session.lock.preEntryRankingId} · Switching disabled
+                <CoreHistoryLink coreId={session.lock.selectedOwnedCoreId}>
+                  {`Committed core ${session.lock.selectedOwnedCoreId}`}
+                </CoreHistoryLink>{" "}
+                · Frozen ranking {session.lock.preEntryRankingId} · Switching
+                disabled
               </p>
             )}
             {session.observation === null ? null : (

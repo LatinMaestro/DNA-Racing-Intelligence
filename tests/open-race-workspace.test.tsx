@@ -32,7 +32,7 @@ const session = {
     evaluatedAt: "2026-07-20T02:00:00.000Z",
     vaultDataCurrentThrough: "2026-07-20T00:00:00.000Z",
     freshness: "current",
-    eligibleCoreIds: ["owned-a"],
+    eligibleCoreIds: ["owned:a"],
     excludedCores: [],
     status: "confirmed",
     reviewReasons: [],
@@ -48,7 +48,7 @@ const session = {
     rankedCandidates: [
       {
         rank: 1,
-        coreId: "owned-a",
+        coreId: "owned:a",
         medianTimeMs: 60_000,
         marginToStrongestOpponentMs: 0,
         starsAffectedRank: false,
@@ -56,7 +56,7 @@ const session = {
       },
     ],
     strongestOpponentCoreId: "opponent-a",
-    provisionalRecommendedCoreId: "owned-a",
+    provisionalRecommendedCoreId: "owned:a",
     avoidSignal: false,
     reviewReasons: [],
     warnings: [],
@@ -71,9 +71,9 @@ const session = {
     preEntryRankingId: "synthetic-ranking",
     lockedAt: "2026-07-20T02:02:00.000Z",
     gateCount: 4,
-    enteredCoreIds: ["owned-a", "opponent-a", "opponent-b", "opponent-c"],
-    selectedOwnedCoreId: "owned-a",
-    provisionalRecommendedCoreId: "owned-a",
+    enteredCoreIds: ["owned:a", "opponent-a", "opponent-b", "opponent-c"],
+    selectedOwnedCoreId: "owned:a",
+    provisionalRecommendedCoreId: "owned:a",
     preEntryStatus: "provisional",
     status: "locked_for_observation",
     coreSwitchAllowed: false,
@@ -86,10 +86,10 @@ const session = {
     lockedAt: "2026-07-20T02:02:00.000Z",
     observedAt: "2026-07-20T02:03:00.000Z",
     gateCount: 4,
-    enteredCoreIds: ["owned-a", "opponent-a", "opponent-b", "opponent-c"],
-    selectedOwnedCoreId: "owned-a",
+    enteredCoreIds: ["owned:a", "opponent-a", "opponent-b", "opponent-c"],
+    selectedOwnedCoreId: "owned:a",
     gold: { status: "assigned", coreId: "opponent-a" },
-    blue: { status: "assigned", coreId: "owned-a" },
+    blue: { status: "assigned", coreId: "owned:a" },
     selectedCoreSignal: "blue",
     goldApplicable: true,
     recordStatus: "recorded",
@@ -140,6 +140,7 @@ describe("Open Race workspace", () => {
     expect(html).toContain("No accepted Open Race session");
     expect(html).toContain("Stage A capture unavailable");
     expect(html).toContain("Gate C not passed");
+    expect(html).not.toContain("/search-core");
   });
 
   it("renders bound Stage A and diagnostic Stage B evidence without actions", () => {
@@ -149,8 +150,12 @@ describe("Open Race workspace", () => {
         sessions={[session]}
       />,
     );
-    expect(html).toContain("Provisional review leader: Core owned-a");
-    expect(html).toContain("Committed core owned-a");
+    expect(html).toContain("Provisional review leader: Core owned:a");
+    expect(html).toContain("Committed core owned:a");
+    expect(
+      html.match(/href="\/search-core\?q=owned%3Aa&amp;coreId=owned%3Aa"/g),
+    ).toHaveLength(2);
+    expect(html.match(/View Core owned:a history/g)).toHaveLength(2);
     expect(html).toContain("Switching disabled");
     expect(html).toContain("Pending Authoritative Import");
     expect(html).toContain("Frozen pre-entry ranking unchanged");
