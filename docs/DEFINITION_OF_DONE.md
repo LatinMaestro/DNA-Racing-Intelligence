@@ -99,6 +99,7 @@ A phase or feature is complete only when all applicable items pass.
 - Accessibility and responsive behaviour are checked.
 - Private primary navigation identifies the current module visibly and with `aria-current="page"` for exact or nested module routes, without marking unrelated routes as current.
 - Failed private pages offer a generic accessible recovery view without revealing exception messages, digests or stacks, and warn that interrupted writes may still have completed.
+- Unknown authenticated routes return an accessible, privacy-safe 404 view without echoing the requested path or exposing private data, and keep prior operation status explicitly unknown.
 - Dashboard owner-Vault counts refer to returned registry rows and disclose when
   the bounded result limit prevents verified total counts.
 - Security-sensitive values are not logged.
