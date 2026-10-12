@@ -18,6 +18,7 @@ describe("Maiden workspace", () => {
     expect(html).toContain("Maiden commitment unavailable");
     expect(html).toContain("Gates C and D not passed");
     expect(html).not.toContain("Recommended commitment");
+    expect(html).not.toContain("/search-core?");
   });
 
   it("renders bound preserve-ME evidence without authorising commitment", () => {
@@ -43,7 +44,7 @@ describe("Maiden workspace", () => {
       [
         {
           candidateId: "synthetic-candidate",
-          coreId: "synthetic-core",
+          coreId: "synthetic:core",
           tournamentId: "synthetic-maiden",
           bracketId: "synthetic-bracket",
           mode: "horse",
@@ -70,7 +71,11 @@ describe("Maiden workspace", () => {
       />,
     );
 
-    expect(html).toContain("Core synthetic-core");
+    expect(html).toContain("Core synthetic:core");
+    expect(html).toContain(
+      'href="/search-core?q=synthetic%3Acore&amp;coreId=synthetic%3Acore"',
+    );
+    expect(html.match(/View Core profile/g)).toHaveLength(1);
     expect(html).toContain("horse · Synthetic Maiden");
     expect(html).toContain("Synthetic Bracket");
     expect(html).toContain("Preserve Me");
