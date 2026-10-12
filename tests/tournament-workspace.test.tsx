@@ -35,6 +35,7 @@ describe("Tournament workspace", () => {
     expect(html).toContain("Gate C not passed");
     expect(html).toContain("Calibrated tournament optimiser not commissioned");
     expect(html).not.toContain("Recommended entry");
+    expect(html).not.toContain("/search-core?");
   });
 
   it("renders split and group labels, version binding, ties and Maiden preservation", () => {
@@ -74,7 +75,7 @@ describe("Tournament workspace", () => {
         },
         {
           ...common,
-          coreId: "preserved-core",
+          coreId: "preserved:core",
           maidenModeDisposition: "preserve_for_stronger_mode",
         },
         {
@@ -136,6 +137,11 @@ describe("Tournament workspace", () => {
     expect(html).toContain("Unknown");
     expect(html).toContain("Not available");
     expect(html).toContain("50% Car 1v1 P(win) screening rule");
+    expect(html.match(/View Core profile/g)).toHaveLength(4);
+    expect(html).toContain(
+      'href="/search-core?q=preserved%3Acore&amp;coreId=preserved%3Acore"',
+    );
+    expect(html).toContain("Core preserved:core");
     expect(html).not.toContain("Positive-EV recommendation");
   });
 });

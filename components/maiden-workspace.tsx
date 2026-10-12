@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { MaidenVaultAllocation } from "@/domain/maiden-vault-allocation";
 import type { MaidenWorkspaceConnectionStatus } from "@/lib/maiden-workspace-service";
 
@@ -159,6 +161,15 @@ export function MaidenWorkspace({
                         {label(candidate.status)}
                       </span>
                     </div>
+                    <Link
+                      aria-label={`View Core ${candidate.coreId} racing history`}
+                      className="mt-3 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
+                      href={`/search-core?q=${encodeURIComponent(
+                        candidate.coreId,
+                      )}&coreId=${encodeURIComponent(candidate.coreId)}`}
+                    >
+                      View Core profile
+                    </Link>
                     <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
                       <div>
                         <dt className="text-[var(--muted)]">Bracket</dt>

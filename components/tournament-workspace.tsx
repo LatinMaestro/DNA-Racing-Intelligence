@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { TournamentCandidateRankingResult } from "@/domain/tournament-candidate-ranking";
 import type { TournamentWorkspaceConnectionStatus } from "@/lib/tournament-workspace-service";
 
@@ -237,6 +239,15 @@ export function TournamentWorkspace({
                                       ? "Not in group review order"
                                       : `Group review rank ${candidate.groupReviewRank}`}
                                   </p>
+                                  <Link
+                                    aria-label={`View Core ${candidate.coreId} racing history`}
+                                    className="mt-3 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
+                                    href={`/search-core?q=${encodeURIComponent(
+                                      candidate.coreId,
+                                    )}&coreId=${encodeURIComponent(candidate.coreId)}`}
+                                  >
+                                    View Core profile
+                                  </Link>
                                 </div>
                                 <span className="text-xs font-semibold text-[var(--warning)]">
                                   {label(candidate.disposition)}
