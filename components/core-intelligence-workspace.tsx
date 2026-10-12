@@ -68,6 +68,19 @@ function label(value: string): string {
     .join(" ");
 }
 
+function CoreProfileLink({ coreId }: Readonly<{ coreId: string }>) {
+  const encodedCoreId = encodeURIComponent(coreId);
+  return (
+    <Link
+      aria-label={`View Core ${coreId} profile`}
+      className="mt-4 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
+      href={`/search-core?q=${encodedCoreId}&coreId=${encodedCoreId}`}
+    >
+      View Core profile
+    </Link>
+  );
+}
+
 function EmptyEvidence({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
@@ -177,6 +190,7 @@ function NormalEvidence({
               </p>
             ) : null}
           </div>
+          <CoreProfileLink coreId={profile.coreId} />
         </article>
       ))}
     </div>
@@ -286,6 +300,7 @@ function EsportsEvidence({
               {label(profile.freshness)}
             </p>
           </div>
+          <CoreProfileLink coreId={profile.sourceCoreId} />
         </article>
       ))}
     </div>
@@ -423,6 +438,7 @@ export function CoreIntelligenceWorkspace({
                     Evidence scope {label(item.intrinsicEvidenceScope)} · DNA
                     public Esports coverage omitted
                   </p>
+                  <CoreProfileLink coreId={item.sourceCoreId} />
                 </article>
               ))}
             </div>
