@@ -153,9 +153,7 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Provisional review leader: Core owned:a");
     expect(html).toContain("Committed core owned:a");
     expect(
-      html.match(
-        /href="\/search-core\?q=owned%3Aa&amp;coreId=owned%3Aa"/g,
-      ),
+      html.match(/href="\/search-core\?q=owned%3Aa&amp;coreId=owned%3Aa"/g),
     ).toHaveLength(2);
     expect(html.match(/View Core owned:a history/g)).toHaveLength(2);
     expect(html).toContain("Switching disabled");
