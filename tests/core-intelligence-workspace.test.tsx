@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CoreIntelligenceWorkspace } from "@/components/core-intelligence-workspace";
+import { buildCoreEsportsPerformanceProfiles } from "@/domain/core-esports-performance";
 import { buildCorePerformanceProfiles } from "@/domain/core-performance";
 import { refreshStarProfiles } from "@/domain/star-signals";
 
@@ -16,6 +17,7 @@ describe("Core Intelligence historical workspace", () => {
 
     expect(html).toContain("Core Intelligence storage not connected");
     expect(html).toContain("No commissioned Core evidence");
+    expect(html).not.toContain("View Core profile");
     expect(html).toContain("Normal last imported");
     expect(html).toContain("Esports last synced");
     expect(html).toContain("omitted Esports profile coverage");
@@ -77,6 +79,9 @@ describe("Core Intelligence historical workspace", () => {
 
     expect(html).toContain("bike · 1,000 m");
     expect(html).toContain("Core synthetic-core");
+    expect(html).toContain(
+      'href="/search-core?q=synthetic-core&amp;coreId=synthetic-core"',
+    );
     expect(html).toContain("Hypothesis Only");
     expect(html).toContain("50.000 s");
     expect(html).toContain("20.000 m/s");
@@ -174,6 +179,78 @@ describe("Core Intelligence historical workspace", () => {
     expect(all).toContain("Showing 4 of 4 exact-mode/distance profiles");
     expect(all).toContain("car · 1,000 m");
     expect(all).toContain("bike · 1,600 m");
+  });
+
+  it("links overview and Esports Core IDs to their exact private Search Core profiles", () => {
+    const eventAt = "2026-07-20T00:00:00.000Z";
+    const normalProfiles = buildCorePerformanceProfiles(
+      [
+        {
+          eventId: "synthetic-normal-race",
+          eventAt,
+          coreId: "synthetic:normal",
+          mode: "car",
+          distance: 1_200,
+          elapsedTimeMilliseconds: 40_000,
+        },
+      ],
+      [],
+      new Date("2026-07-21T00:00:00.000Z"),
+    );
+    const esportsProfiles = buildCoreEsportsPerformanceProfiles({
+      observations: [
+        {
+          sourceRaceId: "synthetic-esports-race",
+          sourceCoreId: "synthetic:esports",
+          status: "completed",
+          raceType: "1v1",
+          distanceMetres: 1_200,
+          gateCount: 2,
+          completedAt: eventAt,
+          finishPosition: 1,
+          elapsedTimeMilliseconds: null,
+          matchId: null,
+          mapId: null,
+          observedAt: "2026-07-20T01:00:00.000Z",
+          sourceAuthority: "dna-open-lab/esports-races",
+        },
+      ],
+      now: new Date("2026-07-21T00:00:00.000Z"),
+    });
+    const overview = renderToStaticMarkup(
+      <CoreIntelligenceWorkspace
+        connectionStatus="read_model_connected"
+        lastImportedAt="2026-07-20T01:00:00.000Z"
+        profiles={normalProfiles}
+        esportsConnectionStatus="connected"
+        esportsLastSyncedAt="2026-07-20T01:00:00.000Z"
+        esportsProfiles={esportsProfiles}
+      />,
+    );
+    const esports = renderToStaticMarkup(
+      <CoreIntelligenceWorkspace
+        connectionStatus="read_model_connected"
+        lastImportedAt="2026-07-20T01:00:00.000Z"
+        profiles={normalProfiles}
+        esportsConnectionStatus="connected"
+        esportsLastSyncedAt="2026-07-20T01:00:00.000Z"
+        esportsProfiles={esportsProfiles}
+        selectedEvidenceView="esports"
+      />,
+    );
+
+    expect(overview).toContain(
+      'href="/search-core?q=synthetic%3Anormal&amp;coreId=synthetic%3Anormal"',
+    );
+    expect(overview).toContain(
+      'href="/search-core?q=synthetic%3Aesports&amp;coreId=synthetic%3Aesports"',
+    );
+    expect(overview.match(/View Core profile/g)).toHaveLength(2);
+    expect(esports).toContain(
+      'href="/search-core?q=synthetic%3Aesports&amp;coreId=synthetic%3Aesports"',
+    );
+    expect(esports).not.toContain("View Core synthetic:normal profile");
+    expect(esports).toContain("Not exposed");
   });
 
   it("renders a dedicated Esports tab without interpreting omitted DNA coverage as zero", () => {
