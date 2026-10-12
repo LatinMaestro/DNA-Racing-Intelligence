@@ -5,7 +5,10 @@ type FreshnessStatusProps = {
 };
 
 const sourceWorkspaces = {
-  Core: { href: "/core-intelligence?evidence=normal", label: "Explore Core performance" },
+  Core: {
+    href: "/core-intelligence?evidence=normal",
+    label: "Explore Core performance",
+  },
   Race: { href: "/search-core", label: "Search race history" },
   Arena: { href: "/breeding", label: "Review Arena-linked breeding" },
   Vault: { href: "/vault", label: "Open My Vault" },
