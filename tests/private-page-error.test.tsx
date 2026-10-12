@@ -14,6 +14,7 @@ describe("private page error recovery", () => {
 
     expect(markup).toContain('role="alert"');
     expect(markup).toContain('aria-labelledby="private-page-error-title"');
+    expect(markup).toContain('tabindex="-1"');
     expect(markup).toContain("Unable to display this private page");
     expect(markup).toContain("data freshness and coverage are");
     expect(markup).toContain("unverified");

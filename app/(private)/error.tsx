@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 export default function PrivatePageError({
   reset,
@@ -8,13 +9,24 @@ export default function PrivatePageError({
   error: Error & { digest?: string };
   reset: () => void;
 }>) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
   return (
     <section
       aria-labelledby="private-page-error-title"
       className="max-w-3xl rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6"
       role="alert"
     >
-      <h1 className="text-2xl font-semibold" id="private-page-error-title">
+      <h1
+        className="text-2xl font-semibold"
+        id="private-page-error-title"
+        ref={titleRef}
+        tabIndex={-1}
+      >
         Unable to display this private page
       </h1>
       <p className="mt-3 leading-7 text-[var(--muted)]">
