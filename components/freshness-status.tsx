@@ -1,8 +1,21 @@
+import Link from "next/link";
+
 type FreshnessStatusProps = {
   source: "Race" | "Vault" | "Arena" | "Core";
 };
 
+const sourceWorkspaces = {
+  Core: {
+    href: "/core-intelligence?evidence=normal",
+    label: "Explore Core performance",
+  },
+  Race: { href: "/search-core", label: "Search race history" },
+  Arena: { href: "/breeding", label: "Review Arena-linked breeding" },
+  Vault: { href: "/vault", label: "Open My Vault" },
+} as const;
+
 export function FreshnessStatus({ source }: FreshnessStatusProps) {
+  const workspace = sourceWorkspaces[source];
   return (
     <section
       aria-label={`${source} data freshness`}
@@ -14,11 +27,11 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
             {source} snapshot
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            No linked {source.toLowerCase()} receipt for this card.
+            Dashboard timestamp receipt not connected.
           </p>
         </div>
-        <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-          Freshness and coverage unverified
+        <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
+          Freshness unknown here
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
@@ -35,9 +48,12 @@ export function FreshnessStatus({ source }: FreshnessStatusProps) {
           <dd className="mt-1 font-medium">Unknown</dd>
         </div>
       </dl>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        Missing timestamps do not mean no imports or live data.
-      </p>
+      <Link
+        className="mt-4 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface-raised)]"
+        href={workspace.href}
+      >
+        {workspace.label}
+      </Link>
     </section>
   );
 }
