@@ -4,7 +4,11 @@ import {
   buildCoreAnalysisEvidenceCoverage,
   type CoreEsportsPerformanceProfile,
 } from "@/domain/core-esports-performance";
-import type { CorePerformanceProfile } from "@/domain/core-performance";
+import {
+  raceModes,
+  type CorePerformanceProfile,
+  type RaceMode,
+} from "@/domain/core-performance";
 import type { CoreIntelligenceConnectionStatus } from "@/lib/core-intelligence-workspace-service";
 
 export const coreIntelligenceEvidenceViews = [
@@ -296,6 +300,8 @@ export function CoreIntelligenceWorkspace({
   esportsLastSyncedAt = null,
   esportsConnectionStatus = "not_configured",
   selectedEvidenceView = "overview",
+  selectedMode = "all",
+  selectedDistance = null,
 }: Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
@@ -304,12 +310,21 @@ export function CoreIntelligenceWorkspace({
   esportsLastSyncedAt?: string | null;
   esportsConnectionStatus?: "not_configured" | "connected";
   selectedEvidenceView?: CoreIntelligenceEvidenceView;
+  selectedMode?: RaceMode | "all";
+  selectedDistance?: number | null;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const coverage = buildCoreAnalysisEvidenceCoverage({
     normalProfiles: profiles,
     esportsProfiles,
   });
+  const distances = [...new Set(profiles.map((profile) => profile.distance))];
+  distances.sort((left, right) => left - right);
+  const filteredProfiles = profiles.filter(
+    (profile) =>
+      (selectedMode === "all" || profile.mode === selectedMode) &&
+      (selectedDistance === null || profile.distance === selectedDistance),
+  );
   return (
     <div className="space-y-8">
       <header className="max-w-4xl">
@@ -422,7 +437,73 @@ export function CoreIntelligenceWorkspace({
             Historical snapshot · Last imported{" "}
             <Timestamp value={lastImportedAt} />
           </p>
-          <NormalEvidence profiles={profiles} />
+          <form
+            action="/core-intelligence"
+            aria-label="Filter normal racing profiles"
+            className="mt-4 flex flex-wrap items-end gap-3"
+            method="get"
+          >
+            <input name="evidence" type="hidden" value="normal" />
+            <label className="text-sm font-semibold">
+              Mode
+              <select
+                className="mt-1 block rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+                defaultValue={selectedMode}
+                name="mode"
+              >
+                <option value="all">All modes</option>
+                {raceModes.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {label(mode)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold">
+              Exact distance
+              <select
+                className="mt-1 block rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+                defaultValue={selectedDistance?.toString() ?? ""}
+                name="distance"
+              >
+                <option value="">All distances</option>
+                {distances.map((distance) => (
+                  <option key={distance} value={distance}>
+                    {distance.toLocaleString("en-AU")} m
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+              type="submit"
+            >
+              Apply filters
+            </button>
+            <Link
+              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold"
+              href="/core-intelligence?evidence=normal"
+            >
+              Clear
+            </Link>
+          </form>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Showing {filteredProfiles.length.toLocaleString("en-AU")} of{" "}
+            {profiles.length.toLocaleString("en-AU")} exact-mode/distance
+            profiles
+          </p>
+          {profiles.length > 0 && filteredProfiles.length === 0 ? (
+            <EmptyEvidence>
+              <h3 className="font-semibold">
+                No matching normal-racing profiles
+              </h3>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Try another mode or exact distance.
+              </p>
+            </EmptyEvidence>
+          ) : (
+            <NormalEvidence profiles={filteredProfiles} />
+          )}
         </section>
       ) : (
         <section aria-labelledby="esports-profile-heading">

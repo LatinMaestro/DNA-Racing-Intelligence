@@ -3,6 +3,7 @@ import {
   coreIntelligenceEvidenceViews,
   type CoreIntelligenceEvidenceView,
 } from "@/components/core-intelligence-workspace";
+import { raceModes, type RaceMode } from "@/domain/core-performance";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { loadCoreIntelligencePageState } from "@/lib/core-intelligence-workspace-service";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
@@ -19,6 +20,20 @@ function evidenceView(
     coreIntelligenceEvidenceViews.find((view) => view === selected) ??
     "overview"
   );
+}
+
+function selectedMode(value: string | string[] | undefined): RaceMode | "all" {
+  const selected = Array.isArray(value) ? value[0] : value;
+  return raceModes.find((mode) => mode === selected) ?? "all";
+}
+
+function selectedDistance(value: string | string[] | undefined): number | null {
+  const selected = Array.isArray(value) ? value[0] : value;
+  if (selected === undefined || !/^[1-9][0-9]*$/.test(selected)) {
+    return null;
+  }
+  const distance = Number(selected);
+  return Number.isSafeInteger(distance) ? distance : null;
 }
 
 export default async function CoreIntelligencePage({
@@ -51,6 +66,8 @@ export default async function CoreIntelligencePage({
       lastImportedAt={state.lastImportedAt}
       profiles={state.profiles}
       selectedEvidenceView={evidenceView(params.evidence)}
+      selectedMode={selectedMode(params.mode)}
+      selectedDistance={selectedDistance(params.distance)}
     />
   );
 }

@@ -95,6 +95,87 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain('dateTime="2026-07-20T00:00:00Z"');
   });
 
+  it("filters accepted normal profiles by Bike, Car, Horse and exact distance", () => {
+    const eventAt = "2026-07-20T00:00:00Z";
+    const profiles = buildCorePerformanceProfiles(
+      [
+        {
+          eventId: "bike-1000",
+          eventAt,
+          coreId: "bike-core",
+          mode: "bike",
+          distance: 1_000,
+          elapsedTimeMilliseconds: 50_000,
+        },
+        {
+          eventId: "bike-1600",
+          eventAt,
+          coreId: "bike-core",
+          mode: "bike",
+          distance: 1_600,
+          elapsedTimeMilliseconds: 80_000,
+        },
+        {
+          eventId: "car-1000",
+          eventAt,
+          coreId: "car-core",
+          mode: "car",
+          distance: 1_000,
+          elapsedTimeMilliseconds: 30_000,
+        },
+        {
+          eventId: "horse-1000",
+          eventAt,
+          coreId: "horse-core",
+          mode: "horse",
+          distance: 1_000,
+          elapsedTimeMilliseconds: 60_000,
+        },
+      ],
+      [],
+      new Date("2026-07-23T00:00:00Z"),
+    );
+    const render = (
+      mode: "all" | "bike" | "car" | "horse",
+      distance: number | null,
+    ) =>
+      renderToStaticMarkup(
+        <CoreIntelligenceWorkspace
+          connectionStatus="read_model_connected"
+          lastImportedAt="2026-07-20T01:00:00Z"
+          profiles={profiles}
+          selectedEvidenceView="normal"
+          selectedMode={mode}
+          selectedDistance={distance}
+        />,
+      );
+
+    const bike = render("bike", 1_000);
+    expect(bike).toContain("bike · 1,000 m");
+    expect(bike).not.toContain("bike · 1,600 m");
+    expect(bike).not.toContain("car · 1,000 m");
+    expect(bike).not.toContain("horse · 1,000 m");
+    expect(bike).toContain("Showing 1 of 4 exact-mode/distance profiles");
+    expect(bike).toContain('aria-label="Filter normal racing profiles"');
+    expect(bike).toContain('name="mode"');
+    expect(bike).toContain('name="distance"');
+    expect(bike).toContain('value="normal"');
+    expect(bike).toContain("Historical snapshot · Last imported");
+
+    const horse = render("horse", 1_000);
+    expect(horse).toContain("horse · 1,000 m");
+    expect(horse).not.toContain("bike · 1,000 m");
+
+    const missing = render("horse", 1_600);
+    expect(missing).toContain("No matching normal-racing profiles");
+    expect(missing).not.toContain("No validated normal-racing profiles");
+
+    const all = render("all", null);
+    expect(all).toContain("Showing 4 of 4 exact-mode/distance profiles");
+    expect(all).toContain("car · 1,000 m");
+    expect(all).toContain("bike · 1,600 m");
+  });
+
   it("renders a dedicated Esports tab without interpreting omitted DNA coverage as zero", () => {
     const html = renderToStaticMarkup(
       <CoreIntelligenceWorkspace
