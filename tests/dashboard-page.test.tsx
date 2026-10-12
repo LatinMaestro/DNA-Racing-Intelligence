@@ -21,8 +21,12 @@ describe("private dashboard operating status", () => {
     expect(markup).toContain("Arena snapshot");
     expect(markup).not.toContain("Vault snapshot");
     expect(markup.match(/Freshness unknown here/g)).toHaveLength(3);
-    expect(markup.match(/Dashboard timestamp receipt not connected/g)).toHaveLength(3);
-    expect(markup).toContain("Browse your Vault and linked historical evidence");
+    expect(
+      markup.match(/Dashboard timestamp receipt not connected/g),
+    ).toHaveLength(3);
+    expect(markup).toContain(
+      "Browse your Vault and linked historical evidence",
+    );
     expect(markup).toContain('href="/vault"');
     expect(markup).toContain('href="/core-intelligence?evidence=normal"');
     expect(markup).toContain("Explore Core performance");
