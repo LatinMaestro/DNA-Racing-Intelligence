@@ -318,9 +318,8 @@ export function CoreIntelligenceWorkspace({
     normalProfiles: profiles,
     esportsProfiles,
   });
-  const distances = [...new Set(profiles.map((profile) => profile.distance))].sort(
-    (left, right) => left - right,
-  );
+  const distances = [...new Set(profiles.map((profile) => profile.distance))];
+  distances.sort((left, right) => left - right);
   const filteredProfiles = profiles.filter(
     (profile) =>
       (selectedMode === "all" || profile.mode === selectedMode) &&
