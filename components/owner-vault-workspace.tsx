@@ -49,6 +49,11 @@ export function OwnerVaultWorkspace({
     ? OWNER_CORE_CATALOGUE_LIST_LIMIT
     : OWNER_VAULT_LIST_LIMIT;
   const resultLimitReached = connected && state.cores.length >= resultLimit;
+  const resultLimitCopy = [
+    `This ${catalogueMode ? "Core catalogue" : "My Vault"} search reached its ${resultLimit.toLocaleString("en-AU")}-core result limit.`,
+    "Counts reflect returned records, not verified totals; additional matching cores may be omitted.",
+    "Narrow the filters or search by exact Core ID.",
+  ].join(" ");
 
   return (
     <div className="space-y-8">
@@ -200,8 +205,7 @@ export function OwnerVaultWorkspace({
                 {catalogueMode ? "Core catalogue results" : "Active My Vault"}
               </h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                {state.cores.length.toLocaleString("en-AU")} core
-                {state.cores.length === 1 ? "" : "s"} shown
+                {`${state.cores.length.toLocaleString("en-AU")} core${state.cores.length === 1 ? "" : "s"} shown`}
               </p>
             </div>
           </div>
@@ -211,10 +215,7 @@ export function OwnerVaultWorkspace({
               className="mt-3 max-w-3xl text-sm leading-6 text-[var(--warning)]"
               role="status"
             >
-              This {catalogueMode ? "Core catalogue" : "My Vault"} search reached
-              its {resultLimit.toLocaleString("en-AU")}-core result limit. Counts
-              reflect returned records, not verified totals; additional matching
-              cores may be omitted. Narrow the filters or search by exact Core ID.
+              {resultLimitCopy}
             </p>
           ) : null}
 

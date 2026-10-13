@@ -63,9 +63,11 @@ function searchState(count: number): SearchCorePageState {
 }
 
 describe("bounded private Core catalogue results", () => {
-  it("discloses the 50-result game catalogue cap without claiming a total", () => {
+  it("discloses the game-wide catalogue cap", () => {
     const html = renderToStaticMarkup(
-      <SearchCoreWorkspace state={searchState(OWNER_CORE_CATALOGUE_LIST_LIMIT)} />,
+      <SearchCoreWorkspace
+        state={searchState(OWNER_CORE_CATALOGUE_LIST_LIMIT)}
+      />,
     );
 
     expect(html).toContain("50 cores shown");
@@ -79,7 +81,7 @@ describe("bounded private Core catalogue results", () => {
     expect(html).not.toContain("50 matching cores");
   });
 
-  it("does not imply truncation below the game catalogue cap or without identity", () => {
+  it("omits cap warnings below the search limit or without identity", () => {
     const below = renderToStaticMarkup(
       <SearchCoreWorkspace
         state={searchState(OWNER_CORE_CATALOGUE_LIST_LIMIT - 1)}
@@ -99,7 +101,7 @@ describe("bounded private Core catalogue results", () => {
     expect(unconnected).not.toContain("result limit.");
   });
 
-  it("discloses the 50-result add-to-Vault catalogue bound separately", () => {
+  it("discloses the separate add-to-Vault catalogue cap", () => {
     const html = renderToStaticMarkup(
       <OwnerVaultWorkspace
         state={vaultState("catalogue", OWNER_CORE_CATALOGUE_LIST_LIMIT)}
@@ -114,7 +116,9 @@ describe("bounded private Core catalogue results", () => {
 
   it("discloses the different 500-result My Vault bound", () => {
     const html = renderToStaticMarkup(
-      <OwnerVaultWorkspace state={vaultState("vault", OWNER_VAULT_LIST_LIMIT)} />,
+      <OwnerVaultWorkspace
+        state={vaultState("vault", OWNER_VAULT_LIST_LIMIT)}
+      />,
     );
     expect(html).toContain("500 cores shown");
     expect(html).toContain("My Vault");
@@ -123,7 +127,7 @@ describe("bounded private Core catalogue results", () => {
     expect(html).not.toContain("50-core result limit");
   });
 
-  it("does not display a truncation warning below the Vault limit or when disconnected", () => {
+  it("omits cap warnings below the Vault limit or when disconnected", () => {
     const below = renderToStaticMarkup(
       <OwnerVaultWorkspace state={vaultState("vault", 1)} />,
     );

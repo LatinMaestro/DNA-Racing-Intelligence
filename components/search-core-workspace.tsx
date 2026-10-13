@@ -168,6 +168,11 @@ export function SearchCoreWorkspace({
   state,
 }: Readonly<{ state: SearchCorePageState }>) {
   const connected = state.connectionStatus === "connected";
+  const resultLimitCopy = [
+    `Search reached the ${OWNER_CORE_CATALOGUE_LIST_LIMIT.toLocaleString("en-AU")}-core result limit.`,
+    "These are returned results, not a verified count of all matches.",
+    "More cores may match. Narrow the name or search by exact Core ID.",
+  ].join(" ");
 
   return (
     <div className="space-y-8">
@@ -239,8 +244,7 @@ export function SearchCoreWorkspace({
             Search results
           </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {state.results.length.toLocaleString("en-AU")} core
-            {state.results.length === 1 ? "" : "s"} shown
+            {`${state.results.length.toLocaleString("en-AU")} core${state.results.length === 1 ? "" : "s"} shown`}
           </p>
 
           {state.results.length >= OWNER_CORE_CATALOGUE_LIST_LIMIT ? (
@@ -248,11 +252,7 @@ export function SearchCoreWorkspace({
               className="mt-3 max-w-3xl text-sm leading-6 text-[var(--warning)]"
               role="status"
             >
-              Search reached the{" "}
-              {OWNER_CORE_CATALOGUE_LIST_LIMIT.toLocaleString("en-AU")}-core
-              result limit. These are returned results, not a verified count of
-              all matches. More cores may match. Narrow the name or search by
-              exact Core ID.
+              {resultLimitCopy}
             </p>
           ) : null}
 
