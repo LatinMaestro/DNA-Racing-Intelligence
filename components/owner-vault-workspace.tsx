@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { updateVaultCoreFormAction } from "@/app/(private)/vault/actions";
 import {
+  OWNER_CORE_CATALOGUE_LIST_LIMIT,
+  OWNER_VAULT_LIST_LIMIT,
   ownerVaultClasses,
   ownerVaultElements,
   ownerVaultSexes,
@@ -43,6 +45,10 @@ export function OwnerVaultWorkspace({
 }: Readonly<{ state: OwnerVaultCataloguePageState }>) {
   const connected = state.connectionStatus === "connected";
   const catalogueMode = state.filters.scope === "catalogue";
+  const resultLimit = catalogueMode
+    ? OWNER_CORE_CATALOGUE_LIST_LIMIT
+    : OWNER_VAULT_LIST_LIMIT;
+  const resultLimitReached = connected && state.cores.length >= resultLimit;
 
   return (
     <div className="space-y-8">
@@ -194,11 +200,23 @@ export function OwnerVaultWorkspace({
                 {catalogueMode ? "Core catalogue results" : "Active My Vault"}
               </h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                {state.cores.length.toLocaleString("en-AU")} matching core
-                {state.cores.length === 1 ? "" : "s"}
+                {state.cores.length.toLocaleString("en-AU")} core
+                {state.cores.length === 1 ? "" : "s"} shown
               </p>
             </div>
           </div>
+
+          {resultLimitReached ? (
+            <p
+              className="mt-3 max-w-3xl text-sm leading-6 text-[var(--warning)]"
+              role="status"
+            >
+              This {catalogueMode ? "Core catalogue" : "My Vault"} search reached
+              its {resultLimit.toLocaleString("en-AU")}-core result limit. Counts
+              reflect returned records, not verified totals; additional matching
+              cores may be omitted. Narrow the filters or search by exact Core ID.
+            </p>
+          ) : null}
 
           {state.cores.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">

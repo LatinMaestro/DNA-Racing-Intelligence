@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { CorePerformanceProfile } from "@/domain/core-performance";
+import { OWNER_CORE_CATALOGUE_LIST_LIMIT } from "@/lib/owner-vault-catalogue-service";
 import type { SearchCorePageState } from "@/lib/search-core-service";
 
 function label(value: string): string {
@@ -238,9 +239,22 @@ export function SearchCoreWorkspace({
             Search results
           </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {state.results.length.toLocaleString("en-AU")} matching core
-            {state.results.length === 1 ? "" : "s"}
+            {state.results.length.toLocaleString("en-AU")} core
+            {state.results.length === 1 ? "" : "s"} shown
           </p>
+
+          {state.results.length >= OWNER_CORE_CATALOGUE_LIST_LIMIT ? (
+            <p
+              className="mt-3 max-w-3xl text-sm leading-6 text-[var(--warning)]"
+              role="status"
+            >
+              Search reached the{" "}
+              {OWNER_CORE_CATALOGUE_LIST_LIMIT.toLocaleString("en-AU")}-core
+              result limit. These are returned results, not a verified count of
+              all matches. More cores may match. Narrow the name or search by
+              exact Core ID.
+            </p>
+          ) : null}
 
           {state.results.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
