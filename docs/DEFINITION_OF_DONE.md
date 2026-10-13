@@ -105,6 +105,9 @@ A phase or feature is complete only when all applicable items pass.
 - My Vault and game-wide Core catalogue searches disclose their separate bounded
   result limits rather than representing returned matches as exhaustive totals.
 - My Vault changes show pending state and accessible per-operation success or failure feedback; unconfirmed writes must not be presented as successful, and interrupted writes require a state check before retrying.
+- Search Core archive retrieval failures preserve independently accepted
+  catalogue and performance evidence, report unverified archive coverage as
+  unknown rather than missing or zero, and never expose private error details.
 - Security-sensitive values are not logged.
 
 ## Delivery

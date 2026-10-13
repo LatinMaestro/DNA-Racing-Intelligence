@@ -17,7 +17,7 @@ export type SearchCorePageState = Readonly<{
   performanceStatus: "not_connected" | "connected";
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
-  archiveHistoryStatus: "not_connected" | "missing" | "connected";
+  archiveHistoryStatus: "not_connected" | "missing" | "connected" | "unavailable";
   archiveHistoryVersionCount: number;
   archiveHistoryPartitionCount: number;
   archiveHistoryRowCount: number;
@@ -89,6 +89,13 @@ const noArchiveHistory = Object.freeze({
   archiveHistoryRowCount: 0,
 });
 
+const unavailableArchiveHistory = Object.freeze({
+  archiveHistoryStatus: "unavailable" as const,
+  archiveHistoryVersionCount: 0,
+  archiveHistoryPartitionCount: 0,
+  archiveHistoryRowCount: 0,
+});
+
 async function archiveHistory(input: {
   service: RaceArchiveCoreHistoryService | null;
   ownerId: string | null;
@@ -103,10 +110,17 @@ async function archiveHistory(input: {
   >
 > {
   if (input.service === null || input.ownerId === null) return noArchiveHistory;
-  const history = await input.service.load({
-    ownerId: input.ownerId,
-    sourceCoreId: input.sourceCoreId,
-  });
+  let history;
+  try {
+    history = await input.service.load({
+      ownerId: input.ownerId,
+      sourceCoreId: input.sourceCoreId,
+    });
+  } catch {
+    // A failed sealed archive read is not evidence of missing or zero races.
+    // Keep the separate, already accepted read models available.
+    return unavailableArchiveHistory;
+  }
   if (history.locatorVersionCount === 0) {
     return Object.freeze({
       archiveHistoryStatus: "missing" as const,

@@ -207,6 +207,78 @@ describe("Search Core service", () => {
     });
   });
 
+  it("preserves accepted catalogue and performance when optional archive verification fails", async () => {
+    const load = vi.fn(async () => {
+      throw new Error("Synthetic sealed archive verification failed");
+    });
+    const listProfilesByOwner = vi.fn(async () => ({
+      profiles: [profile],
+      lastImportedAt: "2026-08-11T02:00:00.000Z",
+    }));
+    const state = await loadSearchCorePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => [core]),
+      performanceRepository: { status: "ready", listProfilesByOwner },
+      archiveHistoryService: { load },
+      now,
+      query: "Seven",
+      selectedCoreId: "core-7",
+    });
+
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith({ ownerId, sourceCoreId: "core-7" });
+    expect(state.selectedCore).toEqual(core);
+    expect(state.results).toEqual([core]);
+    expect(state.performanceStatus).toBe("connected");
+    expect(state.performanceProfiles).toEqual([profile]);
+    expect(state.performanceLastImportedAt).toBe("2026-08-11T02:00:00.000Z");
+    expect(state).toMatchObject({
+      archiveHistoryStatus: "unavailable",
+      archiveHistoryVersionCount: 0,
+      archiveHistoryPartitionCount: 0,
+      archiveHistoryRowCount: 0,
+    });
+    expect(JSON.stringify(state)).not.toContain("verification failed");
+  });
+
+  it("does not retrieve archive rows for unauthorised or unresolved Core selections", async () => {
+    const load = vi.fn(async () => {
+      throw new Error("Archive must not be reached");
+    });
+    const common = {
+      repository: catalogue(async () => [core]),
+      performanceRepository: noPerformance,
+      archiveHistoryService: { load },
+      now,
+      query: "Seven",
+    } as const;
+
+    await expect(
+      loadSearchCorePageState({
+        ...common,
+        authenticatedOwnerId: null,
+        configuredOwnerId: ownerId,
+        selectedCoreId: "core-7",
+      }),
+    ).resolves.toMatchObject({
+      connectionStatus: "identity_not_connected",
+      archiveHistoryStatus: "not_connected",
+    });
+    await expect(
+      loadSearchCorePageState({
+        ...common,
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        selectedCoreId: "unmatched-core",
+      }),
+    ).resolves.toMatchObject({
+      selectedCore: null,
+      archiveHistoryStatus: "not_connected",
+    });
+    expect(load).not.toHaveBeenCalled();
+  });
+
   it("selects only an exact durable Core ID from the returned catalogue", async () => {
     const other = { ...core, sourceCoreId: "core-70", displayName: "Seventy" };
     const state = await loadSearchCorePageState({

@@ -133,6 +133,20 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
       </p>
     );
   }
+  if (state.archiveHistoryStatus === "unavailable") {
+    return (
+      <p
+        className="mt-2 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--warning)]"
+        role="alert"
+      >
+        Archived Race evidence could not be retrieved and verified. Archive
+        coverage is unknown, not zero, and this is not evidence that the core
+        has no historical races. The catalogue and separately accepted
+        performance profiles remain available; review archive integrity
+        before relying on archived rows.
+      </p>
+    );
+  }
   return (
     <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
