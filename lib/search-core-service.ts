@@ -17,7 +17,11 @@ export type SearchCorePageState = Readonly<{
   performanceStatus: "not_connected" | "connected";
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
-  archiveHistoryStatus: "not_connected" | "missing" | "connected" | "unavailable";
+  archiveHistoryStatus:
+    | "not_connected"
+    | "missing"
+    | "connected"
+    | "unavailable";
   archiveHistoryVersionCount: number;
   archiveHistoryPartitionCount: number;
   archiveHistoryRowCount: number;
