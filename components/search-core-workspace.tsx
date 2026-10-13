@@ -142,8 +142,8 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
         Archived Race evidence could not be retrieved and verified. Archive
         coverage is unknown, not zero, and this is not evidence that the core
         has no historical races. The catalogue and separately accepted
-        performance profiles remain available; review archive integrity
-        before relying on archived rows.
+        performance profiles remain available; review archive integrity before
+        relying on archived rows.
       </p>
     );
   }
