@@ -1,8 +1,17 @@
 import { FreshnessStatus } from "@/components/freshness-status";
 import { OwnerVaultStatus } from "@/components/owner-vault-status";
+import type {
+  HistoricalImportSource,
+  ImportWorkspace,
+  SourceImportStatus,
+} from "@/domain/import-workflow";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { loadDashboardFreshnessPageState } from "@/lib/dashboard-freshness-service";
+import { importBatchRepositoryFromEnvironment } from "@/lib/neon-import-batch-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
+
+export const dynamic = "force-dynamic";
 
 const readiness = [
   [
@@ -19,6 +28,15 @@ const readiness = [
   ],
 ] as const;
 
+function sourceStatus(
+  workspace: ImportWorkspace,
+  sourceType: HistoricalImportSource,
+): SourceImportStatus | null {
+  return (
+    workspace.sources.find((source) => source.sourceType === sourceType) ?? null
+  );
+}
+
 export default async function DashboardPage() {
   const authenticatedOwnerId = await authenticatedClerkOwnerId({
     environment: {
@@ -26,16 +44,28 @@ export default async function DashboardPage() {
       secretKey: process.env.CLERK_SECRET_KEY,
     },
   });
-  const vaultState = await loadOwnerVaultCataloguePageState({
-    authenticatedOwnerId,
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: neonOwnerVaultCatalogueRepositoryFromEnvironment({
-      databaseUrl: process.env.DATABASE_URL,
-      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
-      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID ?? null;
+  const [vaultState, freshnessState] = await Promise.all([
+    loadOwnerVaultCataloguePageState({
+      authenticatedOwnerId,
+      configuredOwnerId,
+      repository: neonOwnerVaultCatalogueRepositoryFromEnvironment({
+        databaseUrl: process.env.DATABASE_URL,
+        databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+        runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      }),
+      filters: { scope: "vault" },
     }),
-    filters: { scope: "vault" },
-  });
+    loadDashboardFreshnessPageState({
+      authenticatedOwnerId,
+      configuredOwnerId,
+      repository: importBatchRepositoryFromEnvironment({
+        databaseUrl: process.env.DATABASE_URL,
+        databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      }),
+      now: new Date(),
+    }),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -54,9 +84,21 @@ export default async function DashboardPage() {
       </header>
       <div className="grid gap-4 xl:grid-cols-2">
         <OwnerVaultStatus state={vaultState} />
-        <FreshnessStatus source="Core" />
-        <FreshnessStatus source="Race" />
-        <FreshnessStatus source="Arena" />
+        <FreshnessStatus
+          connectionStatus={freshnessState.connectionStatus}
+          source="Core"
+          status={sourceStatus(freshnessState.workspace, "core_details")}
+        />
+        <FreshnessStatus
+          connectionStatus={freshnessState.connectionStatus}
+          source="Race"
+          status={sourceStatus(freshnessState.workspace, "race_merge")}
+        />
+        <FreshnessStatus
+          connectionStatus={freshnessState.connectionStatus}
+          source="Arena"
+          status={sourceStatus(freshnessState.workspace, "current_arena")}
+        />
       </div>
       <section
         aria-labelledby="readiness-heading"
