@@ -46,7 +46,7 @@ describe("private primary navigation", () => {
       'class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto',
     );
     expect(currentHrefs(open)).toEqual(["/vault"]);
-    expect((open.match(/aria-label="Primary"/g) ?? [])).toHaveLength(1);
+    expect(open.match(/aria-label="Primary"/g) ?? []).toHaveLength(1);
     expect((open.match(/href="\/vault"/g) ?? [])).toHaveLength(1);
   });
 
