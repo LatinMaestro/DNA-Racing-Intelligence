@@ -25,7 +25,9 @@ const feedback: Record<Exclude<MutationStatus, "idle">, string> = {
     "The result could not be confirmed. Check the current Vault state before retrying; an earlier write might have completed.",
 };
 
-export function ownerVaultMutationMessage(status: MutationStatus): string | null {
+export function ownerVaultMutationMessage(
+  status: MutationStatus,
+): string | null {
   return status === "idle" ? null : feedback[status];
 }
 
@@ -37,6 +39,8 @@ export function OwnerVaultMutationForm({
     "idle" as MutationStatus,
   );
   const message = ownerVaultMutationMessage(status);
+  const statusClassName =
+    status === "updated" ? "text-[var(--muted)]" : "text-[var(--warning)]";
   const buttonClassName =
     "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--surface-raised)] disabled:cursor-wait disabled:opacity-60";
 
@@ -90,7 +94,7 @@ export function OwnerVaultMutationForm({
       )}
       {message === null ? null : (
         <p
-          className={`basis-full text-xs leading-5 ${status === "updated" ? "text-[var(--muted)]" : "text-[var(--warning)]"}`}
+          className={`basis-full text-xs leading-5 ${statusClassName}`}
           role={status === "updated" ? "status" : "alert"}
         >
           {message}

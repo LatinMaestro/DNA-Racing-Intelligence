@@ -40,7 +40,7 @@ describe("My Vault mutation feedback", () => {
     expect(html).not.toContain("Vault change confirmed.");
   });
 
-  it("renders the supported add and Maiden toggle choices without extra forms", () => {
+  it("renders add and Maiden toggle choices with one form", () => {
     const unowned = renderToStaticMarkup(
       <OwnerVaultMutationForm
         core={{ ...core, inMyVault: false, meEligible: false, version: 0 }}
@@ -76,10 +76,11 @@ describe("My Vault mutation feedback", () => {
     ] as const) {
       expect(ownerVaultMutationMessage(status)).toBeTruthy();
     }
-    expect(Object.values({
-      updated: ownerVaultMutationMessage("updated"),
-      conflict: ownerVaultMutationMessage("conflict"),
-      persistence: ownerVaultMutationMessage("persistence_unavailable"),
-    }).join(" ")).not.toMatch(/postgresql|stack|secret-host/i);
+    const messages = [
+      ownerVaultMutationMessage("updated"),
+      ownerVaultMutationMessage("conflict"),
+      ownerVaultMutationMessage("persistence_unavailable"),
+    ];
+    expect(messages.join(" ")).not.toMatch(/postgresql|stack|secret-host/i);
   });
 });
