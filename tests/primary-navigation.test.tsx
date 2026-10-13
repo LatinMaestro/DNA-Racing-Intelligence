@@ -47,7 +47,7 @@ describe("private primary navigation", () => {
     );
     expect(currentHrefs(open)).toEqual(["/vault"]);
     expect(open.match(/aria-label="Primary"/g) ?? []).toHaveLength(1);
-    expect((open.match(/href="\/vault"/g) ?? [])).toHaveLength(1);
+    expect(open.match(/href="\/vault"/g) ?? []).toHaveLength(1);
   });
 
   it("keeps the root dashboard distinct from nested module routes", () => {
