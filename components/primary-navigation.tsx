@@ -74,7 +74,7 @@ export function PrimaryNavigationLinks({
               ].join(" ")}
               href={item.href}
               key={item.href}
-              onClick={onNavigate}
+              {...(onNavigate === undefined ? {} : { onClick: onNavigate })}
             >
               {item.label}
             </Link>
