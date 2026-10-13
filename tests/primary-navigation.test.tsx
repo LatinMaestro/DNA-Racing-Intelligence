@@ -22,9 +22,32 @@ describe("private primary navigation", () => {
       );
 
       expect(markup).toContain('aria-label="Primary"');
-      expect(markup).toContain("overflow-x-auto");
+      expect(markup).toContain('aria-controls="private-primary-navigation"');
       expect(currentHrefs(markup)).toEqual([item.href]);
     }
+  });
+
+  it("offers one collapsible mobile menu", () => {
+    const closed = renderToStaticMarkup(
+      <PrimaryNavigationLinks pathname="/vault" />,
+    );
+    const open = renderToStaticMarkup(
+      <PrimaryNavigationLinks mobileOpen pathname="/vault" />,
+    );
+
+    expect(closed).toContain('aria-expanded="false"');
+    expect(closed).toContain("Navigate");
+    expect(closed).toContain("Vault");
+    expect(closed).toContain(
+      'class="hidden max-h-[60vh] flex-col gap-2 overflow-y-auto',
+    );
+    expect(open).toContain('aria-expanded="true"');
+    expect(open).toContain(
+      'class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto',
+    );
+    expect(currentHrefs(open)).toEqual(["/vault"]);
+    expect((open.match(/aria-label="Primary"/g) ?? [])).toHaveLength(1);
+    expect((open.match(/href="\/vault"/g) ?? [])).toHaveLength(1);
   });
 
   it("keeps the root dashboard distinct from nested module routes", () => {
@@ -51,6 +74,8 @@ describe("private primary navigation", () => {
       <PrimaryNavigationLinks pathname={null} />,
     );
 
+    expect(unknown).toContain("Choose module");
+    expect(unavailable).toContain("Choose module");
     expect(currentHrefs(unknown)).toEqual([]);
     expect(currentHrefs(unavailable)).toEqual([]);
   });
