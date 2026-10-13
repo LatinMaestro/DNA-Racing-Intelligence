@@ -5,7 +5,7 @@ import { OwnerVaultWorkspace } from "@/components/owner-vault-workspace";
 import type { OwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
 vi.mock("@/app/(private)/vault/actions", () => ({
-  updateVaultCoreFormAction: "/vault",
+  updateVaultCoreFormAction: async () => "updated",
 }));
 
 const connectedState: OwnerVaultCataloguePageState = {

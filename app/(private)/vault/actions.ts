@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonOwnerVaultMutationRepositoryFromEnvironment } from "@/lib/neon-owner-vault-repository";
-import { updateOwnerVaultCore } from "@/lib/owner-vault-action-service";
+import {
+  updateOwnerVaultCore,
+  type OwnerVaultActionResult,
+} from "@/lib/owner-vault-action-service";
 import { parseOwnerVaultMutationFormData } from "@/lib/owner-vault-form";
 
 function repository() {
@@ -43,17 +46,19 @@ export async function updateVaultCoreAction(
 }
 
 export async function updateVaultCoreFormAction(
+  _previousStatus: OwnerVaultActionResult["status"] | "idle",
   formData: FormData,
-): Promise<void> {
+): Promise<OwnerVaultActionResult["status"]> {
   let input;
   try {
     input = parseOwnerVaultMutationFormData(formData);
   } catch {
-    return;
+    return "invalid_request";
   }
 
   const result = await updateOwnerVaultCore(input, dependencies());
   if (result.status === "updated") {
     revalidatePath("/vault");
   }
+  return result.status;
 }
