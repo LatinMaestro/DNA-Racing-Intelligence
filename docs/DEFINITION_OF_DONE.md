@@ -104,6 +104,7 @@ A phase or feature is complete only when all applicable items pass.
   the bounded result limit prevents verified total counts.
 - My Vault and game-wide Core catalogue searches disclose their separate bounded
   result limits rather than representing returned matches as exhaustive totals.
+- My Vault changes show pending state and accessible per-operation success or failure feedback; unconfirmed writes must not be presented as successful, and interrupted writes require a state check before retrying.
 - Security-sensitive values are not logged.
 
 ## Delivery

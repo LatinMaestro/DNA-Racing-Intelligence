@@ -13,7 +13,7 @@ import {
 import type { SearchCorePageState } from "@/lib/search-core-service";
 
 vi.mock("@/app/(private)/vault/actions", () => ({
-  updateVaultCoreFormAction: "/vault",
+  updateVaultCoreFormAction: async () => "updated",
 }));
 
 function core(index: number): OwnerVaultCatalogueCore {

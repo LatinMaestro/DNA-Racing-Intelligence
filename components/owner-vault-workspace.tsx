@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { updateVaultCoreFormAction } from "@/app/(private)/vault/actions";
+import { OwnerVaultMutationForm } from "@/components/owner-vault-mutation-form";
 import {
   OWNER_CORE_CATALOGUE_LIST_LIMIT,
   OWNER_VAULT_LIST_LIMIT,
@@ -14,30 +14,6 @@ function optionLabel(value: string): string {
   return value === "X-Class"
     ? value
     : value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function mutationForm(
-  core: OwnerVaultCataloguePageState["cores"][number],
-  operation: "add" | "remove" | "me_on" | "me_off",
-  label: string,
-) {
-  return (
-    <form action={updateVaultCoreFormAction}>
-      <input name="sourceCoreId" type="hidden" value={core.sourceCoreId} />
-      <input
-        name="expectedVersion"
-        type="hidden"
-        value={core.version.toString()}
-      />
-      <input name="operation" type="hidden" value={operation} />
-      <button
-        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--surface-raised)]"
-        type="submit"
-      >
-        {label}
-      </button>
-    </form>
-  );
 }
 
 export function OwnerVaultWorkspace({
@@ -278,24 +254,7 @@ export function OwnerVaultWorkspace({
                     >
                       View race evidence
                     </Link>
-                    {core.inMyVault ? (
-                      <>
-                        {mutationForm(core, "remove", "Remove from My Vault")}
-                        {core.meEligible
-                          ? mutationForm(
-                              core,
-                              "me_off",
-                              "ME: Eligible · turn off",
-                            )
-                          : mutationForm(
-                              core,
-                              "me_on",
-                              "ME: Not eligible · turn on",
-                            )}
-                      </>
-                    ) : (
-                      mutationForm(core, "add", "Add to My Vault")
-                    )}
+                    <OwnerVaultMutationForm core={core} />
                   </div>
                 </article>
               ))}
