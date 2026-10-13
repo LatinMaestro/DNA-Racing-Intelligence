@@ -102,6 +102,8 @@ A phase or feature is complete only when all applicable items pass.
 - Unknown authenticated routes return an accessible, privacy-safe 404 view without echoing the requested path or exposing private data, and keep prior operation status explicitly unknown.
 - Dashboard owner-Vault counts refer to returned registry rows and disclose when
   the bounded result limit prevents verified total counts.
+- My Vault and game-wide Core catalogue searches disclose their separate bounded
+  result limits rather than representing returned matches as exhaustive totals.
 - Security-sensitive values are not logged.
 
 ## Delivery

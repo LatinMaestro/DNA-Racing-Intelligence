@@ -1,4 +1,7 @@
-import { OWNER_VAULT_LIST_LIMIT } from "./owner-vault-catalogue-service";
+import {
+  OWNER_CORE_CATALOGUE_LIST_LIMIT,
+  OWNER_VAULT_LIST_LIMIT,
+} from "./owner-vault-catalogue-service";
 import type {
   OwnerVaultCatalogueCore,
   OwnerVaultCatalogueFilters,
@@ -258,7 +261,10 @@ export function createNeonOwnerVaultCatalogueRepository(
             runtimeRole: role,
           },
         );
-        const limit = filters.scope === "vault" ? OWNER_VAULT_LIST_LIMIT : 50;
+        const limit =
+          filters.scope === "vault"
+            ? OWNER_VAULT_LIST_LIMIT
+            : OWNER_CORE_CATALOGUE_LIST_LIMIT;
         const result = await session.client.query(LIST_CORES_SQL, [
           owner,
           filters.query,
