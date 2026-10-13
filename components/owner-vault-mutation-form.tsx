@@ -9,7 +9,8 @@ import type { OwnerVaultCatalogueCore } from "@/lib/owner-vault-catalogue-servic
 type MutationStatus = "idle" | OwnerVaultActionResult["status"];
 
 const feedback: Record<Exclude<MutationStatus, "idle">, string> = {
-  updated: "Vault change confirmed. Check the refreshed state before another action.",
+  updated:
+    "Vault change confirmed. Check the refreshed state before another action.",
   identity_not_connected:
     "Change not confirmed. Sign in as the authorised owner before trying again.",
   persistence_not_configured:
