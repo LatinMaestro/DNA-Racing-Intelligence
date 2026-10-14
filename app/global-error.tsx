@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 export default function GlobalError({
@@ -55,12 +56,12 @@ export default function GlobalError({
               >
                 Retry application
               </button>
-              <a
+              <Link
                 className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)]"
                 href="/"
               >
                 Return to dashboard
-              </a>
+              </Link>
             </div>
           </section>
         </main>
