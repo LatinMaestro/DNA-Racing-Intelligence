@@ -38,9 +38,9 @@ export default function GlobalError({
               Unable to open DNA Racing Intelligence
             </h1>
             <p className="mt-3 leading-7 text-[var(--muted)]">
-              The private application shell could not be loaded. Data
-              freshness and coverage are unverified until the site becomes
-              available again.
+              The private application shell could not be loaded. Data freshness
+              and coverage are unverified until the site becomes available
+              again.
             </p>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
               This failure does not confirm whether an earlier save or import
