@@ -1,0 +1,39 @@
+name: TEMP owner Bike 1v1 financial source probe
+on:
+  push:
+    branches:
+      - research/owner-bike-1v1-last48h-20261015
+    paths:
+      - .github/workflows/temp-owner-bike-1v1-finance-probe.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: temp-owner-bike-1v1-finance-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/research/owner-bike-1v1-last48h-20261015'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Checkout temporary research branch
+        uses: actions/checkout@v4
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check sample probe syntax
+        run: node --check research/owner-bike-1v1-finance-contract-probe.mjs
+      - name: Sample read-only event finance sources
+        run: node research/owner-bike-1v1-finance-contract-probe.mjs
+      - name: Upload one-day private financial contract result
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-bike-1v1-finance-contract-probe
+          path: owner-bike-1v1-finance-contract-probe.json
+          retention-days: 1
+          if-no-files-found: error
