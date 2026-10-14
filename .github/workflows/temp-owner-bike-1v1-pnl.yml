@@ -1,0 +1,39 @@
+name: TEMP owner Bike Wars 48-hour PnL
+on:
+  push:
+    branches:
+      - research/owner-bike-1v1-last48h-20261015
+    paths:
+      - .github/workflows/temp-owner-bike-1v1-pnl.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: temp-owner-bike-1v1-pnl-20261015
+  cancel-in-progress: false
+jobs:
+  report:
+    if: github.ref == 'refs/heads/research/owner-bike-1v1-last48h-20261015'
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Checkout temporary research branch
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate read-only financial report script
+        run: node --check research/owner-bike-1v1-48h-configuration-pl.mjs
+      - name: Compute 48-hour asset-separated per-Core race-config PnL
+        run: node research/owner-bike-1v1-48h-configuration-pl.mjs
+      - name: Upload 1-day private owner report
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-bike-1v1-48h-configuration-pl
+          path: owner-bike-1v1-48h-configuration-pl.json
+          retention-days: 1
+          if-no-files-found: error
