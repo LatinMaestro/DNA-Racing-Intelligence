@@ -1,0 +1,44 @@
+# Temporary owner-authorised API report. NEVER MERGE this research branch.
+name: TEMP owner Bike 1v1 48-hour API report
+
+on:
+  push:
+    branches:
+      - research/owner-bike-1v1-last48h-20261015
+    paths:
+      - .github/workflows/temp-owner-bike-1v1-48h.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-owner-bike-1v1-20261015
+  cancel-in-progress: false
+
+jobs:
+  read_only_report:
+    if: github.repository == 'LatinMaestro/DNA-Racing-Intelligence' && github.ref == 'refs/heads/research/owner-bike-1v1-last48h-20261015'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      DNA_OPEN_LAB_API_KEY_1: ${{ secrets.DNA_OPEN_LAB_API_KEY_1 }}
+      DNA_OPEN_LAB_VAULT: ${{ secrets.DNA_OPEN_LAB_VAULT }}
+    steps:
+      - name: Checkout temporary unmerged research code
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate temporary report script syntax
+        run: node --check research/owner-bike-1v1-last48h-20261015.mjs
+      - name: Read only 48-hour owner Bike 1v1 event API facts
+        run: node research/owner-bike-1v1-last48h-20261015.mjs
+      - name: Upload one-day private aggregate report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-bike-1v1-last48h-aggregate
+          path: owner-bike-1v1-last48h-aggregate.json
+          retention-days: 1
+          if-no-files-found: error
