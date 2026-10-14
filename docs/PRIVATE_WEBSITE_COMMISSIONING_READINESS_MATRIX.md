@@ -19,20 +19,20 @@ The reset date is an expectation, not authorization. Every material operation re
 
 “Composed” means the route selects a real repository from server-only environment settings. It is not connected acceptance.
 
-| Private module | Exact-main repository state | Offline evidence available now | Connected acceptance required later |
-| --- | --- | --- | --- |
-| Dashboard | Composes owner Vault catalogue and import-freshness repositories | Identity/config/error states, bounded fake adapters, render tests | Owner-isolated Vault and source-cutoff read; honest missing/stale display |
-| My Vault / Core Intelligence / Search Core | Composed Neon/R2 services | Filter/limit, parsing, owner denial and page-state tests | One bounded owner snapshot per route; no catalogue scan |
-| Tournament | Composed configuration and evidence services | Approved-method fixtures and eligibility/uncertainty tests | Exact configuration plus owner evidence with coverage and freshness |
-| Maiden | Route still injects `unavailableMaidenAllocationRepository` | Complete guarded service/domain contract can be exercised synthetically | Authoritative compact adapter, owner isolation and retained-data acceptance |
-| Bike Pro League | Composed services | Roster/compliance/evidence fixtures and commissioning guards | Exact serving generation, Bike-only evidence and private owner acceptance |
-| Open Race | Route still injects `unavailableOpenRaceWorkspaceRepository` | Staged service/UI fail-closed states | Authoritative read model only; no entry, wallet or live-API side effect |
-| Discovery | Composed services | Approved-method and partial/unknown fixtures | Bounded owned-Core evidence with exact distance, sample and cutoff |
-| Breeding / Splice | Composed services | Ranking/viability separation and unavailable-state fixtures | Retained lineage plus separately current official viability evidence |
-| Vault Performance | Route still injects `unavailableVaultPerformanceSummaryRepository` | Exact-decimal, asset separation, coverage and freshness guards | Compact materialized summary adapter; never routine raw-ledger scanning |
-| Lifecycle | Route still injects `unavailableLifecycleRankingRepository` | Approved chronology/ranking fixtures and withheld states | Owner-scoped point-in-time ranking evidence; no future leakage |
-| Readiness | Route still injects `unavailableReadinessAssessmentRepository` | Gate-state and blocked-state rendering | Exact deployed-head, auth, provider, rollback and connected-test evidence |
-| Imports | Composed import-status repository | State-machine, error and provenance fixtures | Bounded status/receipt reads only; no import or acquisition in commissioning |
+| Private module                             | Exact-main repository state                                        | Offline evidence available now                                          | Connected acceptance required later                                          |
+| ------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Dashboard                                  | Composes owner Vault catalogue and import-freshness repositories   | Identity/config/error states, bounded fake adapters, render tests       | Owner-isolated Vault and source-cutoff read; honest missing/stale display    |
+| My Vault / Core Intelligence / Search Core | Composed Neon/R2 services                                          | Filter/limit, parsing, owner denial and page-state tests                | One bounded owner snapshot per route; no catalogue scan                      |
+| Tournament                                 | Composed configuration and evidence services                       | Approved-method fixtures and eligibility/uncertainty tests              | Exact configuration plus owner evidence with coverage and freshness          |
+| Maiden                                     | Route still injects `unavailableMaidenAllocationRepository`        | Complete guarded service/domain contract can be exercised synthetically | Authoritative compact adapter, owner isolation and retained-data acceptance  |
+| Bike Pro League                            | Composed services                                                  | Roster/compliance/evidence fixtures and commissioning guards            | Exact serving generation, Bike-only evidence and private owner acceptance    |
+| Open Race                                  | Route still injects `unavailableOpenRaceWorkspaceRepository`       | Staged service/UI fail-closed states                                    | Authoritative read model only; no entry, wallet or live-API side effect      |
+| Discovery                                  | Composed services                                                  | Approved-method and partial/unknown fixtures                            | Bounded owned-Core evidence with exact distance, sample and cutoff           |
+| Breeding / Splice                          | Composed services                                                  | Ranking/viability separation and unavailable-state fixtures             | Retained lineage plus separately current official viability evidence         |
+| Vault Performance                          | Route still injects `unavailableVaultPerformanceSummaryRepository` | Exact-decimal, asset separation, coverage and freshness guards          | Compact materialized summary adapter; never routine raw-ledger scanning      |
+| Lifecycle                                  | Route still injects `unavailableLifecycleRankingRepository`        | Approved chronology/ranking fixtures and withheld states                | Owner-scoped point-in-time ranking evidence; no future leakage               |
+| Readiness                                  | Route still injects `unavailableReadinessAssessmentRepository`     | Gate-state and blocked-state rendering                                  | Exact deployed-head, auth, provider, rollback and connected-test evidence    |
+| Imports                                    | Composed import-status repository                                  | State-machine, error and provenance fixtures                            | Bounded status/receipt reads only; no import or acquisition in commissioning |
 
 ## Bounded connected acceptance plan
 
@@ -51,14 +51,14 @@ One accepted module does not authorize another; re-run the provider gate before 
 
 A protected Preview may be commissioned only when all rows below are proven on the same unchanged main SHA.
 
-| Gate | Required proof | Current state |
-| --- | --- | --- |
-| CI | Push-triggered validation and full migration jobs passed | Passed for audited SHA; must be re-proved for deployment SHA |
-| Code | Full diff/review, dependency audit, secret scan, formatting, zero-error lint, strict TypeScript, tests, build and Worker dry-run | Required per candidate |
-| Capacity | Fresh Neon transfer/storage/compute, R2 storage/Class A/Class B and hosting usage all below owner ceilings at A$0 | Blocked by Neon transfer; other live ceilings still require proof |
-| Privacy | Protected Preview, single-owner authentication, forced owner isolation, least privilege, no public indexing or raw evidence | Not connected-proven for a current deployment |
-| Acceptance | Every enabled module passes the bounded owner-data plan and labels exact coverage/freshness | Not run while transfer is unsafe |
-| Rollback | Last-good deployment identified; rollback command and health check prepared; provider state unchanged by reads | Must be proved before Preview |
-| Production | Specific owner release approval plus all gates repeated | Not authorized |
+| Gate       | Required proof                                                                                                                   | Current state                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| CI         | Push-triggered validation and full migration jobs passed                                                                         | Passed for audited SHA; must be re-proved for deployment SHA      |
+| Code       | Full diff/review, dependency audit, secret scan, formatting, zero-error lint, strict TypeScript, tests, build and Worker dry-run | Required per candidate                                            |
+| Capacity   | Fresh Neon transfer/storage/compute, R2 storage/Class A/Class B and hosting usage all below owner ceilings at A$0                | Blocked by Neon transfer; other live ceilings still require proof |
+| Privacy    | Protected Preview, single-owner authentication, forced owner isolation, least privilege, no public indexing or raw evidence      | Not connected-proven for a current deployment                     |
+| Acceptance | Every enabled module passes the bounded owner-data plan and labels exact coverage/freshness                                      | Not run while transfer is unsafe                                  |
+| Rollback   | Last-good deployment identified; rollback command and health check prepared; provider state unchanged by reads                   | Must be proved before Preview                                     |
+| Production | Specific owner release approval plus all gates repeated                                                                          | Not authorized                                                    |
 
 Rollback must restore the last-good protected deployment without schema rollback or data mutation. A failed health/auth/coverage check leaves the candidate unpromoted. Production stays unchanged.
