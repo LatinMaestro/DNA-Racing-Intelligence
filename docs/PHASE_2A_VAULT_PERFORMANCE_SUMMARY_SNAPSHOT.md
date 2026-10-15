@@ -107,11 +107,25 @@ wire the page until the hosted migration, bounded materialization and retained-
 data reconciliation pass after fresh A$0 capacity proof. The storage checks are
 transport integrity, not financial truth.
 
-Next, expose a server-only bounded materialization command and construct the
-existing read adapter in the private route only after the source and snapshot
-have passed connected acceptance. Test owner denial before persistence,
-rollback/close paths and retained-data reconciliation. The page continues to
-inject the unavailable repository.
+The private Vault Performance page now composes the compact owner-scoped
+read adapter (PR #955), but connected publication/acceptance remains blocked.
+The offline private materialization runner requires exact-green main proof,
+a trusted atomic provider-capacity reservation, complete remaining-month
+Neon/R2 forecasts and website/recovery reserves before invoking the unchanged
+canonical-source calculator and compare-and-swap publisher. It settles every
+issued reservation, holding indeterminate spend until reconciled. The existing
+256-KiB snapshot bound is preserved; no source sample is truncated.
+
+This runner is intentionally **not an executable live command** yet: there is
+no trusted provider-backed concurrency-safe reservation adapter, approved
+worst-case source transfer budget, manual operation wiring or live invocation.
+These prerequisites must be commissioned after freshly verified positive A$0
+headroom, including Neon/R2/hosting counters and reconciliation. Synthetic
+admission tests alone do not authorize material SQL, hosted migration or
+summary publication. Next establish the accepted bounded source-size/read
+plan and durable reservation/settlement adapter before invoking the runner.
+Test owner denial before persistence, rollback/close paths and retained-data
+reconciliation without changing approved financial analysis.
 USD valuation, per-Core reporting, ledger forms and other module adapters remain
 separate requirements. Existing `domain/vault-performance-summary.ts` and its
 accounting tests are unchanged; adapter tests preserve exact totals, separate
