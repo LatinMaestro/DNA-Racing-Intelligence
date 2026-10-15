@@ -12,7 +12,7 @@ export type MaidenAllocationRepository =
       status: "ready";
       loadAllocationEvidenceByOwner: (
         ownerId: string,
-      ) => Promise<MaidenAllocationEvidence>;
+      ) => Promise<MaidenAllocationEvidence | null>;
     }>;
 
 export type MaidenAllocationEvidence = Readonly<{
@@ -179,6 +179,13 @@ export async function loadMaidenWorkspacePageState(
 
   const persistedEvidence =
     await input.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId);
+  if (persistedEvidence === null) {
+    return {
+      allocation: null,
+      lastImportedAt: null,
+      connectionStatus: "read_model_connected",
+    };
+  }
   const evidence = normalizeMaidenAllocationEvidence(persistedEvidence, now);
 
   return {

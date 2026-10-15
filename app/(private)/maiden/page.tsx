@@ -1,9 +1,7 @@
 import { MaidenWorkspace } from "@/components/maiden-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import {
-  loadMaidenWorkspacePageState,
-  unavailableMaidenAllocationRepository,
-} from "@/lib/maiden-workspace-service";
+import { loadMaidenWorkspacePageState } from "@/lib/maiden-workspace-service";
+import { neonMaidenAllocationRepositoryFromEnvironment } from "@/lib/neon-maiden-allocation-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +15,12 @@ export default async function MaidenPage() {
   const state = await loadMaidenWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: unavailableMaidenAllocationRepository,
+    repository: neonMaidenAllocationRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      authenticatedOwnerId,
+    }),
     now: new Date(),
   });
 

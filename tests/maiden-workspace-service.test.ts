@@ -196,6 +196,22 @@ describe("Maiden workspace service", () => {
         configuredOwnerId: "owner",
         repository: {
           status: "ready",
+          loadAllocationEvidenceByOwner: async () => null,
+        },
+        now,
+      }),
+    ).resolves.toEqual({
+      allocation: null,
+      lastImportedAt: null,
+      connectionStatus: "read_model_connected",
+    });
+
+    await expect(
+      loadMaidenWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
           loadAllocationEvidenceByOwner: async () => ({
             brackets: [],
             candidates: [],

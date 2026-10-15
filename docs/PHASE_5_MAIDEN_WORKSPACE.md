@@ -1,7 +1,8 @@
 # Phase 5 Maiden Workspace
 
-Status: owner-scoped read boundary; commitments, providers and deployment
-remain disabled.
+Status: compact owner-scoped snapshot persistence and route read adapter are
+implemented with synthetic migration/fixture coverage; source materialization,
+connected acceptance, commitments and deployment remain disabled.
 
 ## Purpose
 
@@ -41,10 +42,38 @@ from the accepted cutoff and server time instead of trusting persisted labels,
 including exact 3/4/7/8-day boundary coverage. Without an accepted import,
 freshness is unknown and candidates are deferred.
 
-The default repository is unconfigured, so no provider initializes at module
-import or build time. Entitlement mutation, tournament entry, live-field
-claims, private-data execution, Preview activation and Production activation
-remain unavailable.
+The route composes a repository only when its complete server-side database,
+database-owner, runtime-role and authenticated-owner environment exists. The
+repository opens one repeatable-read, read-only transaction, applies short
+statement/lock timeouts, proves forced RLS and least privilege, and calls one
+bounded function returning at most one 512 KiB canonical snapshot. Missing
+configuration performs no provider access; missing materialization returns an
+explicit connected-but-empty state. Provider failures are sanitized.
+
+The snapshot table is forced-RLS, owner-keyed and inaccessible directly to the
+runtime role. Its envelope binds the database owner, accepted source-evidence
+SHA-256, materialization time, canonical body checksum and exact evidence
+schema. No runtime write or publication function exists in this slice, so the
+route cannot build evidence, traverse raw history or mutate last-good state.
+Entitlement mutation, tournament entry, live-field claims, connected
+private-data acceptance, Preview activation and Production activation remain
+unavailable.
+
+## Authority-to-interface traceability
+
+| Boundary         | Preserved authority                                                                                                    | Implementation and proof                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Method           | One-use ME; whole-Vault Bike/Car/Horse comparison; time-led projection; stars supporting only; no commitment           | `domain/maiden-vault-allocation.ts`; existing domain/service tests           |
+| Compact evidence | Exact versions, chronology, owner/source binding, deterministic order and 512 KiB bound                                | `lib/maiden-allocation-evidence-snapshot.ts`; codec tests                    |
+| Persistence      | One owner row, forced RLS, no runtime table privilege, checksum/source/envelope constraints                            | migration `0127`; apply/smoke/reverse/removal CI                             |
+| Repository       | Authenticated/configured owner equality, least-privilege proof, one bounded read, canonical decode, sanitized failures | `lib/neon-maiden-allocation-repository.ts`; deterministic fake-session tests |
+| Website          | Existing service re-derives freshness and invokes the unchanged allocator; missing snapshots stay non-actionable       | private Maiden route plus existing workspace tests                           |
+
+The remaining gap is a source-authoritative materializer/publication path that
+derives the already-approved bracket/candidate inputs, validates complete
+cross-mode coverage, atomically replaces last-good only after full validation,
+and invalidates corrected source generations. It must not invent projection
+weights, probabilities or tournament economics.
 
 ## Source identity
 
