@@ -1,11 +1,19 @@
 import { BreedingWorkspace } from "@/components/breeding-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { evidenceViewFilters } from "@/lib/evidence-view-filters";
 import { loadBreedingWorkspacePageState } from "@/lib/breeding-workspace-service";
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 
 export const dynamic = "force-dynamic";
 
-export default async function BreedingPage() {
+export default async function BreedingPage({
+  searchParams,
+}: Readonly<{
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}>) {
+  const params = await searchParams;
+  const parent = (value: unknown): string =>
+    typeof value === "string" && value.trim().length <= 256 ? value.trim() : "";
   const authenticatedOwnerId = await authenticatedClerkOwnerId({
     environment: {
       publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
@@ -29,6 +37,11 @@ export default async function BreedingPage() {
     <BreedingWorkspace
       connectionStatus={state.connectionStatus}
       rankings={state.rankings}
+      filters={evidenceViewFilters({
+        mode: params.mode,
+        distance: params.distance,
+      })}
+      selectedParents={[parent(params.parent1), parent(params.parent2)]}
     />
   );
 }

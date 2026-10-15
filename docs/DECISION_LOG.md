@@ -1,5 +1,28 @@
 # Decision Log
 
+## 2026-10-15 — Adopt verified public UX patterns without replacing methods
+
+The owner requested that the complete Cloud Browser review of DNA Analytics be
+recorded and useful improvements implemented. The [verified review](research/dna-analytics-public-ux-review-2026-10-15.md)
+records actual public Core, simulator, breeding, Esports and disconnected-vault
+outputs, URLs, navigation, member boundaries and the mobile-verification gap.
+It supersedes the earlier discovery-only benchmark evidence status in Issue
+#120 comment 6180748016; competitor formulas remain unvalidated.
+
+Search Core now filters accepted profiles by mode and exact distance, preserves
+query/Core context and exposes existing distribution details. Breeding filters
+already assessed pairs without reranking and links each parent to exact-context
+Core evidence. Pro League maps show mapped/required/evidence-backed entries by
+exact segment; these counts are not competitive strength or independent race
+samples. Dashboard shortcuts do not add data queries or speculative prefetch.
+No domain formula, model gate, source contract or economic calculation changed.
+
+Fresh metadata still reports 5,695,839,591 October Neon transfer bytes. Owner
+SQL, material R2 operations, connected page tests and deployment remain blocked
+until fresh positive A$0 headroom is established. Offline regression/UI evidence
+does not satisfy connected acceptance. Missing read-model adapters and official
+pair-price/rival-result contracts remain explicitly tracked in the review.
+
 Status: **current decision authority**  
 Reconciled: **27 August 2026**
 

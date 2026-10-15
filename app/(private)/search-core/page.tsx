@@ -1,5 +1,6 @@
 import { SearchCoreWorkspace } from "@/components/search-core-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { evidenceViewFilters } from "@/lib/evidence-view-filters";
 import { hostedRaceArchiveCoreHistoryRuntime } from "@/lib/hosted-race-archive-core-history-runtime";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
@@ -60,5 +61,13 @@ export default async function SearchCorePage({
     selectedCoreId: single(params, "coreId"),
   });
 
-  return <SearchCoreWorkspace state={state} />;
+  return (
+    <SearchCoreWorkspace
+      state={state}
+      filters={evidenceViewFilters({
+        mode: params.mode,
+        distance: params.distance,
+      })}
+    />
+  );
 }

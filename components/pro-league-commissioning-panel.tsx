@@ -1,4 +1,5 @@
 import type { ProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
+import { ProLeagueMapCoverage } from "@/components/pro-league-map-coverage";
 
 const unavailableCopy = {
   identity_not_connected: {
@@ -669,6 +670,8 @@ export function ProLeagueCommissioningPanel({
         </section>
       )}
 
+      <ProLeagueMapCoverage maps={plan.maps} />
+
       <section
         aria-labelledby="pro-league-race-mapping"
         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
@@ -695,6 +698,7 @@ export function ProLeagueCommissioningPanel({
             <details
               className="rounded-xl border border-[var(--border)]"
               key={map.mapId}
+              id={`mapping-${map.mapId}`}
             >
               <summary className="cursor-pointer px-4 py-4 font-semibold">
                 {map.name} · {number(map.assignedCoreEntries)}/
