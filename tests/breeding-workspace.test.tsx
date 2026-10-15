@@ -104,5 +104,40 @@ describe("Breeding workspace", () => {
     expect(html).toContain("Arena snapshot arena-v5");
     expect(html).toContain("Imported Arena listing expiry");
     expect(html).toContain("Historical breeding evidence connected");
+    expect(html).toContain("Find accepted pairs");
+    expect(html).toContain("Compare parents and evidence");
+    expect(html).toContain(
+      "coreId=synthetic-parent-a&amp;mode=horse&amp;distance=1600#selected-core",
+    );
+    expect(html).toContain("itemised costs are not supplied");
+    const before = JSON.stringify(ranking);
+    const selected = renderToStaticMarkup(
+      <BreedingWorkspace
+        connectionStatus="read_model_connected"
+        rankings={[ranking]}
+        filters={{ mode: "horse", distance: 1600 }}
+        selectedParents={["synthetic-parent-b", "synthetic-parent-a"]}
+      />,
+    );
+    expect(selected.match(/Pair synthetic-pair/g)).toHaveLength(3);
+    expect(selected).toContain("1. Pair synthetic-pair");
+    const wrongDistance = renderToStaticMarkup(
+      <BreedingWorkspace
+        connectionStatus="read_model_connected"
+        rankings={[ranking]}
+        filters={{ mode: "horse", distance: 1800 }}
+      />,
+    );
+    expect(wrongDistance).toContain("No accepted pairs match these filters");
+    expect(wrongDistance).not.toContain("1. Pair synthetic-pair");
+    const sameParent = renderToStaticMarkup(
+      <BreedingWorkspace
+        connectionStatus="read_model_connected"
+        rankings={[ranking]}
+        selectedParents={["synthetic-parent-a", "synthetic-parent-a"]}
+      />,
+    );
+    expect(sameParent).not.toContain("1. Pair synthetic-pair");
+    expect(JSON.stringify(ranking)).toBe(before);
   });
 });

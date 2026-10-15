@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import type { CorePerformanceProfile } from "@/domain/core-performance";
+import {
+  raceModes,
+  type CorePerformanceProfile,
+} from "@/domain/core-performance";
+import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import { OWNER_CORE_CATALOGUE_LIST_LIMIT } from "@/lib/owner-vault-catalogue-service";
 import type { SearchCorePageState } from "@/lib/search-core-service";
 
@@ -112,6 +116,27 @@ function PerformanceProfile({
         Data current through {currentThrough}. Historical imported evidence
         only; not live game state. Yellow is stored by the source as gold_star.
       </p>
+      <details className="mt-3 text-sm">
+        <summary className="cursor-pointer font-semibold">
+          Distribution details
+        </summary>
+        <dl className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <dt className="text-[var(--muted)]">Trimmed mean time</dt>
+            <dd>{seconds(profile.elapsedTime.trimmedMeanMilliseconds)}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--muted)]">Interquartile time range</dt>
+            <dd>
+              {seconds(profile.elapsedTime.interquartileRangeMilliseconds)}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          Lower time is faster. Variation describes observed spread, not a win
+          probability.
+        </p>
+      </details>
     </article>
   );
 }
@@ -180,8 +205,21 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
 
 export function SearchCoreWorkspace({
   state,
-}: Readonly<{ state: SearchCorePageState }>) {
+  filters = { mode: "all", distance: null },
+}: Readonly<{ state: SearchCorePageState; filters?: EvidenceViewFilters }>) {
   const connected = state.connectionStatus === "connected";
+  const profiles = state.performanceProfiles.filter(
+    (profile) =>
+      (filters.mode === "all" || profile.mode === filters.mode) &&
+      (filters.distance === null || profile.distance === filters.distance),
+  );
+  const distances = [
+    ...new Set(state.performanceProfiles.map((profile) => profile.distance)),
+  ].sort((a, b) => a - b);
+  if (filters.distance !== null && !distances.includes(filters.distance)) {
+    distances.push(filters.distance);
+    distances.sort((a, b) => a - b);
+  }
   const resultLimitCopy = [
     `Search reached the ${OWNER_CORE_CATALOGUE_LIST_LIMIT.toLocaleString("en-AU")}-core result limit.`,
     "These are returned results, not a verified count of all matches.",
@@ -222,6 +260,10 @@ export function SearchCoreWorkspace({
             type="search"
           />
         </label>
+        <input name="mode" type="hidden" value={filters.mode} />
+        {filters.distance === null ? null : (
+          <input name="distance" type="hidden" value={filters.distance} />
+        )}
         <div className="flex items-end">
           <button
             className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
@@ -316,7 +358,8 @@ export function SearchCoreWorkspace({
                     className="mt-5 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold"
                     href={`/search-core?q=${encodeURIComponent(
                       state.query ?? core.sourceCoreId,
-                    )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                    )}&coreId=${encodeURIComponent(core.sourceCoreId)}&mode=${filters.mode}${filters.distance === null ? "" : `&distance=${filters.distance}`}#selected-core`}
+                    prefetch={false}
                   >
                     View core
                   </Link>
@@ -341,6 +384,32 @@ export function SearchCoreWorkspace({
           <p className="mt-1 text-sm text-[var(--muted)]">
             Core ID {state.selectedCore.sourceCoreId}
           </p>
+          <nav
+            aria-label="Core profile sections"
+            className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"
+          >
+            <a
+              className="rounded-lg border border-[var(--border)] px-3 py-2"
+              href="#core-racing"
+            >
+              Race evidence
+            </a>
+            <a
+              className="rounded-lg border border-[var(--border)] px-3 py-2"
+              href="#core-archive"
+            >
+              Archive coverage
+            </a>
+            {state.selectedCore.inMyVault ? (
+              <Link
+                className="rounded-lg border border-[var(--border)] px-3 py-2"
+                href="/vault"
+                prefetch={false}
+              >
+                My Vault
+              </Link>
+            ) : null}
+          </nav>
           <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <dt className="text-[var(--muted)]">Element</dt>
@@ -367,8 +436,69 @@ export function SearchCoreWorkspace({
               </dd>
             </div>
           </dl>
-          <div className="mt-6">
+          <div className="mt-6 scroll-mt-6" id="core-racing">
             <h3 className="font-semibold">Racing statistics</h3>
+            <form
+              action="/search-core#core-racing"
+              method="get"
+              className="mt-3 flex flex-wrap items-end gap-3"
+              aria-label="Core race evidence filters"
+            >
+              {state.query === null ? null : (
+                <input name="q" type="hidden" value={state.query} />
+              )}
+              <input
+                name="coreId"
+                type="hidden"
+                value={state.selectedCore.sourceCoreId}
+              />
+              <label className="text-sm font-semibold">
+                Mode
+                <select
+                  className="mt-1 block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2"
+                  defaultValue={filters.mode}
+                  name="mode"
+                >
+                  <option value="all">All modes</option>
+                  {raceModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {label(mode)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-semibold">
+                Exact distance
+                <select
+                  className="mt-1 block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2"
+                  defaultValue={filters.distance ?? ""}
+                  name="distance"
+                >
+                  <option value="">All distances</option>
+                  {distances.map((distance) => (
+                    <option key={distance} value={distance}>
+                      {distance.toLocaleString("en-AU")} m
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+                type="submit"
+              >
+                Apply filters
+              </button>
+            </form>
+            <p className="mt-3 text-xs text-[var(--muted)]">
+              Last imported{" "}
+              {state.performanceLastImportedAt === null
+                ? "not available"
+                : new Date(state.performanceLastImportedAt).toLocaleString(
+                    "en-AU",
+                  )}
+              . Each profile keeps its own source cutoff and sample. Modes and
+              exact distances are never pooled.
+            </p>
             {state.performanceStatus !== "connected" ? (
               <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
                 Historical performance profiles are not configured for this
@@ -379,9 +509,22 @@ export function SearchCoreWorkspace({
                 No accepted exact-distance race profile is available for this
                 core yet.
               </p>
+            ) : profiles.length === 0 ? (
+              <p
+                className="mt-3 rounded-xl border border-[var(--border)] p-4 text-sm"
+                role="status"
+              >
+                No accepted profile matches this mode and exact distance.
+                Missing evidence is unknown; no nearby distance is substituted.
+              </p>
             ) : (
               <div className="mt-3 grid gap-3">
-                {state.performanceProfiles.map((profile) => (
+                <p className="text-sm text-[var(--muted)]" role="status">
+                  Showing {profiles.length} of{" "}
+                  {state.performanceProfiles.length} exact-mode/distance
+                  profiles
+                </p>
+                {profiles.map((profile) => (
                   <PerformanceProfile
                     key={`${profile.mode}:${profile.distance}`}
                     profile={profile}
@@ -390,7 +533,7 @@ export function SearchCoreWorkspace({
               </div>
             )}
           </div>
-          <div className="mt-6">
+          <div className="mt-6 scroll-mt-6" id="core-archive">
             <h3 className="font-semibold">Archived Race evidence</h3>
             <ArchiveEvidence state={state} />
           </div>

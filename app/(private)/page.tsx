@@ -1,5 +1,6 @@
 import { FreshnessStatus } from "@/components/freshness-status";
 import { OwnerVaultStatus } from "@/components/owner-vault-status";
+import { WorkspaceShortcuts } from "@/components/workspace-shortcuts";
 import type {
   HistoricalImportSource,
   ImportWorkspace,
@@ -82,6 +83,7 @@ export default async function DashboardPage() {
           source receipt is connected.
         </p>
       </header>
+      <WorkspaceShortcuts />
       <div className="grid gap-4 xl:grid-cols-2">
         <OwnerVaultStatus state={vaultState} />
         <FreshnessStatus

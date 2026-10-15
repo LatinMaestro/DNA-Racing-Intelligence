@@ -68,6 +68,11 @@ The delivery priority is the earliest safe **private owner-usable Pro League com
 
 ## Source-of-truth documents
 
+Verified external UX evidence and the implementation/dependency record are in
+[`DNA Analytics public feature review — 15 October 2026`](docs/research/dna-analytics-public-ux-review-2026-10-15.md).
+The review informs presentation only; it does not replace the analytical method
+or prove connected private website acceptance.
+
 - [`AGENTS.md`](AGENTS.md) — autonomous delivery and safety instructions
 - [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) — current API-first phased delivery plan
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current API-first architecture and storage boundaries

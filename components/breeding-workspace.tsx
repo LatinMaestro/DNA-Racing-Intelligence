@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { BreedingEconomicForms } from "@/components/breeding-economic-forms";
+import { raceModes } from "@/domain/core-performance";
+import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import type { BreedingPairRankingResult } from "@/domain/breeding-pair-ranking";
 import type { BreedingWorkspaceConnectionStatus } from "@/lib/breeding-workspace-service";
 
@@ -72,7 +75,7 @@ function RankingList({
       </p>
       {pairs.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--muted)]">
-          No eligible pairs in this ranking.
+          No accepted pairs match these filters.
         </p>
       ) : (
         <ol className="mt-4 divide-y divide-[var(--border)]">
@@ -111,6 +114,37 @@ function RankingList({
                   {timestamp(pair.arenaListingExpiresAt)}
                 </p>
               )}
+              <details className="mt-3 rounded-lg border border-[var(--border)] p-3 text-sm">
+                <summary className="cursor-pointer font-semibold">
+                  Compare parents and evidence
+                </summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {pair.parentCoreIds.map((coreId, index) => (
+                    <div
+                      className="min-w-0 rounded-lg bg-[var(--surface)] p-3"
+                      key={coreId}
+                    >
+                      <p className="text-xs text-[var(--muted)]">
+                        Parent {index + 1}
+                      </p>
+                      <p className="mt-1 break-all font-semibold">{coreId}</p>
+                      <Link
+                        className="mt-2 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 font-semibold"
+                        href={`/search-core?coreId=${encodeURIComponent(coreId)}&mode=${pair.mode.toLowerCase()}&distance=${pair.exactDistanceM}#selected-core`}
+                        prefetch={false}
+                      >
+                        View race evidence
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+                  These are accepted historical pair estimates, not a new
+                  prediction or confirmation of current breeding availability.
+                  Current official pair validation and itemised costs are not
+                  supplied by this ranking.
+                </p>
+              </details>
             </li>
           ))}
         </ol>
@@ -122,11 +156,33 @@ function RankingList({
 export function BreedingWorkspace({
   rankings,
   connectionStatus,
+  filters = { mode: "all", distance: null },
+  selectedParents = ["", ""],
 }: Readonly<{
   rankings: readonly BreedingPairRankingResult[];
   connectionStatus: BreedingWorkspaceConnectionStatus;
+  filters?: EvidenceViewFilters;
+  selectedParents?: readonly [string, string];
 }>) {
   const connection = connectionCopy[connectionStatus];
+  const allPairs = rankings.flatMap((ranking) => [
+    ...ranking.eliteUpsideRanking,
+    ...ranking.vaultGapRanking,
+    ...ranking.balancedRanking,
+  ]);
+  const parents = [
+    ...new Set(allPairs.flatMap((pair) => pair.parentCoreIds)),
+  ].sort();
+  const distances = [
+    ...new Set(allPairs.map((pair) => pair.exactDistanceM)),
+  ].sort((a, b) => a - b);
+  const matches = (pair: RankedPair) =>
+    (filters.mode === "all" || pair.mode.toLowerCase() === filters.mode) &&
+    (filters.distance === null || pair.exactDistanceM === filters.distance) &&
+    selectedParents.every(
+      (id) => id === "" || pair.parentCoreIds.includes(id),
+    ) &&
+    !(selectedParents[0] !== "" && selectedParents[0] === selectedParents[1]);
 
   return (
     <div className="space-y-8">
@@ -179,6 +235,85 @@ export function BreedingWorkspace({
           </span>
         </div>
 
+        {rankings.length === 0 ? null : (
+          <form
+            action="/breeding#breeding-rankings"
+            method="get"
+            className="mt-4 grid gap-3 rounded-xl border border-[var(--border)] p-4 sm:grid-cols-2 lg:grid-cols-5"
+            aria-label="Find an accepted pair"
+          >
+            <label className="min-w-0 text-sm font-semibold">
+              Mode
+              <select
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2"
+                defaultValue={filters.mode}
+                name="mode"
+              >
+                <option value="all">All modes</option>
+                {raceModes.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {label(mode)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0 text-sm font-semibold">
+              Exact distance
+              <select
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2"
+                defaultValue={filters.distance ?? ""}
+                name="distance"
+              >
+                <option value="">All distances</option>
+                {filters.distance !== null &&
+                !distances.includes(filters.distance) ? (
+                  <option value={filters.distance}>
+                    {filters.distance.toLocaleString("en-AU")} m
+                  </option>
+                ) : null}
+                {distances.map((distance) => (
+                  <option key={distance} value={distance}>
+                    {distance.toLocaleString("en-AU")} m
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedParents.map((selected, index) => (
+              <label className="min-w-0 text-sm font-semibold" key={index}>
+                Parent {index + 1}
+                <select
+                  className="mt-1 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2"
+                  defaultValue={selected}
+                  name={`parent${index + 1}`}
+                >
+                  <option value="">Any parent</option>
+                  {selected !== "" && !parents.includes(selected) ? (
+                    <option value={selected}>{selected}</option>
+                  ) : null}
+                  {parents.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+            <div className="flex items-end">
+              <button
+                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+                type="submit"
+              >
+                Find accepted pairs
+              </button>
+            </div>
+            <p className="text-xs text-[var(--muted)] sm:col-span-2 lg:col-span-5">
+              Filters narrow the accepted snapshot and preserve each
+              objective&apos;s original rank. They do not generate predictions
+              for unassessed pairs. Held pairs remain visible below.
+            </p>
+          </form>
+        )}
+
         {rankings.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
             <h3 className="font-semibold">No accepted breeding rankings</h3>
@@ -218,17 +353,17 @@ export function BreedingWorkspace({
                   <RankingList
                     description="Exceptional-outcome probability only; Vault fit cannot suppress this order."
                     heading="Elite upside"
-                    pairs={ranking.eliteUpsideRanking}
+                    pairs={ranking.eliteUpsideRanking.filter(matches)}
                   />
                   <RankingList
                     description="Missing-role fit only; elite upside remains independently visible."
                     heading="Vault gap"
-                    pairs={ranking.vaultGapRanking}
+                    pairs={ranking.vaultGapRanking.filter(matches)}
                   />
                   <RankingList
                     description="Explicit configured weights combine broader quality and Vault fit."
                     heading="Balanced"
-                    pairs={ranking.balancedRanking}
+                    pairs={ranking.balancedRanking.filter(matches)}
                   />
                 </div>
                 {ranking.heldPairs.length > 0 ? (
