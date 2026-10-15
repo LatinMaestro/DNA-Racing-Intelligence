@@ -43,10 +43,13 @@ is labelled as historical recorded activity rather than a live wallet balance.
 ## Deferred work
 
 The bounded payload prerequisite is documented in
-`PHASE_2A_VAULT_PERFORMANCE_SUMMARY_SNAPSHOT.md`. Its codec does not configure
-persistence or commission this page.
+`PHASE_2A_VAULT_PERFORMANCE_SUMMARY_SNAPSHOT.md`. The codec and migration `0125` now have
+compact owner-isolated storage/read-adapter code and synthetic tests. This does
+not configure persistence or commission this page.
 
-- provider-specific owner-scoped materialized-summary SQL;
+- trusted compact ledger/correction identity and guarded source-validated
+  summary materialization/publication, followed by route construction of the
+  adapter (no page-request ledger scans);
 - private ledger and manual-entry forms;
 - representative private reconciliation evidence;
 - conversion views with dated rates; and

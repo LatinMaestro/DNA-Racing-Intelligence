@@ -387,6 +387,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.up.sql
       - name: Run import workspace runtime read grants smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.smoke.sql
+      - name: Apply Vault Performance summary snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.up.sql
+      - name: Run Vault Performance summary snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.smoke.sql
+      - name: Reverse Vault Performance summary snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.down.sql
+      - name: Verify Vault Performance summary snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.removal.sql
       - name: Reverse import workspace runtime read grants migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0124_import_workspace_runtime_read_grants.down.sql
       - name: Verify import workspace runtime read grants removal
