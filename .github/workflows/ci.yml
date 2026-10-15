@@ -395,6 +395,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.up.sql
       - name: Run Vault Performance summary publication smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.smoke.sql
+      - name: Apply Maiden allocation evidence snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.up.sql
+      - name: Run Maiden allocation evidence snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.smoke.sql
+      - name: Reverse Maiden allocation evidence snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.down.sql
+      - name: Verify Maiden allocation evidence snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.removal.sql
       - name: Reverse Vault Performance summary publication migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.down.sql
       - name: Verify Vault Performance summary publication removal
