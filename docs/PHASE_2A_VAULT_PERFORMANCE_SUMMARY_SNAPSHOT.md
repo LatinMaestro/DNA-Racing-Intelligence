@@ -81,19 +81,37 @@ states are non-destructive, and provider/source failures expose no protected
 values. The publisher contract must compare the expected source digest in the
 same transaction as publication and preserve last-good on mismatch.
 
-The production canonical source adapter and compare-and-swap publisher are still
-intentionally absent. Next map the accepted ledger, classification,
-reconciliation, correction, cost-basis and coverage authority into that contract
-and derive its compact source-state identity in trusted owner-scoped persistence.
-Relevant corrections must invalidate the source identity in the same accepted
-state transition; an older summary then cannot match a new source identity. A
-form, environment value or snapshot-body hash cannot implement this contract.
-Until those production dependencies exist, do not populate the slot or wire the
-page. The storage checks are transport integrity, not financial truth.
+Migration `0126` and `lib/neon-vault-performance-summary-materializer.ts` now
+provide the production canonical-source and compare-and-swap publication
+boundary. The source function maps the existing accepted owner ledger into the
+unchanged domain input, returns records in deterministic order and conservatively
+labels source/manual-payout coverage unknown. It withholds publication when the
+ledger contains a category for which the approved summary has no exact mapping;
+it does not invent a refund or unclassified-activity treatment. Zero-value audit
+events remain outside monetary totals. Core-sale assets are marked as missing
+cost basis because no accepted same-asset cost-basis authority exists yet.
 
-After that dependency is available, wire the existing private page and test
-owner denial before persistence, rollback/close paths and connected retained-
-data reconciliation. The page continues to inject the unavailable repository.
+The adapter hashes the owner, monotonic source revision, normalized records and
+coverage, then claims that identity inside the same serializable source-read
+transaction. Owner-scoped triggers invalidate the compact identity on economic
+transaction, asset, reconciliation or accepted-import changes. Publication
+locks and compares that identity before atomically replacing the snapshot;
+source drift returns `source_changed` and preserves the stored last-good row.
+Routine page reads use only the compact accepted identity and one summary row,
+never the ledger. Runtime receives function-only access and no direct source or
+summary-table permission. A form, environment value or snapshot-body hash still
+cannot implement source authority.
+
+This is offline migration/adapter preparation only. Do not populate the slot or
+wire the page until the hosted migration, bounded materialization and retained-
+data reconciliation pass after fresh A$0 capacity proof. The storage checks are
+transport integrity, not financial truth.
+
+Next, expose a server-only bounded materialization command and construct the
+existing read adapter in the private route only after the source and snapshot
+have passed connected acceptance. Test owner denial before persistence,
+rollback/close paths and retained-data reconciliation. The page continues to
+inject the unavailable repository.
 USD valuation, per-Core reporting, ledger forms and other module adapters remain
 separate requirements. Existing `domain/vault-performance-summary.ts` and its
 accounting tests are unchanged; adapter tests preserve exact totals, separate
@@ -108,7 +126,10 @@ ephemeral PostgreSQL. Hosted PostgreSQL 18 compatibility/owner-role acceptance
 remains part of bounded commissioning; current CI PostgreSQL 16 success is not
 proof of a connected Neon migration.
 
-Synthetic tests cover precision beyond JavaScript's safe-integer range,
+Synthetic tests now also cover deterministic source identity, unsupported-source
+withholding, correction invalidation, stale-revision rejection, idempotent and
+source-changed publication, function-only permissions and stored last-good
+preservation. Existing tests cover precision beyond JavaScript's safe-integer range,
 sub-wei-style fractional precision, separate ETH/DEZ/BGC, transfers outside
 operating totals, missing cost basis, partial coverage, stale reads, unknown
 dates, owner/source mismatch, altered bytes, malformed money and payloads,
