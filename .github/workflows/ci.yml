@@ -391,6 +391,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.up.sql
       - name: Run Vault Performance summary snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.smoke.sql
+      - name: Apply Vault Performance summary publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.up.sql
+      - name: Run Vault Performance summary publication smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.smoke.sql
+      - name: Reverse Vault Performance summary publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.down.sql
+      - name: Verify Vault Performance summary publication removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.removal.sql
       - name: Reverse Vault Performance summary snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.down.sql
       - name: Verify Vault Performance summary snapshot removal

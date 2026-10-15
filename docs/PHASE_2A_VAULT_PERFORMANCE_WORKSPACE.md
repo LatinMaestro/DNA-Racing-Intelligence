@@ -47,9 +47,10 @@ The bounded payload prerequisite is documented in
 compact owner-isolated storage/read-adapter code and synthetic tests. This does
 not configure persistence or commission this page.
 
-- trusted compact ledger/correction identity and guarded source-validated
-  summary materialization/publication, followed by route construction of the
-  adapter (no page-request ledger scans);
+- server-only execution and connected acceptance of the implemented compact
+  ledger/correction identity plus guarded source-validated materialization,
+  followed by route construction of the read adapter (no page-request ledger
+  scans);
 - private ledger and manual-entry forms;
 - representative private reconciliation evidence;
 - conversion views with dated rates; and
