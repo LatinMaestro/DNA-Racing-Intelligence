@@ -72,14 +72,24 @@ without returning provider error values.
 The adapter is intentionally not constructed by the route. There is no production
 source-identity reader or publication/materializer API in this slice. Environment
 variables or an arbitrary body checksum cannot make a report authoritative.
-Next add a separately guarded materializer that reuses
-`buildVaultPerformanceSummary` against canonical ledger, classification,
-reconciliation, correction, cost-basis and coverage authority, with a compact
-source-state identity, atomic compare-and-swap publication and last-good
-concurrency protection. Relevant corrections must invalidate the source identity
-in the same accepted state transition; an older summary then cannot match a new
-source identity. Until this authority is implemented, do not populate the slot or
-wire the page. The storage checks are transport integrity, not financial truth.
+`lib/vault-performance-summary-materializer.ts` now supplies the guarded
+calculator-to-snapshot coordinator. It loads one trusted canonical source state,
+reuses `buildVaultPerformanceSummary` and the existing codec, and submits a
+single owner/source-bound candidate to a required compare-and-swap publisher.
+Unknown source authority does not publish; unchanged and concurrently superseded
+states are non-destructive, and provider/source failures expose no protected
+values. The publisher contract must compare the expected source digest in the
+same transaction as publication and preserve last-good on mismatch.
+
+The production canonical source adapter and compare-and-swap publisher are still
+intentionally absent. Next map the accepted ledger, classification,
+reconciliation, correction, cost-basis and coverage authority into that contract
+and derive its compact source-state identity in trusted owner-scoped persistence.
+Relevant corrections must invalidate the source identity in the same accepted
+state transition; an older summary then cannot match a new source identity. A
+form, environment value or snapshot-body hash cannot implement this contract.
+Until those production dependencies exist, do not populate the slot or wire the
+page. The storage checks are transport integrity, not financial truth.
 
 After that dependency is available, wire the existing private page and test
 owner denial before persistence, rollback/close paths and connected retained-
@@ -102,7 +112,8 @@ Synthetic tests cover precision beyond JavaScript's safe-integer range,
 sub-wei-style fractional precision, separate ETH/DEZ/BGC, transfers outside
 operating totals, missing cost basis, partial coverage, stale reads, unknown
 dates, owner/source mismatch, altered bytes, malformed money and payloads,
-future evidence, detached returned values and the payload ceiling. They are
+future evidence, detached returned values, concurrent-source rejection,
+non-destructive last-good outcomes and the payload ceiling. They are
 preparatory regression evidence, not real owner-data commissioning.
 
 Fresh metadata on 15 October still reports Neon October transfer of
