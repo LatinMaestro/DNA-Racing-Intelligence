@@ -1,9 +1,7 @@
 import { VaultPerformanceWorkspace } from "@/components/vault-performance-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import {
-  loadVaultPerformancePageState,
-  unavailableVaultPerformanceSummaryRepository,
-} from "@/lib/vault-performance-workspace-service";
+import { neonVaultPerformanceSummaryRepositoryFromEnvironment } from "@/lib/neon-vault-performance-summary-repository";
+import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +15,12 @@ export default async function VaultPerformancePage() {
   const state = await loadVaultPerformancePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: unavailableVaultPerformanceSummaryRepository,
+    repository: neonVaultPerformanceSummaryRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      authenticatedOwnerId,
+    }),
     now: new Date(),
   });
 

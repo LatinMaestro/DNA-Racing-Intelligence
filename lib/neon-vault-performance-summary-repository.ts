@@ -1,4 +1,8 @@
-import type { VaultPerformanceSummaryRepository } from "./vault-performance-workspace-service";
+import { readNeonVaultPerformanceSourceIdentity } from "./neon-vault-performance-summary-materializer";
+import {
+  unavailableVaultPerformanceSummaryRepository,
+  type VaultPerformanceSummaryRepository,
+} from "./vault-performance-workspace-service";
 import { decodeVaultPerformanceSummarySnapshot } from "./vault-performance-summary-snapshot";
 import {
   createDefaultNeonImportPersistenceSession,
@@ -8,7 +12,7 @@ import {
 
 // This dependency must read trusted compact ledger/correction authority in the
 // same owner-scoped transaction. It must not scan the ledger or accept form/env
-// digests. No production implementation is supplied until publication exists.
+// digests. The production reader resolves only the accepted source manifest.
 export type VaultPerformanceSourceIdentityReader = (
   client: NeonImportPersistenceClient,
   databaseOwnerId: string,
@@ -18,6 +22,13 @@ const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ROLE = /^[a-z_][a-z0-9_]{0,62}$/;
 const HASH = /^[a-f0-9]{64}$/;
+
+type Environment = Readonly<{
+  databaseUrl: string | undefined;
+  databaseOwnerId: string | undefined;
+  runtimeRole: string | undefined;
+  authenticatedOwnerId: string | null;
+}>;
 const VERIFY_SQL = `
   SELECT owner.id::text AS database_owner_id,
     owner.clerk_user_id AS authenticated_owner_id,
@@ -55,6 +66,11 @@ function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     fail();
   return value as Record<string, unknown>;
+}
+
+function normalized(value: string | null | undefined): string | null {
+  const result = value?.trim() ?? "";
+  return result === "" ? null : result;
 }
 
 export function createNeonVaultPerformanceSummaryRepository(
@@ -184,4 +200,32 @@ export function createNeonVaultPerformanceSummaryRepository(
       }
     },
   };
+}
+
+export function neonVaultPerformanceSummaryRepositoryFromEnvironment(
+  environment: Environment,
+  sessionFactory?: NeonImportPersistenceSessionFactory,
+  now?: () => Date,
+): VaultPerformanceSummaryRepository {
+  const databaseUrl = normalized(environment.databaseUrl);
+  const databaseOwnerId = normalized(environment.databaseOwnerId);
+  const runtimeRole = normalized(environment.runtimeRole);
+  const authenticatedOwnerId = normalized(environment.authenticatedOwnerId);
+  if (
+    databaseUrl === null ||
+    databaseOwnerId === null ||
+    runtimeRole === null ||
+    authenticatedOwnerId === null
+  )
+    return unavailableVaultPerformanceSummaryRepository;
+
+  return createNeonVaultPerformanceSummaryRepository({
+    databaseUrl,
+    databaseOwnerId,
+    runtimeRole,
+    authenticatedOwnerId,
+    readSourceIdentity: readNeonVaultPerformanceSourceIdentity,
+    ...(sessionFactory ? { sessionFactory } : {}),
+    ...(now ? { now } : {}),
+  });
 }

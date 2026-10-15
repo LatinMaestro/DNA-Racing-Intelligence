@@ -19,6 +19,7 @@ export type VaultPerformanceSummaryRepository =
 export type VaultPerformanceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_model_error"
   | "read_model_connected";
 
 export type VaultPerformancePageState = Readonly<{
@@ -231,8 +232,16 @@ export async function loadVaultPerformancePageState(
     throw new Error("Invalid Vault Performance repository.");
   }
 
-  const persistedSummary =
-    await input.repository.loadSummaryByOwner(authenticatedOwnerId);
+  let persistedSummary: VaultPerformanceSummary | null;
+  try {
+    persistedSummary =
+      await input.repository.loadSummaryByOwner(authenticatedOwnerId);
+  } catch {
+    return {
+      summary: null,
+      connectionStatus: "read_model_error",
+    };
+  }
   return {
     summary:
       persistedSummary === null
