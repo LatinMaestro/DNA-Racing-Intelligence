@@ -42,6 +42,10 @@ is labelled as historical recorded activity rather than a live wallet balance.
 
 ## Deferred work
 
+The bounded payload prerequisite is documented in
+`PHASE_2A_VAULT_PERFORMANCE_SUMMARY_SNAPSHOT.md`. Its codec does not configure
+persistence or commission this page.
+
 - provider-specific owner-scoped materialized-summary SQL;
 - private ledger and manual-entry forms;
 - representative private reconciliation evidence;
