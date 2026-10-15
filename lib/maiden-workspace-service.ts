@@ -10,14 +10,16 @@ export type MaidenAllocationRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      loadAllocationEvidenceByOwner: (ownerId: string) => Promise<
-        Readonly<{
-          brackets: readonly MaidenAllocationBracketInput[];
-          candidates: readonly MaidenAllocationCandidateInput[];
-          lastImportedAt: string | null;
-        }>
-      >;
+      loadAllocationEvidenceByOwner: (
+        ownerId: string,
+      ) => Promise<MaidenAllocationEvidence>;
     }>;
+
+export type MaidenAllocationEvidence = Readonly<{
+  brackets: readonly MaidenAllocationBracketInput[];
+  candidates: readonly MaidenAllocationCandidateInput[];
+  lastImportedAt: string | null;
+}>;
 
 export type MaidenWorkspaceConnectionStatus =
   | "identity_not_connected"
@@ -98,6 +100,43 @@ function normalizeCandidates(
   });
 }
 
+export function normalizeMaidenAllocationEvidence(
+  evidence: unknown,
+  nowInput: Date,
+): MaidenAllocationEvidence {
+  const now = validNow(nowInput);
+  if (
+    typeof evidence !== "object" ||
+    evidence === null ||
+    !Array.isArray((evidence as MaidenAllocationEvidence).brackets) ||
+    !Array.isArray((evidence as MaidenAllocationEvidence).candidates)
+  ) {
+    throw new Error("Maiden evidence is invalid.");
+  }
+  const input = evidence as MaidenAllocationEvidence;
+  const lastImportedAt = canonicalTimestamp(
+    input.lastImportedAt,
+    "Maiden import timestamp",
+  );
+  if (lastImportedAt !== null && Date.parse(lastImportedAt) > now.getTime()) {
+    throw new Error("Maiden import timestamp cannot be in the future.");
+  }
+  if (input.brackets.length === 0 && input.candidates.length > 0) {
+    throw new Error("Maiden candidates require configured brackets.");
+  }
+  const candidates = normalizeCandidates(input.candidates, lastImportedAt, now);
+  if (input.brackets.length > 0) {
+    // Reuse the approved allocator as the complete evidence/version validator.
+    // Its output is deliberately discarded; callers decide when to allocate.
+    allocateMaidenVaultOpportunities(input.brackets, candidates);
+  }
+  return {
+    brackets: input.brackets,
+    candidates,
+    lastImportedAt,
+  };
+}
+
 export async function loadMaidenWorkspacePageState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
@@ -138,26 +177,9 @@ export async function loadMaidenWorkspacePageState(
     throw new Error("Maiden repository is invalid.");
   }
 
-  const evidence =
+  const persistedEvidence =
     await input.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId);
-  if (
-    typeof evidence !== "object" ||
-    evidence === null ||
-    !Array.isArray(evidence.brackets) ||
-    !Array.isArray(evidence.candidates)
-  ) {
-    throw new Error("Maiden evidence is invalid.");
-  }
-  const lastImportedAt = canonicalTimestamp(
-    evidence.lastImportedAt,
-    "Maiden import timestamp",
-  );
-  if (lastImportedAt !== null && Date.parse(lastImportedAt) > now.getTime()) {
-    throw new Error("Maiden import timestamp cannot be in the future.");
-  }
-  if (evidence.brackets.length === 0 && evidence.candidates.length > 0) {
-    throw new Error("Maiden candidates require configured brackets.");
-  }
+  const evidence = normalizeMaidenAllocationEvidence(persistedEvidence, now);
 
   return {
     allocation:
@@ -165,9 +187,9 @@ export async function loadMaidenWorkspacePageState(
         ? null
         : allocateMaidenVaultOpportunities(
             evidence.brackets,
-            normalizeCandidates(evidence.candidates, lastImportedAt, now),
+            evidence.candidates,
           ),
-    lastImportedAt,
+    lastImportedAt: evidence.lastImportedAt,
     connectionStatus: "read_model_connected",
   };
 }
