@@ -6,6 +6,11 @@ This matrix separates code and synthetic evidence from connected owner-data acce
 
 ## Current safety gate
 
+The 15 October recovery and recurring-transfer audit is recorded in
+`NEON_TRANSFER_RECOVERY_AND_MONTHLY_PLAN.md`. It distinguishes independently
+budgeted R2-only processing from the coupled Neon commands below; no standalone
+real-data replacement or provider reset has been proved.
+
 The latest accepted Neon metadata reports `5,695,839,591` October network-transfer bytes for the period ending `2026-11-01T00:00:00Z`. That exceeds both the owner 4.75 GB operating ceiling and the stated Free allowance. Until fresh metadata proves positive A$0 headroom for every affected provider:
 
 - do not run owner-data SQL, connected page loads or automated page data-fetch tests;
