@@ -19,6 +19,11 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact private summary repository is not configured. No ledger rows are scanned on this page.",
   },
+  read_model_error: {
+    heading: "Vault Performance summary unavailable",
+    detail:
+      "The compact private summary could not be verified. No financial value is inferred, provider details are withheld and the last accepted data remains unchanged.",
+  },
   read_model_connected: {
     heading: "Historical economic summary connected",
     detail:

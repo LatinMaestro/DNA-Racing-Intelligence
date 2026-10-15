@@ -18,6 +18,20 @@ describe("Vault Performance workspace", () => {
     expect(html).not.toContain("0 DEZ");
   });
 
+  it("renders a sanitized compact-read failure", () => {
+    const html = renderToStaticMarkup(
+      <VaultPerformanceWorkspace
+        connectionStatus="read_model_error"
+        summary={null}
+      />,
+    );
+
+    expect(html).toContain("Vault Performance summary unavailable");
+    expect(html).toContain("provider details are withheld");
+    expect(html).not.toContain("private provider detail");
+    expect(html).not.toContain("0 DEZ");
+  });
+
   it("renders exact original-asset totals and BGC separately", () => {
     const summary = buildVaultPerformanceSummary(
       [

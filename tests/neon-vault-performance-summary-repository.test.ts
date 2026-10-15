@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { NeonImportPersistenceClient } from "@/lib/neon-import-persistence-driver";
 import { buildVaultPerformanceSummary } from "@/domain/vault-performance-summary";
 import { encodeVaultPerformanceSummarySnapshot } from "@/lib/vault-performance-summary-snapshot";
-import { createNeonVaultPerformanceSummaryRepository } from "@/lib/neon-vault-performance-summary-repository";
+import {
+  createNeonVaultPerformanceSummaryRepository,
+  neonVaultPerformanceSummaryRepositoryFromEnvironment,
+} from "@/lib/neon-vault-performance-summary-repository";
 import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
 const owner = "11111111-1111-4111-8111-111111111111";
@@ -129,6 +132,31 @@ function harness(
 const unavailable = "Vault Performance summary read unavailable.";
 
 describe("compact Neon Vault Performance summary dependency", () => {
+  it("composes only a complete server-side owner environment", () => {
+    expect(
+      neonVaultPerformanceSummaryRepositoryFromEnvironment({
+        databaseUrl: undefined,
+        databaseOwnerId: owner,
+        runtimeRole: "dna_app_runtime",
+        authenticatedOwnerId: identity,
+      }),
+    ).toEqual({ status: "not_configured" });
+
+    expect(
+      neonVaultPerformanceSummaryRepositoryFromEnvironment(
+        {
+          databaseUrl: "postgresql://synthetic.invalid/dna",
+          databaseOwnerId: owner,
+          runtimeRole: "dna_app_runtime",
+          authenticatedOwnerId: identity,
+        },
+        async () => {
+          throw new Error("must not connect while composing");
+        },
+      ).status,
+    ).toBe("ready");
+  });
+
   it("uses a read-only owner transaction, one bounded function read and unchanged exact accounting", async () => {
     const h = harness();
     const page = await loadVaultPerformancePageState({

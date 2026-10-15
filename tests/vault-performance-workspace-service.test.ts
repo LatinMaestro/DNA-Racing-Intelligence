@@ -96,6 +96,25 @@ describe("Vault Performance workspace service", () => {
     });
   });
 
+  it("withholds repository failures as a sanitized unavailable state", async () => {
+    await expect(
+      loadVaultPerformancePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        now,
+        repository: {
+          status: "ready",
+          loadSummaryByOwner: async () => {
+            throw new Error("private provider detail");
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      summary: null,
+      connectionStatus: "read_model_error",
+    });
+  });
+
   it("derives freshness at the 3/4/7/8-day boundaries", async () => {
     const cases = [
       ["2026-07-18T00:00:00.000Z", "current", []],
