@@ -88,9 +88,10 @@ function harness(
       ? sourceSha
       : overrides.acceptedIdentity,
   );
+  const publication = (overrides.publication ??
+    "published") as MaidenEvidencePublicationOutcome;
   const publishCandidate = vi.fn(
-    async (_candidate: MaidenEvidencePublicationCandidate) =>
-      (overrides.publication ?? "published") as MaidenEvidencePublicationOutcome,
+    async (_candidate: MaidenEvidencePublicationCandidate) => publication,
   );
   const boundary = {
     loadCanonicalSource,
