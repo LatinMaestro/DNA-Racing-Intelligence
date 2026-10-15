@@ -82,6 +82,14 @@ This is an early admission check, not a reservation for an entire future run.
 It neither reopens this month's database nor replaces storage/compute/R2
 preflights or permission to run the deferred work.
 
+The Cloudflare Preview provider workflow is also manual-exact-main only before
+any provider credential is exposed. Its separate first job holds unless a
+manual dispatch targets current `main` and the same metadata-only transfer
+check passes. Pull requests therefore cannot reach Neon SQL, R2 inventory,
+Cloudflare queue reads or Worker deployment. Passing this early gate still does
+not authorize material work: the later full-run Neon/R2 forecast, durable
+reservation, privacy and deployment gates remain required.
+
 ## Future-month priorities preserving the analytical method
 
 | Priority | Verified source-code risk / required improvement                                                                                                                                                                                   | Acceptance                                                                                                                                                                                                                                                                                               |

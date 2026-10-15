@@ -188,4 +188,29 @@ describe("early Neon transfer metadata preflight", () => {
     expect(connected).toContain("Prove");
     expect(connected).toContain("expected_main_sha");
   });
+
+  it("keeps pull requests away from Preview credentials and gates manual exact-main provider access", () => {
+    const workflow = readFileSync(
+      ".github/workflows/cloudflare-preview-preflight.yml",
+      "utf8",
+    );
+    const early = workflow.split("  preflight:")[0]!;
+    expect(early).toContain(
+      "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
+    );
+    expect(early).toContain("Prove metadata gate is exact current main");
+    expect(early).toContain(
+      "node --experimental-strip-types scripts/neon-transfer-preflight.ts",
+    );
+    expect(early).not.toMatch(
+      /DATABASE_URL|DNA_R2_ACCESS_KEY_ID|CLOUDFLARE_API_TOKEN|psql|npm ci/,
+    );
+
+    const connected = workflow.split("  preflight:")[1]!;
+    expect(connected).toMatch(
+      /^\n    needs: transfer-capacity\n    if: \$\{\{ needs\['transfer-capacity'\]\.outputs\.ready == 'true' \}\}/,
+    );
+    expect(connected).toContain("DATABASE_URL");
+    expect(connected).toContain("Verify least-privilege Neon runtime");
+  });
 });

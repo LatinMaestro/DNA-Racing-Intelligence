@@ -54,7 +54,35 @@ env:
   EXPECTED_WORKER_NAME: dna-racing-import-preview
 
 jobs:
+  transfer-capacity:
+    name: Hold Preview provider access before any database connection
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    environment: preview
+    outputs:
+      ready: ${{ steps.transfer.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove metadata gate is exact current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse origin/main)" = "${GITHUB_SHA}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Inspect transfer through Neon control-plane metadata only
+        id: transfer
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: node --experimental-strip-types scripts/neon-transfer-preflight.ts
+
   preflight:
+    needs: transfer-capacity
+    if: ${{ needs['transfer-capacity'].outputs.ready == 'true' }}
     name: Runtime and provider preflight
     runs-on: ubuntu-latest
     timeout-minutes: 20
