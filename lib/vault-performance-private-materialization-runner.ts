@@ -1,6 +1,4 @@
-import {
-  DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS,
-} from "./dna-open-lab-zero-cost-provider-capacity";
+import { DNA_OPEN_LAB_ZERO_COST_NEON_BUDGETS } from "./dna-open-lab-zero-cost-provider-capacity";
 import { DNA_OPEN_LAB_ZERO_COST_R2_BUDGETS } from "./dna-open-lab-zero-cost-refresh-policy";
 import {
   materializeVaultPerformanceSummary,
@@ -80,18 +78,13 @@ export type VaultPerformanceCapacityReservationPort = Readonly<{
   /** Must atomically account for concurrent reservations, provider meters,
    * remaining-month forecasts and website/recovery headroom. Never accept
    * a client-provided receipt or infer missing planned transfer as zero. */
-  reserve: (
-    request: Request,
-  ) => Promise<
+  reserve: (request: Request) => Promise<
     | VaultPerformancePrivateMaterializationReservation
     | Readonly<{ status: "held" }>
   >;
   /** Retain estimated spend until independently reconciled against meters.
    * An uncertain operation must not automatically return reserved capacity. */
-  settle: (
-    reservationId: string,
-    result: Settlement,
-  ) => Promise<void>;
+  settle: (reservationId: string, result: Settlement) => Promise<void>;
 }>;
 
 export type VaultPerformanceMainProofPort = Readonly<{
@@ -126,10 +119,7 @@ function validTime(value: unknown): number | null {
     : null;
 }
 
-function validHead(
-  value: unknown,
-  expectedSha: string,
-): boolean {
+function validHead(value: unknown, expectedSha: string): boolean {
   if (typeof value !== "object" || value === null) return false;
   const proof = value as Record<string, unknown>;
   return (

@@ -121,7 +121,14 @@ function harness() {
     materializer,
     now: () => now,
   };
-  return { input, inspect, reserve, settle, loadCanonicalSource, publishCandidate };
+  return {
+    input,
+    inspect,
+    reserve,
+    settle,
+    loadCanonicalSource,
+    publishCandidate,
+  };
 }
 
 describe("Vault Performance guarded private materialization", () => {
@@ -150,10 +157,7 @@ describe("Vault Performance guarded private materialization", () => {
       expectedSourceLedgerSha256: "b".repeat(64),
     });
     expect(h.settle).toHaveBeenCalledOnce();
-    expect(h.settle).toHaveBeenCalledWith(
-      reservation.reservationId,
-      "published",
-    );
+    expect(h.settle).toHaveBeenCalledWith(reservation.reservationId, "published");
   });
 
   it("denies missing owner, cross-owner and invalid head before the reservation", async () => {
@@ -261,15 +265,17 @@ describe("Vault Performance guarded private materialization", () => {
 
   it("holds a reservation when main changes before materialization", async () => {
     const h = harness();
-    h.inspect.mockResolvedValueOnce({
-      mainSha,
-      validatePassed: true,
-      migrationPassed: true,
-    }).mockResolvedValueOnce({
-      mainSha: "c".repeat(40),
-      validatePassed: true,
-      migrationPassed: true,
-    });
+    h.inspect
+      .mockResolvedValueOnce({
+        mainSha,
+        validatePassed: true,
+        migrationPassed: true,
+      })
+      .mockResolvedValueOnce({
+        mainSha: "c".repeat(40),
+        validatePassed: true,
+        migrationPassed: true,
+      });
     await expect(
       runVaultPerformancePrivateMaterialization(h.input),
     ).resolves.toMatchObject({ status: "held" });
