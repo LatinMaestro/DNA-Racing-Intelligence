@@ -99,7 +99,7 @@ function assertAssetTotal(
   }
 }
 
-function normalizeSummary(
+export function normalizeVaultPerformanceReadSummary(
   summary: VaultPerformanceSummary,
   now: Date,
 ): VaultPerformanceSummary {
@@ -237,7 +237,7 @@ export async function loadVaultPerformancePageState(
     summary:
       persistedSummary === null
         ? null
-        : normalizeSummary(persistedSummary, now),
+        : normalizeVaultPerformanceReadSummary(persistedSummary, now),
     connectionStatus: "read_model_connected",
   };
 }
