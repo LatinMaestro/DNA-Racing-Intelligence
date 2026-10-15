@@ -39,7 +39,7 @@ const reservation: VaultPerformancePrivateMaterializationReservation = {
   current: {
     ...empty,
     neonTransferBytes: 100_000_000,
-    r2StorageBytes: 874_370_990,
+    r2StorageBytes: 300_000_000,
   },
   otherReservations: { ...empty, neonTransferBytes: 50_000_000 },
   operation: {
