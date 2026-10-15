@@ -106,7 +106,7 @@ function harness(
 }
 
 describe("accepted Maiden compact evidence materialization boundary", () => {
-  it("validates the complete source, encodes without retuning, and publishes once", async () => {
+  it("encodes and publishes one accepted Maiden source", async () => {
     const h = harness();
     await expect(materializeAcceptedMaidenEvidence(h.input)).resolves.toEqual({
       status: "published",
@@ -140,9 +140,8 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     "honours publisher atomic last-good outcome %s",
     async (status) => {
       const h = harness({ publication: status });
-      await expect(materializeAcceptedMaidenEvidence(h.input)).resolves.toEqual({
-        status,
-      });
+      const outcome = await materializeAcceptedMaidenEvidence(h.input);
+      expect(outcome).toEqual({ status });
     },
   );
 
@@ -166,7 +165,7 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     { expectedBrackets: 2 },
     { verifiedBrackets: 2 },
     { unsupportedSourceRows: 1 },
-  ])("withholds incomplete or correction-uncertain evidence %#", async (change) => {
+  ])("holds incomplete or uncertain evidence %#", async (change) => {
     const h = harness({
       source: { ...source, coverage: { ...source.coverage, ...change } },
     });
@@ -177,17 +176,16 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     expect(h.publishCandidate).not.toHaveBeenCalled();
   });
 
-  it("rejects source changes before publication, including missing identity", async () => {
+  it("denies changed or missing source identity", async () => {
     for (const identity of ["b".repeat(64), null]) {
       const h = harness({ acceptedIdentity: identity });
-      await expect(materializeAcceptedMaidenEvidence(h.input)).resolves.toEqual({
-        status: "source_changed",
-      });
+      const outcome = await materializeAcceptedMaidenEvidence(h.input);
+      expect(outcome).toEqual({ status: "source_changed" });
       expect(h.publishCandidate).not.toHaveBeenCalled();
     }
   });
 
-  it("will not replace last-good with a mismatched owner or claimed digest", async () => {
+  it("preserves last-good on owner or digest mismatch", async () => {
     for (const altered of [
       { ...source, databaseOwnerId: otherOwner },
       { ...source, sourceEvidenceSha256: "not-trusted" },
@@ -230,7 +228,7 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     }
   });
 
-  it("sanitizes read, clock and publisher failures without leaking source", async () => {
+  it("sanitizes read, clock and publisher failures", async () => {
     const load = harness();
     load.loadCanonicalSource.mockRejectedValueOnce(
       Error("private source and owner details"),
@@ -244,9 +242,9 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     current.readAcceptedSourceIdentity.mockRejectedValueOnce(
       Error("private current source"),
     );
-    await expect(materializeAcceptedMaidenEvidence(current.input)).rejects.toThrow(
-      "Maiden accepted evidence materialization unavailable.",
-    );
+    await expect(
+      materializeAcceptedMaidenEvidence(current.input),
+    ).rejects.toThrow("Maiden accepted evidence materialization unavailable.");
     expect(current.publishCandidate).not.toHaveBeenCalled();
 
     const published = harness();
@@ -258,9 +256,9 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
     ).rejects.toThrow("Maiden accepted evidence materialization unavailable.");
 
     const malformed = harness({ publication: "invalid" });
-    await expect(materializeAcceptedMaidenEvidence(malformed.input)).rejects.toThrow(
-      "Maiden accepted evidence materialization unavailable.",
-    );
+    await expect(
+      materializeAcceptedMaidenEvidence(malformed.input),
+    ).rejects.toThrow("Maiden accepted evidence materialization unavailable.");
     const clock = harness();
     await expect(
       materializeAcceptedMaidenEvidence({
@@ -284,7 +282,8 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
         ...h.input,
         boundary: {
           ...h.input.boundary,
-          publishCandidate: null as unknown as MaidenEvidenceMaterializationBoundary["publishCandidate"],
+          publishCandidate: null as unknown as
+            MaidenEvidenceMaterializationBoundary["publishCandidate"],
         },
       }),
     ).rejects.toThrow("Maiden accepted evidence materialization unavailable.");

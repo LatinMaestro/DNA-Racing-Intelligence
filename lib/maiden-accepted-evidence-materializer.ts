@@ -39,9 +39,7 @@ export type MaidenEvidencePublicationCandidate = Readonly<{
 }>;
 
 export type MaidenEvidencePublicationOutcome =
-  | "published"
-  | "unchanged"
-  | "source_changed";
+  "published" | "unchanged" | "source_changed";
 
 export type MaidenEvidenceMaterializationOutcome =
   | Readonly<{ status: "source_unavailable" | "source_incomplete" }>
