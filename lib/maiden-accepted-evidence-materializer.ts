@@ -1,6 +1,4 @@
-import {
-  encodeMaidenAllocationEvidenceSnapshot,
-} from "@/lib/maiden-allocation-evidence-snapshot";
+import { encodeMaidenAllocationEvidenceSnapshot } from "@/lib/maiden-allocation-evidence-snapshot";
 import type { MaidenAllocationEvidence } from "@/lib/maiden-workspace-service";
 
 const UUID =

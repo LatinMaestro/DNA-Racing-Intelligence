@@ -8,6 +8,8 @@ import {
   materializeAcceptedMaidenEvidence,
   type MaidenAcceptedGenerationSource,
   type MaidenEvidenceMaterializationBoundary,
+  type MaidenEvidencePublicationCandidate,
+  type MaidenEvidencePublicationOutcome,
 } from "@/lib/maiden-accepted-evidence-materializer";
 
 const owner = "11111111-1111-4111-8111-111111111111";
@@ -86,7 +88,10 @@ function harness(
       ? sourceSha
       : overrides.acceptedIdentity,
   );
-  const publishCandidate = vi.fn(async () => overrides.publication ?? "published");
+  const publishCandidate = vi.fn(
+    async (_candidate: MaidenEvidencePublicationCandidate) =>
+      (overrides.publication ?? "published") as MaidenEvidencePublicationOutcome,
+  );
   const boundary = {
     loadCanonicalSource,
     readAcceptedSourceIdentity,
