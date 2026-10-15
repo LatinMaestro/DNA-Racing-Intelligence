@@ -105,7 +105,12 @@ function harness() {
       freshnessState: "current" as const,
     },
   }));
-  const publishCandidate = vi.fn(async () => "published" as const);
+  const publishCandidate = vi.fn<
+    VaultPerformanceSummaryMaterializer["publishCandidate"]
+  >(async (candidate) => {
+    void candidate;
+    return "published";
+  });
   const materializer: VaultPerformanceSummaryMaterializer = {
     loadCanonicalSource,
     publishCandidate,
@@ -157,7 +162,10 @@ describe("Vault Performance guarded private materialization", () => {
       expectedSourceLedgerSha256: "b".repeat(64),
     });
     expect(h.settle).toHaveBeenCalledOnce();
-    expect(h.settle).toHaveBeenCalledWith(reservation.reservationId, "published");
+    expect(h.settle).toHaveBeenCalledWith(
+      reservation.reservationId,
+      "published",
+    );
   });
 
   it("denies missing owner, cross-owner and invalid head before the reservation", async () => {
@@ -241,9 +249,9 @@ describe("Vault Performance guarded private materialization", () => {
       },
     ];
     for (const item of badReceipts) {
-      expect(
-        validVaultPerformancePrivateReservation(item, request, now),
-      ).toBe(false);
+      expect(validVaultPerformancePrivateReservation(item, request, now)).toBe(
+        false,
+      );
     }
   });
 

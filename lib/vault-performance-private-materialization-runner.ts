@@ -70,15 +70,15 @@ type Request = Readonly<{
 }>;
 
 type Settlement =
-  | VaultPerformanceSummaryMaterializationResult["status"]
-  | "held"
-  | "uncertain";
+  VaultPerformanceSummaryMaterializationResult["status"] | "held" | "uncertain";
 
 export type VaultPerformanceCapacityReservationPort = Readonly<{
   /** Must atomically account for concurrent reservations, provider meters,
    * remaining-month forecasts and website/recovery headroom. Never accept
    * a client-provided receipt or infer missing planned transfer as zero. */
-  reserve: (request: Request) => Promise<
+  reserve: (
+    request: Request,
+  ) => Promise<
     | VaultPerformancePrivateMaterializationReservation
     | Readonly<{ status: "held" }>
   >;
