@@ -69,11 +69,15 @@ unavailable.
 | Repository       | Authenticated/configured owner equality, least-privilege proof, one bounded read, canonical decode, sanitized failures | `lib/neon-maiden-allocation-repository.ts`; deterministic fake-session tests |
 | Website          | Existing service re-derives freshness and invokes the unchanged allocator; missing snapshots stay non-actionable       | private Maiden route plus existing workspace tests                           |
 
-The remaining gap is a source-authoritative materializer/publication path that
-derives the already-approved bracket/candidate inputs, validates complete
-cross-mode coverage, atomically replaces last-good only after full validation,
-and invalidates corrected source generations. It must not invent projection
-weights, probabilities or tournament economics.
+The fixture-only accepted-generation materialization boundary now validates
+complete owner/format/coverage attestations, reuses the canonical Maiden codec,
+rechecks the accepted identity and requires source-identity compare-and-swap
+publication preserving last-good. See
+`lib/maiden-accepted-evidence-materializer.ts` and its deterministic tests.
+**This does not prove the attestations**: a trusted canonical owner/strategy/
+correction/roster/rules/method source reader, database-atomic publisher and
+capacity-reserved private runner do not yet exist. No live publication is
+wired, and missing input still stays unknown rather than invented.
 
 ## Source identity
 
