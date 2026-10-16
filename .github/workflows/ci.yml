@@ -411,6 +411,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.up.sql
       - name: Run Lifecycle ranking evidence snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.smoke.sql
+      - name: Apply private readiness assessment snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.up.sql
+      - name: Run private readiness assessment snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.smoke.sql
+      - name: Reverse private readiness assessment snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.down.sql
+      - name: Verify private readiness assessment snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.removal.sql
       - name: Reverse Lifecycle ranking evidence snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.down.sql
       - name: Verify Lifecycle ranking evidence snapshot removal
