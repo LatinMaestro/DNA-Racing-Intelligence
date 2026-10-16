@@ -26,11 +26,15 @@ WITH fixture AS (
         'capturedAt', '2026-10-16T04:00:00.000Z',
         'mode', 'horse',
         'distanceMeters', 1600,
-        'gateCount', 4),
+        'gateCount', 4,
+        'opponentCoreIds', jsonb_build_array(
+          'opponent-1','opponent-2','opponent-3')),
       'eligibility', jsonb_build_object('evaluationId', 'eligibility-v1'),
       'ranking', jsonb_build_object(
         'rankingId', 'ranking-v1',
-        'evaluatedAt', '2026-10-16T04:10:00.000Z'),
+        'evaluatedAt', '2026-10-16T04:10:00.000Z',
+        'candidates', jsonb_build_array(
+          jsonb_build_object('coreId', 'owned-1'))),
       'lock', NULL,
       'observation', NULL,
       'comparison', NULL))::text AS body
@@ -102,11 +106,14 @@ BEGIN
     'preEntryRankingId', 'ranking-v1',
     'fieldCapturedAt', '2026-10-16T04:00:00.000Z',
     'rankingEvaluatedAt', '2026-10-16T04:10:00.000Z',
+    'lockedAt', '2026-10-16T04:45:00.000Z',
     'fieldStage', 'forming',
     'gateCount', 4,
     'availableGates', 0,
     'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
     'selectedOwnedCoreId', 'owned-1',
+    'provisionalRecommendedCoreId', 'owned-1',
+    'preEntryStatus', 'provisional',
     'userConfirmedCommittedEntry', true,
     'allGatesFilled', true,
     'raceSetToRun', true));
@@ -133,14 +140,35 @@ BEGIN
     'preEntryRankingId', 'ranking-v1',
     'fieldCapturedAt', '2026-10-16T04:00:00.000Z',
     'rankingEvaluatedAt', '2026-10-16T04:10:00.000Z',
+    'lockedAt', '2026-10-16T05:00:00.000Z',
     'fieldStage', 'forming',
     'gateCount', 4,
     'availableGates', 0,
     'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
     'selectedOwnedCoreId', 'owned-1',
+    'provisionalRecommendedCoreId', 'owned-1',
+    'preEntryStatus', 'provisional',
     'userConfirmedCommittedEntry', true,
     'allGatesFilled', true,
     'raceSetToRun', true));
+  v_candidate_text := v_candidate::text;
+  v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
+
+  BEGIN
+    v_candidate := jsonb_set(v_candidate, '{evidence,lock,enteredCoreIds}',
+      jsonb_build_array('owned-1','opponent-1','opponent-1','opponent-3'));
+    v_candidate_text := v_candidate::text;
+    v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
+    PERFORM dna.publish_open_race_field_lock(
+      dna.current_owner_id(), 'request-lock', v_old_sha, 'session-v1',
+      '2026-10-16T05:00:00Z', v_candidate_sha, v_candidate_text);
+    RAISE EXCEPTION 'duplicate locked field entrant accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'duplicate locked field entrant accepted' THEN RAISE; END IF;
+  END;
+
+  v_candidate := jsonb_set(v_candidate, '{evidence,lock,enteredCoreIds}',
+    jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'));
   v_candidate_text := v_candidate::text;
   v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
 
