@@ -85,6 +85,20 @@ export type OpenRaceWorkspaceRepository =
           latestPublishedHistoricalAggregateVersion: string | null;
         }>
       >;
+      lockSessionByOwner?: (
+        ownerId: string,
+        input: Readonly<{
+          requestId: string;
+          selectedOwnedCoreId: string;
+          lockedAt: string;
+          userConfirmedCommittedEntry: boolean;
+          raceSetToRun: boolean;
+        }>,
+      ) => Promise<
+        Readonly<{
+          status: "published" | "unchanged" | "source_changed" | "not_found";
+        }>
+      >;
     }>;
 
 export type OpenRaceWorkspaceConnectionStatus =
@@ -242,7 +256,7 @@ function baseSession(
   };
 }
 
-function composeSession(
+export function composeOpenRaceWorkspaceSession(
   evidence: OpenRaceWorkspaceEvidence,
 ): OpenRaceWorkspaceSession {
   if (evidence === null || typeof evidence !== "object") {
@@ -606,7 +620,7 @@ export async function loadOpenRaceWorkspacePageState(
 
   return {
     sessions: evidence
-      .map(composeSession)
+      .map(composeOpenRaceWorkspaceSession)
       .sort((left, right) =>
         right.field.capturedAt.localeCompare(left.field.capturedAt),
       ),
