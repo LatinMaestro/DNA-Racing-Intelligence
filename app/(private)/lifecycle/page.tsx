@@ -1,9 +1,7 @@
 import { LifecycleWorkspace } from "@/components/lifecycle-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import {
-  loadLifecycleWorkspacePageState,
-  unavailableLifecycleRankingRepository,
-} from "@/lib/lifecycle-workspace-service";
+import { loadLifecycleWorkspacePageState } from "@/lib/lifecycle-workspace-service";
+import { neonLifecycleRankingRepositoryFromEnvironment } from "@/lib/neon-lifecycle-ranking-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +15,12 @@ export default async function LifecyclePage() {
   const state = await loadLifecycleWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: unavailableLifecycleRankingRepository,
+    repository: neonLifecycleRankingRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      authenticatedOwnerId,
+    }),
     now: new Date(),
   });
 

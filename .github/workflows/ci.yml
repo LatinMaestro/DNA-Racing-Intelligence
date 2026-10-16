@@ -407,6 +407,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0129_open_race_workspace_session_snapshot.up.sql
       - name: Run Open Race workspace session snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0129_open_race_workspace_session_snapshot.smoke.sql
+      - name: Apply Lifecycle ranking evidence snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.up.sql
+      - name: Run Lifecycle ranking evidence snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.smoke.sql
+      - name: Reverse Lifecycle ranking evidence snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.down.sql
+      - name: Verify Lifecycle ranking evidence snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0130_lifecycle_ranking_evidence_snapshot.removal.sql
       - name: Reverse Open Race workspace session snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0129_open_race_workspace_session_snapshot.down.sql
       - name: Verify Open Race workspace session snapshot removal
