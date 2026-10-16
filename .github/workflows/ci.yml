@@ -423,6 +423,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.up.sql
       - name: Run manual tournament payout persistence smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.smoke.sql
+      - name: Apply Open Race field lock publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.up.sql
+      - name: Run Open Race field lock publication smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.smoke.sql
+      - name: Reverse Open Race field lock publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.down.sql
+      - name: Verify Open Race field lock publication removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.removal.sql
       - name: Reverse manual tournament payout persistence migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.down.sql
       - name: Verify manual tournament payout persistence removal

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { lockOpenRaceSessionAction } from "@/app/(private)/open-race/actions";
 import type {
   OpenRaceWorkspaceConnectionStatus,
   OpenRaceWorkspaceSession,
@@ -200,6 +201,68 @@ function SessionCard({
           </section>
         </div>
       )}
+
+      {session.stage === "provisional_selection" && session.ranking !== null ? (
+        <form
+          action={lockOpenRaceSessionAction}
+          className="mt-5 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4"
+        >
+          <h4 className="font-semibold">Confirm committed field lock</h4>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            This records evidence only. It does not enter a race, switch a Core,
+            connect a wallet or perform any game action.
+          </p>
+          <input
+            name="requestId"
+            type="hidden"
+            value={session.field.requestId}
+          />
+          <label className="mt-4 block text-sm font-semibold">
+            Already committed owned Core
+            <select
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+              name="selectedOwnedCoreId"
+              required
+            >
+              {session.ranking.rankedCandidates.map((candidate) => (
+                <option key={candidate.coreId} value={candidate.coreId}>
+                  Core {candidate.coreId}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-4 flex items-start gap-3 text-sm">
+            <input
+              className="mt-1"
+              name="userConfirmedCommittedEntry"
+              required
+              type="checkbox"
+              value="confirmed"
+            />
+            <span>
+              I confirm this Core was already committed outside this website.
+            </span>
+          </label>
+          <label className="mt-3 flex items-start gap-3 text-sm">
+            <input
+              className="mt-1"
+              name="raceSetToRun"
+              required
+              type="checkbox"
+              value="confirmed"
+            />
+            <span>
+              I confirm every gate is filled and the race is set to run.
+            </span>
+          </label>
+          <button
+            className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+            type="submit"
+          >
+            Record field lock
+          </button>
+        </form>
+      ) : null}
     </article>
   );
 }
@@ -239,22 +302,11 @@ export function OpenRaceWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           {connection.detail}
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            className="cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
-            disabled
-            type="button"
-          >
-            Stage A capture unavailable
-          </button>
-          <button
-            className="cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
-            disabled
-            type="button"
-          >
-            Stage B observation unavailable
-          </button>
-        </div>
+        <p className="mt-4 text-sm text-[var(--muted)]">
+          Accepted provisional sessions expose field-lock confirmation below.
+          Stage A source publication and post-lock observations remain separate
+          trusted steps.
+        </p>
       </section>
 
       <section aria-labelledby="open-race-sessions">
