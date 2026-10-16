@@ -399,6 +399,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.up.sql
       - name: Run Maiden allocation evidence snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.smoke.sql
+      - name: Apply Maiden accepted generation publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0128_maiden_accepted_generation_publication.up.sql
+      - name: Run Maiden accepted generation publication smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0128_maiden_accepted_generation_publication.smoke.sql
+      - name: Reverse Maiden accepted generation publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0128_maiden_accepted_generation_publication.down.sql
+      - name: Verify Maiden accepted generation publication removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0128_maiden_accepted_generation_publication.removal.sql
       - name: Reverse Maiden allocation evidence snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0127_maiden_allocation_evidence_snapshot.down.sql
       - name: Verify Maiden allocation evidence snapshot removal
