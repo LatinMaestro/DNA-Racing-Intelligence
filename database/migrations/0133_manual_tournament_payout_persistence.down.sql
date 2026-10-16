@@ -1,4 +1,5 @@
 BEGIN;
+DROP FUNCTION IF EXISTS dna.publish_manual_tournament_payout_candidate_set(uuid,text,timestamptz,text,text,integer,character,character,text,text,text);
 DROP FUNCTION IF EXISTS dna.write_manual_tournament_payout_reconciliation(uuid,text,bigint,character,text,text,text,boolean);
 DROP FUNCTION IF EXISTS dna.read_manual_tournament_payout(uuid,text);
 DROP FUNCTION IF EXISTS dna.write_manual_tournament_payout(uuid,text,character,text,text,text,text,text);

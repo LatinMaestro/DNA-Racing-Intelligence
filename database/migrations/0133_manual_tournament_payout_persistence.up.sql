@@ -61,6 +61,99 @@ AS $function$
   SELECT * FROM dna.read_manual_economic_write_context(p_owner_id)
 $function$;
 
+CREATE FUNCTION dna.publish_manual_tournament_payout_candidate_set(
+  p_owner_id uuid,p_tournament_id text,p_occurred_at timestamptz,
+  p_asset_code text,p_amount text,p_maximum_candidates integer,
+  p_active_import_snapshot_hash character(64),
+  p_candidate_set_hash character(64),p_canonical_envelope text,
+  p_candidates_json text,p_expected_candidate_set_hash text
+)
+RETURNS TABLE(disposition text,active_import_snapshot_hash text,
+  candidate_set_hash text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp
+AS $function$
+DECLARE
+  v_envelope jsonb;
+  v_candidates jsonb;
+  v_current character(64);
+BEGIN
+  IF dna.current_owner_id() IS NULL OR p_owner_id<>dna.current_owner_id() THEN
+    RAISE EXCEPTION 'owner-scoped tournament payout candidate publication denied';
+  END IF;
+  v_envelope:=p_canonical_envelope::jsonb;
+  v_candidates:=p_candidates_json::jsonb;
+  IF nullif(btrim(p_tournament_id),'') IS NULL
+    OR NOT isfinite(p_occurred_at)
+    OR upper(p_asset_code)!~'^[A-Z][A-Z0-9_]{1,15}$'
+    OR nullif(btrim(p_amount),'') IS NULL
+    OR p_maximum_candidates NOT BETWEEN 1 AND 250
+    OR p_active_import_snapshot_hash!~'^[a-f0-9]{64}$'
+    OR p_candidate_set_hash!~'^[a-f0-9]{64}$'
+    OR encode(sha256(convert_to(p_canonical_envelope,'UTF8')),'hex')<>p_candidate_set_hash
+    OR jsonb_typeof(v_candidates)<>'array'
+    OR jsonb_array_length(v_candidates)>p_maximum_candidates
+    OR v_envelope ->> 'activeImportSnapshotHash'<>p_active_import_snapshot_hash
+    OR v_envelope -> 'candidates'<>v_candidates
+    OR v_envelope #>> '{query,tournamentId}'<>p_tournament_id
+    OR (v_envelope #>> '{query,occurredAt}')::timestamptz<>p_occurred_at
+    OR upper(v_envelope #>> '{query,assetCode}')<>upper(p_asset_code)
+    OR v_envelope #>> '{query,amount}'<>p_amount
+    OR (v_envelope #>> '{query,maximumCandidates}')::integer<>p_maximum_candidates
+  THEN RAISE EXCEPTION 'tournament payout candidate publication is invalid'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_candidates) candidate
+    WHERE jsonb_typeof(candidate)<>'object'
+      OR nullif(btrim(candidate ->> 'transactionId'),'') IS NULL
+      OR (candidate ->> 'occurredAt')::timestamptz>clock_timestamp()
+      OR candidate ->> 'stage' NOT IN ('qualification','round','final','unknown')
+      OR upper(candidate ->> 'assetCode')!~'^[A-Z][A-Z0-9_]{1,15}$'
+      OR nullif(btrim(candidate ->> 'amount'),'') IS NULL
+      OR candidate ->> 'aggregateStatus' NOT IN ('included','excluded')
+  ) OR (SELECT count(*) FROM jsonb_array_elements(v_candidates))<>
+    (SELECT count(DISTINCT candidate ->> 'transactionId')
+      FROM jsonb_array_elements(v_candidates) candidate)
+  THEN RAISE EXCEPTION 'tournament payout candidates are invalid'; END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(
+    p_owner_id::text||':'||p_tournament_id||':'||p_occurred_at::text||':'||
+    upper(p_asset_code)||':'||p_amount||':'||p_maximum_candidates::text,0));
+
+  SELECT candidate.candidate_set_hash INTO v_current
+  FROM dna.manual_tournament_payout_candidate_set candidate
+  WHERE candidate.owner_id=p_owner_id
+    AND candidate.tournament_id=p_tournament_id
+    AND candidate.occurred_at=p_occurred_at
+    AND candidate.asset_code=upper(p_asset_code)
+    AND candidate.amount=p_amount
+    AND candidate.maximum_candidates=p_maximum_candidates
+  FOR UPDATE;
+  IF FOUND AND v_current=p_candidate_set_hash THEN
+    RETURN QUERY SELECT 'already_exists',p_active_import_snapshot_hash::text,
+      p_candidate_set_hash::text; RETURN;
+  END IF;
+  IF (v_current IS NULL AND nullif(p_expected_candidate_set_hash,'') IS NOT NULL)
+    OR (v_current IS NOT NULL AND v_current::text IS DISTINCT FROM
+      nullif(p_expected_candidate_set_hash,''))
+  THEN
+    RETURN QUERY SELECT 'version_conflict',NULL::text,v_current::text; RETURN;
+  END IF;
+  INSERT INTO dna.manual_tournament_payout_candidate_set(
+    owner_id,tournament_id,occurred_at,asset_code,amount,maximum_candidates,
+    active_import_snapshot_hash,candidate_set_hash,canonical_envelope,
+    candidates_json,published_at
+  ) VALUES(p_owner_id,p_tournament_id,p_occurred_at,upper(p_asset_code),p_amount,
+    p_maximum_candidates,p_active_import_snapshot_hash,p_candidate_set_hash,
+    p_canonical_envelope,p_candidates_json,clock_timestamp())
+  ON CONFLICT(owner_id,tournament_id,occurred_at,asset_code,amount,maximum_candidates)
+  DO UPDATE SET active_import_snapshot_hash=EXCLUDED.active_import_snapshot_hash,
+    candidate_set_hash=EXCLUDED.candidate_set_hash,
+    canonical_envelope=EXCLUDED.canonical_envelope,
+    candidates_json=EXCLUDED.candidates_json,published_at=EXCLUDED.published_at;
+  RETURN QUERY SELECT 'published',p_active_import_snapshot_hash::text,
+    p_candidate_set_hash::text;
+END
+$function$;
+
 CREATE FUNCTION dna.read_manual_tournament_payout_candidates(
   p_owner_id uuid,p_tournament_id text,p_occurred_at timestamptz,
   p_asset_code text,p_amount text,p_maximum_candidates integer
@@ -243,12 +336,14 @@ $function$;
 REVOKE ALL ON TABLE dna.manual_tournament_payout_candidate_set,
   dna.manual_tournament_payout_state FROM PUBLIC,dna_app_runtime;
 REVOKE ALL ON FUNCTION dna.read_manual_tournament_payout_write_context(uuid),
+  dna.publish_manual_tournament_payout_candidate_set(uuid,text,timestamptz,text,text,integer,character,character,text,text,text),
   dna.read_manual_tournament_payout_candidates(uuid,text,timestamptz,text,text,integer),
   dna.write_manual_tournament_payout(uuid,text,character,text,text,text,text,text),
   dna.read_manual_tournament_payout(uuid,text),
   dna.write_manual_tournament_payout_reconciliation(uuid,text,bigint,character,text,text,text,boolean)
   FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION dna.read_manual_tournament_payout_write_context(uuid),
+  dna.publish_manual_tournament_payout_candidate_set(uuid,text,timestamptz,text,text,integer,character,character,text,text,text),
   dna.read_manual_tournament_payout_candidates(uuid,text,timestamptz,text,text,integer),
   dna.write_manual_tournament_payout(uuid,text,character,text,text,text,text,text),
   dna.read_manual_tournament_payout(uuid,text),

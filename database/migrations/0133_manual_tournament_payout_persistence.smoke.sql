@@ -28,14 +28,17 @@ BEGIN
   IF NOT has_function_privilege('dna_app_runtime',
     'dna.read_manual_tournament_payout_candidates(uuid,text,timestamptz,text,text,integer)','EXECUTE')
     OR NOT has_function_privilege('dna_app_runtime',
+    'dna.publish_manual_tournament_payout_candidate_set(uuid,text,timestamptz,text,text,integer,character,character,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege('dna_app_runtime',
     'dna.write_manual_tournament_payout(uuid,text,character,text,text,text,text,text)','EXECUTE')
   THEN RAISE EXCEPTION 'runtime tournament payout function grant missing'; END IF;
 END
 $permissions$;
 
 DO $fixture$
-DECLARE v_candidates text; v_envelope text;
+DECLARE v_candidates text; v_envelope text; v_hash text; v_status text;
 BEGIN
+  PERFORM set_config('app.owner_id','91600000-0000-4000-8000-000000000001',true);
   v_candidates:=jsonb_build_array(jsonb_build_object(
     'transactionId','imported-prize-1','occurredAt','2026-10-16T00:00:00.000Z',
     'tournamentId','tournament-1','bracketId',NULL,'stage','final',
@@ -45,14 +48,21 @@ BEGIN
     'query',jsonb_build_object('tournamentId','tournament-1',
       'occurredAt','2026-10-16T00:00:00.000Z','assetCode','DEZ','amount','10',
       'maximumCandidates',250),'candidates',v_candidates::jsonb)::text;
-  INSERT INTO dna.manual_tournament_payout_candidate_set(
-    owner_id,tournament_id,occurred_at,asset_code,amount,maximum_candidates,
-    active_import_snapshot_hash,candidate_set_hash,canonical_envelope,
-    candidates_json,published_at)
-  VALUES('91600000-0000-4000-8000-000000000001','tournament-1',
-    '2026-10-16T00:00:00Z','DEZ','10',250,repeat('a',64),
-    encode(sha256(convert_to(v_envelope,'UTF8')),'hex'),v_envelope,v_candidates,
-    '2026-10-16T01:00:00Z');
+  v_hash:=encode(sha256(convert_to(v_envelope,'UTF8')),'hex');
+  SELECT result.disposition INTO v_status
+  FROM dna.publish_manual_tournament_payout_candidate_set(
+    dna.current_owner_id(),'tournament-1','2026-10-16T00:00:00Z','DEZ','10',250,
+    repeat('a',64),v_hash,v_envelope,v_candidates,NULL) result;
+  IF v_status<>'published' THEN
+    RAISE EXCEPTION 'tournament payout candidate publication failed';
+  END IF;
+  SELECT result.disposition INTO v_status
+  FROM dna.publish_manual_tournament_payout_candidate_set(
+    dna.current_owner_id(),'tournament-1','2026-10-16T00:00:00Z','DEZ','10',250,
+    repeat('a',64),v_hash,v_envelope,v_candidates,NULL) result;
+  IF v_status<>'already_exists' THEN
+    RAISE EXCEPTION 'tournament payout candidate replay failed';
+  END IF;
 END
 $fixture$;
 
