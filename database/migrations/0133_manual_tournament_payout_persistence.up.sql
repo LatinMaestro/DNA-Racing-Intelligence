@@ -218,8 +218,18 @@ BEGIN
   END IF;
   PERFORM 1 FROM dna.manual_tournament_payout_candidate_set candidate
   WHERE candidate.owner_id=p_owner_id
+    AND candidate.tournament_id=v_payout ->> 'tournamentId'
+    AND candidate.occurred_at=(v_payout ->> 'occurredAt')::timestamptz
+    AND candidate.asset_code=upper(v_payout ->> 'assetCode')
+    AND candidate.amount=v_payout ->> 'amount'
+    AND candidate.maximum_candidates=250
     AND candidate.active_import_snapshot_hash::text=v_evidence ->> 'activeImportSnapshotHash'
-    AND candidate.candidate_set_hash::text=v_evidence ->> 'candidateSetHash';
+    AND candidate.candidate_set_hash::text=v_evidence ->> 'candidateSetHash'
+    AND v_evidence -> 'candidateTransactionIds'=COALESCE((
+      SELECT jsonb_agg(item.value ->> 'transactionId' ORDER BY item.ordinality)
+      FROM jsonb_array_elements(candidate.candidates_json::jsonb)
+        WITH ORDINALITY AS item(value,ordinality)
+    ),'[]'::jsonb);
   IF NOT FOUND THEN
     RETURN QUERY SELECT 'evidence_conflict',NULL::text,
       COALESCE((SELECT source_revision::text FROM dna.vault_performance_summary_source_state
@@ -283,6 +293,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp
 AS $function$
 DECLARE
   v_state dna.manual_tournament_payout_state%ROWTYPE;
+  v_candidate dna.manual_tournament_payout_candidate_set%ROWTYPE;
   v_status text:=p_reconciliation_json::jsonb ->> 'status';
   v_revision bigint;
   v_ledger text;
@@ -306,6 +317,27 @@ BEGIN
   ELSIF v_status NOT IN ('confirmed_duplicate','confirmed_separate') THEN
     RAISE EXCEPTION 'tournament payout decision state invalid';
   END IF;
+  SELECT candidate.* INTO v_candidate
+  FROM dna.manual_tournament_payout_candidate_set candidate
+  WHERE candidate.owner_id=p_owner_id
+    AND candidate.tournament_id=v_state.payout_json::jsonb ->> 'tournamentId'
+    AND candidate.occurred_at=(v_state.payout_json::jsonb ->> 'occurredAt')::timestamptz
+    AND candidate.asset_code=upper(v_state.payout_json::jsonb ->> 'assetCode')
+    AND candidate.amount=v_state.payout_json::jsonb ->> 'amount'
+    AND candidate.maximum_candidates=250
+    AND candidate.active_import_snapshot_hash::text=
+      p_evidence_json::jsonb ->> 'activeImportSnapshotHash'
+    AND candidate.candidate_set_hash::text=p_evidence_json::jsonb ->> 'candidateSetHash'
+    AND p_evidence_json::jsonb -> 'candidateTransactionIds'=COALESCE((
+      SELECT jsonb_agg(item.value ->> 'transactionId' ORDER BY item.ordinality)
+      FROM jsonb_array_elements(candidate.candidates_json::jsonb)
+        WITH ORDINALITY AS item(value,ordinality)
+    ),'[]'::jsonb);
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT 'evidence_conflict',NULL::text,v_state.ledger_version,
+      v_state.reconciliation_revision,NULL::text;
+    RETURN;
+  END IF;
   UPDATE dna.economic_transaction transaction SET
     duplicate_status=CASE WHEN v_status='confirmed_duplicate' THEN 'excluded' ELSE 'clear' END,
     updated_at=clock_timestamp()
@@ -321,12 +353,10 @@ BEGIN
     last_operation_fingerprint=p_fingerprint,updated_at=clock_timestamp()
   WHERE state.owner_id=p_owner_id AND state.payout_id=p_payout_id;
   IF p_reopen THEN
-    SELECT jsonb_build_object('activeImportSnapshotHash',candidate.active_import_snapshot_hash,
-      'candidateSetHash',candidate.candidate_set_hash,
-      'candidates',candidate.candidates_json::jsonb)::text INTO v_candidates
-    FROM dna.manual_tournament_payout_candidate_set candidate
-    WHERE candidate.owner_id=p_owner_id
-      AND candidate.candidate_set_hash::text=p_evidence_json::jsonb ->> 'candidateSetHash';
+    v_candidates:=jsonb_build_object(
+      'activeImportSnapshotHash',v_candidate.active_import_snapshot_hash,
+      'candidateSetHash',v_candidate.candidate_set_hash,
+      'candidates',v_candidate.candidates_json::jsonb)::text;
   END IF;
   RETURN QUERY SELECT CASE WHEN p_reopen THEN 'review_reopened' ELSE 'created' END,
     p_fingerprint::text,v_ledger,v_revision,v_candidates;
