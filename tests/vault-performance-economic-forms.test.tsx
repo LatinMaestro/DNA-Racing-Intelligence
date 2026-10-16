@@ -38,4 +38,15 @@ describe("Vault Performance economic forms", () => {
     expect(identityHtml).toContain("<fieldset");
     expect(identityHtml).toContain("disabled");
   });
+
+  it("enables only the connected manual ledger boundary", () => {
+    const html = renderToStaticMarkup(
+      <VaultPerformanceEconomicForms status="manual_ledger_ready" />,
+    );
+
+    expect(html).toContain("Manual ledger ready");
+    expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(1);
+    expect(html).toContain("Tournament payout entry remains disabled");
+    expect(html).toContain("2026-10-16T10:30:00+10:00");
+  });
 });

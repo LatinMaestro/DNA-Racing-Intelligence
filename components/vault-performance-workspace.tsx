@@ -1,4 +1,7 @@
-import { VaultPerformanceEconomicForms } from "@/components/vault-performance-economic-forms";
+import {
+  VaultPerformanceEconomicForms,
+  type VaultPerformanceEconomicWriteStatus,
+} from "@/components/vault-performance-economic-forms";
 import type {
   VaultPerformanceAssetTotal,
   VaultPerformanceSummary,
@@ -99,9 +102,11 @@ function AssetCard({ total }: Readonly<{ total: VaultPerformanceAssetTotal }>) {
 export function VaultPerformanceWorkspace({
   summary,
   connectionStatus,
+  economicWriteStatus,
 }: Readonly<{
   summary: VaultPerformanceSummary | null;
   connectionStatus: VaultPerformanceConnectionStatus;
+  economicWriteStatus?: VaultPerformanceEconomicWriteStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const totals =
@@ -237,9 +242,10 @@ export function VaultPerformanceWorkspace({
       )}
       <VaultPerformanceEconomicForms
         status={
-          connectionStatus === "identity_not_connected"
+          economicWriteStatus ??
+          (connectionStatus === "identity_not_connected"
             ? "identity_not_connected"
-            : "persistence_not_configured"
+            : "persistence_not_configured")
         }
       />
     </div>

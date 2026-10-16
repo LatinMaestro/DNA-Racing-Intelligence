@@ -1,5 +1,12 @@
+"use client";
+
+import { useActionState } from "react";
+import { submitManualLedgerFormAction } from "@/app/(private)/vault-performance/actions";
+
 export type VaultPerformanceEconomicWriteStatus =
-  "identity_not_connected" | "persistence_not_configured";
+  | "identity_not_connected"
+  | "persistence_not_configured"
+  | "manual_ledger_ready";
 
 const statusCopy: Record<
   VaultPerformanceEconomicWriteStatus,
@@ -14,6 +21,11 @@ const statusCopy: Record<
     label: "Economic writes not connected",
     detail:
       "The forms are staged for review, but owner-scoped persistence is not configured. Nothing entered here can be recorded yet.",
+  },
+  manual_ledger_ready: {
+    label: "Manual ledger ready",
+    detail:
+      "Owner-scoped manual ledger evidence can be recorded. Tournament payout entry remains disabled until its imported-candidate reconciliation source is connected.",
   },
 };
 
@@ -38,7 +50,8 @@ function ManualLedgerFields({ disabled }: Readonly<{ disabled: boolean }>) {
             id="ledger-occurred-at"
             name="occurredAt"
             required
-            type="datetime-local"
+            placeholder="2026-10-16T10:30:00+10:00"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="ledger-asset-code">
@@ -97,12 +110,96 @@ function ManualLedgerFields({ disabled }: Readonly<{ disabled: boolean }>) {
         </label>
         <label className="grid gap-2 text-sm" htmlFor="ledger-subcategory">
           Subcategory
-          <input
+          <select
             className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
             id="ledger-subcategory"
             name="subcategory"
             required
+          >
+            <option value="other_income">Other income</option>
+            <option value="breeding_fee_earned">Breeding fee earned</option>
+            <option value="core_sale">Core sale</option>
+            <option value="burn_bgc_credit">Burn BGC credit</option>
+            <option value="refund">Refund</option>
+            <option value="other_expense">Other expense</option>
+            <option value="breeding_fee_paid">Breeding fee paid</option>
+            <option value="dna_base_fee">DNA base fee</option>
+            <option value="arena_owner_fee">Arena owner fee</option>
+            <option value="arena_fee_bgc">Arena fee (BGC)</option>
+            <option value="core_purchase">Core purchase</option>
+            <option value="marketplace_fee">Marketplace fee</option>
+            <option value="deposit">Deposit</option>
+            <option value="withdrawal">Withdrawal</option>
+            <option value="internal_transfer">Internal transfer</option>
+            <option value="opening_balance">Opening balance</option>
+            <option value="adjustment">Adjustment</option>
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-direction">
+          Direction (adjustments only)
+          <select
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            id="ledger-direction"
+            name="direction"
+          >
+            <option value="">Use category direction</option>
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-account-label">
+          Account label
+          <input
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            id="ledger-account-label"
+            name="accountLabel"
+            placeholder="Owner account"
           />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-from-account">
+          Transfer from (transfers only)
+          <input
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            id="ledger-from-account"
+            name="fromAccountLabel"
+          />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-to-account">
+          Transfer to (transfers only)
+          <input
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            id="ledger-to-account"
+            name="toAccountLabel"
+          />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-tournament-id">
+          Tournament ID (optional)
+          <input
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono"
+            id="ledger-tournament-id"
+            name="tournamentId"
+          />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-core-id">
+          Core ID (optional)
+          <input
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono"
+            id="ledger-core-id"
+            name="coreId"
+          />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="ledger-cost-basis">
+          Cost basis
+          <select
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            id="ledger-cost-basis"
+            name="costBasisStatus"
+          >
+            <option value="">Not supplied</option>
+            <option value="known">Known</option>
+            <option value="missing">Missing</option>
+            <option value="not_applicable">Not applicable</option>
+          </select>
         </label>
       </div>
       <label className="grid gap-2 text-sm" htmlFor="ledger-reference">
@@ -111,6 +208,16 @@ function ManualLedgerFields({ disabled }: Readonly<{ disabled: boolean }>) {
           className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
           id="ledger-reference"
           name="externalReference"
+        />
+      </label>
+      <label className="grid gap-2 text-sm" htmlFor="ledger-note">
+        Evidence note
+        <textarea
+          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          id="ledger-note"
+          maxLength={1000}
+          name="note"
+          rows={3}
         />
       </label>
       <button
@@ -238,6 +345,9 @@ export function VaultPerformanceEconomicForms({
   status,
 }: Readonly<{ status: VaultPerformanceEconomicWriteStatus }>) {
   const copy = statusCopy[status];
+  const [manualLedgerResult, manualLedgerAction, manualLedgerPending] =
+    useActionState(submitManualLedgerFormAction, null);
+  const manualLedgerReady = status === "manual_ledger_ready";
 
   return (
     <section aria-labelledby="economic-evidence-entry">
@@ -263,10 +373,23 @@ export function VaultPerformanceEconomicForms({
       </p>
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <form
+          action={manualLedgerAction}
           aria-label="Manual ledger entry"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <ManualLedgerFields disabled />
+          <ManualLedgerFields
+            disabled={!manualLedgerReady || manualLedgerPending}
+          />
+          {manualLedgerResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{manualLedgerResult.title}.</strong>{" "}
+              {manualLedgerResult.detail}
+            </p>
+          )}
         </form>
         <form
           aria-label="Manual tournament payout"

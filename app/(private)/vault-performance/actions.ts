@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import type { ManualLedgerEntryInput } from "@/domain/manual-ledger";
 import type { ManualTournamentPayoutInput } from "@/domain/manual-tournament-payout";
 import type { TournamentPrizeReconciliationDecision } from "@/domain/tournament-prize-reconciliation";
@@ -24,7 +25,30 @@ import {
 import {
   parseManualLedgerFormData,
   parseManualTournamentPayoutFormData,
+  type VaultPerformanceEconomicFormConfiguration,
 } from "@/lib/vault-performance-economic-form-data";
+
+const manualLedgerSubcategories: VaultPerformanceEconomicFormConfiguration["manualLedgerSubcategories"] =
+  Object.freeze([
+    { category: "income", subcategory: "manual_tournament_payout" },
+    { category: "income", subcategory: "breeding_fee_earned" },
+    { category: "income", subcategory: "core_sale" },
+    { category: "income", subcategory: "burn_bgc_credit" },
+    { category: "income", subcategory: "refund" },
+    { category: "income", subcategory: "other_income" },
+    { category: "expense", subcategory: "breeding_fee_paid" },
+    { category: "expense", subcategory: "dna_base_fee" },
+    { category: "expense", subcategory: "arena_owner_fee" },
+    { category: "expense", subcategory: "arena_fee_bgc" },
+    { category: "expense", subcategory: "core_purchase" },
+    { category: "expense", subcategory: "marketplace_fee" },
+    { category: "expense", subcategory: "other_expense" },
+    { category: "deposit", subcategory: "deposit" },
+    { category: "withdrawal", subcategory: "withdrawal" },
+    { category: "transfer", subcategory: "internal_transfer" },
+    { category: "opening_balance", subcategory: "opening_balance" },
+    { category: "adjustment", subcategory: "adjustment" },
+  ]);
 
 function authenticatedOwnerId(): Promise<string | null> {
   return authenticatedClerkOwnerId({
@@ -100,13 +124,76 @@ export async function recordManualLedgerEntryAction(
 }
 
 export async function recordManualLedgerFormAction(formData: FormData) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = manualLedgerPersistence();
+  if (ownerId === null || persistence.status !== "ready") {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseManualLedgerFormData,
+    });
+  }
+  let context: Awaited<ReturnType<typeof persistence.loadContextByOwner>>;
+  try {
+    context = await persistence.loadContextByOwner(ownerId);
+  } catch {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseManualLedgerFormData,
+    });
+  }
+  const now = serverNow();
+  const capability = {
+    status: "ready" as const,
+    configuration: {
+      assets: context.assetRegistry.assets.map((asset) => ({
+        code: asset.code,
+        kind: asset.kind,
+        decimalPlaces: asset.precision,
+      })),
+      manualLedgerSubcategories,
+      createDurableId: (
+        kind: "manual_ledger_entry" | "manual_tournament_payout",
+      ) => `${kind}:${randomUUID()}`,
+      assetRegistryVersion: context.assetRegistry.version,
+      serverNow: now,
+    },
+    execute: async (verifiedOwnerId: string, entry: ManualLedgerEntryInput) => {
+      const result = await recordManualLedgerEntry({
+        authenticatedOwnerId: verifiedOwnerId,
+        configuredOwnerId: configuredOwnerId(),
+        repository: persistence.repository,
+        assetRegistry: context.assetRegistry,
+        expectedAssetRegistryVersion: context.assetRegistry.version,
+        expectedLedgerVersion: context.ledgerVersion,
+        serverNow: now,
+        entry,
+      });
+      if (result.status === "recorded" || result.status === "replayed") {
+        return { status: result.status } as const;
+      }
+      throw new Error("Manual ledger evidence was not recorded.");
+    },
+  };
   return runEconomicFormAction({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
     formData,
-    capability: unavailableEconomicFormActionCapability,
+    capability,
     parse: parseManualLedgerFormData,
   });
+}
+
+export async function submitManualLedgerFormAction(
+  _previous: Awaited<ReturnType<typeof recordManualLedgerFormAction>> | null,
+  formData: FormData,
+) {
+  return recordManualLedgerFormAction(formData);
 }
 
 export async function reverseManualLedgerEntryAction(
