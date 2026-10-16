@@ -1,0 +1,9 @@
+BEGIN;
+DROP FUNCTION IF EXISTS dna.write_manual_tournament_payout_reconciliation(uuid,text,bigint,character,text,text,text,boolean);
+DROP FUNCTION IF EXISTS dna.read_manual_tournament_payout(uuid,text);
+DROP FUNCTION IF EXISTS dna.write_manual_tournament_payout(uuid,text,character,text,text,text,text,text);
+DROP FUNCTION IF EXISTS dna.read_manual_tournament_payout_candidates(uuid,text,timestamptz,text,text,integer);
+DROP FUNCTION IF EXISTS dna.read_manual_tournament_payout_write_context(uuid);
+DROP TABLE IF EXISTS dna.manual_tournament_payout_state;
+DROP TABLE IF EXISTS dna.manual_tournament_payout_candidate_set;
+COMMIT;

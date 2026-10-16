@@ -419,6 +419,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.up.sql
       - name: Run manual economic ledger persistence smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.smoke.sql
+      - name: Apply manual tournament payout persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.up.sql
+      - name: Run manual tournament payout persistence smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.smoke.sql
+      - name: Reverse manual tournament payout persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.down.sql
+      - name: Verify manual tournament payout persistence removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.removal.sql
       - name: Reverse manual economic ledger persistence migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.down.sql
       - name: Verify manual economic ledger persistence removal
