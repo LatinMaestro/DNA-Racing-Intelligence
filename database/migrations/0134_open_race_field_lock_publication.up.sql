@@ -78,12 +78,18 @@ BEGIN
   v_new_session_version := v_new -> 'evidence' -> 'bindings' ->> 'sessionVersion';
   v_new_lock_version := v_new -> 'evidence' -> 'bindings' ->> 'lockVersion';
 
+  IF jsonb_typeof(v_new -> 'evidence' -> 'lock') IS DISTINCT FROM 'object'
+    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')
+      IS DISTINCT FROM 'array'
+  THEN
+    RAISE EXCEPTION 'Open Race field lock publication candidate is invalid';
+  END IF;
+
   IF (v_old -> 'evidence' -> 'ranking') IS NULL
     OR (v_old -> 'evidence' -> 'ranking') = 'null'::jsonb
     OR (v_old -> 'evidence' -> 'lock') IS DISTINCT FROM 'null'::jsonb
     OR (v_old -> 'evidence' -> 'observation') IS DISTINCT FROM 'null'::jsonb
     OR (v_old -> 'evidence' -> 'comparison') IS DISTINCT FROM 'null'::jsonb
-    OR jsonb_typeof(v_new -> 'evidence' -> 'lock') IS DISTINCT FROM 'object'
     OR (v_new -> 'evidence' -> 'observation') IS DISTINCT FROM 'null'::jsonb
     OR (v_new -> 'evidence' -> 'comparison') IS DISTINCT FROM 'null'::jsonb
     OR (v_new -> 'evidence' -> 'field') IS DISTINCT FROM
@@ -109,6 +115,20 @@ BEGIN
     OR v_new_session_version IS NOT DISTINCT FROM v_current.session_version
     OR v_new_lock_version IS NULL
     OR octet_length(v_new_lock_version) NOT BETWEEN 1 AND 128
+    OR jsonb_set(
+      jsonb_set(
+        jsonb_set(
+          jsonb_set(v_new, '{publishedAt}', v_old -> 'publishedAt'),
+          '{evidence,bindings,sessionVersion}',
+          v_old -> 'evidence' -> 'bindings' -> 'sessionVersion'),
+        '{evidence,bindings,lockVersion}',
+        v_old -> 'evidence' -> 'bindings' -> 'lockVersion'),
+      '{evidence,lock}', v_old -> 'evidence' -> 'lock') IS DISTINCT FROM v_old
+    OR (v_new ->> 'publishedAt') IS NULL
+    OR jsonb_typeof(v_new -> 'publishedAt') IS DISTINCT FROM 'string'
+    OR (v_new ->> 'publishedAt')::timestamptz IS DISTINCT FROM p_published_at
+    OR (v_new -> 'evidence' -> 'lock' ->> 'lockId') IS NULL
+    OR octet_length(v_new -> 'evidence' -> 'lock' ->> 'lockId') NOT BETWEEN 1 AND 128
     OR (v_new -> 'evidence' -> 'lock' ->> 'requestId') IS DISTINCT FROM p_request_id
     OR (v_new -> 'evidence' -> 'lock' ->> 'preEntryRankingId') IS DISTINCT FROM
       (v_old -> 'evidence' -> 'ranking' ->> 'rankingId')
@@ -116,22 +136,74 @@ BEGIN
       (v_old -> 'evidence' -> 'field' ->> 'capturedAt')
     OR (v_new -> 'evidence' -> 'lock' ->> 'rankingEvaluatedAt') IS DISTINCT FROM
       (v_old -> 'evidence' -> 'ranking' ->> 'evaluatedAt')
+    OR (v_new -> 'evidence' -> 'lock' ->> 'lockedAt') IS NULL
+    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'lockedAt')
+      IS DISTINCT FROM 'string'
+    OR (v_new -> 'evidence' -> 'lock' ->> 'lockedAt')::timestamptz
+      IS DISTINCT FROM p_published_at
     OR (v_new -> 'evidence' -> 'lock' ->> 'fieldStage') IS DISTINCT FROM 'forming'
     OR (v_new -> 'evidence' -> 'lock' ->> 'gateCount') IS DISTINCT FROM
       (v_old -> 'evidence' -> 'field' ->> 'gateCount')
+    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'gateCount')
+      IS DISTINCT FROM 'number'
     OR (v_new -> 'evidence' -> 'lock' ->> 'availableGates') IS DISTINCT FROM '0'
+    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'availableGates')
+      IS DISTINCT FROM 'number'
     OR (v_new -> 'evidence' -> 'lock' -> 'userConfirmedCommittedEntry')
       IS DISTINCT FROM 'true'::jsonb
     OR (v_new -> 'evidence' -> 'lock' -> 'allGatesFilled')
       IS DISTINCT FROM 'true'::jsonb
     OR (v_new -> 'evidence' -> 'lock' -> 'raceSetToRun')
       IS DISTINCT FROM 'true'::jsonb
-    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')
-      IS DISTINCT FROM 'array'
     OR jsonb_array_length(v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')
       IS DISTINCT FROM ((v_old -> 'evidence' -> 'field' ->> 'gateCount')::integer)
+    OR EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(
+        v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds') entered(value)
+      WHERE jsonb_typeof(entered.value) IS DISTINCT FROM 'string'
+        OR btrim(entered.value #>> '{}') = '')
+    OR (
+      SELECT count(DISTINCT entered.value)
+      FROM jsonb_array_elements(
+        v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds') entered(value)
+    ) IS DISTINCT FROM jsonb_array_length(
+      v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')::bigint
+    OR (v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId') IS NULL
+    OR octet_length(v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId')
+      NOT BETWEEN 1 AND 128
     OR NOT (v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds') @>
       jsonb_build_array(v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId')
+    OR NOT EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(v_old -> 'evidence' -> 'ranking' -> 'candidates') candidate(value)
+      WHERE candidate.value ->> 'coreId' =
+        v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId')
+    OR (
+      SELECT array_agg(entered.value #>> '{}' ORDER BY entered.value #>> '{}')
+      FROM jsonb_array_elements(
+        v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds') entered(value)
+    ) IS DISTINCT FROM (
+      SELECT array_agg(expected.core_id ORDER BY expected.core_id)
+      FROM (
+        SELECT v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId' AS core_id
+        UNION ALL
+        SELECT opponent.value #>> '{}'
+        FROM jsonb_array_elements(
+          v_old -> 'evidence' -> 'field' -> 'opponentCoreIds') opponent(value)
+      ) expected)
+    OR (v_new -> 'evidence' -> 'lock' ->> 'preEntryStatus') IS NULL
+    OR (v_new -> 'evidence' -> 'lock' ->> 'preEntryStatus')
+      NOT IN ('provisional', 'insufficient_evidence')
+    OR (
+      (v_new -> 'evidence' -> 'lock' ->> 'preEntryStatus') = 'provisional'
+      AND nullif(
+        btrim(v_new -> 'evidence' -> 'lock' ->> 'provisionalRecommendedCoreId'), '')
+        IS NULL)
+    OR (
+      (v_new -> 'evidence' -> 'lock' ->> 'preEntryStatus') = 'insufficient_evidence'
+      AND (v_new -> 'evidence' -> 'lock' -> 'provisionalRecommendedCoreId')
+        IS DISTINCT FROM 'null'::jsonb)
   THEN
     RAISE EXCEPTION 'Open Race field lock must preserve accepted Stage A evidence';
   END IF;
