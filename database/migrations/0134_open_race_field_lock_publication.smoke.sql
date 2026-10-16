@@ -25,7 +25,8 @@ WITH fixture AS (
         'requestId', 'request-lock',
         'capturedAt', '2026-10-16T04:00:00.000Z',
         'mode', 'horse',
-        'distanceMeters', 1600),
+        'distanceMeters', 1600,
+        'gateCount', 4),
       'eligibility', jsonb_build_object('evaluationId', 'eligibility-v1'),
       'ranking', jsonb_build_object(
         'rankingId', 'ranking-v1',
@@ -99,7 +100,16 @@ BEGIN
     'lockId', 'lock-1',
     'requestId', 'request-lock',
     'preEntryRankingId', 'ranking-v1',
-    'fieldCapturedAt', '2026-10-16T04:00:00.000Z'));
+    'fieldCapturedAt', '2026-10-16T04:00:00.000Z',
+    'rankingEvaluatedAt', '2026-10-16T04:10:00.000Z',
+    'fieldStage', 'forming',
+    'gateCount', 4,
+    'availableGates', 0,
+    'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
+    'selectedOwnedCoreId', 'owned-1',
+    'userConfirmedCommittedEntry', true,
+    'allGatesFilled', true,
+    'raceSetToRun', true));
   v_candidate_text := v_candidate::text;
   v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
   BEGIN
@@ -121,7 +131,16 @@ BEGIN
     'lockId', 'lock-1',
     'requestId', 'request-lock',
     'preEntryRankingId', 'ranking-v1',
-    'fieldCapturedAt', '2026-10-16T04:00:00.000Z'));
+    'fieldCapturedAt', '2026-10-16T04:00:00.000Z',
+    'rankingEvaluatedAt', '2026-10-16T04:10:00.000Z',
+    'fieldStage', 'forming',
+    'gateCount', 4,
+    'availableGates', 0,
+    'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
+    'selectedOwnedCoreId', 'owned-1',
+    'userConfirmedCommittedEntry', true,
+    'allGatesFilled', true,
+    'raceSetToRun', true));
   v_candidate_text := v_candidate::text;
   v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
 
