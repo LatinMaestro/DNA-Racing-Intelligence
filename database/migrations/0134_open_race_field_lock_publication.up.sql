@@ -65,6 +65,9 @@ BEGIN
   IF v_current.snapshot_sha256 IS NOT DISTINCT FROM p_snapshot_sha256 THEN
     RETURN 'unchanged';
   END IF;
+  IF p_published_at < v_current.published_at THEN
+    RAISE EXCEPTION 'Open Race field lock cannot predate accepted evidence';
+  END IF;
 
   BEGIN
     v_old := v_current.snapshot_json::jsonb;
@@ -111,6 +114,24 @@ BEGIN
       (v_old -> 'evidence' -> 'ranking' ->> 'rankingId')
     OR (v_new -> 'evidence' -> 'lock' ->> 'fieldCapturedAt') IS DISTINCT FROM
       (v_old -> 'evidence' -> 'field' ->> 'capturedAt')
+    OR (v_new -> 'evidence' -> 'lock' ->> 'rankingEvaluatedAt') IS DISTINCT FROM
+      (v_old -> 'evidence' -> 'ranking' ->> 'evaluatedAt')
+    OR (v_new -> 'evidence' -> 'lock' ->> 'fieldStage') IS DISTINCT FROM 'forming'
+    OR (v_new -> 'evidence' -> 'lock' ->> 'gateCount') IS DISTINCT FROM
+      (v_old -> 'evidence' -> 'field' ->> 'gateCount')
+    OR (v_new -> 'evidence' -> 'lock' ->> 'availableGates') IS DISTINCT FROM '0'
+    OR (v_new -> 'evidence' -> 'lock' -> 'userConfirmedCommittedEntry')
+      IS DISTINCT FROM 'true'::jsonb
+    OR (v_new -> 'evidence' -> 'lock' -> 'allGatesFilled')
+      IS DISTINCT FROM 'true'::jsonb
+    OR (v_new -> 'evidence' -> 'lock' -> 'raceSetToRun')
+      IS DISTINCT FROM 'true'::jsonb
+    OR jsonb_typeof(v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')
+      IS DISTINCT FROM 'array'
+    OR jsonb_array_length(v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds')
+      IS DISTINCT FROM ((v_old -> 'evidence' -> 'field' ->> 'gateCount')::integer)
+    OR NOT (v_new -> 'evidence' -> 'lock' -> 'enteredCoreIds') @>
+      jsonb_build_array(v_new -> 'evidence' -> 'lock' ->> 'selectedOwnedCoreId')
   THEN
     RAISE EXCEPTION 'Open Race field lock must preserve accepted Stage A evidence';
   END IF;
