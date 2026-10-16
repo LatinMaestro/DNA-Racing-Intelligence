@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 const session = vi.hoisted(() => ({
   ownerId: vi.fn(async (): Promise<string | null> => null),
 }));
 const persistence = vi.hoisted(() => ({
+  factory: vi.fn((): unknown => ({ status: "not_configured" })),
+}));
+const payoutPersistence = vi.hoisted(() => ({
   factory: vi.fn((): unknown => ({ status: "not_configured" })),
 }));
 
@@ -12,6 +16,10 @@ vi.mock("../lib/clerk-owner-session", () => ({
 }));
 vi.mock("../lib/neon-manual-ledger-write-repository", () => ({
   neonManualLedgerPersistenceFromEnvironment: persistence.factory,
+}));
+vi.mock("../lib/neon-manual-tournament-payout-write-repository", () => ({
+  neonManualTournamentPayoutPersistenceFromEnvironment:
+    payoutPersistence.factory,
 }));
 
 import {
@@ -142,5 +150,90 @@ describe("Vault Performance economic FormData Server Actions", () => {
       { status: "invalid_input", submittedValuesEchoed: false },
     );
     expect(saveEntryByOwner).toHaveBeenCalledTimes(1);
+  });
+
+  it("derives payout reconciliation evidence on the server before recording", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    vi.stubEnv("DATABASE_URL", "postgresql://synthetic.invalid/db");
+    vi.stubEnv("DNA_DATABASE_OWNER_ID", "91500000-0000-4000-8000-000000000001");
+    vi.stubEnv("DNA_DATABASE_RUNTIME_ROLE", "dna_app_runtime");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const activeImportSnapshotHash = "a".repeat(64);
+    const query = {
+      tournamentId: "tournament-1",
+      occurredAt: "2026-07-26T00:00:00.000Z",
+      assetCode: "ETH",
+      amount: "1.25",
+      maximumCandidates: 250,
+    };
+    const candidateSetHash = createHash("sha256")
+      .update(
+        JSON.stringify({ activeImportSnapshotHash, query, candidates: [] }),
+      )
+      .digest("hex");
+    const loadCampaign = vi.fn(async () => ({
+      tournamentId: "tournament-1",
+      evidenceId: "accepted-campaign",
+      configurationVersion: "campaign-v1",
+      ownerAcknowledgedAt: "2026-07-25T00:00:00.000Z",
+    }));
+    const loadCandidates = vi.fn(async () => ({
+      activeImportSnapshotHash,
+      candidateSetHash,
+      candidates: [],
+    }));
+    const savePayout = vi.fn(async () => ({
+      status: "created" as const,
+      ledgerVersion: "8",
+      reconciliationRevision: 0,
+    }));
+    payoutPersistence.factory.mockReturnValueOnce({
+      status: "ready",
+      repository: {
+        status: "ready",
+        loadTournamentCampaignBindingByOwner: loadCampaign,
+        loadImportedCandidateSetByOwner: loadCandidates,
+        savePayoutByOwner: savePayout,
+        loadPayoutByOwner: vi.fn(),
+        saveReconciliationDecisionByOwner: vi.fn(),
+        reopenReconciliationReviewByOwner: vi.fn(),
+      },
+      loadContextByOwner: vi.fn(async () => ({
+        assetRegistry: {
+          status: "ready",
+          version: "b".repeat(64),
+          assets: [{ code: "ETH", kind: "crypto", precision: 18 }],
+        },
+        ledgerVersion: "7",
+      })),
+    });
+    const formData = new FormData();
+    formData.set("occurredAt", "2026-07-26T10:00:00+10:00");
+    formData.set("tournamentId", "tournament-1");
+    formData.set("stage", "final");
+    formData.set("assetCode", "ETH");
+    formData.set("amount", "1.25");
+    formData.set("allocationMethod", "vault_unallocated");
+
+    await expect(
+      recordManualTournamentPayoutFormAction(formData),
+    ).resolves.toMatchObject({
+      status: "recorded",
+      submittedValuesEchoed: false,
+    });
+    expect(loadCampaign).toHaveBeenCalledTimes(2);
+    expect(loadCandidates).toHaveBeenCalledTimes(2);
+    expect(savePayout).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({
+        tournamentId: "tournament-1",
+        amount: "1.25",
+        allocationStatus: "vault_unallocated",
+      }),
+      expect.objectContaining({ status: "clear" }),
+      expect.objectContaining({ candidateSetHash }),
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      "7",
+    );
   });
 });
