@@ -1,9 +1,7 @@
 import { ReadinessWorkspace } from "@/components/readiness-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import {
-  loadReadinessWorkspacePageState,
-  unavailableReadinessAssessmentRepository,
-} from "@/lib/readiness-workspace-service";
+import { loadReadinessWorkspacePageState } from "@/lib/readiness-workspace-service";
+import { neonReadinessAssessmentRepositoryFromEnvironment } from "@/lib/neon-readiness-assessment-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +15,12 @@ export default async function ReadinessPage() {
   const state = await loadReadinessWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: unavailableReadinessAssessmentRepository,
+    repository: neonReadinessAssessmentRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      authenticatedOwnerId,
+    }),
     expectedHeadSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     now: new Date(),
   });
