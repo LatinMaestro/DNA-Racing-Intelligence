@@ -14,6 +14,7 @@ import {
   unavailableManualLedgerAssetRegistry,
   unavailableManualLedgerWriteRepository,
 } from "@/lib/manual-ledger-write-service";
+import { neonManualLedgerPersistenceFromEnvironment } from "@/lib/neon-manual-ledger-write-repository";
 import {
   decideManualTournamentPayoutReconciliation,
   recordManualTournamentPayout,
@@ -42,6 +43,36 @@ function serverNow(): string {
   return new Date().toISOString();
 }
 
+function manualLedgerPersistence() {
+  return neonManualLedgerPersistenceFromEnvironment({
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  });
+}
+
+async function manualLedgerDependencies(ownerId: string | null) {
+  const persistence = manualLedgerPersistence();
+  if (persistence.status !== "ready" || ownerId === null) {
+    return {
+      repository: unavailableManualLedgerWriteRepository,
+      assetRegistry: unavailableManualLedgerAssetRegistry,
+    } as const;
+  }
+  try {
+    const context = await persistence.loadContextByOwner(ownerId);
+    return {
+      repository: persistence.repository,
+      assetRegistry: context.assetRegistry,
+    } as const;
+  } catch {
+    return {
+      repository: unavailableManualLedgerWriteRepository,
+      assetRegistry: unavailableManualLedgerAssetRegistry,
+    } as const;
+  }
+}
+
 export async function recordManualLedgerEntryAction(
   input: Readonly<{
     entry: ManualLedgerEntryInput;
@@ -51,11 +82,13 @@ export async function recordManualLedgerEntryAction(
     expectedTournamentConfigurationVersion?: string | null;
   }>,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = await manualLedgerDependencies(ownerId);
   return recordManualLedgerEntry({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
-    repository: unavailableManualLedgerWriteRepository,
-    assetRegistry: unavailableManualLedgerAssetRegistry,
+    repository: persistence.repository,
+    assetRegistry: persistence.assetRegistry,
     serverNow: serverNow(),
     entry: input.entry,
     expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
@@ -86,11 +119,13 @@ export async function reverseManualLedgerEntryAction(
     expectedLedgerVersion: string;
   }>,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = await manualLedgerDependencies(ownerId);
   return reverseManualLedgerEntry({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
-    repository: unavailableManualLedgerWriteRepository,
-    assetRegistry: unavailableManualLedgerAssetRegistry,
+    repository: persistence.repository,
+    assetRegistry: persistence.assetRegistry,
     serverNow: serverNow(),
     reversalId: input.reversalId,
     originalEntryId: input.originalEntryId,

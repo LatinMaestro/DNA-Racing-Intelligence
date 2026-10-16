@@ -415,6 +415,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.up.sql
       - name: Run private readiness assessment snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.smoke.sql
+      - name: Apply manual economic ledger persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.up.sql
+      - name: Run manual economic ledger persistence smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.smoke.sql
+      - name: Reverse manual economic ledger persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.down.sql
+      - name: Verify manual economic ledger persistence removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.removal.sql
       - name: Reverse private readiness assessment snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0131_private_readiness_assessment_snapshot.down.sql
       - name: Verify private readiness assessment snapshot removal
