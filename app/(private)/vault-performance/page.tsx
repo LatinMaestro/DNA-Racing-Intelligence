@@ -1,6 +1,7 @@
 import { VaultPerformanceWorkspace } from "@/components/vault-performance-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonManualLedgerPersistenceFromEnvironment } from "@/lib/neon-manual-ledger-write-repository";
+import { neonManualTournamentPayoutPersistenceFromEnvironment } from "@/lib/neon-manual-tournament-payout-write-repository";
 import { neonVaultPerformanceSummaryRepositoryFromEnvironment } from "@/lib/neon-vault-performance-summary-repository";
 import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
@@ -29,6 +30,12 @@ export default async function VaultPerformancePage() {
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   });
+  const tournamentPayoutPersistence =
+    neonManualTournamentPayoutPersistenceFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+    });
 
   return (
     <VaultPerformanceWorkspace
@@ -38,7 +45,9 @@ export default async function VaultPerformancePage() {
         authenticatedOwnerId !== (process.env.AUTHORIZED_CLERK_USER_ID ?? null)
           ? "identity_not_connected"
           : manualLedgerPersistence.status === "ready"
-            ? "manual_ledger_ready"
+            ? tournamentPayoutPersistence.status === "ready"
+              ? "tournament_payout_ready"
+              : "manual_ledger_ready"
             : "persistence_not_configured"
       }
       summary={state.summary}

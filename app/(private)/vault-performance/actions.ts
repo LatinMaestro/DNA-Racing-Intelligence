@@ -16,6 +16,7 @@ import {
   unavailableManualLedgerWriteRepository,
 } from "@/lib/manual-ledger-write-service";
 import { neonManualLedgerPersistenceFromEnvironment } from "@/lib/neon-manual-ledger-write-repository";
+import { neonManualTournamentPayoutPersistenceFromEnvironment } from "@/lib/neon-manual-tournament-payout-write-repository";
 import {
   decideManualTournamentPayoutReconciliation,
   recordManualTournamentPayout,
@@ -72,6 +73,36 @@ function manualLedgerPersistence() {
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   });
+}
+
+function tournamentPayoutPersistence() {
+  return neonManualTournamentPayoutPersistenceFromEnvironment({
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  });
+}
+
+async function tournamentPayoutDependencies(ownerId: string | null) {
+  const persistence = tournamentPayoutPersistence();
+  if (persistence.status !== "ready" || ownerId === null) {
+    return {
+      repository: unavailableManualTournamentPayoutWriteRepository,
+      assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
+    } as const;
+  }
+  try {
+    const context = await persistence.loadContextByOwner(ownerId);
+    return {
+      repository: persistence.repository,
+      assetRegistry: context.assetRegistry,
+    } as const;
+  } catch {
+    return {
+      repository: unavailableManualTournamentPayoutWriteRepository,
+      assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
+    } as const;
+  }
 }
 
 async function manualLedgerDependencies(ownerId: string | null) {
@@ -234,11 +265,13 @@ export async function recordManualTournamentPayoutAction(
     expectedCandidateTransactionIds: readonly string[];
   }>,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = await tournamentPayoutDependencies(ownerId);
   return recordManualTournamentPayout({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
-    repository: unavailableManualTournamentPayoutWriteRepository,
-    assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
+    repository: persistence.repository,
+    assetRegistry: persistence.assetRegistry,
     serverNow: serverNow(),
     payout: input.payout,
     expectedAssetRegistryVersion: input.expectedAssetRegistryVersion,
@@ -255,13 +288,106 @@ export async function recordManualTournamentPayoutAction(
 export async function recordManualTournamentPayoutFormAction(
   formData: FormData,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = tournamentPayoutPersistence();
+  if (ownerId === null || persistence.status !== "ready") {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseManualTournamentPayoutFormData,
+    });
+  }
+  let context: Awaited<ReturnType<typeof persistence.loadContextByOwner>>;
+  try {
+    context = await persistence.loadContextByOwner(ownerId);
+  } catch {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseManualTournamentPayoutFormData,
+    });
+  }
+  const now = serverNow();
   return runEconomicFormAction({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
     formData,
-    capability: unavailableEconomicFormActionCapability,
+    capability: {
+      status: "ready" as const,
+      configuration: {
+        assets: context.assetRegistry.assets.map((asset) => ({
+          code: asset.code,
+          kind: asset.kind,
+          decimalPlaces: asset.precision,
+        })),
+        manualLedgerSubcategories,
+        createDurableId: (
+          kind: "manual_ledger_entry" | "manual_tournament_payout",
+        ) => `${kind}:${randomUUID()}`,
+        assetRegistryVersion: context.assetRegistry.version,
+        serverNow: now,
+      },
+      execute: async (
+        verifiedOwnerId: string,
+        payout: ManualTournamentPayoutInput,
+      ) => {
+        const campaign =
+          await persistence.repository.loadTournamentCampaignBindingByOwner(
+            verifiedOwnerId,
+            payout.tournamentId,
+          );
+        if (campaign === null) {
+          throw new Error("Accepted tournament campaign evidence unavailable.");
+        }
+        const candidates =
+          await persistence.repository.loadImportedCandidateSetByOwner(
+            verifiedOwnerId,
+            {
+              tournamentId: payout.tournamentId,
+              occurredAt: payout.occurredAt,
+              assetCode: payout.assetCode,
+              amount: payout.amount,
+              maximumCandidates: 250,
+            },
+          );
+        const result = await recordManualTournamentPayout({
+          authenticatedOwnerId: verifiedOwnerId,
+          configuredOwnerId: configuredOwnerId(),
+          repository: persistence.repository,
+          assetRegistry: context.assetRegistry,
+          serverNow: now,
+          payout,
+          expectedAssetRegistryVersion: context.assetRegistry.version,
+          expectedLedgerVersion: context.ledgerVersion,
+          expectedTournamentEvidenceId: campaign.evidenceId,
+          expectedTournamentConfigurationVersion: campaign.configurationVersion,
+          expectedActiveImportSnapshotHash: candidates.activeImportSnapshotHash,
+          expectedCandidateSetHash: candidates.candidateSetHash,
+          expectedCandidateTransactionIds: candidates.candidates.map(
+            (candidate) => candidate.transactionId,
+          ),
+        });
+        if (result.status === "recorded" || result.status === "replayed") {
+          return { status: result.status } as const;
+        }
+        throw new Error("Tournament payout evidence was not recorded.");
+      },
+    },
     parse: parseManualTournamentPayoutFormData,
   });
+}
+
+export async function submitManualTournamentPayoutFormAction(
+  _previous: Awaited<
+    ReturnType<typeof recordManualTournamentPayoutFormAction>
+  > | null,
+  formData: FormData,
+) {
+  return recordManualTournamentPayoutFormAction(formData);
 }
 
 export async function decideManualTournamentPayoutReconciliationAction(
@@ -275,11 +401,13 @@ export async function decideManualTournamentPayoutReconciliationAction(
     expectedCandidateTransactionIds: readonly string[];
   }>,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = await tournamentPayoutDependencies(ownerId);
   return decideManualTournamentPayoutReconciliation({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
-    repository: unavailableManualTournamentPayoutWriteRepository,
-    assetRegistry: unavailableManualTournamentPayoutAssetRegistry,
+    repository: persistence.repository,
+    assetRegistry: persistence.assetRegistry,
     serverNow: serverNow(),
     payoutId: input.payoutId,
     expectedRevision: input.expectedRevision,

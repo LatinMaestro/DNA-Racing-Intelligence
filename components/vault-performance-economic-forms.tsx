@@ -1,12 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { submitManualLedgerFormAction } from "@/app/(private)/vault-performance/actions";
+import {
+  submitManualLedgerFormAction,
+  submitManualTournamentPayoutFormAction,
+} from "@/app/(private)/vault-performance/actions";
 
 export type VaultPerformanceEconomicWriteStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
-  | "manual_ledger_ready";
+  | "manual_ledger_ready"
+  | "tournament_payout_ready";
 
 const statusCopy: Record<
   VaultPerformanceEconomicWriteStatus,
@@ -26,6 +30,11 @@ const statusCopy: Record<
     label: "Manual ledger ready",
     detail:
       "Owner-scoped manual ledger evidence can be recorded. Tournament payout entry remains disabled until its imported-candidate reconciliation source is connected.",
+  },
+  tournament_payout_ready: {
+    label: "Economic evidence ready",
+    detail:
+      "Owner-scoped manual ledger and tournament payout evidence can be recorded. Payouts are checked against accepted campaign and imported-candidate evidence before persistence.",
   },
 };
 
@@ -254,7 +263,8 @@ function TournamentPayoutFields({ disabled }: Readonly<{ disabled: boolean }>) {
             id="payout-occurred-at"
             name="occurredAt"
             required
-            type="datetime-local"
+            placeholder="2026-10-16T10:30:00+10:00"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="payout-tournament-id">
@@ -314,11 +324,6 @@ function TournamentPayoutFields({ disabled }: Readonly<{ disabled: boolean }>) {
             required
           >
             <option value="vault_unallocated">Vault-level, unallocated</option>
-            <option value="single_core">Single core</option>
-            <option value="equal">Equal across selected cores</option>
-            <option value="manual_amounts">Manual exact amounts</option>
-            <option value="manual_percentages">Manual percentages</option>
-            <option value="documented_points">Documented points</option>
           </select>
         </label>
       </div>
@@ -347,7 +352,13 @@ export function VaultPerformanceEconomicForms({
   const copy = statusCopy[status];
   const [manualLedgerResult, manualLedgerAction, manualLedgerPending] =
     useActionState(submitManualLedgerFormAction, null);
-  const manualLedgerReady = status === "manual_ledger_ready";
+  const [payoutResult, payoutAction, payoutPending] = useActionState(
+    submitManualTournamentPayoutFormAction,
+    null,
+  );
+  const manualLedgerReady =
+    status === "manual_ledger_ready" || status === "tournament_payout_ready";
+  const payoutReady = status === "tournament_payout_ready";
 
   return (
     <section aria-labelledby="economic-evidence-entry">
@@ -392,10 +403,20 @@ export function VaultPerformanceEconomicForms({
           )}
         </form>
         <form
+          action={payoutAction}
           aria-label="Manual tournament payout"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <TournamentPayoutFields disabled />
+          <TournamentPayoutFields disabled={!payoutReady || payoutPending} />
+          {payoutResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{payoutResult.title}.</strong> {payoutResult.detail}
+            </p>
+          )}
         </form>
       </div>
     </section>
