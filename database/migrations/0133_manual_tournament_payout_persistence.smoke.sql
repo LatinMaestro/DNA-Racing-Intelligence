@@ -74,6 +74,7 @@ DECLARE
   v_context record;
   v_candidate_hash text;
   v_payout text;
+  v_bad_payout text;
   v_evidence text;
   v_status text;
   v_version text;
@@ -97,6 +98,26 @@ BEGIN
   v_evidence:=jsonb_build_object('activeImportSnapshotHash',repeat('a',64),
     'candidateSetHash',v_candidate_hash,
     'candidateTransactionIds',jsonb_build_array('imported-prize-1'))::text;
+  v_bad_payout:=(v_payout::jsonb||jsonb_build_object(
+    'payoutId','payout-wrong-query','tournamentId','tournament-other'))::text;
+  SELECT result.disposition INTO v_status
+  FROM dna.write_manual_tournament_payout(dna.current_owner_id(),
+    'payout-wrong-query',repeat('c',64),v_bad_payout,
+    jsonb_build_object('status','review_required')::text,v_evidence,
+    v_context.ledger_version,repeat('c',64)) result;
+  IF v_status<>'evidence_conflict' THEN
+    RAISE EXCEPTION 'candidate evidence accepted for a different payout query';
+  END IF;
+  SELECT result.disposition INTO v_status
+  FROM dna.write_manual_tournament_payout(dna.current_owner_id(),
+    'payout-wrong-candidates',repeat('d',64),
+    (v_payout::jsonb||jsonb_build_object('payoutId','payout-wrong-candidates'))::text,
+    jsonb_build_object('status','review_required')::text,
+    (v_evidence::jsonb||jsonb_build_object('candidateTransactionIds','[]'::jsonb))::text,
+    v_context.ledger_version,repeat('d',64)) result;
+  IF v_status<>'evidence_conflict' THEN
+    RAISE EXCEPTION 'candidate evidence accepted with mismatched transaction identities';
+  END IF;
   SELECT result.disposition,result.ledger_version INTO v_status,v_version
   FROM dna.write_manual_tournament_payout(dna.current_owner_id(),
     'payout-0001',repeat('b',64),v_payout,
