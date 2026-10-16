@@ -127,6 +127,33 @@ const rankedEvidence: OpenRaceWorkspaceEvidence = {
   },
 };
 
+const lockedEvidence: OpenRaceWorkspaceEvidence = {
+  ...rankedEvidence,
+  bindings: {
+    ...rankedEvidence.bindings,
+    sessionVersion: "session-locked",
+    lockVersion: "lock-v1",
+  },
+  lock: {
+    lockId: "lock-v1",
+    requestId: rankedEvidence.field.requestId,
+    preEntryRankingId: "ranking-v1",
+    fieldCapturedAt: rankedEvidence.field.capturedAt,
+    rankingEvaluatedAt: "2026-07-20T02:01:00.000Z",
+    lockedAt: "2026-07-20T02:02:00.000Z",
+    fieldStage: "forming",
+    gateCount: 4,
+    availableGates: 0,
+    enteredCoreIds: ["owned-a", "opponent-a", "opponent-b", "opponent-c"],
+    selectedOwnedCoreId: "owned-a",
+    provisionalRecommendedCoreId: "owned-a",
+    preEntryStatus: "provisional",
+    userConfirmedCommittedEntry: true,
+    allGatesFilled: true,
+    raceSetToRun: true,
+  },
+};
+
 function row(
   overrides: Record<string, unknown> = {},
   snapshotEvidence: OpenRaceWorkspaceEvidence = evidence,
@@ -173,6 +200,7 @@ const isolation = {
   runtime_has_direct_table_access: false,
   runtime_can_read_sessions: true,
   runtime_can_publish_field_lock: true,
+  runtime_can_publish_observation_comparison: true,
 };
 
 function harness(
@@ -196,6 +224,8 @@ function harness(
     if (sql.includes("FROM dna.read_open_race_workspace_sessions"))
       return { rows: options.rows ?? [row()] };
     if (sql.includes("dna.publish_open_race_field_lock"))
+      return { rows: [{ status: "published" }] };
+    if (sql.includes("dna.publish_open_race_observation_comparison"))
       return { rows: [{ status: "published" }] };
     return { rows: [] };
   });
@@ -315,6 +345,48 @@ describe("compact Neon Open Race workspace dependency", () => {
     expect(h.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
   });
 
+  it("publishes a server-derived observation and comparison without accepting frozen evidence from the browser", async () => {
+    const h = harness({ rows: [row({}, lockedEvidence)] });
+    await expect(
+      h.repository.recordObservationByOwner?.(identity, {
+        requestId: lockedEvidence.field.requestId,
+        observedAt: "2026-07-23T00:00:00.000Z",
+        gameEventId: "event-1",
+        gold: { status: "assigned", coreId: "opponent-a" },
+        blue: { status: "assigned", coreId: "owned-a" },
+        note: "Synthetic observation.",
+      }),
+    ).resolves.toEqual({ status: "published" });
+    const publication = h.query.mock.calls.find(([sql]) =>
+      sql.includes("SELECT dna.publish_open_race_observation_comparison"),
+    );
+    expect(publication?.[1]?.slice(0, 5)).toEqual([
+      owner,
+      lockedEvidence.field.requestId,
+      row({}, lockedEvidence).snapshot_sha256,
+      lockedEvidence.bindings.sessionVersion,
+      "2026-07-23T00:00:00.000Z",
+    ]);
+    const envelope = JSON.parse(String(publication?.[1]?.[6])) as {
+      evidence: OpenRaceWorkspaceEvidence;
+    };
+    expect(envelope.evidence.field).toEqual(lockedEvidence.field);
+    expect(envelope.evidence.ranking).toEqual(lockedEvidence.ranking);
+    expect(envelope.evidence.lock).toEqual(lockedEvidence.lock);
+    expect(envelope.evidence.observation).toMatchObject({
+      lockId: "lock-v1",
+      selectedOwnedCoreId: "owned-a",
+      gold: { status: "assigned", coreId: "opponent-a" },
+      blue: { status: "assigned", coreId: "owned-a" },
+    });
+    expect(envelope.evidence.comparison).toMatchObject({
+      lockId: "lock-v1",
+      selectedOwnedCoreId: "owned-a",
+      observationRecordStatus: "recorded",
+    });
+    expect(h.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
+  });
+
   it("denies another authenticated owner before opening persistence", async () => {
     const h = harness();
     await expect(
@@ -361,6 +433,7 @@ describe("compact Neon Open Race workspace dependency", () => {
     { runtime_has_direct_table_access: true },
     { runtime_can_read_sessions: false },
     { runtime_can_publish_field_lock: false },
+    { runtime_can_publish_observation_comparison: false },
   ])(
     "denies an unsafe runtime before snapshot access %#",
     async (overrides) => {

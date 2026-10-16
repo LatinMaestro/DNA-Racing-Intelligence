@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { lockOpenRaceField } from "@/domain/open-race-field-lock";
+import { compareOpenRaceStars } from "@/domain/open-race-star-comparison";
+import { recordOpenRaceStarObservation } from "@/domain/open-race-star-observation";
 import type {
   OpenRaceWorkspaceEvidence,
   OpenRaceWorkspaceRepository,
@@ -47,7 +49,10 @@ const VERIFY_SQL = `
       AS runtime_can_read_sessions,
     has_function_privilege(session_user,
       'dna.publish_open_race_field_lock(uuid,text,text,text,timestamptz,text,text)',
-      'EXECUTE') AS runtime_can_publish_field_lock
+      'EXECUTE') AS runtime_can_publish_field_lock,
+    has_function_privilege(session_user,
+      'dna.publish_open_race_observation_comparison(uuid,text,text,text,timestamptz,text,text)',
+      'EXECUTE') AS runtime_can_publish_observation_comparison
   FROM dna.app_owner owner
   JOIN pg_catalog.pg_class snapshot
     ON snapshot.oid = 'dna.open_race_workspace_session_snapshot'::regclass
@@ -66,6 +71,13 @@ const READ_SQL = `
 
 const PUBLISH_FIELD_LOCK_SQL = `
   SELECT dna.publish_open_race_field_lock(
+    $1::uuid, $2::text, $3::text, $4::text,
+    $5::timestamptz, $6::text, $7::text
+  ) AS status
+`;
+
+const PUBLISH_OBSERVATION_COMPARISON_SQL = `
+  SELECT dna.publish_open_race_observation_comparison(
     $1::uuid, $2::text, $3::text, $4::text,
     $5::timestamptz, $6::text, $7::text
   ) AS status
@@ -197,6 +209,7 @@ function verifyRuntime(
     row.force_row_security_enabled !== true ||
     row.runtime_can_read_sessions !== true ||
     row.runtime_can_publish_field_lock !== true ||
+    row.runtime_can_publish_observation_comparison !== true ||
     [
       "runtime_is_superuser",
       "runtime_bypasses_rls",
@@ -484,6 +497,179 @@ export function createNeonOpenRaceWorkspaceRepository(
           nextSha256,
           envelope,
         ]);
+        if (publication.rows.length !== 1) fail();
+        const status = record(publication.rows[0]).status;
+        if (
+          status !== "published" &&
+          status !== "unchanged" &&
+          status !== "source_changed"
+        )
+          fail();
+        await session.client.query("COMMIT");
+        started = false;
+        return { status };
+      } catch {
+        if (started)
+          await session.client.query("ROLLBACK").catch(() => undefined);
+        return fail();
+      } finally {
+        try {
+          await session.close();
+        } catch {
+          fail();
+        }
+      }
+    },
+    async recordObservationByOwner(ownerId, input) {
+      if (ownerId !== configuration.authenticatedOwnerId) fail();
+      const session = await factory(configuration.databaseUrl).catch(() =>
+        fail(),
+      );
+      let started = false;
+      try {
+        await session.client.query(
+          "BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+        );
+        started = true;
+        await session.client.query(
+          "SELECT set_config('statement_timeout', '5000', true), set_config('lock_timeout', '1000', true)",
+        );
+        const scope = await session.client.query(
+          "SELECT set_config('app.owner_id', $1, true) AS owner_scope",
+          [configuration.databaseOwnerId],
+        );
+        if (
+          scope.rows.length !== 1 ||
+          record(scope.rows[0]).owner_scope !== configuration.databaseOwnerId
+        )
+          fail();
+        const verified = await session.client.query(VERIFY_SQL, [
+          configuration.databaseOwnerId,
+          configuration.authenticatedOwnerId,
+        ]);
+        if (verified.rows.length !== 1) fail();
+        verifyRuntime(verified.rows[0], configuration);
+        const result = await session.client.query(READ_SQL, [
+          configuration.databaseOwnerId,
+          MAX_SESSIONS,
+        ]);
+        if (result.rows.length > MAX_SESSIONS) fail();
+        const matches = result.rows.filter(
+          (value) => record(value).request_id === input.requestId,
+        );
+        if (matches.length === 0) {
+          await session.client.query("COMMIT");
+          started = false;
+          return { status: "not_found" } as const;
+        }
+        if (matches.length !== 1) fail();
+        const row = record(matches[0]);
+        const distanceMeters = row.distance_meters;
+        if (
+          typeof distanceMeters !== "number" ||
+          !Number.isSafeInteger(distanceMeters) ||
+          distanceMeters <= 0
+        )
+          fail();
+        const evidence = decodeSnapshot(row.snapshot_json, {
+          databaseOwnerId: configuration.databaseOwnerId,
+          requestId: required(row.request_id),
+          sessionVersion: required(row.session_version),
+          fieldVersion: required(row.field_version),
+          eligibilityVersion: required(row.eligibility_version),
+          raceImportVersion: required(row.race_import_version),
+          vaultSnapshotVersion: required(row.vault_snapshot_version),
+          historicalAggregateVersion: required(
+            row.historical_aggregate_version,
+          ),
+          mode: required(row.mode),
+          distanceMeters,
+          fieldCapturedAt: timestamp(row.field_captured_at),
+          publishedAt: timestamp(row.published_at),
+          sha256: required(row.snapshot_sha256),
+        });
+        const composed = composeOpenRaceWorkspaceSession(evidence);
+        if (composed.observation !== null || composed.comparison !== null) {
+          await session.client.query("COMMIT");
+          started = false;
+          return { status: "unchanged" } as const;
+        }
+        if (
+          composed.stage !== "locked_observation" ||
+          composed.lock === null ||
+          composed.ranking === null
+        )
+          fail();
+        const observation = {
+          observationId: `open-race-observation:${randomUUID()}`,
+          lockId: composed.lock.lockId,
+          gameEventId: input.gameEventId,
+          lockedAt: composed.lock.lockedAt,
+          observedAt: input.observedAt,
+          fieldStage: "locked_observation" as const,
+          gateCount: composed.lock.gateCount,
+          enteredCoreIds: composed.lock.enteredCoreIds,
+          selectedOwnedCoreId: composed.lock.selectedOwnedCoreId,
+          gold: input.gold,
+          blue: input.blue,
+          note: input.note,
+        };
+        const recorded = recordOpenRaceStarObservation(observation);
+        const comparison = {
+          comparisonId: `open-race-comparison:${randomUUID()}`,
+          lockId: composed.lock.lockId,
+          observationId: recorded.observationId,
+          rankingEvaluatedAt: composed.ranking.evaluatedAt,
+          lockedAt: composed.lock.lockedAt,
+          observedAt: recorded.observedAt,
+          comparedAt: input.observedAt,
+          gateCount: composed.lock.gateCount,
+          enteredCoreIds: composed.lock.enteredCoreIds,
+          rankedCandidateCoreIds: composed.ranking.rankedCandidates.map(
+            ({ coreId }) => coreId,
+          ),
+          provisionalRecommendedCoreId:
+            composed.ranking.provisionalRecommendedCoreId,
+          selectedOwnedCoreId: composed.lock.selectedOwnedCoreId,
+          gold: recorded.gold,
+          blue: recorded.blue,
+          observationRecordStatus: recorded.recordStatus,
+        };
+        compareOpenRaceStars(comparison);
+        const nextEvidence: OpenRaceWorkspaceEvidence = {
+          ...evidence,
+          bindings: {
+            ...evidence.bindings,
+            sessionVersion: `open-race-session:${randomUUID()}`,
+            observationVersion: `open-race-observation-version:${randomUUID()}`,
+            comparisonVersion: `open-race-comparison-version:${randomUUID()}`,
+          },
+          observation,
+          comparison,
+        };
+        composeOpenRaceWorkspaceSession(nextEvidence);
+        const envelope = JSON.stringify({
+          version: 1,
+          databaseOwnerId: configuration.databaseOwnerId,
+          publishedAt: input.observedAt,
+          evidence: nextEvidence,
+        });
+        if (Buffer.byteLength(envelope, "utf8") > MAX_SNAPSHOT_BYTES) fail();
+        const nextSha256 = createHash("sha256")
+          .update(envelope, "utf8")
+          .digest("hex");
+        const publication = await session.client.query(
+          PUBLISH_OBSERVATION_COMPARISON_SQL,
+          [
+            configuration.databaseOwnerId,
+            composed.field.requestId,
+            required(row.snapshot_sha256),
+            evidence.bindings.sessionVersion,
+            input.observedAt,
+            nextSha256,
+            envelope,
+          ],
+        );
         if (publication.rows.length !== 1) fail();
         const status = record(publication.rows[0]).status;
         if (

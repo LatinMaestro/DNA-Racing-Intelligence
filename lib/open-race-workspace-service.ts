@@ -99,6 +99,27 @@ export type OpenRaceWorkspaceRepository =
           status: "published" | "unchanged" | "source_changed" | "not_found";
         }>
       >;
+      recordObservationByOwner?: (
+        ownerId: string,
+        input: Readonly<{
+          requestId: string;
+          observedAt: string;
+          gameEventId: string | null;
+          gold:
+            | Readonly<{ status: "assigned"; coreId: string }>
+            | Readonly<{
+                status: "not_assigned" | "not_observed" | "not_applicable";
+              }>;
+          blue:
+            | Readonly<{ status: "assigned"; coreId: string }>
+            | Readonly<{ status: "not_assigned" | "not_observed" }>;
+          note: string | null;
+        }>,
+      ) => Promise<
+        Readonly<{
+          status: "published" | "unchanged" | "source_changed" | "not_found";
+        }>
+      >;
     }>;
 
 export type OpenRaceWorkspaceConnectionStatus =
