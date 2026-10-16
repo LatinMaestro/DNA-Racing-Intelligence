@@ -3,9 +3,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const session = vi.hoisted(() => ({
   ownerId: vi.fn(async (): Promise<string | null> => null),
 }));
+const persistence = vi.hoisted(() => ({
+  factory: vi.fn((): unknown => ({ status: "not_configured" })),
+}));
 
 vi.mock("../lib/clerk-owner-session", () => ({
   authenticatedClerkOwnerId: session.ownerId,
+}));
+vi.mock("../lib/neon-manual-ledger-write-repository", () => ({
+  neonManualLedgerPersistenceFromEnvironment: persistence.factory,
 }));
 
 import {
@@ -75,5 +81,66 @@ describe("Vault Performance economic FormData Server Actions", () => {
       title: "Evidence recording is unavailable",
     });
     expect(session.ownerId).toHaveBeenCalledTimes(2);
+  });
+
+  it("records a strict owner-scoped manual ledger form through the persisted context", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    vi.stubEnv("DATABASE_URL", "postgresql://synthetic.invalid/db");
+    vi.stubEnv("DNA_DATABASE_OWNER_ID", "91500000-0000-4000-8000-000000000001");
+    vi.stubEnv("DNA_DATABASE_RUNTIME_ROLE", "dna_app_runtime");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const saveEntryByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      ledgerVersion: "8",
+    }));
+    const readyPersistence = {
+      status: "ready",
+      repository: {
+        status: "ready",
+        loadTournamentCampaignBindingByOwner: vi.fn(async () => null),
+        saveEntryByOwner,
+        loadEntryByOwner: vi.fn(async () => null),
+        saveReversalByOwner: vi.fn(),
+      },
+      loadContextByOwner: vi.fn(async () => ({
+        assetRegistry: {
+          status: "ready",
+          version: "a".repeat(64),
+          assets: [{ code: "ETH", kind: "crypto", precision: 18 }],
+        },
+        ledgerVersion: "7",
+      })),
+    } as const;
+    persistence.factory.mockReturnValueOnce(readyPersistence);
+    const formData = new FormData();
+    formData.set("occurredAt", "2026-07-26T10:00:00+10:00");
+    formData.set("assetCode", "ETH");
+    formData.set("assetKind", "crypto");
+    formData.set("amount", "1.25");
+    formData.set("category", "income");
+    formData.set("subcategory", "other_income");
+    formData.set("accountLabel", "Owner account");
+
+    await expect(recordManualLedgerFormAction(formData)).resolves.toMatchObject(
+      { status: "recorded", submittedValuesEchoed: false },
+    );
+    expect(saveEntryByOwner).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({
+        assetCode: "ETH",
+        amount: "1.25",
+        category: "income",
+      }),
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      "7",
+    );
+
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    persistence.factory.mockReturnValueOnce(readyPersistence);
+    formData.set("subcategory", "manual_tournament_payout");
+    await expect(recordManualLedgerFormAction(formData)).resolves.toMatchObject(
+      { status: "invalid_input", submittedValuesEchoed: false },
+    );
+    expect(saveEntryByOwner).toHaveBeenCalledTimes(1);
   });
 });
