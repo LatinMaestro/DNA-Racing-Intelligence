@@ -48,6 +48,7 @@ DECLARE
   v_stale_entry text;
   v_stale_entry_hash text;
   v_version text;
+  v_initial_version bigint;
   v_reversal text;
   v_reversal_hash text;
   v_status text;
@@ -55,9 +56,10 @@ BEGIN
   SELECT context.asset_registry_version,context.ledger_version
   INTO v_asset_version,v_version
   FROM dna.read_manual_economic_write_context(dna.current_owner_id()) context;
-  IF v_asset_version IS NULL OR v_version<>'0' THEN
+  IF v_asset_version IS NULL OR v_version !~ '^(0|[1-9][0-9]*)$' THEN
     RAISE EXCEPTION 'manual economic context invalid';
   END IF;
+  v_initial_version := v_version::bigint;
   v_entry := jsonb_build_object(
     'entryId','manual-entry-0001',
     'occurredAt','2026-10-16T00:00:00.000Z',
@@ -78,9 +80,9 @@ BEGIN
   SELECT result.disposition,result.ledger_version
   INTO v_status,v_version
   FROM dna.write_manual_economic_entry(
-    dna.current_owner_id(),'manual-entry-0001',v_entry_hash,v_entry,'0'
+    dna.current_owner_id(),'manual-entry-0001',v_entry_hash,v_entry,v_version
   ) result;
-  IF v_status<>'created' OR v_version<>'1' THEN
+  IF v_status<>'created' OR v_version::bigint<>v_initial_version+1 THEN
     RAISE EXCEPTION 'manual economic entry write failed';
   END IF;
   v_stale_entry := replace(v_entry,'manual-entry-0001','manual-entry-stale');
@@ -90,7 +92,7 @@ BEGIN
   SELECT result.disposition INTO v_status
   FROM dna.write_manual_economic_entry(
     dna.current_owner_id(),'manual-entry-stale',v_stale_entry_hash,
-    v_stale_entry,'0'
+    v_stale_entry,v_initial_version::text
   ) result;
   IF v_status<>'version_conflict' OR EXISTS (
     SELECT 1 FROM dna.read_manual_economic_entry(
@@ -100,7 +102,8 @@ BEGIN
   END IF;
   SELECT result.disposition INTO v_status
   FROM dna.write_manual_economic_entry(
-    dna.current_owner_id(),'manual-entry-0001',v_entry_hash,v_entry,'0'
+    dna.current_owner_id(),'manual-entry-0001',v_entry_hash,v_entry,
+    v_initial_version::text
   ) result;
   IF v_status<>'already_exists' THEN
     RAISE EXCEPTION 'manual economic replay failed';
@@ -127,7 +130,7 @@ BEGIN
     dna.current_owner_id(),'manual-reversal-0001','manual-entry-0001',
     v_reversal_hash,v_reversal,v_entry_hash,v_version
   ) result;
-  IF v_status<>'created' OR v_version<>'2' THEN
+  IF v_status<>'created' OR v_version::bigint<>v_initial_version+2 THEN
     RAISE EXCEPTION 'manual economic reversal write failed';
   END IF;
   IF (SELECT count(*) FROM dna.read_manual_economic_entry(
