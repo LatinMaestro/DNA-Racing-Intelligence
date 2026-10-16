@@ -138,7 +138,7 @@ describe("Open Race workspace", () => {
     );
     expect(html).toContain("Owner identity not connected");
     expect(html).toContain("No accepted Open Race session");
-    expect(html).toContain("Stage A capture unavailable");
+    expect(html).toContain("Accepted provisional sessions expose field-lock");
     expect(html).toContain("Gate C not passed");
     expect(html).not.toContain("/search-core");
   });
@@ -161,5 +161,28 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Frozen pre-entry ranking unchanged");
     expect(html).toContain("Historical aggregates aggregate-v4");
     expect(html).not.toContain("Enter race");
+  });
+
+  it("offers evidence-only field lock confirmation for an accepted provisional session", () => {
+    const provisional = {
+      ...session,
+      stage: "provisional_selection" as const,
+      lock: null,
+      observation: null,
+      comparison: null,
+    };
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[provisional]}
+      />,
+    );
+    expect(html).toContain("Confirm committed field lock");
+    expect(html).toContain('name="selectedOwnedCoreId"');
+    expect(html).toContain('value="owned:a"');
+    expect(html).toContain('name="userConfirmedCommittedEntry"');
+    expect(html).toContain('name="raceSetToRun"');
+    expect(html).toContain("does not enter a race");
+    expect(html).not.toContain("Connect wallet");
   });
 });
