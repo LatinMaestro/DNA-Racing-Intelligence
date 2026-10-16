@@ -427,6 +427,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.up.sql
       - name: Run Open Race field lock publication smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.smoke.sql
+      - name: Apply Open Race observation publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.up.sql
+      - name: Run Open Race observation publication smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.smoke.sql
+      - name: Reverse Open Race observation publication migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.down.sql
+      - name: Verify Open Race observation publication removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.removal.sql
       - name: Reverse Open Race field lock publication migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0134_open_race_field_lock_publication.down.sql
       - name: Verify Open Race field lock publication removal

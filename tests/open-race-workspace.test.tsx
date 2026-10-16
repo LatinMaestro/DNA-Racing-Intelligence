@@ -185,4 +185,26 @@ describe("Open Race workspace", () => {
     expect(html).toContain("does not enter a race");
     expect(html).not.toContain("Connect wallet");
   });
+
+  it("offers diagnostic star recording only after field lock", () => {
+    const locked = {
+      ...session,
+      stage: "locked_observation" as const,
+      observation: null,
+      comparison: null,
+    };
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[locked]}
+      />,
+    );
+    expect(html).toContain("Record revealed stars");
+    expect(html).toContain('name="gold"');
+    expect(html).toContain('name="blue"');
+    expect(html).toContain('value="core:owned:a"');
+    expect(html).toContain('name="starsRevealedAfterLock"');
+    expect(html).toContain("cannot change the frozen ranking");
+    expect(html).not.toContain("Enter race");
+  });
 });

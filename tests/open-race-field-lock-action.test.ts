@@ -16,7 +16,10 @@ vi.mock("../lib/neon-open-race-workspace-repository", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: cache.revalidatePath }));
 
-import { lockOpenRaceSessionAction } from "../app/(private)/open-race/actions";
+import {
+  lockOpenRaceSessionAction,
+  recordOpenRaceObservationAction,
+} from "../app/(private)/open-race/actions";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -29,6 +32,16 @@ function confirmedForm() {
   formData.set("selectedOwnedCoreId", "owned-1");
   formData.set("userConfirmedCommittedEntry", "confirmed");
   formData.set("raceSetToRun", "confirmed");
+  return formData;
+}
+
+function observationForm() {
+  const formData = new FormData();
+  formData.set("requestId", "request-1");
+  formData.set("gold", "core:opponent-1");
+  formData.set("blue", "core:owned-1");
+  formData.set("starsRevealedAfterLock", "confirmed");
+  formData.set("gameEventId", "event-1");
   return formData;
 }
 
@@ -97,5 +110,59 @@ describe("Open Race field lock Server Action", () => {
       "Open Race evidence changed; refresh before locking.",
     );
     expect(cache.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("Open Race observation Server Action", () => {
+  it("requires explicit post-lock confirmation", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const formData = observationForm();
+    formData.delete("starsRevealedAfterLock");
+    await expect(recordOpenRaceObservationAction(formData)).rejects.toThrow(
+      "Open Race star observation is incomplete.",
+    );
+    expect(persistence.factory).not.toHaveBeenCalled();
+  });
+
+  it("passes only bounded manual signals to owner-scoped persistence", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const recordObservationByOwner = vi.fn(async () => ({
+      status: "published" as const,
+    }));
+    persistence.factory.mockReturnValueOnce({
+      status: "ready",
+      listSessionEvidenceByOwner: vi.fn(),
+      recordObservationByOwner,
+    });
+    await expect(
+      recordOpenRaceObservationAction(observationForm()),
+    ).resolves.toBeUndefined();
+    expect(recordObservationByOwner).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({
+        requestId: "request-1",
+        gold: { status: "assigned", coreId: "opponent-1" },
+        blue: { status: "assigned", coreId: "owned-1" },
+        gameEventId: "event-1",
+      }),
+    );
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/open-race");
+  });
+
+  it("rejects unsupported signal values before persistence", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const formData = observationForm();
+    formData.set("blue", "not_applicable");
+    persistence.factory.mockReturnValueOnce({
+      status: "ready",
+      listSessionEvidenceByOwner: vi.fn(),
+      recordObservationByOwner: vi.fn(),
+    });
+    await expect(recordOpenRaceObservationAction(formData)).rejects.toThrow(
+      "Open Race star observation is incomplete.",
+    );
   });
 });

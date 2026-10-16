@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { lockOpenRaceSessionAction } from "@/app/(private)/open-race/actions";
+import {
+  lockOpenRaceSessionAction,
+  recordOpenRaceObservationAction,
+} from "@/app/(private)/open-race/actions";
 import type {
   OpenRaceWorkspaceConnectionStatus,
   OpenRaceWorkspaceSession,
@@ -260,6 +263,101 @@ function SessionCard({
             type="submit"
           >
             Record field lock
+          </button>
+        </form>
+      ) : null}
+
+      {session.stage === "locked_observation" && session.lock !== null ? (
+        <form
+          action={recordOpenRaceObservationAction}
+          className="mt-5 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4"
+        >
+          <h4 className="font-semibold">Record revealed stars</h4>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Record the optional pre-run Gold and Blue display only after the
+            field lock. This diagnostic cannot change the frozen ranking, switch
+            a Core or report a race outcome.
+          </p>
+          <input
+            name="requestId"
+            type="hidden"
+            value={session.field.requestId}
+          />
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              Gold
+              {session.lock.gateCount <= 3 ? (
+                <>
+                  <input name="gold" type="hidden" value="not_applicable" />
+                  <span className="mt-2 block rounded-lg border border-[var(--border)] px-3 py-2 font-normal text-[var(--muted)]">
+                    Not applicable at this gate count
+                  </span>
+                </>
+              ) : (
+                <select
+                  className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+                  name="gold"
+                  required
+                >
+                  <option value="not_observed">Not observed</option>
+                  <option value="not_assigned">Not assigned</option>
+                  {session.lock.enteredCoreIds.map((coreId) => (
+                    <option key={coreId} value={`core:${coreId}`}>
+                      Core {coreId}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+            <label className="block text-sm font-semibold">
+              Blue
+              <select
+                className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+                name="blue"
+                required
+              >
+                <option value="not_observed">Not observed</option>
+                <option value="not_assigned">Not assigned</option>
+                {session.lock.enteredCoreIds.map((coreId) => (
+                  <option key={coreId} value={`core:${coreId}`}>
+                    Core {coreId}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="mt-4 block text-sm font-semibold">
+            Game event ID (optional)
+            <input
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+              maxLength={128}
+              name="gameEventId"
+            />
+          </label>
+          <label className="mt-4 block text-sm font-semibold">
+            Observation note (optional)
+            <textarea
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
+              maxLength={500}
+              name="note"
+              rows={2}
+            />
+          </label>
+          <label className="mt-4 flex items-start gap-3 text-sm">
+            <input
+              className="mt-1"
+              name="starsRevealedAfterLock"
+              required
+              type="checkbox"
+              value="confirmed"
+            />
+            <span>I confirm these stars were revealed after field lock.</span>
+          </label>
+          <button
+            className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+            type="submit"
+          >
+            Record diagnostic observation
           </button>
         </form>
       ) : null}
