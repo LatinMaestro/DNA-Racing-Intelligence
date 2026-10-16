@@ -161,6 +161,7 @@ BEGIN
       (v_old -> 'evidence' -> 'lock' -> 'provisionalRecommendedCoreId')
     OR (v_comparison -> 'gold') IS DISTINCT FROM (v_observation -> 'gold')
     OR (v_comparison -> 'blue') IS DISTINCT FROM (v_observation -> 'blue')
+    OR (v_comparison ->> 'observationRecordStatus') IS NULL
     OR (v_comparison ->> 'observationRecordStatus') NOT IN
       ('recorded','review_required')
   THEN

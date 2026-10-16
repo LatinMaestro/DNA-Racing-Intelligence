@@ -29,14 +29,17 @@ WITH fixture AS (
       'eligibility', jsonb_build_object('evaluationId', 'eligibility-v1'),
       'ranking', jsonb_build_object(
         'rankingId', 'ranking-v1',
-        'evaluatedAt', '2020-10-16T04:10:00.000Z'),
+        'evaluatedAt', '2020-10-16T04:10:00.000Z',
+        'candidates', jsonb_build_array(
+          jsonb_build_object('coreId', 'owned-1'))),
       'lock', jsonb_build_object(
         'lockId', 'lock-v1',
         'lockedAt', '2020-10-16T05:00:00.000Z',
         'gateCount', 4,
         'enteredCoreIds', jsonb_build_array(
           'owned-1','opponent-1','opponent-2','opponent-3'),
-        'selectedOwnedCoreId', 'owned-1'),
+        'selectedOwnedCoreId', 'owned-1',
+        'provisionalRecommendedCoreId', 'owned-1'),
       'observation', NULL,
       'comparison', NULL))::text AS body
 )
@@ -103,11 +106,8 @@ BEGIN
     'gateCount', 4,
     'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
     'selectedOwnedCoreId', 'owned-1',
-    'rankedCandidateCoreIds', jsonb_build_array('owned-1'),
-    'provisionalRecommendedCoreId', NULL,
     'gold', jsonb_build_object('status', 'assigned', 'coreId', 'opponent-1'),
-    'blue', jsonb_build_object('status', 'assigned', 'coreId', 'owned-1'),
-    'observationRecordStatus', 'recorded'));
+    'blue', jsonb_build_object('status', 'assigned', 'coreId', 'owned-1')));
   v_candidate := jsonb_set(v_candidate, '{evidence,comparison}', jsonb_build_object(
     'comparisonId', 'comparison-v1',
     'lockId', 'lock-v1',
@@ -119,8 +119,11 @@ BEGIN
     'gateCount', 4,
     'enteredCoreIds', jsonb_build_array('owned-1','opponent-1','opponent-2','opponent-3'),
     'selectedOwnedCoreId', 'owned-1',
+    'rankedCandidateCoreIds', jsonb_build_array('owned-1'),
+    'provisionalRecommendedCoreId', 'owned-1',
     'gold', jsonb_build_object('status', 'assigned', 'coreId', 'opponent-1'),
-    'blue', jsonb_build_object('status', 'assigned', 'coreId', 'owned-1')));
+    'blue', jsonb_build_object('status', 'assigned', 'coreId', 'owned-1'),
+    'observationRecordStatus', 'recorded'));
 
   v_candidate_text := v_candidate::text;
   v_candidate_sha := encode(sha256(convert_to(v_candidate_text, 'UTF8')), 'hex');
