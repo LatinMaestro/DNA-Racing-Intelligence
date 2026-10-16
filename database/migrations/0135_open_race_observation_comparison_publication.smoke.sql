@@ -21,7 +21,11 @@ WITH fixture AS (
         'lockVersion', 'lock-v1',
         'observationVersion', NULL,
         'comparisonVersion', NULL),
-      'field', jsonb_build_object('requestId', 'request-observation'),
+      'field', jsonb_build_object(
+        'requestId', 'request-observation',
+        'capturedAt', '2020-10-16T04:00:00.000Z',
+        'mode', 'horse',
+        'distanceMeters', 1600),
       'eligibility', jsonb_build_object('evaluationId', 'eligibility-v1'),
       'ranking', jsonb_build_object(
         'rankingId', 'ranking-v1',
