@@ -283,8 +283,8 @@ describe("accepted Maiden compact evidence materialization boundary", () => {
         ...h.input,
         boundary: {
           ...h.input.boundary,
-          publishCandidate: null as unknown as
-            MaidenEvidenceMaterializationBoundary["publishCandidate"],
+          publishCandidate:
+            null as unknown as MaidenEvidenceMaterializationBoundary["publishCandidate"],
         },
       }),
     ).rejects.toThrow("Maiden accepted evidence materialization unavailable.");
