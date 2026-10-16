@@ -30,7 +30,6 @@ import {
 
 const manualLedgerSubcategories: VaultPerformanceEconomicFormConfiguration["manualLedgerSubcategories"] =
   Object.freeze([
-    { category: "income", subcategory: "manual_tournament_payout" },
     { category: "income", subcategory: "breeding_fee_earned" },
     { category: "income", subcategory: "core_sale" },
     { category: "income", subcategory: "burn_bgc_credit" },

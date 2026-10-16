@@ -93,7 +93,7 @@ describe("Vault Performance economic FormData Server Actions", () => {
       status: "created" as const,
       ledgerVersion: "8",
     }));
-    persistence.factory.mockReturnValueOnce({
+    const readyPersistence = {
       status: "ready",
       repository: {
         status: "ready",
@@ -110,7 +110,8 @@ describe("Vault Performance economic FormData Server Actions", () => {
         },
         ledgerVersion: "7",
       })),
-    });
+    } as const;
+    persistence.factory.mockReturnValueOnce(readyPersistence);
     const formData = new FormData();
     formData.set("occurredAt", "2026-07-26T10:00:00+10:00");
     formData.set("assetCode", "ETH");
@@ -133,5 +134,13 @@ describe("Vault Performance economic FormData Server Actions", () => {
       expect.stringMatching(/^[a-f0-9]{64}$/),
       "7",
     );
+
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    persistence.factory.mockReturnValueOnce(readyPersistence);
+    formData.set("subcategory", "manual_tournament_payout");
+    await expect(recordManualLedgerFormAction(formData)).resolves.toMatchObject(
+      { status: "invalid_input", submittedValuesEchoed: false },
+    );
+    expect(saveEntryByOwner).toHaveBeenCalledTimes(1);
   });
 });
