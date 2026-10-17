@@ -38,9 +38,10 @@ function input(
       "candidate",
       Array.from({ length: 10 }, (_, index) => 1_000 + index),
     ),
-    opponentObservations: observations("opponent", [
-      500, 501, 502, 503, 504, 2_000, 2_001, 2_002, 2_003, 2_004,
-    ]),
+    opponentObservations: observations(
+      "opponent",
+      [500, 501, 502, 503, 504, 2_000, 2_001, 2_002, 2_003, 2_004],
+    ),
     ...overrides,
   };
 }
@@ -150,9 +151,7 @@ describe("independent empirical pairwise race probability baseline", () => {
       ),
     ).toThrow("Distance metres");
     expect(() =>
-      calculatePairwiseRaceProbability(
-        input({ opponentCoreId: "candidate" }),
-      ),
+      calculatePairwiseRaceProbability(input({ opponentCoreId: "candidate" })),
     ).toThrow("must differ");
   });
 });
