@@ -1,5 +1,10 @@
+"use client";
+
+import { useActionState } from "react";
+import { submitBreedingEconomicEvidenceFormAction } from "@/app/(private)/breeding/actions";
+
 export type BreedingEconomicWriteStatus =
-  "identity_not_connected" | "persistence_not_configured";
+  "identity_not_connected" | "persistence_not_configured" | "evidence_ready";
 
 const statusCopy: Record<
   BreedingEconomicWriteStatus,
@@ -15,17 +20,22 @@ const statusCopy: Record<
     detail:
       "These evidence forms are staged for review, but owner-scoped persistence is not configured. Nothing entered here can be recorded.",
   },
+  evidence_ready: {
+    label: "Breeding evidence ready",
+    detail:
+      "Confirmed owner-scoped breeding transactions can be recorded. Cost-basis assignment remains disabled until accepted event evidence and owned offspring can be resolved server-side.",
+  },
 };
 
 const fieldClass =
   "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
 
-function BreedingEvidenceFields() {
+function BreedingEvidenceFields({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
     <fieldset
       aria-describedby="breeding-evidence-help"
       className="grid gap-4"
-      disabled
+      disabled={disabled}
     >
       <legend className="text-lg font-semibold">
         Completed or refunded breeding
@@ -55,7 +65,8 @@ function BreedingEvidenceFields() {
             id="breeding-occurred-at"
             name="occurredAt"
             required
-            type="datetime-local"
+            placeholder="2026-10-17T13:30:00+10:00"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="breeding-lifecycle">
@@ -70,14 +81,20 @@ function BreedingEvidenceFields() {
             <option value="refunded">Confirmed refund</option>
           </select>
         </label>
-        <label className="grid gap-2 text-sm" htmlFor="breeding-transaction-id">
-          Transaction ID
-          <input
-            className={`${fieldClass} font-mono`}
-            id="breeding-transaction-id"
-            name="transactionId"
+        <label className="grid gap-2 text-sm" htmlFor="breeding-category">
+          Economic category
+          <select
+            className={fieldClass}
+            id="breeding-category"
+            name="category"
             required
-          />
+          >
+            <option value="dna_base_fee">DNA base fee</option>
+            <option value="external_arena_fee">External Arena fee</option>
+            <option value="arena_fee_bgc">Arena fee paid in BGC</option>
+            <option value="breeding_fee_earned">Breeding fee earned</option>
+            <option value="refund">Confirmed refund</option>
+          </select>
         </label>
         <label className="grid gap-2 text-sm" htmlFor="breeding-parent-a">
           Parent Core ID 1
@@ -121,6 +138,24 @@ function BreedingEvidenceFields() {
           />
         </label>
       </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-2 text-sm" htmlFor="breeding-offspring">
+          Offspring Core ID, if confirmed
+          <input
+            className={`${fieldClass} font-mono`}
+            id="breeding-offspring"
+            name="offspringCoreId"
+          />
+        </label>
+        <label className="grid gap-2 text-sm" htmlFor="breeding-reference">
+          External reference, if available
+          <input
+            className={`${fieldClass} font-mono`}
+            id="breeding-reference"
+            name="externalReference"
+          />
+        </label>
+      </div>
       <label className="grid gap-2 text-sm" htmlFor="breeding-evidence-note">
         Audit note
         <textarea
@@ -133,7 +168,7 @@ function BreedingEvidenceFields() {
       </label>
       <button
         className="w-fit rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        disabled
+        disabled={disabled}
         type="submit"
       >
         Record breeding evidence
@@ -185,41 +220,6 @@ function CostBasisFields() {
             required
           />
         </label>
-        <label className="grid gap-2 text-sm" htmlFor="cost-basis-category">
-          Cost category
-          <select
-            className={fieldClass}
-            id="cost-basis-category"
-            name="category"
-            required
-          >
-            <option value="dna_base_fee">DNA base fee</option>
-            <option value="external_arena_fee">External Arena fee</option>
-            <option value="arena_fee_bgc">Arena fee paid in BGC</option>
-          </select>
-        </label>
-        <label className="grid gap-2 text-sm" htmlFor="cost-basis-asset">
-          Original asset
-          <input
-            autoCapitalize="characters"
-            className={`${fieldClass} font-mono`}
-            id="cost-basis-asset"
-            maxLength={16}
-            name="assetCode"
-            required
-          />
-        </label>
-        <label className="grid gap-2 text-sm" htmlFor="cost-basis-amount">
-          Exact actual cost
-          <input
-            className={`${fieldClass} font-mono`}
-            id="cost-basis-amount"
-            inputMode="decimal"
-            name="amount"
-            pattern="(?:0|[1-9][0-9]*)(?:\.[0-9]+)?"
-            required
-          />
-        </label>
       </div>
       <button
         className="w-fit rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
@@ -236,6 +236,11 @@ export function BreedingEconomicForms({
   status,
 }: Readonly<{ status: BreedingEconomicWriteStatus }>) {
   const copy = statusCopy[status];
+  const [evidenceResult, evidenceAction, evidencePending] = useActionState(
+    submitBreedingEconomicEvidenceFormAction,
+    null,
+  );
+  const evidenceReady = status === "evidence_ready";
 
   return (
     <section aria-labelledby="breeding-economic-evidence">
@@ -261,10 +266,22 @@ export function BreedingEconomicForms({
       </p>
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <form
+          action={evidenceAction}
           aria-label="Completed or refunded breeding evidence"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <BreedingEvidenceFields />
+          <BreedingEvidenceFields
+            disabled={!evidenceReady || evidencePending}
+          />
+          {evidenceResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{evidenceResult.title}.</strong> {evidenceResult.detail}
+            </p>
+          )}
         </form>
         <form
           aria-label="Offspring cost-basis review"
