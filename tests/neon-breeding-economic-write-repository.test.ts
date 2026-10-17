@@ -147,6 +147,8 @@ function harness(
           { disposition: "created", fingerprint: null, economic_version: "1" },
         ],
       };
+    if (sql.includes("list_breeding_economic_evidence_by_event"))
+      return { rows: options.readRows ?? [storedRow("evidence")] };
     if (sql.includes("list_assigned_breeding_cost_transactions"))
       return {
         rows: options.assignedRows ?? [{ transaction_id: "transaction-1" }],
@@ -250,6 +252,29 @@ describe("Neon breeding economic persistence", () => {
     ).resolves.toEqual(["transaction-1"]);
   });
 
+  it("loads only bounded, revalidated evidence for one breeding event", async () => {
+    const h = harness();
+    await expect(
+      h.persistence.loadEvidenceByBreedingEventByOwner(
+        identity,
+        evidenceInput.breedingEventId,
+      ),
+    ).resolves.toEqual([
+      {
+        record: evidenceRecord,
+        fingerprint: storedRow("evidence").fingerprint,
+        economicVersion: "2",
+      },
+    ]);
+    const read = h.query.mock.calls.find(([sql]) =>
+      sql.includes("list_breeding_economic_evidence_by_event"),
+    );
+    expect(read?.[1]).toEqual([owner, evidenceInput.breedingEventId, 128]);
+    await expect(
+      h.persistence.loadEvidenceByBreedingEventByOwner(identity, " "),
+    ).rejects.toThrow(ERROR);
+  });
+
   it("fails closed on privilege drift, corruption and oversized transaction reads", async () => {
     const privileged = harness({
       isolationRows: [{ ...isolation, runtime_bypasses_rls: true }],
@@ -288,3 +313,4 @@ describe("Neon breeding economic persistence", () => {
     },
   );
 });
+
