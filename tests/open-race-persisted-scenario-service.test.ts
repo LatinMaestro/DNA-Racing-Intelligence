@@ -3,9 +3,7 @@ import {
   composePersistedOpenRaceCandidateScenario,
   type AcceptedOpenRaceScenarioEvidence,
 } from "@/lib/open-race-persisted-scenario-service";
-import type {
-  OpenRaceWorkspaceSession,
-} from "@/lib/open-race-workspace-service";
+import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
 function history(prefix: string, start: number, count = 10) {
   return Array.from({ length: count }, (_, index) => ({
