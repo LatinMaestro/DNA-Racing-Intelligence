@@ -58,6 +58,11 @@ describe("My Vault to existing Search Core navigation", () => {
       'href="/search-core?q=core%3A8&amp;coreId=core%3A8"',
     ]);
     expect(html.match(/View race evidence/g)).toHaveLength(2);
+    expect(html).toContain('aria-label="Compact Vault roster"');
+    expect(html).toContain('href="#vault-core-core%3A8"');
+    expect(html).toContain('id="vault-core-core:8"');
+    expect(html).toContain("ME eligible");
+    expect(html).toContain('aria-current="page" href="/vault?scope=catalogue"');
     expect(html).toContain("In My Vault");
     expect(html).toContain("Not in My Vault");
   });
