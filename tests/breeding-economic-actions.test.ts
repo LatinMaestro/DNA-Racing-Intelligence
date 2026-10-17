@@ -3,9 +3,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const session = vi.hoisted(() => ({
   ownerId: vi.fn(async (): Promise<string | null> => null),
 }));
+const breedingPersistence = vi.hoisted(() => ({
+  fromEnvironment: vi.fn<() => unknown>(() => ({
+    status: "not_configured" as const,
+  })),
+}));
 
 vi.mock("../lib/clerk-owner-session", () => ({
   authenticatedClerkOwnerId: session.ownerId,
+}));
+vi.mock("../lib/neon-breeding-economic-write-repository", () => ({
+  neonBreedingEconomicPersistenceFromEnvironment:
+    breedingPersistence.fromEnvironment,
 }));
 
 import {
@@ -73,6 +82,9 @@ const assignmentInput = {
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllEnvs();
+  breedingPersistence.fromEnvironment.mockReturnValue({
+    status: "not_configured",
+  });
 });
 
 describe("breeding economic Server Actions", () => {
@@ -171,5 +183,53 @@ describe("breeding economic Server Actions", () => {
       submittedValuesEchoed: false,
       rawErrorEchoed: false,
     });
+  });
+
+  it("records validated owner evidence through configured persistence", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const loadEvidenceByOwner = vi.fn(async () => null);
+    const saveEvidenceByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      economicVersion: "2",
+    }));
+    breedingPersistence.fromEnvironment.mockReturnValue({
+      status: "ready",
+      loadContextByOwner: vi.fn(async () => ({
+        assetRegistry: {
+          status: "ready" as const,
+          version: "a".repeat(64),
+          assets: [{ code: "DEZ", kind: "crypto" as const, precision: 8 }],
+        },
+        economicVersion: "1",
+      })),
+      repository: {
+        status: "ready" as const,
+        loadEvidenceByOwner,
+        saveEvidenceByOwner,
+        loadCostBasisByOwner: vi.fn(async () => null),
+        loadAssignedTransactionIdsByOwner: vi.fn(async () => []),
+        saveCostBasisByOwner: vi.fn(),
+      },
+    });
+    const formData = new FormData();
+    formData.set("breedingEventId", "breeding-event-1");
+    formData.set("occurredAt", "2026-07-26T02:00:00.000Z");
+    formData.set("lifecycle", "completed");
+    formData.set("category", "dna_base_fee");
+    formData.set("parentCoreIdA", "parent-a");
+    formData.set("parentCoreIdB", "parent-b");
+    formData.set("assetCode", "DEZ");
+    formData.set("amount", "2.5");
+    formData.set("evidenceNote", "Confirmed owner evidence.");
+
+    await expect(
+      recordBreedingEconomicEvidenceFormAction(formData),
+    ).resolves.toMatchObject({ status: "recorded" });
+    expect(loadEvidenceByOwner).toHaveBeenCalledWith(
+      "owner-1",
+      expect.stringMatching(/^breeding_economic_evidence:/),
+    );
+    expect(saveEvidenceByOwner).toHaveBeenCalledOnce();
   });
 });
