@@ -4,12 +4,16 @@ import { describe, expect, it } from "vitest";
 import DashboardPage from "@/app/(private)/page";
 
 describe("private dashboard operating status", () => {
-  it("reflects private hosting and the owner-maintained Vault authority", async () => {
+  it("reflects the deployment boundary and owner-maintained Vault authority", async () => {
     const markup = renderToStaticMarkup(await DashboardPage());
 
     expect(markup).toContain("Private owner workspace");
-    expect(markup).toContain("Private hosting is active");
-    expect(markup).toContain("Automatic Git deployments remain disabled");
+    expect(markup).toContain("Protected Preview is not commissioned");
+    expect(markup).toContain("Production remains unchanged");
+    expect(markup).toContain(
+      "deployment stays gated by privacy, health, rollback and provider-capacity proof",
+    );
+    expect(markup).not.toContain("Private hosting is active");
     expect(markup).toContain("My Vault");
     expect(markup).toContain("Owner-maintained current ownership");
     expect(markup).toContain("Owner setup pending");

@@ -25,7 +25,7 @@ const readiness = [
   ],
   [
     "Hosting",
-    "Private hosting is active. Automatic Git deployments remain disabled.",
+    "Protected Preview is not commissioned. Production remains unchanged; deployment stays gated by privacy, health, rollback and provider-capacity proof.",
   ],
 ] as const;
 
