@@ -58,6 +58,7 @@ function session(): OpenRaceWorkspaceSession {
 
 function source(): AcceptedOpenRaceScenarioEvidence {
   return {
+    authenticatedOwnerId: "owner-1",
     sessionVersion: "session-v1",
     fieldVersion: "field-v1",
     eligibilityVersion: "eligibility-v1",
@@ -86,7 +87,7 @@ function source(): AcceptedOpenRaceScenarioEvidence {
 
 describe("persisted Open Race candidate scenario integration", () => {
   it("binds a forming session to accepted exact-source evidence without actionable outputs", () => {
-    const view = composePersistedOpenRaceCandidateScenario(session(), source());
+    const view = composePersistedOpenRaceCandidateScenario("owner-1", session(), source());
     expect(view.status).toBe("experimental");
     if (view.scenario === null) throw new Error("Expected an experimental scenario.");
     expect(view.scenario).toMatchObject({
@@ -120,12 +121,13 @@ describe("persisted Open Race candidate scenario integration", () => {
   it("does not run for a locked field or without accepted historical evidence", () => {
     expect(
       composePersistedOpenRaceCandidateScenario(
+        "owner-1",
         { ...session(), stage: "locked_observation" },
         source(),
       ),
     ).toMatchObject({ status: "unavailable", reason: "NOT_FORMING" });
     expect(
-      composePersistedOpenRaceCandidateScenario(session(), null),
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), null),
     ).toMatchObject({
       status: "unavailable",
       reason: "HISTORICAL_EVIDENCE_UNAVAILABLE",
@@ -136,33 +138,44 @@ describe("persisted Open Race candidate scenario integration", () => {
     const base = session();
     expect(
       composePersistedOpenRaceCandidateScenario(
+        "owner-1",
         { ...base, field: { ...base.field, freshness: "stale" } },
         source(),
       ),
     ).toMatchObject({ status: "unavailable", reason: "FIELD_REVIEW_REQUIRED" });
     expect(
       composePersistedOpenRaceCandidateScenario(
+        "owner-1",
         { ...base, field: { ...base.field, status: "review_required" } },
         source(),
       ),
     ).toMatchObject({ status: "unavailable", reason: "FIELD_REVIEW_REQUIRED" });
   });
 
+  it("rejects cross-owner accepted histories before comparison", () => {
+    expect(() =>
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
+        ...source(),
+        authenticatedOwnerId: "owner-2",
+      }),
+    ).toThrow("source owner mismatch");
+  });
+
   it("rejects version drift and altered exact context", () => {
     expect(() =>
-      composePersistedOpenRaceCandidateScenario(session(), {
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
         fieldVersion: "field-v2",
       }),
     ).toThrow("source identity has changed");
     expect(() =>
-      composePersistedOpenRaceCandidateScenario(session(), {
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
         context: { ...source().context!, distanceMeters: 1600 },
       }),
     ).toThrow("context differs");
     expect(
-      composePersistedOpenRaceCandidateScenario(session(), {
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
         context: null,
       }),
@@ -174,7 +187,7 @@ describe("persisted Open Race candidate scenario integration", () => {
 
   it("does not substitute a different Core's history or truncate missing evidence", () => {
     expect(
-      composePersistedOpenRaceCandidateScenario(session(), {
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
         opponentHistories: [
           { coreId: "wrong-opponent", observations: history("other", 11_000) },
@@ -185,7 +198,7 @@ describe("persisted Open Race candidate scenario integration", () => {
       reason: "INCOMPLETE_CORE_HISTORY",
     });
     expect(
-      composePersistedOpenRaceCandidateScenario(session(), {
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
         candidateHistories: [],
       }),
@@ -197,7 +210,7 @@ describe("persisted Open Race candidate scenario integration", () => {
 
   it("preserves sample insufficiency as an unavailable diagnostic", () => {
     const candidate = source();
-    const view = composePersistedOpenRaceCandidateScenario(session(), {
+    const view = composePersistedOpenRaceCandidateScenario("owner-1", session(), {
       ...candidate,
       candidateHistories: [
         { coreId: "owned-a", observations: history("owned", 9_000, 9) },
@@ -214,6 +227,7 @@ describe("persisted Open Race candidate scenario integration", () => {
     const base = session();
     expect(() =>
       composePersistedOpenRaceCandidateScenario(
+        "owner-1",
         {
           ...base,
           field: {
