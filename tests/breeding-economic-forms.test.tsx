@@ -54,13 +54,10 @@ describe("breeding economic forms", () => {
   });
 
   it("enables evidence and cost-basis review only when both reads are ready", () => {
-    const html = renderToStaticMarkup(
-      <BreedingEconomicForms status="ready" />,
-    );
+    const html = renderToStaticMarkup(<BreedingEconomicForms status="ready" />);
 
     expect(html).toContain("Breeding economics ready");
     expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(0);
     expect(html.match(/<button[^>]*disabled/g)).toHaveLength(0);
   });
 });
-
