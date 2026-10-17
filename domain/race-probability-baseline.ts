@@ -78,7 +78,7 @@ function positiveSafeInteger(value: number, label: string): void {
   }
 }
 
-function normalizeContext(
+export function normalizeExactRaceProbabilityContext(
   context: ExactRaceProbabilityContext,
 ): ExactRaceProbabilityContext {
   if (!raceModes.includes(context.mode)) {
@@ -105,15 +105,16 @@ function normalizeContext(
   return { ...context, format, element };
 }
 
-function normalizeObservations(
-  observations: readonly EmpiricalRaceTimeObservation[],
-  label: string,
-  evidenceCutoff: string,
-): readonly Readonly<{
+export function normalizeEmpiricalRaceTimeObservations(input: {
+  observations: readonly EmpiricalRaceTimeObservation[];
+  label: string;
+  evidenceCutoff: string;
+}): readonly Readonly<{
   eventId: string;
   eventAt: string;
   elapsedTimeMilliseconds: number;
 }>[] {
+  const { observations, label, evidenceCutoff } = input;
   const seenEventIds = new Set<string>();
   return observations.map((observation) => {
     const eventId = required(observation.eventId, `${label} event ID`);
@@ -165,23 +166,23 @@ export function calculatePairwiseRaceProbability(
   const baselineId = required(input.baselineId, "Baseline ID");
   const modelVersion = required(input.modelVersion, "Model version");
   const evidenceCutoff = timestamp(input.evidenceCutoff, "Evidence cutoff");
-  const context = normalizeContext(input.context);
+  const context = normalizeExactRaceProbabilityContext(input.context);
   const candidateCoreId = required(input.candidateCoreId, "Candidate Core ID");
   const opponentCoreId = required(input.opponentCoreId, "Opponent Core ID");
   if (candidateCoreId === opponentCoreId) {
     throw new Error("Candidate and opponent Core IDs must differ.");
   }
 
-  const candidateObservations = normalizeObservations(
-    input.candidateObservations,
-    "Candidate",
+  const candidateObservations = normalizeEmpiricalRaceTimeObservations({
+    observations: input.candidateObservations,
+    label: "Candidate",
     evidenceCutoff,
-  );
-  const opponentObservations = normalizeObservations(
-    input.opponentObservations,
-    "Opponent",
+  });
+  const opponentObservations = normalizeEmpiricalRaceTimeObservations({
+    observations: input.opponentObservations,
+    label: "Opponent",
     evidenceCutoff,
-  );
+  });
   const outcomePairCount =
     candidateObservations.length * opponentObservations.length;
   if (!Number.isSafeInteger(outcomePairCount)) {
