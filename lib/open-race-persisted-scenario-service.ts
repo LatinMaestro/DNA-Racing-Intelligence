@@ -19,6 +19,7 @@ type CoreHistory = Readonly<{
  * historical time source and cannot itself establish competition or element.
  */
 export type AcceptedOpenRaceScenarioEvidence = Readonly<{
+  authenticatedOwnerId: string;
   sessionVersion: string;
   fieldVersion: string;
   eligibilityVersion: string;
@@ -80,9 +81,13 @@ function exactHistorySet(
  * recommendation, race entry, odds, star prediction or economic action.
  */
 export function composePersistedOpenRaceCandidateScenario(
+  authenticatedOwnerId: string,
   session: OpenRaceWorkspaceSession,
   accepted: AcceptedOpenRaceScenarioEvidence | null,
 ): PersistedOpenRaceScenarioView {
+  if (authenticatedOwnerId.trim() === "") {
+    throw new Error("Open Race scenario requires an authenticated owner.");
+  }
   if (session.stage !== "provisional_selection" || session.lock !== null) {
     return unavailable("NOT_FORMING");
   }
@@ -98,6 +103,9 @@ export function composePersistedOpenRaceCandidateScenario(
   }
   if (accepted === null) {
     return unavailable("HISTORICAL_EVIDENCE_UNAVAILABLE");
+  }
+  if (accepted.authenticatedOwnerId !== authenticatedOwnerId) {
+    throw new Error("Open Race scenario source owner mismatch.");
   }
 
   const bindings = session.bindings;
