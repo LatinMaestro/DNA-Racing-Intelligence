@@ -6,9 +6,7 @@ import type {
   EmpiricalRaceTimeObservation,
   ExactRaceProbabilityContext,
 } from "@/domain/race-probability-baseline";
-import type {
-  OpenRaceWorkspaceSession,
-} from "@/lib/open-race-workspace-service";
+import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
 type CoreHistory = Readonly<{
   coreId: string;
