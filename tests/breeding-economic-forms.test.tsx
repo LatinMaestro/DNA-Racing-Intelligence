@@ -40,4 +40,16 @@ describe("breeding economic forms", () => {
     expect(html).toContain("Owner verification required");
     expect(html).toContain("disabled");
   });
+
+  it("enables only validated evidence recording when persistence is ready", () => {
+    const html = renderToStaticMarkup(
+      <BreedingEconomicForms status="evidence_ready" />,
+    );
+
+    expect(html).toContain("Breeding evidence ready");
+    expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(1);
+    expect(html).toContain('name="category"');
+    expect(html).toContain("2026-10-17T13:30:00+10:00");
+    expect(html).toContain("Cost-basis assignment remains disabled");
+  });
 });
