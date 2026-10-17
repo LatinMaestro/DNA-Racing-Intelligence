@@ -346,14 +346,25 @@ function SessionCard({
               </select>
             </label>
           </div>
-          <label className="mt-4 block text-sm font-semibold">
-            Game event ID (optional)
-            <input
-              className="mt-2 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2"
-              maxLength={128}
-              name="gameEventId"
-            />
-          </label>
+          <div className="mt-4 text-sm">
+            <p className="font-semibold">Game event identity</p>
+            {session.lock.eventIdentity.status === "confirmed" ? (
+              <>
+                <input
+                  name="gameEventId"
+                  type="hidden"
+                  value={session.lock.eventIdentity.eventId}
+                />
+                <p className="mt-2 rounded-lg border border-[var(--border)] px-3 py-2">
+                  {session.lock.eventIdentity.eventId}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--muted)]">
+                Unavailable — prediction reconciliation withheld
+              </p>
+            )}
+          </div>
           <label className="mt-4 block text-sm font-semibold">
             Observation note (optional)
             <textarea

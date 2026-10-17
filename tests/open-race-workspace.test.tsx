@@ -81,6 +81,7 @@ const session = {
     lockedAt: "2026-07-20T02:02:00.000Z",
     gateCount: 4,
     enteredCoreIds: ["owned:a", "opponent-a", "opponent-b", "opponent-c"],
+    eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     selectedOwnedCoreId: "owned:a",
     provisionalRecommendedCoreId: "owned:a",
     preEntryStatus: "provisional",
@@ -91,7 +92,7 @@ const session = {
   observation: {
     observationId: "synthetic-observation",
     lockId: "synthetic-lock",
-    gameEventId: null,
+    gameEventId: "game-event-101",
     lockedAt: "2026-07-20T02:02:00.000Z",
     observedAt: "2026-07-20T02:03:00.000Z",
     gateCount: 4,
@@ -242,7 +243,7 @@ describe("Open Race workspace", () => {
     const html = renderToStaticMarkup(
       <OpenRaceWorkspace
         connectionStatus="read_model_connected"
-        sessions={[locked]}
+        sessions={[locked as unknown as OpenRaceWorkspaceSession]}
       />,
     );
     expect(html).toContain("Record revealed stars");
@@ -250,7 +251,31 @@ describe("Open Race workspace", () => {
     expect(html).toContain('name="blue"');
     expect(html).toContain('value="core:owned:a"');
     expect(html).toContain('name="starsRevealedAfterLock"');
+    expect(html).toContain('name="gameEventId"');
+    expect(html).toContain('value="game-event-101"');
+    expect(html).not.toContain('type="text" name="gameEventId"');
     expect(html).toContain("cannot change the frozen ranking");
     expect(html).not.toContain("Enter race");
+  });
+
+  it("does not offer a substitutable event identity when the locked identity is unavailable", () => {
+    const locked = {
+      ...session,
+      stage: "locked_observation" as const,
+      lock: {
+        ...session.lock,
+        eventIdentity: { status: "unavailable" as const, eventId: null },
+      },
+      observation: null,
+      comparison: null,
+    };
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[locked as unknown as OpenRaceWorkspaceSession]}
+      />,
+    );
+    expect(html).toContain("Unavailable — prediction reconciliation withheld");
+    expect(html).not.toContain('name="gameEventId"');
   });
 });

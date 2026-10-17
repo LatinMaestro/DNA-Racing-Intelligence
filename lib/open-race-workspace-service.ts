@@ -394,6 +394,14 @@ export function composeOpenRaceWorkspaceSession(
     );
   }
   const lock = lockOpenRaceField(evidence.lock);
+  if (
+    lock.eventIdentity.status !== field.eventIdentity.status ||
+    lock.eventIdentity.eventId !== field.eventIdentity.eventId
+  ) {
+    throw new Error(
+      "Open Race field lock must preserve the exact game event identity.",
+    );
+  }
 
   if (evidence.observation === null) {
     if (evidence.comparison !== null) {
@@ -416,6 +424,10 @@ export function composeOpenRaceWorkspaceSession(
     evidence.observation.lockedAt !== lock.lockedAt ||
     evidence.observation.gateCount !== lock.gateCount ||
     evidence.observation.selectedOwnedCoreId !== lock.selectedOwnedCoreId ||
+    evidence.observation.gameEventId !==
+      (lock.eventIdentity.status === "confirmed"
+        ? lock.eventIdentity.eventId
+        : null) ||
     !sameValues(evidence.observation.enteredCoreIds, lock.enteredCoreIds)
   ) {
     throw new Error(

@@ -459,6 +459,7 @@ export function createNeonOpenRaceWorkspaceRepository(
             input.selectedOwnedCoreId,
             ...composed.field.opponentCoreIds,
           ],
+          eventIdentity: composed.field.eventIdentity,
           selectedOwnedCoreId: input.selectedOwnedCoreId,
           provisionalRecommendedCoreId:
             composed.ranking.provisionalRecommendedCoreId,
@@ -600,10 +601,15 @@ export function createNeonOpenRaceWorkspaceRepository(
           composed.ranking === null
         )
           fail();
+        const canonicalGameEventId =
+          composed.lock.eventIdentity.status === "confirmed"
+            ? composed.lock.eventIdentity.eventId
+            : null;
+        if (input.gameEventId !== canonicalGameEventId) fail();
         const observation = {
           observationId: `open-race-observation:${randomUUID()}`,
           lockId: composed.lock.lockId,
-          gameEventId: input.gameEventId,
+          gameEventId: canonicalGameEventId,
           lockedAt: composed.lock.lockedAt,
           observedAt: input.observedAt,
           fieldStage: "locked_observation" as const,
