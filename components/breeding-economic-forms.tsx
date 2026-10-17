@@ -304,9 +304,7 @@ export function BreedingEconomicForms({
           aria-label="Offspring cost-basis review"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <CostBasisFields
-            disabled={!costBasisReady || costBasisPending}
-          />
+          <CostBasisFields disabled={!costBasisReady || costBasisPending} />
           {costBasisResult === null ? null : (
             <p
               aria-live="polite"
@@ -321,4 +319,3 @@ export function BreedingEconomicForms({
     </section>
   );
 }
-
