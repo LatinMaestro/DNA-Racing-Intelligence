@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-10-17 — Independent probabilities and star predictions enter scheduled development
+
+The owner requests that the active DNA API Delivery schedule implement our own
+Core grades, race win/place probabilities, historical replay and separate
+Blue/Yellow star predictions, with continuing outcome-based evaluation. The
+[development plan](RACE_PROBABILITY_AND_STAR_PREDICTION_PLAN.md) supplies ordered
+slices, existing-method traceability and acceptance boundaries. It supplements
+the commissioning queue without displacing higher-priority dependencies.
+
+The owner confirms FairEx opens betting only after every gate is filled. Its
+odds are an optional historical comparator, not a pre-entry input or calculation
+authority. Accepted Open Lab results and stars close the evaluation loop.
+Supported FairEx programmatic access remains unresolved; the RPC configuration
+page is not a documented historical-odds contract. Preserve frozen forecasts,
+chronological holdouts, gated model promotion and last-good rollback. This
+decision introduces no formula, grade threshold, connected access, deployment,
+paid service or bot/game action. See Issue #120 comments 6230631648, 6230716906
+and 6230785193 for the verified review and owner refinements.
+
 ## 2026-10-15 — Adopt verified public UX patterns without replacing methods
 
 The owner requested that the complete Cloud Browser review of DNA Analytics be
