@@ -1,11 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
+import { assessCoreBurnEvent } from "../domain/core-burn-event";
 
 const session = vi.hoisted(() => ({
   ownerId: vi.fn(async (): Promise<string | null> => null),
 }));
+const persistence = vi.hoisted(() => ({
+  factory: vi.fn((): unknown => ({ status: "not_configured" })),
+}));
+const vaultCatalogue = vi.hoisted(() => ({
+  factory: vi.fn((): unknown => ({ status: "not_configured" })),
+}));
 
 vi.mock("../lib/clerk-owner-session", () => ({
   authenticatedClerkOwnerId: session.ownerId,
+}));
+vi.mock("../lib/neon-lifecycle-economic-write-repository", () => ({
+  neonLifecycleEconomicPersistenceFromEnvironment: persistence.factory,
+}));
+vi.mock("../lib/neon-owner-vault-catalogue-repository", () => ({
+  neonOwnerVaultCatalogueRepositoryFromEnvironment: vaultCatalogue.factory,
 }));
 
 import {
@@ -172,5 +186,123 @@ describe("Lifecycle economic Server Actions", () => {
       submittedValuesEchoed: false,
       rawErrorEchoed: false,
     });
+  });
+
+  it("records strict forms from owner-scoped lifecycle and active-Vault evidence", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    vi.stubEnv("DATABASE_URL", "postgresql://synthetic.invalid/db");
+    vi.stubEnv("DNA_DATABASE_OWNER_ID", "91500000-0000-4000-8000-000000000001");
+    vi.stubEnv("DNA_DATABASE_RUNTIME_ROLE", "dna_app_runtime");
+    session.ownerId.mockResolvedValue("owner-1");
+
+    const storedBurnRecord = {
+      input: burnInput.burn,
+      result: assessCoreBurnEvent(burnInput.burn),
+    };
+    const storedBurn = {
+      record: storedBurnRecord,
+      fingerprint: createHash("sha256")
+        .update(JSON.stringify(storedBurnRecord))
+        .digest("hex"),
+    };
+    const saveSaleByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      lifecycleVersion: "8",
+    }));
+    const saveBurnByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      lifecycleVersion: "8",
+    }));
+    const saveBurnCreditByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      lifecycleVersion: "8",
+    }));
+    const loadBurnByOwner = vi.fn(async () => storedBurn);
+    const repository = {
+      status: "ready" as const,
+      saveSaleByOwner,
+      saveBurnByOwner,
+      saveBurnCreditByOwner,
+      loadBurnByOwner,
+      loadBurnCreditByOwner: vi.fn(async () => null),
+      loadBurnCreditsByOwner: vi.fn(async () => []),
+    };
+    const readyPersistence = {
+      status: "ready" as const,
+      repository,
+      loadContextByOwner: vi.fn(async () => ({
+        assetRegistry: {
+          status: "ready" as const,
+          version: "a".repeat(64),
+          assets: [
+            { code: "ETH", kind: "crypto" as const, precision: 18 },
+            { code: "BGC", kind: "game_credit" as const, precision: 8 },
+          ],
+        },
+        lifecycleVersion: "7",
+      })),
+    };
+    persistence.factory.mockReturnValue(readyPersistence);
+    const listCoresByOwner = vi.fn(async () => [
+      {
+        sourceCoreId: "core-1",
+        displayName: "Synthetic core",
+        coreClass: "Morphed" as const,
+        element: "Fire" as const,
+        fNumber: 1,
+        sex: "male" as const,
+        inMyVault: true,
+        meEligible: false,
+        version: 1,
+        updatedAt: "2026-07-20T00:00:00.000Z",
+      },
+    ]);
+    vaultCatalogue.factory.mockReturnValue({
+      status: "ready" as const,
+      listCoresByOwner,
+    });
+
+    const sale = new FormData();
+    sale.set("coreId", "core-1");
+    sale.set("occurredAt", "2026-07-26T10:00:00+10:00");
+    sale.set("proceedsAsset", "ETH");
+    sale.set("proceedsAmount", "1.25");
+    await expect(recordCoreSaleFormAction(sale)).resolves.toMatchObject({
+      status: "recorded",
+      submittedValuesEchoed: false,
+    });
+
+    const burn = new FormData();
+    burn.set("coreId", "core-1");
+    burn.set("coreClass", "Morphed");
+    burn.set("occurredAt", "2026-07-26T11:00:00+10:00");
+    burn.set("reason", "Confirmed completed burn.");
+    await expect(recordCoreBurnFormAction(burn)).resolves.toMatchObject({
+      status: "recorded",
+      submittedValuesEchoed: false,
+    });
+
+    const credit = new FormData();
+    credit.set("burnId", "burn-1");
+    credit.set("coreId", "core-1");
+    credit.set("occurredAt", "2026-07-26T14:00:00+10:00");
+    credit.set("amount", "5");
+    await expect(recordBurnCreditFormAction(credit)).resolves.toMatchObject({
+      status: "recorded",
+      submittedValuesEchoed: false,
+    });
+
+    expect(listCoresByOwner).toHaveBeenCalledTimes(2);
+    expect(saveSaleByOwner).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({
+        input: expect.objectContaining({ coreId: "core-1" }),
+      }),
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      "7",
+    );
+    expect(saveBurnByOwner).toHaveBeenCalledTimes(1);
+    expect(loadBurnByOwner).toHaveBeenCalledTimes(2);
+    expect(saveBurnCreditByOwner).toHaveBeenCalledTimes(1);
   });
 });

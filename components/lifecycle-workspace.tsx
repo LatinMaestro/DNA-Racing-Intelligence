@@ -1,4 +1,7 @@
-import { LifecycleEconomicForms } from "@/components/lifecycle-economic-forms";
+import {
+  LifecycleEconomicForms,
+  type LifecycleEconomicWriteStatus,
+} from "@/components/lifecycle-economic-forms";
 import type { LifecycleActionRankingResult } from "@/domain/lifecycle-action-ranking";
 import type { LifecycleWorkspaceConnectionStatus } from "@/lib/lifecycle-workspace-service";
 
@@ -51,9 +54,11 @@ function percentage(basisPoints: number): string {
 export function LifecycleWorkspace({
   ranking,
   connectionStatus,
+  economicWriteStatus,
 }: Readonly<{
   ranking: LifecycleActionRankingResult | null;
   connectionStatus: LifecycleWorkspaceConnectionStatus;
+  economicWriteStatus?: LifecycleEconomicWriteStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
   return (
@@ -213,9 +218,10 @@ export function LifecycleWorkspace({
 
       <LifecycleEconomicForms
         status={
-          connectionStatus === "identity_not_connected"
+          economicWriteStatus ??
+          (connectionStatus === "identity_not_connected"
             ? "identity_not_connected"
-            : "persistence_not_configured"
+            : "persistence_not_configured")
         }
       />
     </div>
