@@ -119,7 +119,15 @@ function sameContext(
   left: ExactRaceProbabilityContext,
   right: ExactRaceProbabilityContext,
 ): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return (
+    left.mode === right.mode &&
+    left.distanceMeters === right.distanceMeters &&
+    left.competition === right.competition &&
+    left.format === right.format &&
+    left.gateCount === right.gateCount &&
+    left.element.status === right.element.status &&
+    left.element.value === right.element.value
+  );
 }
 
 /**
@@ -136,7 +144,6 @@ export async function readAcceptedOpenRaceScenarioEvidence(
     session: OpenRaceWorkspaceSession;
     historyGenerationVersion: string;
     modelVersion: string;
-    context: ExactRaceProbabilityContext;
     maximumRows: number;
     boundary: OpenRaceAcceptedHistoryReadBoundary;
   }>,
@@ -181,27 +188,12 @@ export async function readAcceptedOpenRaceScenarioEvidence(
     }
 
     const evidenceCutoff = timestamp(input.session.field.dataCurrentThrough);
-    const context = normalizeExactRaceProbabilityContext(input.context);
-    if (
-      context.mode !== input.session.field.mode ||
-      context.distanceMeters !== input.session.field.distanceMeters ||
-      context.format !== input.session.field.raceFormat ||
-      context.gateCount !== input.session.field.gateCount
-    ) {
-      fail();
+    if (input.session.field.probabilityContext === null) {
+      return { status: "source_unavailable", evidence: null };
     }
-    const knownElement =
-      context.element.status === "known" ? context.element.value : null;
-    if (
-      input.session.field.restrictions.some(
-        ({ kind, evidenceStatus, value }) =>
-          kind === "element" &&
-          evidenceStatus === "confirmed" &&
-          value !== knownElement,
-      )
-    ) {
-      fail();
-    }
+    const context = normalizeExactRaceProbabilityContext(
+      input.session.field.probabilityContext,
+    );
     const source = await input.boundary.loadExactContextHistoryByOwner(
       ownerId,
       {

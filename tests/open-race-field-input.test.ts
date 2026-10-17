@@ -19,6 +19,14 @@ function input(
     gateCount: 6,
     availableGates: 2,
     raceFormat: "standard",
+    probabilityContext: {
+      mode: "car",
+      distanceMeters: 1600,
+      competition: "normal",
+      format: "standard",
+      gateCount: 6,
+      element: { status: "unknown", value: null },
+    },
     entryFee: { amount: "0.0100", asset: "DEZ" },
     opponents: [
       { coreId: "opponent-1", identityStatus: "confirmed" },
@@ -54,6 +62,47 @@ describe("Open Race field input", () => {
       "opponent-3",
       "opponent-4",
     ]);
+    expect(result.probabilityContext).toEqual(
+      expect.objectContaining({ competition: "normal" }),
+    );
+  });
+
+  it("preserves legacy fields without inventing an exact probability context", () => {
+    expect(
+      validateOpenRaceField(input({ probabilityContext: null })),
+    ).toMatchObject({ probabilityContext: null });
+  });
+
+  it("rejects a probability context that differs from the saved field", () => {
+    expect(() =>
+      validateOpenRaceField(
+        input({
+          probabilityContext: {
+            ...input().probabilityContext!,
+            competition: "esports",
+            gateCount: 8,
+          },
+        }),
+      ),
+    ).toThrow("must match the saved field dimensions");
+    expect(() =>
+      validateOpenRaceField(
+        input({
+          probabilityContext: {
+            ...input().probabilityContext!,
+            element: { status: "known", value: "Fire" },
+          },
+          restrictions: [
+            {
+              restrictionId: "metal-only",
+              kind: "element",
+              value: "Metal",
+              evidenceStatus: "confirmed",
+            },
+          ],
+        }),
+      ),
+    ).toThrow("must match confirmed element restrictions");
   });
 
   it("holds stale evidence, unresolved opponents and uncertain rules", () => {
