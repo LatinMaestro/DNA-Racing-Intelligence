@@ -13,33 +13,72 @@ function history(prefix: string, start: number, count = 10) {
   }));
 }
 
-// Only the accepted fields read by the integration are projected here.
-// The production caller receives a fully composed, validated session.
 function session(): OpenRaceWorkspaceSession {
   return {
     stage: "provisional_selection",
     lock: null,
+    observation: null,
+    comparison: null,
     field: {
       requestId: "persisted-session",
       capturedAt: "2026-10-17T10:00:00.000Z",
       dataCurrentThrough: "2026-10-16T00:00:00.000Z",
+      lastImported: "2026-10-17T09:00:00.000Z",
       mode: "bike",
       distanceMeters: 1400,
       raceFormat: "4 gate WTA",
       gateCount: 4,
       availableGates: 3,
+      entryFee: null,
       opponentCoreIds: ["entered-a"],
       freshness: "current",
       status: "ready_for_provisional_selection",
+      reviewReasons: [],
+      fieldStage: "forming",
+      currentRaceStarsAccepted: false,
+      historicalSnapshotOnly: true,
+      liveGameConnection: false,
+      sourceDisclosure: "Synthetic accepted field fixture.",
       restrictions: [],
     },
     eligibility: {
+      evaluationId: "eligibility-v1",
+      evaluatedAt: "2026-10-17T09:30:00.000Z",
+      vaultDataCurrentThrough: "2026-10-16T00:00:00.000Z",
       freshness: "current",
       eligibleCoreIds: ["owned-a"],
+      cores: [{ coreId: "owned-a", status: "eligible", reasons: [] }],
+      rankingPerformed: false,
+      recommendationMade: false,
+      currentRaceStarsUsed: false,
+      ownershipMutated: false,
     },
     ranking: {
+      rankingId: "ranking-v1",
       evaluatedAt: "2026-10-17T11:00:00.000Z",
-      rankedCandidates: [{ coreId: "owned-a" }],
+      dataCurrentThrough: "2026-10-16T00:00:00.000Z",
+      freshness: "current",
+      status: "provisional",
+      provisionalRecommendedCoreId: "owned-a",
+      rankedCandidates: [
+        {
+          rank: 1,
+          coreId: "owned-a",
+          medianTimeMs: 9_005,
+          marginToStrongestOpponentMs: 1_000,
+          sampleStatus: "minimally_analytical",
+          historicalStarRationale: ["Synthetic historical fixture."],
+          starsAffectedRank: false,
+        },
+      ],
+      strongestOpponentCoreId: "entered-a",
+      avoidSignal: false,
+      reviewReasons: [],
+      warnings: [],
+      currentRaceStarsUsed: false,
+      replacementRecommendationAllowed: false,
+      raceEntryAllowed: false,
+      finalActionableRecommendationAllowed: false,
     },
     bindings: {
       sessionVersion: "session-v1",
@@ -53,7 +92,10 @@ function session(): OpenRaceWorkspaceSession {
       observationVersion: null,
       comparisonVersion: null,
     },
-  } as OpenRaceWorkspaceSession;
+    mutationAllowed: false,
+    liveGameConnection: false,
+    gateCPassed: false,
+  } satisfies OpenRaceWorkspaceSession;
 }
 
 function source(): AcceptedOpenRaceScenarioEvidence {
@@ -86,16 +128,15 @@ function source(): AcceptedOpenRaceScenarioEvidence {
 }
 
 describe("persisted Open Race candidate scenario integration", () => {
-  it("binds an accepted field without enabling game actions", () => {
+  it("binds a forming session to accepted exact-source evidence without actionable outputs", () => {
     const view = composePersistedOpenRaceCandidateScenario(
       "owner-1",
       session(),
       source(),
     );
     expect(view.status).toBe("experimental");
-    if (view.scenario === null) {
+    if (view.scenario === null)
       throw new Error("Expected an experimental scenario.");
-    }
     expect(view.scenario).toMatchObject({
       status: "available",
       evidenceCutoff: "2026-10-16T00:00:00.000Z",
@@ -126,7 +167,7 @@ describe("persisted Open Race candidate scenario integration", () => {
     });
   });
 
-  it("requires a forming field and accepted history", () => {
+  it("does not run for a locked field or without accepted historical evidence", () => {
     expect(
       composePersistedOpenRaceCandidateScenario(
         "owner-1",
@@ -142,7 +183,7 @@ describe("persisted Open Race candidate scenario integration", () => {
     });
   });
 
-  it("rejects stale or unconfirmed fields", () => {
+  it("refuses stale and unconfirmed fields rather than presenting estimates", () => {
     const base = session();
     expect(
       composePersistedOpenRaceCandidateScenario(
@@ -193,7 +234,7 @@ describe("persisted Open Race candidate scenario integration", () => {
     });
   });
 
-  it("rejects mismatched or missing Core history", () => {
+  it("does not substitute a different Core's history or truncate missing evidence", () => {
     expect(
       composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
