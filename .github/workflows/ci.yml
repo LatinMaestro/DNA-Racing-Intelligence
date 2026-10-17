@@ -431,6 +431,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.up.sql
       - name: Run Open Race observation publication smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.smoke.sql
+      - name: Apply Lifecycle economic evidence persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.up.sql
+      - name: Run Lifecycle economic evidence persistence smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.smoke.sql
+      - name: Reverse Lifecycle economic evidence persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.down.sql
+      - name: Verify Lifecycle economic evidence persistence removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.removal.sql
       - name: Reverse Open Race observation publication migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0135_open_race_observation_comparison_publication.down.sql
       - name: Verify Open Race observation publication removal
