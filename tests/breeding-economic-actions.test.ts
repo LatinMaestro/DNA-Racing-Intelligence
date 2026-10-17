@@ -332,10 +332,11 @@ describe("breeding economic Server Actions", () => {
     formData.set("breedingEventId", "breeding-1");
     formData.set("transactionId", "transaction-1");
 
-    await expect(assignOffspringCostBasisFormAction(formData)).resolves.toMatchObject({
+    await expect(
+      assignOffspringCostBasisFormAction(formData),
+    ).resolves.toMatchObject({
       status: "recorded",
     });
     expect(saveCostBasisByOwner).toHaveBeenCalledOnce();
   });
 });
-
