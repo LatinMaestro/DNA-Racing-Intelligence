@@ -17,6 +17,10 @@ export type OpenRaceOpponentInput = Readonly<{
   identityStatus: "confirmed" | "unresolved";
 }>;
 
+export type OpenRaceEventIdentity =
+  | Readonly<{ status: "confirmed"; eventId: string }>
+  | Readonly<{ status: "unavailable"; eventId: null }>;
+
 export type OpenRaceFieldInput = Readonly<{
   requestId: string;
   capturedAt: string;
@@ -28,6 +32,12 @@ export type OpenRaceFieldInput = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  /**
+   * Legacy/manual snapshots may not contain an authoritative game event ID.
+   * Never substitute requestId: prediction/result reconciliation requires a
+   * separately confirmed event identity.
+   */
+  eventIdentity?: OpenRaceEventIdentity | null;
   probabilityContext: ExactRaceProbabilityContext | null;
   entryFee: Readonly<{
     amount: string;
@@ -48,6 +58,7 @@ export type OpenRaceFieldResult = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  eventIdentity: OpenRaceEventIdentity;
   probabilityContext: ExactRaceProbabilityContext | null;
   entryFee: OpenRaceFieldInput["entryFee"];
   opponentCoreIds: readonly string[];
@@ -95,6 +106,26 @@ function exactNonNegativeDecimal(value: string, label: string): string {
     throw new Error(`${label} must be an exact non-negative decimal.`);
   }
   return normalized;
+}
+
+function normalizeEventIdentity(
+  value: OpenRaceEventIdentity | null | undefined,
+): OpenRaceEventIdentity {
+  if (value == null) return { status: "unavailable", eventId: null };
+  if (value.status === "unavailable") {
+    if (value.eventId !== null) {
+      throw new Error("Unavailable event identity cannot carry an event ID.");
+    }
+    return { status: "unavailable", eventId: null };
+  }
+  if (value.status !== "confirmed") {
+    throw new Error("Open Race event identity status is invalid.");
+  }
+  const eventId = required(value.eventId, "Game event ID");
+  if (eventId.length > 128 || /[\u0000-\u001f\u007f-\u009f]/u.test(eventId)) {
+    throw new Error("Game event ID is invalid.");
+  }
+  return { status: "confirmed", eventId };
 }
 
 function rejectCurrentRaceStars(value: object, label: string): void {
@@ -194,6 +225,7 @@ export function validateOpenRaceField(
           asset: required(input.entryFee.asset, "Entry fee asset"),
         };
   const raceFormat = required(input.raceFormat, "Race format");
+  const eventIdentity = normalizeEventIdentity(input.eventIdentity);
   // Snapshots created before exact probability context was introduced remain
   // readable, but cannot be used by the exact-context history boundary.
   const probabilityContext =
@@ -264,6 +296,7 @@ export function validateOpenRaceField(
     gateCount,
     availableGates,
     raceFormat,
+    eventIdentity,
     probabilityContext,
     entryFee,
     opponentCoreIds,

@@ -17,6 +17,7 @@ const session = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     probabilityContext: {
       mode: "bike",
       distanceMeters: 1_600,
@@ -170,6 +171,8 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Historical aggregates aggregate-v4");
     expect(html).toContain("Probability context");
     expect(html).toContain("Normal · Element Unknown");
+    expect(html).toContain("Game event identity");
+    expect(html).toContain("game-event-101");
     expect(html).not.toContain("Enter race");
   });
 
@@ -186,6 +189,24 @@ describe("Open Race workspace", () => {
       />,
     );
     expect(html).toContain("Unavailable — exact-context estimates withheld");
+  });
+
+  it("withholds prediction reconciliation when event identity is unavailable", () => {
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[
+          {
+            ...session,
+            field: {
+              ...session.field,
+              eventIdentity: { status: "unavailable", eventId: null },
+            },
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("Unavailable — prediction reconciliation withheld");
   });
 
   it("offers evidence-only field lock confirmation for an accepted provisional session", () => {

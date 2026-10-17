@@ -123,6 +123,14 @@ function SessionCard({
                 }`}
           </dd>
         </div>
+        <div>
+          <dt className="text-[var(--muted)]">Game event identity</dt>
+          <dd className="mt-1 font-semibold">
+            {session.field.eventIdentity.status === "confirmed"
+              ? session.field.eventIdentity.eventId
+              : "Unavailable — prediction reconciliation withheld"}
+          </dd>
+        </div>
       </dl>
 
       <p className="mt-3 text-xs text-[var(--muted)]">
