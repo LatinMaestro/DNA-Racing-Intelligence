@@ -1,3 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -58,6 +59,6 @@ describe("breeding economic forms", () => {
 
     expect(html).toContain("Breeding economics ready");
     expect(html.match(/<fieldset[^>]*disabled/g) ?? []).toHaveLength(0);
-    expect(html.match(/<button[^>]*disabled/g) ?? []).toHaveLength(0);
+    expect(html).not.toContain('disabled=""');
   });
 });
