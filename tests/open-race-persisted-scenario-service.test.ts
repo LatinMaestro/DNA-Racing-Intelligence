@@ -37,6 +37,7 @@ function session(): OpenRaceWorkspaceSession {
       },
       gateCount: 4,
       availableGates: 3,
+      eventIdentity: { status: "confirmed", eventId: "game-event-101" },
       entryFee: null,
       opponentCoreIds: ["entered-a"],
       freshness: "current",

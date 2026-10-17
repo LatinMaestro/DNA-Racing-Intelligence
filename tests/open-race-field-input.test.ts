@@ -19,6 +19,7 @@ function input(
     gateCount: 6,
     availableGates: 2,
     raceFormat: "standard",
+    eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     probabilityContext: {
       mode: "car",
       distanceMeters: 1600,
@@ -55,6 +56,7 @@ describe("Open Race field input", () => {
       currentRaceStarsAccepted: false,
       historicalSnapshotOnly: true,
       liveGameConnection: false,
+      eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     });
     expect(result.opponentCoreIds).toEqual([
       "opponent-1",
@@ -71,6 +73,45 @@ describe("Open Race field input", () => {
     expect(
       validateOpenRaceField(input({ probabilityContext: null })),
     ).toMatchObject({ probabilityContext: null });
+  });
+
+  it("preserves confirmed event identity and keeps legacy identity unavailable", () => {
+    expect(validateOpenRaceField(input()).eventIdentity).toEqual({
+      status: "confirmed",
+      eventId: "game-event-101",
+    });
+    const legacy = { ...input() };
+    delete legacy.eventIdentity;
+    expect(validateOpenRaceField(legacy).eventIdentity).toEqual({
+      status: "unavailable",
+      eventId: null,
+    });
+    expect(
+      validateOpenRaceField(input({ eventIdentity: null })).eventIdentity,
+    ).toEqual({ status: "unavailable", eventId: null });
+  });
+
+  it("rejects malformed or contradictory event identity", () => {
+    expect(() =>
+      validateOpenRaceField(
+        input({
+          eventIdentity: {
+            status: "unavailable",
+            eventId: "invented",
+          } as unknown as NonNullable<OpenRaceFieldInput["eventIdentity"]>,
+        }),
+      ),
+    ).toThrow("cannot carry an event ID");
+    expect(() =>
+      validateOpenRaceField(
+        input({
+          eventIdentity: {
+            status: "confirmed",
+            eventId: " ",
+          },
+        }),
+      ),
+    ).toThrow("Game event ID is required");
   });
 
   it("rejects a probability context that differs from the saved field", () => {
