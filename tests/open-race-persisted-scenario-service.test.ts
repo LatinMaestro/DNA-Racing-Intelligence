@@ -27,6 +27,14 @@ function session(): OpenRaceWorkspaceSession {
       mode: "bike",
       distanceMeters: 1400,
       raceFormat: "4 gate WTA",
+      probabilityContext: {
+        mode: "bike",
+        distanceMeters: 1400,
+        competition: "normal",
+        format: "4 gate WTA",
+        gateCount: 4,
+        element: { status: "unknown", value: null },
+      },
       gateCount: 4,
       availableGates: 3,
       entryFee: null,
@@ -222,7 +230,7 @@ describe("persisted Open Race candidate scenario integration", () => {
     expect(() =>
       composePersistedOpenRaceCandidateScenario("owner-1", session(), {
         ...source(),
-        context: { ...source().context!, distanceMeters: 1600 },
+        context: { ...source().context!, competition: "esports" },
       }),
     ).toThrow("context differs");
     expect(
@@ -295,18 +303,31 @@ describe("persisted Open Race candidate scenario integration", () => {
           ...base,
           field: {
             ...base.field,
-            restrictions: [
-              {
-                restrictionId: "metal-only",
-                kind: "element",
-                value: "Metal",
-                evidenceStatus: "confirmed",
-              },
-            ],
+            probabilityContext: {
+              ...base.field.probabilityContext!,
+              element: { status: "known", value: "Metal" },
+            },
           },
         },
         source(),
       ),
-    ).toThrow("element context differs");
+    ).toThrow("context differs");
+  });
+
+  it("withholds scenarios when the persisted field has no exact context", () => {
+    const base = session();
+    expect(
+      composePersistedOpenRaceCandidateScenario(
+        "owner-1",
+        {
+          ...base,
+          field: { ...base.field, probabilityContext: null },
+        },
+        source(),
+      ),
+    ).toMatchObject({
+      status: "unavailable",
+      reason: "EXACT_CONTEXT_UNAVAILABLE",
+    });
   });
 });

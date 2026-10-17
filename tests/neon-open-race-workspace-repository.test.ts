@@ -37,6 +37,14 @@ const evidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    probabilityContext: {
+      mode: "horse",
+      distanceMeters: 1_600,
+      competition: "normal",
+      format: "Synthetic",
+      gateCount: 4,
+      element: { status: "unknown", value: null },
+    },
     entryFee: null,
     opponents: ["opponent-a", "opponent-b", "opponent-c"].map((coreId) => ({
       coreId,

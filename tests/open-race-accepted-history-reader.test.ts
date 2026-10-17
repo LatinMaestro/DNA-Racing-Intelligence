@@ -32,6 +32,7 @@ function session(): OpenRaceWorkspaceSession {
       mode: "bike",
       distanceMeters: 1400,
       raceFormat: "4 gate WTA",
+      probabilityContext: context,
       gateCount: 4,
       availableGates: 3,
       entryFee: null,
@@ -146,7 +147,6 @@ function harness(
     source?: OpenRaceAcceptedHistorySource | null;
     acceptedIdentity?: string | null;
     currentSession?: OpenRaceWorkspaceSession;
-    currentContext?: ExactRaceProbabilityContext;
     maximumRows?: number;
   }> = {},
 ) {
@@ -168,7 +168,6 @@ function harness(
       session: change.currentSession ?? session(),
       historyGenerationVersion: "history-generation-v3",
       modelVersion: "empirical-pairwise-v1",
-      context: change.currentContext ?? context,
       maximumRows: change.maximumRows ?? 100,
       boundary,
     },
@@ -321,12 +320,15 @@ describe("Open Race accepted exact-history reader", () => {
     ).rejects.toThrow("Open Race accepted history read unavailable.");
     expect(unbounded.loadExactContextHistoryByOwner).not.toHaveBeenCalled();
 
-    const mismatched = harness({
-      currentContext: { ...context, gateCount: 6 },
+    const noContext = harness({
+      currentSession: {
+        ...session(),
+        field: { ...session().field, probabilityContext: null },
+      },
     });
     await expect(
-      readAcceptedOpenRaceScenarioEvidence(mismatched.input),
-    ).rejects.toThrow("Open Race accepted history read unavailable.");
-    expect(mismatched.loadExactContextHistoryByOwner).not.toHaveBeenCalled();
+      readAcceptedOpenRaceScenarioEvidence(noContext.input),
+    ).resolves.toEqual({ status: "source_unavailable", evidence: null });
+    expect(noContext.loadExactContextHistoryByOwner).not.toHaveBeenCalled();
   });
 });

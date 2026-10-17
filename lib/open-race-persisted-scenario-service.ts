@@ -2,9 +2,10 @@ import {
   evaluateOpenRaceCandidateScenarios,
   type OpenRaceCandidateScenarioResult,
 } from "@/domain/open-race-candidate-scenarios";
-import type {
-  EmpiricalRaceTimeObservation,
-  ExactRaceProbabilityContext,
+import {
+  normalizeExactRaceProbabilityContext,
+  type EmpiricalRaceTimeObservation,
+  type ExactRaceProbabilityContext,
 } from "@/domain/race-probability-baseline";
 import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
@@ -79,6 +80,21 @@ function exactHistorySet(
   );
 }
 
+function sameContext(
+  left: ExactRaceProbabilityContext,
+  right: ExactRaceProbabilityContext,
+): boolean {
+  return (
+    left.mode === right.mode &&
+    left.distanceMeters === right.distanceMeters &&
+    left.competition === right.competition &&
+    left.format === right.format &&
+    left.gateCount === right.gateCount &&
+    left.element.status === right.element.status &&
+    left.element.value === right.element.value
+  );
+}
+
 /**
  * Compose the already-approved empirical pairwise diagnostics from a
  * validated persisted Stage A session, but only with separate, complete
@@ -108,6 +124,9 @@ export function composePersistedOpenRaceCandidateScenario(
   ) {
     return unavailable("FIELD_REVIEW_REQUIRED");
   }
+  if (session.field.probabilityContext === null) {
+    return unavailable("EXACT_CONTEXT_UNAVAILABLE");
+  }
   if (accepted === null) {
     return unavailable("HISTORICAL_EVIDENCE_UNAVAILABLE");
   }
@@ -136,30 +155,19 @@ export function composePersistedOpenRaceCandidateScenario(
     throw new Error("Open Race accepted scenario source identity has changed.");
   }
 
-  const context = accepted.context;
+  const context =
+    accepted.context === null
+      ? null
+      : normalizeExactRaceProbabilityContext(accepted.context);
   if (context === null) return unavailable("EXACT_CONTEXT_UNAVAILABLE");
   if (
-    context.mode !== session.field.mode ||
-    context.distanceMeters !== session.field.distanceMeters ||
-    context.format !== session.field.raceFormat ||
-    context.gateCount !== session.field.gateCount
+    !sameContext(
+      context,
+      normalizeExactRaceProbabilityContext(session.field.probabilityContext),
+    )
   ) {
     throw new Error(
       "Open Race accepted scenario context differs from the saved field.",
-    );
-  }
-  const elementRestrictions = session.field.restrictions.filter(
-    ({ kind, evidenceStatus }) =>
-      kind === "element" && evidenceStatus === "confirmed",
-  );
-  const knownElement =
-    context.element.status === "known" ? context.element.value : null;
-  if (
-    elementRestrictions.length > 0 &&
-    elementRestrictions.some(({ value }) => value !== knownElement)
-  ) {
-    throw new Error(
-      "Open Race accepted element context differs from the saved restrictions.",
     );
   }
 

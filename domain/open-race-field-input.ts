@@ -1,3 +1,8 @@
+import {
+  normalizeExactRaceProbabilityContext,
+  type ExactRaceProbabilityContext,
+} from "@/domain/race-probability-baseline";
+
 export type OpenRaceMode = "bike" | "car" | "horse";
 
 export type OpenRaceRestriction = Readonly<{
@@ -23,6 +28,7 @@ export type OpenRaceFieldInput = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  probabilityContext: ExactRaceProbabilityContext | null;
   entryFee: Readonly<{
     amount: string;
     asset: string;
@@ -42,6 +48,7 @@ export type OpenRaceFieldResult = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  probabilityContext: ExactRaceProbabilityContext | null;
   entryFee: OpenRaceFieldInput["entryFee"];
   opponentCoreIds: readonly string[];
   restrictions: readonly OpenRaceRestriction[];
@@ -187,6 +194,40 @@ export function validateOpenRaceField(
           asset: required(input.entryFee.asset, "Entry fee asset"),
         };
   const raceFormat = required(input.raceFormat, "Race format");
+  // Snapshots created before exact probability context was introduced remain
+  // readable, but cannot be used by the exact-context history boundary.
+  const probabilityContext =
+    input.probabilityContext == null
+      ? null
+      : normalizeExactRaceProbabilityContext(input.probabilityContext);
+  if (
+    probabilityContext !== null &&
+    (probabilityContext.mode !== input.mode ||
+      probabilityContext.distanceMeters !== distanceMeters ||
+      probabilityContext.format !== raceFormat ||
+      probabilityContext.gateCount !== gateCount)
+  ) {
+    throw new Error(
+      "Open Race probability context must match the saved field dimensions.",
+    );
+  }
+  const knownElement =
+    probabilityContext?.element.status === "known"
+      ? probabilityContext.element.value
+      : null;
+  if (
+    probabilityContext !== null &&
+    restrictions.some(
+      ({ kind, evidenceStatus, value }) =>
+        kind === "element" &&
+        evidenceStatus === "confirmed" &&
+        value !== knownElement,
+    )
+  ) {
+    throw new Error(
+      "Open Race probability context must match confirmed element restrictions.",
+    );
+  }
   const reviewReasons: string[] = [];
   if (input.freshness === "stale" || input.freshness === "unknown") {
     reviewReasons.push("Historical evidence is stale or freshness is unknown.");
@@ -223,6 +264,7 @@ export function validateOpenRaceField(
     gateCount,
     availableGates,
     raceFormat,
+    probabilityContext,
     entryFee,
     opponentCoreIds,
     restrictions,
