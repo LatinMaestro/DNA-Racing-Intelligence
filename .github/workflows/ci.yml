@@ -439,6 +439,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.up.sql
       - name: Run Breeding economic persistence smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.smoke.sql
+      - name: Apply Breeding economic event evidence read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.up.sql
+      - name: Run Breeding economic event evidence read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.smoke.sql
+      - name: Reverse Breeding economic event evidence read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.down.sql
+      - name: Verify Breeding economic event evidence read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.removal.sql
       - name: Reverse Breeding economic persistence migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.down.sql
       - name: Verify Breeding economic persistence removal
@@ -997,3 +1005,4 @@ jobs:
           "DO \$\$ BEGIN IF EXISTS (
           SELECT 1 FROM pg_namespace WHERE nspname = 'dna'
           ) THEN RAISE EXCEPTION 'dna schema still exists'; END IF; END \$\$;"
+
