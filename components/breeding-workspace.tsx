@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { BreedingEconomicForms } from "@/components/breeding-economic-forms";
+import {
+  BreedingEconomicForms,
+  type BreedingEconomicWriteStatus,
+} from "@/components/breeding-economic-forms";
 import { raceModes } from "@/domain/core-performance";
 import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import type { BreedingPairRankingResult } from "@/domain/breeding-pair-ranking";
@@ -158,11 +161,13 @@ export function BreedingWorkspace({
   connectionStatus,
   filters = { mode: "all", distance: null },
   selectedParents = ["", ""],
+  economicWriteStatus,
 }: Readonly<{
   rankings: readonly BreedingPairRankingResult[];
   connectionStatus: BreedingWorkspaceConnectionStatus;
   filters?: EvidenceViewFilters;
   selectedParents?: readonly [string, string];
+  economicWriteStatus?: BreedingEconomicWriteStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const allPairs = rankings.flatMap((ranking) => [
@@ -387,9 +392,10 @@ export function BreedingWorkspace({
 
       <BreedingEconomicForms
         status={
-          connectionStatus === "identity_not_connected"
+          economicWriteStatus ??
+          (connectionStatus === "identity_not_connected"
             ? "identity_not_connected"
-            : "persistence_not_configured"
+            : "persistence_not_configured")
         }
       />
     </div>
