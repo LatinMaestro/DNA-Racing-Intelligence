@@ -6,7 +6,9 @@ import type {
   EmpiricalRaceTimeObservation,
   ExactRaceProbabilityContext,
 } from "@/domain/race-probability-baseline";
-import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
+import type {
+  OpenRaceWorkspaceSession,
+} from "@/lib/open-race-workspace-service";
 
 type CoreHistory = Readonly<{
   coreId: string;
@@ -52,8 +54,13 @@ export type PersistedOpenRaceScenarioView =
       scenario: OpenRaceCandidateScenarioResult;
     }>;
 
+type UnavailableReason = Extract<
+  PersistedOpenRaceScenarioView,
+  { status: "unavailable" }
+>["reason"];
+
 function unavailable(
-  reason: Extract<PersistedOpenRaceScenarioView, { status: "unavailable" }>["reason"],
+  reason: UnavailableReason,
 ): PersistedOpenRaceScenarioView {
   return { status: "unavailable", reason, scenario: null };
 }
@@ -116,7 +123,8 @@ export function composePersistedOpenRaceCandidateScenario(
     accepted.rankingVersion !== bindings.rankingVersion ||
     accepted.raceImportVersion !== bindings.raceImportVersion ||
     accepted.vaultSnapshotVersion !== bindings.vaultSnapshotVersion ||
-    accepted.historicalAggregateVersion !== bindings.historicalAggregateVersion ||
+    accepted.historicalAggregateVersion !==
+      bindings.historicalAggregateVersion ||
     accepted.evidenceCutoff !== session.field.dataCurrentThrough
   ) {
     throw new Error("Open Race accepted scenario source identity has changed.");
@@ -130,20 +138,23 @@ export function composePersistedOpenRaceCandidateScenario(
     context.format !== session.field.raceFormat ||
     context.gateCount !== session.field.gateCount
   ) {
-    throw new Error("Open Race accepted scenario context differs from the saved field.");
+    throw new Error(
+      "Open Race accepted scenario context differs from the saved field.",
+    );
   }
   const elementRestrictions = session.field.restrictions.filter(
     ({ kind, evidenceStatus }) =>
       kind === "element" && evidenceStatus === "confirmed",
   );
+  const knownElement =
+    context.element.status === "known" ? context.element.value : null;
   if (
     elementRestrictions.length > 0 &&
-    (context.element.status !== "known" ||
-      elementRestrictions.some(
-        ({ value }) => context.element.status !== "known" || context.element.value !== value,
-      ))
+    elementRestrictions.some(({ value }) => value !== knownElement)
   ) {
-    throw new Error("Open Race accepted element context differs from the saved restrictions.");
+    throw new Error(
+      "Open Race accepted element context differs from the saved restrictions.",
+    );
   }
 
   const candidateCoreIds = session.ranking.rankedCandidates.map(
