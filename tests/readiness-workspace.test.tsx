@@ -24,6 +24,21 @@ const readiness = assessPrivateProductionReadiness({
   performanceCapacity: "not_run",
   securityPrivacy: "not_run",
   accessibilityResponsive: "not_run",
+  moduleBoundaries: {
+    vaultPerformance: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "fixture_verified",
+    },
+    openRace: {
+      readModel: "fixture_verified",
+      fieldLock: "fixture_verified",
+      postLockObservation: "fixture_verified",
+    },
+    lifecycle: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "fixture_verified",
+    },
+  },
   migrations: "reversible_verified",
   knownLimitationsDocumented: true,
   productionDisabled: true,
@@ -70,6 +85,10 @@ describe("Readiness workspace", () => {
     expect(html).toContain("synthetic-readiness · readiness-v1");
     expect(html).toContain("Evidence current through");
     expect(html).toContain("Representative Private Import");
+    expect(html).toContain("Commissioning module boundaries");
+    expect(html).toContain("Vault Performance");
+    expect(html).toContain("Field-lock publication");
+    expect(html).toContain("Fixture verified");
     expect(html).toContain("Review Required");
     expect(html).not.toContain("Enable Production");
   });

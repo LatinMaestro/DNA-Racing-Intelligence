@@ -25,6 +25,21 @@ const assessment: PrivateProductionReadinessInput = {
   performanceCapacity: "not_run",
   securityPrivacy: "not_run",
   accessibilityResponsive: "not_run",
+  moduleBoundaries: {
+    vaultPerformance: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "fixture_verified",
+    },
+    openRace: {
+      readModel: "fixture_verified",
+      fieldLock: "fixture_verified",
+      postLockObservation: "fixture_verified",
+    },
+    lifecycle: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "fixture_verified",
+    },
+  },
   migrations: "not_verified",
   knownLimitationsDocumented: true,
   productionDisabled: true,

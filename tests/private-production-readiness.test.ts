@@ -27,6 +27,21 @@ function input(
     performanceCapacity: "passed",
     securityPrivacy: "passed",
     accessibilityResponsive: "passed",
+    moduleBoundaries: {
+      vaultPerformance: {
+        readModel: "connected_verified",
+        economicEvidenceWrites: "connected_verified",
+      },
+      openRace: {
+        readModel: "connected_verified",
+        fieldLock: "connected_verified",
+        postLockObservation: "connected_verified",
+      },
+      lifecycle: {
+        readModel: "connected_verified",
+        economicEvidenceWrites: "connected_verified",
+      },
+    },
     migrations: "reversible_verified",
     knownLimitationsDocumented: true,
     productionDisabled: true,
@@ -84,6 +99,55 @@ describe("Phase 9 private Production readiness", () => {
     );
 
     expect(readiness.status).toBe("review_required");
+  });
+
+  it("separates fixture verification from connected module acceptance", () => {
+    const fixtureVerified = assessPrivateProductionReadiness(
+      input({
+        moduleBoundaries: {
+          vaultPerformance: {
+            readModel: "fixture_verified",
+            economicEvidenceWrites: "fixture_verified",
+          },
+          openRace: {
+            readModel: "fixture_verified",
+            fieldLock: "fixture_verified",
+            postLockObservation: "fixture_verified",
+          },
+          lifecycle: {
+            readModel: "fixture_verified",
+            economicEvidenceWrites: "fixture_verified",
+          },
+        },
+      }),
+    );
+    expect(fixtureVerified.status).toBe("review_required");
+    expect(
+      fixtureVerified.checks.find(
+        ({ code }) => code === "COMMISSIONING_MODULE_BOUNDARIES",
+      ),
+    ).toMatchObject({ status: "review" });
+
+    const failed = assessPrivateProductionReadiness(
+      input({
+        moduleBoundaries: {
+          ...input().moduleBoundaries!,
+          lifecycle: {
+            ...input().moduleBoundaries!.lifecycle,
+            economicEvidenceWrites: "failed",
+          },
+        },
+      }),
+    );
+    expect(failed.status).toBe("blocked");
+  });
+
+  it("keeps legacy assessments without module evidence review-required", () => {
+    const legacy = input();
+    delete legacy.moduleBoundaries;
+    const readiness = assessPrivateProductionReadiness(legacy);
+    expect(readiness.status).toBe("review_required");
+    expect(readiness.moduleBoundaries.openRace.fieldLock).toBe("not_verified");
   });
 
   it("keeps ageing or stale evidence review-required", () => {
@@ -197,5 +261,19 @@ describe("Phase 9 private Production readiness", () => {
         }),
       ),
     ).toThrow(/Migration/);
+
+    expect(() =>
+      assessPrivateProductionReadiness(
+        input({
+          moduleBoundaries: {
+            ...input().moduleBoundaries!,
+            openRace: {
+              ...input().moduleBoundaries!.openRace,
+              fieldLock: "unsupported" as never,
+            },
+          },
+        }),
+      ),
+    ).toThrow(/module-boundary/);
   });
 });
