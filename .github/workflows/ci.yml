@@ -435,6 +435,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.up.sql
       - name: Run Lifecycle economic evidence persistence smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.smoke.sql
+      - name: Apply Breeding economic persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.up.sql
+      - name: Run Breeding economic persistence smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.smoke.sql
+      - name: Reverse Breeding economic persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.down.sql
+      - name: Verify Breeding economic persistence removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0137_breeding_economic_persistence.removal.sql
       - name: Reverse Lifecycle economic evidence persistence migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0136_lifecycle_economic_evidence_persistence.down.sql
       - name: Verify Lifecycle economic evidence persistence removal
