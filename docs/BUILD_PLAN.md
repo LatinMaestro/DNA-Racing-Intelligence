@@ -13,6 +13,18 @@ DNA Open Lab v1 is the sole game-data source on the delivery critical path. Exis
 
 ## Target architecture
 
+### Owner-requested probability and star-prediction workstream
+
+The active DNA API Delivery schedule must also execute the dependency-ordered
+[independent race probability, Core grade and star-prediction plan](RACE_PROBABILITY_AND_STAR_PREDICTION_PLAN.md).
+Continue commissioning-critical dependencies first, then implement the next
+unblocked slice using existing approved methods and components. FairEx is an
+optional post-lock historical comparator; supported odds access and full archive
+coverage must not block our own calculator or initial private commissioning.
+Preserve the one-active-PR rule and all analytical, capacity and deployment gates.
+
+### Existing private architecture
+
 `DNA Open Lab API -> server-only client/sync planner -> private R2 raw/cache/evidence where useful -> canonical source adapters -> compact owner-scoped Neon read models/aggregates -> private authenticated website`
 
 The browser never calls DNA Open Lab directly and never receives the Bearer key.
