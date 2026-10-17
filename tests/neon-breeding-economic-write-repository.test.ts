@@ -313,4 +313,3 @@ describe("Neon breeding economic persistence", () => {
     },
   );
 });
-
