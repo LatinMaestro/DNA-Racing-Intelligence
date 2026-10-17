@@ -1,5 +1,14 @@
+"use client";
+
+import { useActionState } from "react";
+import {
+  submitBurnCreditFormAction,
+  submitCoreBurnFormAction,
+  submitCoreSaleFormAction,
+} from "@/app/(private)/lifecycle/actions";
+
 export type LifecycleEconomicWriteStatus =
-  "identity_not_connected" | "persistence_not_configured";
+  "identity_not_connected" | "persistence_not_configured" | "ready";
 
 const statusCopy: Record<
   LifecycleEconomicWriteStatus,
@@ -15,6 +24,11 @@ const statusCopy: Record<
     detail:
       "These evidence forms are staged for review, but owner-scoped persistence is not configured. Nothing entered here can be recorded.",
   },
+  ready: {
+    label: "Lifecycle evidence ready",
+    detail:
+      "Confirmed owner-scoped sale, burn and actual BGC credit evidence can be recorded. Every submission is rechecked against accepted server-side evidence before persistence.",
+  },
 };
 
 const fieldClass =
@@ -22,12 +36,12 @@ const fieldClass =
 const buttonClass =
   "w-fit rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 
-function SaleFields() {
+function SaleFields({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
     <fieldset
       aria-describedby="sale-evidence-help"
       className="grid gap-4"
-      disabled
+      disabled={disabled}
     >
       <legend className="text-lg font-semibold">Completed core sale</legend>
       <p
@@ -53,8 +67,9 @@ function SaleFields() {
             className={fieldClass}
             id="sale-occurred-at"
             name="occurredAt"
+            placeholder="2026-10-17T13:30:00+10:00"
             required
-            type="datetime-local"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="sale-asset">
@@ -100,19 +115,19 @@ function SaleFields() {
           />
         </label>
       </div>
-      <button className={buttonClass} disabled type="submit">
+      <button className={buttonClass} disabled={disabled} type="submit">
         Record sale evidence
       </button>
     </fieldset>
   );
 }
 
-function BurnFields() {
+function BurnFields({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
     <fieldset
       aria-describedby="burn-evidence-help"
       className="grid gap-4"
-      disabled
+      disabled={disabled}
     >
       <legend className="text-lg font-semibold">Completed core burn</legend>
       <p
@@ -151,8 +166,9 @@ function BurnFields() {
             className={fieldClass}
             id="burn-occurred-at"
             name="occurredAt"
+            placeholder="2026-10-17T13:30:00+10:00"
             required
-            type="datetime-local"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="burn-reason">
@@ -165,19 +181,19 @@ function BurnFields() {
           />
         </label>
       </div>
-      <button className={buttonClass} disabled type="submit">
+      <button className={buttonClass} disabled={disabled} type="submit">
         Record burn evidence
       </button>
     </fieldset>
   );
 }
 
-function BurnCreditFields() {
+function BurnCreditFields({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
     <fieldset
       aria-describedby="burn-credit-help"
       className="grid gap-4"
-      disabled
+      disabled={disabled}
     >
       <legend className="text-lg font-semibold">
         Actual post-burn BGC credit
@@ -215,8 +231,9 @@ function BurnCreditFields() {
             className={fieldClass}
             id="credit-occurred-at"
             name="occurredAt"
+            placeholder="2026-10-17T13:30:00+10:00"
             required
-            type="datetime-local"
+            type="text"
           />
         </label>
         <label className="grid gap-2 text-sm" htmlFor="credit-amount">
@@ -231,7 +248,7 @@ function BurnCreditFields() {
           />
         </label>
       </div>
-      <button className={buttonClass} disabled type="submit">
+      <button className={buttonClass} disabled={disabled} type="submit">
         Record actual BGC credit
       </button>
     </fieldset>
@@ -242,6 +259,19 @@ export function LifecycleEconomicForms({
   status,
 }: Readonly<{ status: LifecycleEconomicWriteStatus }>) {
   const copy = statusCopy[status];
+  const [saleResult, saleAction, salePending] = useActionState(
+    submitCoreSaleFormAction,
+    null,
+  );
+  const [burnResult, burnAction, burnPending] = useActionState(
+    submitCoreBurnFormAction,
+    null,
+  );
+  const [creditResult, creditAction, creditPending] = useActionState(
+    submitBurnCreditFormAction,
+    null,
+  );
+  const ready = status === "ready";
   return (
     <section aria-labelledby="lifecycle-economic-evidence">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -270,22 +300,52 @@ export function LifecycleEconomicForms({
       </p>
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <form
+          action={saleAction}
           aria-label="Completed core sale evidence"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <SaleFields />
+          <SaleFields disabled={!ready || salePending} />
+          {saleResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{saleResult.title}.</strong> {saleResult.detail}
+            </p>
+          )}
         </form>
         <form
+          action={burnAction}
           aria-label="Completed core burn evidence"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <BurnFields />
+          <BurnFields disabled={!ready || burnPending} />
+          {burnResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{burnResult.title}.</strong> {burnResult.detail}
+            </p>
+          )}
         </form>
         <form
+          action={creditAction}
           aria-label="Actual post-burn BGC credit"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 xl:col-span-2"
         >
-          <BurnCreditFields />
+          <BurnCreditFields disabled={!ready || creditPending} />
+          {creditResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{creditResult.title}.</strong> {creditResult.detail}
+            </p>
+          )}
         </form>
       </div>
     </section>

@@ -39,4 +39,16 @@ describe("lifecycle economic forms", () => {
     expect(html).not.toContain('value="Genesis"');
     expect(html).toContain("disabled");
   });
+
+  it("enables the three evidence forms only at the ready boundary", () => {
+    const html = renderToStaticMarkup(
+      <LifecycleEconomicForms status="ready" />,
+    );
+    expect(html).toContain("Lifecycle evidence ready");
+    expect(html.match(/<fieldset/g)).toHaveLength(3);
+    expect(html).not.toMatch(/<fieldset[^>]*disabled/);
+    expect(html).not.toMatch(/<button[^>]*disabled=""/);
+    expect(html.match(/<form[^>]*action=/g)).toHaveLength(3);
+    expect(html).toContain("2026-10-17T13:30:00+10:00");
+  });
 });
