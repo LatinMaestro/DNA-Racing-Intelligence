@@ -199,9 +199,10 @@ BEGIN
     owner_id,evidence_id,evidence_kind,burn_id,fingerprint,record_sha256,record_json
   ) VALUES(p_owner_id,p_evidence_id,p_evidence_kind,p_burn_id,
     p_fingerprint,p_record_sha256,p_record_json);
-  UPDATE dna.lifecycle_economic_state
-  SET lifecycle_version=lifecycle_version+1 WHERE owner_id=p_owner_id
-  RETURNING lifecycle_version INTO v_version;
+  UPDATE dna.lifecycle_economic_state AS state
+  SET lifecycle_version=state.lifecycle_version+1
+  WHERE state.owner_id=p_owner_id
+  RETURNING state.lifecycle_version INTO v_version;
   RETURN QUERY SELECT 'created',p_fingerprint::text,v_version::text;
 END
 $function$;
